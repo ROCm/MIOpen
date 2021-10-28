@@ -1,8 +1,8 @@
 #include "common_header.hpp"
 #include "tensor_descriptor.hpp"
 #include "tensor_descriptor_helper.hpp"
-#include "gridwise_contraction_dlops_v1r2.hpp"
-#include "transform_forward_convolution_into_gemm_v6r1_nchw_kcyx_nkhw.hpp"
+#include "gridwise_gemm_xdlops_v2r3.hpp"
+#include "transform_forward_convolution_into_gemm_v4r4r4_nhwc_kyxc_nhwk.hpp"
 
 using namespace ck;
 
@@ -16,50 +16,51 @@ using FloatC   = typename get_datatype_from_enum<CDataTypeEnum>::type;
 
 constexpr index_t BlockSize = CK_PARAM_BlockSize;
 
-constexpr auto GN0 = Number<CK_PARAM_GN0>{};
-constexpr auto GK1 = Number<CK_PARAM_GK1>{};
+constexpr auto GemmMPerBlock     = Number<CK_PARAM_MPerBlock>{};
+constexpr auto GemmNPerBlock     = Number<CK_PARAM_NPerBlock>{};
+constexpr index_t GemmK0PerBlock = CK_PARAM_K0PerBlock;
 
-constexpr index_t GM1PerBlockGM11 = CK_PARAM_GM1PerBlockGM11;
-constexpr index_t GN1PerBlockGN11 = CK_PARAM_GN1PerBlockGN11;
-constexpr index_t GK0PerBlock     = CK_PARAM_GK0PerBlock;
+constexpr index_t MPerXDL = CK_PARAM_MPerXDL;
+constexpr index_t NPerXDL = CK_PARAM_NPerXDL;
+constexpr index_t GemmK1  = CK_PARAM_K1;
 
-constexpr index_t BM1PerThreadBM11 = CK_PARAM_BM1PerThreadBM11;
-constexpr index_t BN1PerThreadBN11 = CK_PARAM_BN1PerThreadBN11;
-constexpr index_t BK0PerThread     = CK_PARAM_BK0PerThread;
+constexpr index_t MRepeat = CK_PARAM_MRepeat;
+constexpr index_t NRepeat = CK_PARAM_NRepeat;
 
-using BM10BN10ThreadClusterBM10Xs = Sequence<CK_PARAM_BM10BN10ThreadClusterBM10Xs>;
-using BM10BN10ThreadClusterBN10Xs = Sequence<CK_PARAM_BM10BN10ThreadClusterBN10Xs>;
+using GemmABlockTransferThreadSliceLengths_K0_M_K1 =
+    Sequence<CK_PARAM_ABlockTransferThreadSliceLengths_K0_M_K1>;
+using GemmABlockTransferThreadClusterLengths_K0_M_K1 =
+    Sequence<CK_PARAM_ABlockTransferThreadClusterLengths_K0_M_K1>;
+using GemmABlockTransferThreadClusterArrangeOrder =
+    Sequence<CK_PARAM_ABlockTransferThreadClusterArrangeOrder>;
+using GemmABlockTransferSrcAccessOrder           = Sequence<CK_PARAM_ABlockTransferSrcAccessOrder>;
+constexpr index_t GemmABlockTransferSrcVectorDim = CK_PARAM_ABlockTransferSrcVectorDim;
+constexpr index_t GemmABlockTransferSrcScalarPerVector = CK_PARAM_ABlockTransferSrcScalarPerVector;
+constexpr index_t GemmABlockTransferDstScalarPerVector_K1 =
+    CK_PARAM_ABlockTransferDstScalarPerVector_K1;
+constexpr index_t GemmAThreadTransferSrcResetCoordinateAfterRun =
+    CK_PARAM_AThreadTransferSrcResetCoordinateAfterRun;
 
-using ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1 =
-    Sequence<CK_PARAM_ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1>;
-using ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1 =
-    Sequence<CK_PARAM_ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1>;
-using ABlockTransferThreadClusterArrangeOrder = Sequence<1, 2, 3, 0, 4>;
-using ABlockTransferSrcAccessOrder            = Sequence<3, 2, 1, 0, 4>;
-using ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 =
-    Sequence<CK_PARAM_ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1>;
-using ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1 =
-    Sequence<CK_PARAM_ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1>;
-using ABlockTransferSrcVectorTensorContiguousDimOrder = Sequence<0, 1, 2, 3, 4>;
+using GemmBBlockTransferThreadSliceLengths_K0_N_K1 =
+    Sequence<CK_PARAM_BBlockTransferThreadSliceLengths_K0_N_K1>;
+using GemmBBlockTransferThreadClusterLengths_K0_N_K1 =
+    Sequence<CK_PARAM_BBlockTransferThreadClusterLengths_K0_N_K1>;
+using GemmBBlockTransferThreadClusterArrangeOrder =
+    Sequence<CK_PARAM_BBlockTransferThreadClusterArrangeOrder>;
+using GemmBBlockTransferSrcAccessOrder           = Sequence<CK_PARAM_BBlockTransferSrcAccessOrder>;
+constexpr index_t GemmBBlockTransferSrcVectorDim = CK_PARAM_BBlockTransferSrcVectorDim;
+constexpr index_t GemmBBlockTransferSrcScalarPerVector = CK_PARAM_BBlockTransferSrcScalarPerVector;
+constexpr index_t GemmBBlockTransferDstScalarPerVector_K1 =
+    CK_PARAM_BBlockTransferDstScalarPerVector_K1;
+constexpr index_t GemmBThreadTransferSrcResetCoordinateAfterRun =
+    CK_PARAM_BThreadTransferSrcResetCoordinateAfterRun;
 
-using BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1 =
-    Sequence<CK_PARAM_BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1>;
-using BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1 =
-    Sequence<CK_PARAM_BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1>;
-using BBlockTransferThreadClusterArrangeOrder = Sequence<0, 4, 1, 2, 3>;
-using BBlockTransferSrcAccessOrder            = Sequence<4, 3, 2, 0, 1>;
-using BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 =
-    Sequence<CK_PARAM_BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1>;
-using BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1 =
-    Sequence<CK_PARAM_BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1>;
-using BBlockTransferSrcVectorTensorContiguousDimOrder = Sequence<0, 1, 2, 3, 4>;
+using GemmCThreadTransferSrcDstAccessOrder = Sequence<CK_PARAM_CThreadTransferSrcDstAccessOrder>;
+constexpr index_t GemmCThreadTransferSrcDstVectorDim = CK_PARAM_CThreadTransferSrcDstVectorDim;
+constexpr index_t GemmCThreadTransferDstScalarPerVector =
+    CK_PARAM_CThreadTransferDstScalarPerVector;
 
-using CThreadTransferSrcDstAccessOrder              = Sequence<3, 4, 5, 0, 1, 2>;
-constexpr index_t CThreadTransferSrcDstVectorDim    = 5;
-constexpr index_t CThreadTransferDstScalarPerVector = CK_PARAM_CThreadTransferDstScalarPerVector;
-
-constexpr bool HasMainKBlockLoop       = static_cast<bool>(CK_PARAM_HasMainKBlockLoop);
-constexpr bool HasDoubleTailKBlockLoop = static_cast<bool>(CK_PARAM_HasDoubleTailKBlockLoop);
+constexpr bool HasMainKBlockLoop = static_cast<bool>(CK_PARAM_HasMainKBlockLoop);
 
 extern "C" __global__ void
 convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk_prepare(int N_,
@@ -104,114 +105,106 @@ convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk_prepare(int N_,
     const index_t Wo =
         (Wi + InLeftPadW + InRightPadW - ConvDilationW * (X - 1) - 1) / ConvStrideW + 1;
 
-    const auto in_n_c_hi_wi_desc  = make_naive_tensor_descriptor_packed(make_tuple(N, C, Hi, Wi));
-    const auto wei_k_c_y_x_desc   = make_naive_tensor_descriptor_packed(make_tuple(K, C, Y, X));
-    const auto out_n_k_ho_wo_desc = make_naive_tensor_descriptor_packed(make_tuple(N, K, Ho, Wo));
+    const auto in_n_hi_wi_c_desc  = make_naive_tensor_descriptor_packed(make_tuple(N, Hi, Wi, C));
+    const auto wei_k_y_x_c_desc   = make_naive_tensor_descriptor_packed(make_tuple(K, Y, X, C));
+    const auto out_n_ho_wo_k_desc = make_naive_tensor_descriptor_packed(make_tuple(N, Ho, Wo, K));
 
-    const auto descs = transform_forward_convolution_into_contraction_v6r1_nchw_kcyx_nkhw_pad(
-        wei_k_c_y_x_desc,
-        in_n_c_hi_wi_desc,
-        out_n_k_ho_wo_desc,
+    const auto descs = transform_forward_convolution_into_gemm_v4r4r4_nhwc_kyxc_nhwk_pad(
+        in_n_hi_wi_c_desc,
+        wei_k_y_x_c_desc,
+        out_n_ho_wo_k_desc,
         make_tuple(ConvStrideH, ConvStrideW),
         make_tuple(ConvDilationH, ConvDilationW),
         make_tuple(InLeftPadH, InLeftPadW),
         make_tuple(InRightPadH, InRightPadW),
-        GN0,
-        GK1);
+        Number<K1>{});
 
-    const auto a_grid_desc_gk0_gm0_gm1_gk1 = descs[I0];
-    const auto b_grid_desc_gk0_gn0_gn1_gk1 = descs[I1];
-    const auto c_grid_desc_gm0_gm1_gn0_gn1 = descs[I2];
+    const auto in_gemmk0_gemmm_gemmk1_grid_desc  = descs[I0];
+    const auto wei_gemmk0_gemmn_gemmk1_grid_desc = descs[I1];
+    const auto out_gemmm_gemmn_grid_desc         = descs[I2];
 
-    using AGridDesc_GK0_GM0_GM1_GK1 = decltype(a_grid_desc_gk0_gm0_gm1_gk1);
-    using BGridDesc_GK0_GN0_GN1_GK1 = decltype(b_grid_desc_gk0_gn0_gn1_gk1);
-    using CGridDesc_GM0_GM1_GN0_GN1 = decltype(c_grid_desc_gm0_gm1_gn0_gn1);
+    // HACK: hacks that control index calculation when iterating over A, B, C matrix
+    constexpr auto in_gemmk0_gemmm_gemmk1_grid_step_hacks =
+        make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{},   // 0+: GemmK0
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0>{},   // 1+: GemmM
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{}),  // 2+: GemmK1
+                   make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0>{},   // 0-: GemmK0
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0>{},   // 1-: GemmM
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0>{})); // 2-: GemmK1
 
-    using AGridStepHacks =
-        decltype(make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 0+: GK0
-                                       Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 1+: GM0
-                                       Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 2+: GM10
-                                       Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 3+: GM11
-                                       Sequence<0, 0, 0, 0, 0, 0, 0>{}),   // 4+: GK1
-                            make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 0-: GK0
-                                       Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 1-: GM0
-                                       Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 2-: GM10
-                                       Sequence<0, 0, 0, 0, 0, 0, 0>{},    // 3-: GM11
-                                       Sequence<0, 0, 0, 0, 0, 0, 0>{}))); // 4-: GK1
+    constexpr auto wei_gemmk0_gemmn_gemmk1_grid_step_hacks =
+        make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0>{},   // 0+: GemmK0
+                              Sequence<0, 0, 0, 0, 0>{},   // 1+: GemmN
+                              Sequence<0, 0, 0, 0, 0>{}),  // 2+: GemmK1
+                   make_tuple(Sequence<0, 0, 0, 0, 0>{},   // 0-: GemmK0
+                              Sequence<0, 0, 0, 0, 0>{},   // 1-: GemmN
+                              Sequence<0, 0, 0, 0, 0>{})); // 2-: GemmK1
 
-    using BGridStepHacks = decltype(make_tuple(
-        make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0>{},    // 0+: GK0
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},    // 1+: GN0
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},    // 2+: GN10
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},    // 3+: GN11
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}),   // 4+: GK1
-        make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0>{},    // 0-: GK0
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0>{},    // 1-: GN0
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0>{},    // 2-: GN10
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0>{},    // 3-: GN11
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}))); // 4-: GK1
+    constexpr auto out_m0_n0_m1_n1_m2_m3_m4_n2_grid_step_hacks =
+        make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 0+: M0
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 1+: N0
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 2+: M1
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 3+: N1
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 4+: M2
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 5+: M3
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 6+: M4
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}),  // 7+: N2
+                   make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 0-: M0
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 1-: N0
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 2-: M1
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 3-: N1
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 4-: M2
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 5-: M3
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 6-: M4
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{})); // 7-: N2
 
-    using CGridStepHacks = decltype(make_tuple(
-        make_tuple(
-            Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},  // 0+: GM10
-            Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0>{},  // 1+: BM0
-            Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0>{},  // 2+: BM1
-            Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},  // 3+: GN10
-            Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0>{},  // 4+: BN0
-            Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0>{}), // 5+: GN1
-        make_tuple(
-            Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},    // 0-: GM10
-            Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0>{},    // 1-: BM0
-            Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0>{},    // 2-: BM1
-            Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},    // 3-: GN10
-            Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0>{},    // 4-: BN0
-            Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0>{}))); // 5-: GN1
+    constexpr auto in_gemmk0_gemmm_gemmk1_grid_move_slice_window_step_hacks =
+        Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0>{};
 
-    using AGridMoveSliceWindowStepHacks = Sequence<0, 0, 0, 0, 0, 0, 0>;
+    constexpr auto wei_gemmk0_gemmn_gemmk1_grid_move_slice_window_step_hacks =
+        Sequence<0, 0, 0, 0, 0>{};
 
-    using BGridMoveSliceWindowStepHacks =
-        Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0>;
-
-    using GridwiseContraction =
-        GridwiseContractionDlops_A_GK0_GM0_GM1_GK1_B_GK0_GN0_GN1_GK1_C_GM0_GM1_GN0_GN1<
-            BlockSize,
-            FloatAB,
-            FloatAcc,
-            FloatC,
-            InMemoryDataOperationEnum_t::Set,
-            AGridDesc_GK0_GM0_GM1_GK1,
-            BGridDesc_GK0_GN0_GN1_GK1,
-            CGridDesc_GM0_GM1_GN0_GN1,
-            GM1PerBlockGM11,
-            GN1PerBlockGN11,
-            GK0PerBlock,
-            BM1PerThreadBM11,
-            BN1PerThreadBN11,
-            BK0PerThread,
-            BM10BN10ThreadClusterBM10Xs,
-            BM10BN10ThreadClusterBN10Xs,
-            ABlockTransferThreadSliceLengths_GK0_GM0_GM10_GM11_GK1,
-            ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1,
-            ABlockTransferThreadClusterArrangeOrder,
-            ABlockTransferSrcAccessOrder,
-            ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1,
-            ABlockTransferDstVectorTensorLengths_GK0_GM0_GM10_GM11_GK1,
-            ABlockTransferSrcVectorTensorContiguousDimOrder,
-            BBlockTransferThreadSliceLengths_GK0_GN0_GN10_GN11_GK1,
-            BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1,
-            BBlockTransferThreadClusterArrangeOrder,
-            BBlockTransferSrcAccessOrder,
-            BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1,
-            BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1,
-            BBlockTransferSrcVectorTensorContiguousDimOrder,
-            CThreadTransferSrcDstAccessOrder,
-            CThreadTransferSrcDstVectorDim,
-            CThreadTransferDstScalarPerVector,
-            AGridStepHacks,
-            BGridStepHacks,
-            CGridStepHacks,
-            AGridMoveSliceWindowStepHacks,
-            BGridMoveSliceWindowStepHacks>;
+    using GridwiseContraction = GridwiseGemm_k0mk1_k0nk1_mn_xdlops_v2r3<
+        BlockSize,
+        FloatAB,
+        FloatAcc,
+        FloatC,
+        InMemoryDataOperationEnum_t::Set,
+        decltype(in_gemmk0_gemmm_gemmk1_grid_desc),
+        decltype(out_gemmk0_gemmn_gemmk1_grid_desc),
+        decltype(wei_gemmm_gemmn_grid_desc),
+        GemmMPerBlock,
+        GemmNPerBlock,
+        GemmKPerBlock,
+        GemmMPerXDL,
+        GemmNPerXDL,
+        GemmK1,
+        MRepeat,
+        NRepeat,
+        GemmABlockTransferThreadSliceLengths_GemmK0_GemmM_GemmK1,
+        GemmABlockTransferThreadClusterLengths_GemmK0_GemmM_GemmK1,
+        Sequence<0, 2, 1>,
+        Sequence<0, 2, 1>,
+        1,
+        GemmABlockTransferSrcScalarPerVector_GemmM,
+        GemmABlockTransferDstScalarPerVector_GemmK1,
+        false, // don't move back src coordinate after threadwise copy
+        GemmBBlockTransferThreadSliceLengths_GemmK0_GemmN_GemmK1,
+        GemmBBlockTransferThreadClusterLengths_GemmK0_GemmN_GemmK1,
+        Sequence<0, 2, 1>,
+        Sequence<0, 2, 1>,
+        1,
+        GemmBBlockTransferSrcScalarPerVector_GemmN,
+        GemmBBlockTransferDstScalarPerVector_GemmK1,
+        false, // don't move back src coordinate after threadwise copy
+        Sequence<2, 3, 0, 1, 7, 5, 4, 6>,
+        7,
+        GemmCThreadTransferDstScalarPerVector decltype(in_gemmk0_gemmm_gemmk1_grid_step_hacks),
+        decltype(out_gemmk0_gemmn_gemmk1_grid_step_hacks),
+        decltype(wei_m0_n0_m1_n1_m2_m3_m4_n2_grid_step_hacks),
+        decltype(in_gemmk0_gemmm_gemmk1_grid_move_slice_window_step_hacks),
+        decltype(out_gemmk0_gemmn_gemmk1_grid_move_slice_window_step_hacks),
+        false>;
 
     if(get_block_1d_id() == 0 && get_thread_local_1d_id() == 0)
     {
@@ -283,29 +276,13 @@ extern "C" __global__ void
                                        Sequence<0, 0, 0, 0, 0, 0, 0>{}))); // 4-: GK1
 
     using BGridStepHacks = decltype(make_tuple(
-        make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0>{},  // 0+: GK0
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},  // 1+: GN0
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},  // 2+: GN10
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},  // 3+: GN11
-                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}), // 4+: GK1
-        make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0>{},  // 0-: GK0
-                   Sequence<0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw 2,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0>{},                                                    // 1-: GN0
+        make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0>{},    // 0+: GK0
+                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},    // 1+: GN0
+                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},    // 2+: GN10
+                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0>{},    // 3+: GN11
+                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}),   // 4+: GK1
+        make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0>{},    // 0-: GK0
+                   Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0>{},    // 1-: GN0
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0>{},    // 2-: GN10
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0>{},    // 3-: GN11
                    Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{}))); // 4-: GK1
