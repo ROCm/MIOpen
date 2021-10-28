@@ -120,11 +120,7 @@ struct SolverBase
     /// GetPerformanceConfig() so that GetSolution() would return valid
     /// solution for a problem (i.e. convolution). In other words, if a Solution
     /// says "I'm suitable" for a problem, it agrees to solve that problem correctly.
-    virtual bool IsApplicable(const boost::any& ctx_) const
-    {
-        std::ignore = ctx_;
-        return false;
-    }
+    virtual bool IsApplicable(const boost::any& ctx_) const = 0;
 
     /// [Informative as of Sep 2020] The minimum requirement for Dynamic Solvers:
     /// Batch size and input picture size (N, W, H) must NOT be compiled into the
