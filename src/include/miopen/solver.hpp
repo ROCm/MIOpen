@@ -2361,14 +2361,12 @@ struct GemmFwd1x1_0_2 : GemmFwdBase
     size_t GetWorkspaceSize(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
 
     bool IsApplicable(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return IsApplicable(ctx, ctx.conv_problem);
     }
 
@@ -2387,14 +2385,12 @@ struct GemmFwd1x1_0_1_int8 : GemmFwdBase
     size_t GetWorkspaceSize(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
 
     bool IsApplicable(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return IsApplicable(ctx, ctx.conv_problem);
     }
 
@@ -2413,14 +2409,12 @@ struct GemmFwd1x1_0_1 : GemmFwdBase
     size_t GetWorkspaceSize(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
 
     bool IsApplicable(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return IsApplicable(ctx, ctx.conv_problem);
     }
 
@@ -2439,14 +2433,12 @@ struct GemmFwdRest : GemmFwdBase
     size_t GetWorkspaceSize(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
 
     bool IsApplicable(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return IsApplicable(ctx, ctx.conv_problem);
     }
 
@@ -2474,14 +2466,12 @@ struct GemmBwd1x1_stride2 : GemmBwdBase
     size_t GetWorkspaceSize(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
 
     bool IsApplicable(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return IsApplicable(ctx, ctx.conv_problem);
     }
 
@@ -2500,14 +2490,12 @@ struct GemmBwd1x1_stride1 : GemmBwdBase
     size_t GetWorkspaceSize(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
 
     bool IsApplicable(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return IsApplicable(ctx, ctx.conv_problem);
     }
 
@@ -2526,14 +2514,12 @@ struct GemmBwdRest : GemmBwdBase
     size_t GetWorkspaceSize(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
 
     bool IsApplicable(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return IsApplicable(ctx, ctx.conv_problem);
     }
 
@@ -2561,14 +2547,12 @@ struct GemmWrw1x1_stride1 : GemmWrwBase
     size_t GetWorkspaceSize(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
 
     bool IsApplicable(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return IsApplicable(ctx, ctx.conv_problem);
     }
 
@@ -2587,14 +2571,12 @@ struct GemmWrwUniversal : GemmWrwBase
     size_t GetWorkspaceSize(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
 
     bool IsApplicable(const boost::any& ctx_) const override
     {
         auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
         return IsApplicable(ctx, ctx.conv_problem);
     }
 
@@ -2727,7 +2709,9 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        std::string prec_string = self.precision == miopenFloat ? "fp32" : "fp16";
+        std::string prec_string = self.precision == miopenFloat
+                                      ? "fp32"
+                                      : (self.precision == miopenHalf ? "fp16" : "bf16");
         f(self.direction, "dir");
         f(self.tensor_layout, "lyt");
         f(prec_string, "pre");
@@ -2912,7 +2896,7 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC : SolverBase
                                   const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC&) const;
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
-
+    size_t GetWorkspaceSize(const boost::any& ctx_) const override;
     bool IsApplicable(const boost::any& ctx_) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
@@ -3044,7 +3028,7 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC : SolverBase
                                   const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC&) const;
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
-
+    size_t GetWorkspaceSize(const boost::any& ctx_) const override;
     bool IsApplicable(const boost::any& ctx_) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
@@ -3178,9 +3162,7 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC : SolverBase
                                   const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const;
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
-
     size_t GetWorkspaceSize(const boost::any& ctx_) const override;
-
     bool IsApplicable(const boost::any& ctx_) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,

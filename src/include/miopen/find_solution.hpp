@@ -121,8 +121,6 @@ template <class Solver, class Context, class Db>
 ConvSolution
 FindSolution(Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
 {
-    //static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
-    //              "Solver must be stateless");
     // TODO: This assumes all solutions are ConvSolution
     auto solution      = FindSolutionImpl(rank<1>{}, s, context, db, invoke_ctx);
     solution.solver_id = SolverDbId(s);
