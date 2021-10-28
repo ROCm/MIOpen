@@ -15,6 +15,17 @@ struct GeneratorTensor_1
     }
 };
 
+struct GeneratorTensor_0
+{
+    int value = 0;
+
+    template <typename... Is>
+    float operator()(Is...)
+    {
+        return value;
+    }
+};
+
 struct GeneratorTensor_2
 {
     int min_value = 0;

@@ -74,6 +74,13 @@ struct scalar_type<vector_type<T, N>>
 
 //
 template <>
+struct scalar_type<double>
+{
+    using type                           = double;
+    static constexpr index_t vector_size = 1;
+};
+
+template <>
 struct scalar_type<float>
 {
     using type                           = float;
@@ -864,6 +871,10 @@ struct vector_type<T, 256>
     }
 };
 
+// fp64
+using double2_t = typename vector_type<double, 2>::type;
+using double4_t = typename vector_type<double, 4>::type;
+
 // fp32
 using float2_t  = typename vector_type<float, 2>::type;
 using float4_t  = typename vector_type<float, 4>::type;
@@ -997,20 +1008,27 @@ struct inner_product_with_conversion
 };
 
 template <typename T>
-struct NumericLimits;
+struct NumericLimits
+{
+    __host__ __device__ static constexpr T Min() { return std::numeric_limits<T>::min(); }
+
+    __host__ __device__ static constexpr T Max() { return std::numeric_limits<T>::max(); }
+
+    __host__ __device__ static constexpr T Lowest() { return std::numeric_limits<T>::lowest(); }
+};
 
 template <>
-struct NumericLimits<int32_t>
+struct NumericLimits<half_t>
 {
-    __host__ __device__ static constexpr int32_t Min()
-    {
-        return std::numeric_limits<int32_t>::min();
-    }
+    static constexpr unsigned short binary_min    = 0x0400;
+    static constexpr unsigned short binary_max    = 0x7BFF;
+    static constexpr unsigned short binary_lowest = 0xFBFF;
 
-    __host__ __device__ static constexpr int32_t Max()
-    {
-        return std::numeric_limits<int32_t>::max();
-    }
+    __host__ __device__ static constexpr half_t Min() { return as_type<half_t>(binary_min); }
+
+    __host__ __device__ static constexpr half_t Max() { return as_type<half_t>(binary_max); }
+
+    __host__ __device__ static constexpr half_t Lowest() { return as_type<half_t>(binary_lowest); }
 };
 
 } // namespace ck

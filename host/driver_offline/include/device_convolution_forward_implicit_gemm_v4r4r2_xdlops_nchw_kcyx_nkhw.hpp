@@ -47,7 +47,35 @@ void device_convolution_forward_implicit_gemm_v4r4r2_xdlops_nchw_kcyx_nkhw(
     const auto wei_k_c_y_x_desc   = make_naive_tensor_descriptor_packed(wei_k_c_y_x_lengths);
     const auto out_n_k_ho_wo_desc = make_naive_tensor_descriptor_packed(out_n_k_ho_wo_lengths);
 
-#if 1
+#if 0
+    // [M, N, K0, K1] = [128, 128, 4, 8] for fp16
+    constexpr index_t BlockSize = 256;
+
+    constexpr index_t GemmMPerBlock = 128;
+    constexpr index_t GemmNPerBlock = 128;
+    constexpr index_t GemmKPerBlock = 4;
+
+    constexpr index_t GemmMPerWave = 32;
+    constexpr index_t GemmNPerWave = 32;
+    constexpr index_t GemmK1       = 8;
+
+    constexpr index_t MRepeat = 2;
+    constexpr index_t NRepeat = 2;
+
+    using GemmABlockTransferThreadSliceLengths_GemmK0_GemmM_GemmK1   = Sequence<1, 2, 8>;
+    using GemmABlockTransferThreadClusterLengths_GemmK0_GemmM_GemmK1 = Sequence<4, 64, 1>;
+
+    constexpr index_t GemmABlockTransferSrcScalarPerVector_GemmK1 = 8;
+    constexpr index_t GemmABlockTransferDstScalarPerVector_GemmK1 = 8;
+
+    using GemmBBlockTransferThreadSliceLengths_GemmK0_GemmN_GemmK1   = Sequence<1, 2, 8>;
+    using GemmBBlockTransferThreadClusterLengths_GemmK0_GemmN_GemmK1 = Sequence<4, 64, 1>;
+
+    constexpr index_t GemmBBlockTransferSrcScalarPerVector_GemmN  = 1;
+    constexpr index_t GemmBBlockTransferDstScalarPerVector_GemmK1 = 8;
+
+    constexpr index_t GemmCThreadTransferDstScalarPerVector = 1;
+#elif 1
     // [M, N, K0, K1] = [256, 128, 4, 8] for fp16
     constexpr index_t BlockSize = 256;
 
@@ -92,36 +120,39 @@ void device_convolution_forward_implicit_gemm_v4r4r2_xdlops_nchw_kcyx_nkhw(
     const auto out_gemmm_gemmn_grid_desc         = descs[I2];
 
     // HACK: hacks that control index calculation when iterating over A, B, C matrix
-    constexpr auto wei_gemmk0_gemmm_gemmk1_grid_step_hacks = make_tuple(
-        make_tuple(Sequence<0, 0, 0, 0, 0>{}, Sequence<0, 0, 0, 0, 0>{}, Sequence<0, 0, 0, 0, 0>{}),
-        make_tuple(
-            Sequence<0, 0, 0, 0, 0>{}, Sequence<0, 0, 0, 0, 0>{}, Sequence<0, 0, 0, 0, 0>{}));
+    constexpr auto wei_gemmk0_gemmm_gemmk1_grid_step_hacks =
+        make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0>{},   // 0+: GemmK0
+                              Sequence<0, 0, 0, 0, 0>{},   // 1+: GemmM
+                              Sequence<0, 0, 0, 0, 0>{}),  // 2+: GemmK1
+                   make_tuple(Sequence<0, 0, 0, 0, 0>{},   // 0-: GemmK0
+                              Sequence<0, 0, 0, 0, 0>{},   // 1-: GemmM
+                              Sequence<0, 0, 0, 0, 0>{})); // 2-: GemmK1
 
     constexpr auto in_gemmk0_gemmn_gemmk1_grid_step_hacks =
-        make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{},
-                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0>{},
-                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{}),
-                   make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0>{},
-                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0>{},
-                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0>{}));
+        make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{},   // 0+: GemmK0
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0>{},   // 1+: GemmN
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0>{}),  // 2+: GemmK1
+                   make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0>{},   // 0-: GemmK0
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0>{},   // 1-: GemmN
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0>{})); // 2-: GemmK1
 
-    constexpr auto out_m0_m1_m2_n_grid_step_hacks =
-        make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0>{},
-                              Sequence<0, 0, 1, 0, 0>{},
-                              Sequence<0, 0, 0, 0, 0>{},
-                              Sequence<0, 0, 1, 0, 0>{},
-                              Sequence<0, 0, 0, 0, 0>{},
-                              Sequence<0, 0, 0, 0, 0>{},
-                              Sequence<0, 0, 0, 0, 0>{},
-                              Sequence<0, 0, 1, 0, 0>{}),
-                   make_tuple(Sequence<0, 0, 0, 0, 0>{},
-                              Sequence<0, 0, 2, 0, 0>{},
-                              Sequence<0, 0, 0, 0, 0>{},
-                              Sequence<0, 0, 2, 0, 0>{},
-                              Sequence<0, 0, 0, 0, 0>{},
-                              Sequence<0, 0, 0, 0, 0>{},
-                              Sequence<0, 0, 0, 0, 0>{},
-                              Sequence<0, 0, 2, 0, 0>{}));
+    constexpr auto out_m0_n0_m1_n1_m2_m3_m4_n2_grid_step_hacks =
+        make_tuple(make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 0+: M0
+                              Sequence<0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 1+: N0
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 2+: M1
+                              Sequence<0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 3+: N1
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 4+: M2
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 5+: M3
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 6+: M4
+                              Sequence<0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0>{}),  // 7+: N2
+                   make_tuple(Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 0-: M0
+                              Sequence<0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 1-: N0
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 2-: M1
+                              Sequence<0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 3-: N1
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 4-: M2
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 5-: M3
+                              Sequence<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>{},   // 6-: M4
+                              Sequence<0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0>{})); // 7-: N2
 
     constexpr auto wei_gemmk0_gemmm_gemmk1_grid_move_slice_window_step_hacks =
         Sequence<0, 0, 0, 0, 0>{};
@@ -169,7 +200,7 @@ void device_convolution_forward_implicit_gemm_v4r4r2_xdlops_nchw_kcyx_nkhw(
             GemmCThreadTransferDstScalarPerVector,
             decltype(wei_gemmk0_gemmm_gemmk1_grid_step_hacks),
             decltype(in_gemmk0_gemmn_gemmk1_grid_step_hacks),
-            decltype(out_m0_m1_m2_n_grid_step_hacks),
+            decltype(out_m0_n0_m1_n1_m2_m3_m4_n2_grid_step_hacks),
             decltype(wei_gemmk0_gemmm_gemmk1_grid_move_slice_window_step_hacks),
             decltype(in_gemmk0_gemmn_gemmk1_grid_move_slice_window_step_hacks),
             false>(static_cast<TInWei*>(wei_k_c_y_x_device_buf.GetDeviceBuffer()),
@@ -180,7 +211,7 @@ void device_convolution_forward_implicit_gemm_v4r4r2_xdlops_nchw_kcyx_nkhw(
                    out_gemmm_gemmn_grid_desc,
                    wei_gemmk0_gemmm_gemmk1_grid_step_hacks,
                    in_gemmk0_gemmn_gemmk1_grid_step_hacks,
-                   out_m0_m1_m2_n_grid_step_hacks,
+                   out_m0_n0_m1_n1_m2_m3_m4_n2_grid_step_hacks,
                    wei_gemmk0_gemmm_gemmk1_grid_move_slice_window_step_hacks,
                    in_gemmk0_gemmn_gemmk1_grid_move_slice_window_step_hacks,
                    nrepeat);

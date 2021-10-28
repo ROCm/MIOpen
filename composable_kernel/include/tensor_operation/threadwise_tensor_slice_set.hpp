@@ -30,11 +30,11 @@ struct ThreadwiseTensorSliceSet_v1
 
         static_assert(Buffer::IsStaticBuffer(), "wrong! DstBuffer need to be StaticBuffer");
 
-        static_assert(is_known_at_compile_time<remove_cv_t<remove_reference_t<OriginIdx>>>::value,
+        static_assert(is_known_at_compile_time<remove_cvref_t<OriginIdx>>::value,
                       "wrong! OriginIdx need to be known at compile-time");
 
         // Desc is known at compile-time
-        constexpr auto desc = remove_cv_t<remove_reference_t<Desc>>{};
+        constexpr auto desc = remove_cvref_t<Desc>{};
 
         // OriginIdx is known at compile-time
         constexpr auto origin_idx = to_multi_index(OriginIdx{});

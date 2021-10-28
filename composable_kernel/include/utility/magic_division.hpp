@@ -114,12 +114,11 @@ struct MagicDivision
     __host__ __device__ static constexpr uint32_t
     DoMagicDivision(uint32_t dividend, uint32_t multiplier, uint32_t shift)
     {
-        uint32_t tmp = (uint64_t(dividend) * uint64_t(multiplier)) >> 32;
+        uint32_t tmp = __umulhi(dividend, multiplier);
         return (tmp + dividend) >> shift;
     }
 
-#if 1 // debug
-    // HACK: magic division for int32_t
+    // magic division for int32_t
     // HACK: use dividend_i32 as if it's uint32_t, dividend_i32 need to be
     // non-negative for result to be correct
     // TODO: figure out how to do magic number divison for int32_t as dividended
@@ -127,27 +126,9 @@ struct MagicDivision
     DoMagicDivision(int32_t dividend_i32, uint32_t multiplier, uint32_t shift)
     {
         uint32_t dividend_u32 = as_type<uint32_t>(dividend_i32);
-        uint32_t tmp =
-            (static_cast<uint64_t>(dividend_u32) * static_cast<uint64_t>(multiplier)) >> 32;
+        uint32_t tmp          = __umulhi(dividend_u32, multiplier);
         return (tmp + dividend_u32) >> shift;
     }
-#else
-    // the inline ASM is producing wrong result
-    __host__ __device__ static int32_t
-    DoMagicDivision(int32_t dividend_i32, uint32_t multiplier, uint32_t shift)
-    {
-        uint32_t r;
-        asm volatile("\n \
-                v_mul_hi_u32 %0, %1, %2 \n \
-                v_add_u32_e32 %0, %1, %0 \n \
-                v_lshrrev_b32_e32 %0, %3, %0 \n \
-                "
-                     : "=v"(r)
-                     : "v"(as_type<uint32_t>(dividend_i32)), "s"(multiplier), "s"(shift));
-
-        return as_type<int32_t>(r);
-    }
-#endif
 };
 
 } // namespace ck

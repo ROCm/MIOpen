@@ -110,13 +110,11 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v3
                         const BThreadBuffer& b_thread_buf,
                         CThreadBuffer& c_thread_buf) const
     {
-        static_assert(is_same<remove_cv_t<remove_reference_t<typename ABlockBuffer::type>>,
-                              remove_cv_t<remove_reference_t<FloatA>>>::value &&
-                      is_same<remove_cv_t<remove_reference_t<typename BThreadBuffer::type>>,
-                              remove_cv_t<remove_reference_t<FloatB>>>::value &&
-                      is_same<remove_cv_t<remove_reference_t<typename CThreadBuffer::type>>,
-                              remove_cv_t<remove_reference_t<FloatC>>>::value &&
-                      "wrong! inconsistent type");
+        static_assert(
+            is_same<remove_cvref_t<typename ABlockBuffer::type>, remove_cvref_t<FloatA>>::value &&
+            is_same<remove_cvref_t<typename BThreadBuffer::type>, remove_cvref_t<FloatB>>::value &&
+            is_same<remove_cvref_t<typename CThreadBuffer::type>, remove_cvref_t<FloatC>>::value &&
+            "wrong! inconsistent type");
 
         constexpr auto I0 = Number<0>{};
 
