@@ -25,4 +25,9 @@ GPU architecture-specific pre-compiled kernel packages are available in the ROCm
 
 These packages are optional for the functioning of MIOpen and must be separately installed from MIOpen. Users who wish to conserve disk space may choose not to install these packages at the cost of higher startup latency. Users have the flexibility to only install kernel packages for installed device architecture, thus minimizing disk space usage.
 
-Please refer to the MIOpen installation instructions for guidance on installing the MIOpen kernels package.
+If MIOpen kernels package is not installed, or if we do not deliver the kernels suitable for the user's GPU, then the user will get warning message like this:
+> MIOpen(HIP): Warning [SQLiteBase] Missing system database file:gfx906_60.kdb Performance may degrade
+
+The performance degradation mentioned in the warning only affects the network start-up time (aka "initial iteration time") and thus can be safely ignored.
+
+Please refer to the MIOpen installation instructions: [installing MIOpen kernels package](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/install.html#installing-miopen-kernels-package) for guidance on installing the MIOpen kernels package.
