@@ -54,7 +54,8 @@ template <typename GridwiseGemm,
           typename AK0MK1GridDesc,
           typename BK0NK1GridDesc,
           typename CM0N0M1N1M2M3M4N2GridDesc,
-          typename CBlockClusterAdaptor>
+          typename CBlockClusterAdaptor,
+          bool HasMainKBlockLoop>
 __global__ void
 #if CK_USE_LAUNCH_BOUNDS
     __launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)

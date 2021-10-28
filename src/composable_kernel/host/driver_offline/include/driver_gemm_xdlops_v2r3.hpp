@@ -268,7 +268,6 @@ __host__ float driver_gemm_xdlops_v2r3(const FloatAB* p_a_grid,
             cast_pointer_to_constant_address_space(
                 c_block_cluster_adaptor_dev_buf.GetDeviceBuffer()));
     }
-}
 #endif
     return ave_time;
 }
