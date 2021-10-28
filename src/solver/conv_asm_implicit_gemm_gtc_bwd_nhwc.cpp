@@ -281,6 +281,101 @@ GetBwdXdlopsNHWCConfigList()
         {"bwd", "nhwc", miopenHalf,  0, 1,  32,  64,  32, 16, 64,  4, 1, 1, 1, 1, 1, 1, 1, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 32}, { 1, 8, 1, 2}, {  1,  4,  1, 32}},
         {"bwd", "nhwc", miopenHalf,  0, 0,  32,  64,  32, 16, 64,  4, 1, 1, 1, 1, 0, 0, 1, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 32}, { 1, 8, 1, 2}, {  1,  4,  1, 32}},
         {"bwd", "nhwc", miopenHalf,  0, 0,  32,  64,  32, 16, 64,  4, 1, 1, 1, 1, 0, 1, 1, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 32}, { 1, 8, 1, 2}, {  1,  4,  1, 32}},
+    
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256, 256,  32, 32, 32,  8, 2, 2, 2, 2, 1, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 256, 256,  32, 32, 32,  8, 2, 2, 2, 2, 0, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256, 256,  32, 32, 32,  8, 2, 2, 2, 2, 1, 0, 1, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 256, 256,  32, 32, 32,  8, 2, 2, 2, 2, 0, 0, 1, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256, 128,  32, 32, 32,  8, 2, 1, 2, 2, 1, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 2}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 256, 128,  32, 32, 32,  8, 2, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 2}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256, 128,  32, 32, 32,  8, 2, 1, 2, 2, 1, 0, 1, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 2}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 256, 128,  32, 32, 32,  8, 2, 1, 2, 2, 0, 0, 1, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 2}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256, 128,   8, 64, 32,  4, 1, 1, 2, 2, 1, 0, 0, 1, 0, { 1, 1, 8, 1}, {  1,  8,  1, 32}, { 1, 1, 4, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256, 128,   8, 64, 32,  4, 1, 1, 2, 2, 1, 0, 1, 1, 0, { 1, 1, 8, 1}, {  1,  8,  1, 32}, { 1, 1, 4, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256,  64,  32, 32, 32,  8, 1, 1, 2, 2, 1, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 256,  64,  32, 32, 32,  8, 1, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256,  64,  32, 32, 32,  8, 1, 1, 2, 2, 1, 0, 1, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 256,  64,  32, 32, 32,  8, 1, 1, 2, 2, 0, 0, 1, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256,  64,  16, 64, 32,  4, 1, 1, 1, 2, 1, 0, 0, 0, 0, { 1, 4, 4, 1}, {  1,  4,  1, 64}, { 1, 2, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 256,  64,  16, 64, 32,  4, 1, 1, 1, 2, 0, 0, 0, 0, 0, { 1, 4, 4, 1}, {  1,  4,  1, 64}, { 1, 2, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256,  64,  16, 64, 32,  4, 1, 1, 1, 2, 1, 0, 1, 0, 0, { 1, 4, 4, 1}, {  1,  4,  1, 64}, { 1, 2, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 256,  64,  16, 64, 32,  4, 1, 1, 1, 2, 0, 0, 1, 0, 0, { 1, 4, 4, 1}, {  1,  4,  1, 64}, { 1, 2, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256,  64,   8, 64, 16,  4, 1, 1, 2, 2, 1, 0, 0, 1, 0, { 1, 1, 8, 1}, {  1,  8,  1, 32}, { 1, 1, 2, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256,  64,   8, 64, 16,  4, 1, 1, 2, 2, 1, 0, 1, 1, 0, { 1, 1, 8, 1}, {  1,  8,  1, 32}, { 1, 1, 2, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256,  32,  32, 64, 16,  4, 1, 1, 2, 1, 1, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 2, 1, 2}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 256,  32,  32, 64, 16,  4, 1, 1, 2, 1, 0, 0, 0, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 2, 1, 2}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256,  32,  32, 64, 16,  4, 1, 1, 2, 1, 1, 0, 1, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 2, 1, 2}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 256,  32,  32, 64, 16,  4, 1, 1, 2, 1, 0, 0, 1, 0, 0, { 1, 8, 4, 1}, {  1,  4,  1, 64}, { 1, 2, 1, 2}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256,  32,  16, 64, 16,  4, 1, 1, 2, 1, 1, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  2,  1,128}, { 1, 2, 1, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 256,  32,  16, 64, 16,  4, 1, 1, 2, 1, 0, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  2,  1,128}, { 1, 2, 1, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256,  32,  16, 64, 16,  4, 1, 1, 2, 1, 1, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  2,  1,128}, { 1, 2, 1, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 256,  32,  16, 64, 16,  4, 1, 1, 2, 1, 0, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  2,  1,128}, { 1, 2, 1, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256,  32,   8, 64, 16,  4, 1, 1, 2, 1, 1, 0, 0, 1, 0, { 1, 1, 8, 1}, {  1,  8,  1, 32}, { 1, 1, 1, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 256,  32,   8, 64, 16,  4, 1, 1, 2, 1, 1, 0, 1, 1, 0, { 1, 1, 8, 1}, {  1,  8,  1, 32}, { 1, 1, 1, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128, 256,  32, 32, 32,  8, 1, 2, 2, 2, 1, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 128, 256,  32, 32, 32,  8, 1, 2, 2, 2, 0, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128, 256,  32, 32, 32,  8, 1, 2, 2, 2, 1, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 128, 256,  32, 32, 32,  8, 1, 2, 2, 2, 0, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128, 128,  32, 32, 32,  8, 1, 1, 2, 2, 1, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 2}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 128, 128,  32, 32, 32,  8, 1, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 2}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128, 128,  32, 32, 32,  8, 1, 1, 2, 2, 1, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 2}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 128, 128,  32, 32, 32,  8, 1, 1, 2, 2, 0, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 2}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128, 128,  16, 32, 32,  4, 1, 1, 2, 2, 1, 0, 0, 1, 0, { 1, 1, 8, 1}, {  1, 16,  1, 16}, { 1, 1, 8, 1}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128, 128,  16, 32, 32,  4, 1, 1, 2, 2, 1, 0, 1, 1, 0, { 1, 1, 8, 1}, {  1, 16,  1, 16}, { 1, 1, 8, 1}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128, 128,   8, 32, 32,  4, 1, 1, 2, 2, 1, 0, 0, 1, 0, { 1, 1, 4, 1}, {  1,  8,  1, 32}, { 1, 1, 4, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128, 128,   8, 32, 32,  4, 1, 1, 2, 2, 1, 0, 1, 1, 0, { 1, 1, 4, 1}, {  1,  8,  1, 32}, { 1, 1, 4, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128,  64,  32, 32, 32,  8, 1, 1, 1, 2, 1, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 128,  64,  32, 32, 32,  8, 1, 1, 1, 2, 0, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128,  64,  32, 32, 32,  8, 1, 1, 1, 2, 1, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 128,  64,  32, 32, 32,  8, 1, 1, 1, 2, 0, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128,  64,  16, 32, 32,  4, 1, 1, 2, 1, 1, 0, 0, 1, 0, { 1, 1, 8, 1}, {  1, 16,  1, 16}, { 1, 1, 4, 1}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128,  64,  16, 32, 32,  4, 1, 1, 2, 1, 1, 0, 1, 1, 0, { 1, 1, 8, 1}, {  1, 16,  1, 16}, { 1, 1, 4, 1}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128,  64,   8, 32, 32,  4, 1, 1, 2, 1, 1, 0, 0, 1, 0, { 1, 1, 4, 1}, {  1,  8,  1, 32}, { 1, 1, 2, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128,  64,   8, 32, 32,  4, 1, 1, 2, 1, 1, 0, 1, 1, 0, { 1, 1, 4, 1}, {  1,  8,  1, 32}, { 1, 1, 2, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128,  32,  32, 64, 16,  4, 1, 1, 1, 1, 1, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 2, 1, 2}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 128,  32,  32, 64, 16,  4, 1, 1, 1, 1, 0, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 2, 1, 2}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128,  32,  32, 64, 16,  4, 1, 1, 1, 1, 1, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 2, 1, 2}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0, 128,  32,  32, 64, 16,  4, 1, 1, 1, 1, 0, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 64}, { 1, 2, 1, 2}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128,  32,  16, 64, 16,  4, 1, 1, 1, 1, 1, 0, 0, 1, 0, { 1, 1, 8, 1}, {  1, 16,  1, 16}, { 1, 1, 2, 1}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128,  32,  16, 64, 16,  4, 1, 1, 1, 1, 1, 0, 1, 1, 0, { 1, 1, 8, 1}, {  1, 16,  1, 16}, { 1, 1, 2, 1}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128,  32,   8, 64, 16,  4, 1, 1, 1, 1, 1, 0, 0, 1, 0, { 1, 1, 4, 1}, {  1,  8,  1, 32}, { 1, 1, 1, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1, 128,  32,   8, 64, 16,  4, 1, 1, 1, 1, 1, 0, 1, 1, 0, { 1, 1, 4, 1}, {  1,  8,  1, 32}, { 1, 1, 1, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64, 256,  32, 32, 32,  8, 1, 1, 2, 2, 1, 0, 0, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  64, 256,  32, 32, 32,  8, 1, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64, 256,  32, 32, 32,  8, 1, 1, 2, 2, 1, 0, 1, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  64, 256,  32, 32, 32,  8, 1, 1, 2, 2, 0, 0, 1, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 4}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64, 128,  32, 32, 32,  8, 1, 1, 2, 1, 1, 0, 0, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 2}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  64, 128,  32, 32, 32,  8, 1, 1, 2, 1, 0, 0, 0, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 2}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64, 128,  32, 32, 32,  8, 1, 1, 2, 1, 1, 0, 1, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 2}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  64, 128,  32, 32, 32,  8, 1, 1, 2, 1, 0, 0, 1, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 64}, { 1, 8, 1, 2}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64,  64,  64, 16, 16, 16, 1, 1, 2, 2, 1, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  8,  1, 32}, { 1, 8, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  64,  64,  64, 16, 16, 16, 1, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  8,  1, 32}, { 1, 8, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64,  64,  64, 16, 16, 16, 1, 1, 2, 2, 1, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  8,  1, 32}, { 1, 8, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  64,  64,  64, 16, 16, 16, 1, 1, 2, 2, 0, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  8,  1, 32}, { 1, 8, 1, 2}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64,  64,  16, 16, 16,  4, 1, 1, 2, 2, 1, 0, 0, 0, 0, { 1, 4, 1, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 1}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  64,  64,  16, 16, 16,  4, 1, 1, 2, 2, 0, 0, 0, 0, 0, { 1, 4, 1, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 1}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64,  64,  16, 16, 16,  4, 1, 1, 2, 2, 1, 0, 1, 0, 0, { 1, 4, 1, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 1}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  64,  64,  16, 16, 16,  4, 1, 1, 2, 2, 0, 0, 1, 0, 0, { 1, 4, 1, 1}, {  1,  4,  1, 64}, { 1, 4, 1, 1}, {  1,  4,  1, 64}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64,  64,  16, 16, 16,  4, 1, 1, 2, 2, 1, 0, 0, 1, 0, { 1, 1, 4, 1}, {  1, 16,  1, 16}, { 1, 1, 4, 1}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64,  64,  16, 16, 16,  4, 1, 1, 2, 2, 1, 0, 1, 1, 0, { 1, 1, 4, 1}, {  1, 16,  1, 16}, { 1, 1, 4, 1}, {  1, 16,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64,  64,   8, 16, 16,  4, 1, 1, 2, 2, 1, 0, 0, 1, 0, { 1, 1, 2, 1}, {  1,  8,  1, 32}, { 1, 1, 2, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64,  64,   8, 16, 16,  4, 1, 1, 2, 2, 1, 0, 1, 1, 0, { 1, 1, 2, 1}, {  1,  8,  1, 32}, { 1, 1, 2, 1}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64,  32,  32, 64, 16,  4, 1, 1, 1, 1, 1, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 32}, { 1, 4, 1, 2}, {  1,  8,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  64,  32,  32, 64, 16,  4, 1, 1, 1, 1, 0, 0, 0, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 32}, { 1, 4, 1, 2}, {  1,  8,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64,  32,  32, 64, 16,  4, 1, 1, 1, 1, 1, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 32}, { 1, 4, 1, 2}, {  1,  8,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  64,  32,  32, 64, 16,  4, 1, 1, 1, 1, 0, 0, 1, 0, 0, { 1, 8, 2, 1}, {  1,  4,  1, 32}, { 1, 4, 1, 2}, {  1,  8,  1, 16}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64,  32,  16, 64, 16,  4, 1, 1, 1, 1, 1, 0, 0, 0, 0, { 1, 4, 2, 1}, {  1,  4,  1, 32}, { 1, 4, 1, 1}, {  1,  4,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  64,  32,  16, 64, 16,  4, 1, 1, 1, 1, 0, 0, 0, 0, 0, { 1, 4, 2, 1}, {  1,  4,  1, 32}, { 1, 4, 1, 1}, {  1,  4,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  64,  32,  16, 64, 16,  4, 1, 1, 1, 1, 1, 0, 1, 0, 0, { 1, 4, 2, 1}, {  1,  4,  1, 32}, { 1, 4, 1, 1}, {  1,  4,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  64,  32,  16, 64, 16,  4, 1, 1, 1, 1, 0, 0, 1, 0, 0, { 1, 4, 2, 1}, {  1,  4,  1, 32}, { 1, 4, 1, 1}, {  1,  4,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  32, 128,  32, 16, 64,  4, 1, 1, 1, 1, 1, 0, 0, 0, 0, { 1, 4, 1, 1}, {  1,  8,  1, 32}, { 1, 4, 1, 4}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  32, 128,  32, 16, 64,  4, 1, 1, 1, 1, 0, 0, 0, 0, 0, { 1, 4, 1, 1}, {  1,  8,  1, 32}, { 1, 4, 1, 4}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  32, 128,  32, 16, 64,  4, 1, 1, 1, 1, 1, 0, 1, 0, 0, { 1, 4, 1, 1}, {  1,  8,  1, 32}, { 1, 4, 1, 4}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  32, 128,  32, 16, 64,  4, 1, 1, 1, 1, 0, 0, 1, 0, 0, { 1, 4, 1, 1}, {  1,  8,  1, 32}, { 1, 4, 1, 4}, {  1,  8,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  32,  64,  32, 16, 64,  4, 1, 1, 1, 1, 1, 0, 0, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 32}, { 1, 8, 1, 2}, {  1,  4,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  32,  64,  32, 16, 64,  4, 1, 1, 1, 1, 0, 0, 0, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 32}, { 1, 8, 1, 2}, {  1,  4,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 1,  32,  64,  32, 16, 64,  4, 1, 1, 1, 1, 1, 0, 1, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 32}, { 1, 8, 1, 2}, {  1,  4,  1, 32}},
+        {"bwd", "nhwc", miopenBFloat16,  0, 0,  32,  64,  32, 16, 64,  4, 1, 1, 1, 1, 0, 0, 1, 0, 0, { 1, 8, 1, 1}, {  1,  4,  1, 32}, { 1, 8, 1, 2}, {  1,  4,  1, 32}},
     };
     // clang-format on
     return kernel_param_list;
@@ -381,6 +476,24 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
         std::make_tuple(32, 64, 32),
     };
 
+    static const std::vector<std::tuple<int, int, int>> tile_list_bfp16 = {
+        std::make_tuple(128, 128, 32),
+        std::make_tuple(256, 128, 32),
+        std::make_tuple(128, 256, 32),
+        std::make_tuple(128, 64, 32),
+        std::make_tuple(64, 128, 32),
+        std::make_tuple(256, 64, 32),
+        std::make_tuple(64, 256, 32),
+        std::make_tuple(64, 64, 64),
+        std::make_tuple(64, 64, 16),
+        std::make_tuple(256, 32, 32),
+        std::make_tuple(128, 32, 32),
+        std::make_tuple(32, 128, 32),
+        std::make_tuple(64, 32, 32),
+        std::make_tuple(64, 32, 16),
+        std::make_tuple(32, 64, 32),
+    };
+
 #ifdef DEBUG_IGEMM_ASM_BWD_NHWC_CHECK_VALID_TILE_LIST
     const auto& c_list = GetBwdXdlopsNHWCConfigList();
     for(const auto& tile : tile_list_fp16)
@@ -390,7 +503,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == miopenFloat)
+            if(config.precision == miopenFloat || config.precision == miopenBFloat16)
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp &&
@@ -406,6 +519,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
             MIOPEN_THROW(miopenStatusInternalError);
         }
     }
+
     for(const auto& tile : tile_list_fp32)
     {
         int mp, np, kp;
@@ -413,7 +527,31 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == miopenHalf)
+            if(config.precision == miopenHalf || config.precision == miopenBFloat16)
+                continue;
+            if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
+               config.gemm_k_per_block == kp &&
+               !(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
+            {
+                found = true;
+                break;
+            }
+        }
+        if(!found)
+        {
+            MIOPEN_LOG_E("fp32 list  can't find " << mp << "x" << np << "x" << kp);
+            MIOPEN_THROW(miopenStatusInternalError);
+        }
+    }
+
+    for(const auto& tile : tile_list_bfp16)
+    {
+        int mp, np, kp;
+        std::tie(mp, np, kp) = tile;
+        bool found           = false;
+        for(const auto& config : c_list)
+        {
+            if(config.precision == miopenHalf || config.precision == miopenFloat)
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp &&
@@ -472,11 +610,14 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
-    bool not_support_vector_store = ctx.IsFp16() && ((c / group) % 2 != 0);
+    bool not_support_vector_store = (ctx.IsFp16() || ctx.IsBfp16()) && ((c / group) % 2 != 0);
     int m_per_block, n_per_block, k_per_block;
 
     std::tie(m_per_block, n_per_block, k_per_block) = HeuristicInitMacroTileNoPadGemmK(
-        gemm_m, gemm_n, gemm_k_even, ctx.IsFp32() ? tile_list_fp32 : tile_list_fp16);
+        gemm_m,
+        gemm_n,
+        gemm_k_even,
+        ctx.IsFp32() ? tile_list_fp32 : (ctx.IsFp16() ? tile_list_fp16 : tile_list_bfp16));
 
     MIOPEN_LOG_I("m_per_block:" << m_per_block << ", n_per_block:" << n_per_block
                                 << ", k_per_block:" << k_per_block);
@@ -491,6 +632,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
         {
             const auto& config = config_list[i];
             if(!((ctx.IsFp16() && config.precision == miopenHalf) ||
+                 (ctx.IsBfp16() && config.precision == miopenBFloat16) ||
                  (ctx.IsFp32() && config.precision == miopenFloat)))
                 continue;
             if(!(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
@@ -518,6 +660,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
         for(const auto& config : config_list)
         {
             if(!((ctx.IsFp16() && config.precision == miopenHalf) ||
+                 (ctx.IsBfp16() && config.precision == miopenBFloat16) ||
                  (ctx.IsFp32() && config.precision == miopenFloat)))
                 continue;
 
@@ -617,7 +760,8 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const Convolution
     if(IsDefaultConstructed())
         return false;
 
-    if(!((ctx.IsFp16() && precision == miopenHalf) || (ctx.IsFp32() && precision == miopenFloat)))
+    if(!((ctx.IsFp16() && precision == miopenHalf) || (ctx.IsFp32() && precision == miopenFloat) ||
+         (ctx.IsBfp16() && precision == miopenBFloat16)))
         return false;
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
@@ -658,6 +802,16 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const Convolution
                 return false;
         }
         else
+        {
+            if((c / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
+                return false;
+        }
+    }
+
+    if(ctx.IsBfp16() && !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 &&
+                          merge_e == 1 && gemm_k_global_split == 0))
+    {
+        if(gemm_k_global_split == 0)
         {
             if((c / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
                 return false;
@@ -720,7 +874,7 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionC
     if(!ctx.Is2d())
         return false;
 
-    if(!ctx.IsFp32() && !ctx.IsFp16())
+    if(!ctx.IsFp32() && !ctx.IsFp16() && !(ctx.IsBfp16() && device_name == "gfx90a"))
         return false;
 
     if(!ctx.rmv.IsV3())
@@ -742,7 +896,7 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
     if(ctx.IsFp32())
         return 0;
 
-    // FP16
+    // FP16 or BF16
     const auto& hi = ctx.out_height;
     const auto& wi = ctx.out_width;
     const auto& n  = ctx.batch_sz;
