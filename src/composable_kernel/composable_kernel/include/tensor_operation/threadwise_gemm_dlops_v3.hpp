@@ -41,19 +41,16 @@ struct ThreadwiseGemmDlops_km_kn_mn_v3
                           CDesc::IsKnownAtCompileTime(),
                       "wrong! Desc should be known at compile-time");
 
-        static_assert(
-            is_known_at_compile_time<remove_cv_t<remove_reference_t<AOriginIdx>>>::value &&
-                is_known_at_compile_time<remove_cv_t<remove_reference_t<BOriginIdx>>>::value &&
-                is_known_at_compile_time<remove_cv_t<remove_reference_t<COriginIdx>>>::value,
-            "wrong! AOriginIdx, BOriginIdx, COringinIdx should be known at compile-time");
+        static_assert(is_known_at_compile_time<remove_cvref_t<AOriginIdx>>::value &&
+                          is_known_at_compile_time<remove_cvref_t<BOriginIdx>>::value &&
+                          is_known_at_compile_time<remove_cvref_t<COriginIdx>>::value,
+                      "wrong! AOriginIdx, BOriginIdx, COringinIdx should be known at compile-time");
 
-        static_assert(is_same<remove_cv_t<remove_reference_t<typename ABuffer::type>>,
-                              remove_cv_t<remove_reference_t<FloatA>>>::value &&
-                      is_same<remove_cv_t<remove_reference_t<typename BBuffer::type>>,
-                              remove_cv_t<remove_reference_t<FloatB>>>::value &&
-                      is_same<remove_cv_t<remove_reference_t<typename CBuffer::type>>,
-                              remove_cv_t<remove_reference_t<FloatC>>>::value &&
-                      "wrong! inconsistent type");
+        static_assert(
+            is_same<remove_cvref_t<typename ABuffer::type>, remove_cvref_t<FloatA>>::value &&
+            is_same<remove_cvref_t<typename BBuffer::type>, remove_cvref_t<FloatB>>::value &&
+            is_same<remove_cvref_t<typename CBuffer::type>, remove_cvref_t<FloatC>>::value &&
+            "wrong! inconsistent type");
 
         constexpr auto I0 = Number<0>{};
         constexpr auto I1 = Number<1>{};
