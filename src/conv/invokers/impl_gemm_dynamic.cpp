@@ -520,8 +520,13 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             TensorDescriptor workspaceDesc(
                 miopenFloat, tensors.outDesc.GetLengths(), tensors.outDesc.GetStrides());
 
-            bool need_cast =
-                use_fp32_global_split_on_fp16 && tensors.outDesc.GetType() == miopenHalf;
+            const bool need_cast = [&]() {
+                if(tensors.outDesc.GetType() == miopenHalf)
+                    return use_fp32_global_split_on_fp16;
+                if(tensors.outDesc.GetType() == miopenBFloat16)
+                    return need_set_zero;
+                return false;
+            }();
 
             if(need_cast)
             {
@@ -647,6 +652,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
         need_set_zero = true;
     need_set_zero |= config.gemm_k_global_split > 0;
+    bool use_global_split = config.gemm_k_global_split > 0;
 
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(0); // placeholder
@@ -707,8 +713,13 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             TensorDescriptor workspaceDesc(
                 miopenFloat, tensors.outDesc.GetLengths(), tensors.outDesc.GetStrides());
 
-            bool need_cast =
-                use_fp32_global_split_on_fp16 && tensors.outDesc.GetType() == miopenHalf;
+            const bool need_cast = [&]() {
+                if(tensors.outDesc.GetType() == miopenHalf)
+                    return use_fp32_global_split_on_fp16;
+                if(tensors.outDesc.GetType() == miopenBFloat16)
+                    return use_global_split;
+                return false;
+            }();
 
             if(need_cast)
             {
