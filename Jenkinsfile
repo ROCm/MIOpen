@@ -241,7 +241,7 @@ pipeline {
     parameters {
         booleanParam(
             name: "BUILD_STATIC_CHECKS",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP32",
@@ -277,7 +277,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_PACKAGES",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_NOGPU",
