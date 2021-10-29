@@ -219,7 +219,7 @@ def CheckDeserializePerfDb(Map conf=[:]){
 ///   * "GCC" is the default for OpenCL backend.
 ///   * The default compiler is usually not specified.
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
-///   * BuildTypeModifier := { COMGR | Embedded | Static | Normal-Find | Fast-Find
+///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
 ///                            MLIR | Tensile | Tensile-Latest | Package | ... }
 /// TestSet := { All | Smoke* } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
@@ -333,7 +333,7 @@ pipeline {
         Tensile_setup = " -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF"
         Smoke_targets = "check doc MIOpenDriver"
         MLIR_flags    = " -DMIOPEN_USE_MLIR=On"
-        COMGR_flags   = " -DMIOPEN_USE_COMGR=On"
+        NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
     }
     stages{
         stage("Static checks") {
@@ -514,18 +514,14 @@ pipeline {
                 expression { params.BUILD_SMOKE_AUX1 && params.DATATYPE_FP32 }
             }
             parallel{
-                stage('Fp32 Hip Debug COMGR') {
+                stage('Fp32 Hip Debug NOCOMGR') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
                     agent{ label rocmnode("vega") }
-                    environment{
-                        // See SWDEV-290754 for why LLVM_PATH is required.
-                        COMGR_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
-                    }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: COMGR_flags, build_cmd: COMGR_build_cmd, test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCOMGR_flags, test_flags: ' --verbose ')
                     }
                 }
                 stage('Fp32 Hip Debug Embedded Vega20') {
@@ -626,18 +622,14 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
                     }
                 }
-                stage('Fp32 Hip MLIR gfx908 COMGR') {
+                stage('Fp32 Hip MLIR gfx908 NOCOMGR') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("gfx908") }
-                    environment{
-                        // See SWDEV-290754 for why LLVM_PATH is required.
-                        COMGR_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
-                    }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + COMGR_flags, build_cmd: COMGR_build_cmd, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
+                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + NOCOMGR_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
                     }
                 }
                 stage('Fp32 OpenCL MLIR gfx908') {
