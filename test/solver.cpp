@@ -85,7 +85,7 @@ class SearchableTestSolver : public solver::SolverBase
     bool IsApplicable(const boost::any& ctx_) const override
     {
         auto context = boost::any_cast<const ConvolutionContext&>(ctx_);
-        std::ignore = ctx_;
+        std::ignore = context;
 
         return true;
     }
