@@ -724,7 +724,7 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
     const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
     const auto& pad_h     = ctx.pad_h;
     const auto& pad_w     = ctx.pad_w;
-    const auto& precision = ctx.IsFp16() ? miopenHalf : (ctx.IsBfp16() ? miopenBFloat16 : miopenFloat);
+    const auto precision  = ctx.IsFp16() ? miopenHalf : (ctx.IsBfp16() ? miopenBFloat16 : miopenFloat);
     const auto& group     = ctx.group_counts;
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
@@ -952,7 +952,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     MIOPEN_LOG_T("ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC: " + config.ToString());
 
-    const auto& lowp_quant = conv_problem.GetConv().lowp_quant;
+    const auto lowp_quant = conv_problem.GetConv().lowp_quant;
 
     auto opArgs =
         ComputeDynamicIGemmWrwKernelArgsNHWC(conv_problem, gemm_k_global_splits, gemmk_per_wg);

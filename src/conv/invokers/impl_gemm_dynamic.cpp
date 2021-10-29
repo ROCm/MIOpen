@@ -505,9 +505,20 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     opArgs.emplace_back(config.gemm_k_global_split);
     opArgs.emplace_back(pack0);
 
-    const auto& lowp_quant = ctx.conv_problem.GetConv().lowp_quant;
+    const auto lowp_quant = ctx.conv_problem.GetConv().lowp_quant;
     const auto isGfx90aFp16altSupport =
         (ctx.GetStream().GetDeviceName() == "gfx90a") && conv_problem.IsFp16();
+
+    TensorDescriptor workspaceDesc(
+        miopenFloat, ctx.conv_problem.GetOut().GetLengths(), ctx.conv_problem.GetOut().GetStrides());
+
+    const bool need_cast = [&]() {
+        if(ctx.conv_problem.GetOut().GetType() == miopenHalf)
+            return use_fp32_global_split_on_fp16;
+        if(ctx.conv_problem.GetOut().GetType() == miopenBFloat16)
+            return need_set_zero;
+        return false;
+    }();
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
@@ -517,16 +528,16 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             const auto ker =
                 handle.Run(kernels[(isGfx90aFp16altSupport && data_ctx.gfx90aFp16alt) ? 1 : 0]);
             float elapsed = 0;
-            TensorDescriptor workspaceDesc(
-                miopenFloat, tensors.outDesc.GetLengths(), tensors.outDesc.GetStrides());
+            // TensorDescriptor workspaceDesc(
+            //     miopenFloat, tensors.outDesc.GetLengths(), tensors.outDesc.GetStrides());
 
-            const bool need_cast = [&]() {
-                if(tensors.outDesc.GetType() == miopenHalf)
-                    return use_fp32_global_split_on_fp16;
-                if(tensors.outDesc.GetType() == miopenBFloat16)
-                    return need_set_zero;
-                return false;
-            }();
+            // const bool need_cast = [&]() {
+            //     if(tensors.outDesc.GetType() == miopenHalf)
+            //         return use_fp32_global_split_on_fp16;
+            //     if(tensors.outDesc.GetType() == miopenBFloat16)
+            //         return need_set_zero;
+            //     return false;
+            // }();
 
             if(need_cast)
             {
@@ -698,9 +709,20 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     opArgs.emplace_back(shift_pack_0);
     opArgs.emplace_back(config.gemm_k_global_split);
 
-    const auto& lowp_quant = ctx.conv_problem.GetConv().lowp_quant;
+    const auto lowp_quant = ctx.conv_problem.GetConv().lowp_quant;
     const auto isGfx90aFp16altSupport =
         (ctx.GetStream().GetDeviceName() == "gfx90a") && conv_problem.IsFp16();
+
+    TensorDescriptor workspaceDesc(
+        miopenFloat, ctx.conv_problem.GetOut().GetLengths(), ctx.conv_problem.GetOut().GetStrides());
+
+    const bool need_cast = [&]() {
+        if(ctx.conv_problem.GetOut().GetType() == miopenHalf)
+            return use_fp32_global_split_on_fp16;
+        if(ctx.conv_problem.GetOut().GetType() == miopenBFloat16)
+            return use_global_split;
+        return false;
+    }();
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
@@ -710,16 +732,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             const auto ker =
                 handle.Run(kernels[(isGfx90aFp16altSupport && data_ctx.gfx90aFp16alt) ? 1 : 0]);
             float elapsed = 0;
-            TensorDescriptor workspaceDesc(
-                miopenFloat, tensors.outDesc.GetLengths(), tensors.outDesc.GetStrides());
-
-            const bool need_cast = [&]() {
-                if(tensors.outDesc.GetType() == miopenHalf)
-                    return use_fp32_global_split_on_fp16;
-                if(tensors.outDesc.GetType() == miopenBFloat16)
-                    return use_global_split;
-                return false;
-            }();
 
             if(need_cast)
             {
