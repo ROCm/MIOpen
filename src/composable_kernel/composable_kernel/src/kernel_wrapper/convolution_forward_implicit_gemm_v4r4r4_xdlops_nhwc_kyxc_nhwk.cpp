@@ -20,8 +20,8 @@ constexpr auto GemmMPerBlock     = Number<CK_PARAM_MPerBlock>{};
 constexpr auto GemmNPerBlock     = Number<CK_PARAM_NPerBlock>{};
 constexpr index_t GemmK0PerBlock = CK_PARAM_K0PerBlock;
 
-constexpr index_t MPerXDL = CK_PARAM_MPerXDL;
-constexpr index_t NPerXDL = CK_PARAM_NPerXDL;
+constexpr index_t GemmMPerXDL = CK_PARAM_MPerXDL;
+constexpr index_t GemmNPerXDL = CK_PARAM_NPerXDL;
 constexpr index_t GemmK1  = CK_PARAM_K1;
 
 constexpr index_t MRepeat = CK_PARAM_MRepeat;
@@ -177,7 +177,7 @@ convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk_prepare(int N_,
         decltype(out_gemmm_gemmn_grid_desc),
         GemmMPerBlock,
         GemmNPerBlock,
-        GemmKPerBlock,
+        GemmK0PerBlock,
         GemmMPerXDL,
         GemmNPerXDL,
         GemmK1,
@@ -313,7 +313,7 @@ extern "C" __global__ void
         decltype(out_gemmm_gemmn_grid_desc),
         GemmMPerBlock,
         GemmNPerBlock,
-        GemmKPerBlock,
+        GemmK0PerBlock,
         GemmMPerXDL,
         GemmNPerXDL,
         GemmK1,
