@@ -129,6 +129,7 @@ set( MIOpen_Source
     solver/batchnorm/backward_spatial_multiple.cpp
     solver/batchnorm/backward_per_activation.cpp
     include/miopen/buffer_info.hpp
+    ramdb.cpp
     include/miopen/temp_file.hpp
     include/miopen/bfloat16.hpp
     include/miopen/db.hpp
@@ -180,6 +181,7 @@ set( MIOpen_Source
     include/miopen/rnn_util.hpp
     include/miopen/bz2.hpp
     include/miopen/comgr.hpp
+    include/miopen/ramdb.hpp
     include/miopen/reducetensor.hpp
     include/miopen/reduce_common.hpp
     include/miopen/sequences.hpp

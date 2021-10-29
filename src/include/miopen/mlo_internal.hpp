@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/conv/context.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/problem_description.hpp>
+#include <miopen/ramdb.hpp>
 
 #if MIOPEN_BACKEND_OPENCL
 #define CL_TARGET_OPENCL_VERSION 120
@@ -159,7 +160,7 @@ class StaticContainer
 #if MIOPEN_ENABLE_SQLITE
 using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
 #else
-using PerformanceDb = DbTimer<MultiFileDb<PlainTextDb, PlainTextDb, true>>;
+using PerformanceDb = DbTimer<MultiFileDb<ReadonlyRamDb, RamDb, true>>;
 #endif
 miopen::PerformanceDb GetDb(const miopen::ExecutionContext& ctx);
 

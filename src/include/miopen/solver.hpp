@@ -2672,7 +2672,9 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        std::string prec_string = self.precision == miopenFloat ? "fp32" : "fp16";
+        std::string prec_string = self.precision == miopenFloat
+                                      ? "fp32"
+                                      : (self.precision == miopenHalf ? "fp16" : "bf16");
         f(self.direction, "dir");
         f(self.tensor_layout, "lyt");
         f(prec_string, "pre");
@@ -2858,6 +2860,8 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC : SolverBase<ConvolutionContex
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
 
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
+
     bool IsApplicable(const ConvolutionContext& ctx) const;
     bool IsDynamic() const { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
@@ -2989,6 +2993,8 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC : SolverBase<ConvolutionContex
                                   const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC&) const;
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const;
 
     bool IsApplicable(const ConvolutionContext& ctx) const;
     bool IsDynamic() const { return true; }
