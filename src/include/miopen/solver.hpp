@@ -1710,11 +1710,22 @@ struct ConvMPBidirectWinograd : SolverBase
 
     static int GetSolverWinoXformHWSize() { return WinoDataH + WinoFilterH - 1; }
 };
+
+// To suppress misleading warnings
+#ifdef CONV_MP_BIDIRECTIONAL_WINOGRAD_CPP
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-template-vtables"
+#endif
+
 extern template struct ConvMPBidirectWinograd<2, 3>;
 extern template struct ConvMPBidirectWinograd<3, 3>;
 extern template struct ConvMPBidirectWinograd<4, 3>;
 extern template struct ConvMPBidirectWinograd<5, 3>;
 extern template struct ConvMPBidirectWinograd<6, 3>;
+
+#ifdef CONV_MP_BIDIRECTIONAL_WINOGRAD_CPP
+#pragma clang diagnostic pop
+#endif
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
 struct ConvMPBidirectWinograd_xdlops : SolverBase
@@ -1783,11 +1794,21 @@ struct ConvMPBidirectWinograd_xdlops : SolverBase
                                                     const AnyInvokeParams&) const;
 };
 
+// To suppress misleading warnings
+#ifdef CONV_MP_BIDIRECTIONAL_WINOGRAD_CPP
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-template-vtables"
+#endif
+
 extern template struct ConvMPBidirectWinograd_xdlops<2, 3>;
 extern template struct ConvMPBidirectWinograd_xdlops<3, 3>;
 extern template struct ConvMPBidirectWinograd_xdlops<4, 3>;
 extern template struct ConvMPBidirectWinograd_xdlops<5, 3>;
 extern template struct ConvMPBidirectWinograd_xdlops<6, 3>;
+
+#ifdef CONV_MP_BIDIRECTIONAL_WINOGRAD_CPP
+#pragma clang diagnostic pop
+#endif
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
 struct ConvWinograd3x3MultipassWrW : SolverBase
@@ -1828,6 +1849,12 @@ struct ConvWinograd3x3MultipassWrW : SolverBase
     InvokerFactory PrepareInvokerFactory(const ConvolutionContext& params, std::size_t ws_sz) const;
 };
 
+// To suppress misleading warnings
+#ifdef CONV_MULTIPASS_WINO3X3WRW_CPP
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-template-vtables"
+#endif
+
 extern template struct ConvWinograd3x3MultipassWrW<3, 2>;
 extern template struct ConvWinograd3x3MultipassWrW<3, 3>;
 extern template struct ConvWinograd3x3MultipassWrW<3, 4>;
@@ -1841,6 +1868,10 @@ extern template struct ConvWinograd3x3MultipassWrW<7, 2, 1, 1>;
 extern template struct ConvWinograd3x3MultipassWrW<7, 3, 1, 1>;
 extern template struct ConvWinograd3x3MultipassWrW<5, 3>;
 extern template struct ConvWinograd3x3MultipassWrW<5, 4>;
+
+#ifdef CONV_MULTIPASS_WINO3X3WRW_CPP
+#pragma clang diagnostic pop
+#endif
 
 struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirect3x3WrW>
 {
@@ -2083,11 +2114,21 @@ struct ConvOclBwdWrW2 : SolverBase
     bool IsApplicableBase(const ConvolutionContext& params) const;
 };
 
+// To suppress misleading warnings
+#ifdef CONV_OCL_DIR2D_BWDWRW_2_CPP
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-template-vtables"
+#endif
+
 extern template struct ConvOclBwdWrW2<1>;
 extern template struct ConvOclBwdWrW2<2>;
 extern template struct ConvOclBwdWrW2<4>;
 extern template struct ConvOclBwdWrW2<8>;
 extern template struct ConvOclBwdWrW2<16>;
+
+#ifdef CONV_OCL_DIR2D_BWDWRW_2_CPP
+#pragma clang diagnostic pop
+#endif
 
 /// A separate solver from ConvOclBwdWrW2 to disable auto-tuning for certain configs.
 /// Basically, this is *hack* for non-group 3x3 and 1x1 cases.
