@@ -259,6 +259,7 @@ void BatchNormForwardInference(Handle& handle,
         const auto invoke_params = [&]() {
             auto tmp              = batchnorm::InfInvokeParams{};
             tmp.type              = InvokeType::Run;
+            tmp.xDesc             = &xDesc;
             tmp.x                 = x;
             tmp.y                 = y;
             tmp.bnScale           = bnScale;

@@ -68,7 +68,6 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
 
-    unsigned int in_nstride = c * h * w;
     unsigned int in_cstride = h * w;
 
     auto result = ConvSolution{miopenStatusSuccess};
@@ -119,10 +118,16 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
         result.construction_params.push_back(kernel);
     }
 
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InfInvokeParams>();
+
+            int n_, c_, h_, w_;
+            std::tie(n_, c_, h_, w_) = tien<4>(params.xDesc->GetLengths());
+
+            unsigned int in_nstride_ = c_ * h_ * w_;
+            unsigned int in_cstride_ = h_ * w_;
 
             kernel(params.x,
                    params.y,
@@ -131,9 +136,9 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
                    params.bnScale,
                    params.bnBias,
                    params.epsilon,
-                   n,
-                   in_cstride,
-                   in_nstride);
+                   n_,
+                   in_cstride_,
+                   in_nstride_);
         };
     };
 

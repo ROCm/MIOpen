@@ -193,8 +193,8 @@ NetworkConfig ProblemDescription::MakeForwardInferenceNetworkConfig() const
 {
     std::ostringstream ss;
 
-    bool bfp16parm  = false;
-    bool bfp32parm  = true;
+    bool bfp16parm = false;
+    bool bfp32parm = true;
     if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
     {
         bfp16parm = true;
@@ -202,7 +202,7 @@ NetworkConfig ProblemDescription::MakeForwardInferenceNetworkConfig() const
     }
     else if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
     {
-        bfp32parm  = false;
+        bfp32parm = false;
     }
 
     int n, c, h, w;
