@@ -604,6 +604,9 @@ endfunction()
 
 target_include_directories(MIOpen PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
+    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${MIOPEN_CXX_HEADER_PATH}>
 )
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
@@ -722,16 +725,21 @@ endif()
 
 rocm_install_targets(
   TARGETS MIOpen
-  INCLUDE
-    ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_BINARY_DIR}/include
-    ${MIOPEN_CXX_HEADER_PATH}
-  PREFIX ${MIOPEN_INSTALL_DIR}
+)
+
+install( DIRECTORY
+   ${PROJECT_SOURCE_DIR}/include/miopen/
+   ${PROJECT_BINARY_DIR}/include/miopen/
+   ${MIOPEN_CXX_HEADER_PATH}/miopen/
+DESTINATION include/miopen/
+FILES_MATCHING
+PATTERN "*.h"
+PATTERN "*.hpp"
+PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ
 )
 
 rocm_export_targets(
   TARGETS MIOpen
-  PREFIX ${MIOPEN_INSTALL_DIR}
   DEPENDS
     ${PACKAGE_DEPENDS}
   STATIC_DEPENDS
@@ -768,4 +776,3 @@ else()
          DESTINATION ${DATA_INSTALL_DIR}/db)
     endif()
 endif()
-rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
