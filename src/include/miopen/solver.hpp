@@ -2362,7 +2362,8 @@ struct ConvDirectNaiveConvFwd : SolverBase
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
     float GetWti(const boost::any& ctx_) const override
     {
-        std::ignore = ctx_;
+        auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+        std::ignore = ctx;
         return 0.01;
     }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
@@ -2376,7 +2377,8 @@ struct ConvDirectNaiveConvBwd : SolverBase
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
     float GetWti(const boost::any& ctx_) const override
     {
-        std::ignore = ctx_;
+        auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+        std::ignore = ctx;
         return 0.01;
     }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
@@ -2390,7 +2392,8 @@ struct ConvDirectNaiveConvWrw : SolverBase
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
     float GetWti(const boost::any& ctx_) const override
     {
-        std::ignore = ctx_;
+        auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+        std::ignore = ctx;
         return 0.01;
     }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;

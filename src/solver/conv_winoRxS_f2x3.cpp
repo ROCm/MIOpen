@@ -878,7 +878,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& par
 
 bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const boost::any& ctx_) const
 {
-    std::ignore = ctx_;
+    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
+    std::ignore = params;
     return true; // Actual checks moved to FusionMDGraph.
 }
 

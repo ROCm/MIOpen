@@ -86,7 +86,6 @@ class SearchableTestSolver : public solver::SolverBase
     {
         auto context = boost::any_cast<const ConvolutionContext&>(ctx_);
         std::ignore = context;
-
         return true;
     }
 
