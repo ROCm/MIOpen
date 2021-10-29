@@ -2360,7 +2360,11 @@ struct ConvDirectNaiveConvFwd : SolverBase
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const boost::any& /*ctx*/) const override { return 0.01; }
+    float GetWti(const boost::any& ctx_) const override
+    {
+        std::ignore = ctx_;
+        return 0.01;
+    }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
@@ -2370,7 +2374,11 @@ struct ConvDirectNaiveConvBwd : SolverBase
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const boost::any& /*ctx*/) const override { return 0.01; }
+    float GetWti(const boost::any& ctx_) const override
+    {
+        std::ignore = ctx_;
+        return 0.01;
+    }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
@@ -2380,7 +2388,11 @@ struct ConvDirectNaiveConvWrw : SolverBase
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const boost::any& /*ctx*/) const override { return 0.01; }
+    float GetWti(const boost::any& ctx_) const override
+    {
+        std::ignore = ctx_;
+        return 0.01;
+    }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
@@ -2389,7 +2401,11 @@ struct GemmFwdBase : SolverBase
     using SolverBase::IsApplicable;
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsDynamic() const override { return true; }
-    float GetWti(const boost::any& ctx_) const override;
+    float GetWti(const boost::any& ctx_) const override
+    {
+        auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+        return GetWti(ctx, ctx.conv_problem);
+    }
     float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
 };
 
@@ -2494,7 +2510,11 @@ struct GemmBwdBase : SolverBase
     using SolverBase::IsApplicable;
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsDynamic() const override { return true; }
-    float GetWti(const boost::any& ctx_) const override;
+    float GetWti(const boost::any& ctx_) const override
+    {
+        auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+        return GetWti(ctx, ctx.conv_problem);
+    }
     float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
 };
 
@@ -2575,7 +2595,11 @@ struct GemmWrwBase : SolverBase
     using SolverBase::IsApplicable;
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsDynamic() const override { return true; }
-    float GetWti(const boost::any& ctx_) const override;
+    float GetWti(const boost::any& ctx_) const override
+    {
+        auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+        return GetWti(ctx, ctx.conv_problem);
+    }
     float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
 };
 

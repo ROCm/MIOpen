@@ -107,12 +107,6 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext&,
 #endif
 }
 
-float GemmBwdBase::GetWti(const boost::any& ctx_) const
-{
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-    return GetWti(ctx, ctx.conv_problem);
-}
-
 float GemmBwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescription& problem) const
 {
     const auto& conv   = problem.GetConv();
