@@ -33,6 +33,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
+#include <miopen/util_sol.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
@@ -804,9 +805,6 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(const ConvolutionC
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(!ctx.IsLayoutNHWC())
-        return false;
-
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
@@ -865,19 +863,32 @@ ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& conv_proble
 size_t
 ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    if(ctx.IsFp32())
-        return 0;
-    else
+    const auto& hi        = ctx.out_height;
+    const auto& wi        = ctx.out_width;
+    const auto& n         = ctx.batch_sz;
+    const auto& k         = ctx.n_inputs;
+    const auto& c         = ctx.n_outputs;
+    const auto& ho        = ctx.in_height;
+    const auto& wo        = ctx.in_width;
+    const auto& y         = ctx.kernel_size_h;
+    const auto& x         = ctx.kernel_size_w;
+    const auto& group     = ctx.group_counts;
+    const auto isNCHW     = ctx.IsLayoutDefault();
+    size_t wodkspace_size = 0;
+    if(isNCHW)
     {
-        const auto k       = ctx.n_inputs;
-        const auto c       = ctx.n_outputs;
-        const auto y       = ctx.kernel_size_h;
-        const auto x       = ctx.kernel_size_w;
-        const auto ngroups = ctx.group_counts;
-
-        return static_cast<size_t>(ngroups) * (k / ngroups) * (c / ngroups) * y * x *
-               miopen::GetTypeSize(miopenFloat);
+        wodkspace_size +=
+            static_cast<size_t>(n) * c * hi * wi * miopen::GetTypeSize(ctx.out_data_type) +
+            static_cast<size_t>(k / group) * c * y * x *
+                miopen::GetTypeSize(ctx.weights_data_type) +
+            static_cast<size_t>(n) * k * ho * wo * miopen::GetTypeSize(ctx.in_data_type);
     }
+
+    if(!ctx.IsFp32())
+        wodkspace_size += miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
+                                                           // kernel is FP32, when using FP32 atomic
+                          * static_cast<size_t>(k / group) * c * y * x;
+    return wodkspace_size;
 }
 
 ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
@@ -933,6 +944,18 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     const auto isFp16                 = conv_problem.IsFp16();
     const auto isGfx90aFp16altSupport = (ctx.GetStream().GetDeviceName() == "gfx90a") && isFp16;
 
+    const auto& hi        = ctx.out_height;
+    const auto& wi        = ctx.out_width;
+    const auto& n         = ctx.batch_sz;
+    const auto& k         = ctx.n_inputs;
+    const auto& c         = ctx.n_outputs;
+    const auto& ho        = ctx.in_height;
+    const auto& wo        = ctx.in_width;
+    const auto& y         = ctx.kernel_size_h;
+    const auto& x         = ctx.kernel_size_w;
+    const auto& group     = ctx.group_counts;
+    const auto isNCHW     = ctx.IsLayoutDefault();
+
     result.construction_params.push_back(kernel); // Intentionally without options.
     std::ostringstream options;                   // Common options for both kernels.
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
@@ -956,6 +979,46 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     auto opArgs =
         ComputeDynamicIGemmWrwKernelArgsNHWC(conv_problem, gemm_k_global_splits, gemmk_per_wg);
+    std::vector<std::vector<OpKernelArg>> opArgsTrans;
+    if(isNCHW)
+    {
+        TransposeSolution_NCHW2NHWC trans_input(ctx, ctx.out_data_type, n, c, hi, wi);
+        TransposeSolution_NCHW2NHWC trans_weight(ctx,
+                                                 ctx.weights_data_type,
+                                                 k,
+                                                 c / group,
+                                                 y,
+                                                 x); // group * k_per_group as batch for weight
+        TransposeSolution_NHWC2NCHW trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
+
+        result.construction_params.push_back(trans_input.GetKernel());
+        result.construction_params.push_back(trans_weight.GetKernel());
+        result.construction_params.push_back(trans_output.GetKernel());
+
+        opArgsTrans.emplace_back(trans_input.GetKernelArg());
+        opArgsTrans.emplace_back(trans_weight.GetKernelArg());
+        opArgsTrans.emplace_back(trans_output.GetKernelArg());
+    }
+
+    const size_t trans_input_offset = 0;
+    const size_t trans_input_size =
+        static_cast<size_t>(n) * c * hi * wi * miopen::GetTypeSize(ctx.out_data_type);
+
+    const size_t trans_weight_offset = trans_input_offset + trans_input_size;
+    const size_t trans_weight_size =
+        static_cast<size_t>(k / group) * c * y * x * miopen::GetTypeSize(ctx.weights_data_type);
+
+    const size_t trans_output_offset = trans_weight_offset + trans_weight_size;
+    const size_t trans_output_size =
+        static_cast<size_t>(n) * k * ho * wo * miopen::GetTypeSize(ctx.in_data_type);
+
+    const size_t cast_offset = isNCHW ? (trans_output_offset + trans_output_size) : 0;
+    const size_t cast_size =
+        static_cast<size_t>(n) * k * ho * wo * miopen::GetTypeSize(miopenFloat);
+
+    const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
+
+    const TensorDescriptor cast_desc(miopenFloat, ctx.conv_problem.GetWeights().GetLengths(), ctx.conv_problem.GetWeights().GetStrides());
 
     if((conv_problem.IsBfp16() && gemm_k_global_splits >= 1) || (isFp16 && gemm_k_global_splits >= 1 && (config.tensor_b_thread_lengths[3] == 1 || config.vector_store == 1)))
     {
@@ -967,7 +1030,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 decltype(auto) wrw_invoke_params =
                     primitive_parameters.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
-                const auto k        = handle.Run(
+                const auto ker        = handle.Run(
                     kernels[(isGfx90aFp16altSupport && wrw_invoke_params.gfx90aFp16alt) ? 1 : 0]);
                 const auto& workSpace     = wrw_invoke_params.workSpace;
                 const auto& workSpaceSize = wrw_invoke_params.workSpaceSize;
@@ -978,27 +1041,64 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                     MIOPEN_THROW("Not enough workspace has been provided for "
                                  "ConvAsmImplicitGemmGTCDynamicWrwXdlops with fp16 and atomic "
                                  "add.");
+                auto trans_input_buf = const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                    workSpace, trans_input_offset, trans_input_size);
+                auto trans_weight_buf = const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                    workSpace, trans_weight_offset, trans_weight_size);
+                auto trans_output_buf = const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                    workSpace, trans_output_offset, trans_output_size);
+                auto cast_buf = const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                    workSpace, cast_offset, cast_size);
 
-                SetTensor(handle, workspaceDesc, workSpace, &zero);
+                SetTensor(handle, cast_desc, cast_buf.get(), &zero);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
-                opArgs[0] = OpKernelArg(tensors.x);
-                opArgs[1] = OpKernelArg(workSpace);
-                opArgs[2] = OpKernelArg(tensors.dy);
+                if(isNCHW)
+                {
+                    auto& karg_output = opArgsTrans[2];
+                    auto& karg_input = opArgsTrans[0];
 
-                k(opArgs);
+                    karg_output[0] = OpKernelArg(trans_output_buf.get());
+                    karg_output[1] = OpKernelArg(tensors.dy);
+                    karg_input[0] = OpKernelArg(trans_input_buf.get());
+                    karg_input[1] = OpKernelArg(tensors.x);
+
+                    handle.Run(kernels[kID_trans_start + 2])(karg_output);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+
+                    handle.Run(kernels[kID_trans_start + 0])(karg_input);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+                }
+
+                opArgs[0] = isNCHW ? OpKernelArg(trans_input_buf.get()) : OpKernelArg(tensors.x);
+                opArgs[1] = OpKernelArg(cast_buf.get());
+                opArgs[2] = isNCHW ? OpKernelArg(trans_output_buf.get()) : OpKernelArg(tensors.dy);
+
+                ker(opArgs);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
                 CastTensor(handle,
                            &lowp_quant,
-                           workspaceDesc,
-                           workSpace,
+                           cast_desc,
+                           cast_buf.get(),
                            tensors.dwDesc,
-                           tensors.dw,
+                           isNCHW ? trans_weight_buf.get() :  tensors.dw,
                            0,
                            0);
+
+                if(isNCHW)
+                {
+                    auto& karg_weight = opArgsTrans[1];
+                    karg_weight[0]    = OpKernelArg(tensors.dw);
+                    karg_weight[1]    = OpKernelArg(trans_weight_buf.get());
+                    handle.Run(kernels[kID_trans_start + 1])(karg_weight);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+                }
 
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
@@ -1018,22 +1118,61 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 decltype(auto) wrw_invoke_params =
                     primitive_parameters.CastTo<conv::WrWInvokeParams>();
                 const auto& tensors = wrw_invoke_params.tensors;
-                const auto k        = handle.Run(
+                const auto ker        = handle.Run(
                     kernels[(isGfx90aFp16altSupport && wrw_invoke_params.gfx90aFp16alt) ? 1 : 0]);
+                const auto& workSpace     = wrw_invoke_params.workSpace;
                 float elapsed = 0;
                 float zero    = 0.f;
 
-                opArgs[0] = OpKernelArg(tensors.x);
-                opArgs[1] = OpKernelArg(tensors.dw);
-                opArgs[2] = OpKernelArg(tensors.dy);
+                auto trans_input_buf = const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                    workSpace, trans_input_offset, trans_input_size);
+                auto trans_weight_buf = const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                    workSpace, trans_weight_offset, trans_weight_size);
+                auto trans_output_buf = const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                    workSpace, trans_output_offset, trans_output_size);
+                auto cast_buf = const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                    workSpace, cast_offset, cast_size);
 
-                SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+                opArgs[0] = isNCHW ? OpKernelArg(trans_input_buf.get()) : OpKernelArg(tensors.x);
+                opArgs[1] = isNCHW ? OpKernelArg(trans_weight_buf.get()) : OpKernelArg(tensors.dw);
+                opArgs[2] = isNCHW ? OpKernelArg(trans_output_buf.get()) : OpKernelArg(tensors.dy);
+
+                SetTensor(handle, tensors.dwDesc, isNCHW ? trans_weight_buf.get() : tensors.dw, &zero);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
-                k(opArgs);
+                if(isNCHW)
+                {
+                    auto& karg_output = opArgsTrans[2];
+                    auto& karg_input = opArgsTrans[0];
+
+                    karg_output[0] = OpKernelArg(trans_output_buf.get());
+                    karg_output[1] = OpKernelArg(tensors.dy);
+                    karg_input[0] = OpKernelArg(trans_input_buf.get());
+                    karg_input[1] = OpKernelArg(tensors.x);
+
+                    handle.Run(kernels[kID_trans_start + 2])(karg_output);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+
+                    handle.Run(kernels[kID_trans_start + 0])(karg_input);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+                }
+
+                ker(opArgs);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
+                
+                if(isNCHW)
+                {
+                    auto& karg_weight = opArgsTrans[1];
+                    karg_weight[0]    = OpKernelArg(tensors.dw);
+                    karg_weight[1]    = OpKernelArg(trans_weight_buf.get());
+                    handle.Run(kernels[kID_trans_start + 1])(karg_weight);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+                }
 
                 if(handle.IsProfilingEnabled())
                 {
