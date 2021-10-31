@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 202 Advanced Micro Devices, Inc.
+ * Copyright (c_) 202 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,37 +35,30 @@
 
 namespace miopen {
 
-struct TransposeSolution_NCHW2NHWC
+struct TransposeSolution_NCHW2NHWC : public BatchedTransposeSolution
 {
-    TransposeSolution_NCHW2NHWC(const ExecutionContext& ctx,
-                                miopenDataType_t data_type,
-                                uint32_t n,
-                                uint32_t c,
-                                uint32_t h,
-                                uint32_t w)
-        : batched_transpose_sol(ctx, data_type, n, c, h * w)
+    TransposeSolution_NCHW2NHWC(const ExecutionContext& ctx_,
+                                miopenDataType_t data_type_,
+                                uint32_t n_,
+                                uint32_t c_,
+                                uint32_t h_,
+                                uint32_t w_)
+        : BatchedTransposeSolution(ctx_, data_type_, n_, c_, h_ * w_)
     {
     }
-    solver::KernelInfo GetKernel() const { return batched_transpose_sol.GetKernel(); }
-    std::vector<OpKernelArg> GetKernelArg() const { return batched_transpose_sol.GetKernelArg(); }
-
-    BatchedTransposeSolution batched_transpose_sol;
 };
 
-struct TransposeSolution_NHWC2NCHW
+struct TransposeSolution_NHWC2NCHW : public BatchedTransposeSolution
 {
-    TransposeSolution_NHWC2NCHW(const ExecutionContext& ctx,
-                                miopenDataType_t data_type,
-                                uint32_t n,
-                                uint32_t c,
-                                uint32_t h,
-                                uint32_t w)
-        : batched_transpose_sol(ctx, data_type, n, h * w, c)
+    TransposeSolution_NHWC2NCHW(const ExecutionContext& ctx_,
+                                miopenDataType_t data_type_,
+                                uint32_t n_,
+                                uint32_t c_,
+                                uint32_t h_,
+                                uint32_t w_)
+        : BatchedTransposeSolution(ctx_, data_type_, n_, h_ * w_, c_)
     {
     }
-    solver::KernelInfo GetKernel() const { return batched_transpose_sol.GetKernel(); }
-    std::vector<OpKernelArg> GetKernelArg() const { return batched_transpose_sol.GetKernelArg(); }
-    BatchedTransposeSolution batched_transpose_sol;
 };
 } // namespace miopen
 

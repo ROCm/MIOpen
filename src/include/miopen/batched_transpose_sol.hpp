@@ -53,6 +53,8 @@ struct BatchedTransposeSolution
                              uint32_t width_);
     solver::KernelInfo GetKernel() const;
     std::vector<OpKernelArg> GetKernelArg() const;
+    bool IsSkippable() const;
+    size_t GetSize() const;
 
     miopenDataType_t data_type;
     uint32_t batch;

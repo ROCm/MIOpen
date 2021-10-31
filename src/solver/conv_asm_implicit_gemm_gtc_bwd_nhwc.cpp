@@ -902,22 +902,31 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
     const auto& x         = ctx.kernel_size_w;
     const auto& group     = ctx.group_counts;
     const auto isNCHW     = ctx.IsLayoutDefault();
-    size_t wodkspace_size = 0;
+    size_t workspace_size = 0;
     if(isNCHW)
     {
-        wodkspace_size +=
-            static_cast<size_t>(n) * c * hi * wi * miopen::GetTypeSize(ctx.out_data_type) +
-            static_cast<size_t>(k / group) * c * y * x *
-                miopen::GetTypeSize(ctx.weights_data_type) +
-            static_cast<size_t>(n) * k * ho * wo * miopen::GetTypeSize(ctx.in_data_type);
+        TransposeSolution_NHWC2NCHW trans_input(ctx, ctx.out_data_type, n, c, hi, wi);
+        TransposeSolution_NCHW2NHWC trans_weight(ctx,
+                                                 ctx.weights_data_type,
+                                                 k,
+                                                 c / group,
+                                                 y,
+                                                 x); // group * k_per_group as batch for weight
+        TransposeSolution_NCHW2NHWC trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
+        if(!trans_input.IsSkippable())
+            workspace_size += trans_input.GetSize();
+        if(!trans_weight.IsSkippable())
+            workspace_size += trans_weight.GetSize();
+        if(!trans_output.IsSkippable())
+            workspace_size += trans_output.GetSize();
     }
 
     if(!ctx.IsFp32())
-        wodkspace_size += miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
+        workspace_size += miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
                                                            // kernel is FP32, when using FP32 atomic
                           * n * k * hi * wi;
 
-    return wodkspace_size;
+    return workspace_size;
 }
 
 ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
@@ -984,16 +993,15 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
         const auto& y     = ctx.kernel_size_h;
         const auto& x     = ctx.kernel_size_w;
         const auto& group = ctx.group_counts;
-        const auto isNCHW = ctx.IsLayoutDefault();
 
-        TransposeSolution_NCHW2NHWC trans_input(ctx, ctx.out_data_type, n, c, hi, wi);
+        TransposeSolution_NHWC2NCHW trans_input(ctx, ctx.out_data_type, n, c, hi, wi);
         TransposeSolution_NCHW2NHWC trans_weight(ctx,
                                                  ctx.weights_data_type,
                                                  k,
                                                  c / group,
                                                  y,
                                                  x); // group * k_per_group as batch for weight
-        TransposeSolution_NHWC2NCHW trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
+        TransposeSolution_NCHW2NHWC trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
 
         result.construction_params.push_back(trans_input.GetKernel());
         result.construction_params.push_back(trans_weight.GetKernel());

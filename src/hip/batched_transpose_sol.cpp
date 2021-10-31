@@ -25,7 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/batched_transpose_sol.hpp>
-#include <miopen/datatype.hpp>
+#include <miopen/tensor.hpp>
 #include <miopen/magic_div.hpp>
 #include <string>
 #include <vector>
@@ -180,7 +180,7 @@ BatchedTransposeSolution::BatchedTransposeSolution(const ExecutionContext& ctx,
     if(data_type == miopenInt8x4 || data_type == miopenDouble)
         MIOPEN_THROW("These data type are not supported");
     num_cu                 = ctx.GetStream().GetMaxComputeUnits();
-    std::size_t data_size  = get_data_size(data_type);
+    std::size_t data_size  = miopen::GetTypeSize(data_type);
     kernel_param_heuristic = heuristic_get_transpose_kernel(data_size, batch, height, width);
 }
 
@@ -188,7 +188,7 @@ solver::KernelInfo BatchedTransposeSolution::GetKernel() const
 {
     std::size_t block_size = BATCHED_TRANSPOSE_BLOCK_SIZE;
     std::size_t grid_size  = num_cu * BATCHED_TRANSPOSE_OCCUPANCY;
-    std::size_t data_size  = get_data_size(data_type);
+    std::size_t data_size  = miopen::GetTypeSize(data_type);
 
     std::string kernel_name = get_transpose_kernel_name(data_size, &kernel_param_heuristic);
     solver::KernelInfo kernel;
@@ -231,6 +231,18 @@ std::vector<OpKernelArg> BatchedTransposeSolution::GetKernelArg() const
     opArgs.emplace_back(static_cast<uint32_t>(magic_w.shift));
 
     return opArgs;
+}
+
+bool BatchedTransposeSolution::IsSkippable() const
+{
+    // if height or width is 1, actually no need to do transpose
+    // but nonthing prevent you from DO transpose...
+    return height == 1 || width == 1;
+}
+
+size_t BatchedTransposeSolution::GetSize() const
+{
+    return batch * height * width * miopen::GetTypeSize(data_type);
 }
 
 } // namespace miopen
