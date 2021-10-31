@@ -853,12 +853,15 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
         GenerateClangDefsym(opts_0, "igemm_fwd_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
 
+    std::ostringstream msg;
+
     if(isGfx90aFp16altSupport)
     {
         result.construction_params.push_back(kernel);
         std::ostringstream opts_1(options.str(), std::ios_base::ate);
         GenerateClangDefsym(opts_1, "igemm_fwd_fp16_alt_impl", 1);
         result.construction_params[1].comp_options = opts_1.str();
+        msg << ", fp16_alt:" << ctx.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
     }
 
     if(isNCHW)
@@ -884,14 +887,23 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
         TransposeSolution_NHWC2NCHW trans_output(ctx, ctx.out_data_type, n, k, ho, wo);
 
         if(!trans_input.IsSkippable())
+        {
             result.construction_params.push_back(trans_input.GetKernel());
+            msg << ", inp trans:" << trans_input.GetKernelName();
+        }
         if(!trans_weight.IsSkippable())
+        {
             result.construction_params.push_back(trans_weight.GetKernel());
+            msg << ", wei trans:" << trans_weight.GetKernelName();
+        }
         if(!trans_output.IsSkippable())
+        {
             result.construction_params.push_back(trans_output.GetKernel());
+            msg << ", out trans:" << trans_output.GetKernelName();
+        }
     }
 
-    MIOPEN_LOG_I2("ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC: " + config.ToString());
+    MIOPEN_LOG_I2("ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC: " + config.ToString() + msg.str());
 
     result.invoker_factory = conv::MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(ctx, config);
     return result;

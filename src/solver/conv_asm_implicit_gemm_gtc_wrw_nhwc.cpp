@@ -974,6 +974,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     if(isGfx90aFp16altSupport)
         GenerateClangDefsym(opts_0, "igemm_wrw_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
+    std::ostringstream msg;
 
     if(isGfx90aFp16altSupport)
     {
@@ -981,9 +982,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         std::ostringstream opts_1(options.str(), std::ios_base::ate); // Options for alt kernel.
         GenerateClangDefsym(opts_1, "igemm_wrw_fp16_alt_impl", 1);
         result.construction_params[1].comp_options = opts_1.str();
+        msg << ", fp16_alt:" <<ctx.conv_problem.GetConv().attribute.gfx90aFp16alt.GetWrW();
     }
-
-    MIOPEN_LOG_T("ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC: " + config.ToString());
 
     const auto& lowp_quant = conv_problem.GetConv().lowp_quant;
 
@@ -1021,12 +1021,18 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         trans_weight_skippable = trans_weight.IsSkippable();
         trans_output_skippable = trans_output.IsSkippable();
 
-        if(!trans_input_skippable)
-            opArgsTrans.emplace_back(trans_input.GetKernelArg());
-        if(!trans_weight_skippable)
-            opArgsTrans.emplace_back(trans_weight.GetKernelArg());
-        if(!trans_output_skippable)
-            opArgsTrans.emplace_back(trans_output.GetKernelArg());
+        if(!trans_input.IsSkippable()){
+            result.construction_params.push_back(trans_input.GetKernel());
+            msg << ", inp trans:"<<trans_input.GetKernelName();
+        }
+        if(!trans_weight.IsSkippable()){
+            result.construction_params.push_back(trans_weight.GetKernel());
+            msg << ", wei trans:"<<trans_weight.GetKernelName();
+        }
+        if(!trans_output.IsSkippable()){
+            result.construction_params.push_back(trans_output.GetKernel());
+            msg << ", out trans:"<<trans_output.GetKernelName();
+        }
 
         trans_input_size  = trans_input_skippable ? 0 : trans_input.GetSize();
         trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetSize();
@@ -1043,6 +1049,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         if(!trans_output_skippable)
             trans_output_idx = idx++;
     }
+
+    MIOPEN_LOG_I2("ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC: " + config.ToString() + msg.str());
 
     const size_t cast_offset = isNCHW ? (trans_output_offset + trans_output_size) : 0;
     const size_t cast_size = need_cast ? 

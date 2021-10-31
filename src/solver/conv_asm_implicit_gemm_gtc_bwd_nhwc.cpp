@@ -972,6 +972,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     if(isGfx90aFp16altSupport)
         GenerateClangDefsym(opts_0, "igemm_bwd_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
+    std::ostringstream msg;
 
     if(isGfx90aFp16altSupport)
     {
@@ -979,6 +980,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
         std::ostringstream opts_1(options.str(), std::ios_base::ate);
         GenerateClangDefsym(opts_1, "igemm_bwd_fp16_alt_impl", 1);
         result.construction_params[1].comp_options = opts_1.str();
+        msg << ", fp16_alt:" << ctx.conv_problem.GetConv().attribute.gfx90aFp16alt.GetBwd();
     }
 
     if(isNCHW)
@@ -1003,12 +1005,24 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
                                                  x); // group * k_per_group as batch for weight
         TransposeSolution_NCHW2NHWC trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
 
-        result.construction_params.push_back(trans_input.GetKernel());
-        result.construction_params.push_back(trans_weight.GetKernel());
-        result.construction_params.push_back(trans_output.GetKernel());
+        if(!trans_input.IsSkippable())
+        {
+            result.construction_params.push_back(trans_input.GetKernel());
+            msg << ", inp trans:" << trans_input.GetKernelName();
+        }
+        if(!trans_weight.IsSkippable())
+        {
+            result.construction_params.push_back(trans_weight.GetKernel());
+            msg << ", wei trans:" << trans_weight.GetKernelName();
+        }
+        if(!trans_output.IsSkippable())
+        {
+            result.construction_params.push_back(trans_output.GetKernel());
+            msg << ", out trans:" << trans_output.GetKernelName();
+        }
     }
 
-    MIOPEN_LOG_I2("ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC: " + config.ToString());
+    MIOPEN_LOG_I2("ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC: " + config.ToString() + msg.str());
 
     result.invoker_factory =
         conv::MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(ctx, config);

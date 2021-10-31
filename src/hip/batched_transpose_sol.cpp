@@ -188,9 +188,8 @@ solver::KernelInfo BatchedTransposeSolution::GetKernel() const
 {
     std::size_t block_size = BATCHED_TRANSPOSE_BLOCK_SIZE;
     std::size_t grid_size  = num_cu * BATCHED_TRANSPOSE_OCCUPANCY;
-    std::size_t data_size  = miopen::GetTypeSize(data_type);
 
-    std::string kernel_name = get_transpose_kernel_name(data_size, &kernel_param_heuristic);
+    std::string kernel_name = GetKernelName();
     solver::KernelInfo kernel;
     kernel.kernel_file = "batched_transpose.cpp";
     kernel.kernel_name = kernel_name;
@@ -231,6 +230,12 @@ std::vector<OpKernelArg> BatchedTransposeSolution::GetKernelArg() const
     opArgs.emplace_back(static_cast<uint32_t>(magic_w.shift));
 
     return opArgs;
+}
+
+std::string BatchedTransposeSolution::GetKernelName() const
+{
+    std::size_t data_size = miopen::GetTypeSize(data_type);
+    return get_transpose_kernel_name(data_size, &kernel_param_heuristic);
 }
 
 bool BatchedTransposeSolution::IsSkippable() const

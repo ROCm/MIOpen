@@ -53,6 +53,7 @@ struct BatchedTransposeSolution
                              uint32_t width_);
     solver::KernelInfo GetKernel() const;
     std::vector<OpKernelArg> GetKernelArg() const;
+    std::string GetKernelName() const;
     bool IsSkippable() const;
     size_t GetSize() const;
 
