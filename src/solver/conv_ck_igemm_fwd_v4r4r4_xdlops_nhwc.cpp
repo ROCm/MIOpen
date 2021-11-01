@@ -227,7 +227,7 @@ ConvCkIgemmFwdV4r4r4XdlopsNhwc::GetSolution(const ConvolutionContext& ctx,
             }
 
             // kernel for computation
-            kernel1(tensors.w, tensors.in, tensors.out, data_ctx.workSpace);
+            kernel1(tensors.in, tensors.w, tensors.out, data_ctx.workSpace);
 
             if(handle.IsProfilingEnabled())
             {

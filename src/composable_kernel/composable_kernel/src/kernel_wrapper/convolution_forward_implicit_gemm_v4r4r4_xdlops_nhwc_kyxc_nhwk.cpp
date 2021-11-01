@@ -3,7 +3,7 @@
 #include "tensor_descriptor_helper.hpp"
 #include "gridwise_gemm_xdlops_v2r3.hpp"
 #include "transform_forward_convolution_into_gemm_v4r4r4_nhwc_kyxc_nhwk.hpp"
-#define PRINT_DEBUG_INFO 1
+#define PRINT_DEBUG_INFO 0
 using namespace ck;
 
 constexpr DataTypeEnum_t ABDataTypeEnum  = static_cast<DataTypeEnum_t>(CK_PARAM_ABDataTypeEnum);
