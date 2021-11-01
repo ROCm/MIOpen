@@ -268,7 +268,7 @@ struct mdgraph_driver : test_driver
             }
             else if(miopen::StartsWith(name, "gfx9") || miopen::StartsWith(name, "gfx10"))
             {
-                std::string krn_name_ref = "miopenSp3AsmConv_v21_1_2_";
+                std::string krn_name_ref = "miopenSp3AsmConv_v21_1_3_";
                 if(miopen::StartsWith(name, "gfx9"))
                 {
                     krn_name_ref += "gfx9";
