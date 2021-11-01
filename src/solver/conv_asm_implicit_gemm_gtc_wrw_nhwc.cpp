@@ -1021,16 +1021,19 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         trans_weight_skippable = trans_weight.IsSkippable();
         trans_output_skippable = trans_output.IsSkippable();
 
-        if(!trans_input.IsSkippable()){
+        if(!trans_input_skippable){
             result.construction_params.push_back(trans_input.GetKernel());
+            opArgsTrans.emplace_back(trans_input.GetKernelArg());
             msg << ", inp trans:"<<trans_input.GetKernelName();
         }
-        if(!trans_weight.IsSkippable()){
+        if(!trans_weight_skippable){
             result.construction_params.push_back(trans_weight.GetKernel());
+            opArgsTrans.emplace_back(trans_weight.GetKernelArg());
             msg << ", wei trans:"<<trans_weight.GetKernelName();
         }
-        if(!trans_output.IsSkippable()){
+        if(!trans_output_skippable){
             result.construction_params.push_back(trans_output.GetKernel());
+            opArgsTrans.emplace_back(trans_output.GetKernelArg());
             msg << ", out trans:"<<trans_output.GetKernelName();
         }
 
@@ -1054,7 +1057,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     const size_t cast_offset = isNCHW ? (trans_output_offset + trans_output_size) : 0;
     const size_t cast_size = need_cast ? 
-        static_cast<size_t>(n) * k * ho * wo * miopen::GetTypeSize(miopenFloat) : 0;
+        static_cast<size_t>(k) * (c / group) * y * x * miopen::GetTypeSize(miopenFloat) : 0;
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
@@ -1063,9 +1066,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     if(need_cast)
     {
-        TensorDescriptor workspaceDesc(miopenFloat,
-                                       conv_problem.GetWeights().GetLengths(),
-                                       conv_problem.GetWeights().GetStrides());
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
                 decltype(auto) wrw_invoke_params =
@@ -1186,6 +1186,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 if(isNCHW)
                 {
                     if(!trans_input_skippable){
+
                         auto& karg_input = opArgsTrans[trans_input_idx];
                         karg_input[0] = OpKernelArg(trans_input_buf.get());
                         karg_input[1] = OpKernelArg(tensors.x);
@@ -1194,6 +1195,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                             elapsed += handle.GetKernelTime();
                     }
                     if(!trans_output_skippable){
+
                         auto& karg_output = opArgsTrans[trans_output_idx];
                         karg_output[0] = OpKernelArg(trans_output_buf.get());
                         karg_output[1] = OpKernelArg(tensors.dy);
@@ -1206,7 +1208,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 ker(opArgs);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
-                
+
                 if(isNCHW && !trans_weight_skippable)
                 {
                     auto& karg_weight = opArgsTrans[trans_weight_idx];
