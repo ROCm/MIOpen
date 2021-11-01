@@ -598,8 +598,6 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             const auto ker =
                 handle.Run(kernels[(isGfx90aFp16altSupport && data_ctx.gfx90aFp16alt) ? 1 : 0]);
             float elapsed = 0;
-            TensorDescriptor workspaceDesc(
-                miopenFloat, tensors.outDesc.GetLengths(), tensors.outDesc.GetStrides());
 
             auto trans_input_buf = trans_input_size == 0
                                        ? null_buf
@@ -909,8 +907,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             const auto ker =
                 handle.Run(kernels[(isGfx90aFp16altSupport && data_ctx.gfx90aFp16alt) ? 1 : 0]);
             float elapsed = 0;
-            TensorDescriptor workspaceDesc(
-                miopenFloat, tensors.outDesc.GetLengths(), tensors.outDesc.GetStrides());
 
             auto trans_input_buf = trans_input_size == 0
                                        ? null_buf
@@ -930,7 +926,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 
             if(need_set_zero)
             {
-
                 auto zero_buf = need_cast
                                     ? cast_buf.get()
                                     : ((isNCHW && !trans_input_skippable) ? trans_input_buf.get()
