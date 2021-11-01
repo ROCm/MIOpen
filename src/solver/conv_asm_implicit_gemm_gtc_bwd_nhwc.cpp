@@ -924,7 +924,7 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
     if(!ctx.IsFp32())
         workspace_size += miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
                                                            // kernel is FP32, when using FP32 atomic
-                          * n * k * hi * wi;
+                          * n * c * hi * wi;
 
     return workspace_size;
 }

@@ -890,7 +890,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 
     const size_t cast_offset = isNCHW ? (trans_output_offset + trans_output_size) : 0;
     const size_t cast_size =
-        need_cast ? static_cast<size_t>(n) * k * ho * wo * miopen::GetTypeSize(miopenFloat) : 0;
+        need_cast ? static_cast<size_t>(n) * c * hi * wi * miopen::GetTypeSize(miopenFloat) : 0;
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
