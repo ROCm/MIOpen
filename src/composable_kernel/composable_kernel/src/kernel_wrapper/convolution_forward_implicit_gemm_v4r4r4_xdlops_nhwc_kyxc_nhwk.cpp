@@ -3,7 +3,7 @@
 #include "tensor_descriptor_helper.hpp"
 #include "gridwise_gemm_xdlops_v2r3.hpp"
 #include "transform_forward_convolution_into_gemm_v4r4r4_nhwc_kyxc_nhwk.hpp"
-
+#define PRINT_DEBUG_INFO 1
 using namespace ck;
 
 constexpr DataTypeEnum_t ABDataTypeEnum  = static_cast<DataTypeEnum_t>(CK_PARAM_ABDataTypeEnum);
@@ -22,7 +22,7 @@ constexpr index_t GemmK0PerBlock = CK_PARAM_K0PerBlock;
 
 constexpr index_t GemmMPerXDL = CK_PARAM_MPerXDL;
 constexpr index_t GemmNPerXDL = CK_PARAM_NPerXDL;
-constexpr index_t GemmK1  = CK_PARAM_K1;
+constexpr index_t GemmK1      = CK_PARAM_K1;
 
 constexpr index_t MRepeat = CK_PARAM_MRepeat;
 constexpr index_t NRepeat = CK_PARAM_NRepeat;
@@ -62,7 +62,7 @@ constexpr index_t GemmCThreadTransferSrcDstVectorDim = CK_PARAM_CThreadTransferS
 constexpr index_t GemmCThreadTransferDstScalarPerVector =
     CK_PARAM_CThreadTransferDstScalarPerVector;
 
-//constexpr bool HasMainKBlockLoop = static_cast<bool>(CK_PARAM_HasMainKBlockLoop);
+// constexpr bool HasMainKBlockLoop = static_cast<bool>(CK_PARAM_HasMainKBlockLoop);
 
 extern "C" __global__ void
 convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk_prepare(int N_,
@@ -211,11 +211,11 @@ convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk_prepare(int N_,
 
     if(get_block_1d_id() == 0 && get_thread_local_1d_id() == 0)
     {
-        auto desc_tuple = make_tuple(
-            in_gemmk0_gemmm_gemmk1_grid_desc,
-            wei_gemmk0_gemmn_gemmk1_grid_desc,
-            GridwiseGemm::MakeCM0M1M2NGridDescriptor(out_gemmm_gemmn_grid_desc),
-            GridwiseGemm::MakeCBlockClusterAdaptor(out_gemmm_gemmn_grid_desc));
+        auto desc_tuple =
+            make_tuple(in_gemmk0_gemmm_gemmk1_grid_desc,
+                       wei_gemmk0_gemmn_gemmk1_grid_desc,
+                       GridwiseGemm::MakeCM0M1M2NGridDescriptor(out_gemmm_gemmn_grid_desc),
+                       GridwiseGemm::MakeCBlockClusterAdaptor(out_gemmm_gemmn_grid_desc));
 
         *static_cast<decltype(desc_tuple)*>(p_desc_tuple) = desc_tuple;
     }
@@ -256,7 +256,6 @@ extern "C" __global__ void
     constexpr auto in_gemmk0_gemmm_gemmk1_grid_desc  = descs[I0];
     constexpr auto wei_gemmk0_gemmn_gemmk1_grid_desc = descs[I1];
     constexpr auto out_gemmm_gemmn_grid_desc         = descs[I2];
-
 
     // HACK: hacks that control index calculation when iterating over A, B, C matrix
     constexpr auto in_gemmk0_gemmm_gemmk1_grid_step_hacks =
@@ -369,6 +368,33 @@ extern "C" __global__ void
         GridwiseGemm::GetSharedMemoryNumberOfByte() / sizeof(FloatAB);
 
     __shared__ FloatAB p_shared_block[shared_block_size];
+
+#ifdef PRINT_DEBUG_INFO
+    if(get_block_1d_id() == 0 && get_thread_local_1d_id() == 0)
+    {
+        const int k0 = a_k0_m_k1_grid_desc.GetLength(I0);
+        const int k1 = a_k0_m_k1_grid_desc.GetLength(I2);
+        const int n  = b_k0_n_k1_grid_desc.GetLength(I1);
+        const int m  = a_k0_m_k1_grid_desc.GetLength(I1);
+
+        printf("shared block size: %d , gemmM: %d gemmN: %d ,gemmK0: %d gemmK1: %d \n",
+               shared_block_size,
+               m,
+               n,
+               k0,
+               k1);
+        printf("a address %p, b address %p, c address %p, shared address: %p\n",
+               static_cast<const void*>(p_a_grid),
+               static_cast<const void*>(p_b_grid),
+               static_cast<const void*>(p_c_grid),
+               static_cast<const void*>(p_shared_block));
+        const int space = m * k0 * k1;
+        printf("a matrix space: %x %x, end: %p \n",
+               a_k0_m_k1_grid_desc.GetElementSpaceSize(),
+               space,
+               static_cast<const void*>(&p_a_grid[space]));
+    }
+#endif
 
     GridwiseGemm::Run(p_a_grid,
                       p_b_grid,
