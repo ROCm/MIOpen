@@ -36,12 +36,12 @@ namespace miopen {
 
 struct BatchedTransposeParam
 {
-    int tile_x;
-    int tile_y;
-    int pack_x;
-    int pack_y;
-    int ediv_x;
-    int ediv_y;
+    int tile_x{0};
+    int tile_y{0};
+    int pack_x{0};
+    int pack_y{0};
+    int ediv_x{0};
+    int ediv_y{0};
 };
 
 struct BatchedTransposeSolution

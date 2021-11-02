@@ -27,6 +27,7 @@
 #include <miopen/batched_transpose_sol.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/magic_div.hpp>
+#include <miopen/float_equal.hpp>
 #include <string>
 #include <vector>
 #include <limits>
@@ -112,6 +113,28 @@ static inline bool transpose_kernel_is_valid(uint32_t /* batch */,
     return width % kparam->ediv_x == 0 && height % kparam->ediv_y == 0;
 }
 
+static inline bool
+transpose_kernel_is_same_side(uint32_t height, uint32_t width, const BatchedTransposeParam* kparam)
+{
+    float radio = 0;
+    if(width > height)
+        radio = static_cast<float>(kparam->tile_x) / kparam->tile_y;
+    else
+        radio = static_cast<float>(kparam->tile_y) / kparam->tile_x;
+
+    // e.g. for cases like width=1000, height=10
+    // allow at least 32x64, 64x64... 16x64 not allowed
+    return radio >= 0.4;
+}
+
+template <typename T>
+static inline float get_normalized_radio(T x, T y)
+{
+    if(y > x)
+        return static_cast<float>(y) / x;
+    return static_cast<float>(x) / y;
+}
+
 static inline std::string get_transpose_kernel_name(std::size_t data_size,
                                                     const BatchedTransposeParam* kparam)
 {
@@ -153,13 +176,58 @@ static inline BatchedTransposeParam heuristic_get_transpose_kernel(std::size_t d
     const auto& kernel_list = get_transpose_kernel_list(data_size);
     BatchedTransposeParam best_kernel;
     std::size_t extra_padding_size = std::numeric_limits<std::size_t>::max();
+    float hw_radio                 = get_normalized_radio(height, width);
 
     for(auto it = kernel_list.rbegin(); it != kernel_list.rend(); it++)
     {
         if(!transpose_kernel_is_valid(batch, height, width, &(*it)))
             continue;
         std::size_t current_padding_size = get_extra_padding_size(batch, height, width, &(*it));
-        if(current_padding_size < extra_padding_size)
+        bool replace_current             = false;
+        if(best_kernel.tile_x == 0 && best_kernel.tile_y == 0)
+        {
+            // 1st applicable case
+            replace_current = true;
+        }
+        if(hw_radio > 128)
+        {
+            // this is for cases that h, w have a great difference
+            if(!transpose_kernel_is_same_side(height, width, &(*it)))
+                continue;
+            float prev_radio = get_normalized_radio(
+                get_normalized_radio(best_kernel.tile_y, best_kernel.tile_x), hw_radio);
+            float curr_radio =
+                get_normalized_radio(get_normalized_radio(it->tile_y, it->tile_x), hw_radio);
+
+            if(curr_radio * current_padding_size < prev_radio * extra_padding_size)
+            {
+                if(curr_radio <= prev_radio)
+                {
+                    replace_current = true;
+                }
+            }
+            else if(float_equal(curr_radio * current_padding_size, prev_radio * extra_padding_size))
+            {
+                // if width == height, a greate chance is that the kernel performance would be
+                // almost the same, so ignore this case
+                if((width > height && it->tile_x > it->tile_y &&
+                    best_kernel.tile_x < best_kernel.tile_y) ||
+                   (width < height && it->tile_x < it->tile_y &&
+                    best_kernel.tile_x > best_kernel.tile_y))
+                {
+                    replace_current = true;
+                }
+            }
+        }
+        else
+        {
+            if(current_padding_size < extra_padding_size)
+            {
+                replace_current = true;
+            }
+        }
+
+        if(replace_current)
         {
             extra_padding_size = current_padding_size;
             best_kernel        = *it;
