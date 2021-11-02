@@ -985,7 +985,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         msg << ", fp16_alt:" <<ctx.conv_problem.GetConv().attribute.gfx90aFp16alt.GetWrW();
     }
 
-    const auto& lowp_quant = conv_problem.GetConv().lowp_quant;
+    const auto lowp_quant = conv_problem.GetConv().lowp_quant;
 
     auto opArgs =
         ComputeDynamicIGemmWrwKernelArgsNHWC(conv_problem, gemm_k_global_splits, gemmk_per_wg);

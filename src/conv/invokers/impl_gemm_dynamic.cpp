@@ -511,7 +511,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
 
     std::vector<std::vector<OpKernelArg>> opArgsTrans;
 
-    const auto& lowp_quant = ctx.conv_problem.GetConv().lowp_quant;
+    const auto lowp_quant = ctx.conv_problem.GetConv().lowp_quant;
     const auto isGfx90aFp16altSupport =
         (ctx.GetStream().GetDeviceName() == "gfx90a") && conv_problem.IsFp16();
 
@@ -820,7 +820,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 
     std::vector<std::vector<OpKernelArg>> opArgsTrans;
 
-    const auto& lowp_quant = ctx.conv_problem.GetConv().lowp_quant;
+    const auto lowp_quant = ctx.conv_problem.GetConv().lowp_quant;
     const auto isGfx90aFp16altSupport =
         (ctx.GetStream().GetDeviceName() == "gfx90a") && conv_problem.IsFp16();
     const bool need_cast = [&]() {
