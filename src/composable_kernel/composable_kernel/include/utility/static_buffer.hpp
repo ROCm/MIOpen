@@ -137,7 +137,7 @@ struct StaticBufferV2 : public StaticallyIndexedArray<T, N>
     }
 
     template <index_t I>
-    __host__ __device__ constexpr auto& operator()(Number<I> i)
+    __host__ __device__ constexpr auto operator()(Number<I> i)
     {
         return GetElement(i, true);
     }
