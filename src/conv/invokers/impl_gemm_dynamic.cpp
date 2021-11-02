@@ -580,8 +580,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     }
 
     const size_t cast_offset = isNCHW ? (trans_output_offset + trans_output_size) : 0;
-    const size_t cast_size =
-        need_cast ? static_cast<size_t>(n) * k * ho * wo * miopen::GetTypeSize(miopenFloat) : 0;
+    const size_t cast_size   = need_cast ? miopen::GetTypeSize(miopenFloat) * n * k * ho * wo : 0;
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
@@ -599,21 +598,21 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
                 handle.Run(kernels[(isGfx90aFp16altSupport && data_ctx.gfx90aFp16alt) ? 1 : 0]);
             float elapsed = 0;
 
-            auto trans_input_buf = trans_input_size == 0
-                                       ? null_buf
-                                       : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
-                                             workSpace, trans_input_offset, trans_input_size);
-            auto trans_weight_buf = trans_weight_size == 0
-                                        ? null_buf
-                                        : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
-                                              workSpace, trans_weight_offset, trans_weight_size);
-            auto trans_output_buf = trans_output_size == 0
-                                        ? null_buf
-                                        : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
-                                              workSpace, trans_output_offset, trans_output_size);
-            auto cast_buf = cast_size == 0 ? null_buf
-                                           : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
-                                                 workSpace, cast_offset, cast_size);
+            auto trans_input_buf =
+                trans_input_size == 0
+                    ? null_buf
+                    : handle.CreateSubBuffer(workSpace, trans_input_offset, trans_input_size);
+            auto trans_weight_buf =
+                trans_weight_size == 0
+                    ? null_buf
+                    : handle.CreateSubBuffer(workSpace, trans_weight_offset, trans_weight_size);
+            auto trans_output_buf =
+                trans_output_size == 0
+                    ? null_buf
+                    : handle.CreateSubBuffer(workSpace, trans_output_offset, trans_output_size);
+            auto cast_buf = cast_size == 0
+                                ? null_buf
+                                : handle.CreateSubBuffer(workSpace, cast_offset, cast_size);
 
             if(need_set_zero)
             {
@@ -889,8 +888,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     }
 
     const size_t cast_offset = isNCHW ? (trans_output_offset + trans_output_size) : 0;
-    const size_t cast_size =
-        need_cast ? static_cast<size_t>(n) * c * hi * wi * miopen::GetTypeSize(miopenFloat) : 0;
+    const size_t cast_size   = need_cast ? miopen::GetTypeSize(miopenFloat) * n * c * hi * wi : 0;
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
@@ -908,21 +906,21 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
                 handle.Run(kernels[(isGfx90aFp16altSupport && data_ctx.gfx90aFp16alt) ? 1 : 0]);
             float elapsed = 0;
 
-            auto trans_input_buf = trans_input_size == 0
-                                       ? null_buf
-                                       : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
-                                             workSpace, trans_input_offset, trans_input_size);
-            auto trans_weight_buf = trans_weight_size == 0
-                                        ? null_buf
-                                        : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
-                                              workSpace, trans_weight_offset, trans_weight_size);
-            auto trans_output_buf = trans_output_size == 0
-                                        ? null_buf
-                                        : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
-                                              workSpace, trans_output_offset, trans_output_size);
-            auto cast_buf = cast_size == 0 ? null_buf
-                                           : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
-                                                 workSpace, cast_offset, cast_size);
+            auto trans_input_buf =
+                trans_input_size == 0
+                    ? null_buf
+                    : handle.CreateSubBuffer(workSpace, trans_input_offset, trans_input_size);
+            auto trans_weight_buf =
+                trans_weight_size == 0
+                    ? null_buf
+                    : handle.CreateSubBuffer(workSpace, trans_weight_offset, trans_weight_size);
+            auto trans_output_buf =
+                trans_output_size == 0
+                    ? null_buf
+                    : handle.CreateSubBuffer(workSpace, trans_output_offset, trans_output_size);
+            auto cast_buf = cast_size == 0
+                                ? null_buf
+                                : handle.CreateSubBuffer(workSpace, cast_offset, cast_size);
 
             if(need_set_zero)
             {

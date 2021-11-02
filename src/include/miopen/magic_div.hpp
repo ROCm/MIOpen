@@ -28,7 +28,7 @@
 #define GUARD_MLOPEN_MAGIC_DIV_HPP_
 
 #include <cstdint>
-#include <assert.h>
+#include <cassert>
 
 namespace miopen {
 

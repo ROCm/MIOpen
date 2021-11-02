@@ -896,7 +896,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
     if(!ctx.IsFp32())
         workspace_size += miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
                                                            // kernel is FP32, when using FP32 atomic
-                          * static_cast<size_t>(k / group) * c * y * x;
+                          * (k / group) * c * y * x;
     return workspace_size;
 }
 
@@ -1057,7 +1057,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     const size_t cast_offset = isNCHW ? (trans_output_offset + trans_output_size) : 0;
     const size_t cast_size = need_cast ? 
-        static_cast<size_t>(k) * (c / group) * y * x * miopen::GetTypeSize(miopenFloat) : 0;
+        miopen::GetTypeSize(miopenFloat) * k * (c / group) * y * x  : 0;
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
@@ -1082,13 +1082,13 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                     MIOPEN_THROW("Not enough workspace has been provided for "
                                  "ConvAsmImplicitGemmGTCDynamicWrwXdlops with fp16 and atomic "
                                  "add.");
-                auto trans_input_buf = trans_input_size== 0 ?null_buf : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                auto trans_input_buf = trans_input_size== 0 ?null_buf : handle.CreateSubBuffer(
                     workSpace, trans_input_offset, trans_input_size);
-                auto trans_weight_buf = trans_weight_size==0 ? null_buf : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                auto trans_weight_buf = trans_weight_size==0 ? null_buf : handle.CreateSubBuffer(
                     workSpace, trans_weight_offset, trans_weight_size);
-                auto trans_output_buf = trans_output_size ==0 ? null_buf : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                auto trans_output_buf = trans_output_size ==0 ? null_buf : handle.CreateSubBuffer(
                     workSpace, trans_output_offset, trans_output_size);
-                auto cast_buf = cast_size == 0 ? null_buf : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                auto cast_buf = cast_size == 0 ? null_buf : handle.CreateSubBuffer(
                     workSpace, cast_offset, cast_size);
 
                 SetTensor(handle, cast_desc, cast_buf.get(), &zero);
@@ -1166,13 +1166,13 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 float elapsed = 0;
                 float zero    = 0.f;
 
-                auto trans_input_buf = trans_input_size== 0 ?null_buf : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                auto trans_input_buf = trans_input_size== 0 ?null_buf : handle.CreateSubBuffer(
                     workSpace, trans_input_offset, trans_input_size);
-                auto trans_weight_buf = trans_weight_size==0 ? null_buf : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                auto trans_weight_buf = trans_weight_size==0 ? null_buf : handle.CreateSubBuffer(
                     workSpace, trans_weight_offset, trans_weight_size);
-                auto trans_output_buf = trans_output_size ==0 ? null_buf : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                auto trans_output_buf = trans_output_size ==0 ? null_buf : handle.CreateSubBuffer(
                     workSpace, trans_output_offset, trans_output_size);
-                auto cast_buf = cast_size == 0 ? null_buf : const_cast<miopen::Handle*>(&handle)->CreateSubBuffer(
+                auto cast_buf = cast_size == 0 ? null_buf : handle.CreateSubBuffer(
                     workSpace, cast_offset, cast_size);
 
                 opArgs[0] = (isNCHW && !trans_input_skippable) ? OpKernelArg(trans_input_buf.get()) : OpKernelArg(tensors.x);
