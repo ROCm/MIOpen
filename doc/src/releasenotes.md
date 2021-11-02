@@ -1,6 +1,16 @@
 
 ## MIOpen Release notes
 
+### 11/02/2021 [2.14.0]
+
+ - This release consists of various bug fixes and performance improvements
+
+ - Improved support for Navi21
+ - Performance improvements via performance database updates
+ - Fix various issues in convolution kernels specific to certain ASICs
+ - Fix an accuracy issue in reduction kernels
+ - Fix an accuracy issue in Batchnormalization kernels
+
 ### 08/03/2021 [2.12.0]
 
  - This release includes support for Navi21 and various other bug fixes and performance improvements
