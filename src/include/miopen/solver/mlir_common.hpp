@@ -36,10 +36,11 @@ namespace solver {
 namespace mlir {
 
 std::string InsertGToLayout(const std::string& layout, char dim);
-std::string PopulateHandle(const ConvolutionContext& ctx,
-                           const std::string& operation,
-                           const std::string& kernel_name,
-                           bool isXdlops);
+std::string ConstructBuildOptions(const ConvolutionContext& ctx,
+                                  const std::string& operation,
+                                  const std::string& kernel_name,
+                                  bool is_xdlops,
+                                  int kernel_id = 0);
 
 } // namespace mlir
 } // namespace solver

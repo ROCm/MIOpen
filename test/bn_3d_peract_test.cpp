@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "test.hpp"
+#include "random.hpp"
 #include <array>
 #include <iostream>
 #include <iterator>
@@ -108,8 +109,8 @@ struct verify_forward_train_3d_bn_per_activation
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
-                runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * U(rand() % 100);
-                runVar[i]  = 1e-3 * U(rand() % 100);
+                runMean[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * U(GET_RAND() % 100);
+                runVar[i]  = 1e-3 * U(GET_RAND() % 100);
             }
         }
 
@@ -241,8 +242,8 @@ struct verify_forward_train_3d_bn_per_activation
             runVar  = tensor<U>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width};
             for(std::size_t i = 0; i < runMean.desc.GetElementSize(); i++)
             {
-                runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * U(rand() % 100);
-                runVar[i]  = 1e-3 * U(rand() % 100);
+                runMean[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * U(GET_RAND() % 100);
+                runVar[i]  = 1e-3 * U(GET_RAND() % 100);
             }
         }
 
@@ -350,7 +351,6 @@ struct verify_forward_infer_3d_bn_per_activation_recalc
         const auto n = double(n_batch);
 
         par_for(channels, 1, [&](int cidx) {
-
             double elemStd        = 0.;
             double elemInvVar     = 0.;
             double mean_accum     = 0.;
@@ -678,7 +678,7 @@ struct verify_backward_3d_bn_per_activation_use_saved
                             double tmp2 = n_batch * (scale(0, cidx, didx, row, column) *
                                                      dy_input(bidx, cidx, didx, row, column)) -
                                           tmp1;
-                            double tmp3 = elemInvVar / (double(n));
+                            double tmp3                           = elemInvVar / (double(n));
                             dx_out(bidx, cidx, didx, row, column) = tmp3 * tmp2;
                         } // end for(n_batchs)
                     }     // for (column)
@@ -814,7 +814,6 @@ struct verify_backward_3d_bn_per_activation_recalc
         const auto n                  = double(n_batch);
 
         par_for(channels, 1, [&](int cidx) {
-
             double elemStd = 0.;
             unsigned int xhat_index;
             double mean       = 0.;
@@ -883,7 +882,7 @@ struct verify_backward_3d_bn_per_activation_recalc
                             double tmp2 = n_batch * (scale(0, cidx, didx, row, column) *
                                                      dy_input(bidx, cidx, didx, row, column)) -
                                           tmp1;
-                            double tmp3 = elemInvVar / double(n);
+                            double tmp3                           = elemInvVar / double(n);
                             dx_out(bidx, cidx, didx, row, column) = tmp3 * tmp2;
                         } // end for(n_batchs)
                     }     // for (column)
@@ -1005,7 +1004,7 @@ struct batch_norm_3d_per_activation_driver : test_driver
     {
         std::size_t n, c, d, h, w;
         std::tie(n, c, d, h, w) = miopen::tien<5>(input.desc.GetLengths());
-        this->tolerance = 200 * input.desc.GetElementSize();
+        this->tolerance         = 200 * input.desc.GetElementSize();
 
         if(n == 1)
         {
@@ -1033,12 +1032,12 @@ struct batch_norm_3d_per_activation_driver : test_driver
             shift = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
             for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
             {
-                scale[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * PREC_TYPE(rand() % 100);
-                shift[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * PREC_TYPE(rand() % 100);
+                scale[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * PREC_TYPE(GET_RAND() % 100);
+                shift[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * 1e-3 * PREC_TYPE(GET_RAND() % 100);
             }
             for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
             {
-                input[i] = (((rand() % 2) == 1) ? -1 : 1) * (1e-4 * T(rand() % 100));
+                input[i] = (((GET_RAND() % 2) == 1) ? -1 : 1) * (1e-4 * T(GET_RAND() % 100));
             }
         }
 

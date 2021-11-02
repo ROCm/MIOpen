@@ -1,5 +1,5 @@
 
-#ifndef __AMDGCN__
+#if !MIOPEN_USE_AMDGCN
 static inline void lds_reduce2(_FLOAT_ACCUM* x,
                                _FLOAT_ACCUM* y,
                                _FLOAT_ACCUM scale,
@@ -57,7 +57,7 @@ regLDSreduce(_FLOAT_ACCUM* value, local _FLOAT_ACCUM* data, uint localID, _FLOAT
 
 #endif
 
-#ifdef __AMDGCN__
+#if MIOPEN_USE_AMDGCN
 static inline void dpp_reduction(_FLOAT_ACCUM* temp_sum)
 {
     __asm__ volatile("s_nop 4\n"

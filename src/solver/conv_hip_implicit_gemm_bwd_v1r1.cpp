@@ -71,8 +71,8 @@ PerformanceImplicitGemmBwdDataV1R1::PerformanceImplicitGemmBwdDataV1R1(bool spar
     use_spare_set = spare;
 }
 
-bool PerformanceImplicitGemmBwdDataV1R1::
-operator==(const PerformanceImplicitGemmBwdDataV1R1& other) const
+bool PerformanceImplicitGemmBwdDataV1R1::operator==(
+    const PerformanceImplicitGemmBwdDataV1R1& other) const
 {
     // clang-format off
     return BlockSize == other.BlockSize
@@ -503,7 +503,7 @@ bool PerformanceImplicitGemmBwdDataV1R1::IsValid(const ConvolutionContext& ctx) 
         return false;
 
     // check LDS allocation
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= get_lds_max_number_of_byte());
@@ -564,7 +564,7 @@ void PerformanceImplicitGemmBwdDataV1R1::HeuristicInit(const ConvolutionContext&
     MIOPEN_LOG_I(ToString());
 }
 
-bool PerformanceImplicitGemmBwdDataV1R1::SetNextValue()
+bool PerformanceImplicitGemmBwdDataV1R1::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // always search full space, no matter if use_spare_set or not
     do
@@ -716,9 +716,11 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    construction_parameters.kernel_file =
-        ctx.Is3d() ? "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw.cpp"
-                   : "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw.cpp";
+    // clang-format off
+    construction_parameters.kernel_file = ctx.Is3d()
+                                              ? "static_kernel_gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw.cpp"
+                                              : "static_kernel_gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw.cpp";
+    // clang-format on
 
     construction_parameters.kernel_name =
         ctx.Is3d() ? "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"
@@ -819,7 +821,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        get_ck_common_compiler_flag(ctx) +
+        get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on
     if(ctx.Is3d())

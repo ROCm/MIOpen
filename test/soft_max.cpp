@@ -451,7 +451,7 @@ struct softmax_driver : test_driver
             double y = (877 * n + 547 * c + 701 * h + 1049 * w + static_cast<int>(769 * x)) % 2503;
             return ((x * y) / 1301.0);
         });
-        din = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
+        din  = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
         verify(verify_backward_sofmax<T>{out, dout, din, alpha, beta, algo, mode});
     }
 };

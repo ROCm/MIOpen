@@ -127,7 +127,7 @@ struct config_helper
         in_strided_w = divide_round_plus_inf(conf.in_width, stride_w);
         in_strided_h = divide_round_plus_inf(conf.in_height, stride_h);
 
-        w_per_wave = static_cast<int>(divide_round_plus_inf(perf.dwords_per_ld, stride_w) *
+        w_per_wave  = static_cast<int>(divide_round_plus_inf(perf.dwords_per_ld, stride_w) *
                                       perf.w_mult * (perf.chunk_size / perf.h_per_chunk));
         h_per_wave  = perf.h_per_chunk * perf.h_mult;
         gid_hw_size = static_cast<int>(divide_round_plus_inf(in_strided_w, h_per_wave) *
@@ -187,7 +187,7 @@ struct buff_info
     }
 };
 
-bool PerformanceConfigConvAsm1x1UV2::SetNextValue()
+bool PerformanceConfigConvAsm1x1UV2::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // Increment with wrap-around:
     do
@@ -287,8 +287,8 @@ PerformanceConfigConvAsm1x1UV2::PerformanceConfigConvAsm1x1UV2(int chunk_size_,
 {
 }
 
-inline bool PerformanceConfigConvAsm1x1UV2::
-operator==(const PerformanceConfigConvAsm1x1UV2& other) const
+inline bool
+PerformanceConfigConvAsm1x1UV2::operator==(const PerformanceConfigConvAsm1x1UV2& other) const
 {
     // clang-format off
     return chunk_size == other.chunk_size
@@ -488,6 +488,11 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.IsFp32())
         return false;
+
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const std::string name = params.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
     {

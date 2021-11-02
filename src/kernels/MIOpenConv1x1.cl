@@ -133,7 +133,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
               __global _FLOAT* __restrict out_ptr,
               UNUSED _FLOAT dummy_val // nothing
-              )
+)
 {
     // KERNEL
     // private buffers
@@ -412,14 +412,12 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
                 if(true
 #if MLO_BATCH_ALIGNED == 0
-                   &&
-                   (batch_block * MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
+                   && (batch_block * MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
 #endif
 #if MLO_OUTPUTS_ALIGNED == 0
-                   &&
-                   out_block + olc < MLO_N_OUTPUTS
+                   && out_block + olc < MLO_N_OUTPUTS
 #endif
-                   )
+                )
                 {
 
                     uint out_off2 =
@@ -492,18 +490,16 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
             if(true
 #if MLO_BATCH_ALIGNED == 0
-               &&
-               (batch_block * MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
+               && (batch_block * MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
 #endif
 #if MLO_OUTPUTS_ALIGNED == 0
-               &&
-               (out_block + olc < MLO_N_OUTPUTS)
+               && (out_block + olc < MLO_N_OUTPUTS)
 #endif
-                   )
+            )
             {
 #if MLO_CONV_BIAS
                 _FLOAT bias_val = 0;
-                bias_val = bias[out_block * MLO_N_LCL_OUT_MAPS + olc];
+                bias_val        = bias[out_block * MLO_N_LCL_OUT_MAPS + olc];
 #endif
 #if MLO_C1x1_PIXLEFT > 0
 

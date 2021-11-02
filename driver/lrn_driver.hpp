@@ -131,7 +131,7 @@ int LRNDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 #if 0
 	if(inflags.GetValueInt("back") == 0 && inflags.GetValueStr("mode") == "cross") {
 		printf("Cross channel LRN needs do_backward=1\n");
-		exit(0);
+		exit(0); // NOLINT (concurrency-mt-unsafe)
 	}
 #endif
     return 0;
@@ -210,7 +210,7 @@ int LRNDriver<Tgpu, Tref>::SetLRNDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect LRN Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     return (miopenSetLRNDescriptor(lrnDesc, mode, lrnN, lrnAlpha, lrnBeta, lrnK));

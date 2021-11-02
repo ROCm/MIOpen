@@ -409,7 +409,7 @@ struct tensor_transform_driver : test_driver
             srcSuper_depad = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
             dstDesc        = miopen::TensorDescriptor(this->type, srcLens.data(), srcLens.size());
 
-            if(srcDesc.GetLengths().size() == dstDesc.GetLengths().size() && !skip_layout)
+            if(srcDesc.GetLengths().size() == dstDesc.GetLengths().size())
             {
                 verify_equals(verify_tensor_transform_layout<T>{
                     srcSuper_pad, dstSuper_pad, srcDesc, dstDesc, alpha, beta});

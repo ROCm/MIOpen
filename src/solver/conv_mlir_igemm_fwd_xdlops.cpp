@@ -39,27 +39,6 @@ namespace solver {
 
 namespace {
 #if MIOPEN_USE_MLIR
-std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
-{
-    const size_t g  = ConvolutionContextInterpreter::GetGroupCountG(ctx);
-    const size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-
-    const auto k_per_group = k / g;
-    const auto c_per_group = c / g;
-
-    const auto gemm_m       = k_per_group;
-    const auto gemm_n       = n * ho * wo;
-    const auto gemm_k_total = c_per_group * y * x;
-
-    return std::make_tuple(gemm_m, gemm_n, gemm_k_total);
-}
-
 std::string GetKernelName()
 {
     std::string version   = "_v4r4";
@@ -76,30 +55,14 @@ bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS{}))
         return false;
-    if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
-        return false;
     if(!IsXdlopsSupport(ctx))
-        return false;
-    // Future: MLIR will support 3d convolution
-    if(!ctx.Is2d())
-        return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsForward())
         return false;
-    if(!ctx.IsFp32() && !ctx.IsFp16())
+    if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-
-    int gemm_m = 0;
-    int gemm_n = 0;
-    int gemm_k = 0;
-
-    std::tie(gemm_m, gemm_n, gemm_k) = CalculateGemmSize(ctx);
-
-    if(!IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k))
-        return false;
-
-    return MiirIsConfigApplicable(mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), true));
+    return MiirIsConfigApplicable(
+        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true));
 #else
     std::ignore = ctx;
     return false;
@@ -115,7 +78,7 @@ ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ConvolutionContext& ctx) 
     construction_parameters.kernel_name = GetKernelName();
     construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
     construction_parameters.comp_options =
-        mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), true);
+        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true);
 
     size_t local_size  = 0;
     size_t global_size = 0;

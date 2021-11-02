@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2021 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #include <miopen/conv/invokers/mlir_impl_gemm.hpp>
 
@@ -101,27 +101,37 @@ void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
 {
     auto group_count = conv_problem.GetGroupCount();
 
-    // Add a virtual group dimension before input channel.
-    const TensorDescriptor& in = conv_problem.GetIn();
-    in_dims                    = in.GetLengths();
-    in_strides                 = in.GetStrides();
-    InsertGToDimsStrides(in.GetLayout("NCHW"), 'C', group_count, in_dims, in_strides);
+    TensorDescriptor in;
+    if(conv_problem.GetDirection() == conv::Direction::Forward)
+        in = conv_problem.GetIn();
+    else
+        in = conv_problem.GetOut();
+
+    in_dims    = in.GetLengths();
+    in_strides = in.GetStrides();
     PermuteDimsStrides(in_dims, in_strides);
+    // Add a virtual group dimension before input channel.
+    InsertGToDimsStrides(in.GetLayout("NCHW"), 'C', group_count, in_dims, in_strides);
 
     // Add a virtual group dimension before output channel.
     const TensorDescriptor& weights = conv_problem.GetWeights();
     weights_dims                    = weights.GetLengths();
     weights_strides                 = weights.GetStrides();
+    PermuteDimsStrides(weights_dims, weights_strides);
     InsertGToDimsStrides(
         weights.GetLayout("NCHW"), 'N', group_count, weights_dims, weights_strides);
-    PermuteDimsStrides(weights_dims, weights_strides);
 
-    // Add a virtual group dimension before output channel.
-    const TensorDescriptor& out = conv_problem.GetOut();
-    out_dims                    = out.GetLengths();
-    out_strides                 = out.GetStrides();
-    InsertGToDimsStrides(out.GetLayout("NCHW"), 'C', group_count, out_dims, out_strides);
+    TensorDescriptor out;
+    if(conv_problem.GetDirection() == conv::Direction::Forward)
+        out = conv_problem.GetOut();
+    else
+        out = conv_problem.GetIn();
+
+    out_dims    = out.GetLengths();
+    out_strides = out.GetStrides();
     PermuteDimsStrides(out_dims, out_strides);
+    // Add a virtual group dimension before output channel.
+    InsertGToDimsStrides(out.GetLayout("NCHW"), 'C', group_count, out_dims, out_strides);
 }
 
 MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
@@ -138,11 +148,11 @@ MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
         std::copy(strides.cbegin(), strides.cend(), &target.strides[0]);
     };
 
-    StridedMemRef5D filter{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    StridedMemRef5D filter{nullptr, nullptr, 0, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
     initDimStrides(weights_dims, weights_strides, filter);
-    StridedMemRef5D input{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    StridedMemRef5D input{nullptr, nullptr, 0, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
     initDimStrides(in_dims, in_strides, input);
-    StridedMemRef5D output{nullptr, nullptr, 0, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    StridedMemRef5D output{nullptr, nullptr, 0, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
     initDimStrides(out_dims, out_strides, output);
 
     return {filter, input, output};
@@ -228,13 +238,17 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
     const auto& conv  = ctx.conv_problem.GetConv();
     const auto& wDesc = ctx.conv_problem.GetWeights();
 
-    const bool isFilter1Padding0Stride1 = [&]() {
-        const auto wei_spatial =
-            boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + conv.GetSpatialDimension());
-        return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
-               miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
-               miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; });
-    }();
+    bool every_pixel_is_written = true;
+    for(int i = 0; i < conv.GetSpatialDimension(); ++i)
+    {
+        const auto conv_stride   = conv.GetConvStrides()[i];
+        const auto conv_dilation = conv.GetConvDilations()[i];
+        const auto filter_size   = wDesc.GetLengths()[2 + i];
+
+        // TODO: This can be relaxed.
+        if(!(conv_dilation == 1 && conv_stride <= filter_size))
+            every_pixel_is_written = false;
+    }
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
@@ -242,20 +256,24 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
             const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
 
-            if(!isFilter1Padding0Stride1)
+            if(!every_pixel_is_written)
             {
                 float zero = 0.f;
                 SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
+
+            SetMlirConvArgsPtr(tensors.out, tensors.in, tensors.w, args);
+            for(const auto& k : kernels)
+            {
+                handle.Run(k)(args);
+                elapsed += handle.GetKernelTime();
             }
 
             if(handle.IsProfilingEnabled())
-                elapsed += handle.GetKernelTime();
-
-            SetMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, args);
-            handle.Run(kernels[0])(args);
-            if(handle.IsProfilingEnabled())
             {
-                elapsed += handle.GetKernelTime();
                 handle.ResetKernelTime();
                 handle.AccumKernelTime(elapsed);
             }
@@ -284,6 +302,14 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             const auto& wrw_invoke_params = primitive_parameters.CastTo<conv::WrWInvokeParams>();
             const auto& tensors           = wrw_invoke_params.tensors;
+
+            // Only fp32 use atomic_add, which accumulate the result into dw.
+            // Therefore the need for setting to zero beforehand.
+            if(tensors.dwDesc.GetType() == miopenFloat)
+            {
+                float zero = 0.f;
+                SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+            }
 
             SetMlirConvArgsPtr(tensors.x, tensors.dy, tensors.dw, args);
             handle.Run(kernels[0])(args);

@@ -99,6 +99,7 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenBFloat16: return 2;
     case miopenInt8x4:
     case miopenInt8: return 1;
+    case miopenDouble: return 8;
     }
     MIOPEN_THROW("Unknown data type");
 }
@@ -183,10 +184,9 @@ struct TensorDescriptor : miopenTensorDescriptor
     {
         std::vector<std::int64_t> result(lens.size());
         std::iota(result.begin(), result.end(), 0);
-        std::stable_sort(
-            result.begin(),
-            result.end(),
-            by(std::greater<>{}, [&](auto x) { return std::make_tuple(strides[x], lens[x]); }));
+        std::stable_sort(result.begin(), result.end(), by(std::greater<>{}, [&](auto x) {
+                             return std::make_tuple(strides[x], lens[x]);
+                         }));
         return result;
     }
 

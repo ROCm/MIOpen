@@ -45,6 +45,8 @@ static void LogCmdRedux(const miopen::ReduceTensorDescriptor reduceTensorDesc,
             ss << "reducebfp16";
         else if(aDesc.GetType() == miopenInt8 || aDesc.GetType() == miopenInt8x4)
             ss << "reduceint8";
+        else if(aDesc.GetType() == miopenDouble)
+            ss << "reducefp64";
         else
             ss << "reduce";
 

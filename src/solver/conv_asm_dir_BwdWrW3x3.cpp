@@ -38,6 +38,7 @@
 #include <miopen/generic_search.hpp>
 
 #define WORKAROUND_ISSUE_532 1 // ConvAsmBwdWrW3x3 has precision issues with some PerformanceConfigs
+#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS)
@@ -61,7 +62,7 @@ inline static bool Inc_1_2_4_8(int& v)
 
 inline static bool Is_1_2_4_8(const int& v) { return v == 1 || v == 2 || v == 4 || v == 8; }
 
-bool PerformanceConfigAsmDirect3x3WrW::SetNextValue()
+bool PerformanceConfigAsmDirect3x3WrW::SetNextValue(const ConvolutionContext& /*config*/)
 {
     // Increment with wrap-around:
     do
@@ -111,8 +112,8 @@ PerformanceConfigAsmDirect3x3WrW::PerformanceConfigAsmDirect3x3WrW(
 {
 }
 
-inline bool PerformanceConfigAsmDirect3x3WrW::
-operator==(const PerformanceConfigAsmDirect3x3WrW& other) const
+inline bool
+PerformanceConfigAsmDirect3x3WrW::operator==(const PerformanceConfigAsmDirect3x3WrW& other) const
 {
     // clang-format off
     return limit_wave_cnt == other.limit_wave_cnt
@@ -351,9 +352,18 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.rmv.IsV2orV3())
         return false;
-    const std::string name = params.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")) || name == "gfx90a")
+
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
         return false;
+
+    const std::string name = params.GetStream().GetDeviceName();
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
+        return false;
+#if WORKAROUND_ISSUE_1146
+    if(name == "gfx90a")
+        return false;
+#endif
     if(!params.IsLayoutDefault())
     {
         return false;

@@ -39,30 +39,9 @@ namespace solver {
 
 namespace {
 #if MIOPEN_USE_MLIR
-std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx)
-{
-    const size_t g  = ConvolutionContextInterpreter::GetGroupCountG(ctx);
-    const size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-
-    const auto k_per_group = k / g;
-    const auto c_per_group = c / g;
-
-    const auto gemm_m       = c_per_group * y * x;
-    const auto gemm_n       = n * ho * wo;
-    const auto gemm_k_total = k_per_group;
-
-    return std::make_tuple(gemm_m, gemm_n, gemm_k_total);
-}
-
 std::string GetKernelName()
 {
-    std::string version   = "_v1r1";
+    std::string version   = "_v4r1";
     std::string direction = "_bwd";
     return "mlir_gen_igemm_conv2d" + version + direction + "_xdlops";
 }
@@ -74,32 +53,17 @@ std::string GetOperation() { return "conv2d_bwd_data"; }
 bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS{}))
-        return false;
-    if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS{}))
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
-    // Future: MLIR will support 3d convolution
-    if(!ctx.Is2d())
+    if(!ctx.direction.IsBackwardData())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!ctx.direction.IsBackwardData())
-        return false;
-    if(!ctx.IsFp32() && !ctx.IsFp16())
-        return false;
 
-    int gemm_m = 0;
-    int gemm_n = 0;
-    int gemm_k = 0;
-
-    std::tie(gemm_m, gemm_n, gemm_k) = CalculateGemmSize(ctx);
-
-    if(!IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k))
-        return false;
-
-    return MiirIsConfigApplicable(mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), true));
+    return MiirIsConfigApplicable(
+        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true));
 #else
     std::ignore = ctx;
     return false;
@@ -110,27 +74,32 @@ ConvSolution ConvMlirIgemmBwdXdlops::GetSolution(const ConvolutionContext& ctx) 
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
-    KernelInfo construction_parameters;
+    int kernel_count =
+        MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), true));
 
-    construction_parameters.kernel_name = GetKernelName();
-    construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
-    construction_parameters.comp_options =
-        mlir::PopulateHandle(ctx, GetOperation(), GetKernelName(), true);
+    for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
+    {
+        KernelInfo construction_parameters;
 
-    size_t local_size  = 0;
-    size_t global_size = 0;
-    MiirGenLaunchParams(construction_parameters.comp_options, local_size, global_size);
+        construction_parameters.kernel_name  = GetKernelName() + std::to_string(kernel_id);
+        construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
+        construction_parameters.comp_options = mlir::ConstructBuildOptions(
+            ctx, GetOperation(), construction_parameters.kernel_name, true, kernel_id);
 
-    construction_parameters.l_wk.push_back(local_size);
-    construction_parameters.l_wk.push_back(1);
-    construction_parameters.l_wk.push_back(1);
+        size_t local_size  = 0;
+        size_t global_size = 0;
+        MiirGenLaunchParams(construction_parameters.comp_options, local_size, global_size);
+        construction_parameters.l_wk.push_back(local_size);
+        construction_parameters.l_wk.push_back(1);
+        construction_parameters.l_wk.push_back(1);
+        construction_parameters.g_wk.push_back(global_size);
+        construction_parameters.g_wk.push_back(1);
+        construction_parameters.g_wk.push_back(1);
 
-    construction_parameters.g_wk.push_back(global_size);
-    construction_parameters.g_wk.push_back(1);
-    construction_parameters.g_wk.push_back(1);
+        result.construction_params.push_back(construction_parameters);
+    }
 
     result.invoker_factory = conv::MakeMlirBwdInvokerFactory(ctx);
-    result.construction_params.push_back(construction_parameters);
     return result;
 #else
     std::ignore = ctx;
