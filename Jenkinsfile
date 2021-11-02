@@ -867,8 +867,10 @@ pipeline {
             }
             environment{
                 WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"
-                // WORKAROUND_ISSUE_1148:
-                Navi21_build_cmd = "CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
+                Navi21_build_cmd =
+                    "LLVM_PATH=/opt/rocm/llvm " // WORKAROUND_SWDEV_290754
+                  + "CTEST_PARALLEL_LEVEL=2 " // WORKAROUND_ISSUE_1148
+                  + "MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
             }
             parallel{
                 stage('Fp32 Hip All gfx908') {
