@@ -960,7 +960,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags + WORKAROUND_ISSUE_1275_flags, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx90a:xnack-")
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags + WORKAROUND_ISSUE_1257_flags, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx90a:xnack-")
                     }
                 }
             }
