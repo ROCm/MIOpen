@@ -30,6 +30,10 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <cstddef>
 
+/// Disable ConvHipImplicitGemmBwdDataV4R1Xdlops by default.
+/// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1206.
+#define WORKAROUND_ISSUE_1206 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS)
 
 namespace miopen {
@@ -176,11 +180,16 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, GemmNPerBlock);
 
         // calculate vector length on gemmn dimension
-        const auto y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-        const auto x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto y           = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+        const auto x           = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+        const auto left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+        const auto right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+        const auto right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
         // \todo too conversative
-        if(y == 1 && x == 1)
+        if(y == 1 && x == 1 && left_pad_h == 0 && left_pad_w == 0 && right_pad_h == 0 &&
+           right_pad_w == 0)
         {
             const auto ho        = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
             const auto wo        = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
@@ -193,7 +202,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
 
         // calculate threadwise copy size
         int b_data_per_thread_copy =
-            std::max(1, (GemmKPerBlock * GemmMPerBlock * GemmKPACKSize) / BlockSize);
+            std::max(1, (GemmKPerBlock * GemmNPerBlock * GemmKPACKSize) / BlockSize);
 
         if(!(b_data_per_thread_copy > 0))
             MIOPEN_THROW("invalid performance parameter");
@@ -391,7 +400,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ConvolutionCo
     if(!valid)
         return false;
 
-    std::size_t lds_size = 0;
+    std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
     return (valid and lds_size <= 64 * 1024);
@@ -535,8 +544,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::PerformanceImplicitGemmBwdDataV4R1Xdlo
 {
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1Xdlops::
-operator==(const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const
+bool PerformanceImplicitGemmBwdDataV4R1Xdlops::operator==(
+    const PerformanceImplicitGemmBwdDataV4R1Xdlops& other) const
 {
     // clang-format off
     return GemmNPerBlock == other.GemmNPerBlock
@@ -562,7 +571,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValidValue() const
         && IsTwoPower<16,128>(GemmNPerWave); // clang-format on
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
+bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue(const ConvolutionContext& /*config*/)
 {
     GemmBThreadCopyMoreGemmKPack = true;
     GemmAThreadCopyMoreGemmK     = true;
@@ -587,7 +596,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue()
     return true;
 }
 
-void PerformanceImplicitGemmBwdDataV4R1Xdlops::EuristicInit(const ConvolutionContext& ctx)
+void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmBwdDataV4R1Xdlops tmp;
 
@@ -799,7 +808,11 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ConvolutionContext
 
 bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_ISSUE_1206
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
+#else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
+#endif
         return false;
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
@@ -905,11 +918,13 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
             construction_parameters.g_wk.push_back(1);
             construction_parameters.g_wk.push_back(1);
 
+            // clang-format off
             construction_parameters.kernel_file =
-                "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw.cpp";
+                "static_kernel_gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw.cpp";
 
             construction_parameters.kernel_name =
                 "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw";
+            // clang-format on
 
             // TODO: add fp16 calculation by GetWorkspaceSize(ctx);
             result.workspce_sz = 0;
@@ -987,7 +1002,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + std::to_string(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM{}) ? 1 : 0) +
                 std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE{}) ? '1' : '0') +
                 std::string(" -DCK_PARAM_GEMM_ID=") + std::to_string(gemm_id) +
-                get_ck_common_compiler_flag(ctx) +
+                get_static_ck_common_compiler_flag(ctx) +
                 ctx.general_compile_options;
 
                 construction_parameters.comp_options +=

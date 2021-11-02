@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #ifndef GUARD_MIOPEN_DB_HPP_
 #define GUARD_MIOPEN_DB_HPP_
 
@@ -51,11 +51,6 @@ class LockFile;
 class PlainTextDb
 {
     public:
-    PlainTextDb(const std::string& filename_,
-                bool is_system,
-                const std::string& arch,
-                std::size_t num_cu);
-
     PlainTextDb(const std::string& filename_, bool is_system = false);
 
     /// Searches db for provided key and returns found record or none if key not found in database
@@ -174,14 +169,11 @@ template <class TInstalled, class TUser, bool merge_records>
 class MultiFileDb
 {
     public:
-    MultiFileDb(const std::string& installed_path,
-                const std::string& user_path,
-                const std::string& arch  = "",
-                const std::size_t num_cu = 0)
-        : _installed(GetDbInstance<TInstalled>(installed_path, true, arch, num_cu))
+    MultiFileDb(const std::string& installed_path, const std::string& user_path)
+        : _installed(GetDbInstance<TInstalled>(installed_path, true))
 #if !MIOPEN_DISABLE_USERDB
           ,
-          _user(GetDbInstance<TUser>(user_path, false, arch, num_cu))
+          _user(GetDbInstance<TUser>(user_path, false))
 #endif
     {
 #if MIOPEN_DISABLE_USERDB
@@ -288,38 +280,27 @@ class MultiFileDb
     }
 
     private:
-    template <class TDb, class TRet = decltype(TDb::GetCached("", true, "", 0))>
-    static TRet GetDbInstance(rank<1>,
-                              const std::string& path,
-                              bool warn_if_unreadable,
-                              const std::string& arch,
-                              std::size_t num_cu)
+    template <class TDb, class TRet = decltype(TDb::GetCached("", true))>
+    static TRet GetDbInstance(rank<1>, const std::string& path, bool warn_if_unreadable)
     {
-        return TDb::GetCached(path, warn_if_unreadable, arch, num_cu);
+        return TDb::GetCached(path, warn_if_unreadable);
     };
 
     template <class TDb>
-    static TDb GetDbInstance(rank<0>,
-                             const std::string& path,
-                             bool warn_if_unreadable,
-                             const std::string& arch,
-                             std::size_t num_cu)
+    static TDb GetDbInstance(rank<0>, const std::string& path, bool warn_if_unreadable)
     {
-        return {path, warn_if_unreadable, arch, num_cu};
+        return {path, warn_if_unreadable};
     };
 
-    template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}, {}, {}))>
-    static TRet GetDbInstance(const std::string& path,
-                              bool warn_if_unreadable,
-                              const std::string& arch,
-                              const std::size_t num_cu)
+    template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}))>
+    static TRet GetDbInstance(const std::string& path, bool warn_if_unreadable)
     {
-        return GetDbInstance<TDb>(rank<1>{}, path, warn_if_unreadable, arch, num_cu);
+        return GetDbInstance<TDb>(rank<1>{}, path, warn_if_unreadable);
     }
 
-    decltype(MultiFileDb::GetDbInstance<TInstalled>("", true, "", 0)) _installed;
+    decltype(MultiFileDb::GetDbInstance<TInstalled>("", true)) _installed;
 #if !MIOPEN_DISABLE_USERDB
-    decltype(MultiFileDb::GetDbInstance<TUser>("", false, "", 0)) _user;
+    decltype(MultiFileDb::GetDbInstance<TUser>("", false)) _user;
 #endif
 };
 

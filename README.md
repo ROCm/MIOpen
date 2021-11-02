@@ -20,6 +20,7 @@ MIOpen supports two programming models -
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
 * [Boost](http://www.boost.org/) at version 1.72 (other versions are not supported)
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html)
+* [SQLite3](https://sqlite.org/index.html) for reading and writing performance database
 * [MIOpenTENSILE](https://github.com/ROCmSoftwarePlatform/MIOpenTensile) Users can enable this library using the cmake configuration flag `-DMIOPEN_USE_MIOPENTENSILE=On`.
 * [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) 
   * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10)
@@ -246,7 +247,7 @@ Depending on your setup `sudo` may be required for the pip install.
 All the code is formatted using clang-format. To format a file, use:
 
 ```
-clang-format-3.8 -style=file -i <path-to-source-file>
+clang-format-10 -style=file -i <path-to-source-file>
 ```
 
 Also, githooks can be installed to format the code per-commit:

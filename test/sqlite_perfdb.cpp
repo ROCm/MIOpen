@@ -54,20 +54,23 @@ namespace miopen {
 namespace tests {
 static boost::filesystem::path& exe_path()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static boost::filesystem::path exe_path;
     return exe_path;
 }
 static boost::optional<std::string>& thread_logs_root()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
-
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static boost::optional<std::string> path(boost::none);
     return path;
 }
 
 static bool& full_set()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static bool full_set = false;
     return full_set;
 }
@@ -86,6 +89,7 @@ class Random
 
 static Random& Rnd()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static Random rnd;
     return rnd;
 }
@@ -170,6 +174,7 @@ struct SolverData
     template <unsigned int seed>
     static SolverData Seeded()
     {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
         static Random rnd(seed);
         return {static_cast<int>(rnd.Next()), static_cast<int>(rnd.Next())};
     }
@@ -226,10 +231,7 @@ std::ostream& operator<<(std::ostream& s, const SolverData& td)
 class DbTest
 {
     public:
-    DbTest()
-        : temp_file("miopen.tests.perfdb"), db_inst{std::string(temp_file), false, "gfx906", 64}
-    {
-    }
+    DbTest() : temp_file("miopen.tests.perfdb"), db_inst{std::string(temp_file), false} {}
 
     virtual ~DbTest() {}
 
@@ -240,7 +242,8 @@ class DbTest
     static const std::array<std::pair<std::string, SolverData>, 2>& common_data()
     {
         static const std::array<std::pair<std::string, SolverData>, 2> data{{
-            {id1(), value1()}, {id0(), value0()},
+            {id1(), value1()},
+            {id0(), value0()},
         }};
 
         return data;
@@ -276,24 +279,24 @@ class DbTest
         return data;
     }
 
-    static std::string& id0()
+    static const std::string& id0()
     {
-        static std::string id0_ = "Solver0";
+        static const std::string id0_ = "Solver0";
         return id0_;
     }
-    static std::string& id1()
+    static const std::string& id1()
     {
-        static std::string id1_ = "Solver1";
+        static const std::string id1_ = "Solver1";
         return id1_;
     }
-    static std::string& id2()
+    static const std::string& id2()
     {
-        static std::string id2_ = "Solver2";
+        static const std::string id2_ = "Solver2";
         return id2_;
     }
-    static std::string& missing_id()
+    static const std::string& missing_id()
     {
-        static std::string missing_id_ = "UnknownSolver";
+        static const std::string missing_id_ = "UnknownSolver";
         return missing_id_;
     }
 
@@ -319,7 +322,7 @@ class DbTest
                          const TKey& key,
                          const std::array<std::pair<std::string, TValue>, count> values)
     {
-        SQLitePerfDb tmp_inst(std::string(db_path), false, "gfx906", 64);
+        SQLitePerfDb tmp_inst(std::string(db_path), false);
         for(const auto& id_values : values)
         {
             tmp_inst.UpdateUnsafe(key, id_values.first, id_values.second);
@@ -340,7 +343,7 @@ class SchemaTest : public DbTest
                 "WHERE type='table' "
                 "AND name = 'config';"
             // clang-format on
-            );
+        );
         EXPECT(res.size() == 1);
         res = db_inst.sql.Exec(
             // clang-format off
@@ -349,7 +352,7 @@ class SchemaTest : public DbTest
                 "WHERE type='table' "
                 "AND name = 'perf_db';"
             // clang-format on
-            );
+        );
         EXPECT(res.size() == 1);
         // TODO: check for indices
     }
@@ -374,9 +377,9 @@ class DbFindTest : public DbTest
         sol.Serialize(ss);
         db_inst.sql.Exec(
             // clang-formagt off
-            "INSERT OR IGNORE INTO perf_db(config, solver, params, arch, num_cu) "
+            "INSERT OR IGNORE INTO perf_db(config, solver, params) "
             "VALUES( " +
-            id + ", '" + id0() + "', '" + ss.str() + "', 'gfx906', 64);");
+            id + ", '" + id0() + "', '" + ss.str() + "');");
         // clang-fromat on
 
         auto sol_res = db_inst.FindRecord(p);
@@ -395,7 +398,7 @@ class DbOperationsTest : public DbTest
         const SolverData to_be_rewritten(7, 8);
 
         {
-            SQLitePerfDb db(std::string(temp_file), false, "gfx906", 64);
+            SQLitePerfDb db(std::string(temp_file), false);
 
             EXPECT(db.Update(p, id0(), to_be_rewritten));
             EXPECT(db.Update(p, id1(), to_be_rewritten));
@@ -409,7 +412,7 @@ class DbOperationsTest : public DbTest
         }
 
         {
-            SQLitePerfDb db(std::string(temp_file), false, "gfx906", 64);
+            SQLitePerfDb db(std::string(temp_file), false);
 
             // Rewriting existing value to store it to file.
             EXPECT(db.Update(p, id0(), value0()));
@@ -418,7 +421,7 @@ class DbOperationsTest : public DbTest
         {
             SolverData read0, read1, read_missing;
             const auto read_missing_cmp(read_missing);
-            SQLitePerfDb db(std::string(temp_file), false, "gfx906", 64);
+            SQLitePerfDb db(std::string(temp_file), false);
 
             // Loading by id not present in record should execute well but return false as nothing
             // was read.
@@ -447,7 +450,7 @@ class DbOperationsTest : public DbTest
         {
             SolverData read0, read1;
             const auto read_missing_cmp(read0);
-            SQLitePerfDb db(std::string(temp_file), false, "gfx906", 64);
+            SQLitePerfDb db(std::string(temp_file), false);
 
             EXPECT(!db.Load(p, id0(), read0));
             EXPECT(db.Load(p, id1(), read1));
@@ -468,12 +471,12 @@ class DbParallelTest : public DbTest
 
         ProblemData p;
 
-        SQLitePerfDb db(std::string(temp_file), false, "gfx906", 64);
+        SQLitePerfDb db(std::string(temp_file), false);
         EXPECT(db.Update(p, id0(), value0()));
 
         {
-            SQLitePerfDb db0(std::string(temp_file), false, "gfx906", 64);
-            SQLitePerfDb db1(std::string(temp_file), false, "gfx906", 64);
+            SQLitePerfDb db0(std::string(temp_file), false);
+            SQLitePerfDb db1(std::string(temp_file), false);
 
             auto r0 = db0.FindRecord(p);
             auto r1 = db1.FindRecord(p);
@@ -486,26 +489,32 @@ class DbParallelTest : public DbTest
         }
 
         const std::array<std::pair<std::string, SolverData>, 3> data{{
-            {id0(), value0()}, {id1(), value1()}, {id2(), value2()},
+            {id0(), value0()},
+            {id1(), value1()},
+            {id2(), value2()},
         }};
         EXPECT(db.Update(p, id1(), value1()));
         EXPECT(db.Update(p, id2(), value2()));
 
-        ValidateSingleEntry(p, data, SQLitePerfDb(temp_file, false, "gfx906", 64));
+        ValidateSingleEntry(p, data, SQLitePerfDb(temp_file, false));
     }
 };
 
 class DBMultiThreadedTestWork
 {
     public:
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static unsigned int threads_count;
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static unsigned int common_part_size;
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static unsigned int unique_part_size;
     static constexpr unsigned int ids_per_key      = 16;
     static constexpr unsigned int common_part_seed = 435345;
 
     static const std::vector<SolverData>& common_part()
     {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
 
@@ -699,17 +708,21 @@ class DBMultiThreadedTestWork
 
     static const std::vector<SolverData>& common_part_init()
     {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
         static std::vector<SolverData> data(common_part_size, SolverData::NoInit{});
 
-        for(auto i  = 0u; i < common_part_size; i++)
+        for(auto i = 0u; i < common_part_size; i++)
             data[i] = SolverData::Seeded<common_part_seed>();
 
         return data;
     }
 };
 
-unsigned int DBMultiThreadedTestWork::threads_count    = 16;
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+unsigned int DBMultiThreadedTestWork::threads_count = 16;
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 unsigned int DBMultiThreadedTestWork::common_part_size = 16;
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 unsigned int DBMultiThreadedTestWork::unique_part_size = 16;
 
 class DbMultiThreadedTest : public DbTest
@@ -731,7 +744,7 @@ class DbMultiThreadedTest : public DbTest
         std::cout << "Launching test threads..." << std::endl;
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
-        const auto c        = [&p]() { return SQLitePerfDb(p, false, "gfx906", 64); };
+        const auto c        = [&p]() { return SQLitePerfDb(p, false); };
 
         {
             std::unique_lock<std::mutex> lock(mutex);
@@ -764,7 +777,7 @@ class DbMultiThreadedReadTest : public DbTest
 
         std::cout << "Initializing test data..." << std::endl;
         const std::string p = temp_file;
-        const auto c        = [&p]() { return SQLitePerfDb(p, false, "gfx906", 64); };
+        const auto c        = [&p]() { return SQLitePerfDb(p, false); };
         DBMultiThreadedTestWork::FillForReading(c);
 
         std::cout << "Launching test threads..." << std::endl;
@@ -839,7 +852,7 @@ class DbMultiProcessTest : public DbTest
         std::remove(lock_file_path.c_str());
 
         const std::string p = temp_file;
-        const auto c        = [&p]() { return SQLitePerfDb(p, false, "gfx906", 64); };
+        const auto c        = [&p]() { return SQLitePerfDb(p, false); };
 
         std::cout << "Validating results..." << std::endl;
         DBMultiThreadedTestWork::ValidateCommonPart(c);
@@ -853,7 +866,7 @@ class DbMultiProcessTest : public DbTest
             std::lock_guard<LockFile> lock(file_lock);
         }
 
-        const auto c = [&db_path]() { return SQLitePerfDb(db_path, false, "gfx906", 64); };
+        const auto c = [&db_path]() { return SQLitePerfDb(db_path, false); };
 
         if(write)
             DBMultiThreadedTestWork::WorkItem(id, c, "mp");
@@ -877,7 +890,7 @@ class DbMultiProcessReadTest : public DbTest
 
         std::cout << "Initializing test data..." << std::endl;
         std::string p = temp_file;
-        const auto c  = [&p]() { return SQLitePerfDb(p, false, "gfx906", 64); };
+        const auto c  = [&p]() { return SQLitePerfDb(p, false); };
         DBMultiThreadedTestWork::FillForReading(c);
 
         std::cout << "Launching test processes..." << std::endl;
@@ -923,7 +936,7 @@ class DbMultiProcessReadTest : public DbTest
             auto& file_lock = LockFile::Get(LockFilePath(db_path).c_str());
             std::lock_guard<LockFile> lock(file_lock);
         }
-        const auto c = [&db_path]() { return SQLitePerfDb(db_path, false, "gfx906", 64); };
+        const auto c = [&db_path]() { return SQLitePerfDb(db_path, false); };
 
         DBMultiThreadedTestWork::WorkItem(id, c, "mp");
     }
@@ -982,18 +995,17 @@ class DbMultiFileReadTest : public DbMultiFileTest
         RawWrite(user_db_path, key(), single_item_data());
 
         static const std::array<std::pair<std::string, SolverData>, 2> merged_data{{
-            {id1(), value1()}, {id0(), value2()},
+            {id1(), value1()},
+            {id0(), value2()},
         }};
 
-        MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records> db(
-            temp_file, user_db_path, "gfx906", 64);
+        MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records> db(temp_file, user_db_path);
         if(merge_records)
             ValidateSingleEntry(key(), merged_data, std::move(db));
         else
             ValidateSingleEntry(key(), single_item_data(), std::move(db));
 
-        MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records> db1(
-            temp_file, user_db_path, "gfx906", 64);
+        MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records> db1(temp_file, user_db_path);
         ProblemData p;
         auto record1 = db1.FindRecord(p);
         EXPECT(!record1);
@@ -1002,19 +1014,19 @@ class DbMultiFileReadTest : public DbMultiFileTest
     void ReadUser() const
     {
         RawWrite(user_db_path, key(), single_item_data());
-        ValidateSingleEntry(key(),
-                            single_item_data(),
-                            MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records>(
-                                temp_file, user_db_path, "gfx906", 64));
+        ValidateSingleEntry(
+            key(),
+            single_item_data(),
+            MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records>(temp_file, user_db_path));
     }
 
     void ReadInstalled() const
     {
         RawWrite(temp_file, key(), single_item_data());
-        ValidateSingleEntry(key(),
-                            single_item_data(),
-                            MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records>(
-                                temp_file, user_db_path, "gfx906", 64));
+        ValidateSingleEntry(
+            key(),
+            single_item_data(),
+            MultiFileDb<SQLitePerfDb, SQLitePerfDb, merge_records>(temp_file, user_db_path));
     }
 
     void ReadConflict() const
@@ -1033,17 +1045,16 @@ class DbMultiFileWriteTest : public DbMultiFileTest
         ResetDb();
 
         {
-            MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path, "gfx906", 64);
+            MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path);
             EXPECT(db.StoreRecord(key(), id0(), value0()));
             EXPECT(db.Update(key(), id1(), value1()));
         }
-        EXPECT(!SQLitePerfDb(temp_file, false, "gfx906", 64).FindRecord(key()));
-        EXPECT(SQLitePerfDb(user_db_path, false, "gfx906", 64).FindRecord(key()));
+        EXPECT(!SQLitePerfDb(temp_file, false).FindRecord(key()));
+        EXPECT(SQLitePerfDb(user_db_path, false).FindRecord(key()));
 
-        ValidateSingleEntry(
-            key(),
-            common_data(),
-            MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(temp_file, user_db_path, "gfx906", 64));
+        ValidateSingleEntry(key(),
+                            common_data(),
+                            MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(temp_file, user_db_path));
     }
 };
 
@@ -1065,7 +1076,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
         std::cout << "Running multifile operations test..." << std::endl;
 
         {
-            SQLitePerfDb db(temp_file, false, "gfx906", 64);
+            SQLitePerfDb db(temp_file, false);
             EXPECT(db.StoreRecord(key(), id0(), value0()));
             EXPECT(db.Update(key(), id1(), value2()));
         }
@@ -1076,12 +1087,12 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
         std::cout << "Update test..." << std::endl;
 
         {
-            MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path, "gfx906", 64);
+            MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path);
             EXPECT(db.Update(key(), id1(), value1()));
         }
 
         {
-            SQLitePerfDb db(user_db_path, false, "gfx906", 64);
+            SQLitePerfDb db(user_db_path, false);
             SolverData read(SolverData::NoInit{});
             EXPECT(!db.Load(key(), id0(), read));
             EXPECT(db.Load(key(), id1(), read));
@@ -1089,7 +1100,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
         }
 
         {
-            SQLitePerfDb db(temp_file, false, "gfx906", 64);
+            SQLitePerfDb db(temp_file, false);
             ValidateData(db, value2());
         }
     }
@@ -1098,7 +1109,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         std::cout << "Load test..." << std::endl;
 
-        MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path, "gfx906", 64);
+        MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path);
         ValidateData(db, value1());
     }
 
@@ -1106,7 +1117,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         std::cout << "Remove test..." << std::endl;
 
-        MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path, "gfx906", 64);
+        MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path);
         EXPECT(db.Remove(key(), id0()));
         EXPECT(db.Remove(key(), id1()));
 
@@ -1117,7 +1128,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
     {
         std::cout << "Remove record test..." << std::endl;
 
-        MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path, "gfx906", 64);
+        MultiFileDb<SQLitePerfDb, SQLitePerfDb, true> db(temp_file, user_db_path);
         EXPECT(db.Update(key(), id1(), value1()));
         EXPECT(db.Remove(key(), id1()));
 
@@ -1148,9 +1159,7 @@ class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
         std::cout << "Initializing test data..." << std::endl;
         const std::string p = temp_file;
         const auto& up      = user_db_path;
-        const auto c        = [&p, up]() {
-            return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(p, up, "gfx906", 64);
-        };
+        const auto c = [&p, up]() { return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(p, up); };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
@@ -1193,9 +1202,7 @@ class DbMultiFileMultiThreadedTest : public DbMultiFileTest
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
         const auto up       = user_db_path;
-        const auto c        = [&p, &up]() {
-            return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(p, up, "gfx906", 64);
-        };
+        const auto c = [&p, &up]() { return MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>(p, up); };
 
         {
             std::unique_lock<std::mutex> lock(mutex);

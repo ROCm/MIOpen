@@ -80,7 +80,7 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
     _Tcheck* c_res = new _Tcheck[size];
     _Tcheck* data  = new _Tcheck[size];
     for(size_t k = 0; k < size; k++)
-        data[k]  = static_cast<_Tcheck>(bot_ptr[k]);
+        data[k] = static_cast<_Tcheck>(bot_ptr[k]);
 
     std::function<_Tcheck(_Tcheck)> f;
 
@@ -228,7 +228,7 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
     default: printf("ERROR: unknown neuron type: %d\n", neuron_type); break;
     }
 
-    for(size_t i      = 0; i < size; i++)
+    for(size_t i = 0; i < size; i++)
         bot_df_cpu[i] = f(top_df_cpu[i], bot_cpu[i], top_cpu[i]);
 
     for(size_t i = 0; i < size && match; ++i)

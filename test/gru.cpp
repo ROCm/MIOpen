@@ -77,5 +77,5 @@ int main(int argc, const char* argv[])
     std::cout << "Wall clock: GRU test pass time: "
               << std::chrono::duration<double>(t_end - t_start).count() << " seconds." << std::endl;
 #endif
-    exit(0);
+    return 0;
 }

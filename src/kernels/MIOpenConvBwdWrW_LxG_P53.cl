@@ -122,7 +122,7 @@ void readInput(uint lcl_id,
         pad_shift = MLO_FILTER_PAD0;
     }
 #else
-    uint pad_shift  = MLO_FILTER_PAD0;
+    uint pad_shift = MLO_FILTER_PAD0;
 #endif
 
     for(uint p4 = lcl_id; p4 < MLO_N_LCL_IN_MAPS * MLO_N_IN_HORIZ_READS * n_v_reads;
@@ -446,7 +446,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                               ? MLO_N_LCL_IN_MAPS
                               : (MLO_N_INPUTS >= c_idx ? MLO_N_INPUTS - c_idx : 0);
 #else
-    uint n_in_map_reads    = MLO_N_LCL_IN_MAPS;
+    uint n_in_map_reads = MLO_N_LCL_IN_MAPS;
 #endif
 
     uint gbl_in_off  = c_idx * MLO_IN_CHANNEL_STRIDE + ib * MLO_IN_BATCH_STRIDE;
@@ -457,7 +457,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #if MLO_N_SPANS_PER_SCAN & (MLO_N_SPANS_PER_SCAN - 1)
     uint spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
 #else
-    uint spn               = lcl_id & (MLO_N_SPANS_PER_SCAN - 1);
+    uint spn            = lcl_id & (MLO_N_SPANS_PER_SCAN - 1);
 #endif
     //	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
 
@@ -670,8 +670,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             {
                 barrier(CLK_LOCAL_MEM_FENCE);
 
-// read 1 scan line less
-// padding processing takes care of the bottom border.
+                // read 1 scan line less
+                // padding processing takes care of the bottom border.
 
 #define MLO_LAST_VERT_READS (MLO_IN_HEIGHT - MLO_IN_EXTENT1 * (MLO_IN_N_VERT_LOOPS - 1))
 

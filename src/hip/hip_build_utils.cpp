@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2019 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #include <miopen/config.h>
 #include <miopen/hip_build_utils.hpp>
@@ -91,14 +91,15 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                             std::string src,
                                             std::string params,
                                             const TargetProperties& target,
-                                            const bool testing_mode)
+                                            const bool testing_mode,
+                                            const bool sources_already_reside_on_filesystem)
 {
 #ifdef __linux__
     // Write out the include files
     // Let's assume includes are overkill for feature tests & optimize'em out.
     if(!testing_mode)
     {
-        auto inc_list = GetKernelIncList();
+        auto inc_list = GetHipKernelIncList();
         auto inc_path = tmp_dir->path;
         boost::filesystem::create_directories(inc_path);
         for(auto inc_file : inc_list)
@@ -107,8 +108,13 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
             WriteFile(inc_src, inc_path / inc_file);
         }
     }
-    src += "\nint main() {}\n";
-    WriteFile(src, tmp_dir->path / filename);
+
+    // Sources produced by MLIR-cpp already reside in tmp dir.
+    if(!sources_already_reside_on_filesystem)
+    {
+        src += "\nint main() {}\n";
+        WriteFile(src, tmp_dir->path / filename);
+    }
 
     // cppcheck-suppress unreadVariable
     const LcOptionTargetStrings lots(target);
@@ -189,9 +195,9 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         // call extract kernel
         tmp_dir->Execute(EXTRACTKERNEL_BIN, " -i " + bin_file.string());
         auto hsaco =
-            std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
-                         {},
-                         [](auto entry) { return (entry.path().extension() == ".hsaco"); });
+            std::find_if(boost::filesystem::directory_iterator{tmp_dir->path}, {}, [](auto entry) {
+                return (entry.path().extension() == ".hsaco");
+            });
 
         if(hsaco == boost::filesystem::directory_iterator{})
         {
@@ -213,17 +219,16 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #else
                          "--targets=hip-amdgcn-amd-amdhsa-"
 #endif
-                             +
-                             (HipCompilerVersion() < external_tool_version_t{4, 1, 0}
-                                  ? lots.device
-                                  : (std::string{'-'} + lots.device + lots.xnack)) +
+                             + (HipCompilerVersion() < external_tool_version_t{4, 1, 0}
+                                    ? lots.device
+                                    : (std::string{'-'} + lots.device + lots.xnack)) +
                              " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
                              ".hsaco --unbundle");
 
         auto hsaco =
-            std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
-                         {},
-                         [](auto entry) { return (entry.path().extension() == ".hsaco"); });
+            std::find_if(boost::filesystem::directory_iterator{tmp_dir->path}, {}, [](auto entry) {
+                return (entry.path().extension() == ".hsaco");
+            });
 
         if(hsaco == boost::filesystem::directory_iterator{})
         {
@@ -251,7 +256,7 @@ HipBuildTest(const std::string& program_name, std::string params, const TargetPr
     std::string source = miopen::GetKernelSrc(program_name);
     try
     {
-        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true);
+        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true, false);
     }
     catch(...)
     {
@@ -285,7 +290,8 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
                                  std::string params,
-                                 const TargetProperties& target)
+                                 const TargetProperties& target,
+                                 const bool sources_already_reside_on_filesystem)
 {
 #ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
     if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
@@ -295,7 +301,8 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
         params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #endif
-    return HipBuildImpl(tmp_dir, filename, src, params, target, false);
+    return HipBuildImpl(
+        tmp_dir, filename, src, params, target, false, sources_already_reside_on_filesystem);
 }
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
@@ -379,6 +386,7 @@ static external_tool_version_t HipCompilerVersionImpl()
 
 external_tool_version_t HipCompilerVersion()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto once = HipCompilerVersionImpl();
     return once;
 }

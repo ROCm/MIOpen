@@ -234,7 +234,7 @@ Handle::Handle() : impl(new HandleImpl())
     // Pick device based on process id
     auto pid = ::getpid();
     assert(pid > 0);
-    impl->device  = devices.at(pid % devices.size());
+    impl->device = devices.at(pid % devices.size());
 #endif
 
     /////////////////////////////////////////////////////////////////

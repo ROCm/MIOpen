@@ -321,7 +321,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #if MLO_N_SPANS_PER_SCAN & (MLO_N_SPANS_PER_SCAN - 1)
     uint spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
 #else
-    uint spn            = lcl_id & (MLO_N_SPANS_PER_SCAN - 1);
+    uint spn = lcl_id & (MLO_N_SPANS_PER_SCAN - 1);
 #endif
     //	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
 
@@ -492,8 +492,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         {
             barrier(CLK_LOCAL_MEM_FENCE);
 
-// read 1 scan line less
-// padding processing takes care of the bottom border.
+            // read 1 scan line less
+            // padding processing takes care of the bottom border.
 
 #define MLO_LAST_VERT_READS (MLO_IN_HEIGHT - MLO_IN_EXTENT1 * (MLO_IN_N_VERT_LOOPS - 1))
 
@@ -633,7 +633,7 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
     uint wei_idx     = iMod(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
 #else
     uint wei_blk_idx = wei_idx0 / MLO_WEI_CHANNEL_STRIDE;
-    uint wei_idx     = wei_idx0 & (MLO_WEI_CHANNEL_STRIDE - 1);
+    uint wei_idx = wei_idx0 & (MLO_WEI_CHANNEL_STRIDE - 1);
 #endif
 
     _FLOAT_ACCUM pvt_accum_wei[MLO_UT_READ_UNIT] = {0};

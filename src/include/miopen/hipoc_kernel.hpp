@@ -56,7 +56,8 @@ struct KernelArgsPair
     static const int second_index = sizeof(T) + padding;
     KernelArgsPair(T x, U y)
     {
-        new(buffer) T(x);
+
+        new(buffer) T(x); // NOLINT (clang-analyzer-cplusplus.PlacementNew)
         new(buffer + second_index) U(y);
     }
     char buffer[second_index + sizeof(U)] = {};
@@ -118,8 +119,8 @@ struct KernelArgs
 
 struct HIPOCKernelInvoke
 {
-    hipStream_t stream = nullptr;
-    hipFunction_t fun  = nullptr;
+    hipStream_t stream          = nullptr;
+    hipFunction_t fun           = nullptr;
     std::array<size_t, 3> ldims = {};
     std::array<size_t, 3> gdims = {};
     std::string name;

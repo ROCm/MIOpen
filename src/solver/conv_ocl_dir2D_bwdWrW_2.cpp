@@ -41,7 +41,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2)
 namespace miopen {
 namespace solver {
 
-inline static bool Is_1__8(const int& v)
+inline static bool Is_1__8(const int& v) // NOLINT (bugprone-reserved-identifier)
 {
     // full: {1,2,4,8}, optimized: {1,3,8}
     switch(v)
@@ -55,7 +55,7 @@ inline static bool Is_1__8(const int& v)
     }
 }
 
-inline static bool Inc_1__8(int& v)
+inline static bool Inc_1__8(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_1__8(v));
     if(v == 8)
@@ -67,7 +67,7 @@ inline static bool Inc_1__8(int& v)
     return false;
 }
 
-inline static bool Inc_1__8_optimized(int& v)
+inline static bool Inc_1__8_optimized(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_1__8(v));
     switch(v)
@@ -79,9 +79,12 @@ inline static bool Inc_1__8_optimized(int& v)
     }
 }
 
-inline static bool Is_6__12(const int& v) { return 6 <= v && v <= 12; }
+inline static bool Is_6__12(const int& v) // NOLINT (bugprone-reserved-identifier)
+{
+    return 6 <= v && v <= 12;
+}
 
-inline static bool Inc_6__12(int& v)
+inline static bool Inc_6__12(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_6__12(v));
     if(++v <= 12)
@@ -90,7 +93,7 @@ inline static bool Inc_6__12(int& v)
     return true;
 }
 
-inline static bool Inc_6__12_optimized(int& v)
+inline static bool Inc_6__12_optimized(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_6__12(v));
     // {6,8,10,12}, {7,9,11}...
@@ -98,15 +101,16 @@ inline static bool Inc_6__12_optimized(int& v)
     {
     case 12: v = 7; return true;
     case 11: v = 6; return true;
-    default:
-        v += 2;
-        return false; // 6,8,10,7,9
+    default: v += 2; return false; // 6,8,10,7,9
     }
 }
 
-inline static bool Is_2__11(const int& v) { return 2 <= v && v <= 11; }
+inline static bool Is_2__11(const int& v) // NOLINT (bugprone-reserved-identifier)
+{
+    return 2 <= v && v <= 11;
+}
 
-inline static bool Inc_2__11(int& v)
+inline static bool Inc_2__11(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     assert(Is_2__11(v));
     if(++v <= 11)
@@ -115,7 +119,7 @@ inline static bool Inc_2__11(int& v)
     return true;
 }
 
-inline static bool Inc_2__11_optimized(int& v)
+inline static bool Inc_2__11_optimized(int& v) // NOLINT (bugprone-reserved-identifier)
 {
     // {2 3 5 7 9 11}
     assert(Is_2__11(v));
@@ -156,8 +160,8 @@ ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& par
 }
 
 template <int N_BATCH_LOOPS>
-inline bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::
-operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
+inline bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::operator==(
+    const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
 {
     // clang-format off
     return n_waves == other.n_waves
@@ -168,7 +172,8 @@ operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
 }
 
 template <int N_BATCH_LOOPS>
-bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue()
+bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue(
+    const ConvolutionContext& /*config*/)
 {
     // Increment with wrap-around:
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2_SEARCH_OPTIMIZED{}))
@@ -274,23 +279,6 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
     if(params.group_counts > 1 && n_out_channels_per_tile > n_output_channels_per_group)
     {
         return false;
-    }
-
-    // For group config, reducing search space
-    bool met = (n_output_channels_per_group % 4 == 0 && n_out_channels_per_tile % 4 == 0);
-    if(!met)
-    {
-        met = (n_output_channels_per_group % 3 == 0 && n_out_channels_per_tile % 3 == 0);
-        if(!met)
-        {
-            met = (n_output_channels_per_group % 2 == 0 && n_out_channels_per_tile % 2 == 0);
-            if(!met)
-            {
-                met = (n_output_channels_per_group % 1 == 0 && n_out_channels_per_tile % 1 == 0);
-                if(!met)
-                    return false;
-            }
-        }
     }
 
     // group config requires n_out_channels_tiles to be 1 or else
@@ -430,7 +418,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
 }
 
 template <int N_BATCH_LOOPS>
-void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::EuristicInit(const ConvolutionContext& params)
+void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(const ConvolutionContext& params)
 {
     n_waves                                = 1;
     read_size                              = 6;
@@ -443,8 +431,8 @@ void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::EuristicInit(const Convolut
         n_out_channels_per_tile = 2;
     else
         n_out_channels_per_tile = 1;
-    n_out_channels_tiles        = 1;
-    n_out_rows_in_lcl           = params.kernel_size_h;
+    n_out_channels_tiles = 1;
+    n_out_rows_in_lcl    = params.kernel_size_h;
 }
 
 template <int N_BATCH_LOOPS>
@@ -527,7 +515,7 @@ PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
 ConvOclBwdWrW2<N_BATCH_LOOPS>::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     return pp;
 }
 

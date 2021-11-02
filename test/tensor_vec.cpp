@@ -49,8 +49,8 @@ void tensor_vec_forward(
     std::tie(n_dst, c_dst, h, w) = miopen::tien<4>(dst.desc.GetLengths());
     int n_src, c_src;
     std::tie(n_src, c_src, std::ignore, std::ignore) = miopen::tien<4>(src.desc.GetLengths());
-    int in_hw  = h * w;
-    int in_chw = c_src * in_hw;
+    int in_hw                                        = h * w;
+    int in_chw                                       = c_src * in_hw;
 
     int out_w  = w * vec_size;
     int out_hw = h * out_w;
@@ -106,8 +106,8 @@ void tensor_vec_backward(
     std::tie(n_dst, c_dst, h, w) = miopen::tien<4>(dst.desc.GetLengths());
     int n_src, c_src;
     std::tie(n_src, c_src, std::ignore, std::ignore) = miopen::tien<4>(src.desc.GetLengths());
-    int out_hw  = h * w;
-    int out_chw = c_dst * out_hw;
+    int out_hw                                       = h * w;
+    int out_chw                                      = c_dst * out_hw;
 
     int in_w  = w * vec_size;
     int in_hw = h * in_w;
@@ -316,6 +316,12 @@ struct tensor_vec_driver : test_driver
         if(std::is_same<T, float>::value)
         {
             std::cout << "VEC2 transpose does not support float type" << std::endl;
+            return;
+        }
+
+        if(std::is_same<T, double>::value)
+        {
+            std::cout << "VEC2 transpose does not support double type" << std::endl;
             return;
         }
 

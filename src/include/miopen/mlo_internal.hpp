@@ -150,6 +150,7 @@ class StaticContainer
     public:
     inline static TInstance& Instance()
     {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
         static TInstance data{};
         return data;
     }
@@ -160,7 +161,7 @@ using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
 #else
 using PerformanceDb = DbTimer<MultiFileDb<PlainTextDb, PlainTextDb, true>>;
 #endif
-miopen::PerformanceDb GetDb(const ConvolutionContext& ctx);
+miopen::PerformanceDb GetDb(const miopen::ExecutionContext& ctx);
 
 template <class TTo>
 size_t setTopDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor& tensor)
@@ -224,6 +225,15 @@ auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
     x.setupFloats();
     return x.FindAllSolutions();
 }
+
+bool IsGemmAplicable(const miopen::ConvolutionContext& ctx);
+
+std::vector<miopen::solver::ConvSolution>
+FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
+                     const miopen::AnyInvokeParams& invoke_ctx);
+
+std::vector<std::pair<std::string, size_t>>
+AllGemmWorkspaceSize(const miopen::ConvolutionContext& ctx);
 
 std::vector<std::pair<std::string, size_t>>
 AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx);
@@ -662,7 +672,7 @@ struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
     int _pooling_method;
     miopenIndexType_t _index_type;
     miopenPoolingWorkspaceIndexMode_t _wsp_index;
-    int _NAN_option;
+    int _NAN_option; // NOLINT (bugprone-reserved-identifier)
     int mloConstructFwd();
     int mloConstructBwd();
 };
