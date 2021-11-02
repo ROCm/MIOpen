@@ -104,7 +104,7 @@ struct StaticBufferV2 : public StaticallyIndexedArray<T, N>
     }
 
     template <index_t I>
-    __host__ __device__ constexpr auto& GetElement(Number<I> i, bool)
+    __host__ __device__ constexpr auto GetElement(Number<I> i, bool)
     {
         constexpr auto vec_id  = Number<i / vector_size>{};
         constexpr auto vec_off = Number<i % vector_size>{};
