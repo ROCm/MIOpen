@@ -492,6 +492,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(
         registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnBwdTrainingPerActivation{}));
 
+    Register(registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnFwdInference{}));
+
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
