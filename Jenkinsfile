@@ -336,6 +336,7 @@ pipeline {
         Smoke_targets = "check doc MIOpenDriver"
         MLIR_flags    = " -DMIOPEN_USE_MLIR=On"
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
+        WORKAROUND_ISSUE_1257_flags = " -DMIOPEN_USE_COMGR=Off"
     }
     stages{
         stage("Static checks") {
@@ -957,7 +958,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx90a:xnack-")
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags + WORKAROUND_ISSUE_1275_flags, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx90a:xnack-")
                     }
                 }
             }
