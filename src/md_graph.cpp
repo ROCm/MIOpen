@@ -449,6 +449,7 @@ void FusionMDGraph::InitBN(FusionMDGraph& g)
     }
 }
 
+#if 0
 static std::vector<DefaultKernelArg> WinogradNodeArgs()
 {
     auto zero_int = OpKernelArg(static_cast<int>(0));
@@ -511,8 +512,9 @@ static std::vector<DefaultKernelArg> WinogradV21NodeArgs()
     nodeArgs.insert(nodeArgs.end(), v21NodeArgs.begin(), v21NodeArgs.end());
     return nodeArgs;
 }
+#endif
 
-void FusionMDGraph::InitConv(FusionMDGraph& g)
+void FusionMDGraph::InitConv(FusionMDGraph& /*g*/)
 {
 #if 0
     FusionMDGraph_Edge_Map empty_map;

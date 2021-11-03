@@ -80,6 +80,9 @@ ConvBiasActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) con
 PerformanceConfigConvBiasActivAsm1x1U
 ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeParams&) const
 {
+    std::ignore = context;
+    return {};
+#if 0
     auto cba_context    = context;
     cba_context.bias    = 1;
     cba_context.bias_sz = cba_context.n_outputs * ((context.out_data_type == miopenHalf) ? 2 : 4);
@@ -106,18 +109,38 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeP
     const auto fused_invoke_ctx = conv::FusedDataInvokeParams(tensors, nullptr, 0);
 
     return GenericSearch(*this, cba_context, fused_invoke_ctx);
-}
-bool ConvBiasActivAsm1x1U::IsApplicable(const ExecutionContext& exec_ctx,
-                                        const std::vector<ProblemDescriptionBase> problem,
-                                        const std::vector<solver::Primitive> prims) const
-{
-    return true;
+#endif
 }
 
-ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ConvolutionContext& params,
-                                               const PerformanceConfigConvAsm1x1U& config,
-                                               bool disableConfigOverrideFromEnv) const
+bool ConvBiasActivAsm1x1U::IsApplicable(const ExecutionContext& context,
+                                        const std::vector<miopen::ProblemDescriptionBase>& problems,
+                                        const std::vector<solver::Primitive>& prims) const
 {
+    std::ignore = context;
+    std::ignore = prims;
+    const conv::ProblemDescription tmp =
+        *(reinterpret_cast<const conv::ProblemDescription*>(&problems[0]));
+    const auto desc   = miopen::ProblemDescription{tmp};
+    const auto params = ConvolutionContext{desc};
+    return ConvAsm1x1U::IsApplicable(params);
+}
+
+ConvSolution
+ConvBiasActivAsm1x1U::GetSolution(const ExecutionContext& context,
+                                  const std::vector<miopen::ProblemDescriptionBase>& problems,
+                                  const std::vector<solver::Primitive>& prims,
+                                  const PerformanceConfigConvAsm1x1U& config,
+                                  bool disableConfigOverrideFromEnv) const
+{
+    std::ignore = context;
+    std::ignore = prims;
+    std::ignore = config;
+    std::ignore = disableConfigOverrideFromEnv;
+    const conv::ProblemDescription tmp =
+        *(reinterpret_cast<const conv::ProblemDescription*>(&problems[0]));
+    const auto desc   = miopen::ProblemDescription{tmp};
+    const auto params = ConvolutionContext{desc};
+
     auto sol = ConvAsm1x1U::GetSolution(params, config, disableConfigOverrideFromEnv);
 
     if(sol.construction_params.size() != 1)

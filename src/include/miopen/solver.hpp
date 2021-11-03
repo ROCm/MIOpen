@@ -121,12 +121,6 @@ struct SolverBase
     /// says "I'm suitable" for a problem, it agrees to solve that problem correctly.
     // Perhaps these two should throw indicating that the called function was not implemented by
     // the derived class, which would be an implementation bug.
-    bool IsApplicable(const Context&,
-                      const std::vector<ProblemDescriptionBase> = {},
-                      const std::vector<solver::Primitive>      = {}) const
-    {
-        return false;
-    }
 
     /// [Informative as of Sep 2020] The minimum requirement for Dynamic Solvers:
     /// Batch size and input picture size (N, W, H) must NOT be compiled into the
@@ -272,18 +266,39 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
     bool operator==(const PerformanceConfigConvBiasActivAsm1x1U& other) const;
 };
 
-struct ConvBiasActivAsm1x1U : ConvAsm1x1U
+using FusionProblemDescriptor = std::tuple<const ExecutionContext*,
+                                           const std::vector<miopen::ProblemDescriptionBase>*,
+                                           const std::vector<solver::Primitive>*>;
+struct ConvBiasActivAsm1x1U : public SolverBase<FusionProblemDescriptor>, public ConvAsm1x1U
 {
+    inline bool IsApplicable(const FusionProblemDescriptor& problem) const
+    {
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem), *std::get<2>(problem));
+    }
+
+    inline ConvSolution GetSolution(const FusionProblemDescriptor& problem,
+                                    const PerformanceConfigConvBiasActivAsm1x1U& config,
+                                    bool disableConfigOverrideFromEnv = false) const
+    {
+        return GetSolution(*std::get<0>(problem),
+                           *std::get<1>(problem),
+                           *std::get<2>(problem),
+                           config,
+                           disableConfigOverrideFromEnv);
+    }
+
     PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
 
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
                                                  const AnyInvokeParams& invoke_ctx) const;
-    bool IsApplicable(const ExecutionContext& exec_ctx,
-                      const std::vector<ProblemDescriptionBase> problem,
-                      const std::vector<solver::Primitive> prims) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const std::vector<miopen::ProblemDescriptionBase>& problems,
+                             const std::vector<solver::Primitive>& prims,
                              const PerformanceConfigConvAsm1x1U& config,
                              bool disableConfigOverrideFromEnv = false) const;
+    bool IsApplicable(const ExecutionContext& context,
+                      const std::vector<miopen::ProblemDescriptionBase>& problems,
+                      const std::vector<solver::Primitive>& prims) const;
 };
 
 struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1UV2>
