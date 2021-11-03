@@ -124,6 +124,7 @@ set( MIOpen_Source
     solver/batchnorm/forward_spatial_single.cpp
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_per_activation.cpp
+    solver/batchnorm/forward_inference.cpp
     solver/batchnorm/backward_spatial_single.cpp
     solver/batchnorm/backward_spatial_multiple.cpp
     solver/batchnorm/backward_per_activation.cpp
@@ -802,7 +803,7 @@ else()
             get_filename_component(DB_FILE_FILENAME "${DB_FILE}" NAME)
             configure_file("${DB_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${DB_FILE_FILENAME}" COPYONLY)
          endforeach()
-         
+
     endif()
 endif()
 rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
