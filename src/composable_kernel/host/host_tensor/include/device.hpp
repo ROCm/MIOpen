@@ -2,6 +2,9 @@
 #define DEVICE_HPP
 
 #include <memory>
+#include <functional>
+#include <thread>
+#include <chrono>
 #include "hip/hip_runtime.h"
 #include "hip/hip_fp16.h"
 
@@ -74,7 +77,8 @@ float launch_and_time_kernel(
 
     timer.End();
 
+    // std::this_thread::sleep_for (std::chrono::microseconds(10));
+
     return timer.GetElapsedTime() / nrepeat;
 }
-
 #endif

@@ -185,8 +185,7 @@ struct TensorDescriptor
         bool is_known = true;
 
         static_for<0, Transforms::Size(), 1>{}([&](auto i) {
-            is_known &=
-                remove_cv_t<remove_reference_t<decltype(Transforms{}[i])>>::IsKnownAtCompileTime();
+            is_known &= remove_cvref_t<decltype(Transforms{}[i])>::IsKnownAtCompileTime();
         });
 
         return is_known && is_known_at_compile_time<ElementSize>::value &&
@@ -587,11 +586,11 @@ __host__ __device__ constexpr bool coordinate_has_valid_offset(const TensorDesc&
 
 template <typename TensorDesc>
 using TensorCoordinate_t = decltype(make_tensor_coordinate(
-    TensorDesc{}, MultiIndex<remove_cv_t<remove_reference_t<TensorDesc>>::GetNumOfDimension()>{}));
+    TensorDesc{}, MultiIndex<remove_cvref_t<TensorDesc>::GetNumOfDimension()>{}));
 
 template <typename TensorDesc>
 using TensorCoordinateStep_t = decltype(make_tensor_coordinate_step(
-    TensorDesc{}, MultiIndex<remove_cv_t<remove_reference_t<TensorDesc>>::GetNumOfDimension()>{}));
+    TensorDesc{}, MultiIndex<remove_cvref_t<TensorDesc>::GetNumOfDimension()>{}));
 
 } // namespace ck
 #endif

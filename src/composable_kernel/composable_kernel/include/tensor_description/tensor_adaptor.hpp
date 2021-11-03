@@ -189,8 +189,7 @@ struct TensorAdaptor
         bool is_known = true;
 
         static_for<0, Transforms::Size(), 1>{}([&](auto i) {
-            is_known &=
-                remove_cv_t<remove_reference_t<decltype(Transforms{}[i])>>::IsKnownAtCompileTime();
+            is_known &= remove_cvref_t<decltype(Transforms{}[i])>::IsKnownAtCompileTime();
         });
 
         return is_known && is_known_at_compile_time<ElementSize>::value;

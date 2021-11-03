@@ -48,7 +48,7 @@ struct Array<TData, 0>
 template <typename X, typename... Xs>
 __host__ __device__ constexpr auto make_array(X&& x, Xs&&... xs)
 {
-    using data_type = remove_cv_t<remove_reference_t<X>>;
+    using data_type = remove_cvref_t<X>;
     return Array<data_type, sizeof...(Xs) + 1>{{std::forward<X>(x), std::forward<Xs>(xs)...}};
 }
 

@@ -31,7 +31,7 @@ __host__ __device__ constexpr auto make_left_pad_transform(
     return LeftPad<LowLength, LeftPadLength, SkipIsValidCheck>{low_length, left_pad};
 }
 
-template <typename LowLength, typename RightPadLength, bool SkipIsValidCheck>
+template <typename LowLength, typename RightPadLength, bool SkipIsValidCheck = false>
 __host__ __device__ constexpr auto make_right_pad_transform(
     const LowLength& low_length,
     const RightPadLength& right_pad,
@@ -52,22 +52,36 @@ __host__ __device__ constexpr auto make_embed_transform(const UpLengths& up_leng
 template <typename LowLengths>
 __host__ __device__ constexpr auto make_merge_transform(const LowLengths& low_lengths)
 {
-#if !CK_EXPERIMENTAL_MERGE_USE_MAGIC_DIVISION
+#if CK_EXPERIMENTAL_MERGE_USE_MAGIC_DIVISION
+    return make_merge_transform_v2_magic_division(low_lengths);
+#else
+    return make_merge_transform_v1_carry_check(low_lengths);
+#endif
+}
+
+template <typename LowLengths>
+__host__ __device__ constexpr auto
+make_merge_transform_v1_carry_check(const LowLengths& low_lengths)
+{
     return Merge_v1_carry_check<LowLengths>{low_lengths};
-#else
-#if 1
-    return Merge_v2_magic_division<LowLengths>{low_lengths};
-#else
-    return Merge_v2r2_magic_division<LowLengths>{low_lengths};
-#endif
-#endif
 }
 
 template <typename LowLengths>
 __host__ __device__ constexpr auto
 make_merge_transform_v2_magic_division(const LowLengths& low_lengths)
 {
+#if 1
     return Merge_v2_magic_division<LowLengths>{low_lengths};
+#else
+    return Merge_v2r2_magic_division<LowLengths>{low_lengths};
+#endif
+}
+
+template <typename LowLengths>
+__host__ __device__ constexpr auto
+make_merge_transform_v3_division_mod(const LowLengths& low_lengths)
+{
+    return Merge_v3_division_mod<LowLengths>{low_lengths};
 }
 
 template <typename UpLengths, bool Use24BitIntegerCalculation = false>

@@ -9,8 +9,8 @@ struct tunable_dyn_conv_fwd_v4r4_xdlops_nchw_kcyx_nkhw
     int NPerBlock;
     int KPerBlock;
 
-    int MPerWave;
-    int NPerWave;
+    int MPerXDL;
+    int NPerXDL;
     int K1;
 
     int MRepeat;
@@ -45,8 +45,8 @@ static tunable_dyn_conv_fwd_v4r4_xdlops_nchw_kcyx_nkhw
         128,                      // MPerBlock,
         128,                      // NPerBlock,
         4,                        // KPerBlock,
-        32,                       // MPerWave,
-        32,                       // NPerWave,
+        32,                       // MPerXDL,
+        32,                       // NPerXDL,
         4,                        // K1,
         2,                        // MRepeat,
         2,                        // NRepeat,

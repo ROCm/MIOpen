@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <half.hpp>
 #include "config.hpp"
+#include "debug.hpp"
 #include "print.hpp"
 #include "device.hpp"
 #include "host_tensor.hpp"
@@ -14,15 +15,16 @@
 #include "device_tensor.hpp"
 #include "device_convolution_backward_data_implicit_gemm_v4r1_xdlops_nhwc_kyxc_nhwk.hpp"
 #include "device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk.hpp"
+#include "device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk_1x1.hpp"
 
 #define USE_MODE 1
-#define USE_CONV_BWD_V4R1_XDL_NHWC 1
+#define USE_CONV_BWD_V4R1_XDL_NHWC 0
 #define USE_CONV_BWD_V4R1R2_XDL_NHWC 1
 
 enum ConvBackwardDataAlgo
 {
-    V4R1XDLNHWC,
-    V4R1R2XDLNHWC,
+    V4R1XDLNHWC,   // 0
+    V4R1R2XDLNHWC, // 1
 };
 
 int main(int argc, char* argv[])
@@ -41,7 +43,7 @@ int main(int argc, char* argv[])
     // dynamic mode
     if(argc != 22)
     {
-        printf("arg1 to 5: layout, algo, do_verification, init_method, do_log, nrepeat\n");
+        printf("arg1 to 6: layout, algo, do_verification, init_method, do_log, nrepeat\n");
         printf("rest: N, K, C, Y, X, Hi, Wi, Sy, Sx, Dy, Dx, LeftPy, LeftPx, RightPy, RightPx\n");
         exit(1);
     }
@@ -79,7 +81,7 @@ int main(int argc, char* argv[])
     // static mode
     if(argc < 7)
     {
-        printf("arg1 to 5: layout, algo, do_verification, init_method, do_log, nrepeat\n");
+        printf("arg1 to 6: layout, algo, do_verification, init_method, do_log, nrepeat\n");
         exit(1);
     }
 
@@ -90,28 +92,28 @@ int main(int argc, char* argv[])
     const bool do_log               = std::stoi(argv[5]);
     const int nrepeat               = std::stoi(argv[6]);
 
-    constexpr index_t N  = 128;
-    constexpr index_t C  = 192;
-    constexpr index_t Hi = 71;
-    constexpr index_t Wi = 71;
-    constexpr index_t K  = 256;
-    constexpr index_t Y  = 3;
-    constexpr index_t X  = 3;
+    constexpr auto N  = Number<128>{};
+    constexpr auto C  = Number<192>{};
+    constexpr auto Hi = Number<71>{};
+    constexpr auto Wi = Number<71>{};
+    constexpr auto K  = Number<256>{};
+    constexpr auto Y  = Number<3>{};
+    constexpr auto X  = Number<3>{};
 
-    const index_t conv_stride_h   = 2;
-    const index_t conv_stride_w   = 2;
-    const index_t conv_dilation_h = 1;
-    const index_t conv_dilation_w = 1;
-    const index_t in_left_pad_h   = 1;
-    const index_t in_left_pad_w   = 1;
-    const index_t in_right_pad_h  = 1;
-    const index_t in_right_pad_w  = 1;
+    constexpr auto conv_stride_h   = I2;
+    constexpr auto conv_stride_w   = I2;
+    constexpr auto conv_dilation_h = I1;
+    constexpr auto conv_dilation_w = I1;
+    constexpr auto in_left_pad_h   = I1;
+    constexpr auto in_left_pad_w   = I1;
+    constexpr auto in_right_pad_h  = I1;
+    constexpr auto in_right_pad_w  = I1;
 
-    const index_t YEff = (Y - 1) * conv_dilation_h + 1;
-    const index_t XEff = (X - 1) * conv_dilation_w + 1;
+    constexpr auto YEff = (Y - I1) * conv_dilation_h + I1;
+    constexpr auto XEff = (X - I1) * conv_dilation_w + I1;
 
-    const index_t Ho = (Hi + in_left_pad_h + in_right_pad_h - YEff) / conv_stride_h + 1;
-    const index_t Wo = (Wi + in_left_pad_w + in_right_pad_w - XEff) / conv_stride_w + 1;
+    constexpr auto Ho = (Hi + in_left_pad_h + in_right_pad_h - YEff) / conv_stride_h + I1;
+    constexpr auto Wo = (Wi + in_left_pad_w + in_right_pad_w - XEff) / conv_stride_w + I1;
 #endif
 
 #if 0
@@ -119,9 +121,9 @@ int main(int argc, char* argv[])
     using acc_data_t                 = float;
     using out_data_t                 = float;
 #elif 1
-    using in_data_t  = half_t;
-    using acc_data_t = float;
-    using out_data_t = half_t;
+    using in_data_t   = half_t;
+    using acc_data_t  = float;
+    using out_data_t  = half_t;
 #endif
 
     std::vector<std::size_t> in_lengths_host(4), wei_lengths_host(4), out_lengths_host(4);
@@ -280,20 +282,43 @@ int main(int argc, char* argv[])
 
         const auto tmp = f_make_for_device_nhwc();
 
-        device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk<in_data_t,
-                                                                                    acc_data_t,
-                                                                                    out_data_t>(
-            tmp[I0],
-            tmp[I1],
-            tmp[I2],
-            tmp[I3],
-            tmp[I4],
-            tmp[I5],
-            tmp[I6],
-            in_device,
-            wei,
-            out,
-            nrepeat);
+        if(Y == 1 && X == 1 && in_left_pad_h == 0 && in_left_pad_w == 0 && in_right_pad_h == 0 &&
+           in_right_pad_w == 0)
+        {
+            device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk_1x1<
+                in_data_t,
+                acc_data_t,
+                out_data_t>(tmp[I0],
+                            tmp[I1],
+                            tmp[I2],
+                            tmp[I3],
+                            tmp[I4],
+                            tmp[I5],
+                            tmp[I6],
+                            in_device,
+                            wei,
+                            out,
+                            nrepeat);
+        }
+        else
+        {
+#if 1
+            device_convolution_backward_data_implicit_gemm_v4r1r2_xdlops_nhwc_kyxc_nhwk<in_data_t,
+                                                                                        acc_data_t,
+                                                                                        out_data_t>(
+                tmp[I0],
+                tmp[I1],
+                tmp[I2],
+                tmp[I3],
+                tmp[I4],
+                tmp[I5],
+                tmp[I6],
+                in_device,
+                wei,
+                out,
+                nrepeat);
+#endif
+        }
     }
 #endif
 

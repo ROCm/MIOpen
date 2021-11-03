@@ -14,9 +14,7 @@ struct is_known_at_compile_time<Tuple<Ts...>>
         return container_reduce(
             Tuple<Ts...>{},
             [](auto x, bool r) {
-                return is_known_at_compile_time<
-                           remove_cv_t<remove_reference_t<decltype(x)>>>::value &
-                       r;
+                return is_known_at_compile_time<remove_cvref_t<decltype(x)>>::value & r;
             },
             true);
     }
