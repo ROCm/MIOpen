@@ -265,10 +265,6 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         }
     }
 
-    // Proactive change.
-    if(name == "gfx90a" && params.conv_problem.IsGfx90aFp16altRequired())
-        return false;
-
     // clang-format off
     if (! (params.kernel_stride_w <= 2 // -u inp_u 1 or 2
         && params.kernel_stride_w == params.kernel_stride_h
