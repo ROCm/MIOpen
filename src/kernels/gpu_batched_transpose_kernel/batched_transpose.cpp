@@ -45,10 +45,10 @@ inline __device__ void v_pack_b32_f16_00(float& c, const float& a, const float& 
                  : "=v"(c)
                  : "v"(a), "v"(b));
 #else
-    const int x  = *reinterpret_cast<const int*>(&a);
-    const int y  = *reinterpret_cast<const int*>(&b);
-    int z        = (x & 0xffff) | ((y & 0xffff) << 16);
-    c            = *reinterpret_cast<float*>(&z);
+    const uint32_t x  = *reinterpret_cast<const uint32_t*>(&a);
+    const uint32_t y  = *reinterpret_cast<const uint32_t*>(&b);
+    uint32_t z        = (x & 0xffff) | ((y & 0xffff) << 16);
+    c                 = *reinterpret_cast<float*>(&z);
 #endif
 }
 
@@ -59,10 +59,10 @@ inline __device__ void v_pack_b32_f16_11(float& c, const float& a, const float& 
                  : "=v"(c)
                  : "v"(a), "v"(b));
 #else
-    const int x  = *reinterpret_cast<const int*>(&a);
-    const int y  = *reinterpret_cast<const int*>(&b);
-    int z        = ((x & 0xffff0000) >> 16) | (y & 0xffff0000);
-    c            = *reinterpret_cast<float*>(&z);
+    const uint32_t x  = *reinterpret_cast<const uint32_t*>(&a);
+    const uint32_t y  = *reinterpret_cast<const uint32_t*>(&b);
+    uint32_t z        = ((x & 0xffff0000) >> 16) | (y & 0xffff0000);
+    c                 = *reinterpret_cast<float*>(&z);
 #endif
 }
 
@@ -75,33 +75,33 @@ inline __device__ void v_pack_b32_f16_2x2(float& y0, float& y1, const float& x0,
                  : "=v"(y0), "=v"(y1)
                  : "v"(x0), "v"(x1), "0"(y0), "1"(y1));
 #else
-    const int a0 = *reinterpret_cast<const int*>(&x0);
-    const int a1 = *reinterpret_cast<const int*>(&x1);
-    int b0       = (a0 & 0xffff) | ((a1 & 0xffff) << 16);
-    int b1       = ((a0 & 0xffff0000) >> 16) | (a1 & 0xffff0000);
-    y0           = *reinterpret_cast<float*>(&b0);
-    y1           = *reinterpret_cast<float*>(&b1);
+    const uint32_t a0 = *reinterpret_cast<const uint32_t*>(&x0);
+    const uint32_t a1 = *reinterpret_cast<const uint32_t*>(&x1);
+    uint32_t b0       = (a0 & 0xffff) | ((a1 & 0xffff) << 16);
+    uint32_t b1       = ((a0 & 0xffff0000) >> 16) | (a1 & 0xffff0000);
+    y0                = *reinterpret_cast<float*>(&b0);
+    y1                = *reinterpret_cast<float*>(&b1);
 #endif
 }
 
 inline __device__ void v_pack_b32_f16_2x2_half_x0(
     float& y0, float& y1, const ushort& x0_lo, const ushort& x0_hi, const float& x1)
 {
-    const int a1 = *reinterpret_cast<const int*>(&x1);
-    int b0       = x0_lo | ((a1 & 0xffff) << 16);
-    int b1       = x0_hi | (a1 & 0xffff0000);
-    y0           = *reinterpret_cast<float*>(&b0);
-    y1           = *reinterpret_cast<float*>(&b1);
+    const uint32_t a1 = *reinterpret_cast<const uint32_t*>(&x1);
+    uint32_t b0       = x0_lo | ((a1 & 0xffff) << 16);
+    uint32_t b1       = x0_hi | (a1 & 0xffff0000);
+    y0                = *reinterpret_cast<float*>(&b0);
+    y1                = *reinterpret_cast<float*>(&b1);
 }
 
 inline __device__ void v_pack_b32_f16_2x2_half_x1(
     float& y0, float& y1, const float& x0, const ushort& x1_lo, const ushort& x1_hi)
 {
-    const int a0 = *reinterpret_cast<const int*>(&x0);
-    int b0       = (a0 & 0xffff) | (x1_lo << 16);
-    int b1       = ((a0 & 0xffff0000) >> 16) | (x1_hi << 16);
-    y0           = *reinterpret_cast<float*>(&b0);
-    y1           = *reinterpret_cast<float*>(&b1);
+    const uint32_t a0 = *reinterpret_cast<const uint32_t*>(&x0);
+    uint32_t b0       = (a0 & 0xffff) | (x1_lo << 16);
+    uint32_t b1       = ((a0 & 0xffff0000) >> 16) | (x1_hi << 16);
+    y0                = *reinterpret_cast<float*>(&b0);
+    y1                = *reinterpret_cast<float*>(&b1);
 }
 
 inline __device__ void v_pack_b32_f16_2x2_half_x0_half_x1(float& y0,
@@ -111,10 +111,10 @@ inline __device__ void v_pack_b32_f16_2x2_half_x0_half_x1(float& y0,
                                                           const ushort& x1_lo,
                                                           const ushort& x1_hi)
 {
-    int b0 = x0_lo | (x1_lo << 16);
-    int b1 = x0_hi | (x1_hi << 16);
-    y0     = *reinterpret_cast<float*>(&b0);
-    y1     = *reinterpret_cast<float*>(&b1);
+    uint32_t b0 = x0_lo | (x1_lo << 16);
+    uint32_t b1 = x0_hi | (x1_hi << 16);
+    y0          = *reinterpret_cast<float*>(&b0);
+    y1          = *reinterpret_cast<float*>(&b1);
 }
 
 template <typename T, int N>
