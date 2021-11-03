@@ -35,27 +35,27 @@
 
 namespace miopen {
 
-struct TransposeSolution_NCHW2NHWC : public BatchedTransposeSolution
+struct TransposeSolutionDefault2Nhwc : public BatchedTransposeSolution
 {
-    TransposeSolution_NCHW2NHWC(const ExecutionContext& ctx_,
-                                miopenDataType_t data_type_,
-                                uint32_t n_,
-                                uint32_t c_,
-                                uint32_t h_,
-                                uint32_t w_)
+    TransposeSolutionDefault2Nhwc(const ExecutionContext& ctx_,
+                                  miopenDataType_t data_type_,
+                                  uint32_t n_,
+                                  uint32_t c_,
+                                  uint32_t h_,
+                                  uint32_t w_)
         : BatchedTransposeSolution(ctx_, data_type_, n_, c_, h_ * w_)
     {
     }
 };
 
-struct TransposeSolution_NHWC2NCHW : public BatchedTransposeSolution
+struct TransposeSolutionNhwc2Default : public BatchedTransposeSolution
 {
-    TransposeSolution_NHWC2NCHW(const ExecutionContext& ctx_,
-                                miopenDataType_t data_type_,
-                                uint32_t n_,
-                                uint32_t c_,
-                                uint32_t h_,
-                                uint32_t w_)
+    TransposeSolutionNhwc2Default(const ExecutionContext& ctx_,
+                                  miopenDataType_t data_type_,
+                                  uint32_t n_,
+                                  uint32_t c_,
+                                  uint32_t h_,
+                                  uint32_t w_)
         : BatchedTransposeSolution(ctx_, data_type_, n_, h_ * w_, c_)
     {
     }

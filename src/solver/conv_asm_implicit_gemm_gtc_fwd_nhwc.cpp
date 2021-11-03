@@ -749,19 +749,19 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
     const auto& y         = ctx.kernel_size_h;
     const auto& x         = ctx.kernel_size_w;
     const auto& group     = ctx.group_counts;
-    const auto isNCHW     = ctx.IsLayoutDefault();
+    const auto is_nchw    = ctx.IsLayoutDefault();
     size_t workspace_size = 0;
-    if(isNCHW)
+    if(is_nchw)
     {
 
-        TransposeSolution_NCHW2NHWC trans_input(ctx, ctx.in_data_type, n, c, hi, wi);
-        TransposeSolution_NCHW2NHWC trans_weight(ctx,
-                                                 ctx.weights_data_type,
-                                                 k,
-                                                 c / group,
-                                                 y,
-                                                 x); // group * k_per_group as batch for weight
-        TransposeSolution_NHWC2NCHW trans_output(ctx, ctx.out_data_type, n, k, ho, wo);
+        TransposeSolutionDefault2Nhwc trans_input(ctx, ctx.in_data_type, n, c, hi, wi);
+        TransposeSolutionDefault2Nhwc trans_weight(ctx,
+                                                   ctx.weights_data_type,
+                                                   k,
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionNhwc2Default trans_output(ctx, ctx.out_data_type, n, k, ho, wo);
 
         if(!trans_input.IsSkippable())
             workspace_size += trans_input.GetSize();
@@ -842,7 +842,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     const auto isGfx90aFp16altSupport =
         (ctx.GetStream().GetDeviceName() == "gfx90a") && ctx.conv_problem.IsFp16();
 
-    const auto isNCHW = ctx.IsLayoutDefault();
+    const auto is_nchw = ctx.IsLayoutDefault();
 
     result.construction_params.push_back(kernel);
     std::ostringstream options;
@@ -865,7 +865,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
             msg << ", fp16_alt:" << ctx.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
     }
 
-    if(isNCHW)
+    if(is_nchw)
     {
         const auto& hi    = ctx.in_height;
         const auto& wi    = ctx.in_width;
@@ -878,14 +878,14 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
         const auto& x     = ctx.kernel_size_w;
         const auto& group = ctx.group_counts;
 
-        TransposeSolution_NCHW2NHWC trans_input(ctx, ctx.in_data_type, n, c, hi, wi);
-        TransposeSolution_NCHW2NHWC trans_weight(ctx,
-                                                 ctx.weights_data_type,
-                                                 k,
-                                                 c / group,
-                                                 y,
-                                                 x); // group * k_per_group as batch for weight
-        TransposeSolution_NHWC2NCHW trans_output(ctx, ctx.out_data_type, n, k, ho, wo);
+        TransposeSolutionDefault2Nhwc trans_input(ctx, ctx.in_data_type, n, c, hi, wi);
+        TransposeSolutionDefault2Nhwc trans_weight(ctx,
+                                                   ctx.weights_data_type,
+                                                   k,
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionNhwc2Default trans_output(ctx, ctx.out_data_type, n, k, ho, wo);
 
         if(!trans_input.IsSkippable())
         {

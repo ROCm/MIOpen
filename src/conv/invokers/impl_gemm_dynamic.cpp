@@ -522,7 +522,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             return need_set_zero;
         return false;
     }();
-    const auto isNCHW = ctx.IsLayoutDefault();
+    const auto is_nchw = ctx.IsLayoutDefault();
 
     size_t trans_input_offset = 0;
     size_t trans_input_size   = 0;
@@ -541,16 +541,16 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     int trans_weight_idx = -1;
     int trans_output_idx = -1;
 
-    if(isNCHW)
+    if(is_nchw)
     {
-        TransposeSolution_NCHW2NHWC trans_input(ctx, ctx.in_data_type, n, c, hi, wi);
-        TransposeSolution_NCHW2NHWC trans_weight(ctx,
-                                                 ctx.weights_data_type,
-                                                 k,
-                                                 c / group,
-                                                 y,
-                                                 x); // group * k_per_group as batch for weight
-        TransposeSolution_NHWC2NCHW trans_output(ctx, ctx.out_data_type, n, k, ho, wo);
+        TransposeSolutionDefault2Nhwc trans_input(ctx, ctx.in_data_type, n, c, hi, wi);
+        TransposeSolutionDefault2Nhwc trans_weight(ctx,
+                                                   ctx.weights_data_type,
+                                                   k,
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionNhwc2Default trans_output(ctx, ctx.out_data_type, n, k, ho, wo);
 
         trans_input_skippable  = trans_input.IsSkippable();
         trans_weight_skippable = trans_weight.IsSkippable();
@@ -579,7 +579,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             trans_output_idx = idx++;
     }
 
-    const size_t cast_offset = isNCHW ? (trans_output_offset + trans_output_size) : 0;
+    const size_t cast_offset = is_nchw ? (trans_output_offset + trans_output_size) : 0;
     const size_t cast_size   = need_cast ? miopen::GetTypeSize(miopenFloat) * n * k * ho * wo : 0;
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
@@ -618,8 +618,8 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             {
                 auto zero_buf = need_cast
                                     ? cast_buf.get()
-                                    : ((isNCHW && !trans_output_skippable) ? trans_output_buf.get()
-                                                                           : tensors.out);
+                                    : ((is_nchw && !trans_output_skippable) ? trans_output_buf.get()
+                                                                            : tensors.out);
                 auto& zero_desc =
                     need_cast
                         ? cast_desc
@@ -631,7 +631,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
                     elapsed += handle.GetKernelTime();
             }
 
-            if(isNCHW)
+            if(is_nchw)
             {
                 if(!trans_input_skippable)
                 {
@@ -653,13 +653,13 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
                 }
             }
 
-            opArgs[0] = (isNCHW && !trans_input_skippable) ? OpKernelArg(trans_input_buf.get())
-                                                           : OpKernelArg(tensors.in);
-            opArgs[1] = (isNCHW && !trans_weight_skippable) ? OpKernelArg(trans_weight_buf.get())
-                                                            : OpKernelArg(tensors.w);
+            opArgs[0] = (is_nchw && !trans_input_skippable) ? OpKernelArg(trans_input_buf.get())
+                                                            : OpKernelArg(tensors.in);
+            opArgs[1] = (is_nchw && !trans_weight_skippable) ? OpKernelArg(trans_weight_buf.get())
+                                                             : OpKernelArg(tensors.w);
 
             opArgs[2] = need_cast ? OpKernelArg(cast_buf.get())
-                                  : ((isNCHW && !trans_output_skippable)
+                                  : ((is_nchw && !trans_output_skippable)
                                          ? OpKernelArg(trans_output_buf.get())
                                          : OpKernelArg(tensors.out));
             ker(opArgs);
@@ -673,15 +673,15 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
                            cast_desc,
                            cast_buf.get(),
                            tensors.outDesc,
-                           (isNCHW && !trans_output_skippable) ? trans_output_buf.get()
-                                                               : tensors.out,
+                           (is_nchw && !trans_output_skippable) ? trans_output_buf.get()
+                                                                : tensors.out,
                            0,
                            0);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
             }
 
-            if(isNCHW && !trans_output_skippable)
+            if(is_nchw && !trans_output_skippable)
             {
                 auto& karg_output = opArgsTrans[trans_output_idx];
                 karg_output[0]    = OpKernelArg(tensors.out);
@@ -772,7 +772,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
         need_set_zero = true;
     need_set_zero |= config.gemm_k_global_split > 0;
-    // bool use_global_split = config.gemm_k_global_split > 0;
 
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(0); // placeholder
@@ -830,7 +829,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             return need_set_zero;
         return false;
     }();
-    const auto isNCHW = ctx.IsLayoutDefault();
+    const auto is_nchw = ctx.IsLayoutDefault();
 
     size_t trans_input_offset = 0;
     size_t trans_input_size   = 0;
@@ -849,16 +848,16 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     int trans_weight_idx = -1;
     int trans_output_idx = -1;
 
-    if(isNCHW)
+    if(is_nchw)
     {
-        TransposeSolution_NHWC2NCHW trans_input(ctx, ctx.out_data_type, n, c, hi, wi);
-        TransposeSolution_NCHW2NHWC trans_weight(ctx,
-                                                 ctx.weights_data_type,
-                                                 k,
-                                                 c / group,
-                                                 y,
-                                                 x); // group * k_per_group as batch for weight
-        TransposeSolution_NCHW2NHWC trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
+        TransposeSolutionNhwc2Default trans_input(ctx, ctx.out_data_type, n, c, hi, wi);
+        TransposeSolutionDefault2Nhwc trans_weight(ctx,
+                                                   ctx.weights_data_type,
+                                                   k,
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionDefault2Nhwc trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
 
         trans_input_skippable  = trans_input.IsSkippable();
         trans_weight_skippable = trans_weight.IsSkippable();
@@ -887,7 +886,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             trans_output_idx = idx++;
     }
 
-    const size_t cast_offset = isNCHW ? (trans_output_offset + trans_output_size) : 0;
+    const size_t cast_offset = is_nchw ? (trans_output_offset + trans_output_size) : 0;
     const size_t cast_size   = need_cast ? miopen::GetTypeSize(miopenFloat) * n * c * hi * wi : 0;
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
@@ -926,8 +925,8 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             {
                 auto zero_buf = need_cast
                                     ? cast_buf.get()
-                                    : ((isNCHW && !trans_input_skippable) ? trans_input_buf.get()
-                                                                          : tensors.out);
+                                    : ((is_nchw && !trans_input_skippable) ? trans_input_buf.get()
+                                                                           : tensors.out);
                 auto& zero_desc =
                     need_cast
                         ? cast_desc
@@ -939,7 +938,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
                     elapsed += handle.GetKernelTime();
             }
 
-            if(isNCHW)
+            if(is_nchw)
             {
                 if(!trans_output_skippable)
                 {
@@ -961,14 +960,14 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
                 }
             }
 
-            opArgs[0] =
-                need_cast ? OpKernelArg(cast_buf.get())
-                          : ((isNCHW && !trans_input_skippable) ? OpKernelArg(trans_input_buf.get())
-                                                                : OpKernelArg(tensors.out));
-            opArgs[1] = (isNCHW && !trans_weight_skippable) ? OpKernelArg(trans_weight_buf.get())
-                                                            : OpKernelArg(tensors.w);
-            opArgs[2] = (isNCHW && !trans_output_skippable) ? OpKernelArg(trans_output_buf.get())
-                                                            : OpKernelArg(tensors.in);
+            opArgs[0] = need_cast ? OpKernelArg(cast_buf.get())
+                                  : ((is_nchw && !trans_input_skippable)
+                                         ? OpKernelArg(trans_input_buf.get())
+                                         : OpKernelArg(tensors.out));
+            opArgs[1] = (is_nchw && !trans_weight_skippable) ? OpKernelArg(trans_weight_buf.get())
+                                                             : OpKernelArg(tensors.w);
+            opArgs[2] = (is_nchw && !trans_output_skippable) ? OpKernelArg(trans_output_buf.get())
+                                                             : OpKernelArg(tensors.in);
 
             ker(opArgs);
             if(handle.IsProfilingEnabled())
@@ -981,13 +980,14 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
                            cast_desc,
                            cast_buf.get(),
                            tensors.outDesc,
-                           (isNCHW && !trans_input_skippable) ? trans_input_buf.get() : tensors.out,
+                           (is_nchw && !trans_input_skippable) ? trans_input_buf.get()
+                                                               : tensors.out,
                            0,
                            0);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
             }
-            if((isNCHW && !trans_input_skippable))
+            if((is_nchw && !trans_input_skippable))
             {
                 auto& karg_input = opArgsTrans[trans_input_idx];
                 karg_input[0]    = OpKernelArg(tensors.out);

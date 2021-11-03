@@ -66,34 +66,7 @@ inline std::string GetDataType(miopenDataType_t type)
     return type_str;
 }
 
-inline std::size_t get_data_size(miopenDataType_t type)
-{
-    switch(type)
-    {
-    case miopenHalf: {
-        return sizeof(uint16_t);
-    }
-    case miopenFloat: {
-        return sizeof(float);
-    }
-    case miopenInt32: {
-        return sizeof(int32_t);
-    }
-    case miopenInt8: {
-        return sizeof(int8_t);
-    }
-    case miopenInt8x4: {
-        return sizeof(int8_t) * 4;
-    }
-    case miopenBFloat16: {
-        return sizeof(uint16_t);
-    }
-    case miopenDouble: {
-        return sizeof(double);
-    }
-    }
-    MIOPEN_THROW("data type not belong to any case");
-}
+inline std::size_t get_data_size(miopenDataType_t) { MIOPEN_THROW("not implemented"); }
 
 inline std::size_t get_data_size(miopenIndexType_t index_type)
 {
