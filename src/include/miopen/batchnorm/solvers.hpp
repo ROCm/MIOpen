@@ -157,10 +157,11 @@ struct BnBwdTrainingPerActivation : SolverBase
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnFwdInference : public SolverBase<OldStyleProblemDescription>
+struct BnFwdInference : SolverBase
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    bool IsApplicable(const boost::any& ctx_) const override
     {
+        auto problem = boost::any_cast<const OldStyleProblemDescription&>(ctx_);
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
