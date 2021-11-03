@@ -242,7 +242,11 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "BUILD_SMOKE_FP32_AUX1",
+            name: "BUILD_SMOKE_FP32",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "BUILD_SMOKE_AUX1",
             defaultValue: true,
             description: "")
         booleanParam(
@@ -387,7 +391,7 @@ pipeline {
                 stage('Perf DB Deserialize Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON" 
+                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON"
 
                     }
                     steps{
@@ -412,7 +416,7 @@ pipeline {
         }
         stage("Smoke Fp32") {
             when {
-                expression { params.BUILD_SMOKE_FP32_AUX1 && params.DATATYPE_FP32 }
+                expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
             }
             parallel{
                stage('Fp32 OpenCL Debug + Codecov') {
@@ -507,7 +511,7 @@ pipeline {
         }
         stage("Smoke Aux 1") {
             when {
-                expression { params.BUILD_SMOKE_FP32_AUX1 && params.DATATYPE_FP32 }
+                expression { params.BUILD_SMOKE_AUX1 && params.DATATYPE_FP32 }
             }
             parallel{
                 stage('Fp32 Hip Debug COMGR') {
@@ -599,7 +603,7 @@ pipeline {
                     }
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ', mlir_build: "ON")
+                        buildHipClangJobAndReboot(setup_flags: MLIR_flags, build_env: extra_log_env, config_targets: Smoke_targets, test_flags: ' --verbose ', mlir_build: "ON")
                     }
                 }
                 stage('Fp16 Hip MLIR') {
@@ -609,7 +613,7 @@ pipeline {
                     }
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ', mlir_build: "ON")
+                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, config_targets: Smoke_targets, test_flags: ' --verbose ', mlir_build: "ON")
                     }
                 }
                 stage('Fp16 Hip MLIR gfx908') {
@@ -619,7 +623,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
+                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, config_targets: Smoke_targets, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
                     }
                 }
                 stage('Fp32 Hip MLIR gfx908 COMGR') {
@@ -633,7 +637,7 @@ pipeline {
                         COMGR_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
                     }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + COMGR_flags, build_cmd: COMGR_build_cmd, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
+                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + COMGR_flags, build_cmd: COMGR_build_cmd, build_env: extra_log_env, config_targets: Smoke_targets, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
                     }
                 }
                 stage('Fp32 OpenCL MLIR gfx908') {
@@ -643,10 +647,9 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: MLIR_flags, build_env: extra_log_env, config_targets: Smoke_targets, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
                     }
                 }
-
             }
         }
         stage("Smoke Fp16/Bf16/Int8") {

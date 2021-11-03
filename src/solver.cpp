@@ -490,6 +490,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              SolverDbId(batchnorm::BnBwdTrainingSpatialMultiple{}));
     Register(
         registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnBwdTrainingPerActivation{}));
+    Register(registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnFwdInference{}));
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
