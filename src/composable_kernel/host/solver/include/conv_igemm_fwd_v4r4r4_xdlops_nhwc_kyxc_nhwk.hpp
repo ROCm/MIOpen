@@ -226,6 +226,12 @@ struct TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
 
             if(ABlockTransferSrcVectorDim >= ABlockTransferThreadClusterArrangeOrder.size())
                 return false;
+
+            if(!(thread_slice_lengths[2] % ABlockTransferSrcScalarPerVector == 0))
+                return false;
+
+            if(!(thread_slice_lengths[2] % ABlockTransferDstScalarPerVector_K1 == 0))
+                return false;
         }
 
         // B matrix copy
@@ -247,6 +253,12 @@ struct TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
             }
 
             if(ABlockTransferSrcVectorDim >= ABlockTransferThreadClusterArrangeOrder.size())
+                return false;
+
+            if(!(thread_slice_lengths[2] % BBlockTransferSrcScalarPerVector == 0))
+                return false;
+
+            if(!(thread_slice_lengths[2] % BBlockTransferDstScalarPerVector_K1 == 0))
                 return false;
         }
         // C Matrix
@@ -461,12 +473,24 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
 
         if(!(GemmM % GemmMPerBlock == 0))
             return false;
+        if(!(GemmN % GemmNPerBlock == 0))
+            return false;
 
         if(!(GemmK % GemmK1 == 0))
             return false;
 
-        const auto GemmK0 = GemmK / GemmK1;
+        if(!(GemmK % (GemmMPerBlock * GemmK1) == 0))
+            return false;
 
+        if(!compile_param.HasMainKBlockLoop)
+        {
+            if(!(GemmK == (GemmMPerBlock * GemmK1)))
+                return false;
+        }
+
+        if(!(C % compile_param.ABlockTransferSrcScalarPerVector == 0))
+            return false;
+        
         return true;
     };
 
