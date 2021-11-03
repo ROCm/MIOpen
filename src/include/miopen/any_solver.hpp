@@ -27,6 +27,7 @@
 #ifndef MIOPEN_GUARD_MLOPEN_ANY_SOLVER_HPP
 #define MIOPEN_GUARD_MLOPEN_ANY_SOLVER_HPP
 
+#include <miopen/problem_description_base.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -45,7 +46,13 @@ struct AnySolver
     AnySolver() : ptr_value(nullptr){};
     template <class U>
     AnySolver(U src) : ptr_value(new AnySolver_tmpl<U>(std::forward<U>(src))){};
-
+#if 0
+    bool IsApplicable2(const ExecutionContext& exec_ctx, const std::vector<ProblemDescriptionBase> problems, const std::vector<solver::Primitive> prims) const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->IsApplicable2(exec_ctx, problems, prims);
+    }
+#endif
     bool IsApplicable(const ConvolutionContext& ctx) const
     {
         assert(ptr_value != nullptr);
@@ -102,6 +109,9 @@ struct AnySolver
         using ptr = std::shared_ptr<const AnySolver_base>;
 
         virtual ~AnySolver_base(){};
+        // virtual bool IsApplicable2(const ExecutionContext& exec_ctx, const
+        // std::vector<ProblemDescriptionBase> problems, const std::vector<solver::Primitive> prims)
+        // const = 0;
         virtual bool IsApplicable(const ConvolutionContext& ctx) const                     = 0;
         virtual bool IsTunable() const                                                     = 0;
         virtual bool TestSysDbRecord(const DbRecord& record) const                         = 0;
@@ -152,6 +162,12 @@ struct AnySolver
         }
 
         AnySolver_tmpl(T obj) : value(std::move(obj)){};
+#if 0
+        bool IsApplicable2(const ExecutionContext& exec_ctx, const std::vector<ProblemDescriptionBase> problems, const std::vector<solver::Primitive> prims) const override
+        {
+            return value.IsApplicable2(exec_ctx, problems, prims);
+        }
+#endif
         bool IsApplicable(const ConvolutionContext& ctx) const override
         {
             return value.IsApplicable(ctx);

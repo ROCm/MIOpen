@@ -29,6 +29,7 @@
 
 #include <miopen/config.h>
 
+#include <miopen/problem_description_base.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -274,15 +275,39 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
     bool operator==(const PerformanceConfigConvBiasActivAsm1x1U& other) const;
 };
 
-struct ConvBiasActivAsm1x1U : ConvAsm1x1U
+using FusionProblemDescriptor = std::tuple<const ExecutionContext*,
+                                           const std::vector<miopen::ProblemDescriptionBase>*,
+                                           const std::vector<solver::Primitive>*>;
+struct ConvBiasActivAsm1x1U : public SolverBase<FusionProblemDescriptor>, public ConvAsm1x1U
 {
+    inline bool IsApplicable(const FusionProblemDescriptor& problem) const
+    {
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem), *std::get<2>(problem));
+    }
+
+    inline ConvSolution GetSolution(const FusionProblemDescriptor& problem,
+                                    const PerformanceConfigConvBiasActivAsm1x1U& config,
+                                    bool disableConfigOverrideFromEnv = false) const
+    {
+        return GetSolution(*std::get<0>(problem),
+                           *std::get<1>(problem),
+                           *std::get<2>(problem),
+                           config,
+                           disableConfigOverrideFromEnv);
+    }
+
     PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
 
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
                                                  const AnyInvokeParams& invoke_ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const std::vector<miopen::ProblemDescriptionBase>& problems,
+                             const std::vector<solver::Primitive>& prims,
                              const PerformanceConfigConvAsm1x1U& config,
                              bool disableConfigOverrideFromEnv = false) const;
+    bool IsApplicable(const ExecutionContext& context,
+                      const std::vector<miopen::ProblemDescriptionBase>& problems,
+                      const std::vector<solver::Primitive>& prims) const;
 };
 
 struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1UV2>
@@ -2362,7 +2387,7 @@ struct ConvDirectNaiveConvFwd : SolverBase
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
     float GetWti(const boost::any& ctx_) const override
     {
-        auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+        auto ctx    = boost::any_cast<const ConvolutionContext&>(ctx_);
         std::ignore = ctx;
         return 0.01;
     }
@@ -2377,7 +2402,7 @@ struct ConvDirectNaiveConvBwd : SolverBase
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
     float GetWti(const boost::any& ctx_) const override
     {
-        auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+        auto ctx    = boost::any_cast<const ConvolutionContext&>(ctx_);
         std::ignore = ctx;
         return 0.01;
     }
@@ -2392,7 +2417,7 @@ struct ConvDirectNaiveConvWrw : SolverBase
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
     float GetWti(const boost::any& ctx_) const override
     {
-        auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
+        auto ctx    = boost::any_cast<const ConvolutionContext&>(ctx_);
         std::ignore = ctx;
         return 0.01;
     }

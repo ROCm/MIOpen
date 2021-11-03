@@ -41,7 +41,6 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     ~FusionPlanDescriptor();
     bool isValid() const { return is_valid; };
     miopenStatus_t AddOp(std::shared_ptr<FusionOpDescriptor> desc);
-    miopenStatus_t RemoveOp(FusionOpDescriptor& desc);
     TensorDescriptor DeriveOutputDescriptor();
     miopenStatus_t
     GetWorkspaceSizeImmed(Handle& handle, size_t& workSpaceSize, miopenConvFwdAlgorithm_t algo);
@@ -79,17 +78,12 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     TensorDescriptor output_desc;
     int op_count = 0;
     std::vector<std::shared_ptr<FusionOpDescriptor>> op_map;
-    FusionMDGraph lu;
-    // FusionOpLU lu;
     bool is_valid;
     FusionKernelSourceType kernel_source_type;
     bool fp_contains_bn;
-    std::string program_name;
-    std::string kernel_name;
-    std::string algorithm_name;
-    std::string network_config;
     miopenDataType_t data_type;
     std::vector<Exec_arg_t> arg_list;
+    bool use_fall_back_path;
 };
 
 } // namespace miopen

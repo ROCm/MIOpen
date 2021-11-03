@@ -31,6 +31,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/solver_id.hpp>
 #include <ostream>
 #include <ios>
 #include <algorithm>
@@ -46,10 +47,6 @@ FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
       is_valid(false),
       kernel_source_type(OpenclText),
       fp_contains_bn(false),
-      program_name(""),
-      kernel_name(""),
-      algorithm_name(""),
-      network_config(inDesc.ToString()),
       data_type(inDesc.GetType())
 {
 }
@@ -58,11 +55,13 @@ FusionPlanDescriptor::~FusionPlanDescriptor() { op_map.clear(); }
 
 miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)
 {
+#if 0
     // load the md graph for the first op
     if(op_count == 0)
     {
         FusionMDGraph::Init(lu, desc->kind());
     }
+#endif
     desc->SetIdx(op_count);
     if(op_map.empty())
         desc->SetInputDesc(input_desc);
@@ -71,6 +70,7 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
     desc->GetOutputDesc(output_desc);
     op_map.emplace_back(desc);
     op_count++;
+#if 0
     is_valid = false;
     miopen::try_([&] {
         is_valid = lu.Advance(desc, [&](const std::string& sym, int& val) -> bool {
@@ -93,6 +93,8 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
         return miopenStatusSuccess;
     else
         return miopenStatusUnsupportedOp;
+#endif
+    return miopenStatusSuccess;
 }
 
 miopenStatus_t FusionPlanDescriptor::GetOp(int op_idx, std::shared_ptr<FusionOpDescriptor>& desc)
@@ -152,10 +154,11 @@ miopenStatus_t FusionPlanDescriptor::GetWorkspaceSizeImmed(Handle& handle,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t FusionPlanDescriptor::GetConvAlgos(int reqAlgoCount,
-                                                  int& retAlgoCount,
-                                                  miopenConvFwdAlgorithm_t* ptrAlgos)
+miopenStatus_t FusionPlanDescriptor::GetConvAlgos(int /*reqAlgoCount*/,
+                                                  int& /*retAlgoCount*/,
+                                                  miopenConvFwdAlgorithm_t* /*ptrAlgos*/)
 {
+#if 0
     auto algos   = lu.GetConvAlgos();
     retAlgoCount = std::min(reqAlgoCount, static_cast<int>(algos.size()));
 
@@ -163,23 +166,28 @@ miopenStatus_t FusionPlanDescriptor::GetConvAlgos(int reqAlgoCount,
     {
         ptrAlgos[idx] = algos[idx];
     }
-
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
+#else
+    return miopenStatusNotImplemented;
+#endif
 }
 
-miopenStatus_t FusionPlanDescriptor::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
+miopenStatus_t FusionPlanDescriptor::SetConvAlgo(miopenConvFwdAlgorithm_t /*algo*/)
 {
+#if 0
     bool res = lu.SetConvAlgo(algo);
-
+#else
+    bool res = false;
+#endif
     if(res)
         return miopenStatusSuccess;
     else
         return miopenStatusUnknownError;
 }
 
-std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd)
+std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& /*fpd*/)
 {
-    stream << "kernel_name: " << fpd.kernel_name;
+    // stream << "kernel_name: " << fpd.kernel_name;
     return stream;
 }
 
@@ -768,6 +776,7 @@ std::vector<std::pair<std::string, OpKernelArg>> BiasFusionOpDescriptor::GetArgs
     return keys;
 }
 
+#if 0
 static inline void
 find_replace_first(std::string& s_where, const std::string& s_find, const std::string& s_replace)
 {
@@ -775,48 +784,32 @@ find_replace_first(std::string& s_where, const std::string& s_find, const std::s
     if(pos != std::string::npos)
         s_where.replace(pos, s_find.length(), s_replace);
 }
+#endif
 
-std::string FusionPlanDescriptor::GetProgramName(const Handle& handle)
+std::string FusionPlanDescriptor::GetKernelName(const Handle& /*handle*/)
 {
-    if(!op_map.empty())
-    {
-        program_name = lu.GetProgramName(handle);
-        // Replace "GFX*" wildcard by device name (in lowercase)
-        auto d = handle.GetDeviceName();
-        std::transform(d.begin(), d.end(), d.begin(), ::tolower);
-        find_replace_first(program_name, "GFX*", d);
-        return program_name;
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported starting op in Fusion Plan");
-    }
-}
-
-std::string FusionPlanDescriptor::GetKernelName(const Handle& handle)
-{
+#if 0
     if(!op_map.empty())
     {
         kernel_name = lu.GetKernelName(handle);
         return kernel_name;
     }
     else
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported starting op in Fusion Plan");
-    }
+#endif
+    MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported starting op in Fusion Plan");
 }
 
-std::string FusionPlanDescriptor::GetAlgorithmName(const Handle& handle)
+std::string FusionPlanDescriptor::GetAlgorithmName(const Handle& /*handle*/)
 {
+#if 0
     if(!op_map.empty())
     {
         algorithm_name = lu.GetAlgoName(handle);
         return algorithm_name;
     }
     else
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported starting op in Fusion Plan");
-    }
+#endif
+    MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported starting op in Fusion Plan");
 }
 
 bool FusionPlanDescriptor::GetEnumVal(const std::string& sym, int& val) const
@@ -979,166 +972,49 @@ OpKernelArg FusionPlanDescriptor::GetDevAttribute(const std::string& k, const Ha
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
-    if(!isValid() || (lu.GetCurVertex(handle) == nullptr))
+    // this->GetListOfPrims();
+
+    const std::vector<solver::Primitive> prims = {solver::Primitive::Convolution,
+                                                  solver::Primitive::Activation};
+
+    // const auto ctxts = this->GetDescListAsCtxList();
+    // get all the solvers from the registry with the Fusion Primitive
+    std::vector<std::pair<solver::ConvSolution, solver::Id>> sols;
+    for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Fusion))
     {
-        MIOPEN_LOG_I2(
-            "A previous attempt to add an operator unsuccessful or the GPU architecture is not "
-            "supported for the fusion plan");
-        MIOPEN_THROW(miopenStatusBadParm);
+        auto solver = solver_id.GetSolver();
+        std::vector<ProblemDescriptionBase> pd;
+        ExecutionContext ctx;
+        // if(solver.IsApplicable(ctx, pd, prims)) {}
+        // if(solver.IsApplicable(ctxts, prims))
+        // {
+        //     sols.emplace(solver.GetSolution(), solver_id);
+        // }
     }
-    network_config =
-        input_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
-    network_config +=
-        output_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
 
-    for(auto&& op : op_map)
+    if(sols.empty())
     {
-        op->GetNetworkConfig(network_config, handle);
-    }
-    // Check if the kernel is assembly or OpenCL
-    auto ops_head  = op_map[0];
-    algorithm_name = lu.GetAlgoName(handle);
-    program_name   = GetProgramName(handle);
-    kernel_name    = GetKernelName(handle);
-    MIOPEN_LOG_I2(program_name << ',' << kernel_name);
-
-    if(program_name.empty())
-    {
-
-        MIOPEN_LOG_I2("Trying to compile an invalid FusionPlan");
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
-    if(miopen::EndsWith(program_name, ".s"))
-        kernel_source_type = AsmText;
-    else if(miopen::EndsWith(program_name, ".so"))
-        kernel_source_type = Binary;
-    else
-        kernel_source_type = OpenclText;
-
-    auto&& kernels = handle.GetKernels(algorithm_name, network_config);
-    if(!kernels.empty())
-    {
-        status = miopenStatusSuccess;
+        use_fall_back_path = true;
+        return miopenStatusSuccess;
     }
     else
     {
-        MIOPEN_LOG_I2("Precompiled kernel does not exist, compiling fused-kernel");
-        std::string compile_config;
-        auto success = true;
-        // lu.cur_vertex is sorted according to the weights from MDGraph::Advance method
-        std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> new_list;
-        for(auto& kinder : lu.cur_vertex)
+        for(const auto& sol : sols)
         {
-            if(kinder.first == nullptr)
-            {
-                MIOPEN_LOG_I2("Invalid FusionPlan");
-                MIOPEN_THROW(miopenStatusBadParm);
-            }
-
-            success = true;
-            solver::AnySolver sol;
-            if(kinder.second.find("solver") != kinder.second.end())
-            {
-                sol = boost::any_cast<solver::AnySolver>(kinder.second.at("solver"));
-            }
-            program_name = kinder.first->vertex_data.at("program");
-            auto d       = handle.GetDeviceName();
-
-            auto it = std::find(
-                kinder.first->supported_arch.begin(), kinder.first->supported_arch.end(), d);
-            // Empty inidicates any arch is supported (say OpenCL kernels)
-            if(!kinder.first->supported_arch.empty() && (it == kinder.first->supported_arch.end()))
-                continue;
-
-            const auto target = handle.GetTargetProperties();
-            if(kinder.first->supported_xnack && target.Xnack() &&
-               *kinder.first->supported_xnack != *target.Xnack())
-                continue;
-
-            std::transform(d.begin(), d.end(), d.begin(), ::tolower);
-            find_replace_first(program_name, "GFX*", d);
-
-            kernel_name    = kinder.first->vertex_data.at("kernel");
-            algorithm_name = kinder.first->vertex_data.at("algorithm");
-            if(miopen::EndsWith(program_name, ".s"))
-                kernel_source_type = AsmText;
-            else if(miopen::EndsWith(program_name, ".so"))
-                kernel_source_type = Binary;
-            else
-                kernel_source_type = OpenclText;
-            // MIOPEN_LOG_I2("Trying solver: " << *sol);
-            std::vector<solver::AnySolver> sol_vec = {sol};
-            for(auto&& op : op_map)
-            {
-                MIOPEN_LOG_I2("GetCompileParms, " << *op);
-                if(op->GetCompileParms(compile_config, handle, kernel_source_type, sol_vec) ==
-                   miopenStatusSuccess)
-                    continue;
-                else
-                {
-                    success = false;
-                    break;
-                }
-            }
-            if(success)
-            {
-                new_list.emplace_back(kinder.first, kinder.second);
-                break;
-            }
-        }
-        if(success)
-        {
-            lu.cur_vertex   = new_list;
-            auto&& kernels2 = handle.GetKernels(algorithm_name, network_config);
-            if(!kernels2.empty())
-            {
-                status = miopenStatusSuccess;
-            }
-            else
-            {
-                auto dType = input_desc.GetType();
-                if(kernel_source_type == OpenclText)
-                {
-                    if(dType == miopenFloat)
-                    {
-                        compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
-                    }
-                    else
-                    {
-                        compile_config += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
-                    }
-                }
-                // TODO: This true for inference but might not be true in general
-                // This is sill an open question
-                // Must be preceded by GetCompileParms
-                const auto& vld = ops_head->GetLocalWGSz(handle, algorithm_name);
-                const auto& vgd = ops_head->GetGlobalWGSz(handle, algorithm_name);
-                MIOPEN_LOG_I2("Program: " << program_name << ", kernel: " << kernel_name);
-                MIOPEN_LOG_I2("Build options: " << compile_config);
-                handle.AddKernel(algorithm_name,
-                                 network_config,
-                                 program_name,
-                                 kernel_name,
-                                 vld,
-                                 vgd,
-                                 compile_config);
-
-                status = miopenStatusSuccess;
-            }
-        }
-        else
-        {
-            MIOPEN_LOG_I("No viable kernel found to execute the fusion plan");
-            status = miopenStatusInternalError;
-            return status;
+            // get solver invoker
+            // to force compilation
+            std::ignore = handle.GetInvoker({}, sol.second);
         }
     }
-    arg_list = CalcArgOrder(handle);
+
     return status;
 }
 
-std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(const Handle& handle)
+std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(const Handle& /*handle*/)
 {
+#if 1
+    return {};
+#else
     std::vector<Exec_arg_t> arg_keys;
     // Construct the kernel args
     std::set<size_t> arg_sizes; // a set of argument sizes
@@ -1301,15 +1177,19 @@ std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(const Handle& handle)
         }
     }
     return arg_keys;
+#endif
 }
 
-miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
-                                             const TensorDescriptor& inputDesc,
-                                             ConstData_t input,
-                                             const TensorDescriptor& outputDesc,
-                                             Data_t output,
-                                             const OperatorArgs& op_args)
+miopenStatus_t FusionPlanDescriptor::Execute(const Handle& /*handle*/,
+                                             const TensorDescriptor& /*inputDesc*/,
+                                             ConstData_t /*input*/,
+                                             const TensorDescriptor& /*outputDesc*/,
+                                             Data_t /*output*/,
+                                             const OperatorArgs& /*op_args*/)
 {
+#if 1
+    return miopenStatusSuccess;
+#else
     if(!isValid() || (lu.GetCurVertex(handle) == nullptr))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Attempting to execute an invalid fusion plan.");
@@ -1369,6 +1249,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
     }
     kernel(args);
     return miopenStatusSuccess;
+#endif
 }
 
 } // namespace miopen
