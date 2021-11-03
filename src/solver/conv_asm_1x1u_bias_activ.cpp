@@ -106,10 +106,10 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeP
     tensors.outDesc = context.conv_problem.GetOut();
     tensors.bias    = bias_buf.get();
 
-    const auto fused_invoke_ctx = conv::FusedDataInvokeParams(tensors, nullptr, 0);
-
-    return GenericSearch(*this, cba_context, fused_invoke_ctx);
-#endif
+    PerformanceConfigConvBiasActivAsm1x1U pp;
+    pp.HeuristicInit(context);
+    return pp;
+    // return GenericSearch(*this, cba_context, fused_invoke_ctx);
 }
 
 bool ConvBiasActivAsm1x1U::IsApplicable(const ExecutionContext& context,

@@ -191,6 +191,20 @@ def buildHipClangJobAndReboot(Map conf=[:]){
     }
 }
 
+def CheckDeserializePerfDb(Map conf=[:]){
+    def pdb_image = buildHipClangJob(conf)
+    pdb_image.inside(){
+        sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_deserialize_error.json"
+        archiveArtifacts "pdb_deserialize_error.json"
+        sh "grep clear pdb_deserialize_error.json"
+        def has_error = sh (
+            script: "echo \$?",
+            returnStdout: true
+        ).trim()
+        assert has_error.toInteger() == 0
+    }
+}
+
 
 /// Stage name format:
 /// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
@@ -314,7 +328,8 @@ pipeline {
         Tensile_build_env = "MIOPEN_DEBUG_HIP_KERNELS=0 "
         Tensile_setup = " -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF"
         Smoke_targets = "check doc MIOpenDriver"
-        MLIR_flags    = "-DMIOPEN_USE_MLIR=On"
+        MLIR_flags    = " -DMIOPEN_USE_MLIR=On"
+        COMGR_flags   = " -DMIOPEN_USE_COMGR=On"
     }
     stages{
         stage("Static checks") {
@@ -367,6 +382,16 @@ pipeline {
                     }
                     steps{
                       buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
+                  }
+                }
+                stage('Perf DB Deserialize Test') {
+                    agent{ label rocmnode("nogpu") }
+                    environment{
+                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON" 
+
+                    }
+                    steps{
+                        CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true")
                     }
                 }
                 stage('HipNoGPU Debug Build Test') {
@@ -496,7 +521,7 @@ pipeline {
                         COMGR_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
                     }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMGR=On", build_cmd: COMGR_build_cmd, test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: COMGR_flags, build_cmd: COMGR_build_cmd, test_flags: ' --verbose ')
                     }
                 }
                 stage('Fp32 Hip Debug Embedded Vega20') {
@@ -597,16 +622,31 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
                     }
                 }
-                stage('Fp32 Hip MLIR gfx908') {
+                stage('Fp32 Hip MLIR gfx908 COMGR') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
+                    }
+                    agent{ label rocmnode("gfx908") }
+                    environment{
+                        // See SWDEV-290754 for why LLVM_PATH is required.
+                        COMGR_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
+                    }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + COMGR_flags, build_cmd: COMGR_build_cmd, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
+                    }
+                }
+                stage('Fp32 OpenCL MLIR gfx908') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: MLIR_flags, build_env: extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
                     }
                 }
+
             }
         }
         stage("Smoke Fp16/Bf16/Int8") {
