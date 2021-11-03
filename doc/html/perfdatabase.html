@@ -1,50 +1,58 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Performance Database &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Find-Db Database" href="finddb.html" />
     <link rel="prev" title="Kernel Cache" href="cache.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +66,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -75,6 +83,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +91,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -166,12 +177,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
@@ -454,6 +459,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,18 +494,20 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
       <li>Performance Database</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/perfdatabase.md.txt" rel="nofollow"> View page source</a>
           
         
@@ -513,57 +521,57 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="performance-database">
-<span id="performance-database"></span><h1>Performance Database<a class="headerlink" href="#performance-database" title="Permalink to this headline">¶</a></h1>
-<p>Many of MIOpen kernels have parameters which affect their performance. Setting these parameters to optimal values allows reaching the best possible throughput. These optimal values depend on many things, including network configuration, GPU type, clock frequencies, ROCm version etc. Because of these dependencies and also due to enormous number of possible network configurations, it is virtually impossible to supply all values that users may need together with the library. Instead, MIOpen provides a set of pre-tuned values for the <em>most applicable</em> network configurations, <strong>and</strong> also means for expanding the set of optimized values. MIOpen's performance database contains these pre-tuned parameter values as well as optimized parameters tuned by users.</p>
+  <div class="tex2jax_ignore mathjax_ignore section" id="performance-database">
+<h1>Performance Database<a class="headerlink" href="#performance-database" title="Permalink to this headline">¶</a></h1>
+<p>Many of MIOpen kernels have parameters which affect their performance. Setting these parameters to optimal values allows reaching the best possible throughput. These optimal values depend on many things, including network configuration, GPU type, clock frequencies, ROCm version etc. Because of these dependencies and also due to enormous number of possible network configurations, it is virtually impossible to supply all values that users may need together with the library. Instead, MIOpen provides a set of pre-tuned values for the <em>most applicable</em> network configurations, <strong>and</strong> also means for expanding the set of optimized values. MIOpen’s performance database contains these pre-tuned parameter values as well as optimized parameters tuned by users.</p>
 <p>The performance database consists of two parts:</p>
 <ul class="simple">
-<li><strong>System Performance Database</strong>, a system-wide storage which holds the pre-tuned values for the most applicable configurations,</li>
-<li><strong>User Performance Database</strong>, a per-user storage which is intended to hold optimized values for arbitrary configurations.</li>
+<li><p><strong>System Performance Database</strong>, a system-wide storage which holds the pre-tuned values for the most applicable configurations,</p></li>
+<li><p><strong>User Performance Database</strong>, a per-user storage which is intended to hold optimized values for arbitrary configurations.</p></li>
 </ul>
 <p>User PerfDb <strong>always takes precedence</strong> over System PerfDb.</p>
 <p>MIOpen also has auto-tuning functionality, which is able to find optimized kernel parameter values for a specific configuration. The auto-tune process may take a substantial amount of time, however, once the optimized values are found, they are stored in the User PerfDb. MIOpen then will automatically read and use these parameter values when needed again instead of running the expensive auto-tuning search.</p>
-<p>By default, System PerfDb resides within MIOpen's install location, while User PerfDb resides in the user's home directory. See <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/install.html#setting-up-locations">Setting up locations</a> for more information.</p>
+<p>By default, System PerfDb resides within MIOpen’s install location, while User PerfDb resides in the user’s home directory. See <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/install.html#setting-up-locations">Setting up locations</a> for more information.</p>
 <p>The System PerfDb is not modified upon installation of MIOpen.</p>
 <div class="section" id="auto-tuning-the-kernels">
-<span id="auto-tuning-the-kernels"></span><h2>Auto-tuning the kernels.<a class="headerlink" href="#auto-tuning-the-kernels" title="Permalink to this headline">¶</a></h2>
+<h2>Auto-tuning the kernels.<a class="headerlink" href="#auto-tuning-the-kernels" title="Permalink to this headline">¶</a></h2>
 <p>MIOpen performs auto-tuning during the following MIOpen API calls:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">miopenFindConvolutionForwardAlgorithm()</span></code></li>
-<li><code class="docutils literal"><span class="pre">miopenFindConvolutionBackwardDataAlgorithm()</span></code></li>
-<li><code class="docutils literal"><span class="pre">miopenFindConvolutionBackwardWeightsAlgorithm()</span></code></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">miopenFindConvolutionForwardAlgorithm()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">miopenFindConvolutionBackwardDataAlgorithm()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">miopenFindConvolutionBackwardWeightsAlgorithm()</span></code></p></li>
 </ul>
 <p>During the call, auto-tuning is performed only for one <em>problem configuration</em> (implicitly defined by the tensor descriptors passed to API function).</p>
 <p>The following conditions must be met for the auto-tune to begin:</p>
 <ul class="simple">
-<li>The applicable kernel(s) has tuning parameters.</li>
-<li>The passed value of <code class="docutils literal"><span class="pre">exhaustiveSearch</span></code> parameter is <code class="docutils literal"><span class="pre">true</span></code>, and</li>
-<li>Both System and User PerfDb do not yet contain values for the relevant <em>problem configuration</em>.</li>
+<li><p>The applicable kernel(s) has tuning parameters.</p></li>
+<li><p>The passed value of <code class="docutils literal notranslate"><span class="pre">exhaustiveSearch</span></code> parameter is <code class="docutils literal notranslate"><span class="pre">true</span></code>, and</p></li>
+<li><p>Both System and User PerfDb do not yet contain values for the relevant <em>problem configuration</em>.</p></li>
 </ul>
 <p>The latter two conditions may be overridden by <em>enforcing</em> the search by means of the following environment variable:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">MIOPEN_FIND_ENFORCE</span></code></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_FIND_ENFORCE</span></code></p></li>
 </ul>
 <p>This variable may also be used for <em>removing</em> values from User PerfDb, see below.</p>
 <div class="section" id="miopen-find-enforce">
-<span id="miopen-find-enforce"></span><h3>MIOPEN_FIND_ENFORCE<a class="headerlink" href="#miopen-find-enforce" title="Permalink to this headline">¶</a></h3>
+<h3>MIOPEN_FIND_ENFORCE<a class="headerlink" href="#miopen-find-enforce" title="Permalink to this headline">¶</a></h3>
 <p>Both symbolic (case-insensitive) and numeric values are supported.</p>
 <p><strong>NONE (1)</strong></p>
-<p>Setting the value to &quot;NONE&quot;, or &quot;1&quot; will have no change in the default behavior.</p>
+<p>Setting the value to “NONE”, or “1” will have no change in the default behavior.</p>
 <p><strong>DB_UPDATE (2)</strong></p>
 <p>Auto-tune will not be skipped even if PerfDb already contains optimized values. If auto-tune is requested via API, then MIOpen will perform it and update PerfDb.</p>
-<p>This mode can be used for fine-tuning the MIOpen installation on the user's system. When MIOpen is in this mode, the applications that use it may take quite long to finish.</p>
+<p>This mode can be used for fine-tuning the MIOpen installation on the user’s system. When MIOpen is in this mode, the applications that use it may take quite long to finish.</p>
 <p><strong>SEARCH (3)</strong></p>
-<p>MIOpen will perform auto-tune even if not requested via MIOpen API. In other words, the library will behave as if <code class="docutils literal"><span class="pre">exhaustiveSearch</span></code> parameter set to <code class="docutils literal"><span class="pre">true</span></code> even this is not really so. If optimized values already reside in PerfDb, then auto-tune will not be performed.</p>
-<p>This mode allows for tuning the apps that do not anticipate means for getting the best performance from MIOpen. When MIOpen is in this mode, the first run of the user's app may take substantially longer time than expected.</p>
+<p>MIOpen will perform auto-tune even if not requested via MIOpen API. In other words, the library will behave as if <code class="docutils literal notranslate"><span class="pre">exhaustiveSearch</span></code> parameter set to <code class="docutils literal notranslate"><span class="pre">true</span></code> even this is not really so. If optimized values already reside in PerfDb, then auto-tune will not be performed.</p>
+<p>This mode allows for tuning the apps that do not anticipate means for getting the best performance from MIOpen. When MIOpen is in this mode, the first run of the user’s app may take substantially longer time than expected.</p>
 <p><strong>SEARCH_DB_UPDATE (4)</strong></p>
-<p>A combination of SEARCH and DB_UPDATE. MIOpen performs auto-tune (and updates User PerfDb) on each <code class="docutils literal"><span class="pre">miopenFindConvolution*()</span></code> call. It is not recommended to use this mode except for debugging purposes.</p>
+<p>A combination of SEARCH and DB_UPDATE. MIOpen performs auto-tune (and updates User PerfDb) on each <code class="docutils literal notranslate"><span class="pre">miopenFindConvolution*()</span></code> call. It is not recommended to use this mode except for debugging purposes.</p>
 <p><strong>DB_CLEAN (5)</strong></p>
 <p>Use with care. MIOpen <strong>removes</strong> optimized values related to given <em>problem configuration</em> from the User PerfDb. Auto-tune is blocked, even if it is explicitly requested. System PerfDb left intact.</p>
 </div>
 <div class="section" id="updating-miopen-and-the-user-db">
-<span id="updating-miopen-and-the-user-db"></span><h3>Updating MIOpen and the User Db<a class="headerlink" href="#updating-miopen-and-the-user-db" title="Permalink to this headline">¶</a></h3>
-<p>It is important to note that if the user installs a new version of MIOpen, it is recommended that the user move, or delete their old user performance database file. This will prevent older database entries from poluting the configurations shipped with the newer system database. The user perf db is named <code class="docutils literal"><span class="pre">miopen.udb</span></code> and is located at the user perf db path.</p>
+<h3>Updating MIOpen and the User Db<a class="headerlink" href="#updating-miopen-and-the-user-db" title="Permalink to this headline">¶</a></h3>
+<p>It is important to note that if the user installs a new version of MIOpen, it is recommended that the user move, or delete their old user performance database file. This will prevent older database entries from poluting the configurations shipped with the newer system database. The user perf db is named <code class="docutils literal notranslate"><span class="pre">miopen.udb</span></code> and is located at the user perf db path.</p>
 </div>
 </div>
 </div>
@@ -573,29 +581,29 @@
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="finddb.html" class="btn btn-neutral float-right" title="Find-Db Database" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="cache.html" class="btn btn-neutral" title="Kernel Cache" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="finddb.html" class="btn btn-neutral float-right" title="Find-Db Database" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cache.html" class="btn btn-neutral float-left" title="Kernel Cache" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -604,34 +612,16 @@
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

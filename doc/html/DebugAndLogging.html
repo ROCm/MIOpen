@@ -1,50 +1,58 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Debugging and Logging &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Kernel Cache" href="cache.html" />
-    <link rel="prev" title="MIOpenDriver" href="driver.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
+    <link rel="prev" title="Building MIOpen for Embedded Systems" href="embed.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +66,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -75,6 +83,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +91,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -166,12 +177,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Debugging and Logging</a><ul>
@@ -454,6 +459,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,18 +494,20 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
       <li>Debugging and Logging</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/DebugAndLogging.md.txt" rel="nofollow"> View page source</a>
           
         
@@ -513,292 +521,305 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="debugging-and-logging">
-<span id="debugging-and-logging"></span><h1>Debugging and Logging<a class="headerlink" href="#debugging-and-logging" title="Permalink to this headline">¶</a></h1>
+  <div class="tex2jax_ignore mathjax_ignore section" id="debugging-and-logging">
+<h1>Debugging and Logging<a class="headerlink" href="#debugging-and-logging" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="logging">
-<span id="logging"></span><h2>Logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h2>
-<p>All logging messages output to standard error stream (<code class="docutils literal"><span class="pre">stderr</span></code>). The following environment variables can be used to control logging:</p>
+<h2>Logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h2>
+<p>All logging messages output to standard error stream (<code class="docutils literal notranslate"><span class="pre">stderr</span></code>). The following environment variables can be used to control logging:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">MIOPEN_ENABLE_LOGGING</span></code> - Enables printing the basic layer by layer MIOpen API call information with actual parameters (configurations). Important for debugging. Disabled by default.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_ENABLE_LOGGING_CMD</span></code> - A user can use this environmental variable to output the associated <code class="docutils literal"><span class="pre">MIOpenDriver</span></code> command line(s) onto console. Disabled by default.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_ENABLE_LOGGING</span></code> - Enables printing the basic layer by layer MIOpen API call information with actual parameters (configurations). Important for debugging. Disabled by default.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_ENABLE_LOGGING_CMD</span></code> - A user can use this environmental variable to output the associated <code class="docutils literal notranslate"><span class="pre">MIOpenDriver</span></code> command line(s) onto console. Disabled by default.</p></li>
 </ul>
 <blockquote>
-<div><p><strong><em>NOTE 1:</em> These two and other two-state (&quot;boolean&quot;) environment variables can be set to the following values:</strong></p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="mi">1</span><span class="p">,</span> <span class="n">yes</span><span class="p">,</span> <span class="n">true</span><span class="p">,</span> <span class="n">enable</span><span class="p">,</span> <span class="n">enabled</span> <span class="o">-</span> <span class="n">to</span> <span class="n">enable</span> <span class="n">feature</span>
+<div><p><strong><em>NOTE 1:</em> These two and other two-state (“boolean”) environment variables can be set to the following values:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">1</span><span class="p">,</span> <span class="n">yes</span><span class="p">,</span> <span class="n">true</span><span class="p">,</span> <span class="n">enable</span><span class="p">,</span> <span class="n">enabled</span> <span class="o">-</span> <span class="n">to</span> <span class="n">enable</span> <span class="n">feature</span>
 <span class="mi">0</span><span class="p">,</span> <span class="n">no</span><span class="p">,</span> <span class="n">false</span><span class="p">,</span> <span class="n">disable</span><span class="p">,</span> <span class="n">disabled</span> <span class="o">-</span> <span class="n">to</span> <span class="n">disable</span> <span class="n">feature</span>
 </pre></div>
 </div>
 </div></blockquote>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">MIOPEN_LOG_LEVEL</span></code> - In addition to API call information and driver commands, MIOpen prints various information related to the progress of its internal operations. This information can be useful both for debugging and for understanding the principles of operation of the library. The <code class="docutils literal"><span class="pre">MIOPEN_LOG_LEVEL</span></code> environment variable controls the verbosity of these messages. Allowed values are:<ul>
-<li>0 - Default. Works as level 4 for Release builds, level 5 for Debug builds.</li>
-<li>1 - Quiet. No logging messages.</li>
-<li>2 - Fatal errors only (not used yet).</li>
-<li>3 - Errors and fatals.</li>
-<li>4 - All errors and warnings.</li>
-<li>5 - Info. All the above plus information for debugging purposes.</li>
-<li>6 - Detailed info. All the above plus more detailed information for debugging.</li>
-<li>7 - Trace: the most detailed debugging info plus all above.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_LOG_LEVEL</span></code> - In addition to API call information and driver commands, MIOpen prints various information related to the progress of its internal operations. This information can be useful both for debugging and for understanding the principles of operation of the library. The <code class="docutils literal notranslate"><span class="pre">MIOPEN_LOG_LEVEL</span></code> environment variable controls the verbosity of these messages. Allowed values are:</p>
+<ul>
+<li><p>0 - Default. Works as level 4 for Release builds, level 5 for Debug builds.</p></li>
+<li><p>1 - Quiet. No logging messages.</p></li>
+<li><p>2 - Fatal errors only (not used yet).</p></li>
+<li><p>3 - Errors and fatals.</p></li>
+<li><p>4 - All errors and warnings.</p></li>
+<li><p>5 - Info. All the above plus information for debugging purposes.</p></li>
+<li><p>6 - Detailed info. All the above plus more detailed information for debugging.</p></li>
+<li><p>7 - Trace: the most detailed debugging info plus all above.</p></li>
 </ul>
 </li>
 </ul>
 <blockquote>
 <div><p><strong><em>NOTE 2:</em> When asking for technical support, please include the console log obtained with the following settings:</strong></p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">MIOPEN_ENABLE_LOGGING</span><span class="o">=</span><span class="mi">1</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">MIOPEN_ENABLE_LOGGING</span><span class="o">=</span><span class="mi">1</span>
 <span class="n">export</span> <span class="n">MIOPEN_ENABLE_LOGGING_CMD</span><span class="o">=</span><span class="mi">1</span>
 <span class="n">export</span> <span class="n">MIOPEN_LOG_LEVEL</span><span class="o">=</span><span class="mi">6</span>
 </pre></div>
 </div>
 </div></blockquote>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">MIOPEN_ENABLE_LOGGING_MPMT</span></code> - When enabled, each log line is prefixed with information which allows the user to identify records printed from different processes and/or threads. Useful for debugging multi-process/multi-threaded apps.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_ENABLE_LOGGING_ELAPSED_TIME</span></code> - Adds a timestamp to each log line. Indicates the time elapsed since the previous log message, in milliseconds.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_ENABLE_LOGGING_MPMT</span></code> - When enabled, each log line is prefixed with information which allows the user to identify records printed from different processes and/or threads. Useful for debugging multi-process/multi-threaded apps.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_ENABLE_LOGGING_ELAPSED_TIME</span></code> - Adds a timestamp to each log line. Indicates the time elapsed since the previous log message, in milliseconds.</p></li>
 </ul>
 </div>
 <div class="section" id="layer-filtering">
-<span id="layer-filtering"></span><h2>Layer Filtering<a class="headerlink" href="#layer-filtering" title="Permalink to this headline">¶</a></h2>
+<h2>Layer Filtering<a class="headerlink" href="#layer-filtering" title="Permalink to this headline">¶</a></h2>
 <p>The following list of environment variables allow for enabling/disabling various kinds of kernels and algorithms. This can be helpful for both debugging MIOpen and integration with frameworks.</p>
 <blockquote>
 <div><p><strong><em>NOTE 3:</em> These variables can be set to the following values:</strong></p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="mi">1</span><span class="p">,</span> <span class="n">yes</span><span class="p">,</span> <span class="n">true</span><span class="p">,</span> <span class="n">enable</span><span class="p">,</span> <span class="n">enabled</span> <span class="o">-</span> <span class="n">to</span> <span class="n">enable</span> <span class="n">kernels</span><span class="o">/</span><span class="n">algorithm</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">1</span><span class="p">,</span> <span class="n">yes</span><span class="p">,</span> <span class="n">true</span><span class="p">,</span> <span class="n">enable</span><span class="p">,</span> <span class="n">enabled</span> <span class="o">-</span> <span class="n">to</span> <span class="n">enable</span> <span class="n">kernels</span><span class="o">/</span><span class="n">algorithm</span>
 <span class="mi">0</span><span class="p">,</span> <span class="n">no</span><span class="p">,</span> <span class="n">false</span><span class="p">,</span> <span class="n">disable</span><span class="p">,</span> <span class="n">disabled</span> <span class="o">-</span> <span class="n">to</span> <span class="n">disable</span> <span class="n">kernels</span><span class="o">/</span><span class="n">algorithm</span>
 </pre></div>
 </div>
 </div></blockquote>
-<p>If a variable is not set, then MIOpen behaves as if it is set to <code class="docutils literal"><span class="pre">enabled</span></code>, unless otherwise specified. So all kinds of kernels/algorithms are enabled by default and the below variables can be used for disabling them.</p>
+<p>If a variable is not set, then MIOpen behaves as if it is set to <code class="docutils literal notranslate"><span class="pre">enabled</span></code>, unless otherwise specified. So all kinds of kernels/algorithms are enabled by default and the below variables can be used for disabling them.</p>
 <blockquote>
-<div><strong><em>WARNING:</em></strong> <strong>When the library is used with layer filtering, the results of <code class="docutils literal"><span class="pre">Find()</span></code> calls become narrower than during normal operation. This means that relevant find-db entries would not include some solutions that normally should be there.</strong> <strong><em>Therefore the subsequent Immediate mode <code class="docutils literal"><span class="pre">Get()</span></code> calls may return incomplete information or even run into Fallback path.</em></strong></div></blockquote>
+<div><p><strong><em>WARNING:</em></strong> <strong>When the library is used with layer filtering, the results of <code class="docutils literal notranslate"><span class="pre">Find()</span></code> calls become narrower than during normal operation. This means that relevant find-db entries would not include some solutions that normally should be there.</strong> <strong><em>Therefore the subsequent Immediate mode <code class="docutils literal notranslate"><span class="pre">Get()</span></code> calls may return incomplete information or even run into Fallback path.</em></strong></p>
+</div></blockquote>
 <p>In order to rehabilitate the Immediate mode, the user can:</p>
 <ul class="simple">
-<li>Re-enable all solvers and re-run the same <code class="docutils literal"><span class="pre">Find()</span></code> calls that have been run before,</li>
-<li>Or, completely remove the User find-db.</li>
+<li><p>Re-enable all solvers and re-run the same <code class="docutils literal notranslate"><span class="pre">Find()</span></code> calls that have been run before,</p></li>
+<li><p>Or, completely remove the User find-db.</p></li>
 </ul>
 <div class="section" id="filtering-by-algorithm">
-<span id="filtering-by-algorithm"></span><h3>Filtering by algorithm<a class="headerlink" href="#filtering-by-algorithm" title="Permalink to this headline">¶</a></h3>
+<h3>Filtering by algorithm<a class="headerlink" href="#filtering-by-algorithm" title="Permalink to this headline">¶</a></h3>
 <p>These variables control the sets (families) of convolution Solutions. For example, Direct algorithm is implemented in several Solutions that use OpenCL, GCN assembly etc. The corresponding variable can disable them all.</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_FFT</span></code> - FFT convolution algorithm.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT</span></code> - Direct convolution algorithm.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_GEMM</span></code> - GEMM convolution algorithm.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_WINOGRAD</span></code> - Winograd convolution algorithm.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM</span></code> - Implicit GEMM convolution algorithm.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_FFT</span></code> - FFT convolution algorithm.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT</span></code> - Direct convolution algorithm.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_GEMM</span></code> - GEMM convolution algorithm.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_WINOGRAD</span></code> - Winograd convolution algorithm.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM</span></code> - Implicit GEMM convolution algorithm.</p></li>
 </ul>
 </div>
 <div class="section" id="filtering-by-build-method">
-<span id="filtering-by-build-method"></span><h3>Filtering by build method<a class="headerlink" href="#filtering-by-build-method" title="Permalink to this headline">¶</a></h3>
+<h3>Filtering by build method<a class="headerlink" href="#filtering-by-build-method" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_GCN_ASM_KERNELS</span></code> - Kernels written in assembly language. Currently these used in many convolutions (some Direct solvers, Winograd kernels, fused convolutions), batch normalization.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_HIP_KERNELS</span></code> - Convoluton kernels written in HIP (today, all these implement ImplicitGemm algorithm).</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_OPENCL_CONVOLUTIONS</span></code> - Convolution kernels written in OpenCL (note that <em>only</em> convolutions affected).</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES</span></code> - Binary kernels. Right now the library does not use binaries.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_GCN_ASM_KERNELS</span></code> - Kernels written in assembly language. Currently these used in many convolutions (some Direct solvers, Winograd kernels, fused convolutions), batch normalization.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_HIP_KERNELS</span></code> - Convoluton kernels written in HIP (today, all these implement ImplicitGemm algorithm).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_OPENCL_CONVOLUTIONS</span></code> - Convolution kernels written in OpenCL (note that <em>only</em> convolutions affected).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES</span></code> - Binary kernels. Right now the library does not use binaries.</p></li>
 </ul>
 </div>
 <div class="section" id="filtering-out-all-solutions-except-one">
-<span id="filtering-out-all-solutions-except-one"></span><h3>Filtering out all Solutions except one<a class="headerlink" href="#filtering-out-all-solutions-except-one" title="Permalink to this headline">¶</a></h3>
+<h3>Filtering out all Solutions except one<a class="headerlink" href="#filtering-out-all-solutions-except-one" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_FIND_ONLY_SOLVER=solution_id</span></code>, where <code class="docutils literal"><span class="pre">solution_id</span></code> should be either numeric or string identifier of some Solution. Directly affects only <code class="docutils literal"><span class="pre">Find()</span></code> calls <em>(however there is some indirect connection to Immediate mode; please see the &quot;Warning&quot; above.)</em><ul>
-<li>If <code class="docutils literal"><span class="pre">solution_id</span></code> denotes some applicable Solution, then only that Solution will be found (plus GEMM and FFT, if these applicable, see <em>Note 4</em>).</li>
-<li>Else, if <code class="docutils literal"><span class="pre">solution_id</span></code> is valid but not applicable, then <code class="docutils literal"><span class="pre">Find()</span></code> would fail with all algorithms (again, except GEMM and FFT, see <em>Note 4</em>)</li>
-<li>Otherwise the <code class="docutils literal"><span class="pre">solution_id</span></code> is invalid (i.e. it doesn't match any existing Solution), and the <code class="docutils literal"><span class="pre">Find()</span></code> call would fail.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_FIND_ONLY_SOLVER=solution_id</span></code>, where <code class="docutils literal notranslate"><span class="pre">solution_id</span></code> should be either numeric or string identifier of some Solution. Directly affects only <code class="docutils literal notranslate"><span class="pre">Find()</span></code> calls <em>(however there is some indirect connection to Immediate mode; please see the “Warning” above.)</em></p>
+<ul>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">solution_id</span></code> denotes some applicable Solution, then only that Solution will be found (plus GEMM and FFT, if these applicable, see <em>Note 4</em>).</p></li>
+<li><p>Else, if <code class="docutils literal notranslate"><span class="pre">solution_id</span></code> is valid but not applicable, then <code class="docutils literal notranslate"><span class="pre">Find()</span></code> would fail with all algorithms (again, except GEMM and FFT, see <em>Note 4</em>)</p></li>
+<li><p>Otherwise the <code class="docutils literal notranslate"><span class="pre">solution_id</span></code> is invalid (i.e. it doesn’t match any existing Solution), and the <code class="docutils literal notranslate"><span class="pre">Find()</span></code> call would fail.</p></li>
 </ul>
 </li>
 </ul>
 <blockquote>
-<div><strong><em>NOTE 4:</em></strong> This env. variable does not affect the &quot;gemm&quot; and &quot;fft&quot; solutions. For now, GEMM and FFT can be disabled only at algorithm level (see above).</div></blockquote>
+<div><p><strong><em>NOTE 4:</em></strong> This env. variable does not affect the “gemm” and “fft” solutions. For now, GEMM and FFT can be disabled only at algorithm level (see above).</p>
+</div></blockquote>
 </div>
 <div class="section" id="filtering-the-solutions-on-individual-basis">
-<span id="filtering-the-solutions-on-individual-basis"></span><h3>Filtering the Solutions on individual basis<a class="headerlink" href="#filtering-the-solutions-on-individual-basis" title="Permalink to this headline">¶</a></h3>
-<p>Some of the Solutions have individual controls available. These affect both Find and Immediate modes. <em>Note the &quot;Warning&quot; above.</em></p>
+<h3>Filtering the Solutions on individual basis<a class="headerlink" href="#filtering-the-solutions-on-individual-basis" title="Permalink to this headline">¶</a></h3>
+<p>Some of the Solutions have individual controls available. These affect both Find and Immediate modes. <em>Note the “Warning” above.</em></p>
 <p>Direct Solutions:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U</span></code> - <code class="docutils literal"><span class="pre">ConvAsm3x3U</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U</span></code> - <code class="docutils literal"><span class="pre">ConvAsm1x1U</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2</span></code> - <code class="docutils literal"><span class="pre">ConvAsm1x1UV2</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2</span></code> - <code class="docutils literal"><span class="pre">ConvAsm5x10u2v2f1</span></code>, <code class="docutils literal"><span class="pre">ConvAsm5x10u2v2b1</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224</span></code> - <code class="docutils literal"><span class="pre">ConvAsm7x7c3h224w224k64u2v2p3q3f1</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3</span></code> - <code class="docutils literal"><span class="pre">ConvAsmBwdWrW3x3</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1</span></code> - <code class="docutils literal"><span class="pre">ConvAsmBwdWrW1x1</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11</span></code> - <code class="docutils literal"><span class="pre">ConvOclDirectFwd11x11</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN</span></code> - <code class="docutils literal"><span class="pre">ConvOclDirectFwdGen</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD</span></code> - <code class="docutils literal"><span class="pre">ConvOclDirectFwd</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1</span></code> - <code class="docutils literal"><span class="pre">ConvOclDirectFwd</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2</span></code> - <code class="docutils literal"><span class="pre">ConvOclBwdWrW2&lt;n&gt;</span></code> (where n = <code class="docutils literal"><span class="pre">{1,2,4,8,16}</span></code>), and <code class="docutils literal"><span class="pre">ConvOclBwdWrW2NonTunable</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53</span></code> - <code class="docutils literal"><span class="pre">ConvOclBwdWrW53</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1</span></code> - <code class="docutils literal"><span class="pre">ConvOclBwdWrW1x1</span></code></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsm3x3U</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsm1x1U</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsm1x1UV2</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsm5x10u2v2f1</span></code>, <code class="docutils literal notranslate"><span class="pre">ConvAsm5x10u2v2b1</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsm7x7c3h224w224k64u2v2p3q3f1</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsmBwdWrW3x3</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsmBwdWrW1x1</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvOclDirectFwd11x11</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvOclDirectFwdGen</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvOclDirectFwd</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvOclDirectFwd</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvOclBwdWrW2&lt;n&gt;</span></code> (where n = <code class="docutils literal notranslate"><span class="pre">{1,2,4,8,16}</span></code>), and <code class="docutils literal notranslate"><span class="pre">ConvOclBwdWrW2NonTunable</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvOclBwdWrW53</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvOclBwdWrW1x1</span></code></p></li>
 </ul>
 <p>Winograd  Solutions:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_3X3</span></code> - <code class="docutils literal"><span class="pre">ConvBinWinograd3x3U</span></code>, FP32 Winograd Fwd/Bwd, filter size fixed to 3x3.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS</span></code> - <code class="docutils literal"><span class="pre">ConvBinWinogradRxS</span></code>, FP32/FP16 F(3,3) Fwd/Bwd and FP32 F(3,2) WrW Winograd. Subsets:<ul>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW</span></code> - FP32 F(3,2) WrW convolutions only.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD</span></code> - FP32/FP16 F(3,3) Fwd/Bwd.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_3X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvBinWinograd3x3U</span></code>, FP32 Winograd Fwd/Bwd, filter size fixed to 3x3.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvBinWinogradRxS</span></code>, FP32/FP16 F(3,3) Fwd/Bwd and FP32 F(3,2) WrW Winograd. Subsets:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW</span></code> - FP32 F(3,2) WrW convolutions only.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD</span></code> - FP32/FP16 F(3,3) Fwd/Bwd.</p></li>
 </ul>
 </li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2</span></code> - <code class="docutils literal"><span class="pre">ConvBinWinogradRxSf3x2</span></code>, FP32/FP16 Fwd/Bwd F(3,2) Winograd.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3</span></code> - <code class="docutils literal"><span class="pre">ConvBinWinogradRxSf2x3</span></code>, FP32/FP16 Fwd/Bwd F(2,3) Winograd, serves group convolutions only.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1</span></code> - <code class="docutils literal"><span class="pre">ConvBinWinogradRxSf2x3g1</span></code>, FP32/FP16 Fwd/Bwd F(2,3) Winograd, for non-group convolutions.</li>
-<li>Multi-pass Winograd:<ul>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2</span></code> - <code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-2&gt;</span></code>, WrW F(3,2), stride 2 only.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3</span></code> - <code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-3&gt;</span></code>, WrW F(3,3), stride 2 only.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4</span></code> - <code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-4&gt;</span></code>, WrW F(3,4).</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5</span></code> - <code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-5&gt;</span></code>, WrW F(3,5).</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6</span></code> - <code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-6&gt;</span></code>, WrW F(3,6).</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3</span></code> - <code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;5-3&gt;</span></code>, WrW F(5,3).</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4</span></code> - <code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;5-4&gt;</span></code>, WrW F(5,4).</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2</span></code>:<ul>
-<li><code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;7-2&gt;</span></code>, WrW F(7,2)</li>
-<li><code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;7-2-1-1&gt;</span></code>, WrW F(7x1,2x1)</li>
-<li><code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;1-1-7-2&gt;</span></code>, WrW F(1x7,1x2)</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvBinWinogradRxSf3x2</span></code>, FP32/FP16 Fwd/Bwd F(3,2) Winograd.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvBinWinogradRxSf2x3</span></code>, FP32/FP16 Fwd/Bwd F(2,3) Winograd, serves group convolutions only.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvBinWinogradRxSf2x3g1</span></code>, FP32/FP16 Fwd/Bwd F(2,3) Winograd, for non-group convolutions.</p></li>
+<li><p>Multi-pass Winograd:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-2&gt;</span></code>, WrW F(3,2), stride 2 only.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-3&gt;</span></code>, WrW F(3,3), stride 2 only.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-4&gt;</span></code>, WrW F(3,4).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-5&gt;</span></code>, WrW F(3,5).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW&lt;3-6&gt;</span></code>, WrW F(3,6).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW&lt;5-3&gt;</span></code>, WrW F(5,3).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F5X4</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW&lt;5-4&gt;</span></code>, WrW F(5,4).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X2</span></code>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW&lt;7-2&gt;</span></code>, WrW F(7,2)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW&lt;7-2-1-1&gt;</span></code>, WrW F(7x1,2x1)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW&lt;1-1-7-2&gt;</span></code>, WrW F(1x7,1x2)</p></li>
 </ul>
 </li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3</span></code>:<ul>
-<li><code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;7-3&gt;</span></code>, WrW F(7,3)</li>
-<li><code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;7-3-1-1&gt;</span></code>, WrW F(7x1,3x1)</li>
-<li><code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW&lt;1-1-7-3&gt;</span></code>, WrW F(1x7,1x3)</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F7X3</span></code>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW&lt;7-3&gt;</span></code>, WrW F(7,3)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW&lt;7-3-1-1&gt;</span></code>, WrW F(7x1,3x1)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW&lt;1-1-7-3&gt;</span></code>, WrW F(1x7,1x3)</p></li>
 </ul>
 </li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd&lt;2-3&gt;</span></code>, FWD/BWD F(2,3)</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd&lt;3-3&gt;</span></code>, FWD/BWD F(3,3)</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd&lt;4-3&gt;</span></code>, FWD/BWD F(4,3)</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd&lt;5-3&gt;</span></code>, FWD/BWD F(5,3)</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd&lt;6-3&gt;</span></code>, FWD/BWD F(6,3)</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd_xdlops&lt;2-3&gt;</span></code>, FWD/BWD F(2,3)</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd_xdlops&lt;3-3&gt;</span></code>, FWD/BWD F(3,3)</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd_xdlops&lt;4-3&gt;</span></code>, FWD/BWD F(4,3)</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd_xdlops&lt;5-3&gt;</span></code>, FWD/BWD F(5,3)</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd_xdlops&lt;6-3&gt;</span></code>, FWD/BWD F(6,3)</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM</span> <span class="pre">-</span></code>ConvMPBidirectWinograd*`, FWD/BWD FP16 experemental mode. Disabled by default. This mode is experimental. Use it at your own risk.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvMPBidirectWinograd&lt;2-3&gt;</span></code>, FWD/BWD F(2,3)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvMPBidirectWinograd&lt;3-3&gt;</span></code>, FWD/BWD F(3,3)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvMPBidirectWinograd&lt;4-3&gt;</span></code>, FWD/BWD F(4,3)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvMPBidirectWinograd&lt;5-3&gt;</span></code>, FWD/BWD F(5,3)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvMPBidirectWinograd&lt;6-3&gt;</span></code>, FWD/BWD F(6,3)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvMPBidirectWinograd_xdlops&lt;2-3&gt;</span></code>, FWD/BWD F(2,3)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvMPBidirectWinograd_xdlops&lt;3-3&gt;</span></code>, FWD/BWD F(3,3)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvMPBidirectWinograd_xdlops&lt;4-3&gt;</span></code>, FWD/BWD F(4,3)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvMPBidirectWinograd_xdlops&lt;5-3&gt;</span></code>, FWD/BWD F(5,3)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvMPBidirectWinograd_xdlops&lt;6-3&gt;</span></code>, FWD/BWD F(6,3)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM</span> <span class="pre">-</span> </code>ConvMPBidirectWinograd*`, FWD/BWD FP16 experemental mode. Disabled by default. This mode is experimental. Use it at your own risk.</p></li>
 </ul>
 </li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_FUSED_WINOGRAD</span></code> - Fused FP32 F(3,3) Winograd, variable filter size.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_FUSED_WINOGRAD</span></code> - Fused FP32 F(3,3) Winograd, variable filter size.</p></li>
 </ul>
 <p>Implicit GEMM Solutions:</p>
 <ul class="simple">
-<li>ASM Implicit GEMM<ul>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmV4R1DynamicFwd</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmV4R1DynamicFwd_1x1</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmV4R1DynamicBwd</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmV4R1DynamicWrw</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmGTCDynamicFwdXdlops</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmGTCDynamicBwdXdlops</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvAsmImplicitGemmGTCDynamicWrwXdlops</span></code></li>
+<li><p>ASM Implicit GEMM</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsmImplicitGemmV4R1DynamicFwd</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsmImplicitGemmV4R1DynamicFwd_1x1</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsmImplicitGemmV4R1DynamicBwd</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsmImplicitGemmV4R1DynamicWrw</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsmImplicitGemmGTCDynamicFwdXdlops</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsmImplicitGemmGTCDynamicBwdXdlops</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvAsmImplicitGemmGTCDynamicWrwXdlops</span></code></p></li>
 </ul>
 </li>
-<li>HIP Implicit GEMM<ul>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmV4R1Fwd</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmV4R4Fwd</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmBwdDataV1R1</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmBwdDataV4R1</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmV4R1WrW</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmV4R4WrW</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmForwardV4R4Xdlops</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmForwardV4R5Xdlops</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmBwdDataV1R1Xdlops</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmBwdDataV4R1Xdlops</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmWrwV4R4Xdlops</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm</span></code></li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS</span></code> - <code class="docutils literal"><span class="pre">ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm</span></code></li>
+<li><p>HIP Implicit GEMM</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvHipImplicitGemmV4R1Fwd</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvHipImplicitGemmV4R4Fwd</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvHipImplicitGemmBwdDataV1R1</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvHipImplicitGemmBwdDataV4R1</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvHipImplicitGemmV4R1WrW</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvHipImplicitGemmV4R4WrW</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_XDLOPS</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvHipImplicitGemmForwardV4R4Xdlops</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvHipImplicitGemmForwardV4R5Xdlops</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvHipImplicitGemmBwdDataV1R1Xdlops</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvHipImplicitGemmBwdDataV4R1Xdlops</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvHipImplicitGemmWrwV4R4Xdlops</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm</span></code></p></li>
 </ul>
 </li>
 </ul>
 </div>
 </div>
 <div class="section" id="rocblas-logging-and-behavior">
-<span id="rocblas-logging-and-behavior"></span><h2>rocBlas Logging and Behavior<a class="headerlink" href="#rocblas-logging-and-behavior" title="Permalink to this headline">¶</a></h2>
-<p>The <code class="docutils literal"><span class="pre">ROCBLAS_LAYER</span></code> environmental variable can be set to output GEMM information:</p>
+<h2>rocBlas Logging and Behavior<a class="headerlink" href="#rocblas-logging-and-behavior" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">ROCBLAS_LAYER</span></code> environmental variable can be set to output GEMM information:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">ROCBLAS_LAYER=</span></code>  - is not set, there is no logging</li>
-<li><code class="docutils literal"><span class="pre">ROCBLAS_LAYER=1</span></code> - is set to 1, then there is trace logging</li>
-<li><code class="docutils literal"><span class="pre">ROCBLAS_LAYER=2</span></code> - is set to 2, then there is bench logging</li>
-<li><code class="docutils literal"><span class="pre">ROCBLAS_LAYER=3</span></code> - is set to 3, then there is both trace and bench logging</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ROCBLAS_LAYER=</span></code>  - is not set, there is no logging</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ROCBLAS_LAYER=1</span></code> - is set to 1, then there is trace logging</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ROCBLAS_LAYER=2</span></code> - is set to 2, then there is bench logging</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ROCBLAS_LAYER=3</span></code> - is set to 3, then there is both trace and bench logging</p></li>
 </ul>
-<p>Additionally, using environment variable &quot;MIOPEN_GEMM_ENFORCE_BACKEND&quot;, can override the default behavior. The default behavior which is to use
+<p>Additionally, using environment variable “MIOPEN_GEMM_ENFORCE_BACKEND”, can override the default behavior. The default behavior which is to use
 both MIOpenGEMM and rocBlas depending on the input configuration:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=1</span></code>, use rocBLAS if enabled</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=2</span></code>, use MIOpenGEMM for FP32, use rocBLAS for FP16 if enabled</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=3</span></code>, no gemm will be called</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=4</span></code>, use MIOpenTensile for FP32, use rocBLAS for FP16 if enabled</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=&lt;any</span> <span class="pre">other</span> <span class="pre">value&gt;</span></code>, use default behavior</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=1</span></code>, use rocBLAS if enabled</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=2</span></code>, use MIOpenGEMM for FP32, use rocBLAS for FP16 if enabled</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=3</span></code>, no gemm will be called</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=4</span></code>, use MIOpenTensile for FP32, use rocBLAS for FP16 if enabled</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_GEMM_ENFORCE_BACKEND=&lt;any</span> <span class="pre">other</span> <span class="pre">value&gt;</span></code>, use default behavior</p></li>
 </ul>
-<p>To disable using rocBlas entirely, set the configuration flag <code class="docutils literal"><span class="pre">-DMIOPEN_USE_ROCBLAS=Off</span></code> during MIOpen configuration.</p>
+<p>To disable using rocBlas entirely, set the configuration flag <code class="docutils literal notranslate"><span class="pre">-DMIOPEN_USE_ROCBLAS=Off</span></code> during MIOpen configuration.</p>
 <p>More information on logging with rocBlas can be found <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS/wiki/5.Logging">here</a>.</p>
 </div>
 <div class="section" id="numerical-checking">
-<span id="numerical-checking"></span><h2>Numerical Checking<a class="headerlink" href="#numerical-checking" title="Permalink to this headline">¶</a></h2>
-<p>MIOpen provides the environmental variable <code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS</span></code> to allow users to debug potential numerical abnormalities. Setting this variable will scan all inputs and outputs of each kernel called and attempt to detect infinities (infs), not-a-number (NaN), or all zeros. The environment variable has several settings that will help with debugging:</p>
+<h2>Numerical Checking<a class="headerlink" href="#numerical-checking" title="Permalink to this headline">¶</a></h2>
+<p>MIOpen provides the environmental variable <code class="docutils literal notranslate"><span class="pre">MIOPEN_CHECK_NUMERICS</span></code> to allow users to debug potential numerical abnormalities. Setting this variable will scan all inputs and outputs of each kernel called and attempt to detect infinities (infs), not-a-number (NaN), or all zeros. The environment variable has several settings that will help with debugging:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x01</span></code>: Fully informative, prints results from all checks to console</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x02</span></code>: Warning information, prints results only if abnormality detected</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x04</span></code>: Throw error on detection, MIOpen execute MIOPEN_THROW on abnormal result</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x08</span></code>: Abort on abnormal result, this will allow users to drop into a debugging session</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_CHECK_NUMERICS=0x10</span></code>: Print stats, this will compute and print mean/absmean/min/max (note, this is much slower)</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_CHECK_NUMERICS=0x01</span></code>: Fully informative, prints results from all checks to console</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_CHECK_NUMERICS=0x02</span></code>: Warning information, prints results only if abnormality detected</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_CHECK_NUMERICS=0x04</span></code>: Throw error on detection, MIOpen execute MIOPEN_THROW on abnormal result</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_CHECK_NUMERICS=0x08</span></code>: Abort on abnormal result, this will allow users to drop into a debugging session</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_CHECK_NUMERICS=0x10</span></code>: Print stats, this will compute and print mean/absmean/min/max (note, this is much slower)</p></li>
 </ul>
 </div>
 <div class="section" id="controlling-parallel-compilation">
-<span id="controlling-parallel-compilation"></span><h2>Controlling Parallel Compilation<a class="headerlink" href="#controlling-parallel-compilation" title="Permalink to this headline">¶</a></h2>
-<p>MIOpen's Convolution Find() calls will compile and benchmark a set of <code class="docutils literal"><span class="pre">solvers</span></code> contained in <code class="docutils literal"><span class="pre">miopenConvAlgoPerf_t</span></code> this is done in parallel per <code class="docutils literal"><span class="pre">miopenConvAlgorithm_t</span></code>. Parallelism per algorithm is set to 20 threads. Typically there are far fewer threads spawned due to the limited number of kernels under any given algorithm. The level of parallelism can be controlled using the environment variable <code class="docutils literal"><span class="pre">MIOPEN_COMPILE_PARALLEL_LEVEL</span></code>.</p>
+<h2>Controlling Parallel Compilation<a class="headerlink" href="#controlling-parallel-compilation" title="Permalink to this headline">¶</a></h2>
+<p>MIOpen’s Convolution Find() calls will compile and benchmark a set of <code class="docutils literal notranslate"><span class="pre">solvers</span></code> contained in <code class="docutils literal notranslate"><span class="pre">miopenConvAlgoPerf_t</span></code> this is done in parallel per <code class="docutils literal notranslate"><span class="pre">miopenConvAlgorithm_t</span></code>. Parallelism per algorithm is set to 20 threads. Typically there are far fewer threads spawned due to the limited number of kernels under any given algorithm. The level of parallelism can be controlled using the environment variable <code class="docutils literal notranslate"><span class="pre">MIOPEN_COMPILE_PARALLEL_LEVEL</span></code>.</p>
 <p>For example, to disable multi-threaded compilation:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">MIOPEN_COMPILE_PARALLEL_LEVEL</span><span class="o">=</span><span class="mi">1</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">MIOPEN_COMPILE_PARALLEL_LEVEL</span><span class="o">=</span><span class="mi">1</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="experimental-controls">
-<span id="experimental-controls"></span><h2>Experimental controls<a class="headerlink" href="#experimental-controls" title="Permalink to this headline">¶</a></h2>
+<h2>Experimental controls<a class="headerlink" href="#experimental-controls" title="Permalink to this headline">¶</a></h2>
 <blockquote>
 <div><p><strong><em>NOTE 5: Using experimental controls may result in:</em></strong></p>
 <ul class="simple">
-<li>Performance drops</li>
-<li>Computation inaccuracies</li>
-<li>Run-time errors</li>
-<li>Other kinds of unexpected behavior</li>
+<li><p>Performance drops</p></li>
+<li><p>Computation inaccuracies</p></li>
+<li><p>Run-time errors</p></li>
+<li><p>Other kinds of unexpected behavior</p></li>
 </ul>
 <p><strong><em>It is strongly recommended to use them only with the explicit permission or request of the library developers.</em></strong></p>
 </div></blockquote>
 <div class="section" id="code-object-co-version-selection-experimental">
-<span id="code-object-co-version-selection-experimental"></span><h3>Code Object (CO) version selection (EXPERIMENTAL)<a class="headerlink" href="#code-object-co-version-selection-experimental" title="Permalink to this headline">¶</a></h3>
+<h3>Code Object (CO) version selection (EXPERIMENTAL)<a class="headerlink" href="#code-object-co-version-selection-experimental" title="Permalink to this headline">¶</a></h3>
 <p>Different ROCm versions use Code Object files of different versions (or, in other words, formats). The library uses suitable version automatically. The following variables allow for experimenting and triaging possible problems related to CO version:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE</span></code> - Affects kernels written in GCN assembly language.<ul>
-<li><code class="docutils literal"><span class="pre">0</span></code> or unset - Automatically detect the required CO version and assemble to that version. This is the default.</li>
-<li><code class="docutils literal"><span class="pre">1</span></code> - Do not auto-detect Code Object version, always assemble v2 Code Objects.</li>
-<li><code class="docutils literal"><span class="pre">2</span></code> - Behave as if both CO v2 and v3 are supported (see <code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER</span></code>).</li>
-<li><code class="docutils literal"><span class="pre">3</span></code> - Always assemble v3 Code Objects.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_ROCM_METADATA_ENFORCE</span></code> - Affects kernels written in GCN assembly language.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code> or unset - Automatically detect the required CO version and assemble to that version. This is the default.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code> - Do not auto-detect Code Object version, always assemble v2 Code Objects.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">2</span></code> - Behave as if both CO v2 and v3 are supported (see <code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">3</span></code> - Always assemble v3 Code Objects.</p></li>
 </ul>
 </li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER</span></code> - This variable affects only assembly kernels, and only when ROCm supports both CO v2 and CO v3 (like ROCm 2.10). By default, the newer format is used (CO v3). When this variable is <em>enabled</em>, the behavior is reversed.</li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION</span></code> - Enforces Code Object format for OpenCL kernels. Works with HIP backend only (<code class="docutils literal"><span class="pre">cmake</span> <span class="pre">...</span> <span class="pre">-DMIOPEN_BACKEND=HIP...</span></code>).<ul>
-<li>Unset - Automatically detect the required CO version. This is the default.</li>
-<li><code class="docutils literal"><span class="pre">2</span></code> - Always build to CO v2.</li>
-<li><code class="docutils literal"><span class="pre">3</span></code> - Always build to CO v3.</li>
-<li><code class="docutils literal"><span class="pre">4</span></code> - Always build to CO v4.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_ROCM_METADATA_PREFER_OLDER</span></code> - This variable affects only assembly kernels, and only when ROCm supports both CO v2 and CO v3 (like ROCm 2.10). By default, the newer format is used (CO v3). When this variable is <em>enabled</em>, the behavior is reversed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION</span></code> - Enforces Code Object format for OpenCL kernels. Works with HIP backend only (<code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">...</span> <span class="pre">-DMIOPEN_BACKEND=HIP...</span></code>).</p>
+<ul>
+<li><p>Unset - Automatically detect the required CO version. This is the default.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">2</span></code> - Always build to CO v2.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">3</span></code> - Always build to CO v3.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">4</span></code> - Always build to CO v4.</p></li>
 </ul>
 </li>
-<li><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_HIP_ENFORCE_COV3</span></code> - Enforces Code Object format for HIP kernels.<ul>
-<li>Unset - Automatically detect the required CO version. This is the default.</li>
-<li><code class="docutils literal"><span class="pre">0</span></code> - Always build to CO v2.</li>
-<li><code class="docutils literal"><span class="pre">1</span></code> - Always build to CO v3.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_HIP_ENFORCE_COV3</span></code> - Enforces Code Object format for HIP kernels.</p>
+<ul>
+<li><p>Unset - Automatically detect the required CO version. This is the default.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code> - Always build to CO v2.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code> - Always build to CO v3.</p></li>
 </ul>
 </li>
 </ul>
 </div>
 <div class="section" id="winograd-multi-pass-maximum-workspace-throttling">
-<span id="winograd-multi-pass-maximum-workspace-throttling"></span><h3>Winograd Multi-pass Maximum Workspace throttling<a class="headerlink" href="#winograd-multi-pass-maximum-workspace-throttling" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX</span></code> - <code class="docutils literal"><span class="pre">ConvWinograd3x3MultipassWrW</span></code>, WrW
-<code class="docutils literal"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX</span></code> - <code class="docutils literal"><span class="pre">ConvMPBidirectWinograd*</span></code>, FWD BWD</p>
+<h3>Winograd Multi-pass Maximum Workspace throttling<a class="headerlink" href="#winograd-multi-pass-maximum-workspace-throttling" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvWinograd3x3MultipassWrW</span></code>, WrW
+<code class="docutils literal notranslate"><span class="pre">MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX</span></code> - <code class="docutils literal notranslate"><span class="pre">ConvMPBidirectWinograd*</span></code>, FWD BWD</p>
 <p>Syntax of value:</p>
 <ul class="simple">
-<li>decimal or hex (with <code class="docutils literal"><span class="pre">0x</span></code> prefix) value that should fit into <code class="docutils literal"><span class="pre">unsigned</span> <span class="pre">long</span></code> (64 bits).</li>
-<li>If syntax is violated, then the behavior is unspecified.</li>
+<li><p>decimal or hex (with <code class="docutils literal notranslate"><span class="pre">0x</span></code> prefix) value that should fit into <code class="docutils literal notranslate"><span class="pre">unsigned</span> <span class="pre">long</span></code> (64 bits).</p></li>
+<li><p>If syntax is violated, then the behavior is unspecified.</p></li>
 </ul>
 <p>Semantics:</p>
 <ul class="simple">
-<li>Sets the <strong><em>limit</em></strong> (max allowed workspace size) for Multi-pass (MP) Winograd Solutions, in bytes.</li>
-<li>Affects all MP Winograd Solutions. If a Solution needs more workspace than the limit, then it does not apply.</li>
-<li>If unset, then <em>the default</em> limit is used. Current default is <code class="docutils literal"><span class="pre">2000000000</span></code> (~1.862 GiB) for gfx900 and gfx906/60 (or less CUs). No default limit is set for other GPUs.</li>
-<li>Special values:</li>
+<li><p>Sets the <strong><em>limit</em></strong> (max allowed workspace size) for Multi-pass (MP) Winograd Solutions, in bytes.</p></li>
+<li><p>Affects all MP Winograd Solutions. If a Solution needs more workspace than the limit, then it does not apply.</p></li>
+<li><p>If unset, then <em>the default</em> limit is used. Current default is <code class="docutils literal notranslate"><span class="pre">2000000000</span></code> (~1.862 GiB) for gfx900 and gfx906/60 (or less CUs). No default limit is set for other GPUs.</p></li>
+<li><p>Special values:</p></li>
 </ul>
-<div class="highlight-default"><div class="highlight"><pre><span></span> <span class="mi">0</span> <span class="o">-</span> <span class="n">Use</span> <span class="n">the</span> <span class="n">default</span> <span class="n">limit</span><span class="p">,</span> <span class="k">as</span> <span class="k">if</span> <span class="n">the</span> <span class="n">variable</span> <span class="ow">is</span> <span class="n">unset</span><span class="o">.</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> <span class="mi">0</span> <span class="o">-</span> <span class="n">Use</span> <span class="n">the</span> <span class="n">default</span> <span class="n">limit</span><span class="p">,</span> <span class="k">as</span> <span class="k">if</span> <span class="n">the</span> <span class="n">variable</span> <span class="ow">is</span> <span class="n">unset</span><span class="o">.</span>
  <span class="mi">1</span> <span class="o">-</span> <span class="n">Completely</span> <span class="n">prohibit</span> <span class="n">the</span> <span class="n">use</span> <span class="n">of</span> <span class="n">workspace</span><span class="o">.</span>
 <span class="o">-</span><span class="mi">1</span> <span class="o">-</span> <span class="n">Remove</span> <span class="n">the</span> <span class="n">default</span> <span class="n">limit</span><span class="o">.</span>
 </pre></div>
@@ -812,29 +833,29 @@ both MIOpenGEMM and rocBlas depending on the input configuration:</p>
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="cache.html" class="btn btn-neutral float-right" title="Kernel Cache" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="driver.html" class="btn btn-neutral" title="MIOpenDriver" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="cache.html" class="btn btn-neutral float-right" title="Kernel Cache" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="embed.html" class="btn btn-neutral float-left" title="Building MIOpen for Embedded Systems" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -843,34 +864,16 @@ both MIOpenGEMM and rocBlas depending on the input configuration:</p>
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

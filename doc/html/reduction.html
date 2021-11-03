@@ -1,49 +1,57 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Reduction Layer &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="Dropout Layer" href="dropout.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -57,7 +65,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -74,6 +82,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -81,38 +90,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -165,12 +176,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
@@ -453,6 +458,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -487,11 +493,13 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="apireference.html">API Reference</a> &raquo;</li>
         
@@ -500,7 +508,7 @@
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/reduction.rst.txt" rel="nofollow"> View page source</a>
           
         
@@ -519,69 +527,57 @@
 <p>The reduction layer API documentation</p>
 <div class="section" id="miopenreducetensorop-t">
 <h2>miopenReduceTensorOp_t<a class="headerlink" href="#miopenreducetensorop-t" title="Permalink to this headline">¶</a></h2>
-<dl class="type">
-<dt id="_CPPv222miopenReduceTensorOp_t">
-<span id="miopenReduceTensorOp_t"></span><span class="target" id="group__TensorReduce_1ga70e205d9a10688c29474cd8795521ddd"></span><em class="property">enum </em><code class="descclassname"></code><code class="descname">miopenReduceTensorOp_t</code><a class="headerlink" href="#_CPPv222miopenReduceTensorOp_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv422miopenReduceTensorOp_t">
+<span id="_CPPv322miopenReduceTensorOp_t"></span><span id="_CPPv222miopenReduceTensorOp_t"></span><span class="target" id="group__TensorReduce_1ga70e205d9a10688c29474cd8795521ddd"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenReduceTensorOp_t</span></span></span><a class="headerlink" href="#_CPPv422miopenReduceTensorOp_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Tensor Reduction operation types</p>
 <p>Nan numbers propagation modes </p>
 <p><em>Values:</em></p>
-<dl class="enumerator">
-<dt id="_CPPv224MIOPEN_REDUCE_TENSOR_ADD">
-<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521dddae88d3f61f4d036c581d47d2242011edb"></span><code class="descname">MIOPEN_REDUCE_TENSOR_ADD</code> = 0<a class="headerlink" href="#_CPPv224MIOPEN_REDUCE_TENSOR_ADD" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_ADDE">
+<span id="_CPPv3N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_ADDE"></span><span id="_CPPv2N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_ADDE"></span><span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521dddae88d3f61f4d036c581d47d2242011edb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_REDUCE_TENSOR_ADD</span></span></span><a class="headerlink" href="#_CPPv4N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_ADDE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>the operation is adding the values of the reduced elements </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv224MIOPEN_REDUCE_TENSOR_MUL">
-<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521ddda509f2659e4d54a99d17844ee8de19130"></span><code class="descname">MIOPEN_REDUCE_TENSOR_MUL</code><p>=</p>
-<p>        1</p>
-<a class="headerlink" href="#_CPPv224MIOPEN_REDUCE_TENSOR_MUL" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_MULE">
+<span id="_CPPv3N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_MULE"></span><span id="_CPPv2N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_MULE"></span><span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521ddda509f2659e4d54a99d17844ee8de19130"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_REDUCE_TENSOR_MUL</span></span></span><a class="headerlink" href="#_CPPv4N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_MULE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>the operation is multiplying the values of the reduced elements </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv224MIOPEN_REDUCE_TENSOR_MIN">
-<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521dddae1af9483b548971223d29c8f12862820"></span><code class="descname">MIOPEN_REDUCE_TENSOR_MIN</code><p>=</p>
-<p>        2</p>
-<a class="headerlink" href="#_CPPv224MIOPEN_REDUCE_TENSOR_MIN" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_MINE">
+<span id="_CPPv3N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_MINE"></span><span id="_CPPv2N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_MINE"></span><span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521dddae1af9483b548971223d29c8f12862820"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_REDUCE_TENSOR_MIN</span></span></span><a class="headerlink" href="#_CPPv4N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_MINE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>the operation is getting the minimum value of the reduced elements </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv224MIOPEN_REDUCE_TENSOR_MAX">
-<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521ddda6c82f5dec443a93777291a68de6709fe"></span><code class="descname">MIOPEN_REDUCE_TENSOR_MAX</code><p>=</p>
-<p>        3</p>
-<a class="headerlink" href="#_CPPv224MIOPEN_REDUCE_TENSOR_MAX" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_MAXE">
+<span id="_CPPv3N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_MAXE"></span><span id="_CPPv2N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_MAXE"></span><span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521ddda6c82f5dec443a93777291a68de6709fe"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_REDUCE_TENSOR_MAX</span></span></span><a class="headerlink" href="#_CPPv4N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_MAXE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>the operation is getting the maximum value of the reduced elements </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv225MIOPEN_REDUCE_TENSOR_AMAX">
-<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521dddac956caf0ac6e9ffbf647eca0bb3c13ab"></span><code class="descname">MIOPEN_REDUCE_TENSOR_AMAX</code><p>=</p>
-<p>        4</p>
-<a class="headerlink" href="#_CPPv225MIOPEN_REDUCE_TENSOR_AMAX" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22miopenReduceTensorOp_t25MIOPEN_REDUCE_TENSOR_AMAXE">
+<span id="_CPPv3N22miopenReduceTensorOp_t25MIOPEN_REDUCE_TENSOR_AMAXE"></span><span id="_CPPv2N22miopenReduceTensorOp_t25MIOPEN_REDUCE_TENSOR_AMAXE"></span><span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521dddac956caf0ac6e9ffbf647eca0bb3c13ab"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_REDUCE_TENSOR_AMAX</span></span></span><a class="headerlink" href="#_CPPv4N22miopenReduceTensorOp_t25MIOPEN_REDUCE_TENSOR_AMAXE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>the operation is getting the maximum absolute value of the reduced elements </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv224MIOPEN_REDUCE_TENSOR_AVG">
-<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521ddda7088afde0cec574d45add46d4f1d5534"></span><code class="descname">MIOPEN_REDUCE_TENSOR_AVG</code><p>=</p>
-<p>        5</p>
-<a class="headerlink" href="#_CPPv224MIOPEN_REDUCE_TENSOR_AVG" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_AVGE">
+<span id="_CPPv3N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_AVGE"></span><span id="_CPPv2N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_AVGE"></span><span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521ddda7088afde0cec574d45add46d4f1d5534"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_REDUCE_TENSOR_AVG</span></span></span><a class="headerlink" href="#_CPPv4N22miopenReduceTensorOp_t24MIOPEN_REDUCE_TENSOR_AVGE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>the operation is getting the averaged value of the reduced elements </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv226MIOPEN_REDUCE_TENSOR_NORM1">
-<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521ddda9df43ac0efb3c7061e2a131c337050b8"></span><code class="descname">MIOPEN_REDUCE_TENSOR_NORM1</code><p>=</p>
-<p>        6</p>
-<a class="headerlink" href="#_CPPv226MIOPEN_REDUCE_TENSOR_NORM1" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22miopenReduceTensorOp_t26MIOPEN_REDUCE_TENSOR_NORM1E">
+<span id="_CPPv3N22miopenReduceTensorOp_t26MIOPEN_REDUCE_TENSOR_NORM1E"></span><span id="_CPPv2N22miopenReduceTensorOp_t26MIOPEN_REDUCE_TENSOR_NORM1E"></span><span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521ddda9df43ac0efb3c7061e2a131c337050b8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_REDUCE_TENSOR_NORM1</span></span></span><a class="headerlink" href="#_CPPv4N22miopenReduceTensorOp_t26MIOPEN_REDUCE_TENSOR_NORM1E" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>the operation is adding the absolute values of the reduced elements </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv226MIOPEN_REDUCE_TENSOR_NORM2">
-<span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521dddae8a5d817789938ae4cf77d0496b7122f"></span><code class="descname">MIOPEN_REDUCE_TENSOR_NORM2</code> = 7<a class="headerlink" href="#_CPPv226MIOPEN_REDUCE_TENSOR_NORM2" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22miopenReduceTensorOp_t26MIOPEN_REDUCE_TENSOR_NORM2E">
+<span id="_CPPv3N22miopenReduceTensorOp_t26MIOPEN_REDUCE_TENSOR_NORM2E"></span><span id="_CPPv2N22miopenReduceTensorOp_t26MIOPEN_REDUCE_TENSOR_NORM2E"></span><span class="target" id="miopen_8h_1ga70e205d9a10688c29474cd8795521dddae8a5d817789938ae4cf77d0496b7122f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_REDUCE_TENSOR_NORM2</span></span></span><a class="headerlink" href="#_CPPv4N22miopenReduceTensorOp_t26MIOPEN_REDUCE_TENSOR_NORM2E" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>the operation is getting the square root of the sum of squares of the reduced elements </p>
 </dd></dl>
 
@@ -590,19 +586,19 @@
 </div>
 <div class="section" id="miopennanpropagation-t">
 <h2>miopenNanPropagation_t<a class="headerlink" href="#miopennanpropagation-t" title="Permalink to this headline">¶</a></h2>
-<dl class="type">
-<dt id="_CPPv222miopenNanPropagation_t">
-<span id="miopenNanPropagation_t"></span><span class="target" id="miopen_8h_1adfa716b919ff5919780b47334bbb1d89"></span><em class="property">enum </em><code class="descclassname"></code><code class="descname">miopenNanPropagation_t</code><a class="headerlink" href="#_CPPv222miopenNanPropagation_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv422miopenNanPropagation_t">
+<span id="_CPPv322miopenNanPropagation_t"></span><span id="_CPPv222miopenNanPropagation_t"></span><span class="target" id="miopen_8h_1adfa716b919ff5919780b47334bbb1d89"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenNanPropagation_t</span></span></span><a class="headerlink" href="#_CPPv422miopenNanPropagation_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p><em>Values:</em></p>
-<dl class="enumerator">
-<dt id="_CPPv224MIOPEN_NOT_PROPAGATE_NAN">
-<span class="target" id="miopen_8h_1adfa716b919ff5919780b47334bbb1d89adb89d9f86661677eba6f1fb0078bb9b0"></span><code class="descname">MIOPEN_NOT_PROPAGATE_NAN</code> = 0<a class="headerlink" href="#_CPPv224MIOPEN_NOT_PROPAGATE_NAN" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22miopenNanPropagation_t24MIOPEN_NOT_PROPAGATE_NANE">
+<span id="_CPPv3N22miopenNanPropagation_t24MIOPEN_NOT_PROPAGATE_NANE"></span><span id="_CPPv2N22miopenNanPropagation_t24MIOPEN_NOT_PROPAGATE_NANE"></span><span class="target" id="miopen_8h_1adfa716b919ff5919780b47334bbb1d89adb89d9f86661677eba6f1fb0078bb9b0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_NOT_PROPAGATE_NAN</span></span></span><a class="headerlink" href="#_CPPv4N22miopenNanPropagation_t24MIOPEN_NOT_PROPAGATE_NANE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>does not propagate Nan number </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv220MIOPEN_PROPAGATE_NAN">
-<span class="target" id="miopen_8h_1adfa716b919ff5919780b47334bbb1d89a79c9620aa9ab26af969cb5c78cf8ac77"></span><code class="descname">MIOPEN_PROPAGATE_NAN</code> = 1<a class="headerlink" href="#_CPPv220MIOPEN_PROPAGATE_NAN" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N22miopenNanPropagation_t20MIOPEN_PROPAGATE_NANE">
+<span id="_CPPv3N22miopenNanPropagation_t20MIOPEN_PROPAGATE_NANE"></span><span id="_CPPv2N22miopenNanPropagation_t20MIOPEN_PROPAGATE_NANE"></span><span class="target" id="miopen_8h_1adfa716b919ff5919780b47334bbb1d89a79c9620aa9ab26af969cb5c78cf8ac77"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_PROPAGATE_NAN</span></span></span><a class="headerlink" href="#_CPPv4N22miopenNanPropagation_t20MIOPEN_PROPAGATE_NANE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>propagate the Nan number by the Reduction operation </p>
 </dd></dl>
 
@@ -611,20 +607,20 @@
 </div>
 <div class="section" id="miopenreducetensorindices-t">
 <h2>miopenReduceTensorIndices_t<a class="headerlink" href="#miopenreducetensorindices-t" title="Permalink to this headline">¶</a></h2>
-<dl class="type">
-<dt id="_CPPv227miopenReduceTensorIndices_t">
-<span id="miopenReduceTensorIndices_t"></span><span class="target" id="group__TensorReduce_1ga4dd527c6b506c34ec06d641551d78b7c"></span><em class="property">enum </em><code class="descclassname"></code><code class="descname">miopenReduceTensorIndices_t</code><a class="headerlink" href="#_CPPv227miopenReduceTensorIndices_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv427miopenReduceTensorIndices_t">
+<span id="_CPPv327miopenReduceTensorIndices_t"></span><span id="_CPPv227miopenReduceTensorIndices_t"></span><span class="target" id="group__TensorReduce_1ga4dd527c6b506c34ec06d641551d78b7c"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenReduceTensorIndices_t</span></span></span><a class="headerlink" href="#_CPPv427miopenReduceTensorIndices_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Reduction Indices computation modes </p>
 <p><em>Values:</em></p>
-<dl class="enumerator">
-<dt id="_CPPv231MIOPEN_REDUCE_TENSOR_NO_INDICES">
-<span class="target" id="miopen_8h_1ga4dd527c6b506c34ec06d641551d78b7ca630bd9b0b0f29fdd4acd7f1428c9e112"></span><code class="descname">MIOPEN_REDUCE_TENSOR_NO_INDICES</code> = 0<a class="headerlink" href="#_CPPv231MIOPEN_REDUCE_TENSOR_NO_INDICES" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N27miopenReduceTensorIndices_t31MIOPEN_REDUCE_TENSOR_NO_INDICESE">
+<span id="_CPPv3N27miopenReduceTensorIndices_t31MIOPEN_REDUCE_TENSOR_NO_INDICESE"></span><span id="_CPPv2N27miopenReduceTensorIndices_t31MIOPEN_REDUCE_TENSOR_NO_INDICESE"></span><span class="target" id="miopen_8h_1ga4dd527c6b506c34ec06d641551d78b7ca630bd9b0b0f29fdd4acd7f1428c9e112"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_REDUCE_TENSOR_NO_INDICES</span></span></span><a class="headerlink" href="#_CPPv4N27miopenReduceTensorIndices_t31MIOPEN_REDUCE_TENSOR_NO_INDICESE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Does not compuate indices </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv238MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES">
-<span class="target" id="miopen_8h_1ga4dd527c6b506c34ec06d641551d78b7ca04e405c32e661195b6af8a3c8d1fdf24"></span><code class="descname">MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES</code> = 1<a class="headerlink" href="#_CPPv238MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N27miopenReduceTensorIndices_t38MIOPEN_REDUCE_TENSOR_FLATTENED_INDICESE">
+<span id="_CPPv3N27miopenReduceTensorIndices_t38MIOPEN_REDUCE_TENSOR_FLATTENED_INDICESE"></span><span id="_CPPv2N27miopenReduceTensorIndices_t38MIOPEN_REDUCE_TENSOR_FLATTENED_INDICESE"></span><span class="target" id="miopen_8h_1ga4dd527c6b506c34ec06d641551d78b7ca04e405c32e661195b6af8a3c8d1fdf24"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES</span></span></span><a class="headerlink" href="#_CPPv4N27miopenReduceTensorIndices_t38MIOPEN_REDUCE_TENSOR_FLATTENED_INDICESE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Compute the relative, flatted indices </p>
 </dd></dl>
 
@@ -633,32 +629,32 @@
 </div>
 <div class="section" id="miopenindicestype-t">
 <h2>miopenIndicesType_t<a class="headerlink" href="#miopenindicestype-t" title="Permalink to this headline">¶</a></h2>
-<dl class="type">
-<dt id="_CPPv219miopenIndicesType_t">
-<span id="miopenIndicesType_t"></span><span class="target" id="group__TensorReduce_1ga8c58d2c6bd149d6140ea81e88374d82b"></span><em class="property">enum </em><code class="descclassname"></code><code class="descname">miopenIndicesType_t</code><a class="headerlink" href="#_CPPv219miopenIndicesType_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv419miopenIndicesType_t">
+<span id="_CPPv319miopenIndicesType_t"></span><span id="_CPPv219miopenIndicesType_t"></span><span class="target" id="group__TensorReduce_1ga8c58d2c6bd149d6140ea81e88374d82b"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenIndicesType_t</span></span></span><a class="headerlink" href="#_CPPv419miopenIndicesType_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Reduction Indices types </p>
 <p><em>Values:</em></p>
-<dl class="enumerator">
-<dt id="_CPPv220MIOPEN_32BIT_INDICES">
-<span class="target" id="miopen_8h_1ga8c58d2c6bd149d6140ea81e88374d82babe4c1ddd72f1a427a032ed9ccff8a8bb"></span><code class="descname">MIOPEN_32BIT_INDICES</code> = 0<a class="headerlink" href="#_CPPv220MIOPEN_32BIT_INDICES" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19miopenIndicesType_t20MIOPEN_32BIT_INDICESE">
+<span id="_CPPv3N19miopenIndicesType_t20MIOPEN_32BIT_INDICESE"></span><span id="_CPPv2N19miopenIndicesType_t20MIOPEN_32BIT_INDICESE"></span><span class="target" id="miopen_8h_1ga8c58d2c6bd149d6140ea81e88374d82babe4c1ddd72f1a427a032ed9ccff8a8bb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_32BIT_INDICES</span></span></span><a class="headerlink" href="#_CPPv4N19miopenIndicesType_t20MIOPEN_32BIT_INDICESE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>unsigned integer indices </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv220MIOPEN_64BIT_INDICES">
-<span class="target" id="miopen_8h_1ga8c58d2c6bd149d6140ea81e88374d82bafd7b2202fcf90028f49773fde1b11435"></span><code class="descname">MIOPEN_64BIT_INDICES</code> = 1<a class="headerlink" href="#_CPPv220MIOPEN_64BIT_INDICES" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19miopenIndicesType_t20MIOPEN_64BIT_INDICESE">
+<span id="_CPPv3N19miopenIndicesType_t20MIOPEN_64BIT_INDICESE"></span><span id="_CPPv2N19miopenIndicesType_t20MIOPEN_64BIT_INDICESE"></span><span class="target" id="miopen_8h_1ga8c58d2c6bd149d6140ea81e88374d82bafd7b2202fcf90028f49773fde1b11435"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_64BIT_INDICES</span></span></span><a class="headerlink" href="#_CPPv4N19miopenIndicesType_t20MIOPEN_64BIT_INDICESE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>unsigned long indices </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv220MIOPEN_16BIT_INDICES">
-<span class="target" id="miopen_8h_1ga8c58d2c6bd149d6140ea81e88374d82badf88480d0cc300ddba2b326b78e68d84"></span><code class="descname">MIOPEN_16BIT_INDICES</code> = 2<a class="headerlink" href="#_CPPv220MIOPEN_16BIT_INDICES" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19miopenIndicesType_t20MIOPEN_16BIT_INDICESE">
+<span id="_CPPv3N19miopenIndicesType_t20MIOPEN_16BIT_INDICESE"></span><span id="_CPPv2N19miopenIndicesType_t20MIOPEN_16BIT_INDICESE"></span><span class="target" id="miopen_8h_1ga8c58d2c6bd149d6140ea81e88374d82badf88480d0cc300ddba2b326b78e68d84"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_16BIT_INDICES</span></span></span><a class="headerlink" href="#_CPPv4N19miopenIndicesType_t20MIOPEN_16BIT_INDICESE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>unsigned short indices </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv219MIOPEN_8BIT_INDICES">
-<span class="target" id="miopen_8h_1ga8c58d2c6bd149d6140ea81e88374d82babae5e385da771a86da08f2873630cf33"></span><code class="descname">MIOPEN_8BIT_INDICES</code> = 3<a class="headerlink" href="#_CPPv219MIOPEN_8BIT_INDICES" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19miopenIndicesType_t19MIOPEN_8BIT_INDICESE">
+<span id="_CPPv3N19miopenIndicesType_t19MIOPEN_8BIT_INDICESE"></span><span id="_CPPv2N19miopenIndicesType_t19MIOPEN_8BIT_INDICESE"></span><span class="target" id="miopen_8h_1ga8c58d2c6bd149d6140ea81e88374d82babae5e385da771a86da08f2873630cf33"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_8BIT_INDICES</span></span></span><a class="headerlink" href="#_CPPv4N19miopenIndicesType_t19MIOPEN_8BIT_INDICESE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>unsigned char indices </p>
 </dd></dl>
 
@@ -667,168 +663,164 @@
 </div>
 <div class="section" id="miopencreatereducetensordescriptor">
 <h2>miopenCreateReduceTensorDescriptor<a class="headerlink" href="#miopencreatereducetensordescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv234miopenCreateReduceTensorDescriptorP30miopenReduceTensorDescriptor_t">
-<span id="miopenCreateReduceTensorDescriptor__miopenReduceTensorDescriptor_tP"></span><span class="target" id="group__TensorReduce_1ga0859c988896387dd12205aa42dd2a44c"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateReduceTensorDescriptor</code><span class="sig-paren">(</span>miopenReduceTensorDescriptor_t *<em>reduceTensorDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv234miopenCreateReduceTensorDescriptorP30miopenReduceTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv434miopenCreateReduceTensorDescriptorP30miopenReduceTensorDescriptor_t">
+<span id="_CPPv334miopenCreateReduceTensorDescriptorP30miopenReduceTensorDescriptor_t"></span><span id="_CPPv234miopenCreateReduceTensorDescriptorP30miopenReduceTensorDescriptor_t"></span><span id="miopenCreateReduceTensorDescriptor__miopenReduceTensorDescriptor_tP"></span><span class="target" id="group__TensorReduce_1ga0859c988896387dd12205aa42dd2a44c"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenCreateReduceTensorDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenReduceTensorDescriptor_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">reduceTensorDesc</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv434miopenCreateReduceTensorDescriptorP30miopenReduceTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Creates the ReduceTensor descriptor object. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">reduceTensorDesc</span></code>: Pointer to a ReduceTensor descriptor type </li>
-</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>reduceTensorDesc</strong> – Pointer to a ReduceTensor descriptor type </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
 </dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopendestroyreducetensordescriptor">
 <h2>miopenDestroyReduceTensorDescriptor<a class="headerlink" href="#miopendestroyreducetensordescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv235miopenDestroyReduceTensorDescriptor30miopenReduceTensorDescriptor_t">
-<span id="miopenDestroyReduceTensorDescriptor__miopenReduceTensorDescriptor_t"></span><span class="target" id="group__TensorReduce_1ga062f5d1e806b0d4f6802fb22ed28565c"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDestroyReduceTensorDescriptor</code><span class="sig-paren">(</span>miopenReduceTensorDescriptor_t <em>reduceTensorDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv235miopenDestroyReduceTensorDescriptor30miopenReduceTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv435miopenDestroyReduceTensorDescriptor30miopenReduceTensorDescriptor_t">
+<span id="_CPPv335miopenDestroyReduceTensorDescriptor30miopenReduceTensorDescriptor_t"></span><span id="_CPPv235miopenDestroyReduceTensorDescriptor30miopenReduceTensorDescriptor_t"></span><span id="miopenDestroyReduceTensorDescriptor__miopenReduceTensorDescriptor_t"></span><span class="target" id="group__TensorReduce_1ga062f5d1e806b0d4f6802fb22ed28565c"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenDestroyReduceTensorDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenReduceTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reduceTensorDesc</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv435miopenDestroyReduceTensorDescriptor30miopenReduceTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Destroy the ReduceTensor descriptor object. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">reduceTensorDesc</span></code>: ReduceTensor descriptor type (input) </li>
-</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>reduceTensorDesc</strong> – ReduceTensor descriptor type (input) </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
 </dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopensetreducetensordescriptor">
 <h2>miopenSetReduceTensorDescriptor<a class="headerlink" href="#miopensetreducetensordescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv231miopenSetReduceTensorDescriptor30miopenReduceTensorDescriptor_t22miopenReduceTensorOp_t16miopenDataType_t22miopenNanPropagation_t27miopenReduceTensorIndices_t19miopenIndicesType_t">
-<span id="miopenSetReduceTensorDescriptor__miopenReduceTensorDescriptor_t.miopenReduceTensorOp_t.miopenDataType_t.miopenNanPropagation_t.miopenReduceTensorIndices_t.miopenIndicesType_t"></span><span class="target" id="group__TensorReduce_1gac60d2f982e9d239870af98a48d6e2ac2"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetReduceTensorDescriptor</code><span class="sig-paren">(</span>miopenReduceTensorDescriptor_t <em>reduceTensorDesc</em>, <a class="reference internal" href="#_CPPv222miopenReduceTensorOp_t" title="miopenReduceTensorOp_t">miopenReduceTensorOp_t</a> <em>reduceTensorOp</em>, <a class="reference internal" href="tensor.html#_CPPv216miopenDataType_t" title="miopenDataType_t">miopenDataType_t</a> <em>reduceTensorCompType</em>, <a class="reference internal" href="#_CPPv222miopenNanPropagation_t" title="miopenNanPropagation_t">miopenNanPropagation_t</a> <em>reduceTensorNanOpt</em>, <a class="reference internal" href="#_CPPv227miopenReduceTensorIndices_t" title="miopenReduceTensorIndices_t">miopenReduceTensorIndices_t</a> <em>reduceTensorIndices</em>, <a class="reference internal" href="#_CPPv219miopenIndicesType_t" title="miopenIndicesType_t">miopenIndicesType_t</a> <em>reduceTensorIndicesType</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv231miopenSetReduceTensorDescriptor30miopenReduceTensorDescriptor_t22miopenReduceTensorOp_t16miopenDataType_t22miopenNanPropagation_t27miopenReduceTensorIndices_t19miopenIndicesType_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv431miopenSetReduceTensorDescriptor30miopenReduceTensorDescriptor_t22miopenReduceTensorOp_t16miopenDataType_t22miopenNanPropagation_t27miopenReduceTensorIndices_t19miopenIndicesType_t">
+<span id="_CPPv331miopenSetReduceTensorDescriptor30miopenReduceTensorDescriptor_t22miopenReduceTensorOp_t16miopenDataType_t22miopenNanPropagation_t27miopenReduceTensorIndices_t19miopenIndicesType_t"></span><span id="_CPPv231miopenSetReduceTensorDescriptor30miopenReduceTensorDescriptor_t22miopenReduceTensorOp_t16miopenDataType_t22miopenNanPropagation_t27miopenReduceTensorIndices_t19miopenIndicesType_t"></span><span id="miopenSetReduceTensorDescriptor__miopenReduceTensorDescriptor_t.miopenReduceTensorOp_t.miopenDataType_t.miopenNanPropagation_t.miopenReduceTensorIndices_t.miopenIndicesType_t"></span><span class="target" id="group__TensorReduce_1gac60d2f982e9d239870af98a48d6e2ac2"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSetReduceTensorDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenReduceTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reduceTensorDesc</span></span>, <a class="reference internal" href="#_CPPv422miopenReduceTensorOp_t" title="miopenReduceTensorOp_t"><span class="n"><span class="pre">miopenReduceTensorOp_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">reduceTensorOp</span></span>, <a class="reference internal" href="tensor.html#_CPPv416miopenDataType_t" title="miopenDataType_t"><span class="n"><span class="pre">miopenDataType_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">reduceTensorCompType</span></span>, <a class="reference internal" href="#_CPPv422miopenNanPropagation_t" title="miopenNanPropagation_t"><span class="n"><span class="pre">miopenNanPropagation_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">reduceTensorNanOpt</span></span>, <a class="reference internal" href="#_CPPv427miopenReduceTensorIndices_t" title="miopenReduceTensorIndices_t"><span class="n"><span class="pre">miopenReduceTensorIndices_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">reduceTensorIndices</span></span>, <a class="reference internal" href="#_CPPv419miopenIndicesType_t" title="miopenIndicesType_t"><span class="n"><span class="pre">miopenIndicesType_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">reduceTensorIndicesType</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv431miopenSetReduceTensorDescriptor30miopenReduceTensorDescriptor_t22miopenReduceTensorOp_t16miopenDataType_t22miopenNanPropagation_t27miopenReduceTensorIndices_t19miopenIndicesType_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Initialize a ReduceTensor descriptor object. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">reduceTensorDesc</span></code>: Pointer to the ReduceTensor descriptor object (output) </li>
-<li><code class="docutils literal"><span class="pre">reduceTensorOp</span></code>: Enumerant specifying the operation used by ReduceTensor (input) </li>
-<li><code class="docutils literal"><span class="pre">reduceTensorCompType</span></code>: Enumerant specifying the data type used with ReduceTensor operation (input) </li>
-<li><code class="docutils literal"><span class="pre">reduceTensorNanOpt</span></code>: Enumerant specifying the Nan number propagation mode (input) </li>
-<li><code class="docutils literal"><span class="pre">reduceTensorIndices</span></code>: Enumerant specifying the indices modes used by ReduceTensor (input) </li>
-<li><code class="docutils literal"><span class="pre">reduceTensorIndicesType</span></code>: Enumerant specifying the data type of the indices (input) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reduceTensorDesc</strong> – Pointer to the ReduceTensor descriptor object (output) </p></li>
+<li><p><strong>reduceTensorOp</strong> – Enumerant specifying the operation used by ReduceTensor (input) </p></li>
+<li><p><strong>reduceTensorCompType</strong> – Enumerant specifying the data type used with ReduceTensor operation (input) </p></li>
+<li><p><strong>reduceTensorNanOpt</strong> – Enumerant specifying the Nan number propagation mode (input) </p></li>
+<li><p><strong>reduceTensorIndices</strong> – Enumerant specifying the indices modes used by ReduceTensor (input) </p></li>
+<li><p><strong>reduceTensorIndicesType</strong> – Enumerant specifying the data type of the indices (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopengetreducetensordescriptor">
 <h2>miopenGetReduceTensorDescriptor<a class="headerlink" href="#miopengetreducetensordescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv231miopenGetReduceTensorDescriptorK30miopenReduceTensorDescriptor_tP22miopenReduceTensorOp_tP16miopenDataType_tP22miopenNanPropagation_tP27miopenReduceTensorIndices_tP19miopenIndicesType_t">
-<span id="miopenGetReduceTensorDescriptor__miopenReduceTensorDescriptor_tC.miopenReduceTensorOp_tP.miopenDataType_tP.miopenNanPropagation_tP.miopenReduceTensorIndices_tP.miopenIndicesType_tP"></span><span class="target" id="group__TensorReduce_1gaec3f8ccbe2df478a5f8ade9ad7164227"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetReduceTensorDescriptor</code><span class="sig-paren">(</span><em class="property">const</em> miopenReduceTensorDescriptor_t <em>reduceTensorDesc</em>, <a class="reference internal" href="#_CPPv222miopenReduceTensorOp_t" title="miopenReduceTensorOp_t">miopenReduceTensorOp_t</a> *<em>reduceTensorOp</em>, <a class="reference internal" href="tensor.html#_CPPv216miopenDataType_t" title="miopenDataType_t">miopenDataType_t</a> *<em>reduceTensorCompType</em>, <a class="reference internal" href="#_CPPv222miopenNanPropagation_t" title="miopenNanPropagation_t">miopenNanPropagation_t</a> *<em>reduceTensorNanOpt</em>, <a class="reference internal" href="#_CPPv227miopenReduceTensorIndices_t" title="miopenReduceTensorIndices_t">miopenReduceTensorIndices_t</a> *<em>reduceTensorIndices</em>, <a class="reference internal" href="#_CPPv219miopenIndicesType_t" title="miopenIndicesType_t">miopenIndicesType_t</a> *<em>reduceTensorIndicesType</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv231miopenGetReduceTensorDescriptorK30miopenReduceTensorDescriptor_tP22miopenReduceTensorOp_tP16miopenDataType_tP22miopenNanPropagation_tP27miopenReduceTensorIndices_tP19miopenIndicesType_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv431miopenGetReduceTensorDescriptorK30miopenReduceTensorDescriptor_tP22miopenReduceTensorOp_tP16miopenDataType_tP22miopenNanPropagation_tP27miopenReduceTensorIndices_tP19miopenIndicesType_t">
+<span id="_CPPv331miopenGetReduceTensorDescriptorK30miopenReduceTensorDescriptor_tP22miopenReduceTensorOp_tP16miopenDataType_tP22miopenNanPropagation_tP27miopenReduceTensorIndices_tP19miopenIndicesType_t"></span><span id="_CPPv231miopenGetReduceTensorDescriptorK30miopenReduceTensorDescriptor_tP22miopenReduceTensorOp_tP16miopenDataType_tP22miopenNanPropagation_tP27miopenReduceTensorIndices_tP19miopenIndicesType_t"></span><span id="miopenGetReduceTensorDescriptor__miopenReduceTensorDescriptor_tC.miopenReduceTensorOp_tP.miopenDataType_tP.miopenNanPropagation_tP.miopenReduceTensorIndices_tP.miopenIndicesType_tP"></span><span class="target" id="group__TensorReduce_1gaec3f8ccbe2df478a5f8ade9ad7164227"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenGetReduceTensorDescriptor</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenReduceTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reduceTensorDesc</span></span>, <a class="reference internal" href="#_CPPv422miopenReduceTensorOp_t" title="miopenReduceTensorOp_t"><span class="n"><span class="pre">miopenReduceTensorOp_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">reduceTensorOp</span></span>, <a class="reference internal" href="tensor.html#_CPPv416miopenDataType_t" title="miopenDataType_t"><span class="n"><span class="pre">miopenDataType_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">reduceTensorCompType</span></span>, <a class="reference internal" href="#_CPPv422miopenNanPropagation_t" title="miopenNanPropagation_t"><span class="n"><span class="pre">miopenNanPropagation_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">reduceTensorNanOpt</span></span>, <a class="reference internal" href="#_CPPv427miopenReduceTensorIndices_t" title="miopenReduceTensorIndices_t"><span class="n"><span class="pre">miopenReduceTensorIndices_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">reduceTensorIndices</span></span>, <a class="reference internal" href="#_CPPv419miopenIndicesType_t" title="miopenIndicesType_t"><span class="n"><span class="pre">miopenIndicesType_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">reduceTensorIndicesType</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv431miopenGetReduceTensorDescriptorK30miopenReduceTensorDescriptor_tP22miopenReduceTensorOp_tP16miopenDataType_tP22miopenNanPropagation_tP27miopenReduceTensorIndices_tP19miopenIndicesType_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Query a ReduceTensor descriptor object. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">reduceTensorDesc</span></code>: Pointer to the ReduceTensor descriptor object (input) </li>
-<li><code class="docutils literal"><span class="pre">reduceTensorOp</span></code>: Pointer to enumerant specifying the operation used by ReduceTensor (output) </li>
-<li><code class="docutils literal"><span class="pre">reduceTensorCompType</span></code>: Pointer to enumerant specifying the data type used with ReduceTensor operation (output) </li>
-<li><code class="docutils literal"><span class="pre">reduceTensorNanOpt</span></code>: Pointer to enumerant specifying the Nan number propagation mode (output) </li>
-<li><code class="docutils literal"><span class="pre">reduceTensorIndices</span></code>: Pointer to enumerant specifying the indices modes used by ReduceTensor (output) </li>
-<li><code class="docutils literal"><span class="pre">reduceTensorIndicesType</span></code>: Pointer to enumerant specifying the data type of the indices (output) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reduceTensorDesc</strong> – Pointer to the ReduceTensor descriptor object (input) </p></li>
+<li><p><strong>reduceTensorOp</strong> – Pointer to enumerant specifying the operation used by ReduceTensor (output) </p></li>
+<li><p><strong>reduceTensorCompType</strong> – Pointer to enumerant specifying the data type used with ReduceTensor operation (output) </p></li>
+<li><p><strong>reduceTensorNanOpt</strong> – Pointer to enumerant specifying the Nan number propagation mode (output) </p></li>
+<li><p><strong>reduceTensorIndices</strong> – Pointer to enumerant specifying the indices modes used by ReduceTensor (output) </p></li>
+<li><p><strong>reduceTensorIndicesType</strong> – Pointer to enumerant specifying the data type of the indices (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopengetreductionindicessize">
 <h2>miopenGetReductionIndicesSize<a class="headerlink" href="#miopengetreductionindicessize" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv229miopenGetReductionIndicesSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t">
-<span id="miopenGetReductionIndicesSize__miopenHandle_t.miopenReduceTensorDescriptor_tC.miopenTensorDescriptor_tC.miopenTensorDescriptor_tC.sP"></span><span class="target" id="group__TensorReduce_1ga689e122cac7cf90f2c8bee3fbccfdc77"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetReductionIndicesSize</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenReduceTensorDescriptor_t <em>reduceTensorDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>aDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>cDesc</em>, size_t *<em>sizeInBytes</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv229miopenGetReductionIndicesSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv429miopenGetReductionIndicesSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t">
+<span id="_CPPv329miopenGetReductionIndicesSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t"></span><span id="_CPPv229miopenGetReductionIndicesSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t"></span><span id="miopenGetReductionIndicesSize__miopenHandle_t.miopenReduceTensorDescriptor_tC.miopenTensorDescriptor_tC.miopenTensorDescriptor_tC.sP"></span><span class="target" id="group__TensorReduce_1ga689e122cac7cf90f2c8bee3fbccfdc77"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenGetReductionIndicesSize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenReduceTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reduceTensorDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">aDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">cDesc</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">sizeInBytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv429miopenGetReductionIndicesSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Helper function to query the minimum index space size required by the ReduceTensor call. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen Handle (input) </li>
-<li><code class="docutils literal"><span class="pre">reduceTensorDesc</span></code>: Pointer to the ReduceTensor descriptor object (input) </li>
-<li><code class="docutils literal"><span class="pre">aDesc</span></code>: Pointer to the input tensor descriptor (input) </li>
-<li><code class="docutils literal"><span class="pre">cDesc</span></code>: Pointer to the output tensor descriptor (input) </li>
-<li><code class="docutils literal"><span class="pre">sizeInBytes</span></code>: Pointer to data to return the minimum index space size </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen Handle (input) </p></li>
+<li><p><strong>reduceTensorDesc</strong> – Pointer to the ReduceTensor descriptor object (input) </p></li>
+<li><p><strong>aDesc</strong> – Pointer to the input tensor descriptor (input) </p></li>
+<li><p><strong>cDesc</strong> – Pointer to the output tensor descriptor (input) </p></li>
+<li><p><strong>sizeInBytes</strong> – Pointer to data to return the minimum index space size </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopengetreductionworkspacesize">
 <h2>miopenGetReductionWorkspaceSize<a class="headerlink" href="#miopengetreductionworkspacesize" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv231miopenGetReductionWorkspaceSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t">
-<span id="miopenGetReductionWorkspaceSize__miopenHandle_t.miopenReduceTensorDescriptor_tC.miopenTensorDescriptor_tC.miopenTensorDescriptor_tC.sP"></span><span class="target" id="group__TensorReduce_1gac3772f25bd43c83a21288950c4a70cdd"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetReductionWorkspaceSize</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenReduceTensorDescriptor_t <em>reduceTensorDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>aDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>cDesc</em>, size_t *<em>sizeInBytes</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv231miopenGetReductionWorkspaceSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv431miopenGetReductionWorkspaceSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t">
+<span id="_CPPv331miopenGetReductionWorkspaceSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t"></span><span id="_CPPv231miopenGetReductionWorkspaceSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t"></span><span id="miopenGetReductionWorkspaceSize__miopenHandle_t.miopenReduceTensorDescriptor_tC.miopenTensorDescriptor_tC.miopenTensorDescriptor_tC.sP"></span><span class="target" id="group__TensorReduce_1gac3772f25bd43c83a21288950c4a70cdd"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenGetReductionWorkspaceSize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenReduceTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reduceTensorDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">aDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">cDesc</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">sizeInBytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv431miopenGetReductionWorkspaceSize14miopenHandle_tK30miopenReduceTensorDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Helper function to query the minimum workspace size required by the ReduceTensor call. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen Handle (input) </li>
-<li><code class="docutils literal"><span class="pre">reduceTensorDesc</span></code>: Pointer to the ReduceTensor descriptor object (input) </li>
-<li><code class="docutils literal"><span class="pre">aDesc</span></code>: Pointer to the input tensor descriptor (input) </li>
-<li><code class="docutils literal"><span class="pre">cDesc</span></code>: Pointer to the output tensor descriptor (input) </li>
-<li><code class="docutils literal"><span class="pre">sizeInBytes</span></code>: Pointer to data to return the minimum workspace size </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen Handle (input) </p></li>
+<li><p><strong>reduceTensorDesc</strong> – Pointer to the ReduceTensor descriptor object (input) </p></li>
+<li><p><strong>aDesc</strong> – Pointer to the input tensor descriptor (input) </p></li>
+<li><p><strong>cDesc</strong> – Pointer to the output tensor descriptor (input) </p></li>
+<li><p><strong>sizeInBytes</strong> – Pointer to data to return the minimum workspace size </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenreducetensor">
 <h2>miopenReduceTensor<a class="headerlink" href="#miopenreducetensor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv218miopenReduceTensor14miopenHandle_tK30miopenReduceTensorDescriptor_tPv6size_tPv6size_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv">
-<span id="miopenReduceTensor__miopenHandle_t.miopenReduceTensorDescriptor_tC.voidP.s.voidP.s.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP"></span><span class="target" id="group__TensorReduce_1gabd5cb201dfdadc03c539262ce982231e"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenReduceTensor</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenReduceTensorDescriptor_t <em>reduceTensorDesc</em>, void *<em>indices</em>, size_t <em>indicesSizeInBytes</em>, void *<em>workspace</em>, size_t <em>workspaceSizeInBytes</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>aDesc</em>, <em class="property">const</em> void *<em>A</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>cDesc</em>, void *<em>C</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv218miopenReduceTensor14miopenHandle_tK30miopenReduceTensorDescriptor_tPv6size_tPv6size_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv418miopenReduceTensor14miopenHandle_tK30miopenReduceTensorDescriptor_tPv6size_tPv6size_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv">
+<span id="_CPPv318miopenReduceTensor14miopenHandle_tK30miopenReduceTensorDescriptor_tPv6size_tPv6size_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv"></span><span id="_CPPv218miopenReduceTensor14miopenHandle_tK30miopenReduceTensorDescriptor_tPv6size_tPv6size_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv"></span><span id="miopenReduceTensor__miopenHandle_t.miopenReduceTensorDescriptor_tC.voidP.s.voidP.s.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP"></span><span class="target" id="group__TensorReduce_1gabd5cb201dfdadc03c539262ce982231e"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenReduceTensor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenReduceTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reduceTensorDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">indices</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">indicesSizeInBytes</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">workspace</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">workspaceSizeInBytes</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">aDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">A</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">beta</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">cDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">C</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv418miopenReduceTensor14miopenHandle_tK30miopenReduceTensorDescriptor_tPv6size_tPv6size_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>TensorReduce function doing reduction on tensor A by implementing C = alpha * reduceOp(A) </p>
 <p><ul class="simple">
-<li>beta * C</li>
+<li><p>beta * C</p></li>
 </ul>
 </p>
 <p>The length of each dimension of output tensor C must match the length of the corresponding dimension of input tensor A or must be equal to 1. The dimensions with length equal to 1 indicate the dimensions of A to be reduced.</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen Handle (input) </li>
-<li><code class="docutils literal"><span class="pre">reduceTensorDesc</span></code>: Pointer to the ReduceTensor descriptor object (input) </li>
-<li><code class="docutils literal"><span class="pre">indices</span></code>: Address of the allocated indices data space (output) </li>
-<li><code class="docutils literal"><span class="pre">indicesSizeInBytes</span></code>: Size in bytes of the allocated indices data space (input) </li>
-<li><code class="docutils literal"><span class="pre">workspace</span></code>: Address of the allocated workspace data (input) </li>
-<li><code class="docutils literal"><span class="pre">workspaceSizeInBytes</span></code>: Size in bytes of the allocated workspace data (input) </li>
-<li><code class="docutils literal"><span class="pre">alpha</span></code>: Pointer to scale factor for data in input tensor A (input) </li>
-<li><code class="docutils literal"><span class="pre">aDesc</span></code>: Pointer to the tensor descriptor for input tensor A (input) </li>
-<li><code class="docutils literal"><span class="pre">A</span></code>: Pointer to the data of input tensor A (input) </li>
-<li><code class="docutils literal"><span class="pre">beta</span></code>: Pointer to scale factor for data in output tensor C (input) </li>
-<li><code class="docutils literal"><span class="pre">cDesc</span></code>: Pointer to the tensor descriptor for output tensor C (input) </li>
-<li><code class="docutils literal"><span class="pre">C</span></code>: Pointer to the data of output tensor C (output) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen Handle (input) </p></li>
+<li><p><strong>reduceTensorDesc</strong> – Pointer to the ReduceTensor descriptor object (input) </p></li>
+<li><p><strong>indices</strong> – Address of the allocated indices data space (output) </p></li>
+<li><p><strong>indicesSizeInBytes</strong> – Size in bytes of the allocated indices data space (input) </p></li>
+<li><p><strong>workspace</strong> – Address of the allocated workspace data (input) </p></li>
+<li><p><strong>workspaceSizeInBytes</strong> – Size in bytes of the allocated workspace data (input) </p></li>
+<li><p><strong>alpha</strong> – Pointer to scale factor for data in input tensor A (input) </p></li>
+<li><p><strong>aDesc</strong> – Pointer to the tensor descriptor for input tensor A (input) </p></li>
+<li><p><strong>A</strong> – Pointer to the data of input tensor A (input) </p></li>
+<li><p><strong>beta</strong> – Pointer to scale factor for data in output tensor C (input) </p></li>
+<li><p><strong>cDesc</strong> – Pointer to the tensor descriptor for output tensor C (input) </p></li>
+<li><p><strong>C</strong> – Pointer to the data of output tensor C (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
@@ -839,27 +831,28 @@
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-      
-        <a href="dropout.html" class="btn btn-neutral" title="Dropout Layer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="dropout.html" class="btn btn-neutral float-left" title="Dropout Layer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -868,34 +861,16 @@
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

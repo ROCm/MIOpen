@@ -1,50 +1,58 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Build and Install Instructions &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Building MIOpen for Embedded Systems" href="embed.html" />
     <link rel="prev" title="Citing MIOpen" href="citation.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +66,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -75,6 +83,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +91,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -166,12 +177,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
@@ -454,6 +459,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,18 +494,20 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
       <li>Build and Install Instructions</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/install.md.txt" rel="nofollow"> View page source</a>
           
         
@@ -513,255 +521,261 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="build-and-install-instructions">
-<span id="build-and-install-instructions"></span><h1>Build and Install Instructions<a class="headerlink" href="#build-and-install-instructions" title="Permalink to this headline">¶</a></h1>
-<p>AMD's library for high performance machine learning primitives.
-Sources and binaries can be found at <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen">MIOpen's GitHub site</a>.
+  <div class="tex2jax_ignore mathjax_ignore section" id="build-and-install-instructions">
+<h1>Build and Install Instructions<a class="headerlink" href="#build-and-install-instructions" title="Permalink to this headline">¶</a></h1>
+<p>AMD’s library for high performance machine learning primitives.
+Sources and binaries can be found at <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen">MIOpen’s GitHub site</a>.
 The latest released documentation can be read online <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/index.html">here</a>.</p>
 <p>MIOpen supports two programming models -</p>
 <ol class="simple">
-<li>OpenCL</li>
-<li><a class="reference external" href="https://github.com/ROCm-Developer-Tools/HIP">HIP</a></li>
+<li><p>OpenCL</p></li>
+<li><p><a class="reference external" href="https://github.com/ROCm-Developer-Tools/HIP">HIP</a></p></li>
 </ol>
 <div class="section" id="prerequisites">
-<span id="prerequisites"></span><h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>A ROCm enabled platform, more info <a class="reference external" href="https://rocm.github.io/install.html">here</a></li>
-<li>Base software stack, which includes<ul>
-<li>OpenCL - OpenCL libraries and header files</li>
-<li>HIP -<ul>
-<li>HIP and HCC libraries and header files</li>
-<li><a class="reference external" href="https://github.com/RadeonOpenCompute/clang-ocl">clang-ocl</a> -- <strong>required</strong></li>
+<li><p>A ROCm enabled platform, more info <a class="reference external" href="https://rocm.github.io/install.html">here</a></p></li>
+<li><p>Base software stack, which includes</p>
+<ul>
+<li><p>OpenCL - OpenCL libraries and header files</p></li>
+<li><p>HIP -</p>
+<ul>
+<li><p>HIP and HCC libraries and header files</p></li>
+<li><p><a class="reference external" href="https://github.com/RadeonOpenCompute/clang-ocl">clang-ocl</a> – <strong>required</strong></p></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpenGEMM">MIOpenGEMM</a> to enable various functionalities including transposed and dilated convolutions. This is optional on the HIP backend. Users can enable this library using the cmake configuration flag <code class="docutils literal"><span class="pre">-DMIOPEN_USE_MIOPENGEMM=On</span></code>.</li>
-<li>ROCm cmake modules can be installed from <a class="reference external" href="https://github.com/RadeonOpenCompute/rocm-cmake">here</a></li>
-<li><a class="reference external" href="http://half.sourceforge.net/">Half</a> - IEEE 754-based half-precision floating point library</li>
-<li><a class="reference external" href="http://www.boost.org/">Boost</a> at version 1.72 (other versions are not supported)<ul>
-<li>MIOpen uses <code class="docutils literal"><span class="pre">boost-system</span></code> and <code class="docutils literal"><span class="pre">boost-filesystem</span></code> packages to enable persistent <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html">kernel cache</a></li>
+<li><p><a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpenGEMM">MIOpenGEMM</a> to enable various functionalities including transposed and dilated convolutions. This is optional on the HIP backend. Users can enable this library using the cmake configuration flag <code class="docutils literal notranslate"><span class="pre">-DMIOPEN_USE_MIOPENGEMM=On</span></code>.</p></li>
+<li><p>ROCm cmake modules can be installed from <a class="reference external" href="https://github.com/RadeonOpenCompute/rocm-cmake">here</a></p></li>
+<li><p><a class="reference external" href="http://half.sourceforge.net/">Half</a> - IEEE 754-based half-precision floating point library</p></li>
+<li><p><a class="reference external" href="http://www.boost.org/">Boost</a> at version 1.72 (other versions are not supported)</p>
+<ul>
+<li><p>MIOpen uses <code class="docutils literal notranslate"><span class="pre">boost-system</span></code> and <code class="docutils literal notranslate"><span class="pre">boost-filesystem</span></code> packages to enable persistent <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html">kernel cache</a></p></li>
 </ul>
 </li>
-<li><a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpenTensile">MIOpenTENSILE</a> Users can enable this library using the cmake configuration flag <code class="docutils literal"><span class="pre">-DMIOPEN_USE_MIOPENTENSILE=On</span></code>.</li>
-<li><a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS">rocBlas</a><ul>
-<li>Minimum version branch for pre-ROCm 3.5 <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10">master-rocm-2.10</a></li>
-<li>Minimum version branch for post-ROCm 3.5 <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS/releases/tag/rocm-3.5.0">master-rocm-3.5</a></li>
+<li><p><a class="reference external" href="https://sqlite.org/index.html">SQLite3</a> for reading and writing performance database</p></li>
+<li><p><a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpenTensile">MIOpenTENSILE</a> Users can enable this library using the cmake configuration flag <code class="docutils literal notranslate"><span class="pre">-DMIOPEN_USE_MIOPENTENSILE=On</span></code>.</p></li>
+<li><p><a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS">rocBlas</a></p>
+<ul>
+<li><p>Minimum version branch for pre-ROCm 3.5 <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10">master-rocm-2.10</a></p></li>
+<li><p>Minimum version branch for post-ROCm 3.5 <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS/releases/tag/rocm-3.5.0">master-rocm-3.5</a></p></li>
 </ul>
 </li>
 </ul>
 </div>
 <div class="section" id="installing-miopen-with-pre-built-packages">
-<span id="installing-miopen-with-pre-built-packages"></span><h2>Installing MIOpen with pre-built packages<a class="headerlink" href="#installing-miopen-with-pre-built-packages" title="Permalink to this headline">¶</a></h2>
-<p>MIOpen can be installed on Ubuntu using <code class="docutils literal"><span class="pre">apt-get</span></code>.</p>
-<p>For OpenCL backend: <code class="docutils literal"><span class="pre">apt-get</span> <span class="pre">install</span> <span class="pre">miopen-opencl</span></code></p>
-<p>For HIP backend: <code class="docutils literal"><span class="pre">apt-get</span> <span class="pre">install</span> <span class="pre">miopen-hip</span></code></p>
+<h2>Installing MIOpen with pre-built packages<a class="headerlink" href="#installing-miopen-with-pre-built-packages" title="Permalink to this headline">¶</a></h2>
+<p>MIOpen can be installed on Ubuntu using <code class="docutils literal notranslate"><span class="pre">apt-get</span></code>.</p>
+<p>For OpenCL backend: <code class="docutils literal notranslate"><span class="pre">apt-get</span> <span class="pre">install</span> <span class="pre">miopen-opencl</span></code></p>
+<p>For HIP backend: <code class="docutils literal notranslate"><span class="pre">apt-get</span> <span class="pre">install</span> <span class="pre">miopen-hip</span></code></p>
 <p>Currently both the backends cannot be installed on the same system simultaneously. If a different backend other than what currently exists on the system is desired, please uninstall the existing backend completely and then install the new backend.</p>
 </div>
 <div class="section" id="installing-miopen-kernels-package">
-<span id="installing-miopen-kernels-package"></span><h2>Installing MIOpen kernels package<a class="headerlink" href="#installing-miopen-kernels-package" title="Permalink to this headline">¶</a></h2>
+<h2>Installing MIOpen kernels package<a class="headerlink" href="#installing-miopen-kernels-package" title="Permalink to this headline">¶</a></h2>
 <p>MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. These precompiled kernels comprise a select set of popular input configurations and will expand in future release to contain additional coverage.</p>
 <p>To install the kernels package for your GPU architecture, use the following command:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">miopenkernels</span><span class="o">-&lt;</span><span class="n">arch</span><span class="o">&gt;-&lt;</span><span class="n">num</span> <span class="n">cu</span><span class="o">&gt;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">miopenkernels</span><span class="o">-&lt;</span><span class="n">arch</span><span class="o">&gt;-&lt;</span><span class="n">num</span> <span class="n">cu</span><span class="o">&gt;</span>
 </pre></div>
 </div>
-<p>Where <code class="docutils literal"><span class="pre">&lt;arch&gt;</span></code> is the GPU architecture ( for example, <code class="docutils literal"><span class="pre">gfx900</span></code>, <code class="docutils literal"><span class="pre">gfx906</span></code> ) and <code class="docutils literal"><span class="pre">&lt;num</span> <span class="pre">cu&gt;</span></code> is the number of CUs available in the GPU (for example 56 or 64 etc).</p>
+<p>Where <code class="docutils literal notranslate"><span class="pre">&lt;arch&gt;</span></code> is the GPU architecture ( for example, <code class="docutils literal notranslate"><span class="pre">gfx900</span></code>, <code class="docutils literal notranslate"><span class="pre">gfx906</span></code> ) and <code class="docutils literal notranslate"><span class="pre">&lt;num</span> <span class="pre">cu&gt;</span></code> is the number of CUs available in the GPU (for example 56 or 64 etc).</p>
 <p>Not installing these packages would not impact the functioning of MIOpen, since MIOpen will compile these kernels on the target machine once the kernel is run. However, the compilation step may significantly increase the startup time for different operations.</p>
-<p>The script <code class="docutils literal"><span class="pre">utils/install_precompiled_kernels.sh</span></code> provided as part of MIOpen automates the above process, it queries the user machine for the GPU architecture and then installs the appropriate package. It may be invoked as:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">utils</span><span class="o">/</span><span class="n">install_precompiled_kernels</span><span class="o">.</span><span class="n">sh</span>
+<p>The script <code class="docutils literal notranslate"><span class="pre">utils/install_precompiled_kernels.sh</span></code> provided as part of MIOpen automates the above process, it queries the user machine for the GPU architecture and then installs the appropriate package. It may be invoked as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">utils</span><span class="o">/</span><span class="n">install_precompiled_kernels</span><span class="o">.</span><span class="n">sh</span>
 </pre></div>
 </div>
 <p>The above script depends on the <strong>rocminfo</strong> package to query the GPU architecture.</p>
 </div>
 <div class="section" id="installing-the-dependencies">
-<span id="installing-the-dependencies"></span><h2>Installing the dependencies<a class="headerlink" href="#installing-the-dependencies" title="Permalink to this headline">¶</a></h2>
-<p>The dependencies can be installed with the <code class="docutils literal"><span class="pre">install_deps.cmake</span></code>, script: <code class="docutils literal"><span class="pre">cmake</span> <span class="pre">-P</span> <span class="pre">install_deps.cmake</span></code></p>
-<p>This will install by default to <code class="docutils literal"><span class="pre">/usr/local</span></code> but it can be installed in another location with <code class="docutils literal"><span class="pre">--prefix</span></code> argument:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">P</span> <span class="n">install_deps</span><span class="o">.</span><span class="n">cmake</span> <span class="o">--</span><span class="n">prefix</span> <span class="o">/</span><span class="n">some</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">dir</span>
+<h2>Installing the dependencies<a class="headerlink" href="#installing-the-dependencies" title="Permalink to this headline">¶</a></h2>
+<p>The dependencies can be installed with the <code class="docutils literal notranslate"><span class="pre">install_deps.cmake</span></code>, script: <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">-P</span> <span class="pre">install_deps.cmake</span></code></p>
+<p>This will install by default to <code class="docutils literal notranslate"><span class="pre">/usr/local</span></code> but it can be installed in another location with <code class="docutils literal notranslate"><span class="pre">--prefix</span></code> argument:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">P</span> <span class="n">install_deps</span><span class="o">.</span><span class="n">cmake</span> <span class="o">--</span><span class="n">prefix</span> <span class="o">/</span><span class="n">some</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">dir</span>
 </pre></div>
 </div>
-<p>This prefix can used to specify the dependency path during the configuration phase using the <code class="docutils literal"><span class="pre">CMAKE_PREFIX_PATH</span></code>.</p>
-<p>MIOpen's HIP backend uses <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS">rocBlas</a> by default. Users can install rocBlas minimum release by using <code class="docutils literal"><span class="pre">apt-get</span> <span class="pre">install</span> <span class="pre">rocblas</span></code>. To disable using rocBlas set the configuration flag <code class="docutils literal"><span class="pre">-DMIOPEN_USE_ROCBLAS=Off</span></code>. rocBlas is <em>not</em> available for the OpenCL backend.</p>
+<p>This prefix can used to specify the dependency path during the configuration phase using the <code class="docutils literal notranslate"><span class="pre">CMAKE_PREFIX_PATH</span></code>.</p>
+<p>MIOpen’s HIP backend uses <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS">rocBlas</a> by default. Users can install rocBlas minimum release by using <code class="docutils literal notranslate"><span class="pre">apt-get</span> <span class="pre">install</span> <span class="pre">rocblas</span></code>. To disable using rocBlas set the configuration flag <code class="docutils literal notranslate"><span class="pre">-DMIOPEN_USE_ROCBLAS=Off</span></code>. rocBlas is <em>not</em> available for the OpenCL backend.</p>
 </div>
 <div class="section" id="installing-minimum-dependencies-in-rocm-environment">
-<span id="installing-minimum-dependencies-in-rocm-environment"></span><h2>Installing minimum dependencies in ROCm environment<a class="headerlink" href="#installing-minimum-dependencies-in-rocm-environment" title="Permalink to this headline">¶</a></h2>
-<p>Users who are working in a fully installed and up to date ROCm environment may not wish to additionally install rocm-cmake, clang-ocl, MIOpenGEMM, MIOpenTensile or rocBLAS. This can be done by simply inserting the command <code class="docutils literal"><span class="pre">--minimum</span></code> into the cmake command as shown below:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">P</span> <span class="n">install_deps</span><span class="o">.</span><span class="n">cmake</span> <span class="o">--</span><span class="n">minimum</span> <span class="o">--</span><span class="n">prefix</span> <span class="o">/</span><span class="n">some</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">dir</span>
+<h2>Installing minimum dependencies in ROCm environment<a class="headerlink" href="#installing-minimum-dependencies-in-rocm-environment" title="Permalink to this headline">¶</a></h2>
+<p>Users who are working in a fully installed and up to date ROCm environment may not wish to additionally install rocm-cmake, clang-ocl, MIOpenGEMM, MIOpenTensile or rocBLAS. This can be done by simply inserting the command <code class="docutils literal notranslate"><span class="pre">--minimum</span></code> into the cmake command as shown below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">P</span> <span class="n">install_deps</span><span class="o">.</span><span class="n">cmake</span> <span class="o">--</span><span class="n">minimum</span> <span class="o">--</span><span class="n">prefix</span> <span class="o">/</span><span class="n">some</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">dir</span>
 </pre></div>
 </div>
 <p>This will build the Boost and half libraries.</p>
 </div>
 <div class="section" id="building-miopen-from-source">
-<span id="building-miopen-from-source"></span><h2>Building MIOpen from source<a class="headerlink" href="#building-miopen-from-source" title="Permalink to this headline">¶</a></h2>
+<h2>Building MIOpen from source<a class="headerlink" href="#building-miopen-from-source" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="configuring-with-cmake">
-<span id="configuring-with-cmake"></span><h3>Configuring with cmake<a class="headerlink" href="#configuring-with-cmake" title="Permalink to this headline">¶</a></h3>
+<h3>Configuring with cmake<a class="headerlink" href="#configuring-with-cmake" title="Permalink to this headline">¶</a></h3>
 <p>First create a build directory:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">build</span><span class="p">;</span> <span class="n">cd</span> <span class="n">build</span><span class="p">;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">build</span><span class="p">;</span> <span class="n">cd</span> <span class="n">build</span><span class="p">;</span>
 </pre></div>
 </div>
-<p>Next configure cmake. The preferred backend for MIOpen can be set using the <code class="docutils literal"><span class="pre">-DMIOPEN_BACKEND</span></code> cmake variable.</p>
+<p>Next configure cmake. The preferred backend for MIOpen can be set using the <code class="docutils literal notranslate"><span class="pre">-DMIOPEN_BACKEND</span></code> cmake variable.</p>
 </div>
 <div class="section" id="for-opencl-run">
-<span id="for-opencl-run"></span><h3>For OpenCL, run:<a class="headerlink" href="#for-opencl-run" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">OpenCL</span> <span class="o">..</span>
+<h3>For OpenCL, run:<a class="headerlink" href="#for-opencl-run" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">OpenCL</span> <span class="o">..</span>
 </pre></div>
 </div>
 <p>The above assumes that OpenCL is installed in one of the standard locations. If not, then manually set these cmake variables:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">OpenCL</span> <span class="o">-</span><span class="n">DMIOPEN_HIP_COMPILER</span><span class="o">=&lt;</span><span class="n">hip</span><span class="o">-</span><span class="n">compiler</span><span class="o">-</span><span class="n">path</span><span class="o">&gt;</span> <span class="o">-</span><span class="n">DOPENCL_LIBRARIES</span><span class="o">=&lt;</span><span class="n">opencl</span><span class="o">-</span><span class="n">library</span><span class="o">-</span><span class="n">path</span><span class="o">&gt;</span> <span class="o">-</span><span class="n">DOPENCL_INCLUDE_DIRS</span><span class="o">=&lt;</span><span class="n">opencl</span><span class="o">-</span><span class="n">headers</span><span class="o">-</span><span class="n">path</span><span class="o">&gt;</span> <span class="o">..</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">OpenCL</span> <span class="o">-</span><span class="n">DMIOPEN_HIP_COMPILER</span><span class="o">=&lt;</span><span class="n">hip</span><span class="o">-</span><span class="n">compiler</span><span class="o">-</span><span class="n">path</span><span class="o">&gt;</span> <span class="o">-</span><span class="n">DOPENCL_LIBRARIES</span><span class="o">=&lt;</span><span class="n">opencl</span><span class="o">-</span><span class="n">library</span><span class="o">-</span><span class="n">path</span><span class="o">&gt;</span> <span class="o">-</span><span class="n">DOPENCL_INCLUDE_DIRS</span><span class="o">=&lt;</span><span class="n">opencl</span><span class="o">-</span><span class="n">headers</span><span class="o">-</span><span class="n">path</span><span class="o">&gt;</span> <span class="o">..</span>
 </pre></div>
 </div>
 <p>And an example setting the dependency path for an envirnment in ROCm 3.5 and later:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">OpenCL</span> <span class="o">-</span><span class="n">DMIOPEN_HIP_COMPILER</span><span class="o">=/</span><span class="n">opt</span><span class="o">/</span><span class="n">rocm</span><span class="o">/</span><span class="n">llvm</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">clang</span><span class="o">++</span> <span class="o">-</span><span class="n">DCMAKE_PREFIX_PATH</span><span class="o">=/</span><span class="n">some</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">dir</span> <span class="o">..</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">OpenCL</span> <span class="o">-</span><span class="n">DMIOPEN_HIP_COMPILER</span><span class="o">=/</span><span class="n">opt</span><span class="o">/</span><span class="n">rocm</span><span class="o">/</span><span class="n">llvm</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">clang</span><span class="o">++</span> <span class="o">-</span><span class="n">DCMAKE_PREFIX_PATH</span><span class="o">=/</span><span class="n">some</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">dir</span> <span class="o">..</span>
 </pre></div>
 </div>
 <p>For ROCm 3.3 and earlier:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">OpenCL</span> <span class="o">-</span><span class="n">DCMAKE_PREFIX_PATH</span><span class="o">=/</span><span class="n">some</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">dir</span> <span class="o">..</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">OpenCL</span> <span class="o">-</span><span class="n">DCMAKE_PREFIX_PATH</span><span class="o">=/</span><span class="n">some</span><span class="o">/</span><span class="n">local</span><span class="o">/</span><span class="nb">dir</span> <span class="o">..</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="for-the-hip-backend-on-rocm-3-3-and-earlier-run">
-<span id="for-the-hip-backend-on-rocm-3-3-and-earlier-run"></span><h3>For the HIP backend on ROCm 3.3 and earlier, run:<a class="headerlink" href="#for-the-hip-backend-on-rocm-3-3-and-earlier-run" title="Permalink to this headline">¶</a></h3>
-<p>Set the C++ compiler to <code class="docutils literal"><span class="pre">hcc</span></code>.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">CXX</span><span class="o">=&lt;</span><span class="n">location</span><span class="o">-</span><span class="n">of</span><span class="o">-</span><span class="n">hcc</span><span class="o">-</span><span class="n">compiler</span><span class="o">&gt;</span>
+<h3>For the HIP backend on ROCm 3.3 and earlier, run:<a class="headerlink" href="#for-the-hip-backend-on-rocm-3-3-and-earlier-run" title="Permalink to this headline">¶</a></h3>
+<p>Set the C++ compiler to <code class="docutils literal notranslate"><span class="pre">hcc</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">CXX</span><span class="o">=&lt;</span><span class="n">location</span><span class="o">-</span><span class="n">of</span><span class="o">-</span><span class="n">hcc</span><span class="o">-</span><span class="n">compiler</span><span class="o">&gt;</span>
 <span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">HIP</span> <span class="o">-</span><span class="n">DCMAKE_PREFIX_PATH</span><span class="o">=</span><span class="s2">&quot;&lt;hip-installed-path&gt;;&lt;hcc-installed-path&gt;;&lt;clang-ocl-installed-path&gt;;&lt;miopen-dependency-path&gt;&quot;</span> <span class="o">..</span>
 </pre></div>
 </div>
 <p>An example cmake step can be:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">CXX</span><span class="o">=/</span><span class="n">opt</span><span class="o">/</span><span class="n">rocm</span><span class="o">/</span><span class="n">hcc</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">hcc</span> <span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">HIP</span> <span class="o">-</span><span class="n">DCMAKE_PREFIX_PATH</span><span class="o">=</span><span class="s2">&quot;/opt/rocm/hcc;/opt/rocm/hip;/some/local/dir&quot;</span> <span class="o">..</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CXX</span><span class="o">=/</span><span class="n">opt</span><span class="o">/</span><span class="n">rocm</span><span class="o">/</span><span class="n">hcc</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">hcc</span> <span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">HIP</span> <span class="o">-</span><span class="n">DCMAKE_PREFIX_PATH</span><span class="o">=</span><span class="s2">&quot;/opt/rocm/hcc;/opt/rocm/hip;/some/local/dir&quot;</span> <span class="o">..</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="for-the-hip-backend-on-rocm-3-5-and-later-run">
-<span id="for-the-hip-backend-on-rocm-3-5-and-later-run"></span><h3>For the HIP backend on ROCm 3.5 and later, run:<a class="headerlink" href="#for-the-hip-backend-on-rocm-3-5-and-later-run" title="Permalink to this headline">¶</a></h3>
-<p>Set the C++ compiler to <code class="docutils literal"><span class="pre">clang++</span></code>.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">CXX</span><span class="o">=&lt;</span><span class="n">location</span><span class="o">-</span><span class="n">of</span><span class="o">-</span><span class="n">clang</span><span class="o">++-</span><span class="n">compiler</span><span class="o">&gt;</span>
+<h3>For the HIP backend on ROCm 3.5 and later, run:<a class="headerlink" href="#for-the-hip-backend-on-rocm-3-5-and-later-run" title="Permalink to this headline">¶</a></h3>
+<p>Set the C++ compiler to <code class="docutils literal notranslate"><span class="pre">clang++</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">export</span> <span class="n">CXX</span><span class="o">=&lt;</span><span class="n">location</span><span class="o">-</span><span class="n">of</span><span class="o">-</span><span class="n">clang</span><span class="o">++-</span><span class="n">compiler</span><span class="o">&gt;</span>
 <span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">HIP</span> <span class="o">-</span><span class="n">DCMAKE_PREFIX_PATH</span><span class="o">=</span><span class="s2">&quot;&lt;hip-installed-path&gt;;&lt;rocm-installed-path&gt;;&lt;miopen-dependency-path&gt;&quot;</span> <span class="o">..</span>
 </pre></div>
 </div>
 <p>An example cmake step can be:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">CXX</span><span class="o">=/</span><span class="n">opt</span><span class="o">/</span><span class="n">rocm</span><span class="o">/</span><span class="n">llvm</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">clang</span><span class="o">++</span> <span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">HIP</span> <span class="o">-</span><span class="n">DCMAKE_PREFIX_PATH</span><span class="o">=</span><span class="s2">&quot;/some/local/dir&quot;</span> <span class="o">..</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CXX</span><span class="o">=/</span><span class="n">opt</span><span class="o">/</span><span class="n">rocm</span><span class="o">/</span><span class="n">llvm</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">clang</span><span class="o">++</span> <span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">HIP</span> <span class="o">-</span><span class="n">DCMAKE_PREFIX_PATH</span><span class="o">=</span><span class="s2">&quot;/some/local/dir&quot;</span> <span class="o">..</span>
 </pre></div>
 </div>
-<p>Note: When specifying the path for the <code class="docutils literal"><span class="pre">CMAKE_PREFIX_PATH</span></code> variable, <strong>do not</strong> use the <code class="docutils literal"><span class="pre">~</span></code> shorthand for the user home directory.</p>
+<p>Note: When specifying the path for the <code class="docutils literal notranslate"><span class="pre">CMAKE_PREFIX_PATH</span></code> variable, <strong>do not</strong> use the <code class="docutils literal notranslate"><span class="pre">~</span></code> shorthand for the user home directory.</p>
 </div>
 <div class="section" id="setting-up-locations">
-<span id="setting-up-locations"></span><h3>Setting Up Locations<a class="headerlink" href="#setting-up-locations" title="Permalink to this headline">¶</a></h3>
-<p>By default the install location is set to '/opt/rocm', this can be set by using <code class="docutils literal"><span class="pre">CMAKE_INSTALL_PREFIX</span></code>:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">OpenCL</span> <span class="o">-</span><span class="n">DCMAKE_INSTALL_PREFIX</span><span class="o">=&lt;</span><span class="n">miopen</span><span class="o">-</span><span class="n">installed</span><span class="o">-</span><span class="n">path</span><span class="o">&gt;</span> <span class="o">..</span>
+<h3>Setting Up Locations<a class="headerlink" href="#setting-up-locations" title="Permalink to this headline">¶</a></h3>
+<p>By default the install location is set to ‘/opt/rocm’, this can be set by using <code class="docutils literal notranslate"><span class="pre">CMAKE_INSTALL_PREFIX</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">OpenCL</span> <span class="o">-</span><span class="n">DCMAKE_INSTALL_PREFIX</span><span class="o">=&lt;</span><span class="n">miopen</span><span class="o">-</span><span class="n">installed</span><span class="o">-</span><span class="n">path</span><span class="o">&gt;</span> <span class="o">..</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="system-performance-database-and-user-database">
-<span id="system-performance-database-and-user-database"></span><h3>System Performance Database and User Database<a class="headerlink" href="#system-performance-database-and-user-database" title="Permalink to this headline">¶</a></h3>
-<p>The default path to the System PerfDb is <code class="docutils literal"><span class="pre">miopen/share/miopen/db/</span></code> within install location. The default path to the User PerfDb is <code class="docutils literal"><span class="pre">~/.config/miopen/</span></code>. For development purposes, setting <code class="docutils literal"><span class="pre">BUILD_DEV</span></code> will change default path to both database files to the source directory:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">OpenCL</span> <span class="o">-</span><span class="n">DBUILD_DEV</span><span class="o">=</span><span class="n">On</span> <span class="o">..</span>
+<h3>System Performance Database and User Database<a class="headerlink" href="#system-performance-database-and-user-database" title="Permalink to this headline">¶</a></h3>
+<p>The default path to the System PerfDb is <code class="docutils literal notranslate"><span class="pre">miopen/share/miopen/db/</span></code> within install location. The default path to the User PerfDb is <code class="docutils literal notranslate"><span class="pre">~/.config/miopen/</span></code>. For development purposes, setting <code class="docutils literal notranslate"><span class="pre">BUILD_DEV</span></code> will change default path to both database files to the source directory:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DMIOPEN_BACKEND</span><span class="o">=</span><span class="n">OpenCL</span> <span class="o">-</span><span class="n">DBUILD_DEV</span><span class="o">=</span><span class="n">On</span> <span class="o">..</span>
 </pre></div>
 </div>
-<p>Database paths can be explicitly customized by means of <code class="docutils literal"><span class="pre">MIOPEN_SYSTEM_DB_PATH</span></code> (System PerfDb) and <code class="docutils literal"><span class="pre">MIOPEN_USER_DB_PATH</span></code> (User PerfDb) cmake variables.</p>
+<p>Database paths can be explicitly customized by means of <code class="docutils literal notranslate"><span class="pre">MIOPEN_SYSTEM_DB_PATH</span></code> (System PerfDb) and <code class="docutils literal notranslate"><span class="pre">MIOPEN_USER_DB_PATH</span></code> (User PerfDb) cmake variables.</p>
 <p>More information about the performance database can be found <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html">here</a>.</p>
 </div>
 <div class="section" id="persistent-program-cache">
-<span id="persistent-program-cache"></span><h3>Persistent Program Cache<a class="headerlink" href="#persistent-program-cache" title="Permalink to this headline">¶</a></h3>
-<p>MIOpen by default caches the device programs in the location <code class="docutils literal"><span class="pre">~/.cache/miopen/</span></code>. In the cache directory there exists a directory for each version of MIOpen. Users can change the location of the cache directory during configuration using the flag <code class="docutils literal"><span class="pre">-DMIOPEN_CACHE_DIR=&lt;cache-directory-path&gt;</span></code>.</p>
-<p>Users can also disable the cache during runtime using the environmental variable set as <code class="docutils literal"><span class="pre">MIOPEN_DISABLE_CACHE=1</span></code>.</p>
+<h3>Persistent Program Cache<a class="headerlink" href="#persistent-program-cache" title="Permalink to this headline">¶</a></h3>
+<p>MIOpen by default caches the device programs in the location <code class="docutils literal notranslate"><span class="pre">~/.cache/miopen/</span></code>. In the cache directory there exists a directory for each version of MIOpen. Users can change the location of the cache directory during configuration using the flag <code class="docutils literal notranslate"><span class="pre">-DMIOPEN_CACHE_DIR=&lt;cache-directory-path&gt;</span></code>.</p>
+<p>Users can also disable the cache during runtime using the environmental variable set as <code class="docutils literal notranslate"><span class="pre">MIOPEN_DISABLE_CACHE=1</span></code>.</p>
 <div class="section" id="for-miopen-version-2-3-and-earlier">
-<span id="for-miopen-version-2-3-and-earlier"></span><h4>For MIOpen version 2.3 and earlier<a class="headerlink" href="#for-miopen-version-2-3-and-earlier" title="Permalink to this headline">¶</a></h4>
-<p>If the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., <code class="docutils literal"><span class="pre">rm</span> <span class="pre">-rf</span> <span class="pre">~/.cache/miopen/&lt;miopen-version-number&gt;</span></code>. More information about the cache can be found <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html">here</a>.</p>
+<h4>For MIOpen version 2.3 and earlier<a class="headerlink" href="#for-miopen-version-2-3-and-earlier" title="Permalink to this headline">¶</a></h4>
+<p>If the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., <code class="docutils literal notranslate"><span class="pre">rm</span> <span class="pre">-rf</span> <span class="pre">~/.cache/miopen/&lt;miopen-version-number&gt;</span></code>. More information about the cache can be found <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html">here</a>.</p>
 </div>
 <div class="section" id="for-miopen-version-2-4-and-later">
-<span id="for-miopen-version-2-4-and-later"></span><h4>For MIOpen version 2.4 and later<a class="headerlink" href="#for-miopen-version-2-4-and-later" title="Permalink to this headline">¶</a></h4>
-<p>MIOpen's kernel cache directory is versioned so that users' cached kernels will not collide when upgrading from earlier version.</p>
+<h4>For MIOpen version 2.4 and later<a class="headerlink" href="#for-miopen-version-2-4-and-later" title="Permalink to this headline">¶</a></h4>
+<p>MIOpen’s kernel cache directory is versioned so that users’ cached kernels will not collide when upgrading from earlier version.</p>
 </div>
 </div>
 <div class="section" id="changing-the-cmake-configuration">
-<span id="changing-the-cmake-configuration"></span><h3>Changing the cmake configuration<a class="headerlink" href="#changing-the-cmake-configuration" title="Permalink to this headline">¶</a></h3>
-<p>The configuration can be changed after running cmake by using <code class="docutils literal"><span class="pre">ccmake</span></code>:</p>
-<p><code class="docutils literal"><span class="pre">ccmake</span> <span class="pre">..</span></code> <strong>OR</strong> <code class="docutils literal"><span class="pre">cmake-gui</span></code>: <code class="docutils literal"><span class="pre">cmake-gui</span> <span class="pre">..</span></code></p>
-<p>The <code class="docutils literal"><span class="pre">ccmake</span></code> program can be downloaded as the Linux package <code class="docutils literal"><span class="pre">cmake-curses-gui</span></code>, but is not available on windows.</p>
+<h3>Changing the cmake configuration<a class="headerlink" href="#changing-the-cmake-configuration" title="Permalink to this headline">¶</a></h3>
+<p>The configuration can be changed after running cmake by using <code class="docutils literal notranslate"><span class="pre">ccmake</span></code>:</p>
+<p><code class="docutils literal notranslate"><span class="pre">ccmake</span> <span class="pre">..</span></code> <strong>OR</strong> <code class="docutils literal notranslate"><span class="pre">cmake-gui</span></code>: <code class="docutils literal notranslate"> <span class="pre">cmake-gui</span> <span class="pre">..</span></code></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">ccmake</span></code> program can be downloaded as the Linux package <code class="docutils literal notranslate"><span class="pre">cmake-curses-gui</span></code>, but is not available on windows.</p>
 </div>
 </div>
 <div class="section" id="building-the-library">
-<span id="building-the-library"></span><h2>Building the library<a class="headerlink" href="#building-the-library" title="Permalink to this headline">¶</a></h2>
-<p>The library can be built, from the <code class="docutils literal"><span class="pre">build</span></code> directory using the 'Release' configuration:</p>
-<p><code class="docutils literal"><span class="pre">cmake</span> <span class="pre">--build</span> <span class="pre">.</span> <span class="pre">--config</span> <span class="pre">Release</span></code> <strong>OR</strong> <code class="docutils literal"><span class="pre">make</span></code></p>
-<p>And can be installed by using the 'install' target:</p>
-<p><code class="docutils literal"><span class="pre">cmake</span> <span class="pre">--build</span> <span class="pre">.</span> <span class="pre">--config</span> <span class="pre">Release</span> <span class="pre">--target</span> <span class="pre">install</span></code> <strong>OR</strong> <code class="docutils literal"><span class="pre">make</span> <span class="pre">install</span></code></p>
-<p>This will install the library to the <code class="docutils literal"><span class="pre">CMAKE_INSTALL_PREFIX</span></code> path that was set.</p>
+<h2>Building the library<a class="headerlink" href="#building-the-library" title="Permalink to this headline">¶</a></h2>
+<p>The library can be built, from the <code class="docutils literal notranslate"><span class="pre">build</span></code> directory using the ‘Release’ configuration:</p>
+<p><code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--build</span> <span class="pre">.</span> <span class="pre">--config</span> <span class="pre">Release</span></code> <strong>OR</strong> <code class="docutils literal notranslate"><span class="pre">make</span></code></p>
+<p>And can be installed by using the ‘install’ target:</p>
+<p><code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--build</span> <span class="pre">.</span> <span class="pre">--config</span> <span class="pre">Release</span> <span class="pre">--target</span> <span class="pre">install</span></code> <strong>OR</strong> <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">install</span></code></p>
+<p>This will install the library to the <code class="docutils literal notranslate"><span class="pre">CMAKE_INSTALL_PREFIX</span></code> path that was set.</p>
 </div>
 <div class="section" id="building-the-driver">
-<span id="building-the-driver"></span><h2>Building the driver<a class="headerlink" href="#building-the-driver" title="Permalink to this headline">¶</a></h2>
+<h2>Building the driver<a class="headerlink" href="#building-the-driver" title="Permalink to this headline">¶</a></h2>
 <p>MIOpen provides an <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/tree/master/driver">application-driver</a> which can be used to execute any one particular layer in isolation and measure performance and verification of the library.</p>
-<p>The driver can be built using the <code class="docutils literal"><span class="pre">MIOpenDriver</span></code> target:</p>
-<p><code class="docutils literal"><span class="pre">cmake</span> <span class="pre">--build</span> <span class="pre">.</span> <span class="pre">--config</span> <span class="pre">Release</span> <span class="pre">--target</span> <span class="pre">MIOpenDriver</span></code> <strong>OR</strong> <code class="docutils literal"><span class="pre">make</span> <span class="pre">MIOpenDriver</span></code></p>
+<p>The driver can be built using the <code class="docutils literal notranslate"><span class="pre">MIOpenDriver</span></code> target:</p>
+<p><code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--build</span> <span class="pre">.</span> <span class="pre">--config</span> <span class="pre">Release</span> <span class="pre">--target</span> <span class="pre">MIOpenDriver</span></code> <strong>OR</strong> <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">MIOpenDriver</span></code></p>
 <p>Documentation on how to run the driver is <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/driver.html">here</a>.</p>
 </div>
 <div class="section" id="running-the-tests">
-<span id="running-the-tests"></span><h2>Running the tests<a class="headerlink" href="#running-the-tests" title="Permalink to this headline">¶</a></h2>
-<p>The tests can be run by using the 'check' target:</p>
-<p><code class="docutils literal"><span class="pre">cmake</span> <span class="pre">--build</span> <span class="pre">.</span> <span class="pre">--config</span> <span class="pre">Release</span> <span class="pre">--target</span> <span class="pre">check</span></code> <strong>OR</strong> <code class="docutils literal"><span class="pre">make</span> <span class="pre">check</span></code></p>
+<h2>Running the tests<a class="headerlink" href="#running-the-tests" title="Permalink to this headline">¶</a></h2>
+<p>The tests can be run by using the ‘check’ target:</p>
+<p><code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--build</span> <span class="pre">.</span> <span class="pre">--config</span> <span class="pre">Release</span> <span class="pre">--target</span> <span class="pre">check</span></code> <strong>OR</strong> <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">check</span></code></p>
 <p>A single test can be built and ran, by doing:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">--</span><span class="n">build</span> <span class="o">.</span> <span class="o">--</span><span class="n">config</span> <span class="n">Release</span> <span class="o">--</span><span class="n">target</span> <span class="n">test_tensor</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">--</span><span class="n">build</span> <span class="o">.</span> <span class="o">--</span><span class="n">config</span> <span class="n">Release</span> <span class="o">--</span><span class="n">target</span> <span class="n">test_tensor</span>
 <span class="o">./</span><span class="nb">bin</span><span class="o">/</span><span class="n">test_tensor</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="building-the-documentation">
-<span id="building-the-documentation"></span><h2>Building the documentation<a class="headerlink" href="#building-the-documentation" title="Permalink to this headline">¶</a></h2>
+<h2>Building the documentation<a class="headerlink" href="#building-the-documentation" title="Permalink to this headline">¶</a></h2>
 <p>HTML and PDF documentation can be built using:</p>
-<p><code class="docutils literal"><span class="pre">cmake</span> <span class="pre">--build</span> <span class="pre">.</span> <span class="pre">--config</span> <span class="pre">Release</span> <span class="pre">--target</span> <span class="pre">doc</span></code> <strong>OR</strong> <code class="docutils literal"><span class="pre">make</span> <span class="pre">doc</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--build</span> <span class="pre">.</span> <span class="pre">--config</span> <span class="pre">Release</span> <span class="pre">--target</span> <span class="pre">doc</span></code> <strong>OR</strong> <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">doc</span></code></p>
 <p>This will build a local searchable web site inside the ./MIOpen/doc/html folder and a PDF document inside the ./MIOpen/doc/pdf folder.</p>
-<p>Documentation is built using generated using <a class="reference external" href="http://www.stack.nl/~dimitri/doxygen/download.html">Doxygen</a> and should be installed separately.</p>
+<p>Documentation is built using generated using <a class="reference external" href="http://www.stack.nl/%7Edimitri/doxygen/download.html">Doxygen</a> and should be installed separately.</p>
 <p>HTML and PDFs are generated using <a class="reference external" href="http://www.sphinx-doc.org/en/stable/index.html">Sphinx</a> and <a class="reference external" href="https://breathe.readthedocs.io/en/latest/">Breathe</a>, with the <a class="reference external" href="https://github.com/rtfd/sphinx_rtd_theme">ReadTheDocs theme</a>.</p>
 <p>Requirements for both Sphinx, Breathe, and the ReadTheDocs theme can be filled for these in the MIOpen/doc folder:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="o">./</span><span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="o">./</span><span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
 </pre></div>
 </div>
-<p>Depending on your setup <code class="docutils literal"><span class="pre">sudo</span></code> may be required for the pip install.</p>
+<p>Depending on your setup <code class="docutils literal notranslate"><span class="pre">sudo</span></code> may be required for the pip install.</p>
 </div>
 <div class="section" id="formatting-the-code">
-<span id="formatting-the-code"></span><h2>Formatting the code<a class="headerlink" href="#formatting-the-code" title="Permalink to this headline">¶</a></h2>
+<h2>Formatting the code<a class="headerlink" href="#formatting-the-code" title="Permalink to this headline">¶</a></h2>
 <p>All the code is formatted using clang-format. To format a file, use:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">clang</span><span class="o">-</span><span class="nb">format</span><span class="o">-</span><span class="mf">3.8</span> <span class="o">-</span><span class="n">style</span><span class="o">=</span><span class="n">file</span> <span class="o">-</span><span class="n">i</span> <span class="o">&lt;</span><span class="n">path</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">source</span><span class="o">-</span><span class="n">file</span><span class="o">&gt;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">clang</span><span class="o">-</span><span class="nb">format</span><span class="o">-</span><span class="mi">10</span> <span class="o">-</span><span class="n">style</span><span class="o">=</span><span class="n">file</span> <span class="o">-</span><span class="n">i</span> <span class="o">&lt;</span><span class="n">path</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">source</span><span class="o">-</span><span class="n">file</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <p>Also, githooks can be installed to format the code per-commit:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">./.</span><span class="n">githooks</span><span class="o">/</span><span class="n">install</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./.</span><span class="n">githooks</span><span class="o">/</span><span class="n">install</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="installing-the-dependencies-manually">
-<span id="installing-the-dependencies-manually"></span><h2>Installing the dependencies manually<a class="headerlink" href="#installing-the-dependencies-manually" title="Permalink to this headline">¶</a></h2>
-<p>If Ubuntu v16 is used then the <code class="docutils literal"><span class="pre">Boost</span></code> packages can also be installed by:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">libboost</span><span class="o">-</span><span class="n">dev</span>
+<h2>Installing the dependencies manually<a class="headerlink" href="#installing-the-dependencies-manually" title="Permalink to this headline">¶</a></h2>
+<p>If Ubuntu v16 is used then the <code class="docutils literal notranslate"><span class="pre">Boost</span></code> packages can also be installed by:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">libboost</span><span class="o">-</span><span class="n">dev</span>
 <span class="n">sudo</span> <span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">libboost</span><span class="o">-</span><span class="n">system</span><span class="o">-</span><span class="n">dev</span>
 <span class="n">sudo</span> <span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">libboost</span><span class="o">-</span><span class="n">filesystem</span><span class="o">-</span><span class="n">dev</span>
 </pre></div>
 </div>
 <p><em>Note:</em> MIOpen by default will attempt to build with Boost statically linked libraries. If it is needed, the user can build with dynamically linked Boost libraries by using this flag during the configruation stage:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">-</span><span class="n">DBoost_USE_STATIC_LIBS</span><span class="o">=</span><span class="n">Off</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span><span class="n">DBoost_USE_STATIC_LIBS</span><span class="o">=</span><span class="n">Off</span>
 </pre></div>
 </div>
 <p>however, this is not recommended.</p>
-<p>The <code class="docutils literal"><span class="pre">half</span></code> header needs to be installed from <a class="reference external" href="http://half.sourceforge.net/">here</a>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">half</span></code> header needs to be installed from <a class="reference external" href="http://half.sourceforge.net/">here</a>.</p>
 </div>
 <div class="section" id="using-docker">
-<span id="using-docker"></span><h2>Using docker<a class="headerlink" href="#using-docker" title="Permalink to this headline">¶</a></h2>
+<h2>Using docker<a class="headerlink" href="#using-docker" title="Permalink to this headline">¶</a></h2>
 <p>The easiest way is to use docker. You can build the top-level docker file:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">docker</span> <span class="n">build</span> <span class="o">-</span><span class="n">t</span> <span class="n">miopen</span><span class="o">-</span><span class="n">image</span> <span class="o">.</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span> <span class="n">build</span> <span class="o">-</span><span class="n">t</span> <span class="n">miopen</span><span class="o">-</span><span class="n">image</span> <span class="o">.</span>
 </pre></div>
 </div>
-<p>Then to enter the development environment use <code class="docutils literal"><span class="pre">docker</span> <span class="pre">run</span></code>, for example:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span>docker run -it -v $HOME:/data --privileged --rm --device=/dev/kfd --device /dev/dri:/dev/dri:rw  --volume /dev/dri:/dev/dri:rw -v /var/lib/docker/:/var/lib/docker --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined miopen-image
+<p>Then to enter the development environment use <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">run</span></code>, for example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>docker run -it -v $HOME:/data --privileged --rm --device=/dev/kfd --device /dev/dri:/dev/dri:rw  --volume /dev/dri:/dev/dri:rw -v /var/lib/docker/:/var/lib/docker --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined miopen-image
 </pre></div>
 </div>
-<p>Prebuilt docker images can be found on <a class="reference external" href="https://hub.docker.com/r/rocm/miopen/tags">ROCm's public docker hub here</a>.</p>
+<p>Prebuilt docker images can be found on <a class="reference external" href="https://hub.docker.com/r/rocm/miopen/tags">ROCm’s public docker hub here</a>.</p>
 </div>
 <div class="section" id="citing-miopen">
-<span id="citing-miopen"></span><h2>Citing MIOpen<a class="headerlink" href="#citing-miopen" title="Permalink to this headline">¶</a></h2>
-<p>MIOpen's paper is freely available and can be accessed on arXiv:<a class="reference external" href="https://arxiv.org/abs/1910.00078">MIOpen: An Open Source Library For Deep Learning Primitives</a></p>
+<h2>Citing MIOpen<a class="headerlink" href="#citing-miopen" title="Permalink to this headline">¶</a></h2>
+<p>MIOpen’s paper is freely available and can be accessed on arXiv:<br />
+<a class="reference external" href="https://arxiv.org/abs/1910.00078">MIOpen: An Open Source Library For Deep Learning Primitives</a></p>
 <div class="section" id="citation-bibtex">
-<span id="citation-bibtex"></span><h3>Citation BibTeX<a class="headerlink" href="#citation-bibtex" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nd">@misc</span><span class="p">{</span><span class="n">jeh2019miopen</span><span class="p">,</span>
+<h3>Citation BibTeX<a class="headerlink" href="#citation-bibtex" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@misc</span><span class="p">{</span><span class="n">jeh2019miopen</span><span class="p">,</span>
     <span class="n">title</span><span class="o">=</span><span class="p">{</span><span class="n">MIOpen</span><span class="p">:</span> <span class="n">An</span> <span class="n">Open</span> <span class="n">Source</span> <span class="n">Library</span> <span class="n">For</span> <span class="n">Deep</span> <span class="n">Learning</span> <span class="n">Primitives</span><span class="p">},</span>
     <span class="n">author</span><span class="o">=</span><span class="p">{</span><span class="n">Jehandad</span> <span class="n">Khan</span> <span class="ow">and</span> <span class="n">Paul</span> <span class="n">Fultz</span> <span class="ow">and</span> <span class="n">Artem</span> <span class="n">Tamazov</span> <span class="ow">and</span> <span class="n">Daniel</span> <span class="n">Lowell</span> <span class="ow">and</span> <span class="n">Chao</span> <span class="n">Liu</span> <span class="ow">and</span> <span class="n">Michael</span> <span class="n">Melesse</span> <span class="ow">and</span> <span class="n">Murali</span> <span class="n">Nandhimandalam</span> <span class="ow">and</span> <span class="n">Kamil</span> <span class="n">Nasyrov</span> <span class="ow">and</span> <span class="n">Ilya</span> <span class="n">Perminov</span> <span class="ow">and</span> <span class="n">Tejash</span> <span class="n">Shah</span> <span class="ow">and</span> <span class="n">Vasilii</span> <span class="n">Filippov</span> <span class="ow">and</span> <span class="n">Jing</span> <span class="n">Zhang</span> <span class="ow">and</span> <span class="n">Jing</span> <span class="n">Zhou</span> <span class="ow">and</span> <span class="n">Bragadeesh</span> <span class="n">Natarajan</span> <span class="ow">and</span> <span class="n">Mayank</span> <span class="n">Daga</span><span class="p">},</span>
     <span class="n">year</span><span class="o">=</span><span class="p">{</span><span class="mi">2019</span><span class="p">},</span>
@@ -780,29 +794,29 @@ The latest released documentation can be read online <a class="reference externa
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="embed.html" class="btn btn-neutral float-right" title="Building MIOpen for Embedded Systems" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="citation.html" class="btn btn-neutral" title="Citing MIOpen" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="embed.html" class="btn btn-neutral float-right" title="Building MIOpen for Embedded Systems" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="citation.html" class="btn btn-neutral float-left" title="Citing MIOpen" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -811,34 +825,16 @@ The latest released documentation can be read online <a class="reference externa
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

@@ -1,50 +1,60 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Tensors &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Activation Layers" href="activation.html" />
     <link rel="prev" title="Handle" href="handle.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +68,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -75,6 +85,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +93,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -166,12 +179,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
@@ -454,6 +461,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,11 +496,13 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="apireference.html">API Reference</a> &raquo;</li>
         
@@ -501,7 +511,7 @@
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/tensor.rst.txt" rel="nofollow"> View page source</a>
           
         
@@ -520,47 +530,51 @@
 <p>Tensor types and functions.</p>
 <div class="section" id="miopendatatype-t">
 <h2>miopenDataType_t<a class="headerlink" href="#miopendatatype-t" title="Permalink to this headline">¶</a></h2>
-<dl class="type">
-<dt id="_CPPv216miopenDataType_t">
-<span id="miopenDataType_t"></span><span class="target" id="group__tensor_1ga8bf94a23997093548ddf866c94c4ac17"></span><em class="property">enum </em><code class="descclassname"></code><code class="descname">miopenDataType_t</code><a class="headerlink" href="#_CPPv216miopenDataType_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv416miopenDataType_t">
+<span id="_CPPv316miopenDataType_t"></span><span id="_CPPv216miopenDataType_t"></span><span class="target" id="group__tensor_1ga8bf94a23997093548ddf866c94c4ac17"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenDataType_t</span></span></span><a class="headerlink" href="#_CPPv416miopenDataType_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>MIOpen floating point datatypes. Both 32-bit and 16-bit floats are supported in MIOpen. </p>
 <p><em>Values:</em></p>
-<dl class="enumerator">
-<dt id="_CPPv210miopenHalf">
-<span class="target" id="miopen_8h_1ga8bf94a23997093548ddf866c94c4ac17a6e9ac7a764797dde5f1b28d3516ba69f"></span><code class="descname">miopenHalf</code> = 0<a class="headerlink" href="#_CPPv210miopenHalf" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N16miopenDataType_t10miopenHalfE">
+<span id="_CPPv3N16miopenDataType_t10miopenHalfE"></span><span id="_CPPv2N16miopenDataType_t10miopenHalfE"></span><span class="target" id="miopen_8h_1ga8bf94a23997093548ddf866c94c4ac17a6e9ac7a764797dde5f1b28d3516ba69f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenHalf</span></span></span><a class="headerlink" href="#_CPPv4N16miopenDataType_t10miopenHalfE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>16-bit floating point (Fully supported) </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv211miopenFloat">
-<span class="target" id="miopen_8h_1ga8bf94a23997093548ddf866c94c4ac17a33115d427e71a2759a28dfea283d5eeb"></span><code class="descname">miopenFloat</code> = 1<a class="headerlink" href="#_CPPv211miopenFloat" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N16miopenDataType_t11miopenFloatE">
+<span id="_CPPv3N16miopenDataType_t11miopenFloatE"></span><span id="_CPPv2N16miopenDataType_t11miopenFloatE"></span><span class="target" id="miopen_8h_1ga8bf94a23997093548ddf866c94c4ac17a33115d427e71a2759a28dfea283d5eeb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenFloat</span></span></span><a class="headerlink" href="#_CPPv4N16miopenDataType_t11miopenFloatE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>32-bit floating point (Fully supported) </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv211miopenInt32">
-<span class="target" id="miopen_8h_1ga8bf94a23997093548ddf866c94c4ac17a6aa2b89e7e323df62ba76bc62b6d8c0c"></span><code class="descname">miopenInt32</code> = 2<a class="headerlink" href="#_CPPv211miopenInt32" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N16miopenDataType_t11miopenInt32E">
+<span id="_CPPv3N16miopenDataType_t11miopenInt32E"></span><span id="_CPPv2N16miopenDataType_t11miopenInt32E"></span><span class="target" id="miopen_8h_1ga8bf94a23997093548ddf866c94c4ac17a6aa2b89e7e323df62ba76bc62b6d8c0c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenInt32</span></span></span><a class="headerlink" href="#_CPPv4N16miopenDataType_t11miopenInt32E" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>32-bit int point (Partially supported) </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv210miopenInt8">
-<span class="target" id="miopen_8h_1ga8bf94a23997093548ddf866c94c4ac17a6a5fcabf2ddece1384141f68b0bd34cc"></span><code class="descname">miopenInt8</code> = 3<a class="headerlink" href="#_CPPv210miopenInt8" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N16miopenDataType_t10miopenInt8E">
+<span id="_CPPv3N16miopenDataType_t10miopenInt8E"></span><span id="_CPPv2N16miopenDataType_t10miopenInt8E"></span><span class="target" id="miopen_8h_1ga8bf94a23997093548ddf866c94c4ac17a6a5fcabf2ddece1384141f68b0bd34cc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenInt8</span></span></span><a class="headerlink" href="#_CPPv4N16miopenDataType_t10miopenInt8E" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>8-bit int point (Partially supported) </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv212miopenInt8x4">
-<span class="target" id="miopen_8h_1ga8bf94a23997093548ddf866c94c4ac17a1805af48ca0c755495349af5065bb426"></span><code class="descname">miopenInt8x4</code><p>=</p>
-<p>        4</p>
-<a class="headerlink" href="#_CPPv212miopenInt8x4" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N16miopenDataType_t12miopenInt8x4E">
+<span id="_CPPv3N16miopenDataType_t12miopenInt8x4E"></span><span id="_CPPv2N16miopenDataType_t12miopenInt8x4E"></span><span class="target" id="miopen_8h_1ga8bf94a23997093548ddf866c94c4ac17a1805af48ca0c755495349af5065bb426"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenInt8x4</span></span></span><a class="headerlink" href="#_CPPv4N16miopenDataType_t12miopenInt8x4E" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Pack of four 8-bit int points in NCHW_VECT_C format (Partially supported) </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv214miopenBFloat16">
-<span class="target" id="miopen_8h_1ga8bf94a23997093548ddf866c94c4ac17a656b49db33ff9a982cbcbcfd2710bb43"></span><code class="descname">miopenBFloat16</code> = 5<a class="headerlink" href="#_CPPv214miopenBFloat16" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N16miopenDataType_t14miopenBFloat16E">
+<span id="_CPPv3N16miopenDataType_t14miopenBFloat16E"></span><span id="_CPPv2N16miopenDataType_t14miopenBFloat16E"></span><span class="target" id="miopen_8h_1ga8bf94a23997093548ddf866c94c4ac17a656b49db33ff9a982cbcbcfd2710bb43"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenBFloat16</span></span></span><a class="headerlink" href="#_CPPv4N16miopenDataType_t14miopenBFloat16E" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>16-bit binary floating point (8-bit exponent, 7-bit fraction) (Partially supported) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N16miopenDataType_t12miopenDoubleE">
+<span id="_CPPv3N16miopenDataType_t12miopenDoubleE"></span><span id="_CPPv2N16miopenDataType_t12miopenDoubleE"></span><span class="target" id="miopen_8h_1ga8bf94a23997093548ddf866c94c4ac17a90310ef7026c1f362feb65cdd90a6e44"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenDouble</span></span></span><a class="headerlink" href="#_CPPv4N16miopenDataType_t12miopenDoubleE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>64-bit floating point (Partially supported) </p>
 </dd></dl>
 
 </dd></dl>
@@ -568,32 +582,32 @@
 </div>
 <div class="section" id="miopentensorop-t">
 <h2>miopenTensorOp_t<a class="headerlink" href="#miopentensorop-t" title="Permalink to this headline">¶</a></h2>
-<dl class="type">
-<dt id="_CPPv216miopenTensorOp_t">
-<span id="miopenTensorOp_t"></span><span class="target" id="group__tensor_1gaa2498dabff3e75d86471b25a2be9a198"></span><em class="property">enum </em><code class="descclassname"></code><code class="descname">miopenTensorOp_t</code><a class="headerlink" href="#_CPPv216miopenTensorOp_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv416miopenTensorOp_t">
+<span id="_CPPv316miopenTensorOp_t"></span><span id="_CPPv216miopenTensorOp_t"></span><span class="target" id="group__tensor_1gaa2498dabff3e75d86471b25a2be9a198"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenTensorOp_t</span></span></span><a class="headerlink" href="#_CPPv416miopenTensorOp_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Element-wise tensor operation modes </p>
 <p><em>Values:</em></p>
-<dl class="enumerator">
-<dt id="_CPPv217miopenTensorOpAdd">
-<span class="target" id="miopen_8h_1gaa2498dabff3e75d86471b25a2be9a198ad0cfac2b0c8f5668f62c2b156a7281e0"></span><code class="descname">miopenTensorOpAdd</code> = 0<a class="headerlink" href="#_CPPv217miopenTensorOpAdd" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N16miopenTensorOp_t17miopenTensorOpAddE">
+<span id="_CPPv3N16miopenTensorOp_t17miopenTensorOpAddE"></span><span id="_CPPv2N16miopenTensorOp_t17miopenTensorOpAddE"></span><span class="target" id="miopen_8h_1gaa2498dabff3e75d86471b25a2be9a198ad0cfac2b0c8f5668f62c2b156a7281e0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenTensorOpAdd</span></span></span><a class="headerlink" href="#_CPPv4N16miopenTensorOp_t17miopenTensorOpAddE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Add tensors element-wise </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv217miopenTensorOpMul">
-<span class="target" id="miopen_8h_1gaa2498dabff3e75d86471b25a2be9a198ae20aa1bb8363d01002ce601f9edfdbf2"></span><code class="descname">miopenTensorOpMul</code> = 1<a class="headerlink" href="#_CPPv217miopenTensorOpMul" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N16miopenTensorOp_t17miopenTensorOpMulE">
+<span id="_CPPv3N16miopenTensorOp_t17miopenTensorOpMulE"></span><span id="_CPPv2N16miopenTensorOp_t17miopenTensorOpMulE"></span><span class="target" id="miopen_8h_1gaa2498dabff3e75d86471b25a2be9a198ae20aa1bb8363d01002ce601f9edfdbf2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenTensorOpMul</span></span></span><a class="headerlink" href="#_CPPv4N16miopenTensorOp_t17miopenTensorOpMulE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Multiply two tensors element-wise </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv217miopenTensorOpMin">
-<span class="target" id="miopen_8h_1gaa2498dabff3e75d86471b25a2be9a198a46cb1f291532f6b241b12b76e17ddbef"></span><code class="descname">miopenTensorOpMin</code> = 2<a class="headerlink" href="#_CPPv217miopenTensorOpMin" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N16miopenTensorOp_t17miopenTensorOpMinE">
+<span id="_CPPv3N16miopenTensorOp_t17miopenTensorOpMinE"></span><span id="_CPPv2N16miopenTensorOp_t17miopenTensorOpMinE"></span><span class="target" id="miopen_8h_1gaa2498dabff3e75d86471b25a2be9a198a46cb1f291532f6b241b12b76e17ddbef"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenTensorOpMin</span></span></span><a class="headerlink" href="#_CPPv4N16miopenTensorOp_t17miopenTensorOpMinE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Minimum of tensor element pairs </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv217miopenTensorOpMax">
-<span class="target" id="miopen_8h_1gaa2498dabff3e75d86471b25a2be9a198aed2a5c869fb47aa3f0aebd9945fa56da"></span><code class="descname">miopenTensorOpMax</code> = 3<a class="headerlink" href="#_CPPv217miopenTensorOpMax" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N16miopenTensorOp_t17miopenTensorOpMaxE">
+<span id="_CPPv3N16miopenTensorOp_t17miopenTensorOpMaxE"></span><span id="_CPPv2N16miopenTensorOp_t17miopenTensorOpMaxE"></span><span class="target" id="miopen_8h_1gaa2498dabff3e75d86471b25a2be9a198aed2a5c869fb47aa3f0aebd9945fa56da"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenTensorOpMax</span></span></span><a class="headerlink" href="#_CPPv4N16miopenTensorOp_t17miopenTensorOpMaxE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Maximum of tensor element pairs </p>
 </dd></dl>
 
@@ -602,235 +616,234 @@
 </div>
 <div class="section" id="miopencreatetensordescriptor">
 <h2>miopenCreateTensorDescriptor<a class="headerlink" href="#miopencreatetensordescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv228miopenCreateTensorDescriptorP24miopenTensorDescriptor_t">
-<span id="miopenCreateTensorDescriptor__miopenTensorDescriptor_tP"></span><span class="target" id="group__tensor_1gaa4c4150d5e0bab328f67114aa0a733ca"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateTensorDescriptor</code><span class="sig-paren">(</span>miopenTensorDescriptor_t *<em>tensorDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv228miopenCreateTensorDescriptorP24miopenTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv428miopenCreateTensorDescriptorP24miopenTensorDescriptor_t">
+<span id="_CPPv328miopenCreateTensorDescriptorP24miopenTensorDescriptor_t"></span><span id="_CPPv228miopenCreateTensorDescriptorP24miopenTensorDescriptor_t"></span><span id="miopenCreateTensorDescriptor__miopenTensorDescriptor_tP"></span><span class="target" id="group__tensor_1gaa4c4150d5e0bab328f67114aa0a733ca"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenCreateTensorDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">tensorDesc</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv428miopenCreateTensorDescriptorP24miopenTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Create a Tensor Descriptor. </p>
-<p>API for creating an uninitialized tensor descriptor. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">tensorDesc</span></code>: Pointer to a tensor descriptor type (output) </li>
-</ul>
+<p>API for creating an uninitialized tensor descriptor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tensorDesc</strong> – Pointer to a tensor descriptor type (output) </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
 </dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenset4dtensordescriptor">
 <h2>miopenSet4dTensorDescriptor<a class="headerlink" href="#miopenset4dtensordescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv227miopenSet4dTensorDescriptor24miopenTensorDescriptor_t16miopenDataType_tiiii">
-<span id="miopenSet4dTensorDescriptor__miopenTensorDescriptor_t.miopenDataType_t.i.i.i.i"></span><span class="target" id="group__tensor_1gaca9c274e3b61d9cc03e2a1fec6dc0bdd"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSet4dTensorDescriptor</code><span class="sig-paren">(</span>miopenTensorDescriptor_t <em>tensorDesc</em>, <a class="reference internal" href="#_CPPv216miopenDataType_t" title="miopenDataType_t">miopenDataType_t</a> <em>dataType</em>, int <em>n</em>, int <em>c</em>, int <em>h</em>, int <em>w</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv227miopenSet4dTensorDescriptor24miopenTensorDescriptor_t16miopenDataType_tiiii" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv427miopenSet4dTensorDescriptor24miopenTensorDescriptor_t16miopenDataType_tiiii">
+<span id="_CPPv327miopenSet4dTensorDescriptor24miopenTensorDescriptor_t16miopenDataType_tiiii"></span><span id="_CPPv227miopenSet4dTensorDescriptor24miopenTensorDescriptor_t16miopenDataType_tiiii"></span><span id="miopenSet4dTensorDescriptor__miopenTensorDescriptor_t.miopenDataType_t.i.i.i.i"></span><span class="target" id="group__tensor_1gaca9c274e3b61d9cc03e2a1fec6dc0bdd"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSet4dTensorDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tensorDesc</span></span>, <a class="reference internal" href="#_CPPv416miopenDataType_t" title="miopenDataType_t"><span class="n"><span class="pre">miopenDataType_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">dataType</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">c</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">h</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">w</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv427miopenSet4dTensorDescriptor24miopenTensorDescriptor_t16miopenDataType_tiiii" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set shape of 4D tensor. </p>
 <p>Interface for setting 4-D tensor shape. MIOpen currently only implements NCHW layout.</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">tensorDesc</span></code>: Tensor descriptor type (output) </li>
-<li><code class="docutils literal"><span class="pre">dataType</span></code>: MIOpen datatype (input) </li>
-<li><code class="docutils literal"><span class="pre">n</span></code>: Mini-batch size (input) </li>
-<li><code class="docutils literal"><span class="pre">c</span></code>: Number of channels (input) </li>
-<li><code class="docutils literal"><span class="pre">h</span></code>: Data height dimension size (input) </li>
-<li><code class="docutils literal"><span class="pre">w</span></code>: Data width dimension size (input) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensorDesc</strong> – Tensor descriptor type (output) </p></li>
+<li><p><strong>dataType</strong> – MIOpen datatype (input) </p></li>
+<li><p><strong>n</strong> – Mini-batch size (input) </p></li>
+<li><p><strong>c</strong> – Number of channels (input) </p></li>
+<li><p><strong>h</strong> – Data height dimension size (input) </p></li>
+<li><p><strong>w</strong> – Data width dimension size (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenget4dtensordescriptor">
 <h2>miopenGet4dTensorDescriptor<a class="headerlink" href="#miopenget4dtensordescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv227miopenGet4dTensorDescriptor24miopenTensorDescriptor_tP16miopenDataType_tPiPiPiPiPiPiPiPi">
-<span id="miopenGet4dTensorDescriptor__miopenTensorDescriptor_t.miopenDataType_tP.iP.iP.iP.iP.iP.iP.iP.iP"></span><span class="target" id="group__tensor_1ga60d4b6e645a13e8b5b7046e961de96f3"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGet4dTensorDescriptor</code><span class="sig-paren">(</span>miopenTensorDescriptor_t <em>tensorDesc</em>, <a class="reference internal" href="#_CPPv216miopenDataType_t" title="miopenDataType_t">miopenDataType_t</a> *<em>dataType</em>, int *<em>n</em>, int *<em>c</em>, int *<em>h</em>, int *<em>w</em>, int *<em>nStride</em>, int *<em>cStride</em>, int *<em>hStride</em>, int *<em>wStride</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv227miopenGet4dTensorDescriptor24miopenTensorDescriptor_tP16miopenDataType_tPiPiPiPiPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv427miopenGet4dTensorDescriptor24miopenTensorDescriptor_tP16miopenDataType_tPiPiPiPiPiPiPiPi">
+<span id="_CPPv327miopenGet4dTensorDescriptor24miopenTensorDescriptor_tP16miopenDataType_tPiPiPiPiPiPiPiPi"></span><span id="_CPPv227miopenGet4dTensorDescriptor24miopenTensorDescriptor_tP16miopenDataType_tPiPiPiPiPiPiPiPi"></span><span id="miopenGet4dTensorDescriptor__miopenTensorDescriptor_t.miopenDataType_tP.iP.iP.iP.iP.iP.iP.iP.iP"></span><span class="target" id="group__tensor_1ga60d4b6e645a13e8b5b7046e961de96f3"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenGet4dTensorDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tensorDesc</span></span>, <a class="reference internal" href="#_CPPv416miopenDataType_t" title="miopenDataType_t"><span class="n"><span class="pre">miopenDataType_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dataType</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">n</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">c</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">h</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">w</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">nStride</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">cStride</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">hStride</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">wStride</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv427miopenGet4dTensorDescriptor24miopenTensorDescriptor_tP16miopenDataType_tPiPiPiPiPiPiPiPi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get the details of the tensor descriptor. </p>
 <p>Interface to query the 4-D tensor shape.</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">tensorDesc</span></code>: Tensor descriptor type (input) </li>
-<li><code class="docutils literal"><span class="pre">dataType</span></code>: MIOpen datatype (input) </li>
-<li><code class="docutils literal"><span class="pre">n</span></code>: Mini-batch size (output) </li>
-<li><code class="docutils literal"><span class="pre">c</span></code>: Number of channels (output) </li>
-<li><code class="docutils literal"><span class="pre">h</span></code>: Data height dimension size (output) </li>
-<li><code class="docutils literal"><span class="pre">w</span></code>: Data width dimension size (output) </li>
-<li><code class="docutils literal"><span class="pre">nStride</span></code>: Mini-batch dimension stride (output) </li>
-<li><code class="docutils literal"><span class="pre">cStride</span></code>: Channel dimension stride (output) </li>
-<li><code class="docutils literal"><span class="pre">hStride</span></code>: Height dimension stride (output) </li>
-<li><code class="docutils literal"><span class="pre">wStride</span></code>: Width dimension stride (output) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensorDesc</strong> – Tensor descriptor type (input) </p></li>
+<li><p><strong>dataType</strong> – MIOpen datatype (input) </p></li>
+<li><p><strong>n</strong> – Mini-batch size (output) </p></li>
+<li><p><strong>c</strong> – Number of channels (output) </p></li>
+<li><p><strong>h</strong> – Data height dimension size (output) </p></li>
+<li><p><strong>w</strong> – Data width dimension size (output) </p></li>
+<li><p><strong>nStride</strong> – Mini-batch dimension stride (output) </p></li>
+<li><p><strong>cStride</strong> – Channel dimension stride (output) </p></li>
+<li><p><strong>hStride</strong> – Height dimension stride (output) </p></li>
+<li><p><strong>wStride</strong> – Width dimension stride (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopensettensordescriptor">
 <h2>miopenSetTensorDescriptor<a class="headerlink" href="#miopensettensordescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv225miopenSetTensorDescriptor24miopenTensorDescriptor_t16miopenDataType_tiPiPi">
-<span id="miopenSetTensorDescriptor__miopenTensorDescriptor_t.miopenDataType_t.i.iP.iP"></span><span class="target" id="group__tensor_1ga61c1c011fdb6af68b8880b85255db57f"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetTensorDescriptor</code><span class="sig-paren">(</span>miopenTensorDescriptor_t <em>tensorDesc</em>, <a class="reference internal" href="#_CPPv216miopenDataType_t" title="miopenDataType_t">miopenDataType_t</a> <em>dataType</em>, int <em>nbDims</em>, int *<em>dimsA</em>, int *<em>stridesA</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenSetTensorDescriptor24miopenTensorDescriptor_t16miopenDataType_tiPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv425miopenSetTensorDescriptor24miopenTensorDescriptor_t16miopenDataType_tiPiPi">
+<span id="_CPPv325miopenSetTensorDescriptor24miopenTensorDescriptor_t16miopenDataType_tiPiPi"></span><span id="_CPPv225miopenSetTensorDescriptor24miopenTensorDescriptor_t16miopenDataType_tiPiPi"></span><span id="miopenSetTensorDescriptor__miopenTensorDescriptor_t.miopenDataType_t.i.iP.iP"></span><span class="target" id="group__tensor_1ga61c1c011fdb6af68b8880b85255db57f"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSetTensorDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tensorDesc</span></span>, <a class="reference internal" href="#_CPPv416miopenDataType_t" title="miopenDataType_t"><span class="n"><span class="pre">miopenDataType_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">dataType</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">nbDims</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dimsA</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stridesA</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv425miopenSetTensorDescriptor24miopenTensorDescriptor_t16miopenDataType_tiPiPi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set shape of N-dimensional tensor. </p>
-<p>Interface for setting tensor shape. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of layout. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">tensorDesc</span></code>: Tensor descriptor type (input) </li>
-<li><code class="docutils literal"><span class="pre">dataType</span></code>: MIOpen datatype (input) </li>
-<li><code class="docutils literal"><span class="pre">nbDims</span></code>: Number of dimensions in the dimsA array (input) </li>
-<li><code class="docutils literal"><span class="pre">dimsA</span></code>: Array containing the size of dimensions (input) </li>
-<li><code class="docutils literal"><span class="pre">stridesA</span></code>: Array containing the size of stride (input) </li>
+<p>Interface for setting tensor shape. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of layout. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensorDesc</strong> – Tensor descriptor type (input) </p></li>
+<li><p><strong>dataType</strong> – MIOpen datatype (input) </p></li>
+<li><p><strong>nbDims</strong> – Number of dimensions in the dimsA array (input) </p></li>
+<li><p><strong>dimsA</strong> – Array containing the size of dimensions (input) </p></li>
+<li><p><strong>stridesA</strong> – Array containing the size of stride (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopengettensordescriptorsize">
 <h2>miopenGetTensorDescriptorSize<a class="headerlink" href="#miopengettensordescriptorsize" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv229miopenGetTensorDescriptorSize24miopenTensorDescriptor_tPi">
-<span id="miopenGetTensorDescriptorSize__miopenTensorDescriptor_t.iP"></span><span class="target" id="group__tensor_1gabe0eb2bb150f919426266000e508e26f"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetTensorDescriptorSize</code><span class="sig-paren">(</span>miopenTensorDescriptor_t <em>tensorDesc</em>, int *<em>size</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv229miopenGetTensorDescriptorSize24miopenTensorDescriptor_tPi" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv429miopenGetTensorDescriptorSize24miopenTensorDescriptor_tPi">
+<span id="_CPPv329miopenGetTensorDescriptorSize24miopenTensorDescriptor_tPi"></span><span id="_CPPv229miopenGetTensorDescriptorSize24miopenTensorDescriptor_tPi"></span><span id="miopenGetTensorDescriptorSize__miopenTensorDescriptor_t.iP"></span><span class="target" id="group__tensor_1gabe0eb2bb150f919426266000e508e26f"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenGetTensorDescriptorSize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tensorDesc</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv429miopenGetTensorDescriptorSize24miopenTensorDescriptor_tPi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set shape of N-dimensional tensor. </p>
-<p>Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of layout. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">tensorDesc</span></code>: Tensor descriptor type (input) </li>
-<li><code class="docutils literal"><span class="pre">size</span></code>: number of elements in tensor described by the descriptor (output) </li>
+<p>Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of layout. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensorDesc</strong> – Tensor descriptor type (input) </p></li>
+<li><p><strong>size</strong> – number of elements in tensor described by the descriptor (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopengettensordescriptor">
 <h2>miopenGetTensorDescriptor<a class="headerlink" href="#miopengettensordescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv225miopenGetTensorDescriptor24miopenTensorDescriptor_tP16miopenDataType_tPiPi">
-<span id="miopenGetTensorDescriptor__miopenTensorDescriptor_t.miopenDataType_tP.iP.iP"></span><span class="target" id="group__tensor_1ga8b58547893fe23b3cbdaa28276380ed4"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetTensorDescriptor</code><span class="sig-paren">(</span>miopenTensorDescriptor_t <em>tensorDesc</em>, <a class="reference internal" href="#_CPPv216miopenDataType_t" title="miopenDataType_t">miopenDataType_t</a> *<em>dataType</em>, int *<em>dimsA</em>, int *<em>stridesA</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenGetTensorDescriptor24miopenTensorDescriptor_tP16miopenDataType_tPiPi" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv425miopenGetTensorDescriptor24miopenTensorDescriptor_tP16miopenDataType_tPiPi">
+<span id="_CPPv325miopenGetTensorDescriptor24miopenTensorDescriptor_tP16miopenDataType_tPiPi"></span><span id="_CPPv225miopenGetTensorDescriptor24miopenTensorDescriptor_tP16miopenDataType_tPiPi"></span><span id="miopenGetTensorDescriptor__miopenTensorDescriptor_t.miopenDataType_tP.iP.iP"></span><span class="target" id="group__tensor_1ga8b58547893fe23b3cbdaa28276380ed4"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenGetTensorDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tensorDesc</span></span>, <a class="reference internal" href="#_CPPv416miopenDataType_t" title="miopenDataType_t"><span class="n"><span class="pre">miopenDataType_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dataType</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dimsA</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stridesA</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv425miopenGetTensorDescriptor24miopenTensorDescriptor_tP16miopenDataType_tPiPi" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get the details of the N-dimensional tensor descriptor. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">tensorDesc</span></code>: Tensor descriptor type (input) </li>
-<li><code class="docutils literal"><span class="pre">dataType</span></code>: MIOpen datatype (input) </li>
-<li><code class="docutils literal"><span class="pre">dimsA</span></code>: Array containing the size of dimensions (output) </li>
-<li><code class="docutils literal"><span class="pre">stridesA</span></code>: Array containing the size of stride (output) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensorDesc</strong> – Tensor descriptor type (input) </p></li>
+<li><p><strong>dataType</strong> – MIOpen datatype (input) </p></li>
+<li><p><strong>dimsA</strong> – Array containing the size of dimensions (output) </p></li>
+<li><p><strong>stridesA</strong> – Array containing the size of stride (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopendestroytensordescriptor">
 <h2>miopenDestroyTensorDescriptor<a class="headerlink" href="#miopendestroytensordescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv229miopenDestroyTensorDescriptor24miopenTensorDescriptor_t">
-<span id="miopenDestroyTensorDescriptor__miopenTensorDescriptor_t"></span><span class="target" id="group__tensor_1gabb06640fd388b577f4192b6cbcd96409"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDestroyTensorDescriptor</code><span class="sig-paren">(</span>miopenTensorDescriptor_t <em>tensorDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv229miopenDestroyTensorDescriptor24miopenTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv429miopenDestroyTensorDescriptor24miopenTensorDescriptor_t">
+<span id="_CPPv329miopenDestroyTensorDescriptor24miopenTensorDescriptor_t"></span><span id="_CPPv229miopenDestroyTensorDescriptor24miopenTensorDescriptor_t"></span><span id="miopenDestroyTensorDescriptor__miopenTensorDescriptor_t"></span><span class="target" id="group__tensor_1gabb06640fd388b577f4192b6cbcd96409"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenDestroyTensorDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tensorDesc</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv429miopenDestroyTensorDescriptor24miopenTensorDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Destroys the tensor descriptor. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">tensorDesc</span></code>: Tensor descriptor type (input) </li>
-</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tensorDesc</strong> – Tensor descriptor type (input) </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
 </dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenoptensor">
 <h2>miopenOpTensor<a class="headerlink" href="#miopenoptensor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv214miopenOpTensor14miopenHandle_t16miopenTensorOp_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv">
-<span id="miopenOpTensor__miopenHandle_t.miopenTensorOp_t.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP"></span><span class="target" id="group__tensor_1ga36cfeb6e3bdafe5703bac4aba1134463"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenOpTensor</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <a class="reference internal" href="#_CPPv216miopenTensorOp_t" title="miopenTensorOp_t">miopenTensorOp_t</a> <em>tensorOp</em>, <em class="property">const</em> void *<em>alpha1</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>aDesc</em>, <em class="property">const</em> void *<em>A</em>, <em class="property">const</em> void *<em>alpha2</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>bDesc</em>, <em class="property">const</em> void *<em>B</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>cDesc</em>, void *<em>C</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv214miopenOpTensor14miopenHandle_t16miopenTensorOp_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv414miopenOpTensor14miopenHandle_t16miopenTensorOp_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv">
+<span id="_CPPv314miopenOpTensor14miopenHandle_t16miopenTensorOp_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv"></span><span id="_CPPv214miopenOpTensor14miopenHandle_t16miopenTensorOp_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv"></span><span id="miopenOpTensor__miopenHandle_t.miopenTensorOp_t.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP"></span><span class="target" id="group__tensor_1ga36cfeb6e3bdafe5703bac4aba1134463"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenOpTensor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <a class="reference internal" href="#_CPPv416miopenTensorOp_t" title="miopenTensorOp_t"><span class="n"><span class="pre">miopenTensorOp_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">tensorOp</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alpha1</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">aDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">A</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alpha2</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">B</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">beta</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">cDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">C</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv414miopenOpTensor14miopenHandle_t16miopenTensorOp_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute element-wise tensor operations. </p>
-<p>This function implements: <span class="math">\( C = op ( alpha1[0] * A, alpha2[0] * B ) + beta[0] * C \)</span></p>
+<p>This function implements: <span class="math notranslate nohighlight">\( C = op ( alpha1[0] * A, alpha2[0] * B ) + beta[0] * C \)</span></p>
 <p>For Forward Bias one can also use, <a class="reference internal" href="convolution.html#group__convolutions_1ga2b9f1b20325aadb5538b35384abd30f6"><span class="std std-ref">miopenConvolutionForwardBias()</span></a></p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">tensorOp</span></code>: Operation from miopenTensorOp_t (input) </li>
-<li><code class="docutils literal"><span class="pre">alpha1</span></code>: Tensor A’s floating point scaling factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">aDesc</span></code>: Tensor descriptor for tensor A (input) </li>
-<li><code class="docutils literal"><span class="pre">A</span></code>: Tensor A (input) </li>
-<li><code class="docutils literal"><span class="pre">alpha2</span></code>: Tensor B’s floating point scaling factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">bDesc</span></code>: Tensor descriptor for tensor B (input) </li>
-<li><code class="docutils literal"><span class="pre">B</span></code>: Tensor B (input) </li>
-<li><code class="docutils literal"><span class="pre">beta</span></code>: Tensor C’s floating point scaling factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">cDesc</span></code>: Tensor descriptor for tensor C (input) </li>
-<li><code class="docutils literal"><span class="pre">C</span></code>: Tensor C (input and output) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>tensorOp</strong> – Operation from miopenTensorOp_t (input) </p></li>
+<li><p><strong>alpha1</strong> – Tensor A’s floating point scaling factor, allocated on the host (input) </p></li>
+<li><p><strong>aDesc</strong> – Tensor descriptor for tensor A (input) </p></li>
+<li><p><strong>A</strong> – Tensor A (input) </p></li>
+<li><p><strong>alpha2</strong> – Tensor B’s floating point scaling factor, allocated on the host (input) </p></li>
+<li><p><strong>bDesc</strong> – Tensor descriptor for tensor B (input) </p></li>
+<li><p><strong>B</strong> – Tensor B (input) </p></li>
+<li><p><strong>beta</strong> – Tensor C’s floating point scaling factor, allocated on the host (input) </p></li>
+<li><p><strong>cDesc</strong> – Tensor descriptor for tensor C (input) </p></li>
+<li><p><strong>C</strong> – Tensor C (input and output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopensettensor">
 <h2>miopenSetTensor<a class="headerlink" href="#miopensettensor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv215miopenSetTensor14miopenHandle_tK24miopenTensorDescriptor_tPvPKv">
-<span id="miopenSetTensor__miopenHandle_t.miopenTensorDescriptor_tC.voidP.voidCP"></span><span class="target" id="group__tensor_1ga198191b0167b299f6955c9a121768aa0"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetTensor</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, void *<em>y</em>, <em class="property">const</em> void *<em>alpha</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv215miopenSetTensor14miopenHandle_tK24miopenTensorDescriptor_tPvPKv" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv415miopenSetTensor14miopenHandle_tK24miopenTensorDescriptor_tPvPKv">
+<span id="_CPPv315miopenSetTensor14miopenHandle_tK24miopenTensorDescriptor_tPvPKv"></span><span id="_CPPv215miopenSetTensor14miopenHandle_tK24miopenTensorDescriptor_tPvPKv"></span><span id="miopenSetTensor__miopenHandle_t.miopenTensorDescriptor_tC.voidP.voidCP"></span><span class="target" id="group__tensor_1ga198191b0167b299f6955c9a121768aa0"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSetTensor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">yDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alpha</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv415miopenSetTensor14miopenHandle_tK24miopenTensorDescriptor_tPvPKv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Fills a tensor with a single value. </p>
 <p>Supported datatypes are fp32, fp16, and bfp16</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">yDesc</span></code>: Tensor descriptor for tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">y</span></code>: Tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">alpha</span></code>: Pointer to fill value (input) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>yDesc</strong> – Tensor descriptor for tensor y (input) </p></li>
+<li><p><strong>y</strong> – Tensor y (input) </p></li>
+<li><p><strong>alpha</strong> – Pointer to fill value (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenscaletensor">
 <h2>miopenScaleTensor<a class="headerlink" href="#miopenscaletensor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv217miopenScaleTensor14miopenHandle_tK24miopenTensorDescriptor_tPvPKv">
-<span id="miopenScaleTensor__miopenHandle_t.miopenTensorDescriptor_tC.voidP.voidCP"></span><span class="target" id="group__tensor_1ga427ab7d8f2249462c9505900bf8cf1ba"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenScaleTensor</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, void *<em>y</em>, <em class="property">const</em> void *<em>alpha</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv217miopenScaleTensor14miopenHandle_tK24miopenTensorDescriptor_tPvPKv" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv417miopenScaleTensor14miopenHandle_tK24miopenTensorDescriptor_tPvPKv">
+<span id="_CPPv317miopenScaleTensor14miopenHandle_tK24miopenTensorDescriptor_tPvPKv"></span><span id="_CPPv217miopenScaleTensor14miopenHandle_tK24miopenTensorDescriptor_tPvPKv"></span><span id="miopenScaleTensor__miopenHandle_t.miopenTensorDescriptor_tC.voidP.voidCP"></span><span class="target" id="group__tensor_1ga427ab7d8f2249462c9505900bf8cf1ba"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenScaleTensor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">yDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alpha</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv417miopenScaleTensor14miopenHandle_tK24miopenTensorDescriptor_tPvPKv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Scales all elements in a tensor by a single value. </p>
 <p>Supported datatypes are fp32 and fp16</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">yDesc</span></code>: Tensor descriptor for tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">y</span></code>: Tensor y (input and output) </li>
-<li><code class="docutils literal"><span class="pre">alpha</span></code>: Floating point scaling factor, allocated on the host (input) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>yDesc</strong> – Tensor descriptor for tensor y (input) </p></li>
+<li><p><strong>y</strong> – Tensor y (input and output) </p></li>
+<li><p><strong>alpha</strong> – Floating point scaling factor, allocated on the host (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
@@ -841,29 +854,29 @@
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="activation.html" class="btn btn-neutral float-right" title="Activation Layers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="handle.html" class="btn btn-neutral" title="Handle" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="activation.html" class="btn btn-neutral float-right" title="Activation Layers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="handle.html" class="btn btn-neutral float-left" title="Handle" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -872,34 +885,16 @@
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

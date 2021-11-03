@@ -1,50 +1,58 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Handle &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Tensors" href="tensor.html" />
     <link rel="prev" title="Datatypes" href="datatypes.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +66,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -75,6 +83,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +91,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -166,12 +177,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
@@ -454,6 +459,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,11 +494,13 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="apireference.html">API Reference</a> &raquo;</li>
         
@@ -501,7 +509,7 @@
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/handle.rst.txt" rel="nofollow"> View page source</a>
           
         
@@ -520,68 +528,68 @@
 <p>Handle types and functions.</p>
 <div class="section" id="miopenstatus-t">
 <h2>miopenStatus_t<a class="headerlink" href="#miopenstatus-t" title="Permalink to this headline">¶</a></h2>
-<dl class="type">
-<dt id="_CPPv214miopenStatus_t">
-<span id="miopenStatus_t"></span><span class="target" id="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6"></span><em class="property">enum </em><code class="descclassname"></code><code class="descname">miopenStatus_t</code><a class="headerlink" href="#_CPPv214miopenStatus_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv414miopenStatus_t">
+<span id="_CPPv314miopenStatus_t"></span><span id="_CPPv214miopenStatus_t"></span><span class="target" id="group__handle_1ga74216ea6ba6c5487d5aceb46eb35f1d6"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenStatus_t</span></span></span><a class="headerlink" href="#_CPPv414miopenStatus_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Error codes that are returned by all MIOpen API calls. </p>
 <p><em>Values:</em></p>
-<dl class="enumerator">
-<dt id="_CPPv219miopenStatusSuccess">
-<span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6a3fc50915c64e73ec736e0f9c2cb78129"></span><code class="descname">miopenStatusSuccess</code> = 0<a class="headerlink" href="#_CPPv219miopenStatusSuccess" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N14miopenStatus_t19miopenStatusSuccessE">
+<span id="_CPPv3N14miopenStatus_t19miopenStatusSuccessE"></span><span id="_CPPv2N14miopenStatus_t19miopenStatusSuccessE"></span><span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6a3fc50915c64e73ec736e0f9c2cb78129"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenStatusSuccess</span></span></span><a class="headerlink" href="#_CPPv4N14miopenStatus_t19miopenStatusSuccessE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>No errors </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv226miopenStatusNotInitialized">
-<span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6abd80b3c675e17392162640b6a5cb7375"></span><code class="descname">miopenStatusNotInitialized</code> = 1<a class="headerlink" href="#_CPPv226miopenStatusNotInitialized" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N14miopenStatus_t26miopenStatusNotInitializedE">
+<span id="_CPPv3N14miopenStatus_t26miopenStatusNotInitializedE"></span><span id="_CPPv2N14miopenStatus_t26miopenStatusNotInitializedE"></span><span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6abd80b3c675e17392162640b6a5cb7375"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenStatusNotInitialized</span></span></span><a class="headerlink" href="#_CPPv4N14miopenStatus_t26miopenStatusNotInitializedE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Data not initialized. </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv224miopenStatusInvalidValue">
-<span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6af0d655f9d71417a7143be6452651c1bb"></span><code class="descname">miopenStatusInvalidValue</code> = 2<a class="headerlink" href="#_CPPv224miopenStatusInvalidValue" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N14miopenStatus_t24miopenStatusInvalidValueE">
+<span id="_CPPv3N14miopenStatus_t24miopenStatusInvalidValueE"></span><span id="_CPPv2N14miopenStatus_t24miopenStatusInvalidValueE"></span><span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6af0d655f9d71417a7143be6452651c1bb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenStatusInvalidValue</span></span></span><a class="headerlink" href="#_CPPv4N14miopenStatus_t24miopenStatusInvalidValueE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Incorrect variable value. </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv219miopenStatusBadParm">
-<span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6abcd087689c69bcee83d4726487c8cca8"></span><code class="descname">miopenStatusBadParm</code> = 3<a class="headerlink" href="#_CPPv219miopenStatusBadParm" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N14miopenStatus_t19miopenStatusBadParmE">
+<span id="_CPPv3N14miopenStatus_t19miopenStatusBadParmE"></span><span id="_CPPv2N14miopenStatus_t19miopenStatusBadParmE"></span><span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6abcd087689c69bcee83d4726487c8cca8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenStatusBadParm</span></span></span><a class="headerlink" href="#_CPPv4N14miopenStatus_t19miopenStatusBadParmE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Incorrect parameter detected. </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv223miopenStatusAllocFailed">
-<span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6a9a1f9f181bb7d5649d3bb788760c489b"></span><code class="descname">miopenStatusAllocFailed</code> = 4<a class="headerlink" href="#_CPPv223miopenStatusAllocFailed" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N14miopenStatus_t23miopenStatusAllocFailedE">
+<span id="_CPPv3N14miopenStatus_t23miopenStatusAllocFailedE"></span><span id="_CPPv2N14miopenStatus_t23miopenStatusAllocFailedE"></span><span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6a9a1f9f181bb7d5649d3bb788760c489b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenStatusAllocFailed</span></span></span><a class="headerlink" href="#_CPPv4N14miopenStatus_t23miopenStatusAllocFailedE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Memory allocation error. </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv225miopenStatusInternalError">
-<span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6acfdd2d77791aae4ddd442f819189c19c"></span><code class="descname">miopenStatusInternalError</code> = 5<a class="headerlink" href="#_CPPv225miopenStatusInternalError" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N14miopenStatus_t25miopenStatusInternalErrorE">
+<span id="_CPPv3N14miopenStatus_t25miopenStatusInternalErrorE"></span><span id="_CPPv2N14miopenStatus_t25miopenStatusInternalErrorE"></span><span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6acfdd2d77791aae4ddd442f819189c19c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenStatusInternalError</span></span></span><a class="headerlink" href="#_CPPv4N14miopenStatus_t25miopenStatusInternalErrorE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>MIOpen failure. </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv226miopenStatusNotImplemented">
-<span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6ab6a11c9af8b9e52ab982abd85673ce9e"></span><code class="descname">miopenStatusNotImplemented</code> = 6<a class="headerlink" href="#_CPPv226miopenStatusNotImplemented" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N14miopenStatus_t26miopenStatusNotImplementedE">
+<span id="_CPPv3N14miopenStatus_t26miopenStatusNotImplementedE"></span><span id="_CPPv2N14miopenStatus_t26miopenStatusNotImplementedE"></span><span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6ab6a11c9af8b9e52ab982abd85673ce9e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenStatusNotImplemented</span></span></span><a class="headerlink" href="#_CPPv4N14miopenStatus_t26miopenStatusNotImplementedE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Use of unimplemented feature. </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv224miopenStatusUnknownError">
-<span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6a1504690ef8823ed85612008c08277b88"></span><code class="descname">miopenStatusUnknownError</code> = 7<a class="headerlink" href="#_CPPv224miopenStatusUnknownError" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N14miopenStatus_t24miopenStatusUnknownErrorE">
+<span id="_CPPv3N14miopenStatus_t24miopenStatusUnknownErrorE"></span><span id="_CPPv2N14miopenStatus_t24miopenStatusUnknownErrorE"></span><span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6a1504690ef8823ed85612008c08277b88"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenStatusUnknownError</span></span></span><a class="headerlink" href="#_CPPv4N14miopenStatus_t24miopenStatusUnknownErrorE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Unknown error occurred. </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv225miopenStatusUnsupportedOp">
-<span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6a0199ef6922cf9b53fc3320d681915b73"></span><code class="descname">miopenStatusUnsupportedOp</code> = 8<a class="headerlink" href="#_CPPv225miopenStatusUnsupportedOp" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N14miopenStatus_t25miopenStatusUnsupportedOpE">
+<span id="_CPPv3N14miopenStatus_t25miopenStatusUnsupportedOpE"></span><span id="_CPPv2N14miopenStatus_t25miopenStatusUnsupportedOpE"></span><span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6a0199ef6922cf9b53fc3320d681915b73"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenStatusUnsupportedOp</span></span></span><a class="headerlink" href="#_CPPv4N14miopenStatus_t25miopenStatusUnsupportedOpE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Unsupported operator for fusion. </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv232miopenStatusGpuOperationsSkipped">
-<span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6a0d00d1e79b4c27f3ca840c9729a8c58b"></span><code class="descname">miopenStatusGpuOperationsSkipped</code> = 9<a class="headerlink" href="#_CPPv232miopenStatusGpuOperationsSkipped" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N14miopenStatus_t32miopenStatusGpuOperationsSkippedE">
+<span id="_CPPv3N14miopenStatus_t32miopenStatusGpuOperationsSkippedE"></span><span id="_CPPv2N14miopenStatus_t32miopenStatusGpuOperationsSkippedE"></span><span class="target" id="group__handle_1gga74216ea6ba6c5487d5aceb46eb35f1d6a0d00d1e79b4c27f3ca840c9729a8c58b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenStatusGpuOperationsSkipped</span></span></span><a class="headerlink" href="#_CPPv4N14miopenStatus_t32miopenStatusGpuOperationsSkippedE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>This is not an error. </p>
 </dd></dl>
 
@@ -590,141 +598,143 @@
 </div>
 <div class="section" id="miopencreate">
 <h2>miopenCreate<a class="headerlink" href="#miopencreate" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv212miopenCreateP14miopenHandle_t">
-<span id="miopenCreate__miopenHandle_tP"></span><span class="target" id="group__handle_1gadc3aee857a3b68a341844398909edf31"></span> <a class="reference internal" href="#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreate</code><span class="sig-paren">(</span>miopenHandle_t *<em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv212miopenCreateP14miopenHandle_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv412miopenCreateP14miopenHandle_t">
+<span id="_CPPv312miopenCreateP14miopenHandle_t"></span><span id="_CPPv212miopenCreateP14miopenHandle_t"></span><span id="miopenCreate__miopenHandle_tP"></span><span class="target" id="group__handle_1gadc3aee857a3b68a341844398909edf31"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenCreate</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">handle</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv412miopenCreateP14miopenHandle_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Method to create the MIOpen handle object. </p>
-<p>This function creates a MIOpen handle. This is called at the very start to initialize the MIOpen environment. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: A pointer to a MIOpen handle type (output)</li>
-</ul>
+<p>This function creates a MIOpen handle. This is called at the very start to initialize the MIOpen environment. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>handle</strong> – A pointer to a MIOpen handle type (output)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
 </dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopencreatewithstream">
 <h2>miopenCreateWithStream<a class="headerlink" href="#miopencreatewithstream" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv222miopenCreateWithStreamP14miopenHandle_t24miopenAcceleratorQueue_t">
-<span id="miopenCreateWithStream__miopenHandle_tP.miopenAcceleratorQueue_t"></span><span class="target" id="group__handle_1gaf64af17fb91d751097da2efc6a3de3da"></span> <a class="reference internal" href="#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateWithStream</code><span class="sig-paren">(</span>miopenHandle_t *<em>handle</em>, miopenAcceleratorQueue_t <em>stream</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv222miopenCreateWithStreamP14miopenHandle_t24miopenAcceleratorQueue_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv422miopenCreateWithStreamP14miopenHandle_t24miopenAcceleratorQueue_t">
+<span id="_CPPv322miopenCreateWithStreamP14miopenHandle_t24miopenAcceleratorQueue_t"></span><span id="_CPPv222miopenCreateWithStreamP14miopenHandle_t24miopenAcceleratorQueue_t"></span><span id="miopenCreateWithStream__miopenHandle_tP.miopenAcceleratorQueue_t"></span><span class="target" id="group__handle_1gaf64af17fb91d751097da2efc6a3de3da"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenCreateWithStream</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="n"><span class="pre">miopenAcceleratorQueue_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stream</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv422miopenCreateWithStreamP14miopenHandle_t24miopenAcceleratorQueue_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Create a MIOpen handle with an accelerator stream. </p>
 <p>The HIP side uses a hipStream_t type for the stream, while OpenCL will use a cl_command_queue.</p>
-<p>Create a handle with a previously created accelerator command queue. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: A pointer to a MIOpen handle type (output) </li>
-<li><code class="docutils literal"><span class="pre">stream</span></code>: An accelerator queue type (input)</li>
+<p>Create a handle with a previously created accelerator command queue. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – A pointer to a MIOpen handle type (output) </p></li>
+<li><p><strong>stream</strong> – An accelerator queue type (input)</p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopendestroy">
 <h2>miopenDestroy<a class="headerlink" href="#miopendestroy" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv213miopenDestroy14miopenHandle_t">
-<span id="miopenDestroy__miopenHandle_t"></span><span class="target" id="group__handle_1ga6fb71eda2f0bf330a6980eb21658503b"></span> <a class="reference internal" href="#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDestroy</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv213miopenDestroy14miopenHandle_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv413miopenDestroy14miopenHandle_t">
+<span id="_CPPv313miopenDestroy14miopenHandle_t"></span><span id="_CPPv213miopenDestroy14miopenHandle_t"></span><span id="miopenDestroy__miopenHandle_t"></span><span class="target" id="group__handle_1ga6fb71eda2f0bf330a6980eb21658503b"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenDestroy</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv413miopenDestroy14miopenHandle_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Destroys the MIOpen handle. </p>
-<p>This is called when breaking down the MIOpen environment. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-</ul>
+<p>This is called when breaking down the MIOpen environment. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>handle</strong> – MIOpen handle (input) </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
 </dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopensetstream">
 <h2>miopenSetStream<a class="headerlink" href="#miopensetstream" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv215miopenSetStream14miopenHandle_t24miopenAcceleratorQueue_t">
-<span id="miopenSetStream__miopenHandle_t.miopenAcceleratorQueue_t"></span><span class="target" id="group__handle_1gae110c66b903eb0218c513f8416bd9a41"></span> <a class="reference internal" href="#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetStream</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, miopenAcceleratorQueue_t <em>streamID</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv215miopenSetStream14miopenHandle_t24miopenAcceleratorQueue_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv415miopenSetStream14miopenHandle_t24miopenAcceleratorQueue_t">
+<span id="_CPPv315miopenSetStream14miopenHandle_t24miopenAcceleratorQueue_t"></span><span id="_CPPv215miopenSetStream14miopenHandle_t24miopenAcceleratorQueue_t"></span><span id="miopenSetStream__miopenHandle_t.miopenAcceleratorQueue_t"></span><span class="target" id="group__handle_1gae110c66b903eb0218c513f8416bd9a41"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSetStream</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="n"><span class="pre">miopenAcceleratorQueue_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">streamID</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv415miopenSetStream14miopenHandle_t24miopenAcceleratorQueue_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set accelerator command queue previously created. </p>
-<p>Set a command queue for an accelerator device <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">streamID</span></code>: An accelerator queue type (input) </li>
+<p>Set a command queue for an accelerator device </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>streamID</strong> – An accelerator queue type (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopengetstream">
 <h2>miopenGetStream<a class="headerlink" href="#miopengetstream" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv215miopenGetStream14miopenHandle_tP24miopenAcceleratorQueue_t">
-<span id="miopenGetStream__miopenHandle_t.miopenAcceleratorQueue_tP"></span><span class="target" id="group__handle_1ga17e0f050b531eef76f7e6b173286e166"></span> <a class="reference internal" href="#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetStream</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, miopenAcceleratorQueue_t *<em>streamID</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv215miopenGetStream14miopenHandle_tP24miopenAcceleratorQueue_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv415miopenGetStream14miopenHandle_tP24miopenAcceleratorQueue_t">
+<span id="_CPPv315miopenGetStream14miopenHandle_tP24miopenAcceleratorQueue_t"></span><span id="_CPPv215miopenGetStream14miopenHandle_tP24miopenAcceleratorQueue_t"></span><span id="miopenGetStream__miopenHandle_t.miopenAcceleratorQueue_tP"></span><span class="target" id="group__handle_1ga17e0f050b531eef76f7e6b173286e166"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenGetStream</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="n"><span class="pre">miopenAcceleratorQueue_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">streamID</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv415miopenGetStream14miopenHandle_tP24miopenAcceleratorQueue_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get the previously created accelerator command queue. </p>
-<p>Creates a command queue for an accelerator device <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">streamID</span></code>: Pointer to a accelerator queue type (output) </li>
+<p>Creates a command queue for an accelerator device </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>streamID</strong> – Pointer to a accelerator queue type (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopengetkerneltime">
 <h2>miopenGetKernelTime<a class="headerlink" href="#miopengetkerneltime" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv219miopenGetKernelTime14miopenHandle_tPf">
-<span id="miopenGetKernelTime__miopenHandle_t.floatP"></span><span class="target" id="group__handle_1gab4a3aaa7fdb3bb4207157d0b84c40c2a"></span> <a class="reference internal" href="#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetKernelTime</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, float *<em>time</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv219miopenGetKernelTime14miopenHandle_tPf" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419miopenGetKernelTime14miopenHandle_tPf">
+<span id="_CPPv319miopenGetKernelTime14miopenHandle_tPf"></span><span id="_CPPv219miopenGetKernelTime14miopenHandle_tPf"></span><span id="miopenGetKernelTime__miopenHandle_t.floatP"></span><span class="target" id="group__handle_1gab4a3aaa7fdb3bb4207157d0b84c40c2a"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenGetKernelTime</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">time</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419miopenGetKernelTime14miopenHandle_tPf" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get time for last kernel launched. </p>
 <p>This function is used only when profiling mode has been enabled. Kernel timings are based on the MIOpen handle and is not thread-safe. In order to use multi-threaded profiling, create an MIOpen handle for each concurrent thread.</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">time</span></code>: Pointer to a float type to contain kernel time in milliseconds (output) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>time</strong> – Pointer to a float type to contain kernel time in milliseconds (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenenableprofiling">
 <h2>miopenEnableProfiling<a class="headerlink" href="#miopenenableprofiling" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv221miopenEnableProfiling14miopenHandle_tb">
-<span id="miopenEnableProfiling__miopenHandle_t.b"></span><span class="target" id="group__handle_1gac14bff4cc1828e233e9966fb1386a1f7"></span> <a class="reference internal" href="#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenEnableProfiling</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, bool <em>enable</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv221miopenEnableProfiling14miopenHandle_tb" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421miopenEnableProfiling14miopenHandle_tb">
+<span id="_CPPv321miopenEnableProfiling14miopenHandle_tb"></span><span id="_CPPv221miopenEnableProfiling14miopenHandle_tb"></span><span id="miopenEnableProfiling__miopenHandle_t.b"></span><span class="target" id="group__handle_1gac14bff4cc1828e233e9966fb1386a1f7"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenEnableProfiling</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">enable</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421miopenEnableProfiling14miopenHandle_tb" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Enable profiling to retrieve kernel time. </p>
-<p>Enable or disable kernel profiling. This profiling is only for kernel time. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">enable</span></code>: Boolean to toggle profiling (input) </li>
+<p>Enable or disable kernel profiling. This profiling is only for kernel time. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>enable</strong> – Boolean to toggle profiling (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
@@ -735,29 +745,29 @@
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="tensor.html" class="btn btn-neutral float-right" title="Tensors" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="datatypes.html" class="btn btn-neutral" title="Datatypes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="tensor.html" class="btn btn-neutral float-right" title="Tensors" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="datatypes.html" class="btn btn-neutral float-left" title="Datatypes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -766,34 +776,16 @@
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>
