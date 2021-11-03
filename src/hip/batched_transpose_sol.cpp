@@ -35,7 +35,11 @@
 #include <sstream>
 
 #define BATCHED_TRANSPOSE_BLOCK_SIZE 256
+#define BATCHED_TRANSPOSE_PERSISTENT 0
+
+#if BATCHED_TRANSPOSE_PERSISTENT
 #define BATCHED_TRANSPOSE_OCCUPANCY 4
+#endif
 
 namespace miopen {
 
@@ -255,8 +259,13 @@ BatchedTransposeSolution::BatchedTransposeSolution(const ExecutionContext& ctx,
 solver::KernelInfo BatchedTransposeSolution::GetKernel() const
 {
     std::size_t block_size = BATCHED_TRANSPOSE_BLOCK_SIZE;
-    std::size_t grid_size  = num_cu * BATCHED_TRANSPOSE_OCCUPANCY;
-
+#if BATCHED_TRANSPOSE_PERSISTENT
+    std::size_t grid_size = num_cu * BATCHED_TRANSPOSE_OCCUPANCY;
+#else
+    uint32_t dim_h = (height + kernel_param_heuristic.tile_y - 1) / kernel_param_heuristic.tile_y;
+    uint32_t dim_w = (width + kernel_param_heuristic.tile_x - 1) / kernel_param_heuristic.tile_x;
+    std::size_t grid_size = batch * dim_h * dim_w;
+#endif
     std::string kernel_name = GetKernelName();
     solver::KernelInfo kernel;
     kernel.kernel_file = "batched_transpose.cpp";
@@ -277,10 +286,14 @@ solver::KernelInfo BatchedTransposeSolution::GetKernel() const
 
 std::vector<OpKernelArg> BatchedTransposeSolution::GetKernelArg() const
 {
-    std::size_t grid_size = num_cu * BATCHED_TRANSPOSE_OCCUPANCY;
     uint32_t dim_h = (height + kernel_param_heuristic.tile_y - 1) / kernel_param_heuristic.tile_y;
     uint32_t dim_w = (width + kernel_param_heuristic.tile_x - 1) / kernel_param_heuristic.tile_x;
     uint32_t dim_total = batch * dim_h * dim_w;
+#if BATCHED_TRANSPOSE_PERSISTENT
+    std::size_t grid_size = num_cu * BATCHED_TRANSPOSE_OCCUPANCY;
+#else
+    std::size_t grid_size = batch * dim_h * dim_w;
+#endif
 
     magic_div_u32_t magic_h = magic_div_u32_gen(dim_h);
     magic_div_u32_t magic_w = magic_div_u32_gen(dim_w);
