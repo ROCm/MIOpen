@@ -100,6 +100,10 @@ struct CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
                 CThreadTransferSrcDstVectorDim <<
             " -DCK_PARAM_CThreadTransferDstScalarPerVector=" <<
                 CThreadTransferDstScalarPerVector <<
+            " -DCK_PARAM_M01=" <<
+                M01 <<
+            " -DCK_PARAM_N01=" <<
+                N01 <<
             " -DCK_PARAM_HasMainKBlockLoop=" <<
                 HasMainKBlockLoop;
         // clang-format on
@@ -145,6 +149,8 @@ struct CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
     std::array<int, 8> CThreadTransferSrcDstAccessOrder = {-1, -1, -1, -1, -1, -1, -1, -1};
     int CThreadTransferSrcDstVectorDim                  = -1;
     int CThreadTransferDstScalarPerVector               = -1;
+    int M01                                             = -1;
+    int N01                                             = -1;
     bool HasMainKBlockLoop                              = true;
 };
 
@@ -187,6 +193,9 @@ struct TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
     std::array<int, 8> CThreadTransferSrcDstAccessOrder;
     int CThreadTransferSrcDstVectorDim;
     int CThreadTransferDstScalarPerVector;
+
+    int M01;
+    int N01;
 
     bool IsValid() const
     {
@@ -278,23 +287,23 @@ inline static auto generate_tunable_list_conv_igemm_fwd_v4r4r4_xdlops_nhwc_kyxc_
         // clang-format off
         // fp32
         {f32, f32, 256, 256, 128, 4, 32, 32, 4, 4, 2, {1, 4, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, 
-            {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
+            {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1, 1},
         {f32, f32, 256, 128, 128, 4, 32, 32, 4, 2, 2, {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, 
-            {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
+            {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1, 1, 1},
 
         // fp16
         {f16, f16, 256, 256, 256, 4, 32, 32, 8, 4, 4, {1, 4, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, 
-            {1, 4, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
+            {1, 4, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1, 1, 1},
         {f16, f16, 256, 256, 128, 4, 32, 32, 8, 4, 2, {1, 4, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, 
-            {1, 2, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
+            {1, 2, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1, 1, 1},
         {f16, f16, 256, 128, 256, 4, 32, 32, 8, 2, 4, {1, 2, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, 
-            {1, 4, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
+            {1, 4, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1, 1, 1},
         {f16, f16, 256, 128, 128, 4, 32, 32, 8, 2, 2, {1, 2, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, 
-            {1, 2, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
+            {1, 2, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1, 1, 1},
         {f16, f16, 256, 128, 64, 4, 32, 32, 8, 2, 2, {1, 4, 8}, {4, 32, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, 
-            {1, 2, 8}, {4, 32, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
+            {1, 2, 8}, {4, 32, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1, 1, 1},
         {f16, f16, 256, 128, 64, 4, 32, 32, 8, 2, 1, {1, 2, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, 
-            {1, 1, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
+            {1, 1, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1, 1, 1},
 
         // i8
 
