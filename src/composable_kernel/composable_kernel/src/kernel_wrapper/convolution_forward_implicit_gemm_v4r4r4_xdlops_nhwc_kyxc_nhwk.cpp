@@ -62,7 +62,7 @@ constexpr index_t GemmCThreadTransferSrcDstVectorDim = CK_PARAM_CThreadTransferS
 constexpr index_t GemmCThreadTransferDstScalarPerVector =
     CK_PARAM_CThreadTransferDstScalarPerVector;
 
-// constexpr bool HasMainKBlockLoop = static_cast<bool>(CK_PARAM_HasMainKBlockLoop);
+constexpr bool HasMainKBlockLoop = static_cast<bool>(CK_PARAM_HasMainKBlockLoop);
 
 extern "C" __global__ void
 convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk_prepare(int N_,
@@ -395,7 +395,7 @@ extern "C" __global__ void
                static_cast<const void*>(&p_a_grid[space]));
     }
 #endif
-
+    if(HasMainKBlockLoop)
     GridwiseGemm::Run(p_a_grid,
                       p_b_grid,
                       p_c_grid,

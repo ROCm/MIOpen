@@ -99,7 +99,9 @@ struct CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
             " -DCK_PARAM_CThreadTransferSrcDstVectorDim=" <<
                 CThreadTransferSrcDstVectorDim <<
             " -DCK_PARAM_CThreadTransferDstScalarPerVector=" <<
-                CThreadTransferDstScalarPerVector;
+                CThreadTransferDstScalarPerVector <<
+            " -DCK_PARAM_HasMainKBlockLoop=" <<
+                HasMainKBlockLoop;
         // clang-format on
 
         return param.str();
@@ -143,6 +145,7 @@ struct CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
     std::array<int, 8> CThreadTransferSrcDstAccessOrder = {-1, -1, -1, -1, -1, -1, -1, -1};
     int CThreadTransferSrcDstVectorDim                  = -1;
     int CThreadTransferDstScalarPerVector               = -1;
+    bool HasMainKBlockLoop                              = true;
 };
 
 struct TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
@@ -184,6 +187,75 @@ struct TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
     std::array<int, 8> CThreadTransferSrcDstAccessOrder;
     int CThreadTransferSrcDstVectorDim;
     int CThreadTransferDstScalarPerVector;
+
+    bool IsValid() const
+    {
+        if(!((MPerXDL == 32 && MPerXDL == 32) || (MPerXDL == 16 && MPerXDL == 16)))
+            return false;
+        if(!((MRepeat * MPerXDL == 64) && (NRepeat * NPerXDL == 64)))
+            return false;
+
+        if(!(K1 % 4 == 0))
+            return false;
+
+        if(!(K0PerBlock % 4 == 0))
+            return false;
+
+        if(!(MPerBlock % MPerXDL == 0))
+            return false;
+
+        if(!(NPerBlock % NPerXDL == 0))
+            return false;
+        // A matrix copy
+        {
+            const auto& thread_slice_lengths = ABlockTransferThreadSliceLengths_K0_M_K1;
+            const auto& cluster_lengths      = ABlockTransferThreadClusterLengths_K0_M_K1;
+            const auto block_slice_lengths   = std::array<int, 3>{K0PerBlock, MPerBlock, K1};
+            // check number of working thread
+            const int num_work_thread = std::accumulate(
+                cluster_lengths.begin(), cluster_lengths.end(), 1, std::multiplies<int>{});
+            if(!(BlockSize == num_work_thread))
+                return false;
+
+            // check block slice lengths vs thread slice lengths vs cluster lengths
+            for(int i = 0; i < thread_slice_lengths.size(); ++i)
+            {
+                if(!(cluster_lengths[i] * thread_slice_lengths[i] == block_slice_lengths[i]))
+                    return false;
+            }
+
+            if(ABlockTransferSrcVectorDim >= ABlockTransferThreadClusterArrangeOrder.size())
+                return false;
+        }
+
+        // B matrix copy
+        {
+            const auto& thread_slice_lengths = BBlockTransferThreadSliceLengths_K0_N_K1;
+            const auto& cluster_lengths      = BBlockTransferThreadClusterLengths_K0_N_K1;
+            const auto block_slice_lengths   = std::array<int, 3>{K0PerBlock, NPerBlock, K1};
+            // check number of working thread
+            const int num_work_thread = std::accumulate(
+                cluster_lengths.begin(), cluster_lengths.end(), 1, std::multiplies<int>{});
+            if(!(BlockSize == num_work_thread))
+                return false;
+
+            // check block slice lengths vs thread slice lengths vs cluster lengths
+            for(int i = 0; i < thread_slice_lengths.size(); ++i)
+            {
+                if(!(cluster_lengths[i] * thread_slice_lengths[i] == block_slice_lengths[i]))
+                    return false;
+            }
+
+            if(ABlockTransferSrcVectorDim >= ABlockTransferThreadClusterArrangeOrder.size())
+                return false;
+        }
+        // C Matrix
+        {
+            if(CThreadTransferSrcDstAccessOrder.size() <= CThreadTransferSrcDstVectorDim)
+                return false;
+        }
+        return true;
+    }
 };
 
 inline static auto generate_tunable_list_conv_igemm_fwd_v4r4r4_xdlops_nhwc_kyxc_nhwk()
@@ -295,6 +367,10 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
         if(!(GK % (K0PerBlock * K1) == 0))
             return std::make_tuple(CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk{}, false);
 
+        bool HasMainKBlockLoop = true;
+        if(GK == K0PerBlock * K1)
+            HasMainKBlockLoop = false;
+
         return std::make_tuple(
             CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk{
                 ABDataTypeEnum,
@@ -327,7 +403,8 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
                 BThreadTransferSrcResetCoordinateAfterRun,
                 CThreadTransferSrcDstAccessOrder,
                 CThreadTransferSrcDstVectorDim,
-                CThreadTransferDstScalarPerVector},
+                CThreadTransferDstScalarPerVector,
+                HasMainKBlockLoop},
             true);
     }
 
@@ -336,6 +413,9 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
         for(const auto& tunable :
             generate_tunable_list_conv_igemm_fwd_v4r4r4_xdlops_nhwc_kyxc_nhwk())
         {
+            if(!tunable.IsValid())
+                continue;
+
             CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk compile_param{};
             bool found = false;
 
@@ -362,6 +442,31 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
         const ConvolutionProblemDescriptor& conv_problem_desc,
         const CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk& compile_param)
     {
+        const int GemmK1         = compile_param.K1;
+        const int GemmMPerBlock  = compile_param.MPerBlock;
+        const int GemmNPerBlock  = compile_param.NPerBlock;
+        const int GemmK0PerBlock = compile_param.K0PerBlock;
+
+        const int N  = conv_problem_desc.N;
+        const int K  = conv_problem_desc.K;
+        const int C  = conv_problem_desc.C;
+        const int Y  = conv_problem_desc.Y;
+        const int X  = conv_problem_desc.X;
+        const int Ho = conv_problem_desc.Ho;
+        const int Wo = conv_problem_desc.Wo;
+
+        const auto GemmM = N * Ho * Wo;
+        const auto GemmN = K;
+        const auto GemmK = Y * X * C;
+
+        if(!(GemmM % GemmMPerBlock == 0))
+            return false;
+
+        if(!(GemmK % GemmK1 == 0))
+            return false;
+
+        const auto GemmK0 = GemmK / GemmK1;
+
         return true;
     };
 
