@@ -192,8 +192,6 @@ struct TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
     {
         if(!((MPerXDL == 32 && MPerXDL == 32) || (MPerXDL == 16 && MPerXDL == 16)))
             return false;
-        if(!((MRepeat * MPerXDL == 64) && (NRepeat * NPerXDL == 64)))
-            return false;
 
         if(!(K1 % 4 == 0))
             return false;
@@ -279,13 +277,24 @@ inline static auto generate_tunable_list_conv_igemm_fwd_v4r4r4_xdlops_nhwc_kyxc_
     return std::vector<TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk>{
         // clang-format off
         // fp32
+        {f32, f32, 256, 256, 128, 4, 32, 32, 4, 4, 2, {1, 4, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, 
+            {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
         {f32, f32, 256, 128, 128, 4, 32, 32, 4, 2, 2, {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, 
-            {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1}
-
-       
+            {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
 
         // fp16
-       
+        {f16, f16, 256, 256, 256, 4, 32, 32, 8, 4, 4, {1, 4, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, 
+            {1, 4, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
+        {f16, f16, 256, 256, 128, 4, 32, 32, 8, 4, 2, {1, 4, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, 
+            {1, 2, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
+        {f16, f16, 256, 128, 256, 4, 32, 32, 8, 2, 4, {1, 2, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, 
+            {1, 4, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
+        {f16, f16, 256, 128, 128, 4, 32, 32, 8, 2, 2, {1, 2, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, 
+            {1, 2, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
+        {f16, f16, 256, 128, 64, 4, 32, 32, 8, 2, 2, {1, 4, 8}, {4, 32, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, 
+            {1, 2, 8}, {4, 32, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
+        {f16, f16, 256, 128, 64, 4, 32, 32, 8, 2, 1, {1, 2, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, 
+            {1, 1, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1},
 
         // i8
 
@@ -479,18 +488,18 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
         if(!(GemmK % GemmK1 == 0))
             return false;
 
-        if(!(GemmK % (GemmMPerBlock * GemmK1) == 0))
+        if(!(GemmK % (GemmK0PerBlock * GemmK1) == 0))
             return false;
 
         if(!compile_param.HasMainKBlockLoop)
         {
-            if(!(GemmK == (GemmMPerBlock * GemmK1)))
+            if(!(GemmK == (GemmK0PerBlock * GemmK1)))
                 return false;
         }
 
         if(!(C % compile_param.ABlockTransferSrcScalarPerVector == 0))
             return false;
-        
+
         return true;
     };
 
