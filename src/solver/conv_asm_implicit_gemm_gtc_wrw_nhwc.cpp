@@ -982,7 +982,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         std::ostringstream opts_1(options.str(), std::ios_base::ate); // Options for alt kernel.
         GenerateClangDefsym(opts_1, "igemm_wrw_fp16_alt_impl", 1);
         result.construction_params[1].comp_options = opts_1.str();
-        msg << ", fp16_alt:" <<ctx.conv_problem.GetConv().attribute.gfx90aFp16alt.GetWrW();
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", fp16_alt:" <<ctx.conv_problem.GetConv().attribute.gfx90aFp16alt.GetWrW();
     }
 
     const auto lowp_quant = conv_problem.GetConv().lowp_quant;
@@ -1024,17 +1025,20 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         if(!trans_input_skippable){
             result.construction_params.push_back(trans_input.GetKernel());
             opArgsTrans.emplace_back(trans_input.GetKernelArg());
-            msg << ", inp trans:"<<trans_input.GetKernelName();
+            if(miopen::IsLogging(LoggingLevel::Info2))
+                msg << ", inp trans:"<<trans_input.GetKernelName();
         }
         if(!trans_weight_skippable){
             result.construction_params.push_back(trans_weight.GetKernel());
             opArgsTrans.emplace_back(trans_weight.GetKernelArg());
-            msg << ", wei trans:"<<trans_weight.GetKernelName();
+            if(miopen::IsLogging(LoggingLevel::Info2))
+                msg << ", wei trans:"<<trans_weight.GetKernelName();
         }
         if(!trans_output_skippable){
             result.construction_params.push_back(trans_output.GetKernel());
             opArgsTrans.emplace_back(trans_output.GetKernelArg());
-            msg << ", out trans:"<<trans_output.GetKernelName();
+            if(miopen::IsLogging(LoggingLevel::Info2))
+                msg << ", out trans:"<<trans_output.GetKernelName();
         }
 
         trans_input_size  = trans_input_skippable ? 0 : trans_input.GetSize();
@@ -1053,7 +1057,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
             trans_output_idx = idx++;
     }
 
-    MIOPEN_LOG_I2("ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC: " + config.ToString() + msg.str());
+    MIOPEN_LOG_I2(SolverDbId(*this) << ": " << config.ToString() << msg.str());
 
     const size_t cast_offset = isNCHW ? (trans_output_offset + trans_output_size) : 0;
     const size_t cast_size = need_cast ? 
