@@ -87,7 +87,7 @@ bool ConvCkIgemmFwdV4r4r4XdlopsNhwc::IsApplicable(const ConvolutionContext& ctx)
         return false;
     if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
         return false;
-    if(!ctx.IsLayoutDefault())
+    if(!ctx.IsLayoutNHWC())
         return false;
     if(!ctx.direction.IsForward())
         return false;

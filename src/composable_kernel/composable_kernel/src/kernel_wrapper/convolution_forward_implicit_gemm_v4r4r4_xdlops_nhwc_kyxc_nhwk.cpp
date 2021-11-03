@@ -219,7 +219,8 @@ convolution_forward_implicit_gemm_v4r4r4_xdlops_nhwc_kyxc_nhwk_prepare(int N_,
             make_tuple(in_gemmk0_gemmm_gemmk1_grid_desc,
                        wei_gemmk0_gemmn_gemmk1_grid_desc,
                        GridwiseGemm::MakeCM0N0M1N1M2M3M4N2GridDescriptor(out_gemmm_gemmn_grid_desc),
-                       GridwiseGemm::MakeCBlockClusterAdaptor(out_gemmm_gemmn_grid_desc, M01, N01));
+                       GridwiseGemm::MakeCBlockClusterAdaptor(out_gemmm_gemmn_grid_desc, M01, N01),
+                       out_gemmm_gemmn_grid_desc);
 
         *static_cast<decltype(desc_tuple)*>(p_desc_tuple) = desc_tuple;
     }
@@ -239,6 +240,7 @@ extern "C" __global__ void
     constexpr auto I1 = Number<1>{};
     constexpr auto I2 = Number<2>{};
     constexpr auto I3 = Number<3>{};
+    constexpr auto I4 = Number<4>{};
 
     constexpr auto in_n_hi_wi_c_desc =
         make_naive_tensor_descriptor_packed(make_tuple(256, 28, 28, 256));
@@ -355,7 +357,8 @@ extern "C" __global__ void
     using DescTuple = decltype(make_tuple(in_gemmk0_gemmm_gemmk1_grid_desc,
                                           wei_gemmk0_gemmn_gemmk1_grid_desc,
                                           c_m0_n0_m1_n1_m2_m3_m4_n2_grid_desc,
-                                          c_blockid_to_m0_n0_block_cluster_adaptor_tmp));
+                                          c_blockid_to_m0_n0_block_cluster_adaptor_tmp,
+                                          out_gemmm_gemmn_grid_desc));
 
     const auto desc_tuple = *reinterpret_cast<const DescTuple*>(
 #pragma clang diagnostic push
@@ -369,6 +372,7 @@ extern "C" __global__ void
     const auto b_k0_n_k1_grid_desc                      = desc_tuple[I1];
     const auto c_m0_m1_m2_n_grid_desc                   = desc_tuple[I2];
     const auto c_blockid_to_m0_n0_block_cluster_adaptor = desc_tuple[I3];
+    const auto c_m_n_grid_desc                          = desc_tuple[I4];
 
     constexpr index_t shared_block_size =
         GridwiseGemm::GetSharedMemoryNumberOfByte() / sizeof(FloatAB);
@@ -376,6 +380,11 @@ extern "C" __global__ void
     __shared__ FloatAB p_shared_block[shared_block_size];
 
 #ifdef PRINT_DEBUG_INFO
+    if(!GridwiseGemm::CheckValidity(
+           a_k0_m_k1_grid_desc, b_k0_n_k1_grid_desc, c_m_n_grid_desc, M01, N01))
+    {
+        printf("wrong! GridwiseGemm_km_kn_m0m1n0n1_xdlops_v2r3 has invalid setting\n");
+    }
     if(get_block_1d_id() == 0 && get_thread_local_1d_id() == 0)
     {
         const int k0 = a_k0_m_k1_grid_desc.GetLength(I0);
@@ -383,12 +392,13 @@ extern "C" __global__ void
         const int n  = b_k0_n_k1_grid_desc.GetLength(I1);
         const int m  = a_k0_m_k1_grid_desc.GetLength(I1);
 
-        printf("shared block size: %d , gemmM: %d gemmN: %d ,gemmK0: %d gemmK1: %d \n",
+        printf("shared block size: %d , gemmM: %d gemmN: %d ,gemmK0: %d gemmK1: %d HasMainKBlockLoop: %d\n",
                shared_block_size,
                m,
                n,
                k0,
-               k1);
+               k1,
+               HasMainKBlockLoop);
         printf("a address %p, b address %p, c address %p, shared address: %p\n",
                static_cast<const void*>(p_a_grid),
                static_cast<const void*>(p_b_grid),
