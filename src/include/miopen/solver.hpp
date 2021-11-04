@@ -278,11 +278,12 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
 using FusionProblemDescriptor = std::tuple<const ExecutionContext*,
                                            const std::vector<miopen::ProblemDescriptionBase>*,
                                            const std::vector<solver::Primitive>*>;
-struct ConvBiasActivAsm1x1U : public SolverBase<FusionProblemDescriptor>, public ConvAsm1x1U
+struct ConvBiasActivAsm1x1U : public ConvAsm1x1U
 {
-    inline bool IsApplicable(const FusionProblemDescriptor& problem) const
+    inline bool IsApplicable(const boost::any& problem) const override
     {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem), *std::get<2>(problem));
+        const auto& ctx = boost::any_cast<const FusionProblemDescriptor&>(problem);
+        return IsApplicable(*std::get<0>(ctx), *std::get<1>(ctx), *std::get<2>(ctx));
     }
 
     inline ConvSolution GetSolution(const FusionProblemDescriptor& problem,
