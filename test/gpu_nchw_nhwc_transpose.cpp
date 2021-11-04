@@ -96,7 +96,7 @@ struct cpu_transpose
 };
 
 template <typename T>
-struct cpu_transpose<T, miopen::TransposeSolution_NCHW2NHWC>
+struct cpu_transpose<T, miopen::TransposeSolutionDefault2Nhwc>
 {
     static void run(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
     {
@@ -105,7 +105,7 @@ struct cpu_transpose<T, miopen::TransposeSolution_NCHW2NHWC>
 };
 
 template <typename T>
-struct cpu_transpose<T, miopen::TransposeSolution_NHWC2NCHW>
+struct cpu_transpose<T, miopen::TransposeSolutionNhwc2Default>
 {
     static void run(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
     {
@@ -119,13 +119,13 @@ struct transpose_str
 };
 
 template <>
-struct transpose_str<miopen::TransposeSolution_NCHW2NHWC>
+struct transpose_str<miopen::TransposeSolutionDefault2Nhwc>
 {
     static std::string get() { return "nchw2nhwc"; }
 };
 
 template <>
-struct transpose_str<miopen::TransposeSolution_NHWC2NCHW>
+struct transpose_str<miopen::TransposeSolutionNhwc2Default>
 {
     static std::string get() { return "nhwc2nchw"; }
 };
@@ -425,11 +425,11 @@ struct transpose_test : transpose_base
 
 int main()
 {
-    run_test<transpose_test<float, miopen::TransposeSolution_NCHW2NHWC>>();
-    run_test<transpose_test<uint16_t, miopen::TransposeSolution_NCHW2NHWC>>();
-    run_test<transpose_test<uint8_t, miopen::TransposeSolution_NCHW2NHWC>>();
+    run_test<transpose_test<float, miopen::TransposeSolutionDefault2Nhwc>>();
+    run_test<transpose_test<uint16_t, miopen::TransposeSolutionDefault2Nhwc>>();
+    run_test<transpose_test<uint8_t, miopen::TransposeSolutionDefault2Nhwc>>();
 
-    run_test<transpose_test<float, miopen::TransposeSolution_NHWC2NCHW>>();
-    run_test<transpose_test<uint16_t, miopen::TransposeSolution_NHWC2NCHW>>();
-    run_test<transpose_test<uint8_t, miopen::TransposeSolution_NHWC2NCHW>>();
+    run_test<transpose_test<float, miopen::TransposeSolutionNhwc2Default>>();
+    run_test<transpose_test<uint16_t, miopen::TransposeSolutionNhwc2Default>>();
+    run_test<transpose_test<uint8_t, miopen::TransposeSolutionNhwc2Default>>();
 }
