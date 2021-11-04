@@ -281,13 +281,12 @@ inline static auto generate_tunable_list_conv_igemm_fwd_v4r4r4_xdlops_nhwc_kyxc_
 {
     constexpr auto f32 = ck::DataTypeEnum_t::Float;
     constexpr auto f16 = ck::DataTypeEnum_t::Half;
-    constexpr auto i8  = ck::DataTypeEnum_t::Int8;
 
     return std::vector<TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk>{
         // clang-format off
         // fp32
         {f32, f32, 256, 256, 128, 4, 32, 32, 4, 4, 2, {1, 4, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, 
-            {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1, 1},
+            {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1, 1, 1},
         {f32, f32, 256, 128, 128, 4, 32, 32, 4, 2, 2, {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, 
             {1, 2, 4}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 4, 4, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1, 1, 1},
 
@@ -321,8 +320,6 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
         const int C  = conv_problem_desc.C;
         const int Y  = conv_problem_desc.Y;
         const int X  = conv_problem_desc.X;
-        const int Ho = conv_problem_desc.Ho;
-        const int Wo = conv_problem_desc.Wo;
 
         if(!(conv_problem_desc.InDataTypeEnum == tunable.ABDataTypeEnum &&
              conv_problem_desc.WeiDataTypeEnum == tunable.ABDataTypeEnum &&
