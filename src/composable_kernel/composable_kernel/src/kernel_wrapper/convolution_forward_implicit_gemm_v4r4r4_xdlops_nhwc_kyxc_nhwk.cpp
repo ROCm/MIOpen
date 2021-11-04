@@ -240,7 +240,6 @@ extern "C" __global__ void
     constexpr auto I1 = Number<1>{};
     constexpr auto I2 = Number<2>{};
     constexpr auto I3 = Number<3>{};
-    constexpr auto I4 = Number<4>{};
 
     constexpr auto in_n_hi_wi_c_desc =
         make_naive_tensor_descriptor_packed(make_tuple(256, 28, 28, 256));
@@ -371,15 +370,16 @@ extern "C" __global__ void
     const auto a_k0_m_k1_grid_desc                      = desc_tuple[I0];
     const auto b_k0_n_k1_grid_desc                      = desc_tuple[I1];
     const auto c_m0_m1_m2_n_grid_desc                   = desc_tuple[I2];
-    const auto c_blockid_to_m0_n0_block_cluster_adaptor = desc_tuple[I3];
-    const auto c_m_n_grid_desc                          = desc_tuple[I4];
+    const auto c_blockid_to_m0_n0_block_cluster_adaptor = desc_tuple[I3]; 
 
     constexpr index_t shared_block_size =
         GridwiseGemm::GetSharedMemoryNumberOfByte() / sizeof(FloatAB);
 
     __shared__ FloatAB p_shared_block[shared_block_size];
 
-#ifdef PRINT_DEBUG_INFO
+#if PRINT_DEBUG_INFO
+    constexpr auto I4 = Number<4>{};
+    const auto c_m_n_grid_desc                          = desc_tuple[I4];
     if(!GridwiseGemm::CheckValidity(
            a_k0_m_k1_grid_desc, b_k0_n_k1_grid_desc, c_m_n_grid_desc, M01, N01))
     {
