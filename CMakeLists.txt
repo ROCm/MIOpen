@@ -25,6 +25,14 @@
 ################################################################################
 cmake_minimum_required( VERSION 3.5 )
 
+macro(set_var_to_condition var)
+    if(${ARGN})
+        set(${var} TRUE)
+    else()
+        set(${name} FALSE)
+    endif()
+endmacro()
+
 # This has to be initialized before the project() command appears
 # Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
 if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
@@ -125,7 +133,6 @@ endif()
 set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_USE_MLIR "Use MLIR -- EXPERIMENTAL" Off)
-option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
 
@@ -314,6 +321,8 @@ else()
     endif()
 endif()
 
+set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT DEFINED MIOPEN_MODE_NOGPU))
+option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
 
 if(MIOPEN_USE_MLIR)
     # REQUIRED is not supported before cmake 3.18
