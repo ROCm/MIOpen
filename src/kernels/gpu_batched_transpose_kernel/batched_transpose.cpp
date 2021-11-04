@@ -2008,6 +2008,340 @@ inline __device__ void batched_transpose_64x64_pack_4x4_ediv_2x2<ushort>(ushort*
     }
 }
 
+template <typename T>
+inline __device__ void batched_transpose_4x256(T* dst,
+                                               T* src,
+                                               uint32_t height,
+                                               uint32_t width,
+                                               uint32_t dim_stride,
+                                               uint32_t dim_total,
+                                               uint32_t magic_h,
+                                               uint32_t shift_h,
+                                               uint32_t magic_w,
+                                               uint32_t shift_w)
+{
+    uint32_t h_dim = (height + 255) >> 8;
+    uint32_t w_dim = (width + 3) >> 2;
+
+    for(uint32_t dim_id = blockIdx.x; dim_id < dim_total; dim_id += dim_stride)
+    {
+        uint32_t dim_ih_tmp = magic_div_u32(dim_id, magic_w, shift_w);
+        uint32_t dim_iw     = dim_id - dim_ih_tmp * w_dim;
+        uint32_t dim_in     = magic_div_u32(dim_ih_tmp, magic_h, shift_h);
+        uint32_t dim_ih     = dim_ih_tmp - dim_in * h_dim;
+
+        uint32_t g_src_w = (dim_iw << 2);
+        uint32_t g_src_h = (dim_ih << 8) + threadIdx.x;
+
+        T v_buf[4];
+        size_t src_index = static_cast<size_t>(dim_in) * height * width +
+                           static_cast<size_t>(g_src_h) * width + static_cast<size_t>(g_src_w);
+        if(g_src_h < height && g_src_w < width)
+        {
+            v_buf[0] = src[src_index];
+        }
+        if(g_src_h < height && (g_src_w + 1) < width)
+        {
+            v_buf[1] = src[src_index + 1];
+        }
+        if(g_src_h < height && (g_src_w + 2) < width)
+        {
+            v_buf[2] = src[src_index + 2];
+        }
+        if(g_src_h < height && (g_src_w + 3) < width)
+        {
+            v_buf[3] = src[src_index + 3];
+        }
+
+        uint32_t g_dst_h = (dim_ih << 8) + threadIdx.x;
+        uint32_t g_dst_w = (dim_iw << 2);
+        size_t dst_index = static_cast<size_t>(dim_in) * width * height +
+                           static_cast<size_t>(g_dst_w) * height + static_cast<size_t>(g_dst_h);
+
+        if(g_dst_h < height && g_dst_w < width)
+        {
+            dst[dst_index] = v_buf[0];
+        }
+        if(g_dst_h < height && (g_dst_w + 1) < width)
+        {
+            dst[dst_index + height] = v_buf[1];
+        }
+        if(g_dst_h < height && (g_dst_w + 2) < width)
+        {
+            dst[dst_index + 2 * height] = v_buf[2];
+        }
+        if(g_dst_h < height && (g_dst_w + 3) < width)
+        {
+            dst[dst_index + 3 * height] = v_buf[3];
+        }
+    }
+}
+
+template <typename T>
+inline __device__ void batched_transpose_256x4(T* dst,
+                                               T* src,
+                                               uint32_t height,
+                                               uint32_t width,
+                                               uint32_t dim_stride,
+                                               uint32_t dim_total,
+                                               uint32_t magic_h,
+                                               uint32_t shift_h,
+                                               uint32_t magic_w,
+                                               uint32_t shift_w)
+{
+    uint32_t h_dim = (height + 3) >> 2;
+    uint32_t w_dim = (width + 255) >> 8;
+
+    for(uint32_t dim_id = blockIdx.x; dim_id < dim_total; dim_id += dim_stride)
+    {
+        uint32_t dim_ih_tmp = magic_div_u32(dim_id, magic_w, shift_w);
+        uint32_t dim_iw     = dim_id - dim_ih_tmp * w_dim;
+        uint32_t dim_in     = magic_div_u32(dim_ih_tmp, magic_h, shift_h);
+        uint32_t dim_ih     = dim_ih_tmp - dim_in * h_dim;
+
+        uint32_t g_src_w = (dim_iw << 8) + threadIdx.x;
+        uint32_t g_src_h = (dim_ih << 2);
+
+        T v_buf[4];
+        size_t src_index = static_cast<size_t>(dim_in) * height * width +
+                           static_cast<size_t>(g_src_h) * width + static_cast<size_t>(g_src_w);
+        if(g_src_h < height && g_src_w < width)
+        {
+            v_buf[0] = src[src_index];
+        }
+        if((g_src_h + 1) < height && g_src_w < width)
+        {
+            v_buf[1] = src[src_index + width];
+        }
+        if((g_src_h + 2) < height && g_src_w < width)
+        {
+            v_buf[2] = src[src_index + 2 * width];
+        }
+        if((g_src_h + 3) < height && g_src_w < width)
+        {
+            v_buf[3] = src[src_index + 3 * width];
+        }
+
+        uint32_t g_dst_h = (dim_ih << 2);
+        uint32_t g_dst_w = (dim_iw << 8) + threadIdx.x;
+        size_t dst_index = static_cast<size_t>(dim_in) * width * height +
+                           static_cast<size_t>(g_dst_w) * height + static_cast<size_t>(g_dst_h);
+
+        if(g_dst_h < height && g_dst_w < width)
+        {
+            dst[dst_index] = v_buf[0];
+        }
+        if((g_dst_h + 1) < height && g_dst_w < width)
+        {
+            dst[dst_index + 1] = v_buf[1];
+        }
+        if((g_dst_h + 2) < height && g_dst_w < width)
+        {
+            dst[dst_index + 2] = v_buf[2];
+        }
+        if((g_dst_h + 3) < height && g_dst_w < width)
+        {
+            dst[dst_index + 3] = v_buf[3];
+        }
+    }
+}
+
+template <typename T>
+inline __device__ void batched_transpose_4x128(T* dst,
+                                               T* src,
+                                               uint32_t height,
+                                               uint32_t width,
+                                               uint32_t dim_stride,
+                                               uint32_t dim_total,
+                                               uint32_t magic_h,
+                                               uint32_t shift_h,
+                                               uint32_t magic_w,
+                                               uint32_t shift_w)
+{
+    uint32_t h_dim = (height + 127) >> 7;
+    uint32_t w_dim = (width + 3) >> 2;
+
+    for(uint32_t dim_id = blockIdx.x; dim_id < dim_total; dim_id += dim_stride)
+    {
+        uint32_t dim_ih_tmp = magic_div_u32(dim_id, magic_w, shift_w);
+        uint32_t dim_iw     = dim_id - dim_ih_tmp * w_dim;
+        uint32_t dim_in     = magic_div_u32(dim_ih_tmp, magic_h, shift_h);
+        uint32_t dim_ih     = dim_ih_tmp - dim_in * h_dim;
+
+        uint32_t g_src_w = (dim_iw << 2) + (threadIdx.x >> 7);
+        uint32_t g_src_h = (dim_ih << 7) + (threadIdx.x & 127);
+
+        T v_buf[2];
+        size_t src_index = static_cast<size_t>(dim_in) * height * width +
+                           static_cast<size_t>(g_src_h) * width + static_cast<size_t>(g_src_w);
+        if(g_src_h < height && g_src_w < width)
+        {
+            v_buf[0] = src[src_index];
+        }
+        if(g_src_h < height && (g_src_w + 2) < width)
+        {
+            v_buf[1] = src[src_index + 2];
+        }
+
+        uint32_t g_dst_h = (dim_ih << 7) + (threadIdx.x & 127);
+        uint32_t g_dst_w = (dim_iw << 2) + (threadIdx.x >> 7);
+        size_t dst_index = static_cast<size_t>(dim_in) * width * height +
+                           static_cast<size_t>(g_dst_w) * height + static_cast<size_t>(g_dst_h);
+
+        if(g_dst_h < height && g_dst_w < width)
+        {
+            dst[dst_index] = v_buf[0];
+        }
+        if(g_dst_h < height && (g_dst_w + 2) < width)
+        {
+            dst[dst_index + 2 * height] = v_buf[1];
+        }
+    }
+}
+
+template <typename T>
+inline __device__ void batched_transpose_128x4(T* dst,
+                                               T* src,
+                                               uint32_t height,
+                                               uint32_t width,
+                                               uint32_t dim_stride,
+                                               uint32_t dim_total,
+                                               uint32_t magic_h,
+                                               uint32_t shift_h,
+                                               uint32_t magic_w,
+                                               uint32_t shift_w)
+{
+    uint32_t h_dim = (height + 3) >> 2;
+    uint32_t w_dim = (width + 127) >> 7;
+
+    for(uint32_t dim_id = blockIdx.x; dim_id < dim_total; dim_id += dim_stride)
+    {
+        uint32_t dim_ih_tmp = magic_div_u32(dim_id, magic_w, shift_w);
+        uint32_t dim_iw     = dim_id - dim_ih_tmp * w_dim;
+        uint32_t dim_in     = magic_div_u32(dim_ih_tmp, magic_h, shift_h);
+        uint32_t dim_ih     = dim_ih_tmp - dim_in * h_dim;
+
+        uint32_t g_src_w = (dim_iw << 7) + (threadIdx.x & 127);
+        uint32_t g_src_h = (dim_ih << 2) + (threadIdx.x >> 7);
+
+        T v_buf[2];
+        size_t src_index = static_cast<size_t>(dim_in) * height * width +
+                           static_cast<size_t>(g_src_h) * width + static_cast<size_t>(g_src_w);
+        if(g_src_h < height && g_src_w < width)
+        {
+            v_buf[0] = src[src_index];
+        }
+        if((g_src_h + 2) < height && g_src_w < width)
+        {
+            v_buf[1] = src[src_index + 2 * width];
+        }
+
+        uint32_t g_dst_h = (dim_ih << 2) + (threadIdx.x >> 7);
+        uint32_t g_dst_w = (dim_iw << 7) + (threadIdx.x & 127);
+        size_t dst_index = static_cast<size_t>(dim_in) * width * height +
+                           static_cast<size_t>(g_dst_w) * height + static_cast<size_t>(g_dst_h);
+
+        if(g_dst_h < height && g_dst_w < width)
+        {
+            dst[dst_index] = v_buf[0];
+        }
+        if((g_dst_h + 2) < height && g_dst_w < width)
+        {
+            dst[dst_index + 2] = v_buf[1];
+        }
+    }
+}
+
+template <typename T>
+inline __device__ void batched_transpose_4x64(T* dst,
+                                              T* src,
+                                              uint32_t height,
+                                              uint32_t width,
+                                              uint32_t dim_stride,
+                                              uint32_t dim_total,
+                                              uint32_t magic_h,
+                                              uint32_t shift_h,
+                                              uint32_t magic_w,
+                                              uint32_t shift_w)
+{
+    uint32_t h_dim = (height + 63) >> 6;
+    uint32_t w_dim = (width + 3) >> 2;
+
+    for(uint32_t dim_id = blockIdx.x; dim_id < dim_total; dim_id += dim_stride)
+    {
+        uint32_t dim_ih_tmp = magic_div_u32(dim_id, magic_w, shift_w);
+        uint32_t dim_iw     = dim_id - dim_ih_tmp * w_dim;
+        uint32_t dim_in     = magic_div_u32(dim_ih_tmp, magic_h, shift_h);
+        uint32_t dim_ih     = dim_ih_tmp - dim_in * h_dim;
+
+        uint32_t g_src_w = (dim_iw << 2) + (threadIdx.x >> 6);
+        uint32_t g_src_h = (dim_ih << 6) + (threadIdx.x & 63);
+
+        T v_buf;
+        size_t src_index = static_cast<size_t>(dim_in) * height * width +
+                           static_cast<size_t>(g_src_h) * width + static_cast<size_t>(g_src_w);
+        if(g_src_h < height && g_src_w < width)
+        {
+            v_buf = src[src_index];
+        }
+
+        uint32_t g_dst_h = (dim_ih << 6) + (threadIdx.x & 63);
+        uint32_t g_dst_w = (dim_iw << 2) + (threadIdx.x >> 6);
+        size_t dst_index = static_cast<size_t>(dim_in) * width * height +
+                           static_cast<size_t>(g_dst_w) * height + static_cast<size_t>(g_dst_h);
+
+        if(g_dst_h < height && g_dst_w < width)
+        {
+            dst[dst_index] = v_buf;
+        }
+    }
+}
+
+template <typename T>
+inline __device__ void batched_transpose_64x4(T* dst,
+                                              T* src,
+                                              uint32_t height,
+                                              uint32_t width,
+                                              uint32_t dim_stride,
+                                              uint32_t dim_total,
+                                              uint32_t magic_h,
+                                              uint32_t shift_h,
+                                              uint32_t magic_w,
+                                              uint32_t shift_w)
+{
+    uint32_t h_dim = (height + 3) >> 2;
+    uint32_t w_dim = (width + 63) >> 6;
+
+    for(uint32_t dim_id = blockIdx.x; dim_id < dim_total; dim_id += dim_stride)
+    {
+        uint32_t dim_ih_tmp = magic_div_u32(dim_id, magic_w, shift_w);
+        uint32_t dim_iw     = dim_id - dim_ih_tmp * w_dim;
+        uint32_t dim_in     = magic_div_u32(dim_ih_tmp, magic_h, shift_h);
+        uint32_t dim_ih     = dim_ih_tmp - dim_in * h_dim;
+
+        uint32_t g_src_w = (dim_iw << 6) + (threadIdx.x & 63);
+        uint32_t g_src_h = (dim_ih << 2) + (threadIdx.x >> 6);
+
+        T v_buf;
+        size_t src_index = static_cast<size_t>(dim_in) * height * width +
+                           static_cast<size_t>(g_src_h) * width + static_cast<size_t>(g_src_w);
+        if(g_src_h < height && g_src_w < width)
+        {
+            v_buf = src[src_index];
+        }
+
+        uint32_t g_dst_h = (dim_ih << 2) + (threadIdx.x >> 6);
+        uint32_t g_dst_w = (dim_iw << 6) + (threadIdx.x & 63);
+        size_t dst_index = static_cast<size_t>(dim_in) * width * height +
+                           static_cast<size_t>(g_dst_w) * height + static_cast<size_t>(g_dst_h);
+
+        if(g_dst_h < height && g_dst_w < width)
+        {
+            dst[dst_index] = v_buf;
+        }
+    }
+}
+
 #define DEFINE_BATCHED_TRANSPOSE_KERNEL(                                                       \
     tile_trait, accept_data_type, cast_data_type, lb_threads_per_block, lb_blocks_per_cu)      \
     extern "C" __global__ void __launch_bounds__(lb_threads_per_block, lb_blocks_per_cu)       \
@@ -2049,6 +2383,30 @@ DEFINE_BATCHED_TRANSPOSE_KERNEL(16x32, byte, uchar, 256, BATCHED_TRANSPOSE_OCCUP
 DEFINE_BATCHED_TRANSPOSE_KERNEL(32x32, dword, float, 256, BATCHED_TRANSPOSE_OCCUPANCY)
 DEFINE_BATCHED_TRANSPOSE_KERNEL(32x32, half, ushort, 256, BATCHED_TRANSPOSE_OCCUPANCY)
 DEFINE_BATCHED_TRANSPOSE_KERNEL(32x32, byte, uchar, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+
+DEFINE_BATCHED_TRANSPOSE_KERNEL(4x256, dword, float, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+DEFINE_BATCHED_TRANSPOSE_KERNEL(4x256, half, ushort, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+DEFINE_BATCHED_TRANSPOSE_KERNEL(4x256, byte, uchar, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+
+DEFINE_BATCHED_TRANSPOSE_KERNEL(256x4, dword, float, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+DEFINE_BATCHED_TRANSPOSE_KERNEL(256x4, half, ushort, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+DEFINE_BATCHED_TRANSPOSE_KERNEL(256x4, byte, uchar, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+
+DEFINE_BATCHED_TRANSPOSE_KERNEL(4x128, dword, float, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+DEFINE_BATCHED_TRANSPOSE_KERNEL(4x128, half, ushort, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+DEFINE_BATCHED_TRANSPOSE_KERNEL(4x128, byte, uchar, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+
+DEFINE_BATCHED_TRANSPOSE_KERNEL(128x4, dword, float, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+DEFINE_BATCHED_TRANSPOSE_KERNEL(128x4, half, ushort, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+DEFINE_BATCHED_TRANSPOSE_KERNEL(128x4, byte, uchar, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+
+DEFINE_BATCHED_TRANSPOSE_KERNEL(4x64, dword, float, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+DEFINE_BATCHED_TRANSPOSE_KERNEL(4x64, half, ushort, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+DEFINE_BATCHED_TRANSPOSE_KERNEL(4x64, byte, uchar, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+
+DEFINE_BATCHED_TRANSPOSE_KERNEL(64x4, dword, float, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+DEFINE_BATCHED_TRANSPOSE_KERNEL(64x4, half, ushort, 256, BATCHED_TRANSPOSE_OCCUPANCY)
+DEFINE_BATCHED_TRANSPOSE_KERNEL(64x4, byte, uchar, 256, BATCHED_TRANSPOSE_OCCUPANCY)
 
 DEFINE_BATCHED_TRANSPOSE_KERNEL(
     32x32_pack_2x2_ediv_2x2, half, ushort, 256, BATCHED_TRANSPOSE_OCCUPANCY)

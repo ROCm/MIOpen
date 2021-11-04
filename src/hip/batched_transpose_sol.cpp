@@ -60,20 +60,37 @@ static inline const std::vector<BatchedTransposeParam>& GetKernelList(std::size_
     if(data_size == 1)
     {
         static const std::vector<BatchedTransposeParam> byte_kernel_list{
+            // clang-format off
             {16, 16, 1, 1, 1, 1},
             {16, 32, 1, 1, 1, 1},
             {32, 16, 1, 1, 1, 1},
             {32, 32, 1, 1, 1, 1},
+
+            {4, 64, 1, 1, 1, 1},
+            {64, 4, 1, 1, 1, 1},
+            {4, 128, 1, 1, 1, 1},
+            {128, 4, 1, 1, 1, 1},
+            {4, 256, 1, 1, 1, 1},
+            {256, 4, 1, 1, 1, 1},
+            // clang-format on
         };
         return byte_kernel_list;
     }
     if(data_size == 2)
     {
         static const std::vector<BatchedTransposeParam> half_kernel_list{
+            // clang-format off
             {16, 16, 1, 1, 1, 1},
             {32, 16, 1, 1, 1, 1},
             {16, 32, 1, 1, 1, 1},
             {32, 32, 1, 1, 1, 1},
+
+            {4, 64, 1, 1, 1, 1},
+            {64, 4, 1, 1, 1, 1},
+            {4, 128, 1, 1, 1, 1},
+            {128, 4, 1, 1, 1, 1},
+            {4, 256, 1, 1, 1, 1},
+            {256, 4, 1, 1, 1, 1},
 
             {32, 32, 2, 2, 1, 1},
             {32, 32, 2, 2, 1, 2},
@@ -93,16 +110,26 @@ static inline const std::vector<BatchedTransposeParam>& GetKernelList(std::size_
 
             {64, 64, 4, 4, 2, 2},
             {64, 64, 4, 4, 4, 4},
+            // clang-format on
         };
         return half_kernel_list;
     }
     if(data_size == 4)
     {
         static const std::vector<BatchedTransposeParam> dword_kernel_list{
+            // clang-format off
             {16, 16, 1, 1, 1, 1},
             {16, 32, 1, 1, 1, 1},
             {32, 16, 1, 1, 1, 1},
             {32, 32, 1, 1, 1, 1},
+
+            {4, 64, 1, 1, 1, 1},
+            {64, 4, 1, 1, 1, 1},
+            {4, 128, 1, 1, 1, 1},
+            {128, 4, 1, 1, 1, 1},
+            {4, 256, 1, 1, 1, 1},
+            {256, 4, 1, 1, 1, 1},
+            // clang-format on
         };
         return dword_kernel_list;
     }
@@ -178,8 +205,31 @@ HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t wi
     std::size_t extra_padding_size = std::numeric_limits<std::size_t>::max();
     float hw_radio                 = GetNormalizedRadio(height, width);
 
+    if(hw_radio >= 12 && (height <= 8 || width <= 8))
+    {
+        // Early heuristic for cases that has very large width, very small height (or vice versa)
+        if(hw_radio <= 48)
+        {
+            return (width <= 8) ? BatchedTransposeParam{4, 64, 1, 1, 1, 1}
+                                : BatchedTransposeParam{64, 4, 1, 1, 1, 1};
+        }
+        else if(hw_radio <= 128)
+        {
+            return (width <= 8) ? BatchedTransposeParam{4, 128, 1, 1, 1, 1}
+                                : BatchedTransposeParam{128, 4, 1, 1, 1, 1};
+        }
+        else
+        {
+            return (width <= 8) ? BatchedTransposeParam{4, 256, 1, 1, 1, 1}
+                                : BatchedTransposeParam{256, 4, 1, 1, 1, 1};
+        }
+    }
+
     for(auto it = kernel_list.rbegin(); it != kernel_list.rend(); it++)
     {
+        if(it->tile_x == 4 || it->tile_y == 4) // We don't want such kernel to be selected here,
+                                               // they should be used in above cases
+            continue;
         if(!IsApplicable(batch, height, width, &(*it)))
             continue;
         std::size_t current_padding_size = GetExtraPaddingSize(batch, height, width, &(*it));
