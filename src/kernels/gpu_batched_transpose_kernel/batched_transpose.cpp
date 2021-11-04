@@ -30,6 +30,14 @@
 #define BATCHED_TRANSPOSE_OCCUPANCY 4
 #endif
 
+// Disable specific warnings
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wconditional-uninitialized"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsometimes-uninitialized"
+#endif
+
 inline __device__ uint32_t magic_div_u32(const uint32_t& numer,
                                          const uint32_t& magic,
                                          const uint32_t& shift)
