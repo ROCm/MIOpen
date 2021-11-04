@@ -1060,6 +1060,9 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ct
     if(!ctx.Is2d())
         return false;
 
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
 
