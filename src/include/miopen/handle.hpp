@@ -169,9 +169,10 @@ struct Handle : miopenHandle
     Allocator::ManageDataPtr&
     WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz) const;
     void ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz) const;
-    shared<Data_t> CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size);
+    shared<Data_t> CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size) const;
 #if MIOPEN_BACKEND_HIP
-    shared<ConstData_t> CreateSubBuffer(ConstData_t data, std::size_t offset, std::size_t size);
+    shared<ConstData_t>
+    CreateSubBuffer(ConstData_t data, std::size_t offset, std::size_t size) const;
 #endif
 
     template <class T>
