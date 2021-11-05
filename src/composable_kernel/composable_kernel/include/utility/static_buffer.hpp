@@ -109,6 +109,7 @@ struct StaticBufferV2 : public StaticallyIndexedArray<T, N>
         constexpr auto vec_id  = Number<i / vector_size>{};
         constexpr auto vec_off = Number<i % vector_size>{};
 
+        // cppcheck-suppress returnTempReference
         return this->At(vec_id).template AsType<VecBaseType>()(vec_off);
     }
 
