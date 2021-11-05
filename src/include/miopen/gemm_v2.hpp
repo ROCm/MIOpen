@@ -28,9 +28,6 @@
 
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/conv/problem_description.hpp>
-
-#include <boost/optional.hpp>
 
 namespace miopen {
 
@@ -77,7 +74,6 @@ struct GemmDescriptor
     long long int strideA, strideB, strideC;
     float alpha, beta;
     miopenDataType_t dataType;
-    bool gfx90aaltimpl = false;
 
     friend std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc);
 };
@@ -93,7 +89,8 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    FindDbKCacheKey* kcache_key, // for find-db
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
-                                   GemmBackend_t gemm_backend = GemmBackend_t::miopentensile);
+                                   GemmBackend_t gemm_backend = GemmBackend_t::miopentensile,
+                                   bool gfx90a_alt_impl       = false);
 
 miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
@@ -104,7 +101,8 @@ miopenStatus_t CallGemm(const Handle& handle,
                         Data_t C,
                         int c_offset,
                         FindDbKCacheKey* kcache_key, // for find-db
-                        GemmBackend_t gemm_backend = GemmBackend_t::miopentensile);
+                        GemmBackend_t gemm_backend = GemmBackend_t::miopentensile,
+                        bool gfx90a_alt_impl       = false);
 
 miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       GemmDescriptor gemm_desc,
@@ -115,7 +113,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       Data_t C,
                                       int c_offset,
                                       FindDbKCacheKey* kcache_key, // for find-db
-                                      GemmBackend_t gemm_backend = GemmBackend_t::miopentensile);
+                                      GemmBackend_t gemm_backend = GemmBackend_t::miopentensile,
+                                      bool gfx90a_alt_impl       = false);
 
 miopenStatus_t
 CallGemmStridedBatchedSequential(const Handle& handle,
@@ -127,106 +126,91 @@ CallGemmStridedBatchedSequential(const Handle& handle,
                                  Data_t C,
                                  int c_offset,
                                  FindDbKCacheKey* kcache_key, // for find-db
-                                 GemmBackend_t gemm_backend = GemmBackend_t::miopentensile);
+                                 GemmBackend_t gemm_backend = GemmBackend_t::miopentensile,
+                                 bool gfx90a_alt_impl       = false);
 
 // GEMM parameters for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)
 GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
                                            const TensorDescriptor& xDesc,
-                                           const TensorDescriptor& yDesc,
-                                           const conv::ProblemDescription& problem);
+                                           const TensorDescriptor& yDesc);
 
 // GEMM parameters for Convolution (using Im2Col) Bwd-Data
 // dx = Col2Im(transpose(w) * dy)
 GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
                                                const TensorDescriptor& dyDesc,
-                                               const TensorDescriptor& dxDesc,
-                                               const conv::ProblemDescription& problem);
+                                               const TensorDescriptor& dxDesc);
 
 // GEMM parameters for Convolution (using Im2Col) Bwd-Weight
 // dw = dy * transpose(Im2Col(x))
 GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
                                                  const TensorDescriptor& xDesc,
-                                                 const TensorDescriptor& dwDesc,
-                                                 const conv::ProblemDescription& problem);
+                                                 const TensorDescriptor& dwDesc);
 
 // GEMM parameters for 1x1 Convolution (using CNHW) Fwd
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
 GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
                                                const TensorDescriptor& xDesc,
-                                               const TensorDescriptor& yDesc,
-                                               const conv::ProblemDescription& problem);
+                                               const TensorDescriptor& yDesc);
 
 // GEMM parameters for 1x1 Convolution (using CNHW) Bwd-Data
 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
 GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc,
                                                    const TensorDescriptor& dyDesc,
-                                                   const TensorDescriptor& dxDesc,
-                                                   const conv::ProblemDescription& problem);
+                                                   const TensorDescriptor& dxDesc);
 
 // strided batched GEMM parameters for 1x1 Convolution Fwd
 // y[i] = w * x[i], i is batch id
-GemmDescriptor
-CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescriptor& wDesc,
-                                             const TensorDescriptor& xDesc,
-                                             const TensorDescriptor& yDesc,
-                                             const conv::ProblemDescription& problem);
+GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescriptor& wDesc,
+                                                            const TensorDescriptor& xDesc,
+                                                            const TensorDescriptor& yDesc);
 
 // strided batched GEMM parameters for 1x1 Convolution Bwd-Data
 // dx[i] = transpose(w) * dy[i], i is batch id
-GemmDescriptor
-CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDescriptor& wDesc,
-                                                 const TensorDescriptor& dyDesc,
-                                                 const TensorDescriptor& dxDesc,
-                                                 const conv::ProblemDescription& problem);
+GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDescriptor& wDesc,
+                                                                const TensorDescriptor& dyDesc,
+                                                                const TensorDescriptor& dxDesc);
 
 // strided batched GEMM parameters for 1x1 Convolution Bwd-Weight
 // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-GemmDescriptor
-CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDescriptor& dyDesc,
-                                                   const TensorDescriptor& xDesc,
-                                                   const TensorDescriptor& dwDesc,
-                                                   const conv::ProblemDescription& problem);
+GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDescriptor& dyDesc,
+                                                                  const TensorDescriptor& xDesc,
+                                                                  const TensorDescriptor& dwDesc);
 
 // GEMM parameters for Group Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)
 GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
                                                 const TensorDescriptor& xDesc,
                                                 const TensorDescriptor& yDesc,
-                                                int groupCount,
-                                                const conv::ProblemDescription& problem);
+                                                int groupCount = 1);
 
 // GEMM parameters for Group Convolution (using Im2Col) Bwd-Data
 // dx = Col2Im(transpose(w) * dy)
 GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDesc,
                                                     const TensorDescriptor& dyDesc,
                                                     const TensorDescriptor& dxDesc,
-                                                    int groupCount,
-                                                    const conv::ProblemDescription& problem);
+                                                    int groupCount = 1);
 
 // GEMM parameters for Group Convolution (using Im2Col) Bwd-Weight
 // dw = dy * transpose(Im2Col(x))
 GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dyDesc,
                                                       const TensorDescriptor& xDesc,
                                                       const TensorDescriptor& dwDesc,
-                                                      int groupCount,
-                                                      const conv::ProblemDescription& problem);
+                                                      int groupCount = 1);
 
 // GEMM parameters for 1x1 Group Convolution (using CNHW) Fwd
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
 GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDesc,
                                                     const TensorDescriptor& xDesc,
                                                     const TensorDescriptor& yDesc,
-                                                    int groupCount,
-                                                    const conv::ProblemDescription& problem);
+                                                    int groupCount = 1);
 
 // GEMM parameters for 1x1 Group Convolution (using CNHW) Bwd-Data
 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
 GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& wDesc,
                                                         const TensorDescriptor& dyDesc,
                                                         const TensorDescriptor& dxDesc,
-                                                        int groupCount,
-                                                        const conv::ProblemDescription& problem);
+                                                        int groupCount = 1);
 
 } // namespace miopen
 

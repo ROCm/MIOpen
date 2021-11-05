@@ -209,7 +209,8 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    FindDbKCacheKey* kcache_key,
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
-                                   GemmBackend_t gemm_backend)
+                                   GemmBackend_t gemm_backend,
+                                   bool gfx90a_alt_impl)
 {
     switch(call_gemm_type)
     {
@@ -217,34 +218,88 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
         if(time_precision)
         {
             // rocBLAS need a warm-up call for accurate timing
-            CallGemm(
-                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr, gemm_backend);
+            CallGemm(handle,
+                     gemm_desc,
+                     A,
+                     a_offset,
+                     B,
+                     b_offset,
+                     C,
+                     c_offset,
+                     nullptr,
+                     gemm_backend,
+                     gfx90a_alt_impl);
         }
 
-        return CallGemm(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key, gemm_backend);
+        return CallGemm(handle,
+                        gemm_desc,
+                        A,
+                        a_offset,
+                        B,
+                        b_offset,
+                        C,
+                        c_offset,
+                        kcache_key,
+                        gemm_backend,
+                        gfx90a_alt_impl);
     }
     case callGemmStridedBatched: {
         if(time_precision)
         {
             // rocBLAS need extra warm-up call for accurate timing
-            CallGemmStridedBatched(
-                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr, gemm_backend);
+            CallGemmStridedBatched(handle,
+                                   gemm_desc,
+                                   A,
+                                   a_offset,
+                                   B,
+                                   b_offset,
+                                   C,
+                                   c_offset,
+                                   nullptr,
+                                   gemm_backend,
+                                   gfx90a_alt_impl);
         }
 
-        return CallGemmStridedBatched(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key, gemm_backend);
+        return CallGemmStridedBatched(handle,
+                                      gemm_desc,
+                                      A,
+                                      a_offset,
+                                      B,
+                                      b_offset,
+                                      C,
+                                      c_offset,
+                                      kcache_key,
+                                      gemm_backend,
+                                      gfx90a_alt_impl);
     }
     case callGemmStridedBatchedSequential: {
         if(time_precision)
         {
             // rocBLAS need a warm-up call for accurate timing
-            CallGemmStridedBatchedSequential(
-                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr, gemm_backend);
+            CallGemmStridedBatchedSequential(handle,
+                                             gemm_desc,
+                                             A,
+                                             a_offset,
+                                             B,
+                                             b_offset,
+                                             C,
+                                             c_offset,
+                                             nullptr,
+                                             gemm_backend,
+                                             gfx90a_alt_impl);
         }
 
-        return CallGemmStridedBatchedSequential(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key, gemm_backend);
+        return CallGemmStridedBatchedSequential(handle,
+                                                gemm_desc,
+                                                A,
+                                                a_offset,
+                                                B,
+                                                b_offset,
+                                                C,
+                                                c_offset,
+                                                kcache_key,
+                                                gemm_backend,
+                                                gfx90a_alt_impl);
     }
     }
     return miopenStatusNotImplemented;
@@ -374,7 +429,8 @@ miopenStatus_t CallGemm(const Handle& handle,
                         Data_t C,
                         int c_offset,
                         FindDbKCacheKey* kcache_key,
-                        GemmBackend_t gemm_backend)
+                        GemmBackend_t gemm_backend,
+                        bool gfx90a_alt_impl)
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
@@ -488,7 +544,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
 #if USE_GEMM_FLAGS_FP16_ALT_IMPL
-                gemm_desc.gfx90aaltimpl ? rocblas_gemm_flags_fp16_alt_impl : 0
+                gfx90a_alt_impl ? rocblas_gemm_flags_fp16_alt_impl : 0
 #else
                 0
 #endif
@@ -677,7 +733,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       Data_t C,
                                       int c_offset,
                                       FindDbKCacheKey* kcache_key,
-                                      GemmBackend_t gemm_backend)
+                                      GemmBackend_t gemm_backend,
+                                      bool gfx90a_alt_impl)
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
@@ -803,7 +860,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
 #if USE_GEMM_FLAGS_FP16_ALT_IMPL
-                gemm_desc.gfx90aaltimpl ? rocblas_gemm_flags_fp16_alt_impl : 0
+                gfx90a_alt_impl ? rocblas_gemm_flags_fp16_alt_impl : 0
 #else
                 0
 #endif
@@ -929,7 +986,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                                                 Data_t C,
                                                 int c_offset,
                                                 FindDbKCacheKey* kcache_key,
-                                                GemmBackend_t gemm_backend)
+                                                GemmBackend_t gemm_backend,
+                                                bool gfx90a_alt_impl)
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
@@ -1049,7 +1107,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
 #if USE_GEMM_FLAGS_FP16_ALT_IMPL
-                    gemm_desc.gfx90aaltimpl ? rocblas_gemm_flags_fp16_alt_impl : 0
+                    gfx90a_alt_impl ? rocblas_gemm_flags_fp16_alt_impl : 0
 #else
                     0
 #endif
@@ -1264,8 +1322,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 // y = w * Im2Col(x)
 GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
                                            const TensorDescriptor& xDesc,
-                                           const TensorDescriptor& yDesc,
-                                           const conv::ProblemDescription& problem)
+                                           const TensorDescriptor& yDesc)
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType());
@@ -1286,16 +1343,15 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
     int n = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k =
         in_c * std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
-    int lda                  = k;
-    int ldb                  = wDesc.GetType() == miopenInt8 ? k : n;
-    int ldc                  = n;
-    int batch_count          = 1;
-    long long int strideA    = 0;
-    long long int strideB    = 0;
-    long long int strideC    = 0;
-    float alpha              = 1.;
-    float beta               = 0.;
-    const auto gfx90aaltimpl = problem.IsGfx90aFp16altRequired();
+    int lda               = k;
+    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
+    int ldc               = n;
+    int batch_count       = 1;
+    long long int strideA = 0;
+    long long int strideB = 0;
+    long long int strideC = 0;
+    float alpha           = 1.;
+    float beta            = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1312,15 +1368,13 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType(),
-                          gfx90aaltimpl};
+                          xDesc.GetType()};
 }
 
 // dx = Col2Im(transpose(w) * dy)
 GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
                                                const TensorDescriptor& dyDesc,
-                                               const TensorDescriptor& dxDesc,
-                                               const conv::ProblemDescription& problem)
+                                               const TensorDescriptor& dxDesc)
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
@@ -1342,13 +1396,12 @@ GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
     int lda = m;
     int ldb = n;
     int ldc = n;
-    int batch_count          = 1;
-    long long int strideA    = 0;
-    long long int strideB    = 0;
-    long long int strideC    = 0;
-    float alpha              = 1.;
-    float beta               = 0.;
-    const auto gfx90aaltimpl = problem.IsGfx90aFp16altRequired();
+    int batch_count       = 1;
+    long long int strideA = 0;
+    long long int strideB = 0;
+    long long int strideC = 0;
+    float alpha           = 1.;
+    float beta            = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1365,15 +1418,13 @@ GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType(),
-                          gfx90aaltimpl};
+                          dxDesc.GetType()};
 }
 
 // dw = dy * transpose(Im2Col(x))
 GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
                                                  const TensorDescriptor& xDesc,
-                                                 const TensorDescriptor& dwDesc,
-                                                 const conv::ProblemDescription& problem)
+                                                 const TensorDescriptor& dwDesc)
 {
 #ifndef NDEBUG
     assert(dwDesc.GetType() == xDesc.GetType() && dwDesc.GetType() == dyDesc.GetType());
@@ -1395,13 +1446,12 @@ GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
     int lda = k;
     int ldb = k;
     int ldc = n;
-    int batch_count          = 1;
-    long long int strideA    = 0;
-    long long int strideB    = 0;
-    long long int strideC    = 0;
-    float alpha              = 1.;
-    float beta               = 1.;
-    const auto gfx90aaltimpl = problem.IsGfx90aFp16altRequired();
+    int batch_count       = 1;
+    long long int strideA = 0;
+    long long int strideB = 0;
+    long long int strideC = 0;
+    float alpha           = 1.;
+    float beta            = 1.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1418,15 +1468,13 @@ GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType(),
-                          gfx90aaltimpl};
+                          xDesc.GetType()};
 }
 
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
 GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
                                                const TensorDescriptor& xDesc,
-                                               const TensorDescriptor& yDesc,
-                                               const conv::ProblemDescription& problem)
+                                               const TensorDescriptor& yDesc)
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType());
@@ -1446,17 +1494,16 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
     int m           = wei_k;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                    = in_c;
-    int lda                  = k;
-    int ldb                  = wDesc.GetType() == miopenInt8 ? k : n;
-    int ldc                  = n;
-    int batch_count          = 1;
-    long long int strideA    = 0;
-    long long int strideB    = 0;
-    long long int strideC    = 0;
-    float alpha              = 1.;
-    float beta               = 0.;
-    const auto gfx90aaltimpl = problem.IsGfx90aFp16altRequired();
+    int k                 = in_c;
+    int lda               = k;
+    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
+    int ldc               = n;
+    int batch_count       = 1;
+    long long int strideA = 0;
+    long long int strideB = 0;
+    long long int strideC = 0;
+    float alpha           = 1.;
+    float beta            = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1473,15 +1520,13 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType(),
-                          gfx90aaltimpl};
+                          xDesc.GetType()};
 }
 
 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
 GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc,
                                                    const TensorDescriptor& dyDesc,
-                                                   const TensorDescriptor& dxDesc,
-                                                   const conv::ProblemDescription& problem)
+                                                   const TensorDescriptor& dxDesc)
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
@@ -1499,17 +1544,16 @@ GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc
     int m           = in_c;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                    = wei_k;
-    int lda                  = m;
-    int ldb                  = n;
-    int ldc                  = n;
-    int batch_count          = 1;
-    long long int strideA    = 0;
-    long long int strideB    = 0;
-    long long int strideC    = 0;
-    float alpha              = 1.;
-    float beta               = 0.;
-    const auto gfx90aaltimpl = problem.IsGfx90aFp16altRequired();
+    int k                 = wei_k;
+    int lda               = m;
+    int ldb               = n;
+    int ldc               = n;
+    int batch_count       = 1;
+    long long int strideA = 0;
+    long long int strideB = 0;
+    long long int strideC = 0;
+    float alpha           = 1.;
+    float beta            = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1526,15 +1570,13 @@ GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType(),
-                          gfx90aaltimpl};
+                          dxDesc.GetType()};
 }
 
 // y[i] = w * x[i], i is batch id
 GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescriptor& wDesc,
                                                             const TensorDescriptor& xDesc,
-                                                            const TensorDescriptor& yDesc,
-                                                            const conv::ProblemDescription& problem)
+                                                            const TensorDescriptor& yDesc)
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType());
@@ -1559,13 +1601,12 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
     int lda = k;
     int ldb = wDesc.GetType() == miopenInt8 ? k : n;
     int ldc = n;
-    int batch_count          = in_n;
-    long long int strideA    = 0;
-    long long int strideB    = k * n;
-    long long int strideC    = m * n;
-    float alpha              = 1.;
-    float beta               = 0.;
-    const auto gfx90aaltimpl = problem.IsGfx90aFp16altRequired();
+    int batch_count       = in_n;
+    long long int strideA = 0;
+    long long int strideB = k * n;
+    long long int strideC = m * n;
+    float alpha           = 1.;
+    float beta            = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1582,16 +1623,13 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType(),
-                          gfx90aaltimpl};
+                          xDesc.GetType()};
 }
 
 // dx[i] = transpose(w) * dy[i], i is batch id
-GemmDescriptor
-CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDescriptor& wDesc,
-                                                 const TensorDescriptor& dyDesc,
-                                                 const TensorDescriptor& dxDesc,
-                                                 const conv::ProblemDescription& problem)
+GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDescriptor& wDesc,
+                                                                const TensorDescriptor& dyDesc,
+                                                                const TensorDescriptor& dxDesc)
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
@@ -1614,13 +1652,12 @@ CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDescriptor& wDesc,
     int lda = m;
     int ldb = n;
     int ldc = n;
-    int batch_count          = in_n;
-    long long int strideA    = 0;
-    long long int strideB    = k * n;
-    long long int strideC    = m * n;
-    float alpha              = 1.;
-    float beta               = 0;
-    const auto gfx90aaltimpl = problem.IsGfx90aFp16altRequired();
+    int batch_count       = in_n;
+    long long int strideA = 0;
+    long long int strideB = k * n;
+    long long int strideC = m * n;
+    float alpha           = 1.;
+    float beta            = 0;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1637,16 +1674,13 @@ CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType(),
-                          gfx90aaltimpl};
+                          dxDesc.GetType()};
 }
 
 // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-GemmDescriptor
-CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDescriptor& dyDesc,
-                                                   const TensorDescriptor& xDesc,
-                                                   const TensorDescriptor& dwDesc,
-                                                   const conv::ProblemDescription& problem)
+GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDescriptor& dyDesc,
+                                                                  const TensorDescriptor& xDesc,
+                                                                  const TensorDescriptor& dwDesc)
 {
 #ifndef NDEBUG
     assert(dwDesc.GetType() == xDesc.GetType() && dwDesc.GetType() == dyDesc.GetType());
@@ -1669,13 +1703,12 @@ CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDescriptor& dyDes
     int lda = k;
     int ldb = k;
     int ldc = n;
-    int batch_count          = in_n;
-    long long int strideA    = m * k;
-    long long int strideB    = k * n;
-    long long int strideC    = 0;
-    float alpha              = 1.;
-    float beta               = 1.;
-    const auto gfx90aaltimpl = problem.IsGfx90aFp16altRequired();
+    int batch_count       = in_n;
+    long long int strideA = m * k;
+    long long int strideB = k * n;
+    long long int strideC = 0;
+    float alpha           = 1.;
+    float beta            = 1.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1692,16 +1725,14 @@ CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDescriptor& dyDes
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType(),
-                          gfx90aaltimpl};
+                          xDesc.GetType()};
 }
 
 // y = w * Im2Col(x)
 GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
                                                 const TensorDescriptor& xDesc,
                                                 const TensorDescriptor& yDesc,
-                                                int groupCount,
-                                                const conv::ProblemDescription& problem)
+                                                int groupCount)
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
@@ -1720,16 +1751,15 @@ GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
     int n = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k = (in_c / groupCount) *
             std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
-    int lda                  = k;
-    int ldb                  = n;
-    int ldc                  = n;
-    int batch_count          = groupCount;
-    long long int strideA    = m * k;
-    long long int strideB    = k * n;
-    long long int strideC    = m * n;
-    float alpha              = 1.;
-    float beta               = 0.;
-    const auto gfx90aaltimpl = problem.IsGfx90aFp16altRequired();
+    int lda               = k;
+    int ldb               = n;
+    int ldc               = n;
+    int batch_count       = groupCount;
+    long long int strideA = m * k;
+    long long int strideB = k * n;
+    long long int strideC = m * n;
+    float alpha           = 1.;
+    float beta            = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1746,16 +1776,14 @@ GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType(),
-                          gfx90aaltimpl};
+                          xDesc.GetType()};
 }
 
 // dx = Col2Im(transpose(w) * dy)
 GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDesc,
                                                     const TensorDescriptor& dyDesc,
                                                     const TensorDescriptor& dxDesc,
-                                                    int groupCount,
-                                                    const conv::ProblemDescription& problem)
+                                                    int groupCount)
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
@@ -1777,13 +1805,12 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDes
     int lda = m;
     int ldb = n;
     int ldc = n;
-    int batch_count          = groupCount;
-    long long int strideA    = m * k;
-    long long int strideB    = k * n;
-    long long int strideC    = m * n;
-    float alpha              = 1.;
-    float beta               = 0.;
-    const auto gfx90aaltimpl = problem.IsGfx90aFp16altRequired();
+    int batch_count       = groupCount;
+    long long int strideA = m * k;
+    long long int strideB = k * n;
+    long long int strideC = m * n;
+    float alpha           = 1.;
+    float beta            = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1800,16 +1827,14 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDes
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType(),
-                          gfx90aaltimpl};
+                          dxDesc.GetType()};
 }
 
 // dw = dy * transpose(Im2Col(x))
 GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dyDesc,
                                                       const TensorDescriptor& xDesc,
                                                       const TensorDescriptor& dwDesc,
-                                                      int groupCount,
-                                                      const conv::ProblemDescription& problem)
+                                                      int groupCount)
 {
 #ifndef NDEBUG
     assert(dwDesc.GetType() == xDesc.GetType() && dwDesc.GetType() == dyDesc.GetType());
@@ -1831,13 +1856,12 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dy
     int lda = k;
     int ldb = k;
     int ldc = n;
-    int batch_count          = groupCount;
-    long long int strideA    = m * k;
-    long long int strideB    = k * n;
-    long long int strideC    = m * n;
-    float alpha              = 1.;
-    float beta               = 1.;
-    const auto gfx90aaltimpl = problem.IsGfx90aFp16altRequired();
+    int batch_count       = groupCount;
+    long long int strideA = m * k;
+    long long int strideB = k * n;
+    long long int strideC = m * n;
+    float alpha           = 1.;
+    float beta            = 1.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1854,16 +1878,14 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dy
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType(),
-                          gfx90aaltimpl};
+                          xDesc.GetType()};
 }
 
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
 GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDesc,
                                                     const TensorDescriptor& xDesc,
                                                     const TensorDescriptor& yDesc,
-                                                    int groupCount,
-                                                    const conv::ProblemDescription& problem)
+                                                    int groupCount)
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
@@ -1881,17 +1903,16 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDes
     int m           = wei_k / groupCount;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                    = in_c / groupCount;
-    int lda                  = k;
-    int ldb                  = n;
-    int ldc                  = n;
-    int batch_count          = groupCount;
-    long long int strideA    = m * k;
-    long long int strideB    = k * n;
-    long long int strideC    = m * n;
-    float alpha              = 1.;
-    float beta               = 0.;
-    const auto gfx90aaltimpl = problem.IsGfx90aFp16altRequired();
+    int k                 = in_c / groupCount;
+    int lda               = k;
+    int ldb               = n;
+    int ldc               = n;
+    int batch_count       = groupCount;
+    long long int strideA = m * k;
+    long long int strideB = k * n;
+    long long int strideC = m * n;
+    float alpha           = 1.;
+    float beta            = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1908,16 +1929,14 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDes
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType(),
-                          gfx90aaltimpl};
+                          xDesc.GetType()};
 }
 
 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
 GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& wDesc,
                                                         const TensorDescriptor& dyDesc,
                                                         const TensorDescriptor& dxDesc,
-                                                        int groupCount,
-                                                        const conv::ProblemDescription& problem)
+                                                        int groupCount)
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
@@ -1935,17 +1954,16 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& 
     int m           = in_c / groupCount;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                    = wei_k / groupCount;
-    int lda                  = m;
-    int ldb                  = n;
-    int ldc                  = n;
-    int batch_count          = groupCount;
-    long long int strideA    = m * k;
-    long long int strideB    = k * n;
-    long long int strideC    = m * n;
-    float alpha              = 1.;
-    float beta               = 0.;
-    const auto gfx90aaltimpl = problem.IsGfx90aFp16altRequired();
+    int k                 = wei_k / groupCount;
+    int lda               = m;
+    int ldb               = n;
+    int ldc               = n;
+    int batch_count       = groupCount;
+    long long int strideA = m * k;
+    long long int strideB = k * n;
+    long long int strideC = m * n;
+    float alpha           = 1.;
+    float beta            = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1962,8 +1980,7 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& 
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType(),
-                          gfx90aaltimpl};
+                          dxDesc.GetType()};
 }
 
 } // namespace miopen

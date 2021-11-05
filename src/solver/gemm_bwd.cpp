@@ -238,8 +238,8 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
 
     GemmDescriptor gemm_desc =
         group_count > 1
-            ? CreateGemmDescriptorGroupConvCNHWBwdData(wDesc, dyDesc, dxDesc, group_count, problem)
-            : CreateGemmDescriptorConvCNHWBwdData(wDesc, dyDesc, dxDesc, problem);
+            ? CreateGemmDescriptorGroupConvCNHWBwdData(wDesc, dyDesc, dxDesc, group_count)
+            : CreateGemmDescriptorConvCNHWBwdData(wDesc, dyDesc, dxDesc);
 
     std::size_t in_n, in_c;
     std::tie(in_n, in_c) = tie_pick<0, 1>()(dxDesc.GetLengths());
@@ -324,7 +324,9 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
                                                          0,
                                                          workspace,
                                                          dyDesc_.GetElementSize(),
-                                                         nullptr);
+                                                         nullptr,
+                                                         GemmBackend_t::miopentensile,
+                                                         conv_params.gfx90aFp16alt);
                 else
                     // tensors.dx = CNHW2NCHW(transpose(tensors.w) * NCHW2CNHW(tensors.dy))
                     gemm_status = CallGemm(handle,
@@ -335,7 +337,9 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
                                            0,
                                            workspace,
                                            dyDesc_.GetElementSize(),
-                                           nullptr);
+                                           nullptr,
+                                           GemmBackend_t::miopentensile,
+                                           conv_params.gfx90aFp16alt);
             }
             else
             {
@@ -350,7 +354,9 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
                                         dyDesc_.GetElementSize(),
                                         nullptr,
                                         time_precision,
-                                        group_count > 1 ? callGemmStridedBatched : callGemm);
+                                        group_count > 1 ? callGemmStridedBatched : callGemm,
+                                        GemmBackend_t::miopentensile,
+                                        conv_params.gfx90aFp16alt);
             }
 
             if(gemm_status != miopenStatusSuccess)
@@ -437,9 +443,8 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
 
     // dx = transpose(w) * dy
     const auto gemm_desc =
-        group_count > 1
-            ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count, problem)
-            : CreateGemmStridedBatchedDescriptorConv1x1BwdData(wDesc, dyDesc, dxDesc, problem);
+        group_count > 1 ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count)
+                        : CreateGemmStridedBatchedDescriptorConv1x1BwdData(wDesc, dyDesc, dxDesc);
 
     const auto in_c = dxDesc.GetLengths()[1];
 
@@ -486,8 +491,17 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
 
                         std::size_t in_offset = i * in_c * in_spatial_size;
 
-                        gemm_status = CallGemmStridedBatched(
-                            handle, gemm_desc, w, 0, dy, out_offset, dx, in_offset, nullptr);
+                        gemm_status = CallGemmStridedBatched(handle,
+                                                             gemm_desc,
+                                                             w,
+                                                             0,
+                                                             dy,
+                                                             out_offset,
+                                                             dx,
+                                                             in_offset,
+                                                             nullptr,
+                                                             GemmBackend_t::miopentensile,
+                                                             conv_params.gfx90aFp16alt);
 
                         if(handle.IsProfilingEnabled())
                         {
@@ -499,8 +513,17 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
                 }
                 else
                 {
-                    gemm_status =
-                        CallGemmStridedBatched(handle, gemm_desc, w, 0, dy, 0, dx, 0, nullptr);
+                    gemm_status = CallGemmStridedBatched(handle,
+                                                         gemm_desc,
+                                                         w,
+                                                         0,
+                                                         dy,
+                                                         0,
+                                                         dx,
+                                                         0,
+                                                         nullptr,
+                                                         GemmBackend_t::miopentensile,
+                                                         conv_params.gfx90aFp16alt);
                 }
             }
             else
@@ -515,7 +538,9 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
                                                   0,
                                                   nullptr,
                                                   time_precision,
-                                                  callGemmStridedBatched);
+                                                  callGemmStridedBatched,
+                                                  GemmBackend_t::miopentensile,
+                                                  conv_params.gfx90aFp16alt);
             }
 
             if(gemm_status != miopenStatusSuccess)
@@ -618,9 +643,8 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
 
     // dx = transpose(w) * dy
     const auto gemm_desc =
-        group_count > 1
-            ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count, problem)
-            : CreateGemmDescriptorConvBwdData(wDesc, dyDesc, dxDesc, problem);
+        group_count > 1 ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count)
+                        : CreateGemmDescriptorConvBwdData(wDesc, dyDesc, dxDesc);
 
     const auto spatial_dims = conv.GetSpatialDimension();
     const auto pads         = conv.GetConvPads();
@@ -681,8 +705,17 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
 
                     // tensors.dx = transpose(tensors.w) * tensors.dy
                     if(group_count > 1)
-                        gemm_status = CallGemmStridedBatched(
-                            handle, gemm_desc, w, 0, dy, out_offset, workspace, 0, nullptr);
+                        gemm_status = CallGemmStridedBatched(handle,
+                                                             gemm_desc,
+                                                             w,
+                                                             0,
+                                                             dy,
+                                                             out_offset,
+                                                             workspace,
+                                                             0,
+                                                             nullptr,
+                                                             GemmBackend_t::miopentensile,
+                                                             conv_params.gfx90aFp16alt);
                     else
                         gemm_status = CallGemm(handle,
                                                gemm_desc,
@@ -693,7 +726,8 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
                                                workspace,
                                                0,
                                                nullptr,
-                                               GemmBackend_t::miopengemm);
+                                               GemmBackend_t::miopengemm,
+                                               conv_params.gfx90aFp16alt);
 
                     if(gemm_status != miopenStatusSuccess)
                         MIOPEN_THROW("GemmBwdRest execution failure.");
@@ -738,7 +772,8 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
                     nullptr,
                     time_precision,
                     group_count > 1 ? callGemmStridedBatched : callGemm,
-                    group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm);
+                    group_count > 1 ? GemmBackend_t::miopentensile : GemmBackend_t::miopengemm,
+                    conv_params.gfx90aFp16alt);
 
                 if(gemm_status != miopenStatusSuccess)
                     MIOPEN_THROW("GemmBwdRest execution failure.");
