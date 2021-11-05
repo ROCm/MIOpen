@@ -238,8 +238,8 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
 
     GemmDescriptor gemm_desc =
         group_count > 1
-            ? CreateGemmDescriptorGroupConvCNHWBwdData(wDesc, dyDesc, dxDesc, group_count)
-            : CreateGemmDescriptorConvCNHWBwdData(wDesc, dyDesc, dxDesc);
+            ? CreateGemmDescriptorGroupConvCNHWBwdData(wDesc, dyDesc, dxDesc, group_count, problem)
+            : CreateGemmDescriptorConvCNHWBwdData(wDesc, dyDesc, dxDesc, problem);
 
     std::size_t in_n, in_c;
     std::tie(in_n, in_c) = tie_pick<0, 1>()(dxDesc.GetLengths());
@@ -437,8 +437,9 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
 
     // dx = transpose(w) * dy
     const auto gemm_desc =
-        group_count > 1 ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count)
-                        : CreateGemmStridedBatchedDescriptorConv1x1BwdData(wDesc, dyDesc, dxDesc);
+        group_count > 1
+            ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count, problem)
+            : CreateGemmStridedBatchedDescriptorConv1x1BwdData(wDesc, dyDesc, dxDesc, problem);
 
     const auto in_c = dxDesc.GetLengths()[1];
 
@@ -617,8 +618,9 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
 
     // dx = transpose(w) * dy
     const auto gemm_desc =
-        group_count > 1 ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count)
-                        : CreateGemmDescriptorConvBwdData(wDesc, dyDesc, dxDesc);
+        group_count > 1
+            ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count, problem)
+            : CreateGemmDescriptorConvBwdData(wDesc, dyDesc, dxDesc, problem);
 
     const auto spatial_dims = conv.GetSpatialDimension();
     const auto pads         = conv.GetConvPads();

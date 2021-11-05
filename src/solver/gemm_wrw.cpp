@@ -174,8 +174,9 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
 
     // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
     const auto gemm_desc =
-        group_count > 1 ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
-                        : CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(dyDesc, xDesc, dwDesc);
+        group_count > 1
+            ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count, problem)
+            : CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(dyDesc, xDesc, dwDesc, problem);
 
     const auto in_spatial =
         boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + conv.GetSpatialDimension());
@@ -356,8 +357,9 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
 
     // dw = dy * transpose(Im2Col(x))
     const auto gemm_desc =
-        group_count > 1 ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
-                        : CreateGemmDescriptorConvBwdWeight(dyDesc, xDesc, dwDesc);
+        group_count > 1
+            ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count, problem)
+            : CreateGemmDescriptorConvBwdWeight(dyDesc, xDesc, dwDesc, problem);
 
     const auto spatial_dims   = conv.GetSpatialDimension();
     const auto conv_pads      = conv.GetConvPads();

@@ -265,8 +265,8 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
 
     const GemmDescriptor gemm_desc =
         conv.group_count > 1
-            ? CreateGemmDescriptorGroupConvCNHWFwd(wDesc, xDesc, yDesc, conv.group_count)
-            : CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
+            ? CreateGemmDescriptorGroupConvCNHWFwd(wDesc, xDesc, yDesc, conv.group_count, problem)
+            : CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc, problem);
 
     const auto workspace_req = GetWorkspaceSize(context, problem);
 
@@ -538,7 +538,7 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
     solution.workspce_sz = workspace_req;
 
     TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
-    const GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
+    const GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc, problem);
     const auto x_type              = xDesc.GetType();
     const auto lowp_quant          = conv.lowp_quant;
 
@@ -691,7 +691,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
     if(group_count > 1)
     {
         GemmDescriptor gemm_desc =
-            CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, group_count);
+            CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, group_count, problem);
 
         const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
         const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
@@ -780,7 +780,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
     {
         // tensors.y = tensors.w * tensors.x
         GemmDescriptor gemm_desc =
-            CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
+            CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc, problem);
 
         const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
         const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
@@ -977,8 +977,8 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         const auto gemm_desc =
             conv.group_count > 1
-                ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
-                : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
+                ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count, problem)
+                : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc, problem);
 
         decltype(auto) in_spatial_ = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
         decltype(auto) out_spatial_ =
