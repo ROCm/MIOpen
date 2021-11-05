@@ -30,6 +30,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
+#include <miopen/util_sol.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
@@ -880,9 +881,6 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionC
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(!ctx.IsLayoutNHWC())
-        return false;
-
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
@@ -893,16 +891,42 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionC
 size_t
 ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    if(ctx.IsFp32())
-        return 0;
+    const auto& hi        = ctx.out_height;
+    const auto& wi        = ctx.out_width;
+    const auto& n         = ctx.batch_sz;
+    const auto& k         = ctx.n_inputs;
+    const auto& c         = ctx.n_outputs;
+    const auto& ho        = ctx.in_height;
+    const auto& wo        = ctx.in_width;
+    const auto& y         = ctx.kernel_size_h;
+    const auto& x         = ctx.kernel_size_w;
+    const auto& group     = ctx.group_counts;
+    const auto is_nchw    = ctx.IsLayoutDefault();
+    size_t workspace_size = 0;
+    if(is_nchw)
+    {
+        TransposeSolutionNhwc2Default trans_input(ctx, ctx.out_data_type, n, c, hi, wi);
+        TransposeSolutionDefault2Nhwc trans_weight(ctx,
+                                                   ctx.weights_data_type,
+                                                   k,
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionDefault2Nhwc trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
+        if(!trans_input.IsSkippable())
+            workspace_size += trans_input.GetSize();
+        if(!trans_weight.IsSkippable())
+            workspace_size += trans_weight.GetSize();
+        if(!trans_output.IsSkippable())
+            workspace_size += trans_output.GetSize();
+    }
 
-    // FP16 or BF16
-    const auto& hi = ctx.out_height;
-    const auto& wi = ctx.out_width;
-    const auto& n  = ctx.batch_sz;
-    const auto& c  = ctx.n_outputs;
-    return miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st kernel is FP32.
-           * n * c * hi * wi;
+    if(!ctx.IsFp32())
+        workspace_size += miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
+                                                           // kernel is FP32, when using FP32 atomic
+                          * n * c * hi * wi;
+
+    return workspace_size;
 }
 
 ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
@@ -938,6 +962,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     const auto isGfx90aFp16altSupport =
         (ctx.GetStream().GetDeviceName() == "gfx90a") && ctx.conv_problem.IsFp16();
 
+    const auto is_nchw = ctx.IsLayoutDefault();
+
     result.construction_params.push_back(kernel);
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
@@ -946,6 +972,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     if(isGfx90aFp16altSupport)
         GenerateClangDefsym(opts_0, "igemm_bwd_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
+    std::ostringstream msg;
 
     if(isGfx90aFp16altSupport)
     {
@@ -953,9 +980,53 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
         std::ostringstream opts_1(options.str(), std::ios_base::ate);
         GenerateClangDefsym(opts_1, "igemm_bwd_fp16_alt_impl", 1);
         result.construction_params[1].comp_options = opts_1.str();
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", fp16_alt:" << ctx.conv_problem.GetConv().attribute.gfx90aFp16alt.GetBwd();
     }
 
-    MIOPEN_LOG_I2("ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC: " + config.ToString());
+    if(is_nchw)
+    {
+        const auto& hi    = ctx.out_height;
+        const auto& wi    = ctx.out_width;
+        const auto& n     = ctx.batch_sz;
+        const auto& k     = ctx.n_inputs;
+        const auto& c     = ctx.n_outputs;
+        const auto& ho    = ctx.in_height;
+        const auto& wo    = ctx.in_width;
+        const auto& y     = ctx.kernel_size_h;
+        const auto& x     = ctx.kernel_size_w;
+        const auto& group = ctx.group_counts;
+
+        TransposeSolutionNhwc2Default trans_input(ctx, ctx.out_data_type, n, c, hi, wi);
+        TransposeSolutionDefault2Nhwc trans_weight(ctx,
+                                                   ctx.weights_data_type,
+                                                   k,
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionDefault2Nhwc trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
+
+        if(!trans_input.IsSkippable())
+        {
+            result.construction_params.push_back(trans_input.GetKernel());
+            if(miopen::IsLogging(LoggingLevel::Info2))
+                msg << ", inp trans:" << trans_input.GetKernelName();
+        }
+        if(!trans_weight.IsSkippable())
+        {
+            result.construction_params.push_back(trans_weight.GetKernel());
+            if(miopen::IsLogging(LoggingLevel::Info2))
+                msg << ", wei trans:" << trans_weight.GetKernelName();
+        }
+        if(!trans_output.IsSkippable())
+        {
+            result.construction_params.push_back(trans_output.GetKernel());
+            if(miopen::IsLogging(LoggingLevel::Info2))
+                msg << ", out trans:" << trans_output.GetKernelName();
+        }
+    }
+
+    MIOPEN_LOG_I2(SolverDbId(*this) << ": " << config.ToString() << msg.str());
 
     result.invoker_factory =
         conv::MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(ctx, config);
