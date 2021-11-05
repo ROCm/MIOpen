@@ -249,6 +249,7 @@ class SQLiteBase
         sql = SQLite{filename_, is_system};
         if(!sql.Valid())
         {
+            bool isKDB = boost::filesystem::path(filename).extension() == ".kdb";
             dbInvalid = true;
             filename  = "";
             if(!is_system)
@@ -257,9 +258,22 @@ class SQLiteBase
             {
                 const auto log_level =
                     (!MIOPEN_DISABLE_SYSDB) ? LoggingLevel::Warning : LoggingLevel::Info;
-                MIOPEN_LOG(log_level,
-                           "Unable to read system database file:" + filename_ +
-                               " Performance may degrade");
+                if (isKDB && (log_level == LoggingLevel::Warning))
+                {
+                    static const auto kdb_message_issued = [&](){
+                        MIOPEN_LOG_W("Missing system database file: " << filename_ << 
+                            " Performance may degrade. Please follow instructions to install: " 
+                            "https://github.com/ROCmSoftwarePlatform/MIOpen#installing-miopen-kernels-package");
+                        return true;
+                    }();
+                    std::ignore = kdb_message_issued;
+                }
+                else
+                {
+                    MIOPEN_LOG(log_level,
+                            "Unable to read system database file:" + filename_ +
+                                " Performance may degrade");
+                }
             }
         }
         else

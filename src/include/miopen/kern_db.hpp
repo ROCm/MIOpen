@@ -93,9 +93,9 @@ class KernDb : public SQLiteBase<KernDb>
     KernDb(const std::string& filename_, bool is_system);
     // This constructor is only intended for testing
     KernDb(const std::string& filename_,
-           bool _is_system,
-           std::function<std::string(std::string, bool*)> _compress_fn,
-           std::function<std::string(std::string, unsigned int)> _decompress_fn);
+           bool is_system_,
+           std::function<std::string(std::string, bool*)> compress_fn_,
+           std::function<std::string(std::string, unsigned int)> decompress_fn_);
     template <typename T>
     bool RemoveRecordUnsafe(const T& problem_config)
     {
