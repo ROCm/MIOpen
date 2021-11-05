@@ -199,7 +199,7 @@ struct TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
 
     bool IsValid() const
     {
-        if(!((MPerXDL == 32 && MPerXDL == 32) || (MPerXDL == 16 && MPerXDL == 16)))
+        if(!((MPerXDL == 32 && NPerXDL == 32) || (MPerXDL == 16 && NPerXDL == 16)))
             return false;
 
         if(!(K1 % 4 == 0))
@@ -212,6 +212,16 @@ struct TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
             return false;
 
         if(!(NPerBlock % NPerXDL == 0))
+            return false;
+
+        if(!(MPerBlock %(MPerXDL * MRepeat) == 0))
+            return false;
+        if(!(NPerBlock %(NPerXDL * NRepeat) == 0))
+            return false;
+        const int MWaves = MPerBlock /(MPerXDL * MRepeat);
+        const int NWaves = NPerBlock /(NPerXDL * NRepeat);
+        const int WaveSize = 64;
+        if(!(MWaves * NWaves * WaveSize == BlockSize))
             return false;
         // A matrix copy
         {
