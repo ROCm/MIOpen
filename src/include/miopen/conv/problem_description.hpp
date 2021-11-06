@@ -304,6 +304,21 @@ struct ProblemDescription
                GetOutDataType() == miopenBFloat16;
     }
 
+    // To be used in Solvers that do not implement ALT FP16 kernels.
+    // Those Solvers must be non-applicable for gfx90a when this function returns true.
+    bool IsGfx90aFp16altRequired() const
+    {
+        if(!IsFp16())
+            return false;
+        if(direction == conv::Direction::Forward)
+            return conv.attribute.gfx90aFp16alt.GetFwd();
+        if(direction == conv::Direction::BackwardData)
+            return conv.attribute.gfx90aFp16alt.GetBwd();
+        if(direction == conv::Direction::BackwardWeights)
+            return conv.attribute.gfx90aFp16alt.GetWrW();
+        MIOPEN_THROW("Direction must be known!");
+    }
+
     bool IsLayoutDefault() const;
 
     void HeuristicUpdateLayouts();
