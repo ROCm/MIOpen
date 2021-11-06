@@ -469,6 +469,7 @@ miopenStatus_t CallGemm(const Handle& handle,
     {
     case GemmBackend_t::miopentensile:
 #if MIOPEN_USE_MIOPENTENSILE
+        std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmMIOpenTensile(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
 #endif
@@ -771,6 +772,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
     {
     case GemmBackend_t::miopentensile:
 #if MIOPEN_USE_MIOPENTENSILE
+        std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmMIOpenTensile(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
 #endif
@@ -1021,6 +1023,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
     {
     case GemmBackend_t::miopentensile:
 #if MIOPEN_USE_MIOPENTENSILE
+        std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmMIOpenTensile(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
 #endif
