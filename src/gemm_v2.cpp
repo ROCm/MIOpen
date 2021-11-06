@@ -49,6 +49,7 @@
 #endif
 
 #include <boost/range/adaptors.hpp>
+#include <tuple> // std::ignore
 
 #if MIOPEN_USE_ROCBLAS
 
@@ -635,6 +636,7 @@ miopenStatus_t CallGemm(const Handle& handle,
 
         return miopenStatusSuccess;
 #else
+        std::ignore = gfx90a_alt_impl;
         return miopenStatusNotImplemented;
 #endif
     }
@@ -960,6 +962,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
         return miopenStatusSuccess;
 #else
+        std::ignore = gfx90a_alt_impl;
         return miopenStatusNotImplemented;
 #endif
     }
@@ -1204,6 +1207,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
         return miopenStatusSuccess;
 #else
+        std::ignore = gfx90a_alt_impl;
         return miopenStatusNotImplemented;
 #endif
     }
