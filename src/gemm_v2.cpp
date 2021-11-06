@@ -650,6 +650,7 @@ miopenStatus_t CallGemm(const Handle& handle,
 
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
+        std::ignore = gfx90a_alt_impl; // Not supported.
         if(gemm_desc.dataType != miopenFloat)
             return miopenStatusNotImplemented;
 
@@ -971,6 +972,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
+        std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmStridedBatchedSequential(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key, gemm_backend);
 #else
@@ -1211,6 +1213,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
+        std::ignore = gfx90a_alt_impl; // Not supported.
         if(gemm_desc.dataType != miopenFloat)
             MIOPEN_THROW(miopenStatusNotImplemented, "fp16 is not implemented in MIOPENGEMM");
 
