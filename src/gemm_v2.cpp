@@ -421,6 +421,17 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
 }
 #endif
 
+
+static inline uint32_t FlagsForRocblasFp32Fp16Call(const bool gfx90aFp16Alt)
+{
+#if USE_GEMM_FLAGS_FP16_ALT_IMPL
+    return gfx90aFp16Alt ? rocblas_gemm_flags_fp16_alt_impl : 0;
+#else
+    std::ignore = gfx90aFp16Alt;
+    return 0;
+#endif
+}
+
 miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
                         ConstData_t A,
@@ -544,11 +555,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-#if USE_GEMM_FLAGS_FP16_ALT_IMPL
-                gfx90a_alt_impl ? rocblas_gemm_flags_fp16_alt_impl : 0
-#else
-                0
-#endif
+                FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl)
             );
         }
         break;
@@ -636,7 +643,6 @@ miopenStatus_t CallGemm(const Handle& handle,
 
         return miopenStatusSuccess;
 #else
-        std::ignore = gfx90a_alt_impl;
         return miopenStatusNotImplemented;
 #endif
     }
@@ -861,11 +867,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-#if USE_GEMM_FLAGS_FP16_ALT_IMPL
-                gfx90a_alt_impl ? rocblas_gemm_flags_fp16_alt_impl : 0
-#else
-                0
-#endif
+                FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl)
             );
         }
         break;
@@ -962,7 +964,6 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
         return miopenStatusSuccess;
 #else
-        std::ignore = gfx90a_alt_impl;
         return miopenStatusNotImplemented;
 #endif
     }
@@ -1109,11 +1110,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     rocblas_datatype::rocblas_datatype_f32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
-#if USE_GEMM_FLAGS_FP16_ALT_IMPL
-                    gfx90a_alt_impl ? rocblas_gemm_flags_fp16_alt_impl : 0
-#else
-                    0
-#endif
+                    FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl)
                 );
             }
         }
@@ -1207,7 +1204,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
         return miopenStatusSuccess;
 #else
-        std::ignore = gfx90a_alt_impl;
         return miopenStatusNotImplemented;
 #endif
     }
