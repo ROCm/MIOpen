@@ -421,7 +421,7 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
 }
 #endif
 
-
+#if MIOPEN_USE_ROCBLAS
 static inline uint32_t FlagsForRocblasFp32Fp16Call(const bool gfx90aFp16Alt)
 {
 #if USE_GEMM_FLAGS_FP16_ALT_IMPL
@@ -431,6 +431,7 @@ static inline uint32_t FlagsForRocblasFp32Fp16Call(const bool gfx90aFp16Alt)
     return 0;
 #endif
 }
+#endif //MIOPEN_USE_ROCBLAS
 
 miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
