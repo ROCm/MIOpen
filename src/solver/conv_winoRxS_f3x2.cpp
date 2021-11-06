@@ -331,6 +331,9 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
          StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") || StartsWith(name, "gfx103")))
         return false;
 
+    if(name == "gfx90a" && params.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+
     // clang-format off
     if (! (params.kernel_stride_w == 1
         && params.kernel_stride_w == params.kernel_stride_h
