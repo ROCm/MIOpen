@@ -1182,13 +1182,14 @@ int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
 
     double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
 
-    int match = 1;
+    int match = miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
+    if(match == 0)
+    {
+        std::cout << "Forward Activation Failed" << std::endl;
+        return EC_VerifyFwd;
+    }
 
-    match &= miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
-
-    if(match)
-        MIOPEN_LOG_I("Forward Activation Verifies on CPU and GPU");
-
+    std::cout << "Forward Activation Verifies on CPU and GPU" << std::endl;
     return miopenStatusSuccess;
 }
 

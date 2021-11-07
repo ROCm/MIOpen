@@ -55,6 +55,18 @@ using float16 = half_float::half;
 
 #define UNPACK_VEC4(v) (v[0]), (v[1]), (v[2]), (v[3])
 
+// Use values which are distinctively greater then miopenStatus_t,
+// so that these can be ORed with any miopen status code
+// without loss of information.
+typedef enum
+{
+    // These four codes could be returned together, ORed:
+    EC_VerifyFwd     = 0x100,
+    EC_VerifyBwd     = 0x200,
+    EC_VerifyWrw     = 0x400,
+    EC_VerifyBwdBias = 0x800,
+} errorCode_t;
+
 struct GPUMem
 {
 
