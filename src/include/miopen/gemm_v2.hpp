@@ -89,7 +89,8 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    FindDbKCacheKey* kcache_key, // for find-db
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
-                                   GemmBackend_t gemm_backend = GemmBackend_t::miopentensile);
+                                   GemmBackend_t gemm_backend = GemmBackend_t::miopentensile,
+                                   bool gfx90a_alt_impl       = false);
 
 miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
@@ -100,7 +101,8 @@ miopenStatus_t CallGemm(const Handle& handle,
                         Data_t C,
                         int c_offset,
                         FindDbKCacheKey* kcache_key, // for find-db
-                        GemmBackend_t gemm_backend = GemmBackend_t::miopentensile);
+                        GemmBackend_t gemm_backend = GemmBackend_t::miopentensile,
+                        bool gfx90a_alt_impl       = false);
 
 miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       GemmDescriptor gemm_desc,
@@ -111,7 +113,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       Data_t C,
                                       int c_offset,
                                       FindDbKCacheKey* kcache_key, // for find-db
-                                      GemmBackend_t gemm_backend = GemmBackend_t::miopentensile);
+                                      GemmBackend_t gemm_backend = GemmBackend_t::miopentensile,
+                                      bool gfx90a_alt_impl       = false);
 
 miopenStatus_t
 CallGemmStridedBatchedSequential(const Handle& handle,
@@ -123,7 +126,8 @@ CallGemmStridedBatchedSequential(const Handle& handle,
                                  Data_t C,
                                  int c_offset,
                                  FindDbKCacheKey* kcache_key, // for find-db
-                                 GemmBackend_t gemm_backend = GemmBackend_t::miopentensile);
+                                 GemmBackend_t gemm_backend = GemmBackend_t::miopentensile,
+                                 bool gfx90a_alt_impl       = false);
 
 // GEMM parameters for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)
