@@ -84,6 +84,33 @@ inline const std::string& GetCoV3Option(const bool enable)
     else
         return no_option;
 }
+
+inline void InplaceRemoveAllTokensThatInclude(std::string& str, const std::string& search)
+{
+    for(std::size_t pos = 0;;)
+    {
+        if((pos = str.find(search, pos)) == std::string::npos)
+            break;
+
+        auto beg = str.find_last_of(" \t\n\r", pos);
+        beg      = (beg == std::string::npos) ? 0 : beg + 1;
+
+        const auto end = str.find_first_of(" \t\n\r", pos);
+
+        auto len = std::string::npos;
+        if(end != std::string::npos)
+        {
+            const auto next = str.find_first_not_of(" \t\n\r", end);
+            if(next != std::string::npos)
+                len = next - beg;
+        }
+        str.erase(beg, len);
+        if(len == std::string::npos)
+            break;
+        pos = beg;
+    }
+}
+
 } // namespace
 
 static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
@@ -136,7 +163,13 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     }
 
     params += " -Wno-unused-command-line-argument -I. ";
-    params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+
+    {
+        std::string hip_compiler_flags = MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+        InplaceRemoveAllTokensThatInclude(hip_compiler_flags, "builtins-x86_64");
+        params += hip_compiler_flags;
+    }
+
     if(IsHccCompiler())
     {
         env += std::string("KMOPTLLC=\"-mattr=+enable-ds128 ");
