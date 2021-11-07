@@ -28,7 +28,6 @@
 #include <hip/hip_fp16.h>
 #endif
 
-
 #ifndef BATCHED_TRANSPOSE_OCCUPANCY
 #define BATCHED_TRANSPOSE_OCCUPANCY 4
 #endif
