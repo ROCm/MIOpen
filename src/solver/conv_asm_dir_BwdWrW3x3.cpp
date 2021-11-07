@@ -368,6 +368,9 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
 #endif
 
+    if(name == "gfx90a" && params.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+
     // clang-format off
     bool ok = params.pad_w == 1           // -q  pad_w
         && params.pad_h == 1              // -p  pad_h
