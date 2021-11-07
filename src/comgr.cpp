@@ -273,7 +273,7 @@ static void RemoveCommonOptionsUnwanted(OptionList& list)
                                 || (option == "-hc")
                                 || (option == "-x hip") || (option == "-xhip")
                                 || (option == "--hip-link")
-                                || (option == "-lclang_rt.builtins-x86_64")
+                                || (option.find("builtins-x86_64") != std::string::npos)
                                 || miopen::StartsWith(option, "-mllvm -amdgpu-early-inline-all")
                                 || miopen::StartsWith(option, "-mllvm -amdgpu-function-calls")
                                 || miopen::StartsWith(option, "--hip-device-lib-path="); // clang-format on
