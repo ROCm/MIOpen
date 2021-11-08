@@ -266,19 +266,25 @@ static bool IsLinkerOption(const std::string& option)
 
 static void RemoveCommonOptionsUnwanted(OptionList& list)
 {
-    list.erase(remove_if(list.begin(),
-                         list.end(),
-                         [&](const auto& option) { // clang-format off
+    list.erase(
+        remove_if(
+            list.begin(),
+            list.end(),
+            [&](const auto& option) { // clang-format off
                              return miopen::StartsWith(option, "-mcpu=")
                                 || (option == "-hc")
                                 || (option == "-x hip") || (option == "-xhip")
                                 || (option == "--hip-link")
-                                || (option.find("builtins-x86_64") != std::string::npos)
+                                // The following matches current "-lclang_rt.builtins-x86_64" (4.5) as weel as
+                                // upcoming ".../libclang_rt.builtins-x86_64.a" and even future things like
+                                // "...x86_64.../libclang_rt.builtins.a" etc.
+                                || ((option.find("clang_rt.builtins") != std::string::npos)
+                                 && (option.find("x86_64") != std::string::npos))
                                 || miopen::StartsWith(option, "-mllvm -amdgpu-early-inline-all")
                                 || miopen::StartsWith(option, "-mllvm -amdgpu-function-calls")
                                 || miopen::StartsWith(option, "--hip-device-lib-path="); // clang-format on
-                         }),
-               list.end());
+            }),
+        list.end());
 }
 
 static void RemoveCompilerOptionsUnwanted(OptionList& list)
