@@ -439,6 +439,8 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
                 CThreadTransferSrcDstAccessOrder,
                 CThreadTransferSrcDstVectorDim,
                 CThreadTransferDstScalarPerVector,
+                1, //M01
+                1, //N01
                 HasMainKBlockLoop},
             true);
     }
