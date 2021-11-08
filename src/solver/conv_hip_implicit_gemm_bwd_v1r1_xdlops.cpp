@@ -778,6 +778,9 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const boost::any& ctx_) 
     if(!ctx.Is2d())
         return false;
 
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
 

@@ -368,8 +368,17 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
             {
                 if(group_count > 1)
                 {
-                    gemm_status = CallGemmStridedBatched(
-                        handle, gemm_desc, w, 0, workSpace, 0, workSpace, x_t_size, nullptr);
+                    gemm_status = CallGemmStridedBatched(handle,
+                                                         gemm_desc,
+                                                         w,
+                                                         0,
+                                                         workSpace,
+                                                         0,
+                                                         workSpace,
+                                                         x_t_size,
+                                                         nullptr,
+                                                         GemmBackend_t::miopentensile,
+                                                         conv_params.gfx90aFp16alt);
                 }
                 else
                 {
@@ -382,7 +391,9 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                                            wksp_offset,
                                            workSpace,
                                            x_t_size,
-                                           nullptr);
+                                           nullptr,
+                                           GemmBackend_t::miopentensile,
+                                           conv_params.gfx90aFp16alt);
                 }
             }
             else
@@ -398,7 +409,9 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                                         x_t_size,
                                         nullptr,
                                         time_precision,
-                                        group_count > 1 ? callGemmStridedBatched : callGemm);
+                                        group_count > 1 ? callGemmStridedBatched : callGemm,
+                                        GemmBackend_t::miopentensile,
+                                        conv_params.gfx90aFp16alt);
             }
 
             if(gemm_status != miopenStatusSuccess)
@@ -587,8 +600,17 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
 
                 if(conv_params.type == InvokeType::Run)
                 {
-                    gemm_status =
-                        CallGemm(handle, gemm_desc, w, 0, workSpace, 0, y, out_offset, nullptr);
+                    gemm_status = CallGemm(handle,
+                                           gemm_desc,
+                                           w,
+                                           0,
+                                           workSpace,
+                                           0,
+                                           y,
+                                           out_offset,
+                                           nullptr,
+                                           GemmBackend_t::miopentensile,
+                                           conv_params.gfx90aFp16alt);
                 }
                 else
                 {
@@ -602,7 +624,9 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
                                                       out_offset,
                                                       nullptr,
                                                       time_precision,
-                                                      callGemm);
+                                                      callGemm,
+                                                      GemmBackend_t::miopentensile,
+                                                      conv_params.gfx90aFp16alt);
                 }
 
                 if(gemm_status != miopenStatusSuccess)
@@ -731,8 +755,17 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
 
                     if(conv_params.type == InvokeType::Run)
                     {
-                        gemm_status = CallGemmStridedBatched(
-                            handle, gemm_desc, w, 0, x, in_offset, y, out_offset, nullptr);
+                        gemm_status = CallGemmStridedBatched(handle,
+                                                             gemm_desc,
+                                                             w,
+                                                             0,
+                                                             x,
+                                                             in_offset,
+                                                             y,
+                                                             out_offset,
+                                                             nullptr,
+                                                             GemmBackend_t::miopentensile,
+                                                             conv_params.gfx90aFp16alt);
                     }
                     else
                     {
@@ -746,7 +779,9 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                                           out_offset,
                                                           nullptr,
                                                           time_precision,
-                                                          callGemmStridedBatched);
+                                                          callGemmStridedBatched,
+                                                          GemmBackend_t::miopentensile,
+                                                          conv_params.gfx90aFp16alt);
                     }
 
                     if(gemm_status != miopenStatusSuccess)
@@ -805,8 +840,17 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                 miopenStatus_t gemm_status;
                 if(conv_params.type == InvokeType::Run)
                 {
-                    gemm_status =
-                        CallGemmStridedBatched(handle, gemm_desc, w, 0, x, 0, y, 0, nullptr);
+                    gemm_status = CallGemmStridedBatched(handle,
+                                                         gemm_desc,
+                                                         w,
+                                                         0,
+                                                         x,
+                                                         0,
+                                                         y,
+                                                         0,
+                                                         nullptr,
+                                                         GemmBackend_t::miopentensile,
+                                                         conv_params.gfx90aFp16alt);
                 }
                 else
                 {
@@ -820,7 +864,9 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                                                       0,
                                                       nullptr,
                                                       time_precision,
-                                                      callGemmStridedBatched);
+                                                      callGemmStridedBatched,
+                                                      GemmBackend_t::miopentensile,
+                                                      conv_params.gfx90aFp16alt);
                 }
 
                 if(gemm_status != miopenStatusSuccess)
@@ -1078,13 +1124,23 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                         (conv.group_count > 1 || wDesc.GetType() == miopenInt8 ||
                          wDesc.GetType() == miopenInt8x4 || wDesc.GetType() == miopenBFloat16)
                             ? GemmBackend_t::miopentensile
-                            : GemmBackend_t::miopengemm);
+                            : GemmBackend_t::miopengemm,
+                        conv_params.gfx90aFp16alt);
                 }
                 else
                 {
                     if(conv.group_count > 1)
-                        gemm_status = CallGemmStridedBatched(
-                            handle, gemm_desc, w, 0, workSpace, 0, y, out_offset, nullptr);
+                        gemm_status = CallGemmStridedBatched(handle,
+                                                             gemm_desc,
+                                                             w,
+                                                             0,
+                                                             workSpace,
+                                                             0,
+                                                             y,
+                                                             out_offset,
+                                                             nullptr,
+                                                             GemmBackend_t::miopentensile,
+                                                             conv_params.gfx90aFp16alt);
                     else
                         gemm_status = CallGemm(
                             handle,
@@ -1098,7 +1154,8 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                             nullptr,
                             (wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
                                 ? GemmBackend_t::rocblas
-                                : GemmBackend_t::miopengemm);
+                                : GemmBackend_t::miopengemm,
+                            conv_params.gfx90aFp16alt);
                 }
 
                 if(gemm_status != miopenStatusSuccess)
