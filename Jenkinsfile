@@ -242,7 +242,11 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "BUILD_SMOKE_FP32_AUX1",
+            name: "BUILD_SMOKE_FP32",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "BUILD_SMOKE_AUX1",
             defaultValue: true,
             description: "")
         booleanParam(
@@ -387,7 +391,7 @@ pipeline {
                 stage('Perf DB Deserialize Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON" 
+                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON"
 
                     }
                     steps{
@@ -412,7 +416,7 @@ pipeline {
         }
         stage("Smoke Fp32") {
             when {
-                expression { params.BUILD_SMOKE_FP32_AUX1 && params.DATATYPE_FP32 }
+                expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
             }
             parallel{
                stage('Fp32 OpenCL Debug + Codecov') {
@@ -507,7 +511,7 @@ pipeline {
         }
         stage("Smoke Aux 1") {
             when {
-                expression { params.BUILD_SMOKE_FP32_AUX1 && params.DATATYPE_FP32 }
+                expression { params.BUILD_SMOKE_AUX1 && params.DATATYPE_FP32 }
             }
             parallel{
                 stage('Fp32 Hip Debug COMGR') {
