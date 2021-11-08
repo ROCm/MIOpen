@@ -135,7 +135,7 @@ struct CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
     int ABlockTransferSrcVectorDim                                = -1;
     int ABlockTransferSrcScalarPerVector                          = -1;
     int ABlockTransferDstScalarPerVector_K1                       = -1;
-    bool AThreadTransferSrcResetCoordinateAfterRun                = -1;
+    bool AThreadTransferSrcResetCoordinateAfterRun                = false;
 
     std::array<int, 3> BBlockTransferThreadSliceLengths_K0_N_K1   = {-1, -1, -1};
     std::array<int, 3> BBlockTransferThreadClusterLengths_K0_N_K1 = {-1, -1, -1};
@@ -144,7 +144,7 @@ struct CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
     int BBlockTransferSrcVectorDim                                = -1;
     int BBlockTransferSrcScalarPerVector                          = -1;
     int BBlockTransferDstScalarPerVector_K1                       = -1;
-    bool BThreadTransferSrcResetCoordinateAfterRun                = -1;
+    bool BThreadTransferSrcResetCoordinateAfterRun                = false;
 
     std::array<int, 8> CThreadTransferSrcDstAccessOrder = {-1, -1, -1, -1, -1, -1, -1, -1};
     int CThreadTransferSrcDstVectorDim                  = -1;
@@ -404,9 +404,7 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
         if(!(GK % (K0PerBlock * K1) == 0))
             return std::make_tuple(CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk{}, false);
 
-        bool HasMainKBlockLoop = true;
-        if(GK == K0PerBlock * K1)
-            HasMainKBlockLoop = false;
+        const bool HasMainKBlockLoop = (GK == K0PerBlock * K1);
 
         return std::make_tuple(
             CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk{
