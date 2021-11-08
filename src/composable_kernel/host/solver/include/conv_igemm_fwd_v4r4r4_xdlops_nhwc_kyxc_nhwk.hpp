@@ -404,7 +404,7 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
         if(!(GK % (K0PerBlock * K1) == 0))
             return std::make_tuple(CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk{}, false);
 
-        const bool HasMainKBlockLoop = (GK == K0PerBlock * K1);
+        const bool HasMainKBlockLoop = (GK > K0PerBlock * K1);
 
         return std::make_tuple(
             CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk{
