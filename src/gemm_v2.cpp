@@ -49,6 +49,7 @@
 #endif
 
 #include <boost/range/adaptors.hpp>
+#include <tuple> // std::ignore
 
 #if MIOPEN_USE_ROCBLAS
 
@@ -60,6 +61,9 @@
 
 /// Maintain API compatibility with various rocBLAS version
 #define USE_GEMM_FLAGS_PACK_INT8X4 (MIOPEN_ROCBLAS_VERSION_DECIMAL >= 238)
+
+/// Maintain API compatibility for versions not supporting FP16 alternate implementations
+#define USE_GEMM_FLAGS_FP16_ALT_IMPL (MIOPEN_ROCBLAS_VERSION_DECIMAL >= 242)
 
 template <class... Ts>
 auto miopen_rocblas_gemm_ex(Ts... xs)
@@ -206,7 +210,8 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
                                    FindDbKCacheKey* kcache_key,
                                    bool time_precision,
                                    CallGemmType_t call_gemm_type,
-                                   GemmBackend_t gemm_backend)
+                                   GemmBackend_t gemm_backend,
+                                   bool gfx90a_alt_impl)
 {
     switch(call_gemm_type)
     {
@@ -214,34 +219,88 @@ miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
         if(time_precision)
         {
             // rocBLAS need a warm-up call for accurate timing
-            CallGemm(
-                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr, gemm_backend);
+            CallGemm(handle,
+                     gemm_desc,
+                     A,
+                     a_offset,
+                     B,
+                     b_offset,
+                     C,
+                     c_offset,
+                     nullptr,
+                     gemm_backend,
+                     gfx90a_alt_impl);
         }
 
-        return CallGemm(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key, gemm_backend);
+        return CallGemm(handle,
+                        gemm_desc,
+                        A,
+                        a_offset,
+                        B,
+                        b_offset,
+                        C,
+                        c_offset,
+                        kcache_key,
+                        gemm_backend,
+                        gfx90a_alt_impl);
     }
     case callGemmStridedBatched: {
         if(time_precision)
         {
             // rocBLAS need extra warm-up call for accurate timing
-            CallGemmStridedBatched(
-                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr, gemm_backend);
+            CallGemmStridedBatched(handle,
+                                   gemm_desc,
+                                   A,
+                                   a_offset,
+                                   B,
+                                   b_offset,
+                                   C,
+                                   c_offset,
+                                   nullptr,
+                                   gemm_backend,
+                                   gfx90a_alt_impl);
         }
 
-        return CallGemmStridedBatched(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key, gemm_backend);
+        return CallGemmStridedBatched(handle,
+                                      gemm_desc,
+                                      A,
+                                      a_offset,
+                                      B,
+                                      b_offset,
+                                      C,
+                                      c_offset,
+                                      kcache_key,
+                                      gemm_backend,
+                                      gfx90a_alt_impl);
     }
     case callGemmStridedBatchedSequential: {
         if(time_precision)
         {
             // rocBLAS need a warm-up call for accurate timing
-            CallGemmStridedBatchedSequential(
-                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, nullptr, gemm_backend);
+            CallGemmStridedBatchedSequential(handle,
+                                             gemm_desc,
+                                             A,
+                                             a_offset,
+                                             B,
+                                             b_offset,
+                                             C,
+                                             c_offset,
+                                             nullptr,
+                                             gemm_backend,
+                                             gfx90a_alt_impl);
         }
 
-        return CallGemmStridedBatchedSequential(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key, gemm_backend);
+        return CallGemmStridedBatchedSequential(handle,
+                                                gemm_desc,
+                                                A,
+                                                a_offset,
+                                                B,
+                                                b_offset,
+                                                C,
+                                                c_offset,
+                                                kcache_key,
+                                                gemm_backend,
+                                                gfx90a_alt_impl);
     }
     }
     return miopenStatusNotImplemented;
@@ -362,6 +421,18 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
 }
 #endif
 
+#if MIOPEN_USE_ROCBLAS
+static inline uint32_t FlagsForRocblasFp32Fp16Call(const bool gfx90aFp16Alt)
+{
+#if USE_GEMM_FLAGS_FP16_ALT_IMPL
+    return gfx90aFp16Alt ? rocblas_gemm_flags_fp16_alt_impl : 0;
+#else
+    std::ignore = gfx90aFp16Alt;
+    return 0;
+#endif
+}
+#endif //MIOPEN_USE_ROCBLAS
+
 miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
                         ConstData_t A,
@@ -371,7 +442,8 @@ miopenStatus_t CallGemm(const Handle& handle,
                         Data_t C,
                         int c_offset,
                         FindDbKCacheKey* kcache_key,
-                        GemmBackend_t gemm_backend)
+                        GemmBackend_t gemm_backend,
+                        bool gfx90a_alt_impl)
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
@@ -397,6 +469,7 @@ miopenStatus_t CallGemm(const Handle& handle,
     {
     case GemmBackend_t::miopentensile:
 #if MIOPEN_USE_MIOPENTENSILE
+        std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmMIOpenTensile(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
 #endif
@@ -484,7 +557,8 @@ miopenStatus_t CallGemm(const Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0);
+                FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl)
+            );
         }
         break;
 
@@ -577,6 +651,7 @@ miopenStatus_t CallGemm(const Handle& handle,
 
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
+        std::ignore = gfx90a_alt_impl; // Not supported.
         if(gemm_desc.dataType != miopenFloat)
             return miopenStatusNotImplemented;
 
@@ -669,7 +744,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       Data_t C,
                                       int c_offset,
                                       FindDbKCacheKey* kcache_key,
-                                      GemmBackend_t gemm_backend)
+                                      GemmBackend_t gemm_backend,
+                                      bool gfx90a_alt_impl)
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
@@ -696,6 +772,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
     {
     case GemmBackend_t::miopentensile:
 #if MIOPEN_USE_MIOPENTENSILE
+        std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmMIOpenTensile(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
 #endif
@@ -794,7 +871,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                0);
+                FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl)
+            );
         }
         break;
 
@@ -896,6 +974,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
+        std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmStridedBatchedSequential(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key, gemm_backend);
 #else
@@ -916,7 +995,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                                                 Data_t C,
                                                 int c_offset,
                                                 FindDbKCacheKey* kcache_key,
-                                                GemmBackend_t gemm_backend)
+                                                GemmBackend_t gemm_backend,
+                                                bool gfx90a_alt_impl)
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
@@ -943,6 +1023,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
     {
     case GemmBackend_t::miopentensile:
 #if MIOPEN_USE_MIOPENTENSILE
+        std::ignore = gfx90a_alt_impl; // Not supported.
         return CallGemmMIOpenTensile(
             handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
 #endif
@@ -1035,7 +1116,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     rocblas_datatype::rocblas_datatype_f32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
-                    0);
+                    FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl)
+                );
             }
         }
         break;
@@ -1134,6 +1216,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
+        std::ignore = gfx90a_alt_impl; // Not supported.
         if(gemm_desc.dataType != miopenFloat)
             MIOPEN_THROW(miopenStatusNotImplemented, "fp16 is not implemented in MIOPENGEMM");
 

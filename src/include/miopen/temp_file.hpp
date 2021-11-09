@@ -38,8 +38,18 @@ class TempFile
     public:
     TempFile(const std::string& path_template);
 
-    inline std::string Path() const { return (dir.path / name).string(); }
-    inline operator std::string() const { return Path(); }
+    TempFile(TempFile&& other) noexcept : name(std::move(other.name)), dir(std::move(other.dir)) {}
+
+    TempFile& operator=(TempFile&& other) noexcept
+    {
+        name = std::move(other.name);
+        dir  = std::move(other.dir);
+        return *this;
+    }
+
+    const std::string& Name() const { return name; }
+    std::string Path() const { return (dir.path / name).string(); }
+    operator std::string() const { return Path(); }
 
     private:
     std::string name;

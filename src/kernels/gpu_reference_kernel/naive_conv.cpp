@@ -23,8 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
+#endif
 
 // hcc seems need __device__ __host__ together to compile, and no extern "C"
 typedef union _cvt_bf16_fp32

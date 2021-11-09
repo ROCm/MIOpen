@@ -188,11 +188,14 @@ struct ExecutionContext
                     MIOPEN_LOG_I2("Iterating over perf db directory " << pdb_path.string());
                     int closest_cu = std::numeric_limits<int>::max();
                     fs::path best_path;
-                    for(auto const& entry : fs::recursive_directory_iterator(pdb_path))
+                    std::vector<fs::path> contents;
+                    std::copy(fs::directory_iterator(pdb_path),
+                              fs::directory_iterator(),
+                              std::back_inserter(contents));
+                    for(auto const& filepath : contents)
                     {
-                        const auto& filepath = entry.path();
-                        const auto fname     = filepath.stem().string();
-                        if(fs::is_regular_file(entry) && filepath.extension() == ext &&
+                        const auto fname = filepath.stem().string();
+                        if(fs::is_regular_file(filepath) && filepath.extension() == ext &&
                            fname.rfind(db_id, 0) == 0) // starts with db_id
                         {
                             MIOPEN_LOG_I2("Checking perf db file: " << fname);

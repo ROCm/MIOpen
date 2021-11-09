@@ -97,6 +97,78 @@ struct BnFwdTrainingPerActivation : public SolverBase<OldStyleProblemDescription
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
+struct BnBwdTrainingSpatialSingle : public SolverBase<OldStyleProblemDescription>
+{
+    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    {
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    {
+        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::batchnorm::ProblemDescription& problem) const;
+};
+
+struct BnBwdTrainingSpatialMultiple : public SolverBase<OldStyleProblemDescription>
+{
+    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    {
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    {
+        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::batchnorm::ProblemDescription& problem) const;
+};
+
+struct BnBwdTrainingPerActivation : public SolverBase<OldStyleProblemDescription>
+{
+    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    {
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    {
+        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::batchnorm::ProblemDescription& problem) const;
+};
+
+struct BnFwdInference : public SolverBase<OldStyleProblemDescription>
+{
+    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    {
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    {
+        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::batchnorm::ProblemDescription& problem) const;
+};
+
 } // namespace batchnorm
 
 } // namespace solver

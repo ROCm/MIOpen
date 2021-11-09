@@ -37,22 +37,29 @@ struct FusedDataInvokeParams : InvokeParams
     FusedConvDataTensors tensors;
     Data_t workSpace;
     std::size_t workSpaceSize;
+    bool gfx90aFp16alt;
 
     FusedDataInvokeParams(FusedConvDataTensors tensors_,
                           Data_t workSpace_,
-                          std::size_t workSpaceSize_)
-        : tensors(tensors_), workSpace(workSpace_), workSpaceSize(workSpaceSize_)
+                          std::size_t workSpaceSize_,
+                          bool gfx90aFp16alt_)
+        : tensors(tensors_),
+          workSpace(workSpace_),
+          workSpaceSize(workSpaceSize_),
+          gfx90aFp16alt(gfx90aFp16alt_)
     {
     }
 
     FusedDataInvokeParams(InvokeType type_,
                           FusedConvDataTensors tensors_,
                           Data_t workSpace_,
-                          std::size_t workSpaceSize_)
+                          std::size_t workSpaceSize_,
+                          bool gfx90aFp16alt_)
         : InvokeParams{type_},
           tensors(tensors_),
           workSpace(workSpace_),
-          workSpaceSize(workSpaceSize_)
+          workSpaceSize(workSpaceSize_),
+          gfx90aFp16alt(gfx90aFp16alt_)
     {
     }
 };
