@@ -91,7 +91,7 @@ else()
     set(WINE_CMD)
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hcc /opt/rocm/hip)
+list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hcc)
 
 set( FIN_BACKEND ${FIN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
