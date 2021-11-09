@@ -1,0 +1,2 @@
+# Install a newer version of cmake for libMLIRMIOpen
+ROCmSoftwarePlatform/llvm-project-mlir@15a5cacc38bb3dd29e9e88f382c27c958386928a -DBUILD_FAT_LIBMLIRMIOPEN=1

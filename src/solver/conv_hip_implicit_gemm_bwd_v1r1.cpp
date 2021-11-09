@@ -662,6 +662,8 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
         if(ctx.IsBfp16())
             return false;
 #endif
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+        return false;
 
     const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
     if(k % GetEPackLength(ctx, false) != 0)

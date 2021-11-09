@@ -45,8 +45,11 @@ constexpr index_t BlockSize = CK_PARAM_BLOCKSIZE; // tunable
 constexpr index_t srcDims = CK_PARAM_IN_DIMS;
 constexpr index_t dstDims = CK_PARAM_OUT_DIMS;
 
-using toReduceDims  = Sequence<CK_PARAM_TOREDUCE_DIMS>;
-using invariantDims = Sequence<CK_PARAM_INVARIANT_DIMS>;
+constexpr index_t num_toReduceDims  = CK_PARAM_NUM_TOREDUCE_DIMS;
+constexpr index_t num_invariantDims = srcDims - num_toReduceDims;
+
+using invariantDims = typename arithmetic_sequence_gen<0, num_invariantDims, 1>::type;
+using toReduceDims  = typename arithmetic_sequence_gen<num_invariantDims, srcDims, 1>::type;
 
 constexpr ReduceTensorOp_t op          = static_cast<ReduceTensorOp_t>(CK_PARAM_REDUCE_OP);
 constexpr NanPropagation_t nanPropaOpt = CK_PARAM_NAN_PROPAGATE == 0
@@ -59,15 +62,7 @@ constexpr ReduceTensorIndices_t reduceIndicesOpt = CK_PARAM_REDUCE_INDICES == 0
 constexpr bool src2d_need_padding = static_cast<bool>(CK_PARAM_SRC2D_PADDING);
 constexpr bool dst1d_need_padding = static_cast<bool>(CK_PARAM_DST1D_PADDING);
 
-////////////////////////////////////////////////////////////////////////////////////////
-using specDims = typename sequence_merge<invariantDims, toReduceDims>::type;
-
-static_assert(is_valid_sequence_map<specDims>::value && specDims::Size() == srcDims,
-              "Wrong invariant and/or toReduce dimensions!");
-
-// The number of invariant dimensions can be zero if all dimension are to be reduced
-static_assert(invariantDims::Size() > 0 || dstDims == 1,
-              "If all source dimensions are reduced, the dest should have only one dimension !!");
+static_assert(num_invariantDims > 0, "Not all dimensins are reduced for this kernel !!");
 
 constexpr bool indexable    = reduce_binary_operator<compType, op>::indexable;
 constexpr bool need_indices = indexable && (reduceIndicesOpt != ReduceTensorIndices_t::NO_INDICES);
@@ -111,12 +106,6 @@ extern "C" __global__ void gridwise_generic_reduce_1_prepare(int GridSize,
                                                              int inStride3,
                                                              int inStride4,
                                                              int inStride5,
-                                                             int outLength0,
-                                                             int outLength1,
-                                                             int outLength2,
-                                                             int outLength3,
-                                                             int outLength4,
-                                                             int outLength5,
                                                              int outStride0,
                                                              int outStride1,
                                                              int outStride2,
@@ -132,14 +121,12 @@ extern "C" __global__ void gridwise_generic_reduce_1_prepare(int GridSize,
 
     const int srcLengths[6] = {inLength0, inLength1, inLength2, inLength3, inLength4, inLength5};
     const int srcStrides[6] = {inStride0, inStride1, inStride2, inStride3, inStride4, inStride5};
-    const int dstLengths[6] = {
-        outLength0, outLength1, outLength2, outLength3, outLength4, outLength5};
     const int dstStrides[6] = {
         outStride0, outStride1, outStride2, outStride3, outStride4, outStride5};
 
     const auto tupleSrcLengths = make_tuple_from_array(srcLengths, Number<srcDims>{});
     const auto tupleSrcStrides = make_tuple_from_array(srcStrides, Number<srcDims>{});
-    const auto tupleDstLengths = make_tuple_from_array(dstLengths, Number<dstDims>{});
+    const auto tupleDstLengths = make_tuple_from_array(srcLengths, Number<dstDims>{});
     const auto tupleDstStrides = make_tuple_from_array(dstStrides, Number<dstDims>{});
 
     const auto srcDesc = make_naive_tensor_descriptor(tupleSrcLengths, tupleSrcStrides);
@@ -180,16 +167,16 @@ extern "C" __global__ void gridwise_generic_reduce_1_prepare(int GridSize,
                                                    make_pad_transform(toReduceLen, 0, srcPad)),
                                         make_tuple(Sequence<0>{}, Sequence<1>{}),
                                         make_tuple(Sequence<0>{}, Sequence<1>{}));
-        if(hipThreadIdx_x == 0)
+        if(get_thread_local_1d_id() == 0)
             *static_cast<decltype(src2dDesc_2)*>(p_src2dDesc) = src2dDesc_2;
     }
     else
     {
-        if(hipThreadIdx_x == 0)
+        if(get_thread_local_1d_id() == 0)
             *static_cast<decltype(src2dDesc)*>(p_src2dDesc) = src2dDesc;
     }
 
-    if(hipThreadIdx_x == 0)
+    if(get_thread_local_1d_id() == 0)
         *static_cast<decltype(dst1dDesc)*>(p_dst1dDesc) = dst1dDesc;
 };
 
@@ -279,16 +266,16 @@ extern "C" __global__ void gridwise_generic_reduce_1(int origReduceLen,
                                                      const void* __restrict__ p_src_global,
                                                      float beta,
                                                      void* __restrict__ p_dst_global,
-                                                     void* __restrict__ ws_global,
+                                                     const void CONSTANT* ws_global,
                                                      long ws_buf2_bytes_offset,
                                                      void* __restrict__ indices_global)
 {
     (void)p_dst_global;
     (void)indices_global;
 
-    const void* p_src2dDesc = ws_global;
-    const void* p_dst1dDesc = static_cast<char*>(ws_global) + 2048;
-    void* ws_buf1_global    = static_cast<char*>(ws_global) + 4096;
+    const void* p_src2dDesc = cast_pointer_to_generic_address_space(ws_global);
+    const void* p_dst1dDesc = static_cast<const char*>(p_src2dDesc) + 2048;
+    void* ws_buf1_global    = const_cast<char*>(static_cast<const char*>(p_src2dDesc) + 4096);
 
     const auto src2dDesc = get_reduction_src2d_descriptor<src2d_need_padding>(p_src2dDesc);
     const auto dst1dDesc = get_reduction_dst1d_descriptor<dst1d_need_padding>(p_dst1dDesc);

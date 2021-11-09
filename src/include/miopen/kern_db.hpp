@@ -93,9 +93,9 @@ class KernDb : public SQLiteBase<KernDb>
     KernDb(const std::string& filename_, bool is_system);
     // This constructor is only intended for testing
     KernDb(const std::string& filename_,
-           bool _is_system,
-           std::function<std::string(std::string, bool*)> _compress_fn,
-           std::function<std::string(std::string, unsigned int)> _decompress_fn);
+           bool is_system_,
+           std::function<std::string(std::string, bool*)> compress_fn_,
+           std::function<std::string(std::string, unsigned int)> decompress_fn_);
     template <typename T>
     bool RemoveRecordUnsafe(const T& problem_config)
     {
@@ -149,11 +149,11 @@ class KernDb : public SQLiteBase<KernDb>
     }
 
     template <typename T>
-    boost::optional<std::string> StoreRecordUnsafe(const T& problem_config)
+    bool StoreRecordUnsafe(const T& problem_config)
     {
         if(filename.empty())
-            return boost::none;
-        auto insert_query = "INSERT OR IGNORE INTO " + T::table_name() +
+            return false;
+        auto insert_query = "INSERT OR REPLACE INTO " + T::table_name() +
                             "(kernel_name, kernel_args, kernel_blob, kernel_hash, "
                             "uncompressed_size) VALUES(?, ?, ?, ?, ?);";
         auto md5_sum           = md5(problem_config.kernel_blob);
@@ -178,7 +178,7 @@ class KernDb : public SQLiteBase<KernDb>
         auto rc = stmt.Step(sql);
         if(rc != SQLITE_DONE)
             MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
-        return problem_config.kernel_blob;
+        return true;
     }
 };
 } // namespace miopen

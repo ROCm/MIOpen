@@ -431,6 +431,13 @@ Program Handle::LoadProgram(const std::string& program_name,
     }
 }
 
+void Handle::ClearProgram(const std::string& program_name, const std::string& params) const
+{
+    this->impl->cache.ClearProgram(program_name, params);
+}
+
+void Handle::ClearProgram() const { this->impl->cache.ClearProgram(); }
+
 bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
 {
     return this->impl->cache.HasProgram(program_name, params);
@@ -543,7 +550,7 @@ void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size) const
     }
 }
 
-shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size)
+shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size) const
 {
     MIOPEN_HANDLE_LOCK
     struct region

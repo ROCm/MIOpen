@@ -32,6 +32,7 @@
 #include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
 #include <miopen/perf_field.hpp>
+#include <miopen/ramdb.hpp>
 #include <miopen/readonlyramdb.hpp>
 
 #include <boost/optional.hpp>
@@ -51,7 +52,7 @@ class FindDbRecord_t;
 
 #if MIOPEN_DEBUG_FIND_DB_CACHING
 using SystemFindDb = ReadonlyRamDb;
-using UserFindDb   = PlainTextDb;
+using UserFindDb   = RamDb;
 #else
 using SystemFindDb = PlainTextDb;
 using UserFindDb   = PlainTextDb;

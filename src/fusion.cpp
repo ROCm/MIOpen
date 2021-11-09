@@ -1050,6 +1050,11 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             if(!kinder.first->supported_arch.empty() && (it == kinder.first->supported_arch.end()))
                 continue;
 
+            const auto target = handle.GetTargetProperties();
+            if(kinder.first->supported_xnack && target.Xnack() &&
+               *kinder.first->supported_xnack != *target.Xnack())
+                continue;
+
             std::transform(d.begin(), d.end(), d.begin(), ::tolower);
             find_replace_first(program_name, "GFX*", d);
 

@@ -30,7 +30,12 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <cstddef>
 
+/// Disable ConvHipImplicitGemmBwdDataV4R1Xdlops for FP32 by default.
+/// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1206.
+#define WORKAROUND_ISSUE_1206 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_VALS)
 
 namespace miopen {
 namespace solver {
@@ -804,8 +809,21 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ConvolutionContext
 
 bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_ISSUE_1206
+    if(ctx.IsFp32())
+    {
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
+            return false;
+    }
+    else
+    {
+        if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
+            return false;
+    }
+#else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
         return false;
+#endif
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
@@ -823,9 +841,9 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
     if(!ctx.IsLayoutDefault())
-    {
         return false;
-    }
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+        return false;
 
     bool is_applicable = true;
     int gemm_g         = 0;
@@ -864,7 +882,7 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx,
 ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
     const ConvolutionContext& ctx,
     const PerformanceImplicitGemmBwdDataV4R1Xdlops& config,
-    bool) const
+    const bool disableConfigOverrideFromEnv) const
 {
     ConvSolution result;
 
@@ -872,6 +890,33 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
     {
         MIOPEN_LOG_E("invalid performance parameter");
         assert(false);
+    }
+
+    const PerformanceImplicitGemmBwdDataV4R1Xdlops* pcfg = &config;
+    PerformanceImplicitGemmBwdDataV4R1Xdlops fromEnv;
+    if(!disableConfigOverrideFromEnv)
+    {
+        std::string s;
+        const auto p_asciz =
+            miopen::GetStringEnv(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_VALS{});
+        if(p_asciz != nullptr)
+        {
+            s = std::string(p_asciz);
+            if(!s.empty()) // else nothing to parse.
+            {
+                if(!fromEnv.Deserialize(s) || !fromEnv.IsReallyValid(ctx))
+                {
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_VALS: "
+                                 "Bad format or invalid for the problem config: "
+                                 << s);
+                }
+                else
+                {
+                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                    pcfg = &fromEnv;
+                }
+            }
+        }
     }
 
     // a series of kernels
@@ -891,16 +936,16 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
         {
             int grid_size = 0;
 
-            const std::size_t GemmMPerBlock = config.GemmMPerBlock;
-            const std::size_t GemmNPerBlock = config.GemmNPerBlock;
-            const std::size_t GemmKPerBlock = config.GemmKPerBlock;
-            const std::size_t GemmMPerWave  = config.GemmMPerWave;
-            const std::size_t GemmNPerWave  = config.GemmNPerWave;
+            const std::size_t GemmMPerBlock = pcfg->GemmMPerBlock;
+            const std::size_t GemmNPerBlock = pcfg->GemmNPerBlock;
+            const std::size_t GemmKPerBlock = pcfg->GemmKPerBlock;
+            const std::size_t GemmMPerWave  = pcfg->GemmMPerWave;
+            const std::size_t GemmNPerWave  = pcfg->GemmNPerWave;
 
             const std::size_t block_size =
                 GemmNPerBlock * GemmMPerBlock / (GemmMPerWave * GemmNPerWave) * wave_size;
 
-            std::tie(grid_size, std::ignore) = config.CalculateGridSize(ctx);
+            std::tie(grid_size, std::ignore) = pcfg->CalculateGridSize(ctx);
 
             construction_parameters.l_wk.push_back(block_size);
             construction_parameters.l_wk.push_back(1);
@@ -936,7 +981,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                      GemmABlockCopyClusterLengths_GemmKPack,
                      GemmABlockCopySrcDataPerRead_GemmM,
                      GemmABlockCopyDstDataPerWrite_GemmKPack,
-                     std::ignore) = config.CalculateGemmABlockCopyPerformanceParameters(ctx);
+                     std::ignore) = pcfg->CalculateGemmABlockCopyPerformanceParameters(ctx);
 
             int GemmBBlockCopyClusterLengths_GemmKPack  = 1;
             int GemmBBlockCopyDstDataPerWrite_GemmKPack = 1;
@@ -946,7 +991,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                      GemmBBlockCopyClusterLengths_GemmKPack,
                      GemmBBlockCopySrcDataPerRead_GemmN,
                      GemmBBlockCopyDstDataPerWrite_GemmKPack,
-                     std::ignore) = config.CalculateGemmBBlockCopyPerformanceParameters(ctx);
+                     std::ignore) = pcfg->CalculateGemmBBlockCopyPerformanceParameters(ctx);
 
             const auto GemmABlockCopyDstDataPerWrite_GemmKPACK =
                 GemmABlockCopyDstDataPerWrite_GemmKPack;
@@ -998,7 +1043,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 ctx.general_compile_options;
 
                 construction_parameters.comp_options +=
-                    std::string(" -DCK_PARAM_KPACK_LENGTH=") + std::to_string(config.GemmKPACKSize) +
+                    std::string(" -DCK_PARAM_KPACK_LENGTH=") + std::to_string(pcfg->GemmKPACKSize) +
                     std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmABlockCopyDstDataPerWrite_GemmKPACK) +
                     std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPACK);
 
