@@ -243,7 +243,12 @@ static void RemoveOptionsUnwanted(OptionList& list)
 namespace hip {
 
 #if PCH_IS_SUPPORTED
-static bool IsPchEnabled() { return !miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}); }
+static bool IsPchEnabled()
+{
+    if(miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
+        return false;
+    return true;
+}
 #endif
 
 static std::string GetPchEnableStatus()
@@ -937,7 +942,7 @@ void BuildAsm(const std::string& name,
 #if WORKAROUND_SWDEV_255735
         if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
             if(target.Xnack() && !*target.Xnack())
-                optAsm.emplace_back("-mno-xnack");
+                optAsm.push_back("-mno-xnack");
 #endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);
