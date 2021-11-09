@@ -404,6 +404,21 @@ size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy(
     return occupancy;
 }
 
+void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::SetParamsForKSplit(const ConvolutionContext& ctx, const size_t& occupancy)
+{
+    if(ctx.IsFp16())
+    {
+        if(tensor_b_thread_lengths[3] == 1 ||
+           miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
+            vector_store = 1;
+    }
+    else if(ctx.IsBfp16() && tensor_b_thread_lengths[3] == 1)
+    {
+        vector_store = 1;
+    }
+    gemm_k_global_split = occupancy;
+}
+
 void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const ConvolutionContext& ctx)
 {
     static const std::vector<std::tuple<int, int, int>> tile_list_fp32 = {
@@ -595,17 +610,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         CopyParameters(config_list[selected_index]);
         if(need_k_split)
         {
-            if(ctx.IsFp16())
-            {
-                if(tensor_b_thread_lengths[3] == 1 ||
-                   miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
-                    vector_store = 1;
-            }
-            else if(ctx.IsBfp16() && tensor_b_thread_lengths[3] == 1)
-            {
-                vector_store = 1;
-            }
-            gemm_k_global_split = occupancy;
+            SetParamsForKSplit(ctx, occupancy);
         }
     }
     else
@@ -636,17 +641,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
                     CopyParameters(config);
                     if(need_k_split)
                     {
-                        if(ctx.IsFp16())
-                        {
-                            if(tensor_b_thread_lengths[3] == 1 ||
-                               miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
-                                vector_store = 1;
-                        }
-                        else if(ctx.IsBfp16() && tensor_b_thread_lengths[3] == 1)
-                        {
-                            vector_store = 1;
-                        }
-                        gemm_k_global_split = occupancy;
+                        SetParamsForKSplit(ctx, occupancy);
                     }
                     return;
                 }
@@ -725,7 +720,7 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
     const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
     const auto& pad_h     = ctx.pad_h;
     const auto& pad_w     = ctx.pad_w;
-    const auto& precision = ctx.IsFp16() ? miopenHalf : (ctx.IsBfp16() ? miopenBFloat16 : miopenFloat);
+    const auto precision  = ctx.IsFp16() ? miopenHalf : (ctx.IsBfp16() ? miopenBFloat16 : miopenFloat);
     const auto& group     = ctx.group_counts;
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
