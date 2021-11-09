@@ -589,16 +589,6 @@ pipeline {
                         buildHipClangJobAndReboot()
                     }
                 }
-                stage('Fp16 Hip gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot(setup_flags: Fp16_flags, build_env: extra_log_env, config_targets: Smoke_targets, test_flags: ' --verbose ', gpu_arch: "gfx908")
-                    }
-                }
             }
         }
         stage("Smoke Fp16/Bf16/Int8") {
