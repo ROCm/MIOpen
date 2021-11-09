@@ -1572,3 +1572,18 @@ add_custom_test(test_regression_opencl_float_mi100 VEGA_DISABLED HIP_DISABLED GF
     COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  512, 28, 28 --weights 128, 512, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
     COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  64,  56, 56 --weights 256, 64,  1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
 )
+
+set(ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS
+    MIOPEN_FIND_MODE=normal
+    MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS=1
+    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmForwardV4R4Xdlops)
+
+set(ARGS_ENABLE_FORWARD_ONLY
+    --verbose
+    --disable-backward-data
+    --disable-backward-weights)
+
+add_custom_test(test_regression_half_mi200 VEGA_DISABLED GFX908_DISABLED FLOAT_DISABLED HALF_ENABLED
+    # Issue-internal #4
+    COMMAND	${ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --input 120 64 75 75 --weights 128 64 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_ENABLE_FORWARD_ONLY}
+)
