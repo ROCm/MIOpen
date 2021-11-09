@@ -25,6 +25,14 @@
 ################################################################################
 cmake_minimum_required( VERSION 3.5 )
 
+macro(set_var_to_condition var)
+    if(${ARGN})
+        set(${var} TRUE)
+    else()
+        set(${name} FALSE)
+    endif()
+endmacro()
+
 # This has to be initialized before the project() command appears
 # Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
 if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
@@ -125,7 +133,6 @@ endif()
 set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_USE_MLIR "Use MLIR -- EXPERIMENTAL" Off)
-option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
 
@@ -314,6 +321,8 @@ else()
     endif()
 endif()
 
+set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT DEFINED MIOPEN_MODE_NOGPU))
+option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
 
 if(MIOPEN_USE_MLIR)
     # REQUIRED is not supported before cmake 3.18
@@ -449,17 +458,21 @@ enable_clang_tidy(
     CHECKS
         *
         -abseil-*
+        -altera-struct-pack-align
+        -altera-unroll-loops
         -android-cloexec-fopen
-        # Yea we shouldn't be using rand()
-        -cert-msc30-c
         -bugprone-exception-escape
         -bugprone-macro-parentheses
+        # too many narrowing conversions in our code
+        -bugprone-narrowing-conversions
+        -cert-dcl37-c
+        -cert-dcl51-cpp
         -cert-env33-c
+        # Yea we shouldn't be using rand()
+        -cert-msc30-c
         -cert-msc32-c
         -cert-msc50-cpp
         -cert-msc51-cpp
-        -cert-dcl37-c
-        -cert-dcl51-cpp
         -clang-analyzer-alpha.core.CastToStruct
         -clang-analyzer-optin.performance.Padding
         -clang-diagnostic-deprecated-declarations
@@ -470,7 +483,9 @@ enable_clang_tidy(
         -cppcoreguidelines-explicit-virtual-functions
         -cppcoreguidelines-init-variables
         -cppcoreguidelines-macro-usage
+        -cppcoreguidelines-narrowing-conversions
         -cppcoreguidelines-non-private-member-variables-in-classes
+        -cppcoreguidelines-prefer-member-initializer
         -cppcoreguidelines-pro-bounds-array-to-pointer-decay
         -cppcoreguidelines-pro-bounds-constant-array-index
         -cppcoreguidelines-pro-bounds-pointer-arithmetic
@@ -485,27 +500,26 @@ enable_clang_tidy(
         -google-readability-todo
         -google-runtime-int
         -google-runtime-references
-        -hicpp-vararg
+        # We really shouldn't use bitwise operators with signed integers, but
+        # opencl leaves us no choice
+        -hicpp-avoid-c-arrays
         -hicpp-braces-around-statements
         -hicpp-explicit-conversions
         -hicpp-named-parameter
         -hicpp-no-array-decay
-        # We really shouldn't use bitwise operators with signed integers, but
-        # opencl leaves us no choice
-        -hicpp-avoid-c-arrays
         -hicpp-signed-bitwise
         -hicpp-special-member-functions
         -hicpp-uppercase-literal-suffix
         -hicpp-use-auto
         -hicpp-use-equals-default
         -hicpp-use-override
+        -hicpp-vararg
+        -llvm-else-after-return
         -llvm-header-guard
         -llvm-include-order
-        #-llvmlibc-*
-        -llvmlibc-restrict-system-libc-headers
         -llvmlibc-callee-namespace
         -llvmlibc-implementation-in-namespace
-        -llvm-else-after-return
+        -llvmlibc-restrict-system-libc-headers
         -llvm-qualified-auto
         -misc-misplaced-const
         -misc-non-private-member-variables-in-classes
@@ -520,21 +534,16 @@ enable_clang_tidy(
         -modernize-use-transparent-functors
         -performance-unnecessary-value-param
         -readability-braces-around-statements
+        -readability-convert-member-functions-to-static
         -readability-else-after-return
         # we are not ready to use it, but very useful
         -readability-function-cognitive-complexity
         -readability-isolate-declaration
         -readability-magic-numbers
         -readability-named-parameter
-        -readability-uppercase-literal-suffix
-        -readability-convert-member-functions-to-static
         -readability-qualified-auto
         -readability-redundant-string-init
-        # too many narrowing conversions in our code
-        -bugprone-narrowing-conversions
-        -cppcoreguidelines-narrowing-conversions
-        -altera-struct-pack-align
-        -cppcoreguidelines-prefer-member-initializer
+        -readability-uppercase-literal-suffix
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}

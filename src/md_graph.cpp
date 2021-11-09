@@ -689,7 +689,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             }
         }
 
-        // Fused Winograd v21_1_2
+        // Fused Winograd v21_1_3
         {
             auto add_meta_wino = [&](FusionMDGraph_Edge_Map& m, int weight) {
                 m["constraints"].emplace_back("weight === " + std::to_string(weight));
@@ -702,8 +702,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                     const std::vector<std::string> supported_arch,
                                     const int stride) {
                 const auto kernel_postfix  = "_fp32_stride" + std::to_string(stride);
-                const auto kernel_file     = "Conv_Winograd_v21_1_2" + kernel_postfix + ".s";
-                const auto kernel_name     = "miopenSp3AsmConv_v21_1_2_" + family + kernel_postfix;
+                const auto kernel_file     = "Conv_Winograd_v21_1_3" + kernel_postfix + ".s";
+                const auto kernel_name     = "miopenSp3AsmConv_v21_1_3_" + family + kernel_postfix;
                 const auto supported_xnack = false;
 
                 auto conv_v = std::make_shared<MDGraph_vertex>(

@@ -550,7 +550,7 @@ void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size) const
     }
 }
 
-shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size)
+shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size) const
 {
     MIOPEN_HANDLE_LOCK
     struct region
