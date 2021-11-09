@@ -15,6 +15,9 @@ union BufferAddressConfig
     int32_t range[4];
 };
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-identifier"
+
 __device__ float __llvm_amdgcn_buffer_load_f32(int32x4_t rsrc,
                                                index_t vindex,
                                                index_t offset,
@@ -791,6 +794,8 @@ __device__ void amd_buffer_atomic_add<float, 4>(const float* p_src,
     }
 }
 #endif // CK_USE_AMD_BUFFER_ATOMIC_FADD
+
+#pragma clang diagnostic pop // "-Wreserved-identifier"
 
 } // namespace ck
 #endif
