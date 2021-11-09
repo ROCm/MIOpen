@@ -73,17 +73,6 @@ This prefix can used to specify the dependency path during the configuration pha
 MIOpen's HIP backend uses [rocBlas](https://github.com/ROCmSoftwarePlatform/rocBLAS) by default. Users can install rocBlas minimum release by using `apt-get install rocblas`. To disable using rocBlas set the configuration flag `-DMIOPEN_USE_ROCBLAS=Off`. rocBlas is *not* available for the OpenCL backend.
 
 
-## Installing minimum dependencies in ROCm environment
-
-Users who are working in a fully installed and up to date ROCm environment may not wish to additionally install rocm-cmake, clang-ocl, MIOpenGEMM, MIOpenTensile or rocBLAS. This can be done by simply inserting the command `--minimum` into the cmake command as shown below:
-
-```
-cmake -P install_deps.cmake --minimum --prefix /some/local/dir
-```
-
-This will build the Boost and half libraries.
-
-
 ## Building MIOpen from source
 
 ### Configuring with cmake
@@ -111,24 +100,6 @@ cmake -DMIOPEN_BACKEND=OpenCL -DMIOPEN_HIP_COMPILER=<hip-compiler-path> -DOPENCL
 And an example setting the dependency path for an envirnment in ROCm 3.5 and later:
 ```
 cmake -DMIOPEN_BACKEND=OpenCL -DMIOPEN_HIP_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_PREFIX_PATH=/some/local/dir ..
-```
-
-For ROCm 3.3 and earlier:
-```
-cmake -DMIOPEN_BACKEND=OpenCL -DCMAKE_PREFIX_PATH=/some/local/dir ..
-```
-
-### For the HIP backend on ROCm 3.3 and earlier, run:
-
-Set the C++ compiler to `hcc`.
-```
-export CXX=<location-of-hcc-compiler>
-cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<hcc-installed-path>;<clang-ocl-installed-path>;<miopen-dependency-path>" ..
-```
-
-An example cmake step can be:
-```
-CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip;/some/local/dir" ..
 ```
 
 ### For the HIP backend on ROCm 3.5 and later, run:

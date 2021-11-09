@@ -503,6 +503,9 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
+    if(name == "gfx90a" && params.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+
     const auto elements_in_dword = 4 / GetTypeSize(params.in_data_type);
     // clang-format off
     const auto img_hw = params.out_height * params.out_width;

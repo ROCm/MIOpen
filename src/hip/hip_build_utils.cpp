@@ -84,6 +84,45 @@ inline const std::string& GetCoV3Option(const bool enable)
     else
         return no_option;
 }
+
+inline void InplaceRemoveAllTokensThatInclude(std::string& str,
+                                              const std::string& search_1,
+                                              const std::string& search_2)
+{
+    for(std::size_t pos = 0;;)
+    {
+        if((pos = str.find(search_1, pos)) == std::string::npos)
+            break;
+
+        auto beg       = str.find_last_of(" \t\n\r", pos);
+        beg            = (beg == std::string::npos) ? 0 : beg + 1;
+        const auto end = str.find_first_of(" \t\n\r", pos);
+
+        auto len  = std::string::npos;
+        auto next = std::string::npos;
+        if(end != std::string::npos)
+        {
+            next = str.find_first_not_of(" \t\n\r", end);
+            if(next != std::string::npos)
+                len = next - beg;
+        }
+
+        const auto tok =
+            end == std::string::npos ? std::string{str, beg} : std::string{str, beg, end - beg};
+        if(tok.find(search_2) != std::string::npos)
+        {
+            str.erase(beg, len);
+            if(len == std::string::npos)
+                break;
+            pos = beg;
+        }
+        else
+        {
+            pos = next;
+        }
+    }
+}
+
 } // namespace
 
 static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
@@ -91,8 +130,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                             std::string src,
                                             std::string params,
                                             const TargetProperties& target,
-                                            const bool testing_mode,
-                                            const bool sources_already_reside_on_filesystem)
+                                            const bool testing_mode)
 {
 #ifdef __linux__
     // Write out the include files
@@ -109,12 +147,8 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         }
     }
 
-    // Sources produced by MLIR-cpp already reside in tmp dir.
-    if(!sources_already_reside_on_filesystem)
-    {
-        src += "\nint main() {}\n";
-        WriteFile(src, tmp_dir->path / filename);
-    }
+    src += "\nint main() {}\n";
+    WriteFile(src, tmp_dir->path / filename);
 
     // cppcheck-suppress unreadVariable
     const LcOptionTargetStrings lots(target);
@@ -141,7 +175,13 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     }
 
     params += " -Wno-unused-command-line-argument -I. ";
-    params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+
+    {
+        std::string hip_compiler_flags = MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
+        InplaceRemoveAllTokensThatInclude(hip_compiler_flags, "clang_rt.builtins", "x86_64");
+        params += hip_compiler_flags;
+    }
+
     if(IsHccCompiler())
     {
         env += std::string("KMOPTLLC=\"-mattr=+enable-ds128 ");
@@ -256,7 +296,7 @@ HipBuildTest(const std::string& program_name, std::string params, const TargetPr
     std::string source = miopen::GetKernelSrc(program_name);
     try
     {
-        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true, false);
+        std::ignore = HipBuildImpl(dir, program_name, source, params, target, true);
     }
     catch(...)
     {
@@ -290,8 +330,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                                  const std::string& filename,
                                  std::string src,
                                  std::string params,
-                                 const TargetProperties& target,
-                                 const bool sources_already_reside_on_filesystem)
+                                 const TargetProperties& target)
 {
 #ifndef ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
     if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
@@ -301,8 +340,7 @@ boost::filesystem::path HipBuild(boost::optional<TmpDir>& tmp_dir,
     if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
         params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #endif
-    return HipBuildImpl(
-        tmp_dir, filename, src, params, target, false, sources_already_reside_on_filesystem);
+    return HipBuildImpl(tmp_dir, filename, src, params, target, false);
 }
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
