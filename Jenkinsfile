@@ -255,10 +255,6 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "BUILD_SMOKE_MLIR",
-            defaultValue: true,
-            description: "")
-        booleanParam(
             name: "BUILD_SMOKE_MIOPENTENSILE_LATEST",
             defaultValue: true,
             description: "")
