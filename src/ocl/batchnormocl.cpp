@@ -46,37 +46,6 @@
 
 namespace miopen {
 
-template <class Solvers, class Problem>
-static void ExecutePrimitive(Handle& handle,
-                             const Solvers& solvers,
-                             const Problem& problem,
-                             const AlgorithmName& algo,
-                             const AnyInvokeParams& invoke_params)
-{
-    const auto network_config = problem.MakeNetworkConfig();
-
-    if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
-    {
-        (*existingInvoker)(handle, invoke_params);
-    }
-    else
-    {
-        auto ctx = ExecutionContext{&handle};
-        ctx.DetectRocm();
-        const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
-
-        if(slns.empty())
-            MIOPEN_THROW(miopenStatusNotImplemented, "No solver found.");
-
-        const auto& sln = slns.front();
-        if(!sln.invoker_factory)
-            MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
-        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-        handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
-        invoker(handle, invoke_params);
-    }
-}
-
 void BatchNormForwardTraining(Handle& handle,
                               miopenBatchNormMode_t bn_mode,
                               const void* alpha,
@@ -144,7 +113,6 @@ void BatchNormForwardTraining(Handle& handle,
     const auto algo = bn_mode == miopenBNSpatial
                           ? AlgorithmName{"miopenBatchNormForwardTrainingSpatial"}
                           : AlgorithmName{"miopenBatchNormForwardTrainingPerActivation"};
-    const auto network_config = problem.MakeNetworkConfig();
 
     const auto invoke_params = [&]() {
         auto tmp                  = batchnorm::InvokeParams{};
@@ -162,30 +130,11 @@ void BatchNormForwardTraining(Handle& handle,
         return tmp;
     }();
 
-    if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
-    {
-        (*existingInvoker)(handle, invoke_params);
-    }
-    else
-    {
-        auto ctx = ExecutionContext{&handle};
-        ctx.DetectRocm();
-        const auto solvers =
-            solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
-                                    solver::batchnorm::BnFwdTrainingSpatialMultiple,
-                                    solver::batchnorm::BnFwdTrainingPerActivation>{};
-        const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
+                                                 solver::batchnorm::BnFwdTrainingSpatialMultiple,
+                                                 solver::batchnorm::BnFwdTrainingPerActivation>{};
 
-        if(slns.empty())
-            MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
-
-        const auto& sln = slns.front();
-        if(!sln.invoker_factory)
-            MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
-        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-        handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
-        invoker(handle, invoke_params);
-    }
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     if(miopen::CheckNumericsEnabled())
     {
@@ -273,7 +222,7 @@ void BatchNormForwardInference(Handle& handle,
         const auto algo    = AlgorithmName{"miopenBatchNormalizationForwardInference"};
         const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference>{};
 
-        ExecutePrimitive(handle, solvers, problem, algo, invoke_params);
+        solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     }
     else // Need to recalculated everything, let's just call training kernel in that case
     {
@@ -375,7 +324,6 @@ void BatchNormBackward(Handle& handle,
     const auto algo = bn_mode == miopenBNSpatial
                           ? AlgorithmName{"miopenBatchNormBackwardPropSpatial"}
                           : AlgorithmName{"miopenBatchNormBackwardPropPerActivation"};
-    const auto network_config = problem.MakeNetworkConfig();
 
     const auto invoke_params = [&]() {
         auto tmp              = batchnorm::BwdInvokeParams{};
@@ -393,30 +341,11 @@ void BatchNormBackward(Handle& handle,
         return tmp;
     }();
 
-    if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
-    {
-        (*existingInvoker)(handle, invoke_params);
-    }
-    else
-    {
-        auto ctx = ExecutionContext{&handle};
-        ctx.DetectRocm();
-        const auto solvers =
-            solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatialSingle,
-                                    solver::batchnorm::BnBwdTrainingSpatialMultiple,
-                                    solver::batchnorm::BnBwdTrainingPerActivation>{};
-        const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatialSingle,
+                                                 solver::batchnorm::BnBwdTrainingSpatialMultiple,
+                                                 solver::batchnorm::BnBwdTrainingPerActivation>{};
 
-        if(slns.empty())
-            MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
-
-        const auto& sln = slns.front();
-        if(!sln.invoker_factory)
-            MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
-        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-        handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
-        invoker(handle, invoke_params);
-    }
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     if(miopen::CheckNumericsEnabled())
     {
