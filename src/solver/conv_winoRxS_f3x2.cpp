@@ -327,8 +327,11 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
         return false;
 
     if(params.IsFp16() &&
-       !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx1011") ||
-         StartsWith(name, "gfx1012") || StartsWith(name, "gfx103")))
+       !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
+         StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") || StartsWith(name, "gfx103")))
+        return false;
+
+    if(name == "gfx90a" && params.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     // clang-format off
@@ -424,8 +427,8 @@ ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params,
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
-    std::string kernel_name    = "miopenSp3AsmConv_v21_1_2";
-    std::string kernel_file    = "Conv_Winograd_v21_1_2";
+    std::string kernel_name    = "miopenSp3AsmConv_v21_1_3";
+    std::string kernel_file    = "Conv_Winograd_v21_1_3";
     std::string kernel_postfix = params.IsFp32() ? "_f3x2_fp32" : "_f3x2_fp16_dot2_edc";
 
     if(is_gfx9)

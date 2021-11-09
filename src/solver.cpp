@@ -430,12 +430,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, GemmFwd1x1_0_2{}, miopenConvolutionAlgoGEMM);
     RegisterWithSolver(registry, ++id, GemmFwdRest{}, miopenConvolutionAlgoGEMM);
 
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmMlirCppFwd{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmMlirCppBwd{}, miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver(
-        registry, ++id, ConvHipImplicitGemmMlirCppWrW{}, miopenConvolutionAlgoImplicitGEMM);
+    ++id; // removed solver ConvHipImplicitGemmMlirCppFwd
+    ++id; // removed solver ConvHipImplicitGemmMlirCppBwd
+    ++id; // removed solver ConvHipImplicitGemmMlirCppWrW
 
     RegisterWithSolver(registry, ++id, GemmBwd1x1_stride2{}, miopenConvolutionAlgoGEMM);
     RegisterWithSolver(registry, ++id, GemmBwd1x1_stride1{}, miopenConvolutionAlgoGEMM);
@@ -485,6 +482,17 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(
         registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnFwdTrainingPerActivation{}));
+
+    Register(
+        registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnBwdTrainingSpatialSingle{}));
+    Register(registry,
+             ++id,
+             Primitive::Batchnorm,
+             SolverDbId(batchnorm::BnBwdTrainingSpatialMultiple{}));
+    Register(
+        registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnBwdTrainingPerActivation{}));
+
+    Register(registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnFwdInference{}));
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

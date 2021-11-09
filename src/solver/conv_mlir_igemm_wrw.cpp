@@ -28,6 +28,7 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/config.h>
 #include <miopen/env.hpp>
+#include <miopen/generic_search.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
@@ -54,15 +55,36 @@ bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx) const
 #endif
 }
 
-ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx) const
+PerformanceConvMlirIgemm ConvMlirIgemmWrW::GetPerformanceConfig(const ConvolutionContext& ctx) const
+{
+    std::ignore = ctx;
+    return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
+}
+
+bool ConvMlirIgemmWrW::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                                const PerformanceConvMlirIgemm& config) const
+{
+    MIOPEN_LOG_I("");
+    return config.IsValid(ctx);
+}
+
+PerformanceConvMlirIgemm ConvMlirIgemmWrW::Search(const ConvolutionContext& ctx,
+                                                  const AnyInvokeParams& invoke_ctx) const
+{
+    return GenericSearch(*this, ctx, invoke_ctx);
+}
+
+ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx,
+                                           const PerformanceConvMlirIgemm& config,
+                                           bool) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
     KernelInfo construction_parameters;
 
     construction_parameters.kernel_name  = mlir::GetKernelName(ctx, false);
-    construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
-    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, false);
+    construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
+    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, config, false);
 
     size_t local_size  = 0;
     size_t global_size = 0;
@@ -81,6 +103,7 @@ ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx) const
     return result;
 #else
     std::ignore = ctx;
+    std::ignore = config;
     return {};
 #endif
 }
