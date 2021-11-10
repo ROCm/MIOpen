@@ -623,9 +623,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
     MIOPEN_LOG_I("m_per_block:" << m_per_block << ", n_per_block:" << n_per_block
                                 << ", k_per_block:" << k_per_block);
 
-    if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0) || not_support_vector_store)
-    {
-        // not found, let's try  gemm_k pad now.
+    auto find_with_gemm_k_pad = [&]() {
         const auto& config_list = GetBwdXdlopsNHWCConfigList();
         size_t min_pad_pixel    = std::numeric_limits<std::size_t>::max();
         size_t selected_index   = 0;
@@ -638,7 +636,8 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
                 continue;
             if(!(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
                 continue;
-
+            // If we go here, then this is our last hope.
+            // This kind of kernel support any configs
             size_t cur_pad_pixel =
                 ComputeMatrixPadSize(
                     gemm_m, config.gemm_m_per_block, gemm_k_even, config.gemm_k_per_block) +
@@ -653,6 +652,12 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
             }
         }
         CopyParameters(config_list[selected_index]);
+    };
+
+    if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0) || not_support_vector_store)
+    {
+        // not found, let's try  gemm_k pad now.
+        find_with_gemm_k_pad();
     }
     else
     {
@@ -693,6 +698,8 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
                                                          << ", k_per_block:" << k_per_block);
                 if((unit_conv && config.nxe == 0) || (!unit_conv && config.nxe != 0))
                 {
+                    if(!config.IsValid(ctx)) // last check before assigning a heuristic value
+                        continue;
                     CopyParameters(config);
                     if(need_k_split)
                     {
@@ -700,7 +707,8 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
                                MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
                             if(ctx.IsFp16() && gks > 0)
                                 vector_store = 1;
-                        gemm_k_global_split = static_cast<int>(gks);
+                        if(gks > 0)
+                            gemm_k_global_split = static_cast<int>(gks);
                     }
                     return;
                 }
@@ -708,8 +716,8 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
                     continue;
             }
         }
-        MIOPEN_LOG_E("can't find a suitable heuristic config");
-        MIOPEN_THROW(miopenStatusInternalError);
+        // last try
+        find_with_gemm_k_pad();
     }
 }
 bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValidValue() const
