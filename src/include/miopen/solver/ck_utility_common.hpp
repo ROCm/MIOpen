@@ -56,6 +56,12 @@ static inline bool is_ck_supported_hardware(const Handle& handle)
            StartsWith(handle.GetDeviceName(), "gfx1030");
 }
 
+static inline bool is_supported_xdlops(const Handle& handle)
+{
+    return StartsWith(handle.GetDeviceName(), "gfx908") ||
+           StartsWith(handle.GetDeviceName(), "gfx90a");
+}
+
 static inline bool is_support_amd_buffer_atomic_fadd(const std::string& device_name)
 {
     return StartsWith(device_name, "gfx908");

@@ -1578,7 +1578,7 @@ set(CONV_CK_IGEMM_FWD_V4R4R4_XDLOPS_NHWC_ENV
     MIOPEN_FIND_MODE=normal
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCkIgemmFwdV4r4r4XdlopsNhwc)
 
-add_custom_test(test_conv_ck_igemm_fwd_v4r4r4_xdlops_nhwc FLOAT_ENABLED HALF_ENABLED  GFX908_ENABLED SKIP_UNLESS_ALL
+add_custom_test(test_conv_ck_igemm_fwd_v4r4r4_xdlops_nhwc FLOAT_ENABLED HALF_ENABLED BF16_DISABLED  GFX908_ENABLED GFX90A_ENABLED SKIP_UNLESS_ALL
 COMMAND ${CONV_CK_IGEMM_FWD_V4R4R4_XDLOPS_NHWC_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 1024 14 14  --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights  --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${CONV_CK_IGEMM_FWD_V4R4R4_XDLOPS_NHWC_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 14 14  --weights  256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights  --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${CONV_CK_IGEMM_FWD_V4R4R4_XDLOPS_NHWC_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 1024 14 14  --weights  512 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights  --in_layout NHWC --fil_layout NHWC --out_layout NHWC

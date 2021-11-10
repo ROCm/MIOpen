@@ -85,7 +85,7 @@ bool ConvCkIgemmFwdV4r4r4XdlopsNhwc::IsApplicable(const ConvolutionContext& ctx)
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
+    if(!ck_utility::is_supported_xdlops(ctx.GetStream()))
         return false;
     if(!ctx.IsLayoutNHWC())
         return false;
@@ -100,7 +100,7 @@ bool ConvCkIgemmFwdV4r4r4XdlopsNhwc::IsApplicable(const ConvolutionContext& ctx)
 
     {
         // this kernel use int32_t for memory offset, which covers 2GB of memory maximum
-        const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
+        constexpr auto max_index_range = static_cast<std::size_t>(INT32_MAX) + 1;
 
         if(!(ctx.bot_sz < max_index_range && ctx.weights_sz < max_index_range &&
              ctx.top_sz < max_index_range))
