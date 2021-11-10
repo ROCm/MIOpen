@@ -757,7 +757,7 @@ miopenGcnAsmConv1x1U:
 loop_begin:
     mbufs_cnt_B = 0
     load_input inputB, mbufs_cnt_B
-    s_wait (mbufs_cnt+mbufs_cnt_A), 0
+    s_wait (mbufs_cnt+mbufs_cnt_B), 0
     load_filters filtersB, sequential_read_size, sequential_reads_cnt, sequential_read_stride
     trans_input inputA
     trans_filter filtersA
@@ -765,7 +765,7 @@ loop_begin:
 
     mbufs_cnt_A = 0
     load_input inputA, mbufs_cnt_A
-    s_wait (mbufs_cnt+mbufs_cnt_B), 0
+    s_wait (mbufs_cnt+mbufs_cnt_A), 0
     load_filters filtersA, sequential_read_size, sequential_reads_cnt, sequential_read_stride
     trans_input inputB
     trans_filter filtersB
@@ -778,7 +778,7 @@ loop_end:
 
     mbufs_cnt_B = 0
     load_input inputB, mbufs_cnt_B
-    s_wait (mbufs_cnt+mbufs_cnt_A), 0
+    s_wait (mbufs_cnt+mbufs_cnt_B), 0
     load_filters filtersB, sequential_read_size, sequential_reads_cnt, sequential_read_stride
     trans_input inputA
     trans_filter filtersA

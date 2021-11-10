@@ -775,7 +775,7 @@ loop_begin:
     mbufs_cnt_1 = 0
     load_input 1, mbufs_cnt_1
     wave_sync_mainLoop 2
-    s_wait (mbufs_cnt+mbufs_cnt_0), 0
+    s_wait (mbufs_cnt+mbufs_cnt_1), 0
     load_filters  1
 
     conv 0
@@ -783,7 +783,7 @@ loop_begin:
     mbufs_cnt_0 = 0
     load_input 0, mbufs_cnt_0
     wave_sync_mainLoop 2
-    s_wait (mbufs_cnt+mbufs_cnt_1), 0
+    s_wait (mbufs_cnt+mbufs_cnt_0), 0
     load_filters  0
 
     conv 1
@@ -795,7 +795,7 @@ loop_end:
     mbufs_cnt_1 = 0
     load_input 1, mbufs_cnt_1
     wave_sync_mainLoop 2
-    s_wait (mbufs_cnt+mbufs_cnt_0), 0
+    s_wait (mbufs_cnt+mbufs_cnt_1), 0
     load_filters  1
 
     conv 0
