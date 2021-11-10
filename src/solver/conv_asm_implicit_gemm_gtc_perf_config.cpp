@@ -204,8 +204,8 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ConvolutionC
     std::string kernel_precision = ctx.IsFp32() ? "fp32" : (ctx.IsFp16() ? "fp16" : "bf16";
     const auto device_name = ctx.GetStream().GetDeviceName();
     std::string gtc_str    = device_name == "gfx908" ? "_gtcx_" : "_gtcx2_";
-    std::string direction  = 
-    kernel_name << "igemm_" << direction << gtc_str << tensor_layout << "_" << kernel_precision
+    std::string direction  = ctx.direction.IsForward() ? "fwd" : (ctx.direction.IsBackwardWrW() ? "wrw" : "bwd");
+    kernel_name << "igemm_" << direction << gtc_str << "nhwc" << "_" << kernel_precision
                 << "_bx" << nxb << "_ex" << nxe << "_bt" << gemm_m_per_block << "x"
                 << gemm_n_per_block << "x" << gemm_k_per_block << "_wt" << wave_tile_m << "x"
                 << wave_tile_n << "x" << wave_tile_k << "_ws" << wave_step_m << "x" << wave_step_n

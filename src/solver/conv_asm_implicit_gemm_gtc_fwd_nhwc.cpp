@@ -45,7 +45,7 @@ struct GeneratedData
 {
     std::string direction;
     std::string layout;
-    miopenDataType_t datatype;   
+    miopenDataType_t precision;   
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC perfConfig;
 }
 
