@@ -48,7 +48,6 @@ option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" ON)
 option( WORKAROUND_ISSUE_1148 "" ON)
-option( WORKAROUND_ISSUE_1281 "" ON)
 
 # Run the test suite to a depth limit
 #limit greater than 2 leads to prolonged testing more than 5hrs per stage.
@@ -561,14 +560,6 @@ function(add_custom_test NAME)
           OR ${NAME} MATCHES "test_conv_extra"
           OR ${NAME} MATCHES "test_conv_for_implicit_gemm" ))
         set_tests_properties(${NAME} PROPERTIES RUN_SERIAL On)
-    endif()
-
-    if(WORKAROUND_ISSUE_1281
-        AND MIOPEN_TEST_GFX90A
-        AND MIOPEN_TEST_FLOAT
-        AND (NOT MIOPEN_TEST_GPU_XNACK_ENABLED)
-        AND (${NAME} MATCHES "test_conv_group"))
-        set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
 
     if(  (is_vega_check OR is_gfx908_check OR is_gfx1030_check OR is_gfx90a_check)
