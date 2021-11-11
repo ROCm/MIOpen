@@ -121,6 +121,7 @@ set( MIOpen_Source
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
     batchnorm/problem_description.cpp
+    pooling/problem_description.cpp
     solver/batchnorm/forward_spatial_single.cpp
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_per_activation.cpp
