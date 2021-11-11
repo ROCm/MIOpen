@@ -1602,3 +1602,18 @@ COMMAND ${CONV_CK_IGEMM_FWD_V4R4R4_XDLOPS_NHWC_ENV}     $<TARGET_FILE:test_conv2
 COMMAND ${CONV_CK_IGEMM_FWD_V4R4R4_XDLOPS_NHWC_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128   64 56 56  --weights   64   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights  --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 COMMAND ${CONV_CK_IGEMM_FWD_V4R4R4_XDLOPS_NHWC_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128   64 56 56  --weights   64   64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights  --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 )
+
+set(ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS
+    MIOPEN_FIND_MODE=normal
+    MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS=1
+    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmForwardV4R4Xdlops)
+
+set(ARGS_ENABLE_FORWARD_ONLY
+    --verbose
+    --disable-backward-data
+    --disable-backward-weights)
+
+add_custom_test(test_regression_half_mi200 VEGA_DISABLED GFX908_DISABLED FLOAT_DISABLED HALF_ENABLED
+    # Issue-internal #4
+    COMMAND	${ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --input 120 64 75 75 --weights 128 64 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_ENABLE_FORWARD_ONLY}
+)

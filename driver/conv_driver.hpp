@@ -90,18 +90,6 @@ typedef cl_int status_t;
 typedef int status_t;
 #endif
 
-// Use values which are distinctively greater then miopenStatus_t,
-// so that these can be ORed with any miopen status code
-// without loss of information.
-typedef enum
-{
-    // These four codes could be returned together, ORed:
-    EC_VerifyFwd     = 0x100,
-    EC_VerifyBwd     = 0x200,
-    EC_VerifyWrw     = 0x400,
-    EC_VerifyBwdBias = 0x800,
-} errorCode_t;
-
 struct AutoMiopenWarmupMode
 {
     AutoMiopenWarmupMode()
