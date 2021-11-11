@@ -552,8 +552,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     std::tie(m_per_block, n_per_block, k_per_block) = HeuristicInitMacroTileNoPadGemmK(
         gemm_m, gemm_n, 0, ctx.IsFp32() ? tile_list_fp32 : (ctx.IsFp16() ? tile_list_fp16 : tile_list_bfp16));
 
-    if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0) || not_support_vector_store)
-    {
+    auto find_with_gemm_k_pad = [&](){
         // not found, let's try  gemm_k pad now.
         const auto& config_list = GetWrwXdlopsNHWCConfigList();
         size_t min_pad_pixel    = std::numeric_limits<std::size_t>::max();
@@ -612,6 +611,12 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         {
             SetParamsForKSplit(ctx, occupancy);
         }
+    };
+
+    if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0) || not_support_vector_store)
+    {
+        // not found, let's try gemm_k pad now.
+        find_with_gemm_k_pad();
     }
     else
     {
@@ -638,6 +643,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
 
                 if((unit_conv && config.nxe == 0) || (!unit_conv && config.nxe != 0))
                 {
+                    if(!config.IsValid(ctx)) // last check before assigning a heuristic value
+                        continue;
                     CopyParameters(config);
                     if(need_k_split)
                     {
@@ -649,8 +656,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
                     continue;
             }
         }
-        MIOPEN_LOG_E("can't find a suitable heuristic config");
-        MIOPEN_THROW(miopenStatusInternalError);
+        // last try
+        find_with_gemm_k_pad();
     }
 }
 
