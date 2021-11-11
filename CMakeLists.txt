@@ -117,7 +117,7 @@ else()
     set(WINE_CMD)
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm  /opt/rocm /opt/rocm/llvm /opt/rocm/hcc)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
@@ -306,12 +306,10 @@ else()
     find_program(EXTRACTKERNEL_BIN extractkernel
         PATH_SUFFIXES bin
         PATHS
-            /opt/rocm/hip
             /opt/rocm/hcc
             /opt/rocm
-            ${CMAKE_INSTALL_PREFIX}/hip
-            ${CMAKE_INSTALL_PREFIX}/hcc
             ${CMAKE_INSTALL_PREFIX}
+            ${CMAKE_INSTALL_PREFIX}/hcc
     )
     if(EXTRACTKERNEL_BIN)
         message(STATUS "extractkernel found: ${EXTRACTKERNEL_BIN}")
@@ -396,7 +394,7 @@ message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
 set( MIOPEN_INSTALL_DIR miopen)
-set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
+set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/${MIOPEN_INSTALL_DIR})
 
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
