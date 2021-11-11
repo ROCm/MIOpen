@@ -446,37 +446,10 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     size_t lcl_work = 64;
     size_t grp_num  = (activ_work + lcl_work - 1) / lcl_work;
 
-    std::string network_config;
-
-    if(pool_dim == 4)
-    {
-        network_config +=
-            "m" + std::to_string(pooling_method) + "_dt" + std::to_string(dyDesc.GetType()) +
-            "_xd" + get_vect_config(xDesc.GetLengths()) + "_xs" +
-            get_vect_config(xDesc.GetStrides()) + "_yd" + get_vect_config(yDesc.GetLengths()) +
-            "_ys" + get_vect_config(yDesc.GetStrides()) + "_dxd" +
-            get_vect_config(dxDesc.GetLengths()) + "_dxs" + get_vect_config(dxDesc.GetStrides()) +
-            "_dyd" + get_vect_config(dyDesc.GetLengths()) + "_dys" +
-            get_vect_config(dyDesc.GetStrides()) + "_ker" + get_vect_config(lens) + "_str" +
-            get_vect_config(strides) + "_pad" + get_vect_config(pads) + "_it" +
-            std::to_string(GetIndexType()) + "_wsidx" + std::to_string(GetWorkspaceIndexMode());
-    }
-    else
-    {
-        network_config += "m" + std::to_string(pooling_method) + "_dt" +
-                          std::to_string(dyDesc.GetType()) + "_ker" + get_vect_config(lens) +
-                          "_str" + get_vect_config(strides) + "_it" +
-                          std::to_string(GetIndexType()) + "_tile" +
-                          std::to_string(static_cast<int>(pix_d_per_work)) + "x" +
-                          std::to_string(static_cast<int>(pix_h_per_work)) + "x" +
-                          std::to_string(static_cast<int>(pix_w_per_work)) + "_maxwkitm" +
-                          std::to_string(static_cast<uint>(max_activ_workitem)) + "_lcl" +
-                          std::to_string(static_cast<uint>(lcl_work)) + "_grp" +
-                          std::to_string(static_cast<uint>(grp_num));
-    }
-
-    // printf("Pooling backward network_config: %s\n", network_config.c_str());
-    std::string algo_name = pool_dim == 5 ? "miopenPoolingNdBackward" : "miopenPooling2dBackward";
+    const auto problem        = pooling::ProblemDescription{*this, xDesc, yDesc, dxDesc, dyDesc};
+    const auto network_config = problem.MakeNetworkConfig();
+    const auto algo_name =
+        AlgorithmName{pool_dim == 5 ? "miopenPoolingNdBackward" : "miopenPooling2dBackward"};
 
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
