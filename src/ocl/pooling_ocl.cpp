@@ -23,6 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+#include <miopen/pooling/problem_description.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/pooling.hpp>
@@ -96,7 +98,7 @@ std::string get_vect_config(std::vector<T> v)
     return str;
 }
 
-miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
+miopenStatus_t PoolingDescriptor::Forward(const Handle& handle,
                                           const void* alpha,
                                           const TensorDescriptor& xDesc,
                                           ConstData_t x,
@@ -156,6 +158,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
                                         "backward pass is requested");
         }
     }
+
     int pooling_method =
         (mode == miopenPoolingMax)
             ? MLO_POOLING_OP_MAX
@@ -185,49 +188,11 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     size_t lcl_work = 64;
     size_t grp_num  = (activ_work + lcl_work - 1) / lcl_work;
 
-    mlo_construct_pooling2D construct_params(conv::Direction::Forward);
-    std::string network_config =
-        "m" + std::to_string(pooling_method) + "_i" + std::to_string(static_cast<int>(save_index)) +
-        "_dt" + std::to_string(xDesc.GetType()) + "_ker" + get_vect_config(lens) + "_str" +
-        get_vect_config(strides) + "_it" + std::to_string(GetIndexType());
+    const auto algo_name =
+        AlgorithmName{pool_dim == 5 ? "miopenPoolingNdForward" : "miopenPooling2dForward"};
+    const auto problem        = pooling::ProblemDescription{*this, xDesc, yDesc, save_index};
+    const auto network_config = problem.MakeNetworkConfig();
 
-    if(pool_dim == 4)
-    {
-        construct_params.setStream(&handle);
-        construct_params.setTopDescFromMLDesc(yDesc);
-        construct_params.setBotDescFromMLDesc(xDesc);
-        construct_params.setPoolingDescr(pooling_method,
-                                         GetIndexType(),
-                                         GetWorkspaceIndexMode(),
-                                         lens[0],
-                                         lens[1],
-                                         pads[0],
-                                         pads[1],
-                                         strides[0],
-                                         strides[1]);
-        construct_params.doBackward(save_index);
-        mloConstruct(construct_params);
-
-        network_config += "_nout" + std::to_string(xDesc.GetLengths()[1]) + "_tile" +
-                          std::to_string(static_cast<int>(construct_params._out_pix_tile1)) + "x" +
-                          std::to_string(static_cast<int>(construct_params._out_pix_tile0)) +
-                          "_grp" + std::to_string(static_cast<uint>(construct_params._grp_tile1)) +
-                          "x" + std::to_string(static_cast<uint>(construct_params._grp_tile0)) +
-                          "_glb" + get_vect_config(construct_params._g_wk) + "_wsidx" +
-                          std::to_string(GetWorkspaceIndexMode());
-    }
-    else
-    {
-        network_config += "_tile" + std::to_string(static_cast<int>(top_d_per_work)) + "x" +
-                          std::to_string(static_cast<int>(top_h_per_work)) + "x" +
-                          std::to_string(static_cast<int>(top_w_per_work)) + "_maxwkitm" +
-                          std::to_string(static_cast<uint>(max_activ_workitem)) + "_lcl" +
-                          std::to_string(static_cast<uint>(lcl_work)) + "_grp" +
-                          std::to_string(static_cast<uint>(grp_num));
-    }
-
-    std::string algo_name = pool_dim == 5 ? "miopenPoolingNdForward" : "miopenPooling2dForward";
-    // printf("Pooling forward network_config: %s\n", network_config.c_str());
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
@@ -281,6 +246,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         if(pool_dim == 4)
         {
+            mlo_construct_pooling2D construct_params(conv::Direction::Forward);
             const std::string& parms       = construct_params.getCompilerOptions(); // kernel
             std::string program_name       = construct_params.getKernelFile();      // CL kernel
             std::string kernel_name        = construct_params.getKernelName();      // kernel name

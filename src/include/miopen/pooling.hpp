@@ -83,7 +83,7 @@ struct PoolingDescriptor : miopenPoolingDescriptor
 
     std::size_t GetWorkSpaceSize(const TensorDescriptor& yDesc) const;
 
-    miopenStatus_t Forward(Handle& handle,
+    miopenStatus_t Forward(const Handle& handle,
                            const void* alpha,
                            const TensorDescriptor& xDesc,
                            ConstData_t x,
