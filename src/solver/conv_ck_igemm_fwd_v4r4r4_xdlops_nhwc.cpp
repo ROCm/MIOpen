@@ -98,6 +98,9 @@ bool ConvCkIgemmFwdV4r4r4XdlopsNhwc::IsApplicable(const ConvolutionContext& ctx)
     if(ctx.group_counts != 1)
         return false;
 
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+        
     {
         // this kernel use int32_t for memory offset, which covers 2GB of memory maximum
         constexpr auto max_index_range = static_cast<std::size_t>(INT32_MAX) + 1;
