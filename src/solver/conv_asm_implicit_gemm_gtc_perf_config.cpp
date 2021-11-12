@@ -34,7 +34,7 @@ namespace solver {
 PerformanceConfigAsmImplicitGemmGTC::PerformanceConfigAsmImplicitGemmGTC(
     std::string dir,
     std::string layout,
-    miopenDataType_t prec,
+    std::string prec,
     int b,
     int e,
     int mpb,
@@ -88,13 +88,70 @@ PerformanceConfigAsmImplicitGemmGTC::PerformanceConfigAsmImplicitGemmGTC(
 {
 }
 
+PerformanceConfigAsmImplicitGemmGTC::PerformanceConfigAsmImplicitGemmGTC(
+    std::string dir,
+    std::string layout,
+    miopenDataType_t prec,
+    int b,
+    int e,
+    int mpb,
+    int npb,
+    int kpb,
+    int wtm,
+    int wtn,
+    int wtk,
+    int wsm,
+    int wsn,
+    int wrm,
+    int wrn,
+    int mh,
+    int vs,
+    int gks,
+    int me,
+    int pta,
+    std::initializer_list<int> ta_t,
+    std::initializer_list<int> ta_c,
+    std::initializer_list<int> tb_t,
+    std::initializer_list<int> tb_c,
+    bool spare)
+    : direction(dir),
+      tensor_layout(layout),
+      precision(prec == miopenFloat ? "fp32" : (prec == miopenHalf ? "fp16" : "bf16")),
+      nxb(b),
+      nxe(e),
+
+      gemm_m_per_block(mpb),
+      gemm_n_per_block(npb),
+      gemm_k_per_block(kpb),
+
+      wave_tile_m(wtm),
+      wave_tile_n(wtn),
+      wave_tile_k(wtk),
+      wave_step_m(wsm),
+      wave_step_n(wsn),
+      wave_repeat_m(wrm),
+      wave_repeat_n(wrn),
+      multihead(mh),
+      vector_store(vs),
+      gemm_k_global_split(gks),
+      merge_e(me),
+      tensor_a_pass_through(pta),
+      tensor_a_thread_lengths(ta_t),
+      tensor_a_cluster_lengths(ta_c),
+      tensor_b_thread_lengths(tb_t),
+      tensor_b_cluster_lengths(tb_c),
+      use_spare_set(spare),
+      index(0)
+{
+}
+
 bool PerformanceConfigAsmImplicitGemmGTC::IsDefaultConstructed() const
 {
     int default_lengths[4] = {1, 1, 1, 1};
     // clang-format off
     return direction == "fwd"
         && tensor_layout == "nchw"
-        && precision == miopenFloat
+        && precision == "fp32"
         && nxb == 1
         && nxe == 1
         && gemm_m_per_block == 1
@@ -201,11 +258,9 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToString() const
 std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ConvolutionContext& ctx) const
 {
     std::ostringstream kernel_name;
-    std::string kernel_precision =
-        precision == miopenFloat ? "fp32" : (precision == miopenHalf ? "fp16" : "bf16");
     const auto device_name = ctx.GetStream().GetDeviceName();
     std::string gtc_str    = device_name == "gfx908" ? "_gtcx_" : "_gtcx2_";
-    kernel_name << "igemm_" << direction << gtc_str << tensor_layout << "_" << kernel_precision
+    kernel_name << "igemm_" << direction << gtc_str << tensor_layout << "_" << precision
                 << "_bx" << nxb << "_ex" << nxe << "_bt" << gemm_m_per_block << "x"
                 << gemm_n_per_block << "x" << gemm_k_per_block << "_wt" << wave_tile_m << "x"
                 << wave_tile_n << "x" << wave_tile_k << "_ws" << wave_step_m << "x" << wave_step_n
