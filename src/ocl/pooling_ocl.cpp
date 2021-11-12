@@ -34,71 +34,7 @@
 
 namespace miopen {
 
-// get the previous (less or equal to v) power of 2
-int prePow2(int v)
-{
-    v |= v >> 1;
-    v |= v >> 2;
-    v |= v >> 4;
-    v |= v >> 8;
-    v |= v >> 16;
-    return (v + 1) >> 1;
-}
-
-static std::string get_pooling_index_type_name(miopenIndexType_t index_type)
-{
-    switch(index_type)
-    {
-    case miopenIndexUint8: {
-        return "uchar";
-    }
-    case miopenIndexUint16: {
-        return "ushort";
-    }
-    case miopenIndexUint32: {
-        return "uint";
-    }
-    case miopenIndexUint64: {
-        return "ulong";
-    }
-    }
-
-    MIOPEN_THROW("not belong to any case");
-}
-
-static std::string get_pooling_index_type_max_name(miopenIndexType_t index_type)
-{
-    switch(index_type)
-    {
-    case miopenIndexUint8: {
-        return "UCHAR_MAX";
-    }
-    case miopenIndexUint16: {
-        return "USHRT_MAX";
-    }
-    case miopenIndexUint32: {
-        return "UINT_MAX";
-    }
-    case miopenIndexUint64: {
-        return "ULONG_MAX";
-    }
-    }
-
-    MIOPEN_THROW("not belong to any case");
-}
-
-template <typename T>
-std::string get_vect_config(std::vector<T> v)
-{
-    std::string str;
-    for(auto itr = v.begin(); itr < v.end(); itr++)
-    {
-        str += (std::to_string(*itr) + (itr == v.end() - 1 ? "" : "x"));
-    }
-    return str;
-}
-
-miopenStatus_t PoolingDescriptor::Forward(const Handle& handle,
+miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
                                           const void* alpha,
                                           const TensorDescriptor& xDesc,
                                           ConstData_t x,

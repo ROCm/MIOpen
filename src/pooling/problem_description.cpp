@@ -26,6 +26,7 @@
 
 #include <miopen/pooling/problem_description.hpp>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/pooling.hpp>
 
 #include <sstream>
 
@@ -42,17 +43,6 @@ std::string get_vect_config(const std::vector<T>& v)
         str += (std::to_string(*itr) + (itr == v.end() - 1 ? "" : "x"));
     }
     return str;
-}
-
-// get the previous (less or equal to v) power of 2
-static int prePow2(int v)
-{
-    v |= v >> 1;
-    v |= v >> 2;
-    v |= v >> 4;
-    v |= v >> 8;
-    v |= v >> 16;
-    return (v + 1) >> 1;
 }
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
