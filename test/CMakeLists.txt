@@ -438,15 +438,16 @@ endfunction()
 #   If nothing is specified, the default value is taken.
 #   Default: VEGA_ENABLED, GFX908_ENABLED, GFX90A_ENABLED, GFX1030_DISABLED
 #
-# Special internal components: MIOTENSILE, MLIR.
+# Special internal components: MIOTENSILE
 #   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
 #   If nothing is specified, the default value is taken.
-#   Default: MIOTENSILE_DISABLED MLIR_DISABLED.
+#   Default: MIOTENSILE_DISABLED
 #
-# Testing mode.
+# Testing mode:
 #   SKIP_UNLESS_ALL - The test should be only run if MIOPEN_TEST_ALL=TRUE. Intended for long tests.
 #   TEST_PERF_DB_RECORD_NOT_FOUND - Test should fail if output contains: "Perf Db: record not found".
 #   SKIP_XNACK_ON - Do not run the test if XNACK mode is enabled (xnack+) on the GPU.
+#   SKIP_UNLESS_MLIR - The test should be only run if MIOPEN_TEST_MLIR=TRUE.
 #
 # Backend: OCL HIP HIP_NOGPU
 #   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
@@ -457,7 +458,7 @@ function(add_custom_test NAME)
     set(options
         BF16_ENABLED BF16_DISABLED HALF_ENABLED HALF_DISABLED INT8_ENABLED INT8_DISABLED FLOAT_ENABLED FLOAT_DISABLED
         VEGA_ENABLED VEGA_DISABLED GFX908_ENABLED GFX908_DISABLED GFX1030_ENABLED GFX1030_DISABLED
-        GFX90A_ENABLED GFX90A_DISABLED MIOTENSILE_ENABLED MIOTENSILE_DISABLED MLIR_ENABLED MLIR_DISABLED
+        GFX90A_ENABLED GFX90A_DISABLED MIOTENSILE_ENABLED MIOTENSILE_DISABLED SKIP_UNLESS_MLIR
         SKIP_UNLESS_ALL TEST_PERF_DB_RECORD_NOT_FOUND SKIP_XNACK_ON
         OCL_ENABLED OCL_DISABLED HIP_ENABLED HIP_DISABLED HIP_NOGPU_ENABLED HIP_NOGPU_DISABLED
     )
@@ -494,13 +495,9 @@ function(add_custom_test NAME)
     bool_not_f(${MIOPEN_TEST_MIOTENSILE} NOT_MIOPEN_TEST_MIOTENSILE)
     bool_or_f(${NOT_MIOPEN_TEST_MIOTENSILE} ${is_miotensile_check} is_miotensile_check)
 
-    # When MLIR_ENABLED is set, the test will be run only if MIOPEN_TEST_MLIR is ON.
-    # MLIR_DISABLED should not be used.
-    # TODO: Rename MLIR_ENABLED to SKIP_IF_NOT_MLIR. Remove MLIR_DISABLED.
     set(is_mlir_check)
-    set(MLIR_TEST_DEFAULT FALSE)
-    option_support_check(${PARSE_MLIR_ENABLED} ${PARSE_MLIR_DISABLED} ${MLIR_TEST_DEFAULT} is_mlir_check)
-    bool_and_f(${MIOPEN_TEST_MLIR} ${is_mlir_check} is_mlir_check)
+    bool_not_f(${PARSE_SKIP_UNLESS_MLIR} is_mlir_check)
+    bool_or_f(${is_mlir_check} ${MIOPEN_TEST_MLIR} is_mlir_check)
 
     set(is_ocl_check)
     set(OCL_TEST_DEFAULT TRUE)
@@ -656,14 +653,14 @@ set(IMPLICITGEMM_MLIR_ARGS_W ${IMPLICITGEMM_ARGS} --verbose --disable-forward --
 # Note: OpenCL Debug + Codecov test stage taking longer time than a smoke test should therefore disabling that scenario
 string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
 if ((NOT CMAKE_BUILD_TYPE MATCHES "DEBUG") OR (NOT ${CODECOV_TEST}))
-    add_custom_test(test_conv_igemm_mlir_small HALF_ENABLED MLIR_ENABLED GFX90A_DISABLED
+    add_custom_test(test_conv_igemm_mlir_small HALF_ENABLED SKIP_UNLESS_MLIR GFX90A_DISABLED
         COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 64 128 14 14 --weights 128 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
         COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_B} --input 64 256 28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
         COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1
     )
 endif()
 
-add_custom_test(test_conv_igemm_mlir SKIP_UNLESS_ALL HALF_ENABLED MLIR_ENABLED GFX90A_DISABLED
+add_custom_test(test_conv_igemm_mlir SKIP_UNLESS_ALL HALF_ENABLED SKIP_UNLESS_MLIR GFX90A_DISABLED
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
@@ -696,13 +693,13 @@ set(IMPLICITGEMM_MLIR_ENV_F_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FI
 set(IMPLICITGEMM_MLIR_ENV_B_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmBwdXdlops)
 set(IMPLICITGEMM_MLIR_ENV_W_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmWrWXdlops)
 
-add_custom_test(test_conv_igemm_mlir_xdlops_small HALF_ENABLED MLIR_ENABLED VEGA_DISABLED GFX90A_DISABLED
+add_custom_test(test_conv_igemm_mlir_xdlops_small HALF_ENABLED SKIP_UNLESS_MLIR VEGA_DISABLED GFX90A_DISABLED
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 64 128 14 14 --weights 128 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
     COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_B} --input 64 256 28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
     COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1
 )
 
-add_custom_test(test_conv_igemm_mlir_xdlops SKIP_UNLESS_ALL HALF_ENABLED MLIR_ENABLED VEGA_DISABLED GFX90A_DISABLED
+add_custom_test(test_conv_igemm_mlir_xdlops SKIP_UNLESS_ALL HALF_ENABLED SKIP_UNLESS_MLIR VEGA_DISABLED GFX90A_DISABLED
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
