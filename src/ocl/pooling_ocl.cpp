@@ -247,6 +247,21 @@ miopenStatus_t PoolingDescriptor::Forward(const Handle& handle,
         if(pool_dim == 4)
         {
             mlo_construct_pooling2D construct_params(conv::Direction::Forward);
+            construct_params.setStream(&handle);
+            construct_params.setTopDescFromMLDesc(yDesc);
+            construct_params.setBotDescFromMLDesc(xDesc);
+            construct_params.setPoolingDescr(pooling_method,
+                                             GetIndexType(),
+                                             GetWorkspaceIndexMode(),
+                                             lens[0],
+                                             lens[1],
+                                             pads[0],
+                                             pads[1],
+                                             strides[0],
+                                             strides[1]);
+            construct_params.doBackward(save_index);
+            mloConstruct(construct_params);
+
             const std::string& parms       = construct_params.getCompilerOptions(); // kernel
             std::string program_name       = construct_params.getKernelFile();      // CL kernel
             std::string kernel_name        = construct_params.getKernelName();      // kernel name
