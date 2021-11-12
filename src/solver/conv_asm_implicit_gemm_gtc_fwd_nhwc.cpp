@@ -30,6 +30,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
+#include <miopen/util_sol.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
@@ -395,7 +396,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == miopenFloat || config.precision == miopenBFloat16)
+            if(config.precision == "fp32" || config.precision == "bf16")
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp &&
@@ -419,7 +420,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == miopenHalf || config.precision == miopenBFloat16)
+            if(config.precision == "fp16" || config.precision == "bf16")
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp &&
@@ -444,7 +445,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == miopenHalf || config.precision == miopenFloat)
+            if(config.precision == "fp16" || config.precision == "fp32")
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp &&
@@ -493,22 +494,21 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         gemm_k,
         ctx.IsFp32() ? tile_list_fp32 : (ctx.IsFp16() ? tile_list_fp16 : tile_list_bfp16));
 
-    if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0) || not_support_vector_store)
-    {
-        // not found, let's try  gemm_k pad now.
+    auto find_with_gemm_k_pad = [&]() {
         const auto& config_list = GetFwdXdlopsNHWCConfigList();
         size_t min_pad_pixel    = std::numeric_limits<std::size_t>::max();
         size_t selected_index   = 0;
         for(size_t i = 0; i < config_list.size(); i++)
         {
             const auto& config = config_list[i];
-            if(!((ctx.IsFp16() && config.precision == miopenHalf) ||
-                 (ctx.IsBfp16() && config.precision == miopenBFloat16) ||
-                 (ctx.IsFp32() && config.precision == miopenFloat)))
+            if(!((ctx.IsFp16() && config.precision == "fp16") ||
+                 (ctx.IsBfp16() && config.precision == "bf16") ||
+                 (ctx.IsFp32() && config.precision == "fp32")))
                 continue;
             if(!(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
                 continue;
-
+            // If we go here, then this is our last hope.
+            // This kind of kernel support any configs
             size_t cur_pad_pixel =
                 ComputeMatrixPadSize(
                     gemm_m, config.gemm_m_per_block, gemm_k, config.gemm_k_per_block) +
@@ -523,6 +523,12 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
             }
         }
         CopyParameters(config_list[selected_index]);
+    };
+
+    if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0) || not_support_vector_store)
+    {
+        // not found, let's try  gemm_k pad now.
+        find_with_gemm_k_pad();
     }
     else
     {
@@ -530,9 +536,9 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         const auto& config_list = GetFwdXdlopsNHWCConfigList();
         for(const auto& config : config_list)
         {
-            if(!((ctx.IsFp16() && config.precision == miopenHalf) ||
-                 (ctx.IsBfp16() && config.precision == miopenBFloat16) ||
-                 (ctx.IsFp32() && config.precision == miopenFloat)))
+            if(!((ctx.IsFp16() && config.precision == "fp16") ||
+                 (ctx.IsBfp16() && config.precision == "bf16") ||
+                 (ctx.IsFp32() && config.precision == "fp32")))
                 continue;
 
             if(m_per_block == config.gemm_m_per_block && n_per_block == config.gemm_n_per_block &&
@@ -561,6 +567,8 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
 
                 if((unit_conv && config.nxe == 0) || (!unit_conv && config.nxe != 0))
                 {
+                    if(!config.IsValid(ctx)) // last check before assigning a heuristic value
+                        continue;
                     CopyParameters(config);
                     if(need_k_split)
                     {
@@ -568,7 +576,8 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
                                MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
                             if(ctx.IsFp16() && gks > 0)
                                 vector_store = 1;
-                        gemm_k_global_split = static_cast<int>(gks);
+                        if(gks > 0)
+                            gemm_k_global_split = static_cast<int>(gks);
                     }
                     return;
                 }
@@ -576,8 +585,8 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
                     continue;
             }
         }
-        MIOPEN_LOG_E("can't find a suitable heuristic config");
-        MIOPEN_THROW(miopenStatusInternalError);
+        // last try
+        find_with_gemm_k_pad();
     }
 }
 
@@ -630,8 +639,8 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
     if(IsDefaultConstructed())
         return false;
 
-    if(!((ctx.IsFp16() && precision == miopenHalf) || (ctx.IsFp32() && precision == miopenFloat) ||
-         (ctx.IsBfp16() && precision == miopenBFloat16)))
+    if(!((ctx.IsFp16() && precision == "fp16") || (ctx.IsFp32() && precision == "fp32") ||
+         (ctx.IsBfp16() && precision == "bf16")))
         return false;
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
@@ -738,16 +747,44 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::Search(const ConvolutionContext& ctx
 size_t
 ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    if(ctx.IsFp32())
-        return 0;
+    const auto& hi        = ctx.in_height;
+    const auto& wi        = ctx.in_width;
+    const auto& n         = ctx.batch_sz;
+    const auto& k         = ctx.n_outputs;
+    const auto& c         = ctx.n_inputs;
+    const auto& ho        = ctx.out_height;
+    const auto& wo        = ctx.out_width;
+    const auto& y         = ctx.kernel_size_h;
+    const auto& x         = ctx.kernel_size_w;
+    const auto& group     = ctx.group_counts;
+    const auto is_nchw    = ctx.IsLayoutDefault();
+    size_t workspace_size = 0;
+    if(is_nchw)
+    {
 
-    // FP16 or BF16
-    const auto& n  = ctx.batch_sz;
-    const auto& k  = ctx.n_outputs;
-    const auto& ho = ctx.out_height;
-    const auto& wo = ctx.out_width;
-    return miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st kernel is FP32.
-           * n * k * ho * wo;
+        TransposeSolutionDefault2Nhwc trans_input(ctx, ctx.in_data_type, n, c, hi, wi);
+        TransposeSolutionDefault2Nhwc trans_weight(ctx,
+                                                   ctx.weights_data_type,
+                                                   k,
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionNhwc2Default trans_output(ctx, ctx.out_data_type, n, k, ho, wo);
+
+        if(!trans_input.IsSkippable())
+            workspace_size += trans_input.GetSize();
+        if(!trans_weight.IsSkippable())
+            workspace_size += trans_weight.GetSize();
+        if(!trans_output.IsSkippable())
+            workspace_size += trans_output.GetSize();
+    }
+
+    if(!ctx.IsFp32())
+        workspace_size += miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
+                                                           // kernel is FP32, when using FP32 atomic
+                          * n * k * ho * wo;
+
+    return workspace_size;
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
@@ -772,9 +809,6 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionC
         return false;
 
     if(!ctx.rmv.IsV3())
-        return false;
-
-    if(!ctx.IsLayoutNHWC())
         return false;
 
     const auto target = ctx.GetStream().GetTargetProperties();
@@ -816,6 +850,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     const auto isGfx90aFp16altSupport =
         (ctx.GetStream().GetDeviceName() == "gfx90a") && ctx.conv_problem.IsFp16();
 
+    const auto is_nchw = ctx.IsLayoutDefault();
+
     result.construction_params.push_back(kernel);
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
@@ -825,15 +861,61 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
         GenerateClangDefsym(opts_0, "igemm_fwd_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
 
+    std::ostringstream msg;
+
     if(isGfx90aFp16altSupport)
     {
         result.construction_params.push_back(kernel);
         std::ostringstream opts_1(options.str(), std::ios_base::ate);
         GenerateClangDefsym(opts_1, "igemm_fwd_fp16_alt_impl", 1);
         result.construction_params[1].comp_options = opts_1.str();
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", fp16_alt:" << ctx.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
     }
 
-    MIOPEN_LOG_I2("ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC: " + config.ToString());
+    if(is_nchw)
+    {
+        const auto& hi    = ctx.in_height;
+        const auto& wi    = ctx.in_width;
+        const auto& n     = ctx.batch_sz;
+        const auto& k     = ctx.n_outputs;
+        const auto& c     = ctx.n_inputs;
+        const auto& ho    = ctx.out_height;
+        const auto& wo    = ctx.out_width;
+        const auto& y     = ctx.kernel_size_h;
+        const auto& x     = ctx.kernel_size_w;
+        const auto& group = ctx.group_counts;
+
+        TransposeSolutionDefault2Nhwc trans_input(ctx, ctx.in_data_type, n, c, hi, wi);
+        TransposeSolutionDefault2Nhwc trans_weight(ctx,
+                                                   ctx.weights_data_type,
+                                                   k,
+                                                   c / group,
+                                                   y,
+                                                   x); // group * k_per_group as batch for weight
+        TransposeSolutionNhwc2Default trans_output(ctx, ctx.out_data_type, n, k, ho, wo);
+
+        if(!trans_input.IsSkippable())
+        {
+            result.construction_params.push_back(trans_input.GetKernel());
+            if(miopen::IsLogging(LoggingLevel::Info2))
+                msg << ", inp trans:" << trans_input.GetKernelName();
+        }
+        if(!trans_weight.IsSkippable())
+        {
+            result.construction_params.push_back(trans_weight.GetKernel());
+            if(miopen::IsLogging(LoggingLevel::Info2))
+                msg << ", wei trans:" << trans_weight.GetKernelName();
+        }
+        if(!trans_output.IsSkippable())
+        {
+            result.construction_params.push_back(trans_output.GetKernel());
+            if(miopen::IsLogging(LoggingLevel::Info2))
+                msg << ", out trans:" << trans_output.GetKernelName();
+        }
+    }
+
+    MIOPEN_LOG_I2(SolverDbId(*this) << ": " << config.ToString() << msg.str());
 
     result.invoker_factory = conv::MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(ctx, config);
     return result;
