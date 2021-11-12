@@ -396,7 +396,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == miopenFloat || config.precision == miopenBFloat16)
+            if(config.precision == "fp32" || config.precision == "bf16")
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp &&
@@ -420,7 +420,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == miopenHalf || config.precision == miopenBFloat16)
+            if(config.precision == "fp16" || config.precision == "bf16")
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp &&
@@ -445,7 +445,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == miopenHalf || config.precision == miopenFloat)
+            if(config.precision == "fp16" || config.precision == "fp32")
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp &&
@@ -501,9 +501,9 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         for(size_t i = 0; i < config_list.size(); i++)
         {
             const auto& config = config_list[i];
-            if(!((ctx.IsFp16() && config.precision == miopenHalf) ||
-                 (ctx.IsBfp16() && config.precision == miopenBFloat16) ||
-                 (ctx.IsFp32() && config.precision == miopenFloat)))
+            if(!((ctx.IsFp16() && config.precision == "fp16") ||
+                 (ctx.IsBfp16() && config.precision == "bf16") ||
+                 (ctx.IsFp32() && config.precision == "fp32")))
                 continue;
             if(!(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
                 continue;
@@ -536,9 +536,9 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
         const auto& config_list = GetFwdXdlopsNHWCConfigList();
         for(const auto& config : config_list)
         {
-            if(!((ctx.IsFp16() && config.precision == miopenHalf) ||
-                 (ctx.IsBfp16() && config.precision == miopenBFloat16) ||
-                 (ctx.IsFp32() && config.precision == miopenFloat)))
+            if(!((ctx.IsFp16() && config.precision == "fp16") ||
+                 (ctx.IsBfp16() && config.precision == "bf16") ||
+                 (ctx.IsFp32() && config.precision == "fp32")))
                 continue;
 
             if(m_per_block == config.gemm_m_per_block && n_per_block == config.gemm_n_per_block &&
@@ -639,8 +639,8 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
     if(IsDefaultConstructed())
         return false;
 
-    if(!((ctx.IsFp16() && precision == miopenHalf) || (ctx.IsFp32() && precision == miopenFloat) ||
-         (ctx.IsBfp16() && precision == miopenBFloat16)))
+    if(!((ctx.IsFp16() && precision == "fp16") || (ctx.IsFp32() && precision == "fp32") ||
+         (ctx.IsBfp16() && precision == "bf16")))
         return false;
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
