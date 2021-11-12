@@ -9,108 +9,6 @@ namespace driver {
 
 struct CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
 {
-    auto GetCompileParameterString() const
-    {
-        auto param = std::stringstream();
-
-        // clang-format off
-        param <<
-            " -DCK_PARAM_ABDataTypeEnum=" << 
-                ABDataTypeEnum <<
-            " -DCK_PARAM_AccDataTypeEnum=" << 
-                AccDataTypeEnum <<
-            " -DCK_PARAM_CDataTypeEnum=" << 
-                CDataTypeEnum <<
-            " -DCK_PARAM_BlockSize=" << 
-                BlockSize <<
-            " -DCK_PARAM_MPerBlock=" << 
-                MPerBlock <<
-            " -DCK_PARAM_NPerBlock=" << 
-                NPerBlock <<
-            " -DCK_PARAM_K0PerBlock=" <<
-                K0PerBlock <<
-            " -DCK_PARAM_MPerXDL=" <<
-                MPerXDL <<
-            " -DCK_PARAM_NPerXDL=" <<
-                NPerXDL <<
-            " -DCK_PARAM_K1=" <<
-                K1 <<
-            " -DCK_PARAM_MRepeat=" <<
-                MRepeat <<
-            " -DCK_PARAM_NRepeat=" <<
-                NRepeat <<
-            " -DCK_PARAM_ABlockTransferThreadSliceLengths_K0_M_K1=" <<
-                ABlockTransferThreadSliceLengths_K0_M_K1[0] << "," <<
-                ABlockTransferThreadSliceLengths_K0_M_K1[1] << "," <<
-                ABlockTransferThreadSliceLengths_K0_M_K1[2] <<
-            " -DCK_PARAM_ABlockTransferThreadClusterLengths_K0_M_K1=" <<
-                ABlockTransferThreadClusterLengths_K0_M_K1[0] << "," <<
-                ABlockTransferThreadClusterLengths_K0_M_K1[1] << "," <<
-                ABlockTransferThreadClusterLengths_K0_M_K1[2] <<
-            " -DCK_PARAM_ABlockTransferThreadClusterArrangeOrder=" <<
-                ABlockTransferThreadClusterArrangeOrder[0] << "," <<
-                ABlockTransferThreadClusterArrangeOrder[1] << "," <<
-                ABlockTransferThreadClusterArrangeOrder[2] <<
-            " -DCK_PARAM_ABlockTransferSrcAccessOrder=" <<
-                ABlockTransferSrcAccessOrder[0] << "," <<
-                ABlockTransferSrcAccessOrder[1] << "," <<
-                ABlockTransferSrcAccessOrder[2] <<
-            " -DCK_PARAM_ABlockTransferSrcVectorDim=" <<
-                ABlockTransferSrcVectorDim <<
-            " -DCK_PARAM_ABlockTransferSrcScalarPerVector=" <<
-                ABlockTransferSrcScalarPerVector <<
-            " -DCK_PARAM_ABlockTransferDstScalarPerVector_K1=" <<
-                ABlockTransferDstScalarPerVector_K1 <<
-            " -DCK_PARAM_AThreadTransferSrcResetCoordinateAfterRun=" <<
-                AThreadTransferSrcResetCoordinateAfterRun <<
-            " -DCK_PARAM_BBlockTransferThreadSliceLengths_K0_N_K1=" <<
-                BBlockTransferThreadSliceLengths_K0_N_K1[0] << "," <<
-                BBlockTransferThreadSliceLengths_K0_N_K1[1] << "," <<
-                BBlockTransferThreadSliceLengths_K0_N_K1[2] <<
-            " -DCK_PARAM_BBlockTransferThreadClusterLengths_K0_N_K1=" <<
-                BBlockTransferThreadClusterLengths_K0_N_K1[0] << "," <<
-                BBlockTransferThreadClusterLengths_K0_N_K1[1] << "," <<
-                BBlockTransferThreadClusterLengths_K0_N_K1[2] <<
-            " -DCK_PARAM_BBlockTransferThreadClusterArrangeOrder=" <<
-                BBlockTransferThreadClusterArrangeOrder[0] << "," <<
-                BBlockTransferThreadClusterArrangeOrder[1] << "," <<
-                BBlockTransferThreadClusterArrangeOrder[2] <<
-            " -DCK_PARAM_BBlockTransferSrcAccessOrder=" <<
-                BBlockTransferSrcAccessOrder[0] << "," <<
-                BBlockTransferSrcAccessOrder[1] << "," <<
-                BBlockTransferSrcAccessOrder[2] <<
-            " -DCK_PARAM_BBlockTransferSrcVectorDim=" <<
-                BBlockTransferSrcVectorDim <<
-            " -DCK_PARAM_BBlockTransferSrcScalarPerVector=" <<
-                BBlockTransferSrcScalarPerVector <<
-            " -DCK_PARAM_BBlockTransferDstScalarPerVector_K1=" <<
-                BBlockTransferDstScalarPerVector_K1 <<
-            " -DCK_PARAM_BThreadTransferSrcResetCoordinateAfterRun=" <<
-                BThreadTransferSrcResetCoordinateAfterRun <<
-            " -DCK_PARAM_CThreadTransferSrcDstAccessOrder=" <<
-                CThreadTransferSrcDstAccessOrder[0] << "," <<
-                CThreadTransferSrcDstAccessOrder[1] << "," <<
-                CThreadTransferSrcDstAccessOrder[2] << "," <<
-                CThreadTransferSrcDstAccessOrder[3] << "," <<
-                CThreadTransferSrcDstAccessOrder[4] << "," <<
-                CThreadTransferSrcDstAccessOrder[5] << "," <<
-                CThreadTransferSrcDstAccessOrder[6] << "," <<
-                CThreadTransferSrcDstAccessOrder[7] << 
-            " -DCK_PARAM_CThreadTransferSrcDstVectorDim=" <<
-                CThreadTransferSrcDstVectorDim <<
-            " -DCK_PARAM_CThreadTransferDstScalarPerVector=" <<
-                CThreadTransferDstScalarPerVector <<
-            " -DCK_PARAM_M01=" <<
-                M01 <<
-            " -DCK_PARAM_N01=" <<
-                N01 <<
-            " -DCK_PARAM_HasMainKBlockLoop=" <<
-                HasMainKBlockLoop;
-        // clang-format on
-
-        return param.str();
-    }
-
     ck::DataTypeEnum_t ABDataTypeEnum  = ck::DataTypeEnum_t::Unknown;
     ck::DataTypeEnum_t AccDataTypeEnum = ck::DataTypeEnum_t::Unknown;
     ck::DataTypeEnum_t CDataTypeEnum   = ck::DataTypeEnum_t::Unknown;
@@ -214,12 +112,12 @@ struct TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
         if(!(NPerBlock % NPerXDL == 0))
             return false;
 
-        if(!(MPerBlock %(MPerXDL * MRepeat) == 0))
+        if(!(MPerBlock % (MPerXDL * MRepeat) == 0))
             return false;
-        if(!(NPerBlock %(NPerXDL * NRepeat) == 0))
+        if(!(NPerBlock % (NPerXDL * NRepeat) == 0))
             return false;
-        const int MWaves = MPerBlock /(MPerXDL * MRepeat);
-        const int NWaves = NPerBlock /(NPerXDL * NRepeat);
+        const int MWaves   = MPerBlock / (MPerXDL * MRepeat);
+        const int NWaves   = NPerBlock / (NPerXDL * NRepeat);
         const int WaveSize = 64;
         if(!(MWaves * NWaves * WaveSize == BlockSize))
             return false;
@@ -327,9 +225,9 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
         const ConvolutionProblemDescriptor& conv_problem_desc,
         const TunableConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk& tunable)
     {
-        const int C  = conv_problem_desc.C;
-        const int Y  = conv_problem_desc.Y;
-        const int X  = conv_problem_desc.X;
+        const int C = conv_problem_desc.C;
+        const int Y = conv_problem_desc.Y;
+        const int X = conv_problem_desc.X;
 
         if(!(conv_problem_desc.InDataTypeEnum == tunable.ABDataTypeEnum &&
              conv_problem_desc.WeiDataTypeEnum == tunable.ABDataTypeEnum &&
@@ -439,8 +337,8 @@ struct ConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk
                 CThreadTransferSrcDstAccessOrder,
                 CThreadTransferSrcDstVectorDim,
                 CThreadTransferDstScalarPerVector,
-                1, //M01
-                1, //N01
+                1, // M01
+                1, // N01
                 HasMainKBlockLoop},
             true);
     }

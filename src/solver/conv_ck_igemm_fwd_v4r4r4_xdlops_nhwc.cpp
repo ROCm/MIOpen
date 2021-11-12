@@ -30,6 +30,8 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/solver/ck_utility_common.hpp>
 #include <cstddef>
+#include <miopen/kernel_build_params.hpp>
+#include <sstream>
 
 #include "../composable_kernel/host/solver/include/conv_igemm_fwd_v4r4r4_xdlops_nhwc_kyxc_nhwk.hpp"
 
@@ -38,6 +40,74 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V4R4R4_XDLOPS_NHWC)
 namespace miopen {
 namespace solver {
 namespace ck_utility {
+
+template <int N>
+static inline std::string ToString(const std::array<int, N>& values)
+{
+    assert(values.size() == N);
+    auto param = std::stringstream();
+    for(size_t i = 0; i < N - 1; i++)
+    {
+        param << values[i] << ",";
+    }
+    param << values[N - 1];
+    return param.str();
+}
+static auto GetCompileParameterString(
+    const ck::driver::CompileParameterConvIgemmFwdV4r4r4XdlopsNhwcKyxcNhwk& cparameter)
+{
+    auto build_params = miopen::KernelBuildParameters{
+        {"CK_PARAM_ABDataTypeEnum", static_cast<int>(cparameter.ABDataTypeEnum)},
+        {"CK_PARAM_AccDataTypeEnum", static_cast<int>(cparameter.AccDataTypeEnum)},
+        {"CK_PARAM_CDataTypeEnum", static_cast<int>(cparameter.CDataTypeEnum)},
+        {"CK_PARAM_BlockSize", cparameter.BlockSize},
+        {"CK_PARAM_MPerBlock", cparameter.MPerBlock},
+        {"CK_PARAM_NPerBlock", cparameter.NPerBlock},
+        {"CK_PARAM_K0PerBlock", cparameter.K0PerBlock},
+        {"CK_PARAM_MPerXDL", cparameter.MPerXDL},
+        {"CK_PARAM_NPerXDL", cparameter.NPerXDL},
+        {"CK_PARAM_K1", cparameter.K1},
+        {"CK_PARAM_MRepeat", cparameter.MRepeat},
+        {"CK_PARAM_NRepeat", cparameter.NRepeat},
+        {"CK_PARAM_ABlockTransferThreadSliceLengths_K0_M_K1",
+         ToString<3>(cparameter.ABlockTransferThreadSliceLengths_K0_M_K1)},
+        {"CK_PARAM_ABlockTransferThreadClusterLengths_K0_M_K1",
+         ToString<3>(cparameter.ABlockTransferThreadClusterLengths_K0_M_K1)},
+        {"CK_PARAM_ABlockTransferThreadClusterArrangeOrder",
+         ToString<3>(cparameter.ABlockTransferThreadClusterArrangeOrder)},
+        {"CK_PARAM_ABlockTransferSrcAccessOrder",
+         ToString<3>(cparameter.ABlockTransferSrcAccessOrder)},
+        {"CK_PARAM_ABlockTransferSrcVectorDim", cparameter.ABlockTransferSrcVectorDim},
+        {"CK_PARAM_ABlockTransferSrcScalarPerVector", cparameter.ABlockTransferSrcScalarPerVector},
+        {"CK_PARAM_ABlockTransferDstScalarPerVector_K1",
+         cparameter.ABlockTransferDstScalarPerVector_K1},
+        {"CK_PARAM_AThreadTransferSrcResetCoordinateAfterRun",
+         cparameter.AThreadTransferSrcResetCoordinateAfterRun},
+        {"CK_PARAM_BBlockTransferThreadSliceLengths_K0_N_K1",
+         ToString<3>(cparameter.BBlockTransferThreadSliceLengths_K0_N_K1)},
+        {"CK_PARAM_BBlockTransferThreadClusterLengths_K0_N_K1",
+         ToString<3>(cparameter.BBlockTransferThreadClusterLengths_K0_N_K1)},
+        {"CK_PARAM_BBlockTransferThreadClusterArrangeOrder",
+         ToString<3>(cparameter.BBlockTransferThreadClusterArrangeOrder)},
+        {"CK_PARAM_BBlockTransferSrcAccessOrder",
+         ToString<3>(cparameter.BBlockTransferSrcAccessOrder)},
+        {"CK_PARAM_BBlockTransferSrcVectorDim", cparameter.BBlockTransferSrcVectorDim},
+        {"CK_PARAM_BBlockTransferSrcScalarPerVector", cparameter.BBlockTransferSrcScalarPerVector},
+        {"CK_PARAM_BBlockTransferDstScalarPerVector_K1",
+         cparameter.BBlockTransferDstScalarPerVector_K1},
+        {"CK_PARAM_BThreadTransferSrcResetCoordinateAfterRun",
+         cparameter.BThreadTransferSrcResetCoordinateAfterRun},
+        {"CK_PARAM_CThreadTransferSrcDstAccessOrder",
+         ToString<8>(cparameter.CThreadTransferSrcDstAccessOrder)},
+        {"CK_PARAM_CThreadTransferSrcDstVectorDim", cparameter.CThreadTransferSrcDstVectorDim},
+        {"CK_PARAM_CThreadTransferDstScalarPerVector",
+         cparameter.CThreadTransferDstScalarPerVector},
+        {"CK_PARAM_M01", cparameter.M01},
+        {"CK_PARAM_N01", cparameter.N01},
+        {"CK_PARAM_HasMainKBlockLoop", cparameter.HasMainKBlockLoop},
+    };
+    return build_params.GenerateFor(miopen::kbp::OpenCL{});
+}
 
 static inline auto get_ck_tunable_conv_igemm_fwd_v4r4r4_xdlops_nhwc_kyxc_nhwk(
     const PerformanceConvCkIgemmFwdV4r4r4XdlopsNhwc& config)
@@ -100,7 +170,7 @@ bool ConvCkIgemmFwdV4r4r4XdlopsNhwc::IsApplicable(const ConvolutionContext& ctx)
 
     if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
         return false;
-        
+
     {
         // this kernel use int32_t for memory offset, which covers 2GB of memory maximum
         constexpr auto max_index_range = static_cast<std::size_t>(INT32_MAX) + 1;
@@ -165,7 +235,7 @@ ConvCkIgemmFwdV4r4r4XdlopsNhwc::GetSolution(const ConvolutionContext& ctx,
         kernel0_info.l_wk = {1, 1, 1};
         kernel0_info.g_wk = {1, 1, 1};
 
-        kernel0_info.comp_options = ck_compile_param.GetCompileParameterString() +
+        kernel0_info.comp_options = ck_utility::GetCompileParameterString(ck_compile_param) +
                                     ck_utility::get_ck_common_compiler_flag(ctx.GetStream());
     }
 
@@ -187,7 +257,7 @@ ConvCkIgemmFwdV4r4r4XdlopsNhwc::GetSolution(const ConvolutionContext& ctx,
         kernel1_info.l_wk = {block_size, 1, 1};
         kernel1_info.g_wk = {block_size * grid_size, 1, 1};
 
-        kernel1_info.comp_options = ck_compile_param.GetCompileParameterString() +
+        kernel1_info.comp_options = ck_utility::GetCompileParameterString(ck_compile_param) +
                                     ck_utility::get_ck_common_compiler_flag(ctx.GetStream());
     }
 
