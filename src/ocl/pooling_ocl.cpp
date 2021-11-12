@@ -24,13 +24,17 @@
  *
  *******************************************************************************/
 
-#include <miopen/pooling/problem_description.hpp>
-#include <miopen/kernel_cache.hpp>
-#include <miopen/mlo_internal.hpp>
 #include <miopen/pooling.hpp>
-#include <miopen/float_equal.hpp>
+
+#include <miopen/pooling/invoke_params.hpp>
+#include <miopen/pooling/problem_description.hpp>
+#include <miopen/pooling/solvers.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/float_equal.hpp>
+#include <miopen/find_solution.hpp>
+#include <miopen/kernel_cache.hpp>
+#include <miopen/mlo_internal.hpp>
 
 namespace miopen {
 
@@ -129,27 +133,24 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     const auto problem        = pooling::ProblemDescription{*this, xDesc, yDesc, save_index};
     const auto network_config = problem.MakeNetworkConfig();
 
+    const auto invoke_params = [&]() {
+        auto tmp                  = pooling::FwdInvokeParams{};
+        tmp.type                  = InvokeType::Run;
+        tmp.xDesc                 = xDesc;
+        tmp.yDesc                 = yDesc;
+        tmp.pooling               = *this;
+        tmp.x                     = x;
+        tmp.y                     = y;
+        tmp.workspace             = workSpace;
+        return tmp;
+    }();
+
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
         if(pool_dim == 4)
         {
-            kernels.front()(x,
-                            y,
-                            workSpace,
-                            static_cast<int>(pads[0]),
-                            static_cast<int>(pads[1]),
-                            static_cast<int>(chal),
-                            static_cast<int>(xDesc.GetLengths()[2]),
-                            static_cast<int>(xDesc.GetLengths()[3]),
-                            static_cast<int>(yDesc.GetLengths()[2]),
-                            static_cast<int>(yDesc.GetLengths()[3]),
-                            static_cast<int>(xDesc.GetStrides()[0]),
-                            static_cast<int>(xDesc.GetStrides()[1]),
-                            static_cast<int>(xDesc.GetStrides()[2]),
-                            static_cast<int>(yDesc.GetStrides()[0]),
-                            static_cast<int>(yDesc.GetStrides()[1]),
-                            static_cast<int>(yDesc.GetStrides()[2]));
+            MIOPEN_THROW(miopenStatusInternalError, "Forward 2d pooling has been already implemented as a solver.");
         }
         else
         {
@@ -182,45 +183,30 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         if(pool_dim == 4)
         {
-            mlo_construct_pooling2D construct_params(conv::Direction::Forward);
-            construct_params.setStream(&handle);
-            construct_params.setTopDescFromMLDesc(yDesc);
-            construct_params.setBotDescFromMLDesc(xDesc);
-            construct_params.setPoolingDescr(pooling_method,
-                                             GetIndexType(),
-                                             GetWorkspaceIndexMode(),
-                                             lens[0],
-                                             lens[1],
-                                             pads[0],
-                                             pads[1],
-                                             strides[0],
-                                             strides[1]);
-            construct_params.doBackward(save_index);
-            mloConstruct(construct_params);
+            if(const auto existingInvoker =
+                   handle.GetInvoker(network_config, boost::none, algo_name))
+            {
+                (*existingInvoker)(handle, invoke_params);
+            }
+            else
+            {
+                auto ctx = ExecutionContext{&handle};
+                ctx.DetectRocm();
+                const auto solvers = solver::SolverContainer<solver::pooling::PoolingForward2d>{};
+                const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
 
-            const std::string& parms       = construct_params.getCompilerOptions(); // kernel
-            std::string program_name       = construct_params.getKernelFile();      // CL kernel
-            std::string kernel_name        = construct_params.getKernelName();      // kernel name
-            const std::vector<size_t>& vld = construct_params.getLocalWkSize();
-            const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+                if(slns.empty())
+                    MIOPEN_THROW(miopenStatusNotImplemented, "No solver found.");
 
-            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x,
-                y,
-                workSpace,
-                static_cast<int>(pads[0]),
-                static_cast<int>(pads[1]),
-                static_cast<int>(chal),
-                static_cast<int>(xDesc.GetLengths()[2]),
-                static_cast<int>(xDesc.GetLengths()[3]),
-                static_cast<int>(yDesc.GetLengths()[2]),
-                static_cast<int>(yDesc.GetLengths()[3]),
-                static_cast<int>(xDesc.GetStrides()[0]),
-                static_cast<int>(xDesc.GetStrides()[1]),
-                static_cast<int>(xDesc.GetStrides()[2]),
-                static_cast<int>(yDesc.GetStrides()[0]),
-                static_cast<int>(yDesc.GetStrides()[1]),
-                static_cast<int>(yDesc.GetStrides()[2]));
+                const auto& sln = slns.front();
+                if(!sln.invoker_factory)
+                    MIOPEN_THROW(miopenStatusInternalError,
+                                 "Invoker missing in solver " + sln.solver_id);
+                const auto invoker =
+                    handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
+                handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo_name);
+                invoker(handle, invoke_params);
+            }
         }
         else
         {
@@ -287,6 +273,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
                 static_cast<uint>(total_work));
         }
     }
+
     if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, yDesc, y);
