@@ -34,7 +34,7 @@ namespace miopen {
 
 namespace pooling {
 struct ProblemDescription;
-} // pooling
+} // namespace pooling
 
 namespace solver {
 
