@@ -2557,7 +2557,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
 {
     std::string direction;
     std::string tensor_layout;
-    miopenDataType_t precision;
+    std::string precision;
     int nxb;
     int nxe;
 
@@ -2589,6 +2589,31 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
 
     PerformanceConfigAsmImplicitGemmGTC(std::string dir,
                                         std::string layout,
+                                        std::string prec,
+                                        int b,
+                                        int e,
+                                        int mpb,
+                                        int npb,
+                                        int kpb,
+                                        int wtm,
+                                        int wtn,
+                                        int wtk,
+                                        int wsm,
+                                        int wsn,
+                                        int wrm,
+                                        int wrn,
+                                        int mh,
+                                        int vs,
+                                        int gks,
+                                        int me,
+                                        int pta,
+                                        std::initializer_list<int> ta_t,
+                                        std::initializer_list<int> ta_c,
+                                        std::initializer_list<int> tb_t,
+                                        std::initializer_list<int> tb_c,
+                                        bool spare = false);
+    PerformanceConfigAsmImplicitGemmGTC(std::string dir,
+                                        std::string layout,
                                         miopenDataType_t prec,
                                         int b,
                                         int e,
@@ -2615,7 +2640,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTC()
         : PerformanceConfigAsmImplicitGemmGTC("fwd",
                                               "nchw",
-                                              miopenFloat,
+                                              "fp32",
                                               1,
                                               1,
                                               1,
@@ -2643,7 +2668,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTC(bool spare)
         : PerformanceConfigAsmImplicitGemmGTC("fwd",
                                               "nchw",
-                                              miopenFloat,
+                                              "fp32",
                                               1,
                                               1,
                                               1,
@@ -2672,12 +2697,9 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        std::string prec_string = self.precision == miopenFloat
-                                      ? "fp32"
-                                      : (self.precision == miopenHalf ? "fp16" : "bf16");
         f(self.direction, "dir");
         f(self.tensor_layout, "lyt");
-        f(prec_string, "pre");
+        f(self.precision, "pre");
         f(self.nxb, "nxb");
         f(self.nxe, "nxe");
         f(self.gemm_m_per_block, "mpb");
@@ -2738,6 +2760,58 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC : PerformanceConfigAsmIm
 {
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC(std::string dir,
                                                      std::string layout,
+                                                     std::string prec,
+                                                     int b,
+                                                     int e,
+                                                     int mpb,
+                                                     int npb,
+                                                     int kpb,
+                                                     int wtm,
+                                                     int wtn,
+                                                     int wtk,
+                                                     int wsm,
+                                                     int wsn,
+                                                     int wrm,
+                                                     int wrn,
+                                                     int mh,
+                                                     int vs,
+                                                     int gks,
+                                                     int me,
+                                                     int pta,
+                                                     std::initializer_list<int> ta_t,
+                                                     std::initializer_list<int> ta_c,
+                                                     std::initializer_list<int> tb_t,
+                                                     std::initializer_list<int> tb_c,
+                                                     bool spare = false)
+        : PerformanceConfigAsmImplicitGemmGTC(dir,
+                                              layout,
+                                              prec,
+                                              b,
+                                              e,
+                                              mpb,
+                                              npb,
+                                              kpb,
+                                              wtm,
+                                              wtn,
+                                              wtk,
+                                              wsm,
+                                              wsn,
+                                              wrm,
+                                              wrn,
+                                              mh,
+                                              vs,
+                                              gks,
+                                              me,
+                                              pta,
+                                              ta_t,
+                                              ta_c,
+                                              tb_t,
+                                              tb_c,
+                                              spare)
+    {
+    }
+    PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC(std::string dir,
+                                                     std::string layout,
                                                      miopenDataType_t prec,
                                                      int b,
                                                      int e,
@@ -2791,7 +2865,7 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC : PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC()
         : PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC("fwd",
                                                            "nchw",
-                                                           miopenFloat,
+                                                           "fp32",
                                                            1,
                                                            1,
                                                            1,
@@ -2819,7 +2893,7 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC : PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC(bool spare)
         : PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC("fwd",
                                                            "nchw",
-                                                           miopenFloat,
+                                                           "fp32",
                                                            1,
                                                            1,
                                                            1,
@@ -2871,6 +2945,58 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC : SolverBase<ConvolutionContex
 
 struct PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC : PerformanceConfigAsmImplicitGemmGTC
 {
+    PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC(std::string dir,
+                                                     std::string layout,
+                                                     std::string prec,
+                                                     int b,
+                                                     int e,
+                                                     int mpb,
+                                                     int npb,
+                                                     int kpb,
+                                                     int wtm,
+                                                     int wtn,
+                                                     int wtk,
+                                                     int wsm,
+                                                     int wsn,
+                                                     int wrm,
+                                                     int wrn,
+                                                     int mh,
+                                                     int vs,
+                                                     int gks,
+                                                     int me,
+                                                     int pta,
+                                                     std::initializer_list<int> ta_t,
+                                                     std::initializer_list<int> ta_c,
+                                                     std::initializer_list<int> tb_t,
+                                                     std::initializer_list<int> tb_c,
+                                                     bool spare = false)
+        : PerformanceConfigAsmImplicitGemmGTC(dir,
+                                              layout,
+                                              prec,
+                                              b,
+                                              e,
+                                              mpb,
+                                              npb,
+                                              kpb,
+                                              wtm,
+                                              wtn,
+                                              wtk,
+                                              wsm,
+                                              wsn,
+                                              wrm,
+                                              wrn,
+                                              mh,
+                                              vs,
+                                              gks,
+                                              me,
+                                              pta,
+                                              ta_t,
+                                              ta_c,
+                                              tb_t,
+                                              tb_c,
+                                              spare)
+    {
+    }
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC(std::string dir,
                                                      std::string layout,
                                                      miopenDataType_t prec,
@@ -2926,7 +3052,7 @@ struct PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC : PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC()
         : PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC("fwd",
                                                            "nchw",
-                                                           miopenFloat,
+                                                           "fp32",
                                                            1,
                                                            1,
                                                            1,
@@ -2954,7 +3080,7 @@ struct PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC : PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC(bool spare)
         : PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC("fwd",
                                                            "nchw",
-                                                           miopenFloat,
+                                                           "fp32",
                                                            1,
                                                            1,
                                                            1,
@@ -3005,6 +3131,58 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC : SolverBase<ConvolutionContex
 
 struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmImplicitGemmGTC
 {
+    PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC(std::string dir,
+                                                     std::string layout,
+                                                     std::string prec,
+                                                     int b,
+                                                     int e,
+                                                     int mpb,
+                                                     int npb,
+                                                     int kpb,
+                                                     int wtm,
+                                                     int wtn,
+                                                     int wtk,
+                                                     int wsm,
+                                                     int wsn,
+                                                     int wrm,
+                                                     int wrn,
+                                                     int mh,
+                                                     int vs,
+                                                     int gks,
+                                                     int me,
+                                                     int pta,
+                                                     std::initializer_list<int> ta_t,
+                                                     std::initializer_list<int> ta_c,
+                                                     std::initializer_list<int> tb_t,
+                                                     std::initializer_list<int> tb_c,
+                                                     bool spare = false)
+        : PerformanceConfigAsmImplicitGemmGTC(dir,
+                                              layout,
+                                              prec,
+                                              b,
+                                              e,
+                                              mpb,
+                                              npb,
+                                              kpb,
+                                              wtm,
+                                              wtn,
+                                              wtk,
+                                              wsm,
+                                              wsn,
+                                              wrm,
+                                              wrn,
+                                              mh,
+                                              vs,
+                                              gks,
+                                              me,
+                                              pta,
+                                              ta_t,
+                                              ta_c,
+                                              tb_t,
+                                              tb_c,
+                                              spare)
+    {
+    }
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC(std::string dir,
                                                      std::string layout,
                                                      miopenDataType_t prec,
@@ -3060,7 +3238,7 @@ struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC()
         : PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC("fwd",
                                                            "nchw",
-                                                           miopenFloat,
+                                                           "fp32",
                                                            1,
                                                            1,
                                                            1,
@@ -3088,7 +3266,7 @@ struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC(bool spare)
         : PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC("fwd",
                                                            "nchw",
-                                                           miopenFloat,
+                                                           "fp32",
                                                            1,
                                                            1,
                                                            1,
