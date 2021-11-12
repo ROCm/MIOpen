@@ -99,35 +99,6 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         }
     }
 
-    int pooling_method =
-        (mode == miopenPoolingMax)
-            ? MLO_POOLING_OP_MAX
-            : ((mode == miopenPoolingAverage) ? MLO_POOLING_OP_AVE : MLO_POOLING_OP_AVE_INCLUSIVE);
-
-    int top_w_per_work = 1;
-    int top_h_per_work = pool_dim == 4 ? 8 : 4;
-    int top_d_per_work = pool_dim == 4 ? 1 : 2;
-
-    int top_d = *(yDesc.GetLengths().rbegin() + 2);
-    if(pool_dim == 4)
-        top_d = 1;
-    int top_h = *(yDesc.GetLengths().rbegin() + 1);
-    int top_w = *(yDesc.GetLengths().rbegin());
-
-    int batch = xDesc.GetLengths()[0];
-    int chal  = xDesc.GetLengths()[1];
-
-    int top_blk_w = std::max((top_w + top_w_per_work - 1) / top_w_per_work, 1);
-    int top_blk_h = std::max((top_h + top_h_per_work - 1) / top_h_per_work, 1);
-    int top_blk_d = std::max((top_d + top_d_per_work - 1) / top_d_per_work, 1);
-
-    int max_activ_workitem = 65536;
-    int total_work         = batch * chal * top_blk_w * top_blk_h * top_blk_d;
-    int activ_work         = std::min(total_work, max_activ_workitem);
-
-    size_t lcl_work = 64;
-    size_t grp_num  = (activ_work + lcl_work - 1) / lcl_work;
-
     const auto algo_name =
         AlgorithmName{pool_dim == 5 ? "miopenPoolingNdForward" : "miopenPooling2dForward"};
     const auto problem        = pooling::ProblemDescription{*this, xDesc, yDesc, save_index};
@@ -145,133 +116,27 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         return tmp;
     }();
 
-    auto&& kernels = handle.GetKernels(algo_name, network_config);
-    if(!kernels.empty())
+    if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo_name))
     {
-        if(pool_dim == 4)
-        {
-            MIOPEN_THROW(miopenStatusInternalError, "Forward 2d pooling has been already implemented as a solver.");
-        }
-        else
-        {
-            kernels.front()(x,
-                            y,
-                            workSpace,
-                            static_cast<uint>(pads[0]),
-                            static_cast<uint>(pads[1]),
-                            static_cast<uint>(pads[2]),
-                            static_cast<uint>(batch),
-                            static_cast<uint>(chal),
-                            static_cast<uint>(xDesc.GetLengths()[2]),
-                            static_cast<uint>(xDesc.GetLengths()[3]),
-                            static_cast<uint>(xDesc.GetLengths()[4]),
-                            static_cast<uint>(top_d),
-                            static_cast<uint>(top_h),
-                            static_cast<uint>(top_w),
-                            static_cast<uint>(xDesc.GetStrides()[0]),
-                            static_cast<uint>(xDesc.GetStrides()[1]),
-                            static_cast<uint>(xDesc.GetStrides()[2]),
-                            static_cast<uint>(xDesc.GetStrides()[3]),
-                            static_cast<uint>(yDesc.GetStrides()[0]),
-                            static_cast<uint>(yDesc.GetStrides()[1]),
-                            static_cast<uint>(yDesc.GetStrides()[2]),
-                            static_cast<uint>(yDesc.GetStrides()[3]),
-                            static_cast<uint>(total_work));
-        }
+        (*existingInvoker)(handle, invoke_params);
     }
     else
     {
-        if(pool_dim == 4)
-        {
-            if(const auto existingInvoker =
-                   handle.GetInvoker(network_config, boost::none, algo_name))
-            {
-                (*existingInvoker)(handle, invoke_params);
-            }
-            else
-            {
-                auto ctx = ExecutionContext{&handle};
-                ctx.DetectRocm();
-                const auto solvers = solver::SolverContainer<solver::pooling::PoolingForward2d>{};
-                const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
+        auto ctx = ExecutionContext{&handle};
+        ctx.DetectRocm();
+        const auto solvers = solver::SolverContainer<solver::pooling::PoolingForward2d,
+                                                     solver::pooling::PoolingForwardNd>{};
+        const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
 
-                if(slns.empty())
-                    MIOPEN_THROW(miopenStatusNotImplemented, "No solver found.");
+        if(slns.empty())
+            MIOPEN_THROW(miopenStatusNotImplemented, "No solver found.");
 
-                const auto& sln = slns.front();
-                if(!sln.invoker_factory)
-                    MIOPEN_THROW(miopenStatusInternalError,
-                                 "Invoker missing in solver " + sln.solver_id);
-                const auto invoker =
-                    handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-                handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo_name);
-                invoker(handle, invoke_params);
-            }
-        }
-        else
-        {
-            std::string program_name = "MIOpenPoolingND.cl";
-            std::string kernel_name  = "mloPoolingNDFwd";
-
-            const std::vector<size_t> vld{lcl_work, 1, 1};
-            const std::vector<size_t> vgd{lcl_work * grp_num, 1, 1};
-
-            std::string parms = std::string(" -DMLO_POOLING_OP_ID=") +
-                                std::to_string(static_cast<long long>(pooling_method));
-
-            parms += std::string(" -DMAX_ACTIV_WORKITEM=") +
-                     std::to_string(static_cast<uint>(max_activ_workitem));
-
-            parms += std::string(" -DMLO_POOLING_GROUP_SZ0=") +
-                     std::to_string(static_cast<long long>(lcl_work)) +
-                     std::string(" -DMLO_POOLING_GROUP_SZ1=1 -DMLO_POOLING_GROUP_SZ2=1");
-
-            parms += std::string(" -DTOP_W_PER_WORK=") +
-                     std::to_string(static_cast<uint>(top_w_per_work)) +
-                     std::string(" -DTOP_H_PER_WORK=") +
-                     std::to_string(static_cast<uint>(top_h_per_work)) +
-                     std::string(" -DTOP_D_PER_WORK=") +
-                     std::to_string(static_cast<uint>(top_d_per_work));
-
-            parms += std::string(" -DKERNEL_SZ_D=") + std::to_string(static_cast<uint>(lens[0])) +
-                     std::string(" -DKERNEL_SZ_H=") + std::to_string(static_cast<uint>(lens[1])) +
-                     std::string(" -DKERNEL_SZ_W=") + std::to_string(static_cast<uint>(lens[2])) +
-                     std::string(" -DSTRIDE_D=") + std::to_string(static_cast<uint>(strides[0])) +
-                     std::string(" -DSTRIDE_H=") + std::to_string(static_cast<uint>(strides[1])) +
-                     std::string(" -DSTRIDE_W=") + std::to_string(static_cast<uint>(strides[2]));
-
-            parms += std::string(save_index ? " -DMLO_POOLING_SAVE_INDEX" : "") +
-                     std::string(" -DMLO_POOLING_INDEX_TYPE=") +
-                     get_pooling_index_type_name(GetIndexType()) +
-                     std::string(" -DMLO_POOLING_INDEX_MAX=") +
-                     get_pooling_index_type_max_name(GetIndexType()) +
-                     GetDataTypeKernelParams(xDesc.GetType());
-
-            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x,
-                y,
-                workSpace,
-                static_cast<uint>(pads[0]),
-                static_cast<uint>(pads[1]),
-                static_cast<uint>(pads[2]),
-                static_cast<uint>(batch),
-                static_cast<uint>(chal),
-                static_cast<uint>(xDesc.GetLengths()[2]),
-                static_cast<uint>(xDesc.GetLengths()[3]),
-                static_cast<uint>(xDesc.GetLengths()[4]),
-                static_cast<uint>(top_d),
-                static_cast<uint>(top_h),
-                static_cast<uint>(top_w),
-                static_cast<uint>(xDesc.GetStrides()[0]),
-                static_cast<uint>(xDesc.GetStrides()[1]),
-                static_cast<uint>(xDesc.GetStrides()[2]),
-                static_cast<uint>(xDesc.GetStrides()[3]),
-                static_cast<uint>(yDesc.GetStrides()[0]),
-                static_cast<uint>(yDesc.GetStrides()[1]),
-                static_cast<uint>(yDesc.GetStrides()[2]),
-                static_cast<uint>(yDesc.GetStrides()[3]),
-                static_cast<uint>(total_work));
-        }
+        const auto& sln = slns.front();
+        if(!sln.invoker_factory)
+            MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
+        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
+        handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo_name);
+        invoker(handle, invoke_params);
     }
 
     if(miopen::CheckNumericsEnabled())

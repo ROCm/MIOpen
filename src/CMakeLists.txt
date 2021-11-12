@@ -130,6 +130,7 @@ set( MIOpen_Source
     solver/batchnorm/backward_spatial_multiple.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/pooling/forward2d.cpp
+    solver/pooling/forwardNd.cpp
     include/miopen/buffer_info.hpp
     ramdb.cpp
     include/miopen/temp_file.hpp

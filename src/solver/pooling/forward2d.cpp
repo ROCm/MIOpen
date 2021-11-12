@@ -28,8 +28,8 @@
 
 #include <miopen/pooling/invoke_params.hpp>
 #include <miopen/pooling/problem_description.hpp>
+#include <miopen/datatype.hpp>
 #include <miopen/pooling.hpp>
-#include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>
 
 namespace miopen {
@@ -42,7 +42,10 @@ bool PoolingForward2d::IsApplicable(const ExecutionContext&,
                                     const miopen::pooling::ProblemDescription& problem) const
 {
     return problem.GetDirection() == miopen::pooling::Direction::Forward &&
-           problem.GetXDesc().GetSize() == 4;
+           problem.GetXDesc().GetSize() == 4 &&
+           problem.GetXDesc().GetType() == problem.GetYDesc().GetType() &&
+           (problem.GetXDesc().GetType() == miopenFloat ||
+            problem.GetXDesc().GetType() == miopenHalf);
 }
 
 ConvSolution
@@ -112,28 +115,7 @@ PoolingForward2d::GetSolution(const ExecutionContext&,
             };
         }
 
-        if(problem.GetXDesc().GetType() == miopenFloat &&
-           problem.GetYDesc().GetType() == miopenFloat)
-        {
-            build_params << KernelBuildParameters{
-                {"MIOPEN_USE_FP32", 1},
-                {"MIOPEN_USE_FP16", 0},
-            };
-        }
-        else if(problem.GetXDesc().GetType() == miopenHalf &&
-                problem.GetYDesc().GetType() == miopenHalf)
-        {
-            build_params << KernelBuildParameters{
-                {"MIOPEN_USE_FP32", 0},
-                {"MIOPEN_USE_FP16", 1},
-            };
-        }
-        else
-        {
-            MIOPEN_LOG_W("Unsupported data types configuration: "
-                         << miopen::GetDataTypeName(problem.GetXDesc().GetType()) << "x"
-                         << miopen::GetDataTypeName(problem.GetYDesc().GetType()));
-        }
+        build_params << GetDataTypeKBP(problem.GetXDesc().GetType());
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
 
