@@ -68,29 +68,10 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         return tmp;
     }();
 
-    const auto algo           = AlgorithmName{"miopenActivationForward"};
-    const auto network_config = problem.MakeNetworkConfig();
-
-    if(const auto invoker = handle.GetInvoker(network_config, boost::none, algo))
-    {
-        (*invoker)(handle, invoke_params);
-        return miopenStatusSuccess;
-    }
-
-    const auto ctx = ExecutionContext{&handle};
+    const auto algo = AlgorithmName{"miopenActivationForward"};
     const auto solvers =
         solver::SolverContainer<solver::activ::ActivFwdSolver0, solver::activ::ActivFwdSolver1>{};
-    const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
-
-    if(slns.empty())
-        MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
-
-    const auto& sln = slns.front();
-    if(!sln.invoker_factory)
-        MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
-    const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-    handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
-    invoker(handle, invoke_params);
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     return miopenStatusSuccess;
 }
 
@@ -139,28 +120,9 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         return tmp;
     }();
 
-    const auto algo           = AlgorithmName{"miopenActivationBackward"};
-    const auto network_config = problem.MakeNetworkConfig();
-
-    if(const auto invoker = handle.GetInvoker(network_config, boost::none, algo))
-    {
-        (*invoker)(handle, invoke_params);
-        return miopenStatusSuccess;
-    }
-
-    const auto ctx     = ExecutionContext{&handle};
+    const auto algo    = AlgorithmName{"miopenActivationBackward"};
     const auto solvers = solver::SolverContainer<solver::activ::ActivBwdSolver0>{};
-    const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
-
-    if(slns.empty())
-        MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
-
-    const auto& sln = slns.front();
-    if(!sln.invoker_factory)
-        MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
-    const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-    handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
-    invoker(handle, invoke_params);
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     return miopenStatusSuccess;
 }
 } // namespace miopen
