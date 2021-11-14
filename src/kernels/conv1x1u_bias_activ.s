@@ -139,6 +139,20 @@ static_assert(!fusion_mode || buf_type == TYPE_FP16 || buf_type == TYPE_FP32)
     .set KERNEL_ARGUMENTS_SIZE, dbg_ptr_off + 8
 .endif
 
+// gfx90a requires 64bit aligned vgpr tuples
+// Tuples are used only in buffer_load_dwordx/buffer_store_dwordx instructions
+//
+// To meet this requirement, the following approach is used ('buffer_load_dwordx4 v[x:y]' as an example):
+//    if 'x' 64bit aligned:
+//       buffer_load_dwordx4 v[x:y], ...
+//    if 'x' not 64bit aligned:
+//       buffer_load_dword   v[x], ...
+//       buffer_load_dwordx3 v[x+1:y], ...
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 0 && .amdgcn.gfx_generation_stepping == 10)
+   tuple_alignment = 1
+.else
+   tuple_alignment = 0
+.endif
 
 maxU24 = 1 << 24
 invalid_addr_lit = 0x7FFFFFFF
@@ -361,9 +375,6 @@ bias_buffer_size = (output_channels + elements_in_dword - 1) / elements_in_dword
     .VGPR_ALLOC tid
     .VGPR_ALLOC voffset_in
     .VGPR_ALLOC voffset_out
-    .if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
-    .VGPR_ALLOC valign_unused, (.VGPR_NEXT_FREE % 2) // inputA/B must be 64 bit aligned
-    .endif
     .VGPR_ALLOC inputA, in_gprs
     .VGPR_ALLOC inputB, in_gprs
     .VGPR_ALLOC accums, accums_cnt
@@ -555,7 +566,7 @@ miopenGcnAsmConv1x1U:
     .else
         mbufs_cnt = (c_mult / elements_in_dword) * n_mult * (chunks_per_wave / (read_size * input_dword_chunks_cnt))
     .endif
-    .macro load_input base
+    .macro load_input base, mbufs_inflight
         ibase = \base
         hi_c_mult = c_mult / vec_c_in
         full_loads =              chunks_per_wave / (read_size * input_dword_chunks_cnt)
@@ -578,7 +589,13 @@ miopenGcnAsmConv1x1U:
                     .if(ld_it == full_loads)
                         current_read_cnt = partial_load_dwords
                     .endif
-                    m_buffer_load_dwordx current_read_cnt, ibase, voffset_in, desc_in, stmp_offset, imm_off
+                    .if tuple_alignment && (current_read_cnt > 1) && (ibase % 2)
+                        m_buffer_load_dwordx 1,                  ibase,   voffset_in, desc_in, stmp_offset, imm_off
+                        m_buffer_load_dwordx current_read_cnt-1, ibase+1, voffset_in, desc_in, stmp_offset, imm_off+4
+                        \mbufs_inflight = \mbufs_inflight+1
+                    .else
+                        m_buffer_load_dwordx current_read_cnt, ibase, voffset_in, desc_in, stmp_offset, imm_off
+                    .endif
                     ibase = ibase + current_read_cnt
                     imm_off = imm_off + 4 * current_read_cnt
                     ld_it = ld_it + 1
@@ -812,7 +829,8 @@ miopenGcnAsmConv1x1U:
     s_cmpk_eq_u32 s[wave_c_id], 0 + waves_c_in_group - 1
     s_cmov_b32 s[loop_cnt], 0 + last_wave_hi_c_per_wave * vec_c_in
 
-    load_input inputA
+    mbufs_cnt_A = 0
+    load_input inputA, mbufs_cnt_A
     load_sgprs filtersA, sequential_read_size, sequential_reads_cnt, sequential_read_stride, desc_wei, soffset_wei
 
     // zeroing accums
@@ -823,15 +841,17 @@ miopenGcnAsmConv1x1U:
     .endr
 
 loop_begin:
-    load_input inputB
-    s_wait mbufs_cnt, 0
+    mbufs_cnt_B = 0
+    load_input inputB, mbufs_cnt_B
+    s_wait (mbufs_cnt+mbufs_cnt_B), 0
     load_sgprs filtersB, sequential_read_size, sequential_reads_cnt, sequential_read_stride, desc_wei, soffset_wei
     trans_input inputA
     trans_filter filtersA
     conv inputA, filtersA
 
-    load_input inputA
-    s_wait mbufs_cnt, 0
+    mbufs_cnt_A = 0
+    load_input inputA, mbufs_cnt_A
+    s_wait (mbufs_cnt+mbufs_cnt_A), 0
     load_sgprs filtersA, sequential_read_size, sequential_reads_cnt, sequential_read_stride, desc_wei, soffset_wei
     trans_input inputB
     trans_filter filtersB
@@ -842,8 +862,9 @@ loop_end:
     s_cmpk_gt_i32 s[loop_cnt], 1 * c_mult
     s_cbranch_scc1 loop_begin
 
-    load_input inputB
-    s_wait mbufs_cnt, 0
+    mbufs_cnt_B = 0
+    load_input inputB, mbufs_cnt_B
+    s_wait (mbufs_cnt+mbufs_cnt_B), 0
     load_sgprs filtersB, sequential_read_size, sequential_reads_cnt, sequential_read_stride, desc_wei, soffset_wei
     trans_input inputA
     trans_filter filtersA
