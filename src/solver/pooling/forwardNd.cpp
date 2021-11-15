@@ -122,7 +122,7 @@ ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
         result.construction_params.push_back(kernel);
     }
 
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::pooling::FwdInvokeParams>();
@@ -133,6 +133,12 @@ ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
             const int top_d_ = *(params.yDesc.GetLengths().rbegin() + 2);
             const int top_h_ = *(params.yDesc.GetLengths().rbegin() + 1);
             const int top_w_ = *(params.yDesc.GetLengths().rbegin());
+
+            const int top_blk_w_ = std::max((top_w_ + top_w_per_work - 1) / top_w_per_work, 1);
+            const int top_blk_h_ = std::max((top_h_ + top_h_per_work - 1) / top_h_per_work, 1);
+            const int top_blk_d_ = std::max((top_d_ + top_d_per_work - 1) / top_d_per_work, 1);
+
+            const int total_work_ = batch_ * chal_ * top_blk_w_ * top_blk_h_ * top_blk_d_;
 
             kernel(params.x,
                    params.y,
@@ -156,7 +162,7 @@ ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
                    static_cast<uint>(params.yDesc.GetStrides()[1]),
                    static_cast<uint>(params.yDesc.GetStrides()[2]),
                    static_cast<uint>(params.yDesc.GetStrides()[3]),
-                   static_cast<uint>(total_work));
+                   static_cast<uint>(total_work_));
         };
     };
 
