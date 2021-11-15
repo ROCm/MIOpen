@@ -1,5 +1,6 @@
 #ifndef CONVOLUTION_PROBLEM_DESCRIPTOR
 #define CONVOLUTION_PROBLEM_DESCRIPTOR
+#include "../../../composable_kernel/include/utility/data_type_enum.hpp"
 
 namespace ck {
 namespace driver {

@@ -262,6 +262,7 @@ set( MIOpen_Source
     solver/conv_direct_naive_conv_wrw.cpp
     solver/conv_direct_naive_conv.cpp
     solver/conv_ck_igemm_fwd_v4r4r4_xdlops_nhwc.cpp
+    composable_kernel/host/solver/src/conv_igemm_fwd_v4r4r4_xdlops_nhwc_kyxc_nhwk.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
