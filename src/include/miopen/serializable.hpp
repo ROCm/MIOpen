@@ -29,12 +29,15 @@
 
 #include <ciso646>
 #include <miopen/config.h>
+#include <nlohmann/json.hpp>
 #include <iostream>
 #include <sstream>
 #include <string>
 
 namespace miopen {
 namespace solver {
+
+using json = nlohmann::json;
 
 // TODO: Provide specialization to use stro* functions
 template <class T>
@@ -47,6 +50,34 @@ struct Parse
         ss >> result;
         return true;
     }
+};
+
+struct MetaData
+{
+    std::size_t version = 0;
+    std::string id = "";
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.version, "version");
+        f(self.id, "id");
+    }
+
+    friend void to_json(json& j, const MetaData& md)
+    {
+        Visit(md, [&](auto&& x, const std::string& name) {
+            j[name] = x;
+        });
+    }
+    friend void from_json(const json& j, MetaData& md)
+    {
+        Visit(md, [&](auto&& x, const std::string& name) {
+            if (j.contains(name))
+                x = j.at(name);
+        });
+    }
+
 };
 
 template <class Derived, char Seperator = ','>
@@ -105,6 +136,30 @@ struct Serializable
 
         static_cast<Derived&>(*this) = out;
         return true;
+    }
+
+    std::vector<std::uint8_t> Save(const MetaData& md) const
+    {
+        json result;
+        result["metadata"] = md;
+        json obj;
+        Derived::Visit(static_cast<const Derived&>(*this), [&](auto&& x, const std::string& name) {
+            obj[name] = x;
+        });
+        result["data"] = obj;
+        return json::to_msgpack(result);
+    }
+
+    template<class Check>
+    void Load(const std::vector<std::uint8_t>& buffer, Check c)
+    {
+        json j = json::from_msgpack(buffer);
+        auto md = j.at("metadata").get<MetaData>();
+        c(md);
+        json data = j.at("data");
+        Derived::Visit(static_cast<Derived&>(*this), [&](auto&& x, const std::string& name) {
+            x = data.at(name);
+        });
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Derived& c)

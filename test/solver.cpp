@@ -190,7 +190,57 @@ class SolverTest
         EXPECT_EQUAL(sol.construction_params[0].kernel_file, expected_kernel);
     }
 };
+
+void SerializeBinary()
+{
+    TestConfig tc;
+    tc.str = "test";
+    solver::MetaData md{5, "TestConfig"};
+    auto buffer = tc.Save(md);
+
+    TestConfig tc2;
+    tc2.Load(buffer, [](const solver::MetaData& m) {
+        EXPECT(m.version == 5);
+        EXPECT(m.id == "TestConfig");
+    });
+    EXPECT(tc.str == tc2.str);
+}
+
+void SerializeBinaryMetadataFalied()
+{
+    TestConfig tc;
+    tc.str = "test";
+    solver::MetaData md{5, "TestConfig"};
+    auto buffer = tc.Save(md);
+
+    TestConfig tc2;
+    tc2.str = "test2";
+    auto load = [&] {
+        tc2.Load(buffer, [](const solver::MetaData& m) {
+            if (m.version == 5)
+                MIOPEN_THROW("Version mismatch");
+        });
+    };
+    EXPECT(throws(load));
+    EXPECT(tc.str != tc2.str);
+    EXPECT(tc2.str == "test2");
+}
+
+void SerializeBinaryGarbageData()
+{
+    std::vector<std::uint8_t> buffer(100);
+    std::iota(buffer.begin(), buffer.end(), 0);
+    TestConfig tc;
+    EXPECT(throws([&] { tc.Load(buffer, [](auto&&) {}); }));
+}
+
 } // namespace tests
 } // namespace miopen
 
-int main() { miopen::tests::SolverTest().Run(); }
+int main()
+{ 
+    miopen::tests::SolverTest().Run();
+    miopen::tests::SerializeBinary();
+    miopen::tests::SerializeBinaryMetadataFalied();
+    miopen::tests::SerializeBinaryGarbageData();
+}

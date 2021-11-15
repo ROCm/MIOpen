@@ -90,6 +90,7 @@ endif()
 
 ############################################################
 # require C++14
+set(CMAKE_CXX_STANDARD_DEFAULT "")
 add_compile_options(-std=c++14)
 
 ############################################################
@@ -383,6 +384,8 @@ find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 find_path(HALF_INCLUDE_DIR half.hpp)
 message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
+
+find_package(nlohmann_json)
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
