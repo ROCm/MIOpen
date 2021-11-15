@@ -214,10 +214,10 @@ void SerializeBinaryMetadataFalied()
     auto buffer = tc.Save(md);
 
     TestConfig tc2;
-    tc2.str = "test2";
+    tc2.str   = "test2";
     auto load = [&] {
         tc2.Load(buffer, [](const solver::MetaData& m) {
-            if (m.version == 5)
+            if(m.version == 5)
                 MIOPEN_THROW("Version mismatch");
         });
     };
@@ -238,7 +238,7 @@ void SerializeBinaryGarbageData()
 } // namespace miopen
 
 int main()
-{ 
+{
     miopen::tests::SolverTest().Run();
     miopen::tests::SerializeBinary();
     miopen::tests::SerializeBinaryMetadataFalied();

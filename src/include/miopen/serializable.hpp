@@ -55,7 +55,7 @@ struct Parse
 struct MetaData
 {
     std::size_t version = 0;
-    std::string id = "";
+    std::string id      = "";
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -66,18 +66,15 @@ struct MetaData
 
     friend void to_json(json& j, const MetaData& md)
     {
-        Visit(md, [&](auto&& x, const std::string& name) {
-            j[name] = x;
-        });
+        Visit(md, [&](auto&& x, const std::string& name) { j[name] = x; });
     }
     friend void from_json(const json& j, MetaData& md)
     {
         Visit(md, [&](auto&& x, const std::string& name) {
-            if (j.contains(name))
+            if(j.contains(name))
                 x = j.at(name);
         });
     }
-
 };
 
 template <class Derived, char Seperator = ','>
@@ -143,23 +140,21 @@ struct Serializable
         json result;
         result["metadata"] = md;
         json obj;
-        Derived::Visit(static_cast<const Derived&>(*this), [&](auto&& x, const std::string& name) {
-            obj[name] = x;
-        });
+        Derived::Visit(static_cast<const Derived&>(*this),
+                       [&](auto&& x, const std::string& name) { obj[name] = x; });
         result["data"] = obj;
         return json::to_msgpack(result);
     }
 
-    template<class Check>
+    template <class Check>
     void Load(const std::vector<std::uint8_t>& buffer, Check c)
     {
-        json j = json::from_msgpack(buffer);
+        json j  = json::from_msgpack(buffer);
         auto md = j.at("metadata").get<MetaData>();
         c(md);
         json data = j.at("data");
-        Derived::Visit(static_cast<Derived&>(*this), [&](auto&& x, const std::string& name) {
-            x = data.at(name);
-        });
+        Derived::Visit(static_cast<Derived&>(*this),
+                       [&](auto&& x, const std::string& name) { x = data.at(name); });
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Derived& c)
