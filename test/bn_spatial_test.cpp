@@ -147,9 +147,9 @@ struct verify_forward_train_bn_spatial
                 for(std::size_t column = 0; column < width; column++){// via columns
                     for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                         mean_accum_arr[row] += input(bidx,cidx,row,column);
-                    }	
+                    }
                 }// for (column)
-            }// for (row)  
+            }// for (row)
             for(std::size_t i = 0; i<height; i++) mean_accum += mean_accum_arr[i];
 #endif
             mean_accum /= nhw;
@@ -180,9 +180,9 @@ struct verify_forward_train_bn_spatial
                     for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                         out(bidx,cidx,row,column) = elemStd = input(bidx,cidx,row,column) - mean_accum;
                         variance_accum_arr[row] += elemStd*elemStd;
-                    }	
+                    }
                 }// for (column)
-            }// for (row)  
+            }// for (row)
             for(std::size_t i = 0; i<height; i++) variance_accum += variance_accum_arr[i];
 #endif
             variance_accum /= nhw; // (1/N)*sum{ (x_i - mean)^2 }
@@ -689,9 +689,9 @@ struct verify_backward_bn_spatial_recalc
                 for(std::size_t column = 0; column < width; column++){// via columns
                     for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                         mean_accum_arr[row] += x_input(bidx,cidx,row,column);
-                    }	
+                    }
                 }// for (column)
-            }// for (row)  
+            }// for (row)
             for(std::size_t i = 0; i<height; i++) mean += mean_accum_arr[i];
 #endif
             mean /= nhw;
@@ -719,9 +719,9 @@ struct verify_backward_bn_spatial_recalc
                     for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
                         elemStd = x_input(bidx,cidx,row,column) - mean;
                         variance_accum_arr[row] += elemStd*elemStd;
-                    }	
+                    }
                 }// for (column)
-            }// for (row)  
+            }// for (row)
             for(std::size_t i = 0; i<height; i++) variance += variance_accum_arr[i];
 #endif
             variance /= nhw; // (1/(N*H*W))*sum{ (x_i - mean)^2 }
@@ -746,8 +746,8 @@ struct verify_backward_bn_spatial_recalc
                     } // end for(n_batch)
                 }     // for (column)
             }         // for (row)
-#else   
-            
+#else
+
             for(std::size_t row = 0; row < height; row++){ //via rows
                 for(std::size_t column = 0; column < width; column++){// via columns
                     for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
@@ -760,12 +760,12 @@ struct verify_backward_bn_spatial_recalc
                         dscale_accum_arr[row] += xhat[xhat_index]*dyelem;
                         //dscale_accum_arr[row] += x_input(bidx,cidx,row,column);;//dscale_accum_arr[row] += xhat[xhat_index];
                         //dscale_accum_arr[row] += 1.0;//DEBUG
-                    }	
+                    }
                 }// for (column)
-            }// for (row)  
+            }// for (row)
             for(std::size_t i = 0; i<height; i++) {
-                dshift(0,cidx,0,0) += dshift_accum_arr[i];    
-                dscale(0,cidx,0,0) += dscale_accum_arr[i];    
+                dshift(0,cidx,0,0) += dshift_accum_arr[i];
+                dscale(0,cidx,0,0) += dscale_accum_arr[i];
             }
 #endif
 
@@ -957,8 +957,8 @@ struct verify_backward_bn_spatial_use_saved
                     } // end for(n_batch)
                 }     // for (column)
             }         // for (row)
-#else   
-            
+#else
+
             for(std::size_t row = 0; row < height; row++){ //via rows
                 for(std::size_t column = 0; column < width; column++){// via columns
                     for(std::size_t bidx = 0; bidx < n_batch; bidx++){ //via mini_batch
@@ -971,12 +971,12 @@ struct verify_backward_bn_spatial_use_saved
                         dshift_accum_arr[row] += dyelem;
                         dscale_accum_arr[row] += xhat[xhat_index]*dyelem;
                         //dscale_accum_arr[row] += 1.0;//DEBUG
-                    }	
+                    }
                 }// for (column)
-            }// for (row)  
+            }// for (row)
             for(std::size_t i = 0; i<height; i++) {
-                dshift(0,cidx,0,0) += dshift_accum_arr[i];    
-                dscale(0,cidx,0,0) += dscale_accum_arr[i];    
+                dshift(0,cidx,0,0) += dshift_accum_arr[i];
+                dscale(0,cidx,0,0) += dscale_accum_arr[i];
             }
 #endif
 
