@@ -57,7 +57,8 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     ss << "m" + std::to_string(pooling_method);
 
-    if (direction == Direction::Forward) {
+    if(direction == Direction::Forward)
+    {
 
         ss << "_i" << static_cast<int>(save_index);
         ss << "_dt" << xDesc.GetType();
@@ -72,16 +73,16 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
                 miopen::tien<4>(yDesc.GetLengths(), 1);
 
             const int _out_pix_tile0 = 1;
-            int _out_pix_tile1 = out_height <= 8 ? 1 : out_height <= 32 ? 4 : 8;
+            int _out_pix_tile1       = out_height <= 8 ? 1 : out_height <= 32 ? 4 : 8;
             if(out_height > 16 && out_height % 32 > 16)
-                _out_pix_tile1 = std::min(16, std::max(1, prePow2(_out_pix_tile1 * pooling.strides[0])));
+                _out_pix_tile1 =
+                    std::min(16, std::max(1, prePow2(_out_pix_tile1 * pooling.strides[0])));
 
             int _grp_tile0 = out_width <= 8 ? 8 : (out_width % 32 <= 16 ? 16 : 32);
-            int _grp_tile1 = out_height <= 8    ? 8
-                                    : out_height < 16  ? 16
-                                    : out_height <= 32 ? 32
-                                    : out_height <= 64 ? 64
-                                                       : 128;
+            int _grp_tile1 =
+                out_height <= 8
+                    ? 8
+                    : out_height < 16 ? 16 : out_height <= 32 ? 32 : out_height <= 64 ? 64 : 128;
             _grp_tile1 /= _out_pix_tile1;
             while(_grp_tile0 * _grp_tile1 > 256 && _grp_tile0 > 1)
                 _grp_tile0 >>= 1;
@@ -164,7 +165,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
             const int pix_h_per_work     = 4;
             const int pix_d_per_work     = 2;
             const int max_activ_workitem = 65536;
-            const size_t lcl_work = 64;
+            const size_t lcl_work        = 64;
 
             const int batch = dyDesc.GetLengths()[0];
             const int chal  = dyDesc.GetLengths()[1];
@@ -177,9 +178,9 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
             const int pix_blk_h = std::max((bot_h + pix_h_per_work - 1) / pix_h_per_work, 1);
             const int pix_blk_d = std::max((bot_d + pix_d_per_work - 1) / pix_d_per_work, 1);
 
-            const int total_work       = batch * chal * pix_blk_w * pix_blk_h * pix_blk_d;
-            const int activ_work       = std::min(total_work, max_activ_workitem);
-            const size_t grp_num  = (activ_work + lcl_work - 1) / lcl_work;
+            const int total_work = batch * chal * pix_blk_w * pix_blk_h * pix_blk_d;
+            const int activ_work = std::min(total_work, max_activ_workitem);
+            const size_t grp_num = (activ_work + lcl_work - 1) / lcl_work;
 
             ss << "_ker" << get_vect_config(pooling.lens);
             ss << "_str" << get_vect_config(pooling.strides);

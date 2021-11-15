@@ -41,9 +41,9 @@ struct FwdInvokeParams : public miopen::InvokeParams
     TensorDescriptor yDesc;
     PoolingDescriptor pooling;
 
-    ConstData_t x                = nullptr;
-    Data_t y                     = nullptr;
-    Data_t workspace             = nullptr;
+    ConstData_t x    = nullptr;
+    Data_t y         = nullptr;
+    Data_t workspace = nullptr;
 };
 
 } // namespace pooling

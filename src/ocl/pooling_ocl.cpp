@@ -101,17 +101,17 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
 
     const auto algo_name =
         AlgorithmName{pool_dim == 5 ? "miopenPoolingNdForward" : "miopenPooling2dForward"};
-    const auto problem        = pooling::ProblemDescription{*this, xDesc, yDesc, save_index};
+    const auto problem = pooling::ProblemDescription{*this, xDesc, yDesc, save_index};
 
     const auto invoke_params = [&]() {
-        auto tmp                  = pooling::FwdInvokeParams{};
-        tmp.type                  = InvokeType::Run;
-        tmp.xDesc                 = xDesc;
-        tmp.yDesc                 = yDesc;
-        tmp.pooling               = *this;
-        tmp.x                     = x;
-        tmp.y                     = y;
-        tmp.workspace             = workSpace;
+        auto tmp      = pooling::FwdInvokeParams{};
+        tmp.type      = InvokeType::Run;
+        tmp.xDesc     = xDesc;
+        tmp.yDesc     = yDesc;
+        tmp.pooling   = *this;
+        tmp.x         = x;
+        tmp.y         = y;
+        tmp.workspace = workSpace;
         return tmp;
     }();
 

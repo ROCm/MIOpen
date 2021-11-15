@@ -45,9 +45,8 @@ bool PoolingForwardNd::IsApplicable(const ExecutionContext&,
            problem.GetXDesc().GetSize() == 5;
 }
 
-ConvSolution
-PoolingForwardNd::GetSolution(const ExecutionContext&,
-                              const miopen::pooling::ProblemDescription& problem) const
+ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
+                                           const miopen::pooling::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -106,7 +105,8 @@ PoolingForwardNd::GetSolution(const ExecutionContext&,
              get_pooling_index_type_max_name(problem.GetPooling().GetIndexType())},
         };
 
-        if (problem.SaveIndex()) {
+        if(problem.SaveIndex())
+        {
             build_params << KernelBuildParameters{
                 {"MLO_POOLING_SAVE_INDEX"},
             };

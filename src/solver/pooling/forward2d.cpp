@@ -48,9 +48,8 @@ bool PoolingForward2d::IsApplicable(const ExecutionContext&,
             problem.GetXDesc().GetType() == miopenHalf);
 }
 
-ConvSolution
-PoolingForward2d::GetSolution(const ExecutionContext&,
-                              const miopen::pooling::ProblemDescription& problem) const
+ConvSolution PoolingForward2d::GetSolution(const ExecutionContext&,
+                                           const miopen::pooling::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -71,17 +70,15 @@ PoolingForward2d::GetSolution(const ExecutionContext&,
         const auto _wsp_index      = problem.GetPooling().GetWorkspaceIndexMode();
 
         const int _out_pix_tile0 = 1;
-        int _out_pix_tile1 = out_height <= 8 ? 1 : out_height <= 32 ? 4 : 8;
+        int _out_pix_tile1       = out_height <= 8 ? 1 : out_height <= 32 ? 4 : 8;
         if(out_height > 16 && out_height % 32 > 16)
             _out_pix_tile1 = std::min(16, std::max(1, prePow2(_out_pix_tile1 * kernel_stride_h)));
 
-        int _grp_tile0 =
-            out_width <= 8 ? 8 : (out_width % 32 <= 16 ? 16 : 32);
-        int _grp_tile1 = out_height <= 8    ? 8
-                         : out_height < 16  ? 16
-                         : out_height <= 32 ? 32
-                         : out_height <= 64 ? 64
-                                            : 128;
+        int _grp_tile0 = out_width <= 8 ? 8 : (out_width % 32 <= 16 ? 16 : 32);
+        int _grp_tile1 =
+            out_height <= 8
+                ? 8
+                : out_height < 16 ? 16 : out_height <= 32 ? 32 : out_height <= 64 ? 64 : 128;
         _grp_tile1 /= _out_pix_tile1;
         while(_grp_tile0 * _grp_tile1 > 256 && _grp_tile0 > 1)
             _grp_tile0 >>= 1;
@@ -108,7 +105,8 @@ PoolingForward2d::GetSolution(const ExecutionContext&,
              get_pooling_index_type_max_name(problem.GetPooling().GetIndexType())},
         };
 
-        if (problem.SaveIndex()) {
+        if(problem.SaveIndex())
+        {
             build_params << KernelBuildParameters{
                 {"MLO_POOLING_SAVE_INDEX"},
                 {"USE_IMG_INDEX", (_wsp_index == miopenPoolingWorkspaceIndexImage ? 1 : 0)},
