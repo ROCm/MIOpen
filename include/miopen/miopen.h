@@ -106,6 +106,7 @@ typedef enum
     miopenStatusUnknownError         = 7, /*!< Unknown error occurred. */
     miopenStatusUnsupportedOp        = 8, /*!< Unsupported operator for fusion. */
     miopenStatusGpuOperationsSkipped = 9, /*!< This is not an error. */
+    miopenStatusVersionMismatch = 10, /*!< Version mismatch detected */
 } miopenStatus_t;
 
 /*! @brief Get character string for an error code.

@@ -136,6 +136,9 @@ class SolverTest
     {
         const TempFile db_path("miopen.tests.solver");
 
+        TestConfig tc;
+        tc.str = "test1";
+
         ConstructTest(db_path, TrivialTestSolver::FileName(), {0, 0, 0, 1});
 
         ConstructTest(db_path,
@@ -164,6 +167,40 @@ class SolverTest
                       SearchableTestSolver::FileName(),
                       {0, 0, 0, 0},
                       [](ConvolutionContext& c) { c.do_search = true; });
+
+
+        ConstructTest(db_path,
+                      tc.str.c_str(),
+                      {0, 0, 0, 0},
+                      [&](ConvolutionContext& c) { 
+                        solver::MetaData md{solver::GetSolverVersion(SearchableTestSolver{}), solver::SolverDbId(SearchableTestSolver{})};
+                        auto config_data = tc.Save(md);
+                        c.config_data = config_data; 
+                    });
+
+        // Older version for metadata
+        EXPECT(throws([&] {
+            ConstructTest(db_path,
+                      tc.str.c_str(),
+                      {0, 0, 0, 0},
+                      [&](ConvolutionContext& c) { 
+                        solver::MetaData md{solver::GetSolverVersion(SearchableTestSolver{}) - 1, solver::SolverDbId(SearchableTestSolver{})};
+                        auto config_data = tc.Save(md);
+                        c.config_data = config_data; 
+                    });
+        }));
+
+        // Mismatch solver names
+        EXPECT(throws([&] {
+            ConstructTest(db_path,
+                      tc.str.c_str(),
+                      {0, 0, 0, 0},
+                      [&](ConvolutionContext& c) { 
+                        solver::MetaData md{solver::GetSolverVersion(SearchableTestSolver{}), "UnknownSolverId"};
+                        auto config_data = tc.Save(md);
+                        c.config_data = config_data; 
+                    });
+        }));
 
         // Checking no more searches were done.
         EXPECT_EQUAL(searches, searchable_solver.searches_done());

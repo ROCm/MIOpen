@@ -81,6 +81,7 @@ struct ExecutionContext
     bool disable_perfdb_access                                                = false;
     bool skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage = false;
     bool use_dynamic_solutions_only                                           = false;
+    std::vector<std::uint8_t> config_data = {};
 
     inline Handle& GetStream() const { return *stream; }
     inline void SetStream(Handle* stream_) { stream = stream_; }

@@ -43,11 +43,18 @@ struct AnyInvokeParams;
 
 namespace solver {
 
+template<class Solver>
+std::size_t GetSolverVersion(const Solver&)
+{
+    return 1;
+}
+
 template <class Solver, class Context, class Db>
 auto FindSolutionImpl(
     rank<1>, Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
     -> decltype(s.GetSolution(context, s.Search(context, invoke_ctx)))
 {
+    using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
     const FindEnforce enforce;
     if(context.disable_perfdb_access)
     {
@@ -62,13 +69,26 @@ auto FindSolutionImpl(
     }
     else
     {
+        if (!context.config_data.empty())
+        {
+            PerformanceConfig config{};
+            config.Load(context.config_data, [&](const auto& md) {
+                if (md.id != SolverDbId(s))
+                    MIOPEN_THROW(miopenStatusVersionMismatch, "Tuning data doesn't match solver");
+                if (md.version != GetSolverVersion(s))
+                    MIOPEN_THROW(miopenStatusVersionMismatch, "Tuning data is from a different version");
+            });
+            if(s.IsValidPerformanceConfig(context, config))
+            {
+                return s.GetSolution(context, config);
+            }
+        }
         if((context.do_search || enforce.IsSearch(context)) && enforce.IsDbUpdate(context))
         {
             MIOPEN_LOG_W("Perf Db: load skipped: " << SolverDbId(s) << ", enforce: " << enforce);
         }
         else
         {
-            using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
             PerformanceConfig config{};
             if(db.Load(context, SolverDbId(s), config))
             {
