@@ -243,12 +243,7 @@ static void RemoveOptionsUnwanted(OptionList& list)
 namespace hip {
 
 #if PCH_IS_SUPPORTED
-static bool IsPchEnabled()
-{
-    if(miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
-        return false;
-    return true;
-}
+static bool IsPchEnabled() { return !miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}); }
 #endif
 
 static std::string GetPchEnableStatus()
@@ -271,19 +266,25 @@ static bool IsLinkerOption(const std::string& option)
 
 static void RemoveCommonOptionsUnwanted(OptionList& list)
 {
-    list.erase(remove_if(list.begin(),
-                         list.end(),
-                         [&](const auto& option) { // clang-format off
+    list.erase(
+        remove_if(
+            list.begin(),
+            list.end(),
+            [&](const auto& option) { // clang-format off
                              return miopen::StartsWith(option, "-mcpu=")
                                 || (option == "-hc")
                                 || (option == "-x hip") || (option == "-xhip")
                                 || (option == "--hip-link")
-                                || (option == "-lclang_rt.builtins-x86_64")
+                                // The following matches current "-lclang_rt.builtins-x86_64" (4.5) as weel as
+                                // upcoming ".../libclang_rt.builtins-x86_64.a" and even future things like
+                                // "...x86_64.../libclang_rt.builtins.a" etc.
+                                || ((option.find("clang_rt.builtins") != std::string::npos)
+                                 && (option.find("x86_64") != std::string::npos))
                                 || miopen::StartsWith(option, "-mllvm -amdgpu-early-inline-all")
                                 || miopen::StartsWith(option, "-mllvm -amdgpu-function-calls")
                                 || miopen::StartsWith(option, "--hip-device-lib-path="); // clang-format on
-                         }),
-               list.end());
+            }),
+        list.end());
 }
 
 static void RemoveCompilerOptionsUnwanted(OptionList& list)
@@ -936,7 +937,7 @@ void BuildAsm(const std::string& name,
 #if WORKAROUND_SWDEV_255735
         if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
             if(target.Xnack() && !*target.Xnack())
-                optAsm.push_back("-mno-xnack");
+                optAsm.emplace_back("-mno-xnack");
 #endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);
