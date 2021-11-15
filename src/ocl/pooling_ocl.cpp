@@ -102,7 +102,6 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     const auto algo_name =
         AlgorithmName{pool_dim == 5 ? "miopenPoolingNdForward" : "miopenPooling2dForward"};
     const auto problem        = pooling::ProblemDescription{*this, xDesc, yDesc, save_index};
-    const auto network_config = problem.MakeNetworkConfig();
 
     const auto invoke_params = [&]() {
         auto tmp                  = pooling::FwdInvokeParams{};
@@ -116,28 +115,10 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         return tmp;
     }();
 
-    if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo_name))
-    {
-        (*existingInvoker)(handle, invoke_params);
-    }
-    else
-    {
-        auto ctx = ExecutionContext{&handle};
-        ctx.DetectRocm();
-        const auto solvers = solver::SolverContainer<solver::pooling::PoolingForward2d,
-                                                     solver::pooling::PoolingForwardNd>{};
-        const auto slns    = solvers.SearchForSolutions(ctx, problem, 1);
+    const auto solvers = solver::SolverContainer<solver::pooling::PoolingForward2d,
+                                                 solver::pooling::PoolingForwardNd>{};
 
-        if(slns.empty())
-            MIOPEN_THROW(miopenStatusNotImplemented, "No solver found.");
-
-        const auto& sln = slns.front();
-        if(!sln.invoker_factory)
-            MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
-        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-        handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo_name);
-        invoker(handle, invoke_params);
-    }
+    solvers.ExecutePrimitive(handle, problem, algo_name, invoke_params);
 
     if(miopen::CheckNumericsEnabled())
     {
