@@ -43,7 +43,7 @@ struct AnyInvokeParams;
 
 namespace solver {
 
-template<class Solver>
+template <class Solver>
 std::size_t GetSolverVersion(const Solver&)
 {
     return 1;
@@ -69,14 +69,15 @@ auto FindSolutionImpl(
     }
     else
     {
-        if (!context.config_data.empty())
+        if(!context.config_data.empty())
         {
             PerformanceConfig config{};
             config.Load(context.config_data, [&](const auto& md) {
-                if (md.id != SolverDbId(s))
+                if(md.id != SolverDbId(s))
                     MIOPEN_THROW(miopenStatusVersionMismatch, "Tuning data doesn't match solver");
-                if (md.version != GetSolverVersion(s))
-                    MIOPEN_THROW(miopenStatusVersionMismatch, "Tuning data is from a different version");
+                if(md.version != GetSolverVersion(s))
+                    MIOPEN_THROW(miopenStatusVersionMismatch,
+                                 "Tuning data is from a different version");
             });
             if(s.IsValidPerformanceConfig(context, config))
             {
@@ -342,10 +343,8 @@ struct SolverContainer
 
         const auto& sln = slns.front();
         if(!sln.invoker_factory)
-            MIOPEN_THROW(miopenStatusInternalError,
-                            "Invoker missing in solver " + sln.solver_id);
-        const auto invoker =
-            handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
+            MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
+        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
         handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
         invoker(handle, invoke_params);
     }
