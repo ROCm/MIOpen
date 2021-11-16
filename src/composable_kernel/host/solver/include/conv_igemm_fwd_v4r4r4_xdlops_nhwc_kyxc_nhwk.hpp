@@ -2,12 +2,10 @@
 #define CONV_IGEMM_FWD_V4R4R4_XDLOPS_NHWC_KYXC_NHWK_HPP
 
 #include <numeric>
-#include <sstream>
 #include <array>
 #include <vector>
 #include <tuple>
 #include "convolution_problem_descriptor.hpp"
-#include "../../../composable_kernel/include/utility/data_type_enum.hpp"
 
 namespace ck {
 namespace driver {
@@ -129,8 +127,6 @@ inline static auto generate_tunable_list_conv_igemm_fwd_v4r4r4_xdlops_nhwc_kyxc_
             {1, 2, 8}, {4, 32, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1, 1, 1},
         {f16, f16, 256, 128, 64, 4, 32, 32, 8, 2, 1, {1, 2, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, 
             {1, 1, 8}, {4, 64, 1}, {1, 0, 2}, {1, 0, 2}, 2, 8, 8, false, {2, 3, 0, 1, 7, 5, 4, 6}, 7, 1, 1, 1},
-
-        // i8
 
         // clang-format on
     };
