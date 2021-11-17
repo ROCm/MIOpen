@@ -110,7 +110,7 @@ inline std::vector<std::string> SplitSpaceSeparated(const std::vector<std::strin
     std::vector<std::string> rv;
     for(const auto& item : in)
     {
-        if(item.find(" ") != std::string::npos)
+        if(item.find(' ') != std::string::npos)
         {
             const auto splitted = SplitSpaceSeparated(item);
             for(const auto& s : splitted)
