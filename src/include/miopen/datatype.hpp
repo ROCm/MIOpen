@@ -26,6 +26,8 @@
 #ifndef GUARD_MIOPEN_DATATYPE_HPP
 #define GUARD_MIOPEN_DATATYPE_HPP
 
+#include <miopen/kernel_build_params.hpp>
+
 #include <sstream>
 #include <string>
 #include <limits>
@@ -112,7 +114,7 @@ inline std::size_t get_index_max(miopenIndexType_t index_type)
     MIOPEN_THROW("not belong to any case");
 }
 
-inline std::string GetDataTypeKernelParams(miopenDataType_t type)
+inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
 {
     // values for MIOPEN_USE_ macros
     int use_fp16               = 0;
@@ -138,17 +140,23 @@ inline std::string GetDataTypeKernelParams(miopenDataType_t type)
         break;
     }
 
-    std::ostringstream ss;
-    ss << " -DMIOPEN_USE_FP16=" << use_fp16;
-    ss << " -DMIOPEN_USE_FP32=" << use_fp32;
-    ss << " -DMIOPEN_USE_INT8=" << use_int8;
-    ss << " -DMIOPEN_USE_INT8x4=" << use_int8x4;
-    ss << " -DMIOPEN_USE_BFP16=" << use_bfp16;
-    ss << " -DMIOPEN_USE_INT32=" << use_int32;
-    ss << " -DMIOPEN_USE_RNE_BFLOAT16=" << use_rne_bfloat16;
+    auto kbp = KernelBuildParameters{
+        {"MIOPEN_USE_FP16", use_fp16},
+        {"MIOPEN_USE_FP32", use_fp32},
+        {"MIOPEN_USE_INT8", use_int8},
+        {"MIOPEN_USE_INT8x4", use_int8x4},
+        {"MIOPEN_USE_BFP16", use_bfp16},
+        {"MIOPEN_USE_INT32", use_int32},
+        {"MIOPEN_USE_RNE_BFLOAT16", use_rne_bfloat16},
+    };
     if(use_fp64 != 0)
-        ss << " -DMIOPEN_USE_FP64=" << use_fp64;
-    return ss.str();
+        kbp.Define("MIOPEN_USE_FP64", use_fp64);
+    return kbp;
+}
+
+inline std::string GetDataTypeKernelParams(miopenDataType_t type)
+{
+    return " " + GetDataTypeKBP(type).GenerateFor(kbp::OpenCL{});
 }
 
 } // namespace miopen
