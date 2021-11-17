@@ -280,8 +280,8 @@ static void RemoveCommonOptionsUnwanted(OptionList& list)
                                 // "...x86_64.../libclang_rt.builtins.a" etc.
                                 || ((option.find("clang_rt.builtins") != std::string::npos)
                                  && (option.find("x86_64") != std::string::npos))
-                                || miopen::StartsWith(option, "-mllvm -amdgpu-early-inline-all")
-                                || miopen::StartsWith(option, "-mllvm -amdgpu-function-calls")
+//                                || miopen::StartsWith(option, "-mllvm -amdgpu-early-inline-all")
+//                                || miopen::StartsWith(option, "-mllvm -amdgpu-function-calls")
                                 || miopen::StartsWith(option, "--hip-device-lib-path="); // clang-format on
             }),
         list.end());
@@ -636,8 +636,14 @@ class ActionInfo : ComgrOwner
     {
         ECI_THROW(amd_comgr_action_info_set_logging(handle, state), state);
     }
-    void SetOptionList(const std::vector<std::string>& options) const
+    void SetOptionList(const std::vector<std::string>& options_) const
     {
+        // Split remaining pairs, e.g. "-mllvm -amdgpu-early-inline-all=true".
+#if 1
+        const auto options = miopen::SplitSpaceSeparated(options_);
+#else
+        const auto& options = options_;
+#endif
         std::vector<const char*> vp;
         vp.reserve(options.size());
         std::transform(options.begin(), options.end(), std::back_inserter(vp), [&](auto& opt) {

@@ -105,6 +105,25 @@ inline std::vector<std::string> SplitSpaceSeparated(const std::string& in)
     return {begin, end};
 }
 
+inline std::vector<std::string> SplitSpaceSeparated(const std::vector<std::string>& in)
+{
+    std::vector<std::string> rv;
+    for(const auto& item: in)
+    {
+        if(item.find(" ") != std::string::npos)
+        {
+            const auto splitted = SplitSpaceSeparated(item);
+            for(const auto& s: splitted)
+                rv.emplace_back(s);
+        }
+        else
+        {
+            rv.emplace_back(item);
+        }
+    }
+    return rv;
+}
+
 inline std::vector<std::string> SplitSpaceSeparated(const std::string& in,
                                                     const std::vector<std::string>& dontSplitAfter)
 {
