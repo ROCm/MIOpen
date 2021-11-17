@@ -28,6 +28,7 @@
 
 #include <miopen/activ/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
+#include <miopen/pooling/solvers.hpp>
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
 #include <miopen/solver_id.hpp>
@@ -493,6 +494,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnBwdTrainingPerActivation{}));
 
     Register(registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnFwdInference{}));
+
+    Register(registry, ++id, Primitive::Pooling, SolverDbId(pooling::PoolingForward2d{}));
+    Register(registry, ++id, Primitive::Pooling, SolverDbId(pooling::PoolingForwardNd{}));
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
