@@ -43,11 +43,12 @@ namespace activ {
 using OldStyleProblemDescription =
     std::tuple<const ExecutionContext*, const miopen::activ::ProblemDescription*>;
 
-struct ActivFwdSolver0 : SolverBase
+using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
+
+struct ActivFwdSolver0 : OldStyleSolver
 {
-    bool IsApplicable(const boost::any& ctx_) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
-        auto problem = boost::any_cast<const OldStyleProblemDescription&>(ctx_);
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
@@ -62,11 +63,10 @@ struct ActivFwdSolver0 : SolverBase
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
-struct ActivFwdSolver1 : SolverBase
+struct ActivFwdSolver1 : OldStyleSolver
 {
-    bool IsApplicable(const boost::any& ctx_) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
-        auto problem = boost::any_cast<const OldStyleProblemDescription&>(ctx_);
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
@@ -81,11 +81,10 @@ struct ActivFwdSolver1 : SolverBase
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
-struct ActivBwdSolver0 : SolverBase
+struct ActivBwdSolver0 : OldStyleSolver
 {
-    bool IsApplicable(const boost::any& ctx_) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
-        auto problem = boost::any_cast<const OldStyleProblemDescription&>(ctx_);
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
@@ -100,11 +99,10 @@ struct ActivBwdSolver0 : SolverBase
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
-struct ActivBwdSolver1 : SolverBase
+struct ActivBwdSolver1 : OldStyleSolver
 {
-    bool IsApplicable(const boost::any& ctx_) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
-        auto problem = boost::any_cast<const OldStyleProblemDescription&>(ctx_);
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 

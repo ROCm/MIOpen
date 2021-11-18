@@ -615,10 +615,8 @@ ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx)
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
 
-size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const boost::any& ctx_) const
+size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(ctx.IsFp32())
         return 0;
     else
@@ -636,10 +634,8 @@ size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const boost::any& ctx_) 
     }
 }
 
-bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const boost::any& ctx_) const
+bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx) const
 {
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}))
         return false;
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)

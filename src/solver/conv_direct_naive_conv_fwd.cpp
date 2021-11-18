@@ -34,10 +34,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD)
 namespace miopen {
 namespace solver {
 
-bool ConvDirectNaiveConvFwd::IsApplicable(const boost::any& ctx_) const
+bool ConvDirectNaiveConvFwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(!miopen::debug::AlwaysEnableConvDirectNaive &&
        miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD{}))
         return false;

@@ -127,10 +127,8 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ct
     return false;
 }
 
-bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const boost::any& ctx_) const
+bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1{}))
         return false;
 

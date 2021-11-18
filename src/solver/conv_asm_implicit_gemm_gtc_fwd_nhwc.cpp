@@ -745,10 +745,8 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::Search(const ConvolutionContext& ctx
 }
 
 size_t
-ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const boost::any& ctx_) const
+ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     const auto& hi        = ctx.in_height;
     const auto& wi        = ctx.in_width;
     const auto& n         = ctx.batch_sz;
@@ -789,10 +787,8 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const boost::any& c
     return workspace_size;
 }
 
-bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const boost::any& ctx_) const
+bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
 {
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC{}))
         return false;
 

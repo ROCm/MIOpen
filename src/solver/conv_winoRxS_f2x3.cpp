@@ -435,9 +435,8 @@ static float GetWtiBase(const ConvolutionContext& params)
     return rv < 0 ? WTI_UNKNOWN : rv;
 }
 
-float ConvBinWinogradRxSf2x3::GetWti(const boost::any& ctx_) const
+float ConvBinWinogradRxSf2x3::GetWti(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
     return GetWtiBase(params);
 }
 
@@ -514,10 +513,8 @@ static bool IsApplicableBase(const ConvolutionContext& params)
     }
 }
 
-bool ConvBinWinogradRxSf2x3::IsApplicable(const boost::any& ctx_) const
+bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
         return false;
     return IsApplicableBase(params) && params.group_counts > 1;
@@ -858,18 +855,15 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-bool ConvBinWinogradRxSf2x3g1::IsApplicable(const boost::any& ctx_) const
+bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
     return IsApplicableBase(params) && params.group_counts == 1;
 }
 
-float ConvBinWinogradRxSf2x3g1::GetWti(const boost::any& ctx_) const
+float ConvBinWinogradRxSf2x3g1::GetWti(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
     return GetWtiBase(params);
 }
 
@@ -879,9 +873,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& par
     return tunable.GetSolution(params, tunable.GetPerformanceConfig(params), false);
 }
 
-bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const boost::any& ctx_) const
+bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
     std::ignore = params;
     return true; // Actual checks moved to FusionMDGraph.
 }

@@ -361,12 +361,10 @@ struct OutTransform
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
-    const boost::any& ctx_) const
+    const ConvolutionContext& params) const
 {
     // HIP backend required for sending ptr (buffer + offset)
     // ROCBLAS for GEMM step
-
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
 
 #if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
@@ -525,10 +523,8 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 size_t
 ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorkspaceSize(
-    const boost::any& ctx_) const
+    const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     return InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(params) +
            OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(params) +
            FilterTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(params);

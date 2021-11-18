@@ -376,10 +376,8 @@ bool ConvAsm1x1U::IsValidPerformanceConfig(const ConvolutionContext& problem,
     return c.IsValidValue() && c.IsValid(problem);
 }
 
-bool ConvAsm1x1U::IsApplicable(const boost::any& ctx_) const
+bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U{}))
         return false;
     if(!params.use_asm_kernels)
@@ -470,10 +468,8 @@ bool ConvAsm1x1U::IsApplicable(const boost::any& ctx_) const
     return ok;
 }
 
-size_t ConvAsm1x1U::GetWorkspaceSize(const boost::any& ctx_) const
+size_t ConvAsm1x1U::GetWorkspaceSize(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(UseSubsample(params) || UseUpsample(params))
     {
         int in_batch_stride = AsmImgWidth(params) * AsmImgHeight(params) *

@@ -40,10 +40,8 @@ namespace solver {
 // problematic configs.
 static bool WorkaroundSwdev168168() { return true; }
 
-bool ConvOclBwdWrW53::IsApplicable(const boost::any& ctx_) const
+bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53{}))
         return false;
     if(!params.use_opencl_convolutions)
@@ -301,10 +299,8 @@ static inline void ComputeNumInputWidthLoops(
     }
 }
 
-size_t ConvOclBwdWrW53::GetWorkspaceSize(const boost::any& ctx_) const
+size_t ConvOclBwdWrW53::GetWorkspaceSize(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     int n_stacks = std::min(params.batch_sz, 1);
     int N_BATCH_LOOPS =
         (params.n_inputs * params.n_outputs <= 8 * 1024)

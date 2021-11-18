@@ -146,12 +146,11 @@ static bool IsTunable(const ConvolutionContext& params)
               (params.kernel_size_w == 1 && params.kernel_size_h == 1)));
 }
 
-bool ConvOclBwdWrW2NonTunable::IsApplicable(const boost::any& ctx_) const
+bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& params) const
 {
     // At present, auto-tuning is disabled for non-group 3x3 and 1x1 filters for multiple
     // reasons: after tuning ocl kernel for 3x3 and 1x1 filters, assembly kernel still
     // dominates. Thus, this solver is used for non-group 3x3 and 1x1 filters only.
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
     return ConvOclBwdWrW2<1>::IsApplicableBase(params) && !IsTunable(params);
 }
 
@@ -508,9 +507,8 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& p
 }
 
 template <int N_BATCH_LOOPS>
-bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const boost::any& ctx_) const
+bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
     return IsApplicableBase(params) && IsTunable(params);
 }
 
@@ -524,10 +522,8 @@ ConvOclBwdWrW2<N_BATCH_LOOPS>::GetPerformanceConfig(const ConvolutionContext& pa
 }
 
 template <int N_BATCH_LOOPS>
-size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const boost::any& ctx_) const
+size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(params);
     if(n_batch_blks > 1)
     {

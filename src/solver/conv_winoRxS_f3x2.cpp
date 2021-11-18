@@ -299,10 +299,8 @@ ConvBinWinogradRxSf3x2::Search(const ConvolutionContext& context,
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-bool ConvBinWinogradRxSf3x2::IsApplicable(const boost::any& ctx_) const
+bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(!params.Is2d())
         return false;
     if(!(params.IsFp32() || params.IsFp16()))
