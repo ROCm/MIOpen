@@ -22,7 +22,8 @@ def cmake_build(Map conf=[:]){
     def debug_flags = "-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined " + conf.get("extradebugflags", "")
     def build_envs = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 " + conf.get("build_env","")
     def prefixpath = conf.get("prefixpath","/usr/local")
-    def setup_args = " -DMIOPEN_GPU_SYNC=Off " + conf.get("setup_flags","")
+    def mlir_args = " -DMIOPEN_USE_MLIR=" + conf.get("mlir_build", "ON")
+    def setup_args = mlir_args + " -DMIOPEN_GPU_SYNC=Off " + conf.get("setup_flags","")
 
     if (prefixpath != "/usr/local"){
         setup_args = setup_args + " -DCMAKE_PREFIX_PATH=${prefixpath} "
@@ -115,7 +116,7 @@ def buildHipClangJob(Map conf=[:]){
 
         def miotensile_version = conf.get("miotensile_version", "default")
         def target_id = conf.get("target_id", "OFF")
-        def mlir_build = conf.get("mlir_build", "OFF")
+        def mlir_build = conf.get("mlir_build", "ON")
         def build_fin = conf.get("build_fin", "OFF")
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         if (conf.get("enforce_xnack_on", false)) {
@@ -253,10 +254,6 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP16_BF16_INT8",
-            defaultValue: true,
-            description: "")
-        booleanParam(
-            name: "BUILD_SMOKE_MLIR",
             defaultValue: true,
             description: "")
         booleanParam(
@@ -589,67 +586,6 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildHipClangJobAndReboot()
-                    }
-                }
-            }
-        }
-        stage("Smoke MLIR") {
-            when {
-                expression { params.BUILD_SMOKE_MLIR }
-            }
-            parallel{
-                stage('Fp32 Hip MLIR') {
-                    when {
-                        beforeAgent true
-                        expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        buildHipClangJobAndReboot(setup_flags: MLIR_flags, build_env: extra_log_env, config_targets: Smoke_targets, test_flags: ' --verbose ', mlir_build: "ON")
-                    }
-                }
-                stage('Fp16 Hip MLIR') {
-                    when {
-                        beforeAgent true
-                        expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP16 }
-                    }
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, config_targets: Smoke_targets, test_flags: ' --verbose ', mlir_build: "ON")
-                    }
-                }
-                stage('Fp16 Hip MLIR gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + Fp16_flags, build_env: extra_log_env, config_targets: Smoke_targets, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
-                    }
-                }
-                stage('Fp32 Hip MLIR gfx908 NOCOMGR') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    environment{
-                        // Can be removed altogether with when WORKAROUND_SWDEV_290754.
-                        NOCOMGR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
-                    }
-                    steps{
-                        buildHipClangJobAndReboot(setup_flags: MLIR_flags + NOCOMGR_flags, build_cmd: NOCOMGR_build_cmd, build_env: extra_log_env, config_targets: Smoke_targets, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
-                    }
-                }
-                stage('Fp32 OpenCL MLIR gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: MLIR_flags, build_env: extra_log_env, config_targets: Smoke_targets, test_flags: ' --verbose ', gpu_arch: "gfx908", mlir_build: "ON")
                     }
                 }
             }
