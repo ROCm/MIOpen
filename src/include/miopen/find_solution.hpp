@@ -232,7 +232,7 @@ struct SolverContainer
 
     template <class Context>
     std::vector<std::pair<std::string, size_t>>
-    GetWorkspaceSize(const Context& search_params,
+    GetWorkspaceSizes(const Context& search_params,
                      std::size_t limit = std::numeric_limits<std::size_t>::max()) const
     {
         std::vector<std::pair<std::string, size_t>> res;
