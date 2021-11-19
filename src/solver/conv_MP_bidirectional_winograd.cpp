@@ -833,6 +833,7 @@ template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(
     const ConvolutionContext& ctx) const
 {
+
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 

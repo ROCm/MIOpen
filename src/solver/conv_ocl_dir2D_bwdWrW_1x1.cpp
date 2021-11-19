@@ -41,6 +41,7 @@ namespace solver {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
+
 #if WORKAROUND_SWDEV_266868
     const std::string name = params.GetStream().GetDeviceName();
     if(name.find("gfx10") != std::string::npos)

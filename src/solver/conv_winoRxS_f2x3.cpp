@@ -873,9 +873,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& par
     return tunable.GetSolution(params, tunable.GetPerformanceConfig(params), false);
 }
 
-bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const ConvolutionContext& params) const
+bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const ConvolutionContext&) const
 {
-    std::ignore = params;
     return true; // Actual checks moved to FusionMDGraph.
 }
 

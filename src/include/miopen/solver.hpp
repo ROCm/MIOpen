@@ -1516,7 +1516,7 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlops : ConvSolver
 
 struct ConvAsmImplicitGemmV4R1DynamicBwd : ConvSolver
 {
-    bool IsApplicable(const ConvolutionContext& ctx) const override;
+    bool IsApplicable(const ConvolutionContext&) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext&) const;
 };
@@ -2358,8 +2358,8 @@ struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : Serializable<PerformanceConvCkIg
 
 struct ConvCkIgemmFwdV6r1DlopsNchw : ConvSolver
 {
-    bool IsApplicable(const ConvolutionContext& ctx) const override;
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool IsApplicable(const ConvolutionContext&) const override;
+    size_t GetWorkspaceSize(const ConvolutionContext&) const override;
     bool IsDynamic() const override { return true; }
     PerformanceConvCkIgemmFwdV6r1DlopsNchw GetPerformanceConfig(const ConvolutionContext&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
@@ -2377,11 +2377,7 @@ struct ConvDirectNaiveConvFwd : ConvSolver
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const ConvolutionContext& ctx) const override
-    {
-        std::ignore = ctx;
-        return 0.01;
-    }
+    float GetWti(const ConvolutionContext&) const override { return 0.01; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
@@ -2391,11 +2387,7 @@ struct ConvDirectNaiveConvBwd : ConvSolver
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const ConvolutionContext& ctx) const override
-    {
-        std::ignore = ctx;
-        return 0.01;
-    }
+    float GetWti(const ConvolutionContext&) const override { return 0.01; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
@@ -2405,11 +2397,7 @@ struct ConvDirectNaiveConvWrw : ConvSolver
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const ConvolutionContext& ctx) const override
-    {
-        std::ignore = ctx;
-        return 0.01;
-    }
+    float GetWti(const ConvolutionContext&) const override { return 0.01; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
