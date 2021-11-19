@@ -47,6 +47,9 @@ using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
 
 struct ActivFwdSolver0 : OldStyleSolver
 {
+    //To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
@@ -65,6 +68,9 @@ struct ActivFwdSolver0 : OldStyleSolver
 
 struct ActivFwdSolver1 : OldStyleSolver
 {
+    //To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
@@ -83,6 +89,9 @@ struct ActivFwdSolver1 : OldStyleSolver
 
 struct ActivBwdSolver0 : OldStyleSolver
 {
+    //To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
@@ -101,6 +110,9 @@ struct ActivBwdSolver0 : OldStyleSolver
 
 struct ActivBwdSolver1 : OldStyleSolver
 {
+    //To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));

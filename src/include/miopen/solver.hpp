@@ -2415,6 +2415,10 @@ struct ConvDirectNaiveConvWrw : ConvSolver
 
 struct GemmFwdBase : ConvSolver
 {
+    //To suppress -Woverloaded-virtual
+    using ConvSolver::IsApplicable;
+    using ConvSolver::GetWti;
+
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsDynamic() const override { return true; }
     float GetWti(const ConvolutionContext& ctx) const override
@@ -2426,6 +2430,10 @@ struct GemmFwdBase : ConvSolver
 
 struct GemmFwd1x1_0_2 : GemmFwdBase
 {
+    //To suppress -Woverloaded-virtual
+    using GemmFwdBase::GetWorkspaceSize;
+    using GemmFwdBase::IsApplicable;
+
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
@@ -2448,6 +2456,10 @@ struct GemmFwd1x1_0_2 : GemmFwdBase
 
 struct GemmFwd1x1_0_1_int8 : GemmFwdBase
 {
+    //To suppress -Woverloaded-virtual
+    using GemmFwdBase::GetWorkspaceSize;
+    using GemmFwdBase::IsApplicable;
+
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
@@ -2470,6 +2482,10 @@ struct GemmFwd1x1_0_1_int8 : GemmFwdBase
 
 struct GemmFwd1x1_0_1 : GemmFwdBase
 {
+    //To suppress -Woverloaded-virtual
+    using GemmFwdBase::GetWorkspaceSize;
+    using GemmFwdBase::IsApplicable;
+
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
@@ -2492,6 +2508,10 @@ struct GemmFwd1x1_0_1 : GemmFwdBase
 
 struct GemmFwdRest : GemmFwdBase
 {
+    //To suppress -Woverloaded-virtual
+    using GemmFwdBase::GetWorkspaceSize;
+    using GemmFwdBase::IsApplicable;
+
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
@@ -2514,6 +2534,10 @@ struct GemmFwdRest : GemmFwdBase
 
 struct GemmBwdBase : ConvSolver
 {
+    //To suppress -Woverloaded-virtual
+    using ConvSolver::IsApplicable;
+    using ConvSolver::GetWti;
+
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsDynamic() const override { return true; }
     float GetWti(const ConvolutionContext& ctx) const override
@@ -2525,6 +2549,10 @@ struct GemmBwdBase : ConvSolver
 
 struct GemmBwd1x1_stride2 : GemmBwdBase
 {
+    //To suppress -Woverloaded-virtual
+    using GemmBwdBase::GetWorkspaceSize;
+    using GemmBwdBase::IsApplicable;
+
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
@@ -2547,6 +2575,10 @@ struct GemmBwd1x1_stride2 : GemmBwdBase
 
 struct GemmBwd1x1_stride1 : GemmBwdBase
 {
+    //To suppress -Woverloaded-virtual
+    using GemmBwdBase::GetWorkspaceSize;
+    using GemmBwdBase::IsApplicable;
+
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
@@ -2569,6 +2601,10 @@ struct GemmBwd1x1_stride1 : GemmBwdBase
 
 struct GemmBwdRest : GemmBwdBase
 {
+    //To suppress -Woverloaded-virtual
+    using GemmBwdBase::GetWorkspaceSize;
+    using GemmBwdBase::IsApplicable;
+
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
@@ -2591,6 +2627,10 @@ struct GemmBwdRest : GemmBwdBase
 
 struct GemmWrwBase : ConvSolver
 {
+    //To suppress -Woverloaded-virtual
+    using ConvSolver::IsApplicable;
+    using ConvSolver::GetWti;
+
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsDynamic() const override { return true; }
     float GetWti(const ConvolutionContext& ctx) const override
@@ -2602,6 +2642,10 @@ struct GemmWrwBase : ConvSolver
 
 struct GemmWrw1x1_stride1 : GemmWrwBase
 {
+    //To suppress -Woverloaded-virtual
+    using GemmWrwBase::GetWorkspaceSize;
+    using GemmWrwBase::IsApplicable;
+
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
@@ -2624,6 +2668,10 @@ struct GemmWrw1x1_stride1 : GemmWrwBase
 
 struct GemmWrwUniversal : GemmWrwBase
 {
+    //To suppress -Woverloaded-virtual
+    using GemmWrwBase::GetWorkspaceSize;
+    using GemmWrwBase::IsApplicable;
+
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);

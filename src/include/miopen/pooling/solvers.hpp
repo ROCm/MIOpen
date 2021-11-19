@@ -47,6 +47,9 @@ using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
 
 struct PoolingForward2d : OldStyleSolver
 {
+    //To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
@@ -65,6 +68,9 @@ struct PoolingForward2d : OldStyleSolver
 
 struct PoolingForwardNd : OldStyleSolver
 {
+    //To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
