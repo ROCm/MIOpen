@@ -43,9 +43,11 @@ namespace pooling {
 using OldStyleProblemDescription =
     std::tuple<const ExecutionContext*, const miopen::pooling::ProblemDescription*>;
 
-struct PoolingForward2d : public SolverBase<OldStyleProblemDescription>
+using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
+
+struct PoolingForward2d : OldStyleSolver
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -61,9 +63,9 @@ struct PoolingForward2d : public SolverBase<OldStyleProblemDescription>
                              const miopen::pooling::ProblemDescription& problem) const;
 };
 
-struct PoolingForwardNd : public SolverBase<OldStyleProblemDescription>
+struct PoolingForwardNd : OldStyleSolver
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
