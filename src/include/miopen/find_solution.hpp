@@ -248,6 +248,8 @@ struct SolverContainer
                     find_only->end()))
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
+                else if(!solver.MayNeedWorkspace())
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (no workspace required)");
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
                 else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())

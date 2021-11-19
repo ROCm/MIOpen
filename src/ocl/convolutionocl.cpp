@@ -913,6 +913,8 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
     auto sol = solver_id.GetSolver();
+    if(!sol.MayNeedWorkspace())
+        return 0;
     auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
@@ -1373,6 +1375,8 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
 
     auto sol = solver_id.GetSolver();
+    if(!sol.MayNeedWorkspace())
+        return 0;
     auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
@@ -1722,6 +1726,8 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
 
     auto sol = solver_id.GetSolver();
+    if(!sol.MayNeedWorkspace())
+        return 0;
     auto problem =
         ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
     auto ctx = ConvolutionContext{problem};
