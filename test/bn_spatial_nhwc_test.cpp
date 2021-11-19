@@ -739,5 +739,5 @@ struct batch_norm_spatial_nhwc_driver : test_driver
 int main(int argc, const char* argv[])
 {
     test_drive<batch_norm_spatial_nhwc_driver>(argc, argv);
-    exit(0);
+    return 0;
 }
