@@ -54,9 +54,9 @@ struct BwdInvokeParams : public miopen::InvokeParams
     TensorDescriptor dyDesc;
     PoolingDescriptor pooling;
 
-    ConstData_t dx   = nullptr;
-    Data_t dy        = nullptr;
-    Data_t workspace = nullptr;
+    Data_t dx             = nullptr;
+    ConstData_t dy        = nullptr;
+    ConstData_t workspace = nullptr;
 };
 
 } // namespace pooling
