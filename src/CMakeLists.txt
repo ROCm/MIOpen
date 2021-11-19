@@ -131,6 +131,8 @@ set( MIOpen_Source
     solver/batchnorm/backward_per_activation.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNd.cpp
+    solver/pooling/backward2d.cpp
+    solver/pooling/backwardNd.cpp
     include/miopen/buffer_info.hpp
     ramdb.cpp
     include/miopen/temp_file.hpp

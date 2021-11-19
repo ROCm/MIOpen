@@ -79,6 +79,42 @@ struct PoolingForwardNd : public SolverBase<OldStyleProblemDescription>
                              const miopen::pooling::ProblemDescription& problem) const;
 };
 
+struct PoolingBackward2d : public SolverBase<OldStyleProblemDescription>
+{
+    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    {
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    {
+        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::pooling::ProblemDescription& problem) const;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::pooling::ProblemDescription& problem) const;
+};
+
+struct PoolingBackwardNd : public SolverBase<OldStyleProblemDescription>
+{
+    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    {
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    {
+        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::pooling::ProblemDescription& problem) const;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::pooling::ProblemDescription& problem) const;
+};
+
 } // namespace pooling
 
 } // namespace solver
