@@ -419,7 +419,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #if MIO_LAYOUT_NHWC == 1
     _FLOAT dyRead;
     _FLOAT xread;
-    _FLOAT_PREC xhat;
+    _FLOAT_PREC xhat_tmp;
 #else
     _FLOAT4 dyRead4;
     _FLOAT4 xread4;
@@ -447,15 +447,15 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                                                k += GRPRD)
 #endif
     {
-        nidx   = k / MIO_BN_HW;
-        hwidx  = k - (nidx * MIO_BN_HW);
+        nidx     = k / MIO_BN_HW;
+        hwidx    = k - (nidx * MIO_BN_HW);
 #if MIO_LAYOUT_NHWC == 1
-        index  = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
-        xread  = *((const global _FLOAT*)(x_in + index));
-        dyRead = *((const global _FLOAT*)(dy_in + index));
-        xhat   = ((_FLOAT_PREC)xread - mean) * invVariance;
+        index    = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
+        xread    = *((const global _FLOAT*)(x_in + index));
+        dyRead   = *((const global _FLOAT*)(dy_in + index));
+        xhat_tmp = ((_FLOAT_PREC)xread - mean) * invVariance;
         db += (_FLOAT_PREC)dyRead;
-        ds = mad(xhat, (_FLOAT_PREC)dyRead, ds);
+        ds = mad(xhat_tmp, (_FLOAT_PREC)dyRead, ds);
 #else
         index   = nidx * MIO_BN_CHW + chwid + hwidx;
         xread4  = *((const global _FLOAT4*)(x_in + index));
@@ -490,11 +490,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             hwidx * MIO_BN_C + grpid;
     if(index < MIO_BN_NCHW)
     {
-        xread  = *((const global _FLOAT*)(x_in + index));
-        dyRead = *((const global _FLOAT*)(dy_in + index));
-        xhat   = ((_FLOAT_PREC)xread - mean) * invVariance;
+        xread    = *((const global _FLOAT*)(x_in + index));
+        dyRead   = *((const global _FLOAT*)(dy_in + index));
+        xhat_tmp = ((_FLOAT_PREC)xread - mean) * invVariance;
         db += (_FLOAT_PREC)dyRead;
-        ds = mad(xhat.x, (_FLOAT_PREC)dyRead.x, ds);
+        ds = mad(xhat_tmp, (_FLOAT_PREC)dyRead, ds);
 #else
             chwid + hwidx;
     if(index < (MIO_BN_NCHW - 3))

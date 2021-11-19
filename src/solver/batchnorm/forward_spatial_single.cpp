@@ -46,6 +46,9 @@ bool BnFwdTrainingSpatialSingle::IsApplicable(
        problem.GetMode() != miopenBNSpatial)
         return false;
 
+    if(problem.IsLayoutNHWC())
+        return true;
+
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
 
