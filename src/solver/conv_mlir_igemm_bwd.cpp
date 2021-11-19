@@ -46,6 +46,11 @@ bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx) const
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
+    // Note: ConvMlirIgemmBwd can run on a machine with xdlops support, however, it is
+    // guaranteed to be slower than its xdlops alternative, therefore disabling it to
+    // save compilation overhead
+    if(IsXdlopsSupport(ctx))
+        return false;
 
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, false));
 #else
