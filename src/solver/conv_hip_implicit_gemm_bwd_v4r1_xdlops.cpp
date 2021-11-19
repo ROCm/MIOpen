@@ -841,9 +841,9 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
     if(!ctx.IsLayoutDefault())
-    {
         return false;
-    }
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+        return false;
 
     bool is_applicable = true;
     int gemm_g         = 0;

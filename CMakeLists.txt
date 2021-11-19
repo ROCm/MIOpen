@@ -25,6 +25,14 @@
 ################################################################################
 cmake_minimum_required( VERSION 3.5 )
 
+macro(set_var_to_condition var)
+    if(${ARGN})
+        set(${var} TRUE)
+    else()
+        set(${name} FALSE)
+    endif()
+endmacro()
+
 # This has to be initialized before the project() command appears
 # Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
 if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
@@ -124,8 +132,6 @@ else()
 endif()
 set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
-option(MIOPEN_USE_MLIR "Use MLIR -- EXPERIMENTAL" Off)
-option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
 
@@ -314,11 +320,16 @@ else()
     endif()
 endif()
 
+set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT MIOPEN_EMBED_BUILD)
+option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
+
+set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
+option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
 if(MIOPEN_USE_MLIR)
     # REQUIRED is not supported before cmake 3.18
     find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
-    if(NOT BUILD_SHARED_LIBS AND MIOPEN_USE_COMGR)
+    if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
         message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
     endif()
 

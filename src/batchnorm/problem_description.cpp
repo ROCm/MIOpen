@@ -191,7 +191,32 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
 
 NetworkConfig ProblemDescription::MakeForwardInferenceNetworkConfig() const
 {
-    MIOPEN_THROW(miopenStatusNotImplemented);
+    std::ostringstream ss;
+
+    bool bfp16parm = false;
+    bool bfp32parm = true;
+    if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
+    {
+        bfp16parm = true;
+        bfp32parm = false;
+    }
+    else if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+    {
+        bfp32parm = false;
+    }
+
+    int n, c, h, w;
+    std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
+
+    const unsigned int in_cstride = h * w;
+
+    ss << "fp16" << static_cast<int>(bfp16parm);
+    ss << "fp32" << static_cast<int>(bfp32parm);
+    ss << "mode" << bn_mode;
+    ss << "HWdims" << in_cstride;
+    ss << "C" << c;
+
+    return NetworkConfig{ss.str()};
 }
 
 NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const

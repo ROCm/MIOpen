@@ -48,8 +48,7 @@ enum class Direction
 struct ProblemDescription
 {
     // Forward
-    ProblemDescription(Direction direction_,
-                       miopenBatchNormMode_t bn_mode_,
+    ProblemDescription(miopenBatchNormMode_t bn_mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
                        const TensorDescriptor& bnScaleBiasMeanVarDesc_,
@@ -57,7 +56,7 @@ struct ProblemDescription
                        double epsilon_,
                        bool resultsave_,
                        bool resultrunning_)
-        : direction(direction_),
+        : direction(Direction::ForwardTraining),
           bn_mode(bn_mode_),
           xDesc(xDesc_),
           yOrDyDesc(yDesc_),
@@ -69,6 +68,21 @@ struct ProblemDescription
     {
         in_layout  = xDesc.GetLayout(xDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
         out_layout = yOrDyDesc.GetLayout(yOrDyDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+    }
+
+    // Forward
+    ProblemDescription(miopenBatchNormMode_t bn_mode_,
+                       const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& yDesc_,
+                       const TensorDescriptor& bnScaleBiasMeanVarDesc_,
+                       double epsilon_)
+        : direction(Direction::ForwardInference),
+          bn_mode(bn_mode_),
+          xDesc(xDesc_),
+          yOrDyDesc(yDesc_),
+          scaleBiasDesc(bnScaleBiasMeanVarDesc_),
+          epsilon(epsilon_)
+    {
     }
 
     // Backward

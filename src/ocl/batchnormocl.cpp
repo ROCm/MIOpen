@@ -101,8 +101,7 @@ void BatchNormForwardTraining(Handle& handle,
     const auto resultsave    = resultSaveMean != nullptr && resultSaveInvVariance != nullptr;
     const auto resultrunning = resultRunningMean != nullptr && resultRunningVariance != nullptr;
 
-    const auto problem = batchnorm::ProblemDescription{batchnorm::Direction::ForwardTraining,
-                                                       bn_mode,
+    const auto problem = batchnorm::ProblemDescription{bn_mode,
                                                        xDesc,
                                                        yDesc,
                                                        bnScaleBiasMeanVarDesc,
@@ -114,7 +113,6 @@ void BatchNormForwardTraining(Handle& handle,
     const auto algo = bn_mode == miopenBNSpatial
                           ? AlgorithmName{"miopenBatchNormForwardTrainingSpatial"}
                           : AlgorithmName{"miopenBatchNormForwardTrainingPerActivation"};
-    const auto network_config = problem.MakeNetworkConfig();
 
     const auto invoke_params = [&]() {
         auto tmp                  = batchnorm::InvokeParams{};
@@ -132,30 +130,11 @@ void BatchNormForwardTraining(Handle& handle,
         return tmp;
     }();
 
-    if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
-    {
-        (*existingInvoker)(handle, invoke_params);
-    }
-    else
-    {
-        auto ctx = ExecutionContext{&handle};
-        ctx.DetectRocm();
-        const auto solvers =
-            solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
-                                    solver::batchnorm::BnFwdTrainingSpatialMultiple,
-                                    solver::batchnorm::BnFwdTrainingPerActivation>{};
-        const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
+                                                 solver::batchnorm::BnFwdTrainingSpatialMultiple,
+                                                 solver::batchnorm::BnFwdTrainingPerActivation>{};
 
-        if(slns.empty())
-            MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
-
-        const auto& sln = slns.front();
-        if(!sln.invoker_factory)
-            MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
-        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-        handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
-        invoker(handle, invoke_params);
-    }
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     if(miopen::CheckNumericsEnabled())
     {
@@ -220,101 +199,30 @@ void BatchNormForwardInference(Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm);
         }
 
-        bool bfpmixparm = false;
-        bool bfp16parm  = false;
-        bool bfp32parm  = true;
-        if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenHalf)
-        {
-            bfp16parm = true;
-            bfp32parm = false;
-        }
-        else if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenFloat)
-        {
-            bfpmixparm = true;
-            bfp32parm  = false;
-        }
+        const auto problem = batchnorm::ProblemDescription{bn_mode,
+                                                           xDesc,
+                                                           yDesc,
+                                                           bnScaleBiasMeanVarDesc,
+                                                           epsilon};
 
-        int n, c, h, w;
-        std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
+        const auto invoke_params = [&]() {
+            auto tmp              = batchnorm::InfInvokeParams{};
+            tmp.type              = InvokeType::Run;
+            tmp.xDesc             = &xDesc;
+            tmp.x                 = x;
+            tmp.y                 = y;
+            tmp.bnScale           = bnScale;
+            tmp.bnBias            = bnBias;
+            tmp.estimatedMean     = estimatedMean;
+            tmp.estimatedVariance = estimatedVariance;
+            tmp.epsilon           = epsilon;
+            return tmp;
+        }();
 
-        unsigned int in_nstride = c * h * w;
-        unsigned int in_cstride = h * w;
+        const auto algo    = AlgorithmName{"miopenBatchNormalizationForwardInference"};
+        const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference>{};
 
-        std::string algo_name      = "miopenBatchNormalizationForwardInference";
-        std::string network_config = "fp16" + std::to_string(static_cast<int>(bfp16parm)) + "fp32" +
-                                     std::to_string(static_cast<int>(bfp32parm)) + "mode" +
-                                     std::to_string(bn_mode) + "HWdims" +
-                                     std::to_string(in_cstride) + "C" + std::to_string(c);
-
-        auto&& kernels = handle.GetKernels(algo_name, network_config);
-        if(!kernels.empty())
-        {
-            auto kernel = kernels.front();
-            kernel(x,
-                   y,
-                   estimatedMean,
-                   estimatedVariance,
-                   bnScale,
-                   bnBias,
-                   epsilon,
-                   n,
-                   in_cstride,
-                   in_nstride);
-        }
-        else
-        {
-            size_t xlocalsize = 1;
-            auto xgridsize    = c;
-            size_t ylocalsize = 256;
-            size_t ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
-            size_t zlocalsize = 1;
-            size_t zgridsize  = 1;
-
-            std::string program_name = "MIOpenBatchNormFwdInfer"; // build this up
-            std::string kernel_name  = "MIOpenBatchNormFwdInfer";
-            if(bn_mode == miopenBNSpatial)
-            { // SPATIAL kernels
-                program_name += "Spatial.cl";
-                kernel_name += "SpatialEst";
-            }
-            else
-            { // PER ACTIVATION
-                program_name += "PerAct.cl";
-                kernel_name += "PerActivationEst";
-            }
-
-            std::string parms =
-                " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
-                " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
-                " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
-                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
-                " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
-                " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
-
-            std::vector<size_t> vld;
-            std::vector<size_t> vgd;
-            vld.push_back(xlocalsize);
-            vld.push_back(ylocalsize);
-            vld.push_back(zlocalsize);
-            vgd.push_back(xgridsize);
-            vgd.push_back(ygridsize);
-            vgd.push_back(zgridsize);
-
-            MIOPEN_LOG_I2(kernel_name << ":: " << parms);
-
-            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x,
-                y,
-                estimatedMean,
-                estimatedVariance,
-                bnScale,
-                bnBias,
-                epsilon,
-                n,
-                in_cstride,
-                in_nstride);
-        }
+        solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     }
     else // Need to recalculated everything, let's just call training kernel in that case
     {
@@ -416,7 +324,6 @@ void BatchNormBackward(Handle& handle,
     const auto algo = bn_mode == miopenBNSpatial
                           ? AlgorithmName{"miopenBatchNormBackwardPropSpatial"}
                           : AlgorithmName{"miopenBatchNormBackwardPropPerActivation"};
-    const auto network_config = problem.MakeNetworkConfig();
 
     const auto invoke_params = [&]() {
         auto tmp              = batchnorm::BwdInvokeParams{};
@@ -434,30 +341,11 @@ void BatchNormBackward(Handle& handle,
         return tmp;
     }();
 
-    if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
-    {
-        (*existingInvoker)(handle, invoke_params);
-    }
-    else
-    {
-        auto ctx = ExecutionContext{&handle};
-        ctx.DetectRocm();
-        const auto solvers =
-            solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatialSingle,
-                                    solver::batchnorm::BnBwdTrainingSpatialMultiple,
-                                    solver::batchnorm::BnBwdTrainingPerActivation>{};
-        const auto slns = solvers.SearchForSolutions(ctx, problem, 1);
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatialSingle,
+                                                 solver::batchnorm::BnBwdTrainingSpatialMultiple,
+                                                 solver::batchnorm::BnBwdTrainingPerActivation>{};
 
-        if(slns.empty())
-            MIOPEN_THROW(miopenStatusNotImplemented, "No solver found for activation forward.");
-
-        const auto& sln = slns.front();
-        if(!sln.invoker_factory)
-            MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
-        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
-        handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
-        invoker(handle, invoke_params);
-    }
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     if(miopen::CheckNumericsEnabled())
     {
