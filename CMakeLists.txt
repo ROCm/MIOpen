@@ -334,7 +334,8 @@ if(MIOPEN_USE_MLIR)
     endif()
 
     if(NOT LIBMLIRMIOPEN)
-        message(FATAL_ERROR "libMLIRMIOpen not found")
+        message(FATAL_ERROR "libMLIRMIOpen not found, please reinstall dependencies. \
+        Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
     else()
         message(STATUS "Build with libMLIRMIOpen: " ${LIBMLIRMIOPEN})
     endif()
