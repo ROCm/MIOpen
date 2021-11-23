@@ -128,7 +128,7 @@ PoolingBackwardNd::GetSolution(const ExecutionContext&,
                 {"MLO_POOLING_INDEX_MAX",
                  get_pooling_index_type_max_name(problem.GetPooling().GetIndexType())},
             }
-            << GetDataTypeKBP(problem.GetXDesc().GetType());
+            << GetDataTypeKBP(problem.GetDYDesc().GetType());
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
 
