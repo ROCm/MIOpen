@@ -60,8 +60,6 @@ using json = nlohmann::json;
 int main(int argc, char* argv[], char* envp[])
 {
     std::vector<std::string> args(argv, argv + argc);
-    std::string ifile;
-    std::string ofile;
     std::map<char, std::string> MapInputs = {};
 
     for(auto& arg : args)
@@ -91,7 +89,6 @@ int main(int argc, char* argv[], char* envp[])
         }
         if(args[i] == "-o")
         {
-            ofile                     = args[i + 1];
             MapInputs[args[i].back()] = args[i + 1];
         }
     }

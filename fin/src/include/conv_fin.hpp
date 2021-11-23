@@ -84,26 +84,17 @@ class ConvFin : public Fin
     ConvFin() : Fin() {}
     ConvFin(json _job) : Fin(), job(_job)
     {
-        if(job.contains("pdb_verif") and job["pdb_verif"] == true)
-            return;
-        VerifyDevProps();
-        command         = _job["config"];
-        command["bias"] = 0;
-        // timing is always enabled
-        is_fwd = (_job["direction"].get<int>() == 0 || _job["direction"].get<int>() & 1);
-        is_bwd = (_job["direction"].get<int>() == 0 || _job["direction"].get<int>() & 2);
-        is_wrw = (_job["direction"].get<int>() == 0 || _job["direction"].get<int>() & 4);
-        SetConvDescriptor();
-        // workspace_dev = nullptr; // TODO: replaced with a tensor class
-        // the variable name is implementation dependent, checking size instead
+        if(job.contains("config"))
+            PrepConvolution();
     }
+
     void VerifyDevProps()
     {
         std::cerr << "Verifying device properties" << std::endl;
         std::string arch    = job["arch"];
         arch                = arch.substr(0, arch.find(':'));
         const size_t num_cu = job["num_cu"];
-        (void)(num_cu);
+        std::ignore         = num_cu;
         if(arch == "gfx900")
         {
             assert(num_cu == 56 || num_cu == 64);
@@ -126,6 +117,20 @@ class ConvFin : public Fin
         }
         else
             throw std::runtime_error("Invalid Arch Name");
+    }
+
+    void PrepConvolution()
+    {
+        VerifyDevProps();
+        command         = job["config"];
+        command["bias"] = 0;
+        // timing is always enabled
+        is_fwd = (job["direction"].get<int>() == 0 || job["direction"].get<int>() & 1);
+        is_bwd = (job["direction"].get<int>() == 0 || job["direction"].get<int>() & 2);
+        is_wrw = (job["direction"].get<int>() == 0 || job["direction"].get<int>() & 4);
+        SetConvDescriptor();
+        // workspace_dev = nullptr; // TODO: replaced with a tensor class
+        // the variable name is implementation dependent, checking size instead
     }
 
     // Getters and setters
@@ -253,10 +258,8 @@ int ConvFin<Tgpu, Tref>::MIOpenFindCompile()
         auto process_solver = [&]() -> bool {
             std::cerr << "Processing Solver: " << solver_id.ToString() << std::endl;
             res_item["solver_id"] = solver_id.ToString();
-            std::ostringstream solver_name;
-            solver_name << res_item["solver_id"];
-            if(solver_name.str() == "ConvBiasActivAsm1x1U" ||
-               solver_name.str().find("Fused") != std::string::npos)
+            if(solver_id.ToString() == "ConvBiasActivAsm1x1U" ||
+               solver_id.ToString().find("Fused") != std::string::npos)
             {
                 std::cerr << "Skipping fused solvers" << std::endl;
                 return false;
@@ -811,13 +814,18 @@ class ParamString
 template <typename Tgpu, typename Tref>
 int ConvFin<Tgpu, Tref>::TestPerfDbValid()
 {
-    bool ret = true;
+    bool ret     = true;
+    namespace fs = boost::filesystem;
     std::cout << miopen::GetSystemDbPath() << std::endl;
 
-    for(auto db_file : boost::filesystem::directory_iterator(miopen::GetSystemDbPath()))
+    std::vector<fs::path> contents;
+    std::copy(fs::directory_iterator(miopen::GetSystemDbPath()),
+              fs::directory_iterator(),
+              std::back_inserter(contents));
+    for(auto const& db_file : contents)
     {
-        std::string pathstr = db_file.path().native();
-        std::string filestr = db_file.path().filename().native();
+        std::string pathstr = db_file.native();
+        std::string filestr = db_file.filename().native();
 
         if(job["arch"].size() > 0 and job["num_cu"].size() > 0)
         {
@@ -845,9 +853,8 @@ int ConvFin<Tgpu, Tref>::TestPerfDbValid()
         std::unordered_map<std::string, std::unordered_map<std::string, miopen::DbRecord>> records;
         std::map<std::string, std::unordered_map<std::string, std::string>> perfdb_entries;
         std::vector<std::map<std::string, std::string>> err_list;
-        // std::vector<std::string> values;
         auto select_query = "SELECT config, solver, params, id FROM perf_db;";
-        auto stmt         = miopen::SQLite::Statement{sql, select_query}; //, values};
+        auto stmt         = miopen::SQLite::Statement{sql, select_query};
         while(true)
         {
             auto rc = stmt.Step(sql);
@@ -889,8 +896,7 @@ int ConvFin<Tgpu, Tref>::TestPerfDbValid()
             auto solver = slv_id.GetSolver();
 
             // check if the params in the record deserialize
-            bool ok = solver.TestSysDbRecord(record);
-            if(!ok)
+            if(!solver.TestSysDbRecord(record))
             {
                 std::map<std::string, std::string> err;
                 err["perfdb_id"] = it->first;
