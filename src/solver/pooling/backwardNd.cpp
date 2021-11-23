@@ -143,42 +143,77 @@ PoolingBackwardNd::GetSolution(const ExecutionContext&,
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::pooling::BwdInvokeParams>();
 
+            const auto top_d = *(params.dyDesc.GetLengths().rbegin() + 2);
+            const auto top_h = *(params.dyDesc.GetLengths().rbegin() + 1);
+            const auto top_w = *(params.dyDesc.GetLengths().rbegin());
+
+            int pix_w_per_work = 1;
+            int pix_h_per_work = 4;
+            int pix_d_per_work = 2;
+
+            int batch = params.dyDesc.GetLengths()[0];
+            int chal  = params.dyDesc.GetLengths()[1];
+
+            int bot_d = *(params.dxDesc.GetLengths().rbegin() + 2);
+            int bot_h = *(params.dxDesc.GetLengths().rbegin() + 1);
+            int bot_w = *(params.dxDesc.GetLengths().rbegin());
+
+            int pix_blk_w = std::max((bot_w + pix_w_per_work - 1) / pix_w_per_work, 1);
+            int pix_blk_h = std::max((bot_h + pix_h_per_work - 1) / pix_h_per_work, 1);
+            int pix_blk_d = std::max((bot_d + pix_d_per_work - 1) / pix_d_per_work, 1);
+
+            int total_work = batch * chal * pix_blk_w * pix_blk_h * pix_blk_d;
+
             if(params.pooling.GetMode() == miopenPoolingMax)
             {
                 kernel(params.dy,
                        params.dx,
                        params.workspace,
-                       static_cast<int>(params.pooling.pads[0]),
-                       static_cast<int>(params.pooling.pads[1]),
-                       static_cast<int>(params.dyDesc.GetLengths()[1]),
-                       static_cast<int>(params.dxDesc.GetLengths()[2]),
-                       static_cast<int>(params.dxDesc.GetLengths()[3]),
-                       static_cast<int>(params.dyDesc.GetLengths()[2]),
-                       static_cast<int>(params.dyDesc.GetLengths()[3]),
-                       static_cast<int>(params.dxDesc.GetStrides()[0]),
-                       static_cast<int>(params.dxDesc.GetStrides()[1]),
-                       static_cast<int>(params.dxDesc.GetStrides()[2]),
-                       static_cast<int>(params.dyDesc.GetStrides()[0]),
-                       static_cast<int>(params.dyDesc.GetStrides()[1]),
-                       static_cast<int>(params.dyDesc.GetStrides()[2]));
+                       static_cast<uint>(params.pooling.pads[0]),
+                       static_cast<uint>(params.pooling.pads[1]),
+                       static_cast<uint>(params.pooling.pads[2]),
+                       static_cast<uint>(batch),
+                       static_cast<uint>(chal),
+                       static_cast<uint>(params.dxDesc.GetLengths()[2]),
+                       static_cast<uint>(params.dxDesc.GetLengths()[3]),
+                       static_cast<uint>(params.dxDesc.GetLengths()[4]),
+                       static_cast<uint>(top_d),
+                       static_cast<uint>(top_h),
+                       static_cast<uint>(top_w),
+                       static_cast<uint>(params.dxDesc.GetStrides()[0]),
+                       static_cast<uint>(params.dxDesc.GetStrides()[1]),
+                       static_cast<uint>(params.dxDesc.GetStrides()[2]),
+                       static_cast<uint>(params.dxDesc.GetStrides()[3]),
+                       static_cast<uint>(params.dyDesc.GetStrides()[0]),
+                       static_cast<uint>(params.dyDesc.GetStrides()[1]),
+                       static_cast<uint>(params.dyDesc.GetStrides()[2]),
+                       static_cast<uint>(params.dyDesc.GetStrides()[3]),
+                       static_cast<uint>(total_work));
             }
             else
             {
                 kernel(params.dy,
                        params.dx,
-                       static_cast<int>(params.pooling.pads[0]),
-                       static_cast<int>(params.pooling.pads[1]),
-                       static_cast<int>(params.dyDesc.GetLengths()[1]),
-                       static_cast<int>(params.dxDesc.GetLengths()[2]),
-                       static_cast<int>(params.dxDesc.GetLengths()[3]),
-                       static_cast<int>(params.dyDesc.GetLengths()[2]),
-                       static_cast<int>(params.dyDesc.GetLengths()[3]),
-                       static_cast<int>(params.dxDesc.GetStrides()[0]),
-                       static_cast<int>(params.dxDesc.GetStrides()[1]),
-                       static_cast<int>(params.dxDesc.GetStrides()[2]),
-                       static_cast<int>(params.dyDesc.GetStrides()[0]),
-                       static_cast<int>(params.dyDesc.GetStrides()[1]),
-                       static_cast<int>(params.dyDesc.GetStrides()[2]));
+                       static_cast<uint>(params.pooling.pads[0]),
+                       static_cast<uint>(params.pooling.pads[1]),
+                       static_cast<uint>(params.pooling.pads[2]),
+                       static_cast<uint>(batch),
+                       static_cast<uint>(chal),
+                       static_cast<uint>(params.dxDesc.GetLengths()[2]),
+                       static_cast<uint>(params.dxDesc.GetLengths()[3]),
+                       static_cast<uint>(params.dxDesc.GetLengths()[4]),
+                       static_cast<uint>(top_d),
+                       static_cast<uint>(top_h),
+                       static_cast<uint>(top_w),
+                       static_cast<uint>(params.dxDesc.GetStrides()[0]),
+                       static_cast<uint>(params.dxDesc.GetStrides()[1]),
+                       static_cast<uint>(params.dxDesc.GetStrides()[2]),
+                       static_cast<uint>(params.dxDesc.GetStrides()[3]),
+                       static_cast<uint>(params.dyDesc.GetStrides()[0]),
+                       static_cast<uint>(params.dyDesc.GetStrides()[1]),
+                       static_cast<uint>(params.dyDesc.GetStrides()[2]),
+                       static_cast<uint>(params.dyDesc.GetStrides()[3]),
+                       static_cast<uint>(total_work));
             }
         };
     };
