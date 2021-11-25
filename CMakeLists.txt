@@ -323,7 +323,7 @@ endif()
 set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT MIOPEN_EMBED_BUILD)
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
 
-set(MIOPEN_USE_MLIR_DEFAULT Off)
+set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
 if(MIOPEN_USE_MLIR)
