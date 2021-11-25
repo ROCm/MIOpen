@@ -50,6 +50,7 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FLAGS)
 
 /// 0: Off.
 /// 1: Logs each option on a separate line.
@@ -285,6 +286,15 @@ static void RemoveCommonOptionsUnwanted(OptionList& list)
         list.end());
 }
 
+static void AddCompilerOptions(OptionList& list)
+{
+    if((miopen::Value(MIOPEN_DEBUG_FLAGS{}, 0) & 0x1) != 0)
+    {
+        list.push_back("-mllvm");
+        list.push_back("--amdgpu-spill-vgpr-to-agpr=0");
+    }
+}
+
 static void RemoveCompilerOptionsUnwanted(OptionList& list)
 {
     RemoveCommonOptionsUnwanted(list);
@@ -312,13 +322,17 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 } // namespace hip
 
 /// \todo Get list of supported isa names from comgr and select.
-static std::string GetIsaName(const miopen::TargetProperties& target)
+static std::string GetIsaName(const miopen::TargetProperties& target, const bool isHipBuild)
 {
 #if ROCM_FEATURE_TARGETID_OFF
+    std::ignore = isHipBuild;
     const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? "+sram-ecc" : "";
     return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
 #else
     const LcOptionTargetStrings lots(target);
+    if(isHipBuild)
+        if((miopen::Value(MIOPEN_DEBUG_FLAGS{}, 0) & 0x2) != 0)
+            return {"amdgcn-amd-amdhsa--" + lots.device + lots.xnack};
     return {"amdgcn-amd-amdhsa--" + lots.targetId};
 #endif
 }
@@ -703,11 +717,11 @@ static std::string GetLog(const Dataset& dataset, const bool comgr_error_handlin
     return text;
 }
 
-static void SetIsaName(const ActionInfo& action, const miopen::TargetProperties& target)
+static void SetIsaName(const ActionInfo& action, const miopen::TargetProperties& target, const bool isHipBuild = false)
 {
     // This can't be implemented in ActionInfo because
     // comgr wrappers should not depend on compiler implementation.
-    const auto isaName = compiler::lc::GetIsaName(target);
+    const auto isaName = compiler::lc::GetIsaName(target, isHipBuild);
     MIOPEN_LOG_I2(isaName);
     action.SetIsaName(isaName);
 }
@@ -753,7 +767,7 @@ void BuildHip(const std::string& name,
 
         const ActionInfo action;
         action.SetLanguage(AMD_COMGR_LANGUAGE_HIP);
-        SetIsaName(action, target);
+        SetIsaName(action, target, true);
         action.SetLogging(true);
 
         const Dataset exe;
@@ -792,7 +806,7 @@ void BuildHip(const std::string& name,
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             auto optLink    = optCompile;
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
-            compiler::lc::hip::RemoveLinkOptionsUnwanted(optLink);
+            compiler::lc::hip::AddCompilerOptions(optCompile);
 
             action.SetOptionList(optCompile);
             const Dataset compiledBc;
@@ -807,6 +821,7 @@ void BuildHip(const std::string& name,
             const Dataset withDevLibs;
             action.Do(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, compiledBc, withDevLibs);
 
+            compiler::lc::hip::RemoveLinkOptionsUnwanted(optLink);
             action.SetOptionList(optLink);
             const Dataset linkedBc;
             action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, withDevLibs, linkedBc);
