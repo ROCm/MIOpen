@@ -43,6 +43,16 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
 namespace miopen {
 namespace solver {
 
+static inline std::size_t GetTypeSize(const std::string& s)
+{
+    if(s == "fp32")
+        return miopen::GetTypeSize(miopenFloat);
+    if (s == "fp16")
+        return miopen::GetTypeSize(miopenHalf);
+    else
+        return miopen::GetTypeSize(miopenBFloat16);
+}
+
 static const inline std::vector<PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC>&
 GetWrwXdlopsNHWCConfigList()
 {
@@ -201,7 +211,7 @@ GetWrwXdlopsNHWCConfigList()
         {"wrw", "nhwc", miopenHalf,  0, 1,  64,  32,  32, 16, 16, 16, 1, 1, 2, 1, 0, 1, 1, 0, 0, { 1, 4, 1, 2}, {  1,  8,  1, 32}, { 1, 4, 1, 1}, {  1,  8,  1, 32}},
         {"wrw", "nhwc", miopenHalf,  0, 0,  64,  32,  32, 16, 16, 16, 1, 1, 2, 1, 0, 0, 0, 0, 0, { 1, 4, 1, 2}, {  1,  8,  1, 32}, { 1, 4, 1, 1}, {  1,  8,  1, 32}},
         {"wrw", "nhwc", miopenHalf,  0, 0,  64,  32,  32, 16, 16, 16, 1, 1, 2, 1, 0, 1, 1, 0, 0, { 1, 4, 1, 2}, {  1,  8,  1, 32}, { 1, 4, 1, 1}, {  1,  8,  1, 32}},
-    
+
         {"wrw", "nhwc", miopenBFloat16,  0, 1, 256, 256,  32, 32, 32,  8, 2, 2, 2, 2, 0, 0, 0, 0, 0, { 1, 4, 1, 8}, {  1,  8,  1, 32}, { 1, 4, 1, 8}, {  1,  8,  1, 32}},
         {"wrw", "nhwc", miopenBFloat16,  0, 1, 256, 256,  32, 32, 32,  8, 2, 2, 2, 2, 0, 0, 1, 0, 0, { 1, 4, 1, 8}, {  1,  8,  1, 32}, { 1, 4, 1, 8}, {  1,  8,  1, 32}},
         {"wrw", "nhwc", miopenBFloat16,  0, 1, 256, 256,  32, 32, 32,  8, 2, 2, 2, 2, 0, 1, 1, 0, 0, { 1, 4, 1, 8}, {  1,  8,  1, 32}, { 1, 4, 1, 8}, {  1,  8,  1, 32}},
@@ -293,7 +303,7 @@ GetWrwXdlopsNHWCConfigList()
         {"wrw", "nhwc", miopenBFloat16,  0, 1,  64,  32,  32, 16, 16, 16, 1, 1, 2, 1, 0, 0, 0, 0, 0, { 1, 4, 1, 2}, {  1,  8,  1, 32}, { 1, 4, 1, 1}, {  1,  8,  1, 32}},
         {"wrw", "nhwc", miopenBFloat16,  0, 1,  64,  32,  32, 16, 16, 16, 1, 1, 2, 1, 0, 1, 1, 0, 0, { 1, 4, 1, 2}, {  1,  8,  1, 32}, { 1, 4, 1, 1}, {  1,  8,  1, 32}},
         {"wrw", "nhwc", miopenBFloat16,  0, 0,  64,  32,  32, 16, 16, 16, 1, 1, 2, 1, 0, 0, 0, 0, 0, { 1, 4, 1, 2}, {  1,  8,  1, 32}, { 1, 4, 1, 1}, {  1,  8,  1, 32}},
-        {"wrw", "nhwc", miopenBFloat16,  0, 0,  64,  32,  32, 16, 16, 16, 1, 1, 2, 1, 0, 1, 1, 0, 0, { 1, 4, 1, 2}, {  1,  8,  1, 32}, { 1, 4, 1, 1}, {  1,  8,  1, 32}},   
+        {"wrw", "nhwc", miopenBFloat16,  0, 0,  64,  32,  32, 16, 16, 16, 1, 1, 2, 1, 0, 1, 1, 0, 0, { 1, 4, 1, 2}, {  1,  8,  1, 32}, { 1, 4, 1, 1}, {  1,  8,  1, 32}},
     };
     return kernel_param_list;
 }
@@ -370,7 +380,7 @@ size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy(
         b_elements_per_vgpr = 2;
     }
 
-    size_t sz_per_element = precision == miopenHalf ? 2 : 1;
+    size_t sz_per_element = precision == "fp16" ? 2 : 1;
 
     vgpr_usage = tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / a_elements_per_vgpr +
                  tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / b_elements_per_vgpr +
@@ -436,12 +446,12 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
 
     static const std::vector<std::tuple<int, int, int>> tile_list_fp16 = {
 
-        std::make_tuple(256, 256, 32), std::make_tuple(256, 128, 16), std::make_tuple(256, 128, 32), 
-        std::make_tuple(128, 256, 16), std::make_tuple(128, 256, 32), std::make_tuple(128, 128, 16), 
-        std::make_tuple(128, 128, 32), std::make_tuple(256, 64, 16),  std::make_tuple(256, 64, 32),  
-        std::make_tuple(64, 256, 16),  std::make_tuple(64, 256, 32),  std::make_tuple(128, 64, 32),  
-        std::make_tuple(64, 128, 16),  std::make_tuple(64, 128, 32),  std::make_tuple(64, 64, 64),   
-        std::make_tuple(64, 64, 32),   std::make_tuple(256, 32, 32),  std::make_tuple(32, 256, 32),  
+        std::make_tuple(256, 256, 32), std::make_tuple(256, 128, 16), std::make_tuple(256, 128, 32),
+        std::make_tuple(128, 256, 16), std::make_tuple(128, 256, 32), std::make_tuple(128, 128, 16),
+        std::make_tuple(128, 128, 32), std::make_tuple(256, 64, 16),  std::make_tuple(256, 64, 32),
+        std::make_tuple(64, 256, 16),  std::make_tuple(64, 256, 32),  std::make_tuple(128, 64, 32),
+        std::make_tuple(64, 128, 16),  std::make_tuple(64, 128, 32),  std::make_tuple(64, 64, 64),
+        std::make_tuple(64, 64, 32),   std::make_tuple(256, 32, 32),  std::make_tuple(32, 256, 32),
         std::make_tuple(64, 32, 32),   std::make_tuple(64, 64, 16),
     };
 
@@ -465,7 +475,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == miopenFloat || config.precision == miopenBFloat16)
+            if(config.precision == "fp32" || config.precision == "bf16")
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp)
@@ -487,7 +497,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == miopenHalf || config.precision == miopenBFloat16)
+            if(config.precision == "fp16" || config.precision == "bf16")
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp)
@@ -509,7 +519,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == miopenHalf || config.precision == miopenFloat)
+            if(config.precision == "fp16" || config.precision == "fp32")
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp)
@@ -552,8 +562,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     std::tie(m_per_block, n_per_block, k_per_block) = HeuristicInitMacroTileNoPadGemmK(
         gemm_m, gemm_n, 0, ctx.IsFp32() ? tile_list_fp32 : (ctx.IsFp16() ? tile_list_fp16 : tile_list_bfp16));
 
-    if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0) || not_support_vector_store)
-    {
+    auto find_with_gemm_k_pad = [&](){
         // not found, let's try  gemm_k pad now.
         const auto& config_list = GetWrwXdlopsNHWCConfigList();
         size_t min_pad_pixel    = std::numeric_limits<std::size_t>::max();
@@ -561,9 +570,9 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         for(size_t i = 0; i < config_list.size(); i++)
         {
             const auto& config = config_list[i];
-            if(!((ctx.IsFp16() && config.precision == miopenHalf) ||
-                 (ctx.IsBfp16() && config.precision == miopenBFloat16) ||
-                 (ctx.IsFp32() && config.precision == miopenFloat)))
+            if(!((ctx.IsFp16() && config.precision == "fp16") ||
+                 (ctx.IsBfp16() && config.precision == "bf16") ||
+                 (ctx.IsFp32() && config.precision == "fp32")))
                 continue;
 
             if(ctx.IsFp16() || ctx.IsBfp16())
@@ -612,6 +621,12 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         {
             SetParamsForKSplit(ctx, occupancy);
         }
+    };
+
+    if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0) || not_support_vector_store)
+    {
+        // not found, let's try gemm_k pad now.
+        find_with_gemm_k_pad();
     }
     else
     {
@@ -619,9 +634,9 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
         const auto& config_list = GetWrwXdlopsNHWCConfigList();
         for(const auto& config : config_list)
         {
-            if(!((ctx.IsFp16() && config.precision == miopenHalf) ||
-                 (ctx.IsBfp16() && config.precision == miopenBFloat16) ||
-                 (ctx.IsFp32() && config.precision == miopenFloat)))
+            if(!((ctx.IsFp16() && config.precision == "fp16") ||
+                 (ctx.IsBfp16() && config.precision == "bf16") ||
+                 (ctx.IsFp32() && config.precision == "fp32")))
                 continue;
 
             if(m_per_block == config.gemm_m_per_block && n_per_block == config.gemm_n_per_block &&
@@ -638,6 +653,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
 
                 if((unit_conv && config.nxe == 0) || (!unit_conv && config.nxe != 0))
                 {
+                    if(!config.IsValid(ctx)) // last check before assigning a heuristic value
+                        continue;
                     CopyParameters(config);
                     if(need_k_split)
                     {
@@ -649,8 +666,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
                     continue;
             }
         }
-        MIOPEN_LOG_E("can't find a suitable heuristic config");
-        MIOPEN_THROW(miopenStatusInternalError);
+        // last try
+        find_with_gemm_k_pad();
     }
 }
 
@@ -703,7 +720,7 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
     if(IsDefaultConstructed())
         return false;
 
-    if(!((ctx.IsFp16() && precision == miopenHalf) || (ctx.IsFp32() && precision == miopenFloat) || (ctx.IsBfp16() && precision == miopenBFloat16)))
+    if(!((ctx.IsFp16() && precision == "fp16") || (ctx.IsFp32() && precision == "fp32") || (ctx.IsBfp16() && precision == "bf16")))
         return false;
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16{}))
@@ -1055,7 +1072,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     MIOPEN_LOG_I2(SolverDbId(*this) << ": " << config.ToString() << msg.str());
 
     const size_t cast_offset = is_nchw ? (trans_output_offset + trans_output_size) : 0;
-    const size_t cast_size = need_cast ? 
+    const size_t cast_size = need_cast ?
         miopen::GetTypeSize(miopenFloat) * k * (c / group) * y * x  : 0;
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
