@@ -288,7 +288,7 @@ static void RemoveCommonOptionsUnwanted(OptionList& list)
 
 static void AddCompilerOptions(OptionList& list)
 {
-    if((miopen::Value(MIOPEN_DEBUG_FLAGS{}, 0) & 0x1) != 0)
+    if((miopen::Value(MIOPEN_DEBUG_FLAGS{}, 3) & 0x1) != 0)
     {
         list.push_back("-mllvm");
         list.push_back("--amdgpu-spill-vgpr-to-agpr=0");
@@ -331,7 +331,7 @@ static std::string GetIsaName(const miopen::TargetProperties& target, const bool
 #else
     const LcOptionTargetStrings lots(target);
     if(isHipBuild)
-        if((miopen::Value(MIOPEN_DEBUG_FLAGS{}, 0) & 0x2) != 0)
+        if((miopen::Value(MIOPEN_DEBUG_FLAGS{}, 3) & 0x2) != 0)
             return {"amdgcn-amd-amdhsa--" + lots.device + lots.xnack};
     return {"amdgcn-amd-amdhsa--" + lots.targetId};
 #endif
