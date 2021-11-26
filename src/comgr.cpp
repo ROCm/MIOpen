@@ -48,9 +48,13 @@
 #include <tuple> // std::ignore
 #include <vector>
 
+/// Correctness problems on MI200 with base driver 5.11.14 (~ROCm 4.3).
+/// With base driver 5.11.32 the errors disappear.
+/// More info at https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1257.
+#define WORKAROUND_ISSUE_1257 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FLAGS)
 
 /// 0: Off.
 /// 1: Logs each option on a separate line.
@@ -288,11 +292,8 @@ static void RemoveCommonOptionsUnwanted(OptionList& list)
 
 static void AddCompilerOptions(OptionList& list)
 {
-    if((miopen::Value(MIOPEN_DEBUG_FLAGS{}, 2) & 0x1) != 0)
-    {
-        list.push_back("-mllvm");
-        list.push_back("--amdgpu-spill-vgpr-to-agpr=0");
-    }
+    // Nothing to do here yet, but let's keep the placeholder for now.
+    std::ignore = list;
 }
 
 static void RemoveCompilerOptionsUnwanted(OptionList& list)
@@ -330,9 +331,10 @@ static std::string GetIsaName(const miopen::TargetProperties& target, const bool
     return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
 #else
     const LcOptionTargetStrings lots(target);
+#if WORKAROUND_ISSUE_1257
     if(isHipBuild)
-        if((miopen::Value(MIOPEN_DEBUG_FLAGS{}, 2) & 0x2) != 0)
-            return {"amdgcn-amd-amdhsa--" + lots.device + lots.xnack};
+        return {"amdgcn-amd-amdhsa--" + lots.device + lots.xnack};
+#endif
     return {"amdgcn-amd-amdhsa--" + lots.targetId};
 #endif
 }
@@ -717,7 +719,9 @@ static std::string GetLog(const Dataset& dataset, const bool comgr_error_handlin
     return text;
 }
 
-static void SetIsaName(const ActionInfo& action, const miopen::TargetProperties& target, const bool isHipBuild = false)
+static void SetIsaName(const ActionInfo& action,
+                       const miopen::TargetProperties& target,
+                       const bool isHipBuild = false)
 {
     // This can't be implemented in ActionInfo because
     // comgr wrappers should not depend on compiler implementation.
