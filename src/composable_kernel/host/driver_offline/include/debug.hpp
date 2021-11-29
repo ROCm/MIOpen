@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef DEBUG_HPP
-#define DEBUG_HPP
+#ifndef DEBUG_DRIVER_GEMM_XDLOPS_V2R3_HPP
+#define DEBUG_DRIVER_GEMM_XDLOPS_V2R3_HPP
 
 namespace debug {
 namespace debug_driver_gemm_xdlops_v2r3 {
