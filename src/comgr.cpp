@@ -323,16 +323,16 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 } // namespace hip
 
 /// \todo Get list of supported isa names from comgr and select.
-static std::string GetIsaName(const miopen::TargetProperties& target, const bool isHipBuild)
+static std::string GetIsaName(const miopen::TargetProperties& target, const bool isHlcBuild)
 {
 #if ROCM_FEATURE_TARGETID_OFF
-    std::ignore = isHipBuild;
+    std::ignore = isHlcBuild;
     const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? "+sram-ecc" : "";
     return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
 #else
     const LcOptionTargetStrings lots(target);
 #if WORKAROUND_ISSUE_1257
-    if(isHipBuild)
+    if(isHlcBuild)
         return {"amdgcn-amd-amdhsa--" + lots.device + lots.xnack};
 #endif
     return {"amdgcn-amd-amdhsa--" + lots.targetId};
@@ -721,11 +721,11 @@ static std::string GetLog(const Dataset& dataset, const bool comgr_error_handlin
 
 static void SetIsaName(const ActionInfo& action,
                        const miopen::TargetProperties& target,
-                       const bool isHipBuild = false)
+                       const bool isHlcBuild = false)
 {
     // This can't be implemented in ActionInfo because
     // comgr wrappers should not depend on compiler implementation.
-    const auto isaName = compiler::lc::GetIsaName(target, isHipBuild);
+    const auto isaName = compiler::lc::GetIsaName(target, isHlcBuild);
     MIOPEN_LOG_I2(isaName);
     action.SetIsaName(isaName);
 }
@@ -873,7 +873,7 @@ void BuildOcl(const std::string& name,
 #else
         action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_1_2);
 #endif
-        SetIsaName(action, target);
+        SetIsaName(action, target, true);
         action.SetLogging(true);
 
         auto optCompile = miopen::SplitSpaceSeparated(options);
