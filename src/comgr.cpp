@@ -290,7 +290,7 @@ static void RemoveCommonOptionsUnwanted(OptionList& list)
         list.end());
 }
 
-static void AddCompilerOptions(OptionList& list)
+static void AddCompilerOptions(const OptionList& list) // `const` is for clang-tidy.
 {
     // Nothing to do here yet, but let's keep the placeholder for now.
     std::ignore = list;
