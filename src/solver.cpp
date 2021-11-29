@@ -28,6 +28,7 @@
 
 #include <miopen/activ/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
+#include <miopen/pooling/solvers.hpp>
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
 #include <miopen/solver_id.hpp>
@@ -497,6 +498,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     
     RegisterWithSolver(
         registry, ++id, ConvCkIgemmFwdV4r4r4XdlopsNhwc{}, miopenConvolutionAlgoImplicitGEMM);
+
+    Register(registry, ++id, Primitive::Pooling, SolverDbId(pooling::PoolingForward2d{}));
+    Register(registry, ++id, Primitive::Pooling, SolverDbId(pooling::PoolingForwardNd{}));
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
