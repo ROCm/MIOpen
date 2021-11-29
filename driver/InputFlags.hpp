@@ -36,6 +36,7 @@ struct Input
     std::string value;
     std::string help_text;
     std::string type;
+    bool is_case_insensitive;
 };
 
 class InputFlags
@@ -48,7 +49,8 @@ class InputFlags
                       char _short_name,
                       const std::string& _value,
                       const std::string& _help_text,
-                      const std::string& type);
+                      const std::string& type,
+                      const bool _is_case_insensitive = false );
     void Parse(int argc, char* argv[]);
     char FindShortName(const std::string& _long_name) const;
     void Print() const;

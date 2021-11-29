@@ -27,6 +27,7 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 InputFlags::InputFlags() { AddInputFlag("help", 'h', "", "Print Help Message", "string"); }
 
@@ -34,14 +35,17 @@ void InputFlags::AddInputFlag(const std::string& _long_name,
                               char _short_name,
                               const std::string& _value,
                               const std::string& _help_text,
-                              const std::string& _type)
+                              const std::string& _type,
+                              const bool _is_case_insensitive)
 {
+
     Input in;
     in.long_name  = _long_name;
     in.short_name = _short_name;
     in.value      = _value;
     in.help_text  = _help_text;
     in.type       = _type;
+    in.is_case_insensitive = _is_case_insensitive; 
 
     if(MapInputs.count(_short_name) > 0)
         printf("Input flag: %s (%c) already exists !", _long_name.c_str(), _short_name);
@@ -51,7 +55,6 @@ void InputFlags::AddInputFlag(const std::string& _long_name,
 
 [[gnu::noreturn]] void InputFlags::Print() const
 {
-    printf("MIOpen Driver Input Flags: \n\n");
 
     for(auto& content : MapInputs)
     {
@@ -102,6 +105,7 @@ char InputFlags::FindShortName(const std::string& long_name) const
 
 void InputFlags::Parse(int argc, char* argv[])
 {
+
     std::vector<std::string> args;
     for(int i = 2; i < argc; i++)
         args.push_back(argv[i]);
@@ -125,7 +129,16 @@ void InputFlags::Parse(int argc, char* argv[])
 
             char short_name = FindShortName(long_name);
 
-            MapInputs[short_name].value = args[i + 1];
+            if ( MapInputs[short_name].is_case_insensitive == true )
+            {
+               std::string tvalue = args[i +1];
+               std::transform(tvalue.begin(), tvalue.end(),tvalue.begin(), ::toupper);
+               MapInputs[short_name].value = tvalue;
+            }
+            else
+            {
+                MapInputs[short_name].value = args[i + 1];
+            }
             i++;
         }
         else if(temp[0] == '-' && temp[1] == '?') // Help Input
