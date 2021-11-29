@@ -1,5 +1,5 @@
 def rocmnode(name) {
-    return 'rocmtest && miopen && ' + name
+    return 'rocmtest-DEVELOPMENT-ATAMAZOV && miopen && ' + name
 }
 
 def show_node_info() {
@@ -242,23 +242,23 @@ pipeline {
     parameters {
         booleanParam(
             name: "BUILD_STATIC_CHECKS",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP32",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_AUX1",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP16_BF16_INT8",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_MIOPENTENSILE_LATEST",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_FULL_TESTS",
@@ -274,23 +274,23 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_PACKAGES",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_NOGPU",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_VEGA10",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_VEGA20",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_GFX908",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_GFX90A",
@@ -298,15 +298,15 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_NAVI21",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "DATATYPE_NA",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "DATATYPE_FP32",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "DATATYPE_FP16",
@@ -318,7 +318,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "DATATYPE_INT8",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
     }
 
