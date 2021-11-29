@@ -440,23 +440,6 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     if(inflags.GetValueStr("out_layout").empty())
         inflags.SetValue("out_layout", default_layout);
 
-    std::string inLayoutStr  = inflags.GetValueStr("in_layout");
-    std::string  filLayoutStr = inflags.GetValueStr("fil_layout");
-    std::string outLayoutStr  = inflags.GetValueStr("out_layout");
- 
-    std::transform(inLayoutStr.begin(), inLayoutStr.end(),inLayoutStr.begin(), ::toupper);
-    inflags.SetValue("in_layout", inLayoutStr);
- 
-    std::transform(filLayoutStr.begin(), filLayoutStr.end(),filLayoutStr.begin(), ::toupper);
-    inflags.SetValue("fil_layout", filLayoutStr);
-   
-    std::transform(outLayoutStr.begin(), outLayoutStr.end(),outLayoutStr.begin(), ::toupper);
-    inflags.SetValue("out_layout", outLayoutStr);
- 
-    inflags.SetValue("in_layout", inLayoutStr);
-    inflags.SetValue("fil_layout", filLayoutStr);
-    inflags.SetValue("out_layout", outLayoutStr);
-
     num_iterations = inflags.GetValueInt("iter");
     if(num_iterations < 1)
     {
