@@ -172,7 +172,7 @@ bool ConvCkIgemmFwdV4r4r4XdlopsNhwc::IsApplicable(const ConvolutionContext& ctx)
         return false;
 
     {
-        // this kernel use int32_t for memory offset, which covers 2GB of memory maximum
+        // This kernel use int32_t for memory offset, which covers 2GB of memory maximum
         constexpr auto max_index_range = static_cast<std::size_t>(INT32_MAX) + 1;
 
         if(!(ctx.bot_sz < max_index_range && ctx.weights_sz < max_index_range &&
