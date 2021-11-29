@@ -48,10 +48,10 @@
 #include <tuple> // std::ignore
 #include <vector>
 
-/// Correctness problems on MI200 with base driver 5.11.14 (~ROCm 4.3).
+/// Correctness problems on MI200 with base driver 5.11.14 (~ROCm 4.3.1).
 /// With base driver 5.11.32 the errors disappear.
 /// More info at https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1257.
-#define WORKAROUND_ISSUE_1257 1
+#define WORKAROUND_ISSUE_1257 (HIP_PACKAGE_VERSION_FLAT > 4003021331)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
