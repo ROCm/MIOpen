@@ -45,9 +45,9 @@ struct Input
 
 struct TensorParameters
 {
-    std::vector<int> lengths;
-    std::vector<int> strides;
-    std::string layout;
+    std::vector<int> lengths = {};
+    std::vector<int> strides = {};
+    std::string layout       = "";
 
     TensorParameters FillMissing(const TensorParameters& other)
     {
