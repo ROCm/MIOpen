@@ -52,10 +52,9 @@ bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx) const
     // save compilation overhead
     if(IsXdlopsSupport(ctx))
         return false;
-    // Note: ConvMlirIgemmFwd can also run on a gfx900 machine, however dropping it as
-    // QA doesn't have bandwidth to test on it in post ROCm 5.x context
+    // Refer to https://github.com/ROCmSoftwarePlatform/llvm-project-private/issues/389
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if(!StartsWith(device_name, "gfx906"))
+    if(StartsWith(device_name, "gfx900"))
         return false;
 
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, false));
