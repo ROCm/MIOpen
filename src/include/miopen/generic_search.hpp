@@ -299,6 +299,36 @@ using RunAndMeasure_t =
                                                           std::declval<float&>()));
 
 template <class Solver, class Context>
+std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context_)
+{
+    static_assert(
+        !(is_detected<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
+          is_detected<RunAndMeasure_t, Solver, Data_t, ConstData_t>{}),
+        "RunAndMeasure is obsolete. Solvers should implement auto-tune evaluation in invoker");
+
+    auto context                  = context_;
+    context.is_for_generic_search = true;
+
+    using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
+    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
+
+    const ComputedContainer<PerformanceConfig, Context> main(context);
+    const int main_size = std::distance(main.begin(), main.end());
+    const ComputedContainer<PerformanceConfig, Context> spare(context, true);
+    const bool useSpare  = (main_size == 0);
+
+    const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
+
+    std::vector<ConvSolution> solutions;
+    for(const auto& current_config : all_configs)
+    {
+        ConvSolution current_solution = s.GetSolution(context, current_config);
+	solutions.push_back(current_solution);
+    }
+    return solutions;
+}
+
+template <class Solver, class Context>
 auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
     -> decltype(s.GetPerformanceConfig(context_))
 {

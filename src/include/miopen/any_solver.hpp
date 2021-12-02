@@ -30,6 +30,7 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/generic_search.hpp>
 
 #include <cassert>
 #include <memory>
@@ -60,6 +61,11 @@ struct AnySolver
     {
         assert(ptr_value != nullptr);
         return ptr_value->TestSysDbRecord(record);
+    };
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& ctx)
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->GetSolutions(ctx);
     };
     bool IsDynamic() const
     {
@@ -105,6 +111,7 @@ struct AnySolver
         virtual bool IsApplicable(const ConvolutionContext& ctx) const                     = 0;
         virtual bool IsTunable() const                                                     = 0;
         virtual bool TestSysDbRecord(const DbRecord& record) const                         = 0;
+        virtual std::vector<ConvSolution> GetSolutions(const ConvolutionContext& ctx) const = 0;
         virtual bool IsDynamic() const                                                     = 0;
         virtual float GetWti(const ConvolutionContext& ctx) const                          = 0;
         virtual const std::type_info& Type() const                                         = 0;
@@ -149,6 +156,22 @@ struct AnySolver
         bool TestSysDbRecord(const DbRecord& record) const override
         {
             return TestSysDbRecord(record, std::integral_constant<bool, TunableSolver::Is>());
+        }
+
+        std::vector<ConvSolution> GetSolutions(const ConvolutionContext& ctx, std::true_type) const
+        {
+	    return GetAllSolutions(value, ctx);
+        }
+        std::vector<ConvSolution> GetSolutions(const ConvolutionContext& ctx, std::false_type) const
+        {
+            std::ignore = ctx;
+            std::vector<ConvSolution> solutions;
+            return solutions;
+        }
+
+        std::vector<ConvSolution> GetSolutions(const ConvolutionContext& ctx) const override
+        {
+            return GetSolutions( ctx, std::integral_constant<bool, TunableSolver::Is && !std::is_same<T, LegacyPerformanceConfig>::value>() );
         }
 
         AnySolver_tmpl(T obj) : value(std::move(obj)){};
