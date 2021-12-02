@@ -30,6 +30,7 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/mlo_internal.hpp>
+
 #include <miopen/generic_search.hpp>
 
 #include <cassert>
@@ -130,8 +131,14 @@ struct AnySolver
         {
             template <typename U>
             static constexpr auto Test(U*) ->
-                typename std::is_class<decltype(std::declval<U>().GetPerformanceConfig(
-                    std::declval<const ConvolutionContext&>()))>::type;
+                typename std::is_same<ConvSolution, 
+	            decltype(
+		        GetSolution(std::declval<const ConvolutionContext&>(),
+                            std::declval<decltype(std::declval<U>().GetPerformanceConfig(
+                                std::declval<const ConvolutionContext&>()))>(),
+			    std::declval<bool>())
+		    )
+	        >::type;
 
             template <typename U>
             static constexpr std::false_type Test(...);
@@ -171,7 +178,7 @@ struct AnySolver
 
         std::vector<ConvSolution> GetSolutions(const ConvolutionContext& ctx) const override
         {
-            return GetSolutions( ctx, std::integral_constant<bool, TunableSolver::Is && !std::is_same<T, LegacyPerformanceConfig>::value>() );
+            return GetSolutions( ctx, std::integral_constant<bool, TunableSolver::Is>() );
         }
 
         AnySolver_tmpl(T obj) : value(std::move(obj)){};
@@ -180,6 +187,7 @@ struct AnySolver
             return value.IsApplicable(ctx);
         }
         bool IsTunable() const override { return TunableSolver::Is; }
+
         bool IsDynamic() const override { return value.IsDynamic(); }
         float GetWti(const ConvolutionContext& ctx) const override { return value.GetWti(ctx); }
         ConvSolution FindSolution(const ConvolutionContext& ctx,
