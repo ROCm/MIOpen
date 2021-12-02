@@ -24,10 +24,36 @@
  *
  *******************************************************************************/
 
+#include <miopen/config.h>
 #include <miopen/solver/gemm_common.hpp>
 
-namespace miopen {
-namespace solver {
+#include <tuple> // std::ignore
 
+/// This W/A disables all GEMM convolution solvers for xDLOPs
+/// targets when MIOpenGEMM is used (OCL BE). More info at
+/// https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1315.
+///
+/// W/A affects ROCm releases starting from 4.5 and also
+/// pre-5.0 Mainline HIP builds, e.g. 9148.
+#define WORKAROUND_ISSUE_1315 (MIOPEN_USE_MIOPENGEMM && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL))
+
+namespace miopen {
+namespace conv {
+namespace solver {
+namespace gemm {
+
+bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx)
+{
+#if WORKAROUND_ISSUE_1315
+    const auto device = ctx.GetStream().GetTargetProperties().Name();
+    return (device == "gfx908") || (device == "fx90a") || (device == "gfx940");
+#else
+    std::ignore = ctx;
+    return false;
+#endif
+}
+
+} // namespace gemm
 } // namespace solver
+} // namespace conv
 } // namespace miopen

@@ -27,12 +27,18 @@
 #ifndef GUARD_SOLVER_GEMM_COMMON_HPP_
 #define GUARD_SOLVER_GEMM_COMMON_HPP_
 
-//#include <miopen/solver/gemm_common.hpp>
+#include <miopen/execution_context.hpp>
 
 namespace miopen {
+namespace conv {
 namespace solver {
+namespace gemm {
 
+bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx);
+
+} // namespace gemm
 } // namespace solver
+} // namespace conv
 } // namespace miopen
 
 #endif
