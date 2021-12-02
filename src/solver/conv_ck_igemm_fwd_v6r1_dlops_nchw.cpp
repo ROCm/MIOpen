@@ -97,7 +97,8 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
         return false;
     if(ctx.group_counts != 1)
         return false;
-    if(name == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
+       ctx.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     {
