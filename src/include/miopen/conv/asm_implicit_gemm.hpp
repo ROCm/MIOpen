@@ -25,11 +25,18 @@
  *******************************************************************************/
 #ifndef CK_ASM_IMPLICITGEMM_HPP_
 #define CK_ASM_IMPLICITGEMM_HPP_
+
+#include <miopen/config.h>
+
 #include <string>
 #include <ostream>
 #include <tuple>
 #include <vector>
 #include <limits>
+
+/// W/A affects ROCm releases starting from 4.5 and also
+/// pre-5.0 Mainline HIP builds, e.g. 9148.
+#define WORKAROUND_ISSUE_1317 (MIOPEN_BACKEND_OPENCL && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL))
 
 namespace miopen {
 
