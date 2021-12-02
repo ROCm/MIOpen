@@ -34,9 +34,9 @@
 #include <vector>
 #include <limits>
 
-/// W/A affects ROCm releases starting from 4.5 and also
-/// pre-5.0 Mainline HIP builds, e.g. 9148.
-#define WORKAROUND_ISSUE_1317 (MIOPEN_BACKEND_OPENCL && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL))
+#define WORKAROUND_ISSUE_1317 (MIOPEN_BACKEND_OPENCL)
+#define WORKAROUND_SWDEV_312112 1
+#define WORKAROUND_SWDEV_313696 1
 
 namespace miopen {
 
