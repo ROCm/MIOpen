@@ -97,6 +97,9 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
         return false;
     if(ctx.group_counts != 1)
         return false;
+    if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
+       ctx.conv_problem.IsGfx90aFp16altRequired())
+        return false;
 
     {
         // this kernel use int32_t for memory offset, which covers 2GB of memory maximum
