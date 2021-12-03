@@ -904,8 +904,8 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
         if(!trans_output.IsSkippable())
             workspace_size += trans_output.GetSize();
 
-        // need to do alignment for atomic add kernels
-        workspace_size = ((workspace_size + 1023) >> 10) << 10;
+        // need to do 4 bytes alignment to do atomic add
+        workspace_size = ((workspace_size + 3) >> 2) << 2;
     }
 
     if(!ctx.IsFp32())
@@ -1074,9 +1074,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     MIOPEN_LOG_I2(SolverDbId(*this) << ": " << config.ToString() << msg.str());
 
-    // 16 bytes alignment
-    const size_t cast_offset = is_nchw ? (((trans_output_offset + trans_output_size + 1023) >> 10) << 10) : 0;
-    std::cout << __LINE__ << ": cast_offset:" << cast_offset << std::endl;
+    // 4 bytes alignment to do atomic add
+    const size_t cast_offset = is_nchw ? (((trans_output_offset + trans_output_size + 3) >> 2) << 2) : 0;
     const size_t cast_size = need_cast ?
         miopen::GetTypeSize(miopenFloat) * k * (c / group) * y * x  : 0;
 
@@ -1143,7 +1142,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 ker(opArgs);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
-#if 0
+
                 CastTensor(handle,
                            &lowp_quant,
                            cast_desc,
@@ -1152,8 +1151,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                            (is_nchw && !trans_weight_skippable) ? trans_weight_buf.get() :  tensors.dw,
                            0,
                            0);
-#endif
-#if 0
+
                 if(is_nchw && !trans_weight_skippable)
                 {
                     auto& karg_weight = opArgsTrans[trans_weight_idx];
@@ -1163,7 +1161,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
                 }
-#endif
+
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
