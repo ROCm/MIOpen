@@ -904,7 +904,8 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
         if(!trans_output.IsSkippable())
             workspace_size += trans_output.GetSize();
 
-        workspace_size = ((workspace_size + 3) >> 2) << 2;
+        // need to do alignment for atomic add kernels
+        workspace_size = ((workspace_size + 15) >> 4) << 4;
     }
 
     if(!ctx.IsFp32())
@@ -1073,7 +1074,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     MIOPEN_LOG_I2(SolverDbId(*this) << ": " << config.ToString() << msg.str());
 
-    const size_t cast_offset = is_nchw ? (((trans_output_offset + trans_output_size + 3) >> 2) << 2) : 0;
+    // 16 bytes alignment
+    const size_t cast_offset = is_nchw ? (((trans_output_offset + trans_output_size + 15) >> 4) << 4) : 0;
     const size_t cast_size = need_cast ?
         miopen::GetTypeSize(miopenFloat) * k * (c / group) * y * x  : 0;
 
