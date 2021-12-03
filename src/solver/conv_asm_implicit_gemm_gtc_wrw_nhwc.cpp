@@ -1142,7 +1142,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 ker(opArgs);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
-
+#if 0
                 CastTensor(handle,
                            &lowp_quant,
                            cast_desc,
@@ -1151,7 +1151,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                            (is_nchw && !trans_weight_skippable) ? trans_weight_buf.get() :  tensors.dw,
                            0,
                            0);
-
+#endif
+#if 0
                 if(is_nchw && !trans_weight_skippable)
                 {
                     auto& karg_weight = opArgsTrans[trans_weight_idx];
@@ -1161,7 +1162,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
                 }
-
+#endif
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();
 
