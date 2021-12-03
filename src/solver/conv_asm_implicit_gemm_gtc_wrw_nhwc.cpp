@@ -904,7 +904,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
         if(!trans_output.IsSkippable())
             workspace_size += trans_output.GetSize();
 
-        // need to do 4 bytes alignment to do atomic add
+        // 4 bytes alignment to do atomic add
         workspace_size = ((workspace_size + 3) >> 2) << 2;
     }
 
