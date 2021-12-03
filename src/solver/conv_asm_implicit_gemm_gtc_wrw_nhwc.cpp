@@ -1076,7 +1076,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     // 16 bytes alignment
     const size_t cast_offset = is_nchw ? (((trans_output_offset + trans_output_size + 1023) >> 10) << 10) : 0;
-    std::cout << "cast_offset:" << cast_offset << std::endl;
+    std::cout << __LINE__ << ": cast_offset:" << cast_offset << std::endl;
     const size_t cast_size = need_cast ?
         miopen::GetTypeSize(miopenFloat) * k * (c / group) * y * x  : 0;
 
