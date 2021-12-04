@@ -789,7 +789,7 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
 
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
 {
-#if WORKAROUND_ISSUE_1317 || WORKAROUND_SWDEV_312112 || WORKAROUND_SWDEV_313696
+#if WORKAROUND_ISSUE_1317
     if(ctx.IsLayoutDefault())
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC{}))
             return false;

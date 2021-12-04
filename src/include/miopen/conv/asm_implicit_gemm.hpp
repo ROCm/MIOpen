@@ -35,8 +35,6 @@
 #include <limits>
 
 #define WORKAROUND_ISSUE_1317 (MIOPEN_BACKEND_OPENCL)
-#define WORKAROUND_SWDEV_312112 1
-#define WORKAROUND_SWDEV_313696 1
 
 namespace miopen {
 

@@ -46,7 +46,7 @@ bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx)
 {
 #if WORKAROUND_ISSUE_1315
     const auto device = ctx.GetStream().GetTargetProperties().Name();
-    return (device == "gfx908") || (device == "fx90a") || (device == "gfx940");
+    return (device == "gfx908") || (device == "gfx90a") || (device == "gfx940");
 #else
     std::ignore = ctx;
     return false;
