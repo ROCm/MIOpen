@@ -579,7 +579,8 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             trans_output_idx = idx++;
     }
 
-    const size_t cast_offset = is_nchw ? (trans_output_offset + trans_output_size) : 0;
+    // 4 bytes alignment to do atomic add
+    const size_t cast_offset = is_nchw ? (((trans_output_offset + trans_output_size + 3) >> 2) << 2) : 0;
     const size_t cast_size   = need_cast ? miopen::GetTypeSize(miopenFloat) * n * k * ho * wo : 0;
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
@@ -886,7 +887,8 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             trans_output_idx = idx++;
     }
 
-    const size_t cast_offset = is_nchw ? (trans_output_offset + trans_output_size) : 0;
+    // 4 bytes alignment to do atomic add
+    const size_t cast_offset = is_nchw ? (((trans_output_offset + trans_output_size + 3) >> 2) << 2) : 0;
     const size_t cast_size   = need_cast ? miopen::GetTypeSize(miopenFloat) * n * c * hi * wi : 0;
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
