@@ -45,6 +45,8 @@
 #include <algorithm>
 #include <initializer_list>
 
+#define WORKAROUND_SWDEV_292187 1
+
 namespace miopen {
 
 namespace debug {
