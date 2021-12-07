@@ -42,6 +42,7 @@
 
 #include <miopen/conv/context.hpp>
 #include <miopen/conv_solution.hpp>
+#include <miopen/solver.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/timer.hpp>
@@ -299,34 +300,42 @@ using RunAndMeasure_t =
                                                           std::declval<float&>()));
 
 template <class Solver, class Context>
-std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context_)
+auto GetAllConfigs(const Solver s, const Context& context)
+    -> const ComputedContainer<decltype(s.GetPerformanceConfig(context)), Context>
 {
-    static_assert(
-        !(is_detected<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
-          is_detected<RunAndMeasure_t, Solver, Data_t, ConstData_t>{}),
-        "RunAndMeasure is obsolete. Solvers should implement auto-tune evaluation in invoker");
-
-    auto context                  = context_;
-    context.is_for_generic_search = true;
-
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
-    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
 
     const ComputedContainer<PerformanceConfig, Context> main(context);
     const int main_size = std::distance(main.begin(), main.end());
     const ComputedContainer<PerformanceConfig, Context> spare(context, true);
+    const int spare_size = std::distance(spare.begin(), spare.end());
     const bool useSpare  = (main_size == 0);
 
     const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
+    const int n_runs_total = useSpare ? spare_size : main_size;
+    MIOPEN_LOG_W(SolverDbId(s) << ": Searching the best solution among " << n_runs_total
+                               << (useSpare ? " (spare)" : "") << "...");
+
+    return all_configs;
+}
+
+template <class Solver, class Context>
+std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context_)
+{
+    auto context                  = context_;
+    context.is_for_generic_search = true;
+
+    auto all_configs = GetAllConfigs(s, context);
 
     std::vector<ConvSolution> solutions;
     for(const auto& current_config : all_configs)
     {
-        ConvSolution current_solution = s.GetSolution(context, current_config);
+        ConvSolution current_solution = s.GetSolution(context, current_config, true);
 	solutions.push_back(current_solution);
     }
     return solutions;
 }
+
 
 template <class Solver, class Context>
 auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
@@ -341,32 +350,12 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     context.is_for_generic_search = true;
 
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
-    PerformanceConfig best_config;
-    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
-    const auto invoke_ctx       = [invoke_ctx_]() {
-        auto copy = invoke_ctx_;
-        copy.SetInvokeType(InvokeType::AutoTune);
-        return copy;
-    }();
-
     auto& profile_h = context.GetStream();
     AutoEnableProfiling enableProfiling{profile_h};
 
-    const ComputedContainer<PerformanceConfig, Context> main(context);
-    const int main_size = std::distance(main.begin(), main.end());
-    const ComputedContainer<PerformanceConfig, Context> spare(context, true);
-    const int spare_size = std::distance(spare.begin(), spare.end());
-    const bool useSpare  = (main_size == 0);
+    auto all_configs = GetAllConfigs(s, context);
+    const int n_runs_total = std::distance(all_configs.begin(), all_configs.end());
 
-    const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
-    const int n_runs_total = useSpare ? spare_size : main_size;
-    MIOPEN_LOG_W(SolverDbId(s) << ": Searching the best solution among " << n_runs_total
-                               << (useSpare ? " (spare)" : "") << "...");
-
-    bool is_passed  = false; // left false only if all iterations failed.
-    float best_time = std::numeric_limits<float>::max();
-    size_t n_failed = 0;
-    size_t n_best   = 0;
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
@@ -385,6 +374,19 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     }
     std::ignore = PrecompileKernels(profile_h, kernels);
 #endif
+
+    PerformanceConfig best_config;
+    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
+    const auto invoke_ctx       = [invoke_ctx_]() {
+        auto copy = invoke_ctx_;
+        copy.SetInvokeType(InvokeType::AutoTune);
+        return copy;
+    }();
+
+    bool is_passed  = false; // left false only if all iterations failed.
+    float best_time = std::numeric_limits<float>::max();
+    size_t n_failed = 0;
+    size_t n_best   = 0;
 
     if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
     {

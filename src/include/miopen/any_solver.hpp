@@ -63,7 +63,7 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->TestSysDbRecord(record);
     };
-    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& ctx)
+    std::vector<ConvSolution> GetSolutions(const ConvolutionContext& ctx) const
     {
         assert(ptr_value != nullptr);
         return ptr_value->GetSolutions(ctx);
@@ -129,13 +129,21 @@ struct AnySolver
     {
         struct TunableSolver
         {
+            /*
+            template <typename U>
+            static constexpr auto Test(U*) ->
+                typename std::is_class<decltype(std::declval<U>().GetPerformanceConfig(
+                    std::declval<const ConvolutionContext&>()))>::type;
+            */
+	    /*
+            */
             template <typename U>
             static constexpr auto Test(U*) ->
                 typename std::is_same<ConvSolution, 
 	            decltype(
-		        GetSolution(std::declval<const ConvolutionContext&>(),
-                            std::declval<decltype(std::declval<U>().GetPerformanceConfig(
-                                std::declval<const ConvolutionContext&>()))>(),
+		        std::declval<U>().GetSolution(std::declval<const ConvolutionContext&>(),
+                            std::declval<const decltype(std::declval<U>().GetPerformanceConfig(
+                                std::declval<const ConvolutionContext&>()))&>(),
 			    std::declval<bool>())
 		    )
 	        >::type;
