@@ -68,7 +68,7 @@ struct BatchedTransposeSolution
 
 struct TransposeSolutionWorkspaceBufTraits
 {
-    TransposeSolutionWorkspaceBufTraits(const std::initializer_list<int> v_size_, const size_t alignment_);
+    TransposeSolutionWorkspaceBufTraits(const std::initializer_list<size_t> v_size_, const size_t alignment_);
     size_t GetSize() const;
     size_t GetOffset(const size_t index) const;
 
