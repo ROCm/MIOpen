@@ -541,6 +541,8 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     int trans_weight_idx = -1;
     int trans_output_idx = -1;
 
+    size_t buf_alignment = 256;
+
     if(is_nchw)
     {
         TransposeSolutionDefault2Nhwc trans_input(ctx, ctx.in_data_type, n, c, hi, wi);
@@ -567,9 +569,6 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
         trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetSize();
         trans_output_size = trans_output_skippable ? 0 : trans_output.GetSize();
 
-        trans_weight_offset = trans_input_offset + trans_input_size;
-        trans_output_offset = trans_weight_offset + trans_weight_size;
-
         int idx = 0;
         if(!trans_input_skippable)
             trans_input_idx = idx++;
@@ -579,10 +578,16 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             trans_output_idx = idx++;
     }
 
-    // 4 bytes alignment to do atomic add
-    const size_t cast_offset = is_nchw ? (((trans_output_offset + trans_output_size + 3) >> 2) << 2) : 0;
     const size_t cast_size   = need_cast ? miopen::GetTypeSize(miopenFloat) * n * k * ho * wo : 0;
 
+    TransposeSolutionWorkspaceBufTraits wt({trans_input_size, trans_weight_size, trans_output_size, cast_size}, buf_alignment);
+
+    trans_input_offset  = wt.GetOffset(0);
+    trans_weight_offset = wt.GetOffset(1);
+    trans_output_offset = wt.GetOffset(2);
+    
+    const size_t cast_offset = wt.GetOffset(3);
+    
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
     const TensorDescriptor cast_desc(miopenFloat,

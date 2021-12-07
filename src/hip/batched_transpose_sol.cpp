@@ -379,4 +379,32 @@ size_t BatchedTransposeSolution::GetSize() const
     return miopen::GetTypeSize(data_type) * batch * height * width;
 }
 
+TransposeSolutionWorkspaceBufTraits::TransposeSolutionWorkspaceBufTraits(const std::initializer_list<int> v_size_, 
+                                                                         const size_t alignment_)
+    : v_size(v_size_), alignment(alignment_)
+{
+    buffer_num = v_size.size();
+    size_t each_offset = 0;
+    v_offset.push_back(each_offset);
+    for(auto each_size : v_size)
+    {
+        size_t padding = (alignment - (each_size % alignment)) % alignment; 
+        each_offset += each_size + padding;
+        v_offset.push_back(each_offset);
+    }
+    size = v_offset[buffer_num];
+}
+
+size_t TransposeSolutionWorkspaceBufTraits::GetSize() const
+{
+    return size;
+}
+
+size_t TransposeSolutionWorkspaceBufTraits::GetOffset(const size_t index) const
+{
+    if(index >= v_offset.size())
+        MIOPEN_THROW("index given overflows");
+    return v_offset[index];
+}
+
 } // namespace miopen
