@@ -910,6 +910,13 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
     const auto& x         = ctx.kernel_size_w;
     const auto& group     = ctx.group_counts;
     const auto is_nchw    = ctx.IsLayoutDefault();
+
+    size_t size_trans_input  = 0;
+    size_t size_trans_weight = 0;
+    size_t size_trans_output = 0;
+    size_t size_tensor_cast  = 0;
+    size_t buf_alignment     = 256;
+
     size_t workspace_size = 0;
     if(is_nchw)
     {
@@ -922,20 +929,20 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
                                                    x); // group * k_per_group as batch for weight
         TransposeSolutionDefault2Nhwc trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
         if(!trans_input.IsSkippable())
-            workspace_size += trans_input.GetSize();
+            size_trans_input  = trans_input.GetSize();
         if(!trans_weight.IsSkippable())
-            workspace_size += trans_weight.GetSize();
+            size_trans_weight = trans_weight.GetSize();
         if(!trans_output.IsSkippable())
-            workspace_size += trans_output.GetSize();
-
-        // 4 bytes alignment to do atomic add
-        workspace_size = ((workspace_size + 3) >> 2) << 2;
+            size_trans_output = trans_output.GetSize();
     }
 
     if(!ctx.IsFp32())
-        workspace_size += miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
+        size_tensor_cast = miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
                                                            // kernel is FP32, when using FP32 atomic
-                          * n * c * hi * wi;
+                           * n * c * hi * wi;
+
+    TransposeSolutionWorkspaceBufTraits wt({size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
+    workspace_size = wt.GetSize();
 
     return workspace_size;
 }

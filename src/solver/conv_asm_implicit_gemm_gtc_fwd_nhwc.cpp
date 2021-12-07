@@ -764,7 +764,7 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
     size_t size_trans_weight = 0;
     size_t size_trans_output = 0;
     size_t size_tensor_cast  = 0;
-    size_t alignment         = 256;
+    size_t buf_alignment     = 256;
 
     if(is_nchw)
     {
@@ -793,7 +793,7 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
                                                            // kernel is FP32, when using FP32 atomic
                           * n * k * ho * wo;
 
-    TransposeSolutionWorkspaceBufTraits wt({size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, alignment);
+    TransposeSolutionWorkspaceBufTraits wt({size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
     workspace_size = wt.GetSize();
 
     return workspace_size;
