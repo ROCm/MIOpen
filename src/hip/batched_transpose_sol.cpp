@@ -379,7 +379,7 @@ size_t BatchedTransposeSolution::GetSize() const
     return miopen::GetTypeSize(data_type) * batch * height * width;
 }
 
-TransposeSolutionWorkspaceBufTraits::TransposeSolutionWorkspaceBufTraits(const std::initializer_list<int> v_size_, 
+TransposeSolutionWorkspaceBufTraits::TransposeSolutionWorkspaceBufTraits(const std::initializer_list<size_t> v_size_, 
                                                                          const size_t alignment_)
     : v_size(v_size_), alignment(alignment_)
 {
