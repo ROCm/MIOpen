@@ -106,5 +106,22 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
     return ctx.general_compile_options;
 }
 
+bool ConvDirectNaiveConvIsApplicableByKernelType(const ConvolutionContext& ctx)
+{
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if((device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
+       ctx.IsLayoutDefault())
+    {
+        if(!ctx.use_asm_kernels)
+            return false;
+    }
+    else
+    {
+        if(!ctx.use_hip_kernels)
+            return false;
+    }
+    return true;
+}
+
 } // namespace solver
 } // namespace miopen

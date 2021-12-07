@@ -40,18 +40,8 @@ bool ConvDirectNaiveConvFwd::IsApplicable(const ConvolutionContext& ctx) const
        miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD{}))
         return false;
 
-    const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
-       ctx.IsLayoutDefault())
-    {
-        if(!ctx.use_asm_kernels)
-            return false;
-    }
-    else
-    {
-        if(!ctx.use_hip_kernels)
-            return false;
-    }
+    if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx))
+        return false;
 
     if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
         return false;
