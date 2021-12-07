@@ -400,7 +400,7 @@ size_t TransposeSolutionWorkspaceBufTraits::GetSize() const
     return size;
 }
 
-size_t TransposeSolutionWorkspaceBufTraits::GetOffset(const size_t index) const
+size_t TransposeSolutionWorkspaceBufTraits::GetOffset(size_t index) const
 {
     if(index >= v_offset.size())
         MIOPEN_THROW("index given overflows");

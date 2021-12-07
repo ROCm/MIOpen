@@ -34,7 +34,7 @@
 #include <vector>
 #include <limits>
 
-#define WORKAROUND_ISSUE_1317 (MIOPEN_BACKEND_OPENCL)
+//#define WORKAROUND_ISSUE_1317 (MIOPEN_BACKEND_OPENCL)
 
 namespace miopen {
 
