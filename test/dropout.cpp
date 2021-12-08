@@ -362,4 +362,8 @@ struct dropout_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<dropout_driver>(argc, argv); }
+int main(int argc, const char* argv[])
+{
+    test_drive<dropout_driver>(argc, argv);
+    return 0;
+}

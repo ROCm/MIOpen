@@ -232,4 +232,8 @@ struct tensor_vec_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<tensor_vec_driver>(argc, argv); }
+int main(int argc, const char* argv[])
+{
+    test_drive<tensor_vec_driver>(argc, argv);
+    return 0;
+}

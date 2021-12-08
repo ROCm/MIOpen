@@ -335,4 +335,8 @@ struct lrn_driver<bfloat16> : test_driver
     void run() { std::cout << "bfloat16 is not supported in lrn" << std::endl; };
 };
 
-int main(int argc, const char* argv[]) { test_drive<lrn_driver>(argc, argv); };
+int main(int argc, const char* argv[])
+{
+    test_drive<lrn_driver>(argc, argv);
+    return 0;
+};

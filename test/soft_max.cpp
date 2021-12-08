@@ -456,4 +456,8 @@ struct softmax_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<softmax_driver>(argc, argv); }
+int main(int argc, const char* argv[])
+{
+    test_drive<softmax_driver>(argc, argv);
+    return 0;
+}

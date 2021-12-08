@@ -1334,5 +1334,5 @@ int main(int argc, const char* argv[])
     std::cout << "Wall clock: full SPATIAL test pass time: "
               << std::chrono::duration<double>(t_end - t_start).count() << " seconds." << std::endl;
 #endif
-    exit(0); // NOLINT (concurrency-mt-unsafe)
+    return 0;
 }
