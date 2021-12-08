@@ -958,4 +958,5 @@ int main(int argc, const char* argv[])
         test_drive<reduce_driver<double>>(argc, argv);
     else
         test_drive<reduce_driver<float>>(argc, argv);
+    return 0;
 };

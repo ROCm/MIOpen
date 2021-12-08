@@ -56,4 +56,8 @@ struct KBPTestDriver : test_driver
 } // namespace tests
 } // namespace miopen
 
-int main(int argc, const char** argn) { test_drive<miopen::tests::KBPTestDriver>(argc, argn); }
+int main(int argc, const char** argn)
+{
+    test_drive<miopen::tests::KBPTestDriver>(argc, argn);
+    return 0;
+}

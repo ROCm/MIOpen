@@ -204,4 +204,8 @@ struct tensor_cast_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<tensor_cast_driver>(argc, argv); }
+int main(int argc, const char* argv[])
+{
+    test_drive<tensor_cast_driver>(argc, argv);
+    return 0;
+}

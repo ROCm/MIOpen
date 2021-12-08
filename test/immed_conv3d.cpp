@@ -59,4 +59,8 @@ struct conv3d_driver : conv_driver<T, true>
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<conv3d_driver>(argc, argv); }
+int main(int argc, const char* argv[])
+{
+    test_drive<conv3d_driver>(argc, argv);
+    return 0;
+}

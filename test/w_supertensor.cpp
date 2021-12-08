@@ -592,4 +592,8 @@ struct superTensorTest : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<superTensorTest>(argc, argv); }
+int main(int argc, const char* argv[])
+{
+    test_drive<superTensorTest>(argc, argv);
+    return 0;
+}

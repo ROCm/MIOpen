@@ -62,4 +62,8 @@ struct rnn_vanilla_dropout_driver : rnn_basic_vanilla_driver<T>
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<rnn_vanilla_dropout_driver>(argc, argv); }
+int main(int argc, const char* argv[])
+{
+    test_drive<rnn_vanilla_dropout_driver>(argc, argv);
+    return 0;
+}

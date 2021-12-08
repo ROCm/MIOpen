@@ -41,4 +41,8 @@ struct conv2d_bias_driver : public conv_bias_driver<T>
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<conv2d_bias_driver>(argc, argv); }
+int main(int argc, const char* argv[])
+{
+    test_drive<conv2d_bias_driver>(argc, argv);
+    return 0;
+}

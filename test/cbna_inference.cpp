@@ -506,4 +506,8 @@ struct cbna_fusion_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<cbna_fusion_driver>(argc, argv); }
+int main(int argc, const char* argv[])
+{
+    test_drive<cbna_fusion_driver>(argc, argv);
+    return 0;
+}
