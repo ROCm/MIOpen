@@ -41,8 +41,4 @@ struct conv3d_bias_driver : public conv_bias_driver<T>
     }
 };
 
-int main(int argc, const char* argv[])
-{
-    test_drive<conv3d_bias_driver>(argc, argv);
-    return 0;
-}
+int main(int argc, const char* argv[]) { test_drive<conv3d_bias_driver>(argc, argv); }

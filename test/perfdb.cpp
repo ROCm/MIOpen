@@ -1499,5 +1499,4 @@ int main(int argc, const char* argv[])
 {
     miopen::tests::exe_path() = argv[0];
     test_drive<miopen::tests::PerfDbDriver>(argc, argv);
-    return 0;
 }

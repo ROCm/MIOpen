@@ -138,8 +138,4 @@ struct tensor_set_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[])
-{
-    test_drive<tensor_set_driver>(argc, argv);
-    return 0;
-}
+int main(int argc, const char* argv[]) { test_drive<tensor_set_driver>(argc, argv); }

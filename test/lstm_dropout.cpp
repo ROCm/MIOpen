@@ -66,8 +66,4 @@ struct lstm_dropout_driver : lstm_basic_driver<T>
     }
 };
 
-int main(int argc, const char* argv[])
-{
-    test_drive<lstm_dropout_driver>(argc, argv);
-    return 0;
-}
+int main(int argc, const char* argv[]) { test_drive<lstm_dropout_driver>(argc, argv); }

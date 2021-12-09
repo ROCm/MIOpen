@@ -60,8 +60,4 @@ struct gru_dropout_driver : gru_basic_driver<T>
     }
 };
 
-int main(int argc, const char* argv[])
-{
-    test_drive<gru_dropout_driver>(argc, argv);
-    return 0;
-}
+int main(int argc, const char* argv[]) { test_drive<gru_dropout_driver>(argc, argv); }

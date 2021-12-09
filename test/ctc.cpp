@@ -775,8 +775,4 @@ struct ctc_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[])
-{
-    test_drive<ctc_driver>(argc, argv);
-    return 0;
-}
+int main(int argc, const char* argv[]) { test_drive<ctc_driver>(argc, argv); }

@@ -70,8 +70,4 @@ struct pooling2d_driver : pooling_driver<T>
     }
 };
 
-int main(int argc, const char* argv[])
-{
-    test_drive<pooling2d_driver>(argc, argv);
-    return 0;
-}
+int main(int argc, const char* argv[]) { test_drive<pooling2d_driver>(argc, argv); }

@@ -449,8 +449,4 @@ struct cba_fusion_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[])
-{
-    test_drive<cba_fusion_driver>(argc, argv);
-    return 0;
-}
+int main(int argc, const char* argv[]) { test_drive<cba_fusion_driver>(argc, argv); }

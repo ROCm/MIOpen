@@ -451,8 +451,4 @@ struct tensor_transform_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[])
-{
-    test_drive<tensor_transform_driver>(argc, argv);
-    return 0;
-}
+int main(int argc, const char* argv[]) { test_drive<tensor_transform_driver>(argc, argv); }
