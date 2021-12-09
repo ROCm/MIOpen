@@ -887,7 +887,12 @@ pipeline {
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, gpu_arch: "gfx1030")
+                        // W/A: Use clang++ instead of g++.
+                        // On Ubuntu 18.04.5 LTS:
+                        // - With 5.11.0-25-generic and g++ 7.5.0 (drakkar development machine)
+                        //   the library fails to build due to internal GCC error.
+                        // - With 5.4.0-91-generic and g++ 7.5.0 (our current CI machines) the test hangs.
+                        buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx1030")
                     }
                 }
                 stage('Fp32 Hip All Install gfx1030') {
