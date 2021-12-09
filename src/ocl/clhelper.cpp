@@ -212,7 +212,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
     {
         ClProgramPtr result{CreateProgram(ctx, source.data(), source.size())};
         if(!miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
-            params += " -mwavefrontsize64 -mcumode";
+            params += " -Wf,-mwavefrontsize64 -Wf,-mcumode";
 #if MIOPEN_BUILD_DEV
         params += " -Werror";
 #ifdef __linux__
