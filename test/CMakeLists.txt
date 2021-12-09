@@ -307,9 +307,8 @@ function(add_test_executable TEST_NAME)
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
-    if( WORKAROUND_ISSUE_1334
-        AND  (${TEST_NAME} MATCHES "test_activation"
-          OR (${TEST_NAME} MATCHES "test_pooling2d" AND MIOPEN_TEST_OPENCL)))
+    if(WORKAROUND_ISSUE_1334
+        AND (${TEST_NAME} MATCHES "test_activation") )
         set_tests_properties(${TEST_NAME} PROPERTIES RUN_SERIAL On)
     endif()
     if(NOT MIOPEN_EMBED_DB STREQUAL "")
