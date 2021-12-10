@@ -35,6 +35,8 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/version.h>
 
+#include <tuple> // std::ignore
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_KERNELS)
@@ -201,6 +203,7 @@ static bool IsAmdRocmOpencl(miopen::ExecutionContext& context)
 
 bool IsHipKernelsEnabled(const miopen::TargetProperties& target)
 {
+    std::ignore = target;
 #if MIOPEN_USE_HIP_KERNELS
 #if WORKAROUND_SWDEV_292187
     if(target.Name() == "gfx1030")
@@ -218,6 +221,7 @@ static bool IsOpenclConvolutionsEnabled(const miopen::TargetProperties& target)
     if(target.Name() == "gfx1030")
         return miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
 #endif // WORKAROUND_SWDEV_292187
+    std::ignore = target;
     return !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
 }
 
