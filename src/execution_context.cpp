@@ -212,12 +212,21 @@ bool IsHipKernelsEnabled(const miopen::TargetProperties& target)
 #endif
 }
 
+static bool IsOpenclConvolutionsEnabled(const miopen::TargetProperties& target)
+{
+#if WORKAROUND_SWDEV_292187
+    if(target.Name() == "gfx1030")
+        return miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
+#endif // WORKAROUND_SWDEV_292187
+    return !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
+}
+
 void miopen::ExecutionContext::DetectRocm()
 {
     use_binaries            = false;
     use_asm_kernels         = false;
     use_hip_kernels         = IsHipKernelsEnabled(GetStream().GetTargetProperties());
-    use_opencl_convolutions = !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
+    use_opencl_convolutions = IsOpenclConvolutionsEnabled(GetStream().GetTargetProperties());
     rmv                     = rocm_meta_version::Default;
     if(IsAmdRocmOpencl(*this))
     {
