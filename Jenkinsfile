@@ -794,7 +794,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("gfx908") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, gpu_arch: "gfx908")
                     }
@@ -804,7 +804,7 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true", gpu_arch: "gfx90a:xnack-")
                     }
