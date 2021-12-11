@@ -545,7 +545,7 @@ pipeline {
                     }
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF')
+                        buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off")
                     }
                 }
                 stage('Fp32 Hip Normal-Find') {
