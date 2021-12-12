@@ -111,9 +111,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 #endif
 #endif
 
-// Temporary workaround for SWDEV-308265.
-// '__hipGetPCH' is not available since 4.4
-#if HIP_SUPPORTS_PCH && (HIP_PACKAGE_VERSION_FLAT > 4004000000)
+// '__hipGetPCH' is not available in [4.4, 5.0). See SWDEV-308265.
+#if HIP_SUPPORTS_PCH && (HIP_PACKAGE_VERSION_FLAT >= 4004000000) && \
+    (HIP_PACKAGE_VERSION_FLAT < 5000000000)
 #undef HIP_SUPPORTS_PCH
 #define HIP_SUPPORTS_PCH 0
 #endif
