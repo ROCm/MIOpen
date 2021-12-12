@@ -58,6 +58,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
+
 #if MIOPEN_USE_COMGR
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27 1
 #endif
@@ -241,6 +243,8 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
     else
     {
         params += " " + GetCodeObjectVersionOption();
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
+            params += " -mwavefrontsize64 -mcumode";
         WriteFile(src, dir->path / filename);
         dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
     }

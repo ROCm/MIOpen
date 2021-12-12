@@ -47,7 +47,6 @@ option( MIOPEN_TEST_MLIR "Test for MLIR compilation backend" ${MIOPEN_USE_MLIR} 
 option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" ON)
-option( WORKAROUND_ISSUE_1148 "" ON)
 
 # Run the test suite to a depth limit
 #limit greater than 2 leads to prolonged testing more than 5hrs per stage.
@@ -164,6 +163,12 @@ endmacro()
 
 set_var_to_condition(WORKAROUND_ISSUE_1187_DEFAULT MIOPEN_TEST_GFX90A AND MIOPEN_TEST_FLOAT)
 option( WORKAROUND_ISSUE_1187 "" ${WORKAROUND_ISSUE_1187_DEFAULT})
+
+set_var_to_condition(WORKAROUND_ISSUE_1148_DEFAULT MIOPEN_TEST_GFX1030 AND MIOPEN_TEST_FLOAT)
+option( WORKAROUND_ISSUE_1148 "" ${WORKAROUND_ISSUE_1148_DEFAULT})
+
+set_var_to_condition(WORKAROUND_ISSUE_1334_DEFAULT MIOPEN_TEST_GFX1030 AND MIOPEN_TEST_FLOAT)
+option( WORKAROUND_ISSUE_1334 "" ${WORKAROUND_ISSUE_1334_DEFAULT})
 
 set_var_to_condition(WORKAROUND_SWDEV_292187_DEFAULT MIOPEN_TEST_GFX1030)
 option( WORKAROUND_SWDEV_292187 "" ${WORKAROUND_SWDEV_292187_DEFAULT})
@@ -305,9 +310,8 @@ function(add_test_executable TEST_NAME)
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
-    if(WORKAROUND_ISSUE_1148
-        AND MIOPEN_TEST_GFX1030
-        AND (${TEST_NAME} MATCHES "test_soft_max") )
+    if(WORKAROUND_ISSUE_1334
+        AND (${TEST_NAME} MATCHES "test_activation") )
         set_tests_properties(${TEST_NAME} PROPERTIES RUN_SERIAL On)
     endif()
     if(NOT MIOPEN_EMBED_DB STREQUAL "")
@@ -559,11 +563,7 @@ function(add_custom_test NAME)
     endif()
 
     if(WORKAROUND_ISSUE_1148
-        AND MIOPEN_TEST_GFX1030
-        AND (${NAME} MATCHES "test_conv_3d"
-          OR ${NAME} MATCHES "test_conv_group"
-          OR ${NAME} MATCHES "test_conv_extra"
-          OR ${NAME} MATCHES "test_conv_for_implicit_gemm" ))
+        AND (${NAME} MATCHES "test_conv_3d"))
         set_tests_properties(${NAME} PROPERTIES RUN_SERIAL On)
     endif()
 
