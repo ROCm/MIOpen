@@ -288,7 +288,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     unsigned int index = 0;
     unsigned int lid   = get_local_id(0);
     unsigned int grpid = get_group_id(0);
-#if MIO_LAYOUT_NHWC == 0
+#if !MIO_LAYOUT_NHWC
     unsigned int chwid = grpid * MIO_BN_HW;
 #endif
     unsigned int nidx  = 0;
@@ -307,7 +307,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #if(MIO_BN_USESAVED == 0)
     //==== CALC MEAN and VARIANCE ONCE AGAIN =======================
     _FLOAT_PREC variance = (_FLOAT_PREC)0.;
-#if(MIO_LAYOUT_NHWC == 0 && MIO_BN_HW >= 4096)
+#if !MIO_LAYOUT_NHWC && MIO_BN_HW >= 4096
     _FLOAT4 read4;
 #if(MIO_BN_N > MIO_BN_LOOP_UNROLL_MAXN)
     __attribute__((opencl_unroll_hint(4))) for(unsigned int k = lid << 2; k < MIO_BN_LESS4;
@@ -426,23 +426,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     _FLOAT_PREC4 xhat4;
 #endif
 #if(MIO_BN_N > MIO_BN_LOOP_UNROLL_MAXN)
-    __attribute__((opencl_unroll_hint(4))) for(unsigned int k =
-#if MIO_LAYOUT_NHWC == 1
-                                                   lid
-#else
-                                                   lid << 2
-#endif
-                                               ;
+    __attribute__((opencl_unroll_hint(4))) for(unsigned int k = lid << (2 * MIO_LAYOUT_NHWC);
                                                k < MIO_BN_LESS4;
                                                k += GRPRD)
 #else
-    __attribute__((opencl_unroll_hint(2))) for(unsigned int k =
-#if MIO_LAYOUT_NHWC == 1
-                                                   lid
-#else
-                                                   lid << 2
-#endif
-                                               ;
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid << (2 * MIO_LAYOUT_NHWC);
                                                k < MIO_BN_LESS4;
                                                k += GRPRD)
 #endif

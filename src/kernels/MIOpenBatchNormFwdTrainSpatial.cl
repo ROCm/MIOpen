@@ -243,7 +243,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     uint index = 0;
     uint lid   = get_local_id(0);
     uint grpid = get_group_id(0);
-#if MIO_LAYOUT_NHWC == 0
+#if !MIO_LAYOUT_NHWC
     uint chwid = grpid * MIO_BN_HW;
 #endif
     uint nidx  = 0;
@@ -256,7 +256,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#if(MIO_LAYOUT_NHWC == 0 && MIO_BN_HW >= 4096)
+#if !MIO_LAYOUT_NHWC && MIO_BN_HW >= 4096
     _FLOAT4 read4;
     __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid << 2; k < MIO_BN_LESS4;
                                                k += GRPRD)
@@ -351,14 +351,13 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     pvbias  = lcl_bias;
 
 #if(MIO_LAYOUT_NHWC == 1 || MIO_BN_REM == 0)
-    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid; k <
+    const unsigned int k_limit =
 #if MIO_LAYOUT_NHWC == 1
-                                                                     MIO_BN_NHW
+                                                                     MIO_BN_NHW;
 #else
-                                                                     MIO_BN_LESS
+                                                                     MIO_BN_LESS;
 #endif
-                                               ;
-                                               k += MIO_BN_GRP0)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid; k < k_limit; k += MIO_BN_GRP0)
     {
         nidx  = k / MIO_BN_HW;
         hwidx = k - (nidx * MIO_BN_HW);

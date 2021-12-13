@@ -147,41 +147,42 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
         }
         else
 #endif
-
+        {
             // clang-format off
-        if((in_nhw < 33554432 && in_cstride > 1024) ||
-                ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
-                ((in_cstride > 512) && bfpmixparm))
-        {
-            variant = 1;
-        }
-        else if(in_cstride <= 512)
-        {
-            variant = 0;
-        }
-        else
-        {
-            variant      = 2;
-            xlocalsize   = 1;
-            ylocalsize   = 1024;
-            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-            xgridsize    = c;
-            ygridsize    = segment * ylocalsize;
-            ldsgcn       = ylocalsize / 64;
-            ldsnogcn     = ylocalsize;
-        }
-        // clang-format on
+            if( (in_nhw < 33554432 && in_cstride > 1024) ||
+                    ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
+                    ((in_cstride > 512) && bfpmixparm))
+            {
+                variant = 1;
+            }
+            else if(in_cstride <= 512)
+            {
+                variant = 0;
+            }
+            else
+            {
+                variant      = 2;
+                xlocalsize   = 1;
+                ylocalsize   = 1024;
+                auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
+                xgridsize    = c;
+                ygridsize    = segment * ylocalsize;
+                ldsgcn       = ylocalsize / 64;
+                ldsnogcn     = ylocalsize;
+            }
+            // clang-format on
 
-        if((n > 768) && (in_cstride > 150) && bfp32parm)
-        {
-            variant      = 2;
-            xlocalsize   = 1;
-            ylocalsize   = 1024;
-            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-            xgridsize    = c;
-            ygridsize    = segment * ylocalsize;
-            ldsgcn       = ylocalsize / 64;
-            ldsnogcn     = ylocalsize;
+            if((n > 768) && (in_cstride > 150) && bfp32parm)
+            {
+                variant      = 2;
+                xlocalsize   = 1;
+                ylocalsize   = 1024;
+                auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
+                xgridsize    = c;
+                ygridsize    = segment * ylocalsize;
+                ldsgcn       = ylocalsize / 64;
+                ldsnogcn     = ylocalsize;
+            }
         }
     }
 
