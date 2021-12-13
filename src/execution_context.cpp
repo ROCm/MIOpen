@@ -24,18 +24,18 @@
  *
  *******************************************************************************/
 
+#include <miopen/env.hpp>
 #include <miopen/execution_context.hpp>
-
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/hip_build_utils.hpp>
-#include <miopen/stringutils.hpp>
-#include <miopen/version.h>
-
 #if MIOPEN_BACKEND_OPENCL
 #include <miopen/ocldeviceinfo.hpp>
 #endif
+#include <miopen/stringutils.hpp>
+#include <miopen/target_properties.hpp>
+#include <miopen/version.h>
 
-#include <miopen/env.hpp>
+#include <tuple> // std::ignore
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
@@ -201,21 +201,36 @@ static bool IsAmdRocmOpencl(miopen::ExecutionContext& context)
     return ret_bool;
 }
 
-bool IsHipKernelsEnabled()
+bool IsHipKernelsEnabled(const miopen::TargetProperties& target)
 {
+    std::ignore = target;
 #if MIOPEN_USE_HIP_KERNELS
+#if WORKAROUND_SWDEV_292187
+    if(target.Name() == "gfx1030")
+        return miopen::IsEnabled(MIOPEN_DEBUG_HIP_KERNELS{});
+#endif // WORKAROUND_SWDEV_292187
     return !miopen::IsDisabled(MIOPEN_DEBUG_HIP_KERNELS{});
 #else
     return miopen::IsEnabled(MIOPEN_DEBUG_HIP_KERNELS{});
 #endif
 }
 
+static bool IsOpenclConvolutionsEnabled(const miopen::TargetProperties& target)
+{
+#if WORKAROUND_SWDEV_292187
+    if(target.Name() == "gfx1030")
+        return miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
+#endif // WORKAROUND_SWDEV_292187
+    std::ignore = target;
+    return !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
+}
+
 void miopen::ExecutionContext::DetectRocm()
 {
     use_binaries            = false;
     use_asm_kernels         = false;
-    use_hip_kernels         = IsHipKernelsEnabled();
-    use_opencl_convolutions = !miopen::IsDisabled(MIOPEN_DEBUG_OPENCL_CONVOLUTIONS{});
+    use_hip_kernels         = IsHipKernelsEnabled(GetStream().GetTargetProperties());
+    use_opencl_convolutions = IsOpenclConvolutionsEnabled(GetStream().GetTargetProperties());
     rmv                     = rocm_meta_version::Default;
     if(IsAmdRocmOpencl(*this))
     {

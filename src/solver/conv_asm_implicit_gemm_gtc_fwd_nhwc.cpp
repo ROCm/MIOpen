@@ -777,6 +777,9 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
             workspace_size += trans_weight.GetSize();
         if(!trans_output.IsSkippable())
             workspace_size += trans_output.GetSize();
+
+        // 4 bytes alignment to do atomic add
+        workspace_size = ((workspace_size + 3) >> 2) << 2;
     }
 
     if(!ctx.IsFp32())
@@ -789,6 +792,11 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
 
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_ISSUE_1317
+    if(ctx.IsLayoutDefault())
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC{}))
+            return false;
+#endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC{}))
         return false;
 
