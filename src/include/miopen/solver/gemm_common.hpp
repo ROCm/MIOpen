@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,36 +23,22 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_TARGET_PROPERTIES_HPP
-#define GUARD_TARGET_PROPERTIES_HPP
 
-#include <boost/optional.hpp>
-#include <string>
+#ifndef GUARD_SOLVER_GEMM_COMMON_HPP_
+#define GUARD_SOLVER_GEMM_COMMON_HPP_
 
-#define WORKAROUND_SWDEV_292187 1
+#include <miopen/execution_context.hpp>
 
 namespace miopen {
+namespace conv {
+namespace solver {
+namespace gemm {
 
-struct Handle;
+bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx);
 
-struct TargetProperties
-{
-    const std::string& Name() const { return name; }
-    const std::string& DbId() const { return dbId; }
-    boost::optional<bool> Xnack() const { return xnack; }
-    boost::optional<bool> Sramecc() const { return sramecc; }
-    boost::optional<bool> SrameccReported() const { return sramecc_reported; }
-    void Init(const Handle*);
-
-    private:
-    void InitDbId();
-    std::string name;
-    std::string dbId;
-    boost::optional<bool> xnack            = boost::none;
-    boost::optional<bool> sramecc          = boost::none;
-    boost::optional<bool> sramecc_reported = boost::none;
-};
-
+} // namespace gemm
+} // namespace solver
+} // namespace conv
 } // namespace miopen
 
-#endif // GUARD_TARGET_PROPERTIES_HPP
+#endif

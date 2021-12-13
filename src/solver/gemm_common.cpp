@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,36 +23,37 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_TARGET_PROPERTIES_HPP
-#define GUARD_TARGET_PROPERTIES_HPP
 
-#include <boost/optional.hpp>
-#include <string>
+#include <miopen/config.h>
+#include <miopen/solver/gemm_common.hpp>
 
-#define WORKAROUND_SWDEV_292187 1
+#include <tuple> // std::ignore
+
+/// This W/A disables all GEMM convolution solvers for xDLOPs
+/// targets when MIOpenGEMM is used (OCL BE). More info at
+/// https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1315.
+///
+/// W/A affects ROCm releases starting from 4.5 and also
+/// pre-5.0 Mainline HIP builds, e.g. 9148.
+#define WORKAROUND_ISSUE_1315 (MIOPEN_USE_MIOPENGEMM && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL))
 
 namespace miopen {
+namespace conv {
+namespace solver {
+namespace gemm {
 
-struct Handle;
-
-struct TargetProperties
+bool IsWorkaroundIssue1315(const miopen::ExecutionContext& ctx)
 {
-    const std::string& Name() const { return name; }
-    const std::string& DbId() const { return dbId; }
-    boost::optional<bool> Xnack() const { return xnack; }
-    boost::optional<bool> Sramecc() const { return sramecc; }
-    boost::optional<bool> SrameccReported() const { return sramecc_reported; }
-    void Init(const Handle*);
+#if WORKAROUND_ISSUE_1315
+    const auto device = ctx.GetStream().GetTargetProperties().Name();
+    return (device == "gfx908") || (device == "gfx90a");
+#else
+    std::ignore = ctx;
+    return false;
+#endif
+}
 
-    private:
-    void InitDbId();
-    std::string name;
-    std::string dbId;
-    boost::optional<bool> xnack            = boost::none;
-    boost::optional<bool> sramecc          = boost::none;
-    boost::optional<bool> sramecc_reported = boost::none;
-};
-
+} // namespace gemm
+} // namespace solver
+} // namespace conv
 } // namespace miopen
-
-#endif // GUARD_TARGET_PROPERTIES_HPP
