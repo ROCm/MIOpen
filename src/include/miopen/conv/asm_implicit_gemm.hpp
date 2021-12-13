@@ -25,11 +25,16 @@
  *******************************************************************************/
 #ifndef CK_ASM_IMPLICITGEMM_HPP_
 #define CK_ASM_IMPLICITGEMM_HPP_
+
+#include <miopen/config.h>
+
 #include <string>
 #include <ostream>
 #include <tuple>
 #include <vector>
 #include <limits>
+
+#define WORKAROUND_ISSUE_1317 (MIOPEN_BACKEND_OPENCL)
 
 namespace miopen {
 
