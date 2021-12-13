@@ -41,6 +41,18 @@ bool AlwaysEnableConvDirectNaive = false;
 
 namespace solver {
 
+bool ConvDirectNaiveConvIsAssemblyKernel(const ConvolutionContext& ctx)
+{
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if((device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
+       ctx.IsLayoutDefault())
+    {
+        return true;
+    }
+    else
+        return false;
+}
+
 std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
 {
     std::ostringstream kernel_name;
@@ -85,13 +97,10 @@ std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
 
 std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx)
 {
-    const auto device_name = ctx.GetStream().GetDeviceName();
-    if(device_name == "gfx906" || device_name == "gfx908")
-    {
-        if(ctx.rmv.IsV3() && ctx.IsLayoutDefault())
-            return "naive_conv_gcn.s";
-    }
-    return "naive_conv.cpp";
+    if(ConvDirectNaiveConvIsAssemblyKernel(ctx))
+        return "naive_conv_gcn.s";
+    else
+        return "naive_conv.cpp";
 }
 
 std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
@@ -108,9 +117,7 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
 
 bool ConvDirectNaiveConvIsApplicableByKernelType(const ConvolutionContext& ctx)
 {
-    const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
-       ctx.IsLayoutDefault())
+    if(ConvDirectNaiveConvIsAssemblyKernel(ctx))
     {
         if(!ctx.use_asm_kernels)
             return false;
