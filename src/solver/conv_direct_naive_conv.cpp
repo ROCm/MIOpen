@@ -44,13 +44,8 @@ namespace solver {
 bool ConvDirectNaiveConvIsAssemblyKernel(const ConvolutionContext& ctx)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
-       ctx.IsLayoutDefault())
-    {
-        return true;
-    }
-    else
-        return false;
+    return (device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
+           ctx.IsLayoutDefault();
 }
 
 std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
