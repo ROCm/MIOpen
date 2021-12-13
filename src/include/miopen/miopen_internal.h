@@ -70,13 +70,12 @@ extern "C" {
  */
 typedef enum
 {
-    miopenConvolutionFindModeNormal        = 1, /*!< Normal mode */
-    miopenConvolutionFindModeFast          = 2, /*!< Fast mode */
-    miopenConvolutionFindModeHybrid        = 3, /*!< Hybrid mode */
-    miopenConvolutionFindModeFastHybrid    = 4, /*!< Fast Hybrid mode */
-    miopenConvolutionFindModeDynamicHybrid = 5, /*!< Dynamic Hybrid mode */
-    miopenConvolutionFindModeDefault =
-        miopenConvolutionFindModeDynamicHybrid, /*!< Default setting */
+    miopenConvolutionFindModeNormal        = 1,                         /*!< Normal mode */
+    miopenConvolutionFindModeFast          = 2,                         /*!< Fast mode */
+    miopenConvolutionFindModeHybrid        = 3,                         /*!< Hybrid mode */
+    miopenConvolutionFindModeFastHybrid    = 4,                         /*!< Fast Hybrid mode */
+    miopenConvolutionFindModeDynamicHybrid = 5,                         /*!< Dynamic Hybrid mode */
+    miopenConvolutionFindModeDefault = miopenConvolutionFindModeNormal, /*!< Default setting */
 } miopenConvolutionFindMode_t;
 
 /*! @brief Sets the Find Mode attribute in the convolution descriptor.
