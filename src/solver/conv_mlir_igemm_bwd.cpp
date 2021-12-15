@@ -37,16 +37,19 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD)
 namespace miopen {
 namespace solver {
 
-bool ConvMlirIgemmBwd::IsApplicable(const boost::any& ctx_) const
+bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD{}))
         return false;
     if(!ctx.direction.IsBackwardData())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+    // Note: ConvMlirIgemmBwd can run on a machine with xdlops support, however, it is
+    // guaranteed to be slower than its xdlops alternative, therefore disabling it to
+    // save compilation overhead
+    if(IsXdlopsSupport(ctx))
         return false;
 
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, false));

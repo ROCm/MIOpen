@@ -29,16 +29,20 @@
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
+#include <miopen/stringutils.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD)
 
 namespace miopen {
 namespace solver {
 
-bool ConvOclDirectFwd::IsApplicable(const boost::any& ctx_) const
+bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
+#if WORKAROUND_SWDEV_292187
+    if(StartsWith(params.GetStream().GetDeviceName(), "gfx10"))
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD{}))
+            return false;
+#endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD{}))
         return false;
     if(!params.use_opencl_convolutions)

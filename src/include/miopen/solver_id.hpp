@@ -50,6 +50,7 @@ enum class Primitive
     Batchnorm,
     Bias,
     Fusion,
+    Pooling,
 };
 
 struct Id

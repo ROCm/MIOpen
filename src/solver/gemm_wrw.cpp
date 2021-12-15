@@ -3,6 +3,7 @@
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/gemm_v2.hpp>
+#include <miopen/solver/gemm_common.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/util.hpp>
 
@@ -60,10 +61,12 @@ SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_
         return 1.0;
 }
 
-bool GemmWrwBase::IsApplicable(const ExecutionContext&,
+bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
                                const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
+    if(conv::solver::gemm::IsWorkaroundIssue1315(ctx))
+        return false;
     const auto& dyDesc = problem.GetIn();
     const auto& dwDesc = problem.GetWeights();
     const auto& xDesc  = problem.GetOut();
@@ -72,6 +75,7 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext&,
            !(IsAnyBufferBF16(xDesc, dyDesc, dwDesc) && !IsBF16PathValid) &&
            !(IsAnyBufferFp16(xDesc, dyDesc, dwDesc) && !IsFp16Supported);
 #else
+    std::ignore = ctx;
     std::ignore = problem;
     return false;
 #endif

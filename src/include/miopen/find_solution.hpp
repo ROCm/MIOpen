@@ -29,8 +29,11 @@
 
 #include <miopen/env.hpp>
 #include <miopen/conv_solution.hpp>
+#include <miopen/execution_context.hpp>
 #include <miopen/find_controls.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/solver.hpp>
 
 #include <limits>
 #include <vector>
@@ -121,6 +124,8 @@ template <class Solver, class Context, class Db>
 ConvSolution
 FindSolution(Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
 {
+    static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
+    static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");
     // TODO: This assumes all solutions are ConvSolution
     auto solution      = FindSolutionImpl(rank<1>{}, s, context, db, invoke_ctx);
     solution.solver_id = SolverDbId(s);
@@ -293,6 +298,35 @@ struct SolverContainer
             Solvers{}...);
 
         return found;
+    }
+
+    template <class Problem>
+    void ExecutePrimitive(Handle& handle,
+                          const Problem& problem,
+                          const AlgorithmName& algo,
+                          const AnyInvokeParams& invoke_params) const
+    {
+        const auto network_config = problem.MakeNetworkConfig();
+
+        if(const auto existingInvoker = handle.GetInvoker(network_config, boost::none, algo))
+        {
+            (*existingInvoker)(handle, invoke_params);
+            return;
+        }
+
+        auto ctx = ExecutionContext{&handle};
+        ctx.DetectRocm();
+        const auto slns = SearchForSolutions(ctx, problem, 1);
+
+        if(slns.empty())
+            MIOPEN_THROW(miopenStatusNotImplemented, "No solver found.");
+
+        const auto& sln = slns.front();
+        if(!sln.invoker_factory)
+            MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
+        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
+        handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
+        invoker(handle, invoke_params);
     }
 };
 

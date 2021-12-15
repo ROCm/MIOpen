@@ -337,10 +337,8 @@ bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(const ConvolutionContext& proble
     return c.IsValidValue() && c.IsValid(problem);
 }
 
-bool ConvAsmBwdWrW3x3::IsApplicable(const boost::any& ctx_) const
+bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3{}))
         return false;
     if(!params.use_asm_kernels)

@@ -472,10 +472,8 @@ bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ConvolutionContext& problem,
     return c.IsValidValue() && c.IsValid(problem);
 }
 
-bool ConvAsm1x1UV2::IsApplicable(const boost::any& ctx_) const
+bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2{}))
         return false;
     if(!params.use_asm_kernels)

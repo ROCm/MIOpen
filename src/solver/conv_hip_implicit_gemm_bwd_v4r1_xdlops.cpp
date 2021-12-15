@@ -807,10 +807,8 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ConvolutionContext
     return std::make_tuple(g, gemm_m, gemm_n, gemm_k);
 }
 
-bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const boost::any& ctx_) const
+bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
 #if WORKAROUND_ISSUE_1206
     if(ctx.IsFp32())
     {

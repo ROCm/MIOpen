@@ -37,10 +37,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
 namespace miopen {
 namespace solver {
 
-bool ConvAsm5x10u2v2f1::IsApplicable(const boost::any& ctx_) const
+bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2{}))
         return false;
     if(!params.use_asm_kernels)

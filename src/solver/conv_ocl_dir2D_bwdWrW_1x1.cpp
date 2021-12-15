@@ -39,16 +39,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 namespace miopen {
 namespace solver {
 
-bool ConvOclBwdWrW1x1::IsApplicable(const boost::any& ctx_) const
+bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
-#if WORKAROUND_SWDEV_266868
-    const std::string name = params.GetStream().GetDeviceName();
-    if(name.find("gfx10") != std::string::npos)
-        return false;
+#if WORKAROUND_SWDEV_266868 || WORKAROUND_SWDEV_292187
+    if(StartsWith(params.GetStream().GetDeviceName(), "gfx10"))
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
+            return false;
 #endif
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
         return false;
     if(!params.use_opencl_convolutions)
@@ -90,10 +87,8 @@ static inline int GetNPasses(const ConvolutionContext& params)
     return n_passes;
 }
 
-size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const boost::any& ctx_) const
+size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext& params) const
 {
-    auto params = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     const int n_passes = GetNPasses(params);
     if(((params.n_inputs & 0xF) == 0 && (params.n_outputs & 0xF) == 0) &&
        (n_passes > 1 && params.pad_h == 0 && params.pad_w == 0 &&

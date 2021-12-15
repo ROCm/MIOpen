@@ -45,10 +45,8 @@ const PerformanceConvMlirIgemmXdlops& PerformanceConvMlirIgemmXdlops::MlirHeuris
     return p;
 }
 
-bool ConvMlirIgemmFwdXdlops::IsApplicable(const boost::any& ctx_) const
+bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS{}))
         return false;

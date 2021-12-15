@@ -63,7 +63,11 @@
 #define USE_GEMM_FLAGS_PACK_INT8X4 (MIOPEN_ROCBLAS_VERSION_DECIMAL >= 238)
 
 /// Maintain API compatibility for versions not supporting FP16 alternate implementations
-#define USE_GEMM_FLAGS_FP16_ALT_IMPL (MIOPEN_ROCBLAS_VERSION_DECIMAL >= 242)
+#define USE_GEMM_FLAGS_FP16_ALT_IMPL (MIOPEN_ROCBLAS_VERSION_DECIMAL >= 243)
+/// Some 2.42 versions have rocblas_gemm_flags_fp16_alt_impl, but
+/// some do not, and that leads to build errors.
+/// Let's pass literal value as a workaround; there should be no harm.
+#define USE_GEMM_FLAGS_FP16_ALT_IMPL_242 (MIOPEN_ROCBLAS_VERSION_DECIMAL == 242)
 
 template <class... Ts>
 auto miopen_rocblas_gemm_ex(Ts... xs)
@@ -426,12 +430,14 @@ static inline uint32_t FlagsForRocblasFp32Fp16Call(const bool gfx90aFp16Alt)
 {
 #if USE_GEMM_FLAGS_FP16_ALT_IMPL
     return gfx90aFp16Alt ? rocblas_gemm_flags_fp16_alt_impl : 0;
+#elif USE_GEMM_FLAGS_FP16_ALT_IMPL_242
+    return gfx90aFp16Alt ? 0x4 : 0;
 #else
     std::ignore = gfx90aFp16Alt;
     return 0;
-#endif
+#endif // !USE_GEMM_FLAGS_FP16_ALT_IMPL
 }
-#endif //MIOPEN_USE_ROCBLAS
+#endif // MIOPEN_USE_ROCBLAS
 
 miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
@@ -557,8 +563,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl)
-            );
+                FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl));
         }
         break;
 
@@ -871,8 +876,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl)
-            );
+                FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl));
         }
         break;
 
@@ -1116,8 +1120,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     rocblas_datatype::rocblas_datatype_f32_r,
                     rocblas_gemm_algo::rocblas_gemm_algo_standard,
                     0,
-                    FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl)
-                );
+                    FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl));
             }
         }
         break;

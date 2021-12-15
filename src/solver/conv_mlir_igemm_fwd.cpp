@@ -155,16 +155,19 @@ PerformanceConvMlirIgemm ConvMlirIgemmFwd::Search(const ConvolutionContext& cont
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-bool ConvMlirIgemmFwd::IsApplicable(const boost::any& ctx_) const
+bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
 {
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD{}))
         return false;
     if(!ctx.direction.IsForward())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+    // Note: ConvMlirIgemmFwd can run on a machine with xdlops support, however, it is
+    // guaranteed to be slower than its xdlops alternative, therefore disabling it to
+    // save compilation overhead
+    if(IsXdlopsSupport(ctx))
         return false;
 
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, false));

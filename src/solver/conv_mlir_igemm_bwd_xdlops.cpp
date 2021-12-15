@@ -38,10 +38,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS)
 namespace miopen {
 namespace solver {
 
-bool ConvMlirIgemmBwdXdlops::IsApplicable(const boost::any& ctx_) const
+bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS{}))
         return false;

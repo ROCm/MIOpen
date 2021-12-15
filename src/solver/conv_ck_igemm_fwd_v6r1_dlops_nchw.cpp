@@ -79,10 +79,8 @@ bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::IsValid(const ConvolutionContext& c
         ck_utility::get_ck_convolution_problem_descriptor(ctx), compile_param);
 }
 
-bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const boost::any& ctx_) const
+bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) const
 {
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW{}))
         return false;
     if(!ctx.use_hip_kernels)
@@ -98,6 +96,9 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const boost::any& ctx_) const
     if(!(ctx.IsFp32() or ctx.IsFp16()))
         return false;
     if(ctx.group_counts != 1)
+        return false;
+    if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
+       ctx.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     {
@@ -240,10 +241,8 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
     return sol;
 }
 
-std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const boost::any& ctx_) const
+std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    auto ctx = boost::any_cast<const ConvolutionContext&>(ctx_);
-
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetMaxWorkSpaceSize(
         ck_utility::get_ck_convolution_problem_descriptor(ctx));
 }
