@@ -310,6 +310,9 @@ function(add_test_executable TEST_NAME)
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
+    if(WORKAROUND_ISSUE_1148
+        AND (${TEST_NAME} MATCHES "test_soft_max") )
+        set_tests_properties(${TEST_NAME} PROPERTIES RUN_SERIAL On)
     if(WORKAROUND_ISSUE_1334
         AND (${TEST_NAME} MATCHES "test_activation") )
         set_tests_properties(${TEST_NAME} PROPERTIES RUN_SERIAL On)
@@ -563,7 +566,10 @@ function(add_custom_test NAME)
     endif()
 
     if(WORKAROUND_ISSUE_1148
-        AND (${NAME} MATCHES "test_conv_3d"))
+        AND (${NAME} MATCHES "test_conv_3d"
+          OR ${NAME} MATCHES "test_conv_group"
+          OR ${NAME} MATCHES "test_conv_extra"
+          OR ${NAME} MATCHES "test_conv_for_implicit_gemm" ))
         set_tests_properties(${NAME} PROPERTIES RUN_SERIAL On)
     endif()
 
