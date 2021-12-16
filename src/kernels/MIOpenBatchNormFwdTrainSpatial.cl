@@ -41,6 +41,14 @@
 #include "batchnorm_functions.h"
 #include "reduction_functions.h"
 
+#ifndef MIO_LAYOUT_NHWC
+#define MIO_LAYOUT_NHWC 0
+#endif
+
+#if (MIO_LAYOUT_NHWC != 0) || (MIO_LAYOUT_NHWC != 1)
+#error MIO_LAYOUT_NHWC must be 0 or 1
+#endif
+
 #if(MIO_BN_VARIANT == 0)
 
 #define MIO_BN_SEGTMP_1 (MIO_BN_GRP0 / MIO_BN_HW)
@@ -180,14 +188,6 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #elif(MIO_BN_VARIANT == 1)
 
 //===========
-
-#ifndef MIO_LAYOUT_NHWC
-#define MIO_LAYOUT_NHWC 0
-#endif
-
-#if (MIO_LAYOUT_NHWC != 0) || (MIO_LAYOUT_NHWC != 1)
-#error MIO_LAYOUT_NHWC must be 0 or 1
-#endif
 
 #if MIO_LAYOUT_NHWC
 #define MIO_MAX_READ 1
