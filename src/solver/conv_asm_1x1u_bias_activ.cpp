@@ -111,7 +111,7 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeP
     // return GenericSearch(*this, cba_context, fused_invoke_ctx);
 #endif
 }
-
+/*
 bool ConvBiasActivAsm1x1U::IsApplicable(const ExecutionContext& context,
                                         const std::vector<miopen::ProblemDescriptionBase>& problems,
                                         const std::vector<solver::Primitive>& prims) const
@@ -124,7 +124,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const ExecutionContext& context,
     const auto params = ConvolutionContext{desc};
     return ConvAsm1x1U::IsApplicable(params);
 }
-
+*/
 ConvSolution
 ConvBiasActivAsm1x1U::GetSolution(const ExecutionContext& context,
                                   const std::vector<miopen::ProblemDescriptionBase>& problems,

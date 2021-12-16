@@ -110,10 +110,10 @@ std::ostream& operator<<(std::ostream& os, const ConvSolution& s)
 
 struct IdRegistryEntry
 {
-    std::string str_value          = "";
-    Primitive primitive            = Primitive::Convolution;
-    miopenConvAlgorithm_t convAlgo = miopenConvolutionAlgoDirect;
-    AnySolver solver               = {};
+    std::string str_value              = "";
+    Primitive primitive                = Primitive::Convolution;
+    miopenConvAlgorithm_t convAlgo     = miopenConvolutionAlgoDirect;
+    std::shared_ptr<SolverBase> solver = nullptr;
 };
 
 struct IdRegistryData
@@ -249,6 +249,16 @@ RegisterWithSolver(IdRegistryData& registry, uint64_t value, TSolver, miopenConv
     registry.value_to_entry.at(value).solver = TSolver{};
 }
 
+template <typename TSolver>
+inline bool
+RegisterWithPrimitive(IdRegistryData& registry, uint64_t value, TSolver, Primitive primitive)
+{
+    if(!Register(registry, value, primitive, SolverDbId(TSolver{})))
+        return false;
+    registry.value_to_entry.at(value).solver = TSolver{};
+    return true;
+}
+
 inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 {
     // When solver gets removed its registration line should be replaced with ++id to keep
@@ -261,7 +271,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvAsm3x3U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1UV2{}, miopenConvolutionAlgoDirect);
-    Register(registry, ++id, Primitive::Fusion, SolverDbId(ConvBiasActivAsm1x1U{}));
+    // RegisterWithPrimitive(registry, ++id, ConvBiasActivAsm1x1U{}, Primitive::Fusion);
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2f1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2b1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(

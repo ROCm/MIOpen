@@ -156,7 +156,7 @@ struct SolverMixin : SolverBase
     virtual float GetWti(const Context&) const { return -2.0; };
     virtual size_t GetWorkspaceSize(const Context&) const { return 0; };
 
-    bool IsApplicable(const boost::any& ctx) const final
+    bool IsApplicable(const boost::any& ctx) const override
     {
         return IsApplicable(boost::any_cast<const Context&>(ctx));
     }
@@ -298,12 +298,13 @@ using FusionProblemDescriptor = std::tuple<const ExecutionContext*,
                                            const std::vector<solver::Primitive>*>;
 struct ConvBiasActivAsm1x1U : public ConvAsm1x1U
 {
+    /*
     inline bool IsApplicable(const boost::any& problem) const override
     {
         const auto& ctx = boost::any_cast<const FusionProblemDescriptor&>(problem);
         return IsApplicable(*std::get<0>(ctx), *std::get<1>(ctx), *std::get<2>(ctx));
     }
-
+    */
     inline ConvSolution GetSolution(const FusionProblemDescriptor& problem,
                                     const PerformanceConfigConvBiasActivAsm1x1U& config,
                                     bool disableConfigOverrideFromEnv = false) const
@@ -324,9 +325,11 @@ struct ConvBiasActivAsm1x1U : public ConvAsm1x1U
                              const std::vector<solver::Primitive>& prims,
                              const PerformanceConfigConvAsm1x1U& config,
                              bool disableConfigOverrideFromEnv = false) const;
+    /*
     bool IsApplicable(const ExecutionContext& context,
                       const std::vector<miopen::ProblemDescriptionBase>& problems,
                       const std::vector<solver::Primitive>& prims) const;
+    */
 };
 
 struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1UV2>
