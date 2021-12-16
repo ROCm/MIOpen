@@ -47,7 +47,7 @@ static inline std::size_t GetTypeSize(const std::string& s)
 {
     if(s == "fp32")
         return miopen::GetTypeSize(miopenFloat);
-    if (s == "fp16")
+    if(s == "fp16")
         return miopen::GetTypeSize(miopenHalf);
     else
         return miopen::GetTypeSize(miopenBFloat16);
@@ -919,7 +919,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
                                                            // kernel is FP32, when using FP32 atomic
                            * (k / group) * c * y * x;
 
-    TransposeSolutionWorkspaceBufTraits wt({size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
+    MultiBufferWorkspaceTraits wt({size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
     workspace_size = wt.GetSize();
 
     return workspace_size;
@@ -1087,7 +1087,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     const size_t cast_size = need_cast ?
         miopen::GetTypeSize(miopenFloat) * k * (c / group) * y * x  : 0;
 
-    TransposeSolutionWorkspaceBufTraits wt({trans_input_size, trans_weight_size, trans_output_size, cast_size}, buf_alignment);
+    MultiBufferWorkspaceTraits wt({trans_input_size, trans_weight_size, trans_output_size, cast_size}, buf_alignment);
 
     trans_input_offset  = wt.GetOffset(0);
     trans_weight_offset = wt.GetOffset(1);
