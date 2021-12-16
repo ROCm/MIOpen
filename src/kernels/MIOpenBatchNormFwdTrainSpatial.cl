@@ -185,7 +185,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #define MIO_LAYOUT_NHWC 0
 #endif
 
-#if MIO_LAYOUT_NHWC == 1
+#if (MIO_LAYOUT_NHWC != 0) || (MIO_LAYOUT_NHWC != 1)
+#error MIO_LAYOUT_NHWC must be 0 or 1
+#endif
+
+#if MIO_LAYOUT_NHWC
 #define MIO_MAX_READ 1
 #define RD_BLK 1
 #define GRPRD (MIO_BN_GRP0 * RD_BLK)
@@ -301,7 +305,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     {
         nidx            = k / MIO_BN_HW;
         hwidx           = k - (nidx * MIO_BN_HW);
-#if MIO_LAYOUT_NHWC == 1
+#if MIO_LAYOUT_NHWC
         index           = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
         index = nidx * MIO_BN_CHW + chwid + hwidx;
@@ -316,7 +320,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         unsigned int remkey = lid + MIO_BN_LESS;
         nidx                = remkey / MIO_BN_HW;
         hwidx               = remkey - (nidx * MIO_BN_HW);
-#if MIO_LAYOUT_NHWC == 1
+#if MIO_LAYOUT_NHWC
         index               = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
         index = nidx * MIO_BN_CHW + chwid + hwidx;
@@ -350,9 +354,9 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     pvscale = lcl_scale;
     pvbias  = lcl_bias;
 
-#if(MIO_LAYOUT_NHWC == 1 || MIO_BN_REM == 0)
+#if(MIO_LAYOUT_NHWC || MIO_BN_REM == 0)
     const unsigned int k_limit =
-#if MIO_LAYOUT_NHWC == 1
+#if MIO_LAYOUT_NHWC
                                                                      MIO_BN_NHW;
 #else
                                                                      MIO_BN_LESS;
@@ -361,7 +365,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     {
         nidx  = k / MIO_BN_HW;
         hwidx = k - (nidx * MIO_BN_HW);
-#if MIO_LAYOUT_NHWC == 1
+#if MIO_LAYOUT_NHWC
         index = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
         index = nidx * MIO_BN_CHW + chwid + hwidx;
