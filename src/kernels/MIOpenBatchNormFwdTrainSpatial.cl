@@ -45,7 +45,7 @@
 #define MIO_LAYOUT_NHWC 0
 #endif
 
-#if (MIO_LAYOUT_NHWC != 0) || (MIO_LAYOUT_NHWC != 1)
+#if (MIO_LAYOUT_NHWC != 0) && (MIO_LAYOUT_NHWC != 1)
 #error "MIO_LAYOUT_NHWC must be 0 or 1"
 #endif
 
