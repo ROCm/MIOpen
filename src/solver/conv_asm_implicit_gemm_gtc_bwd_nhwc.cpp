@@ -915,7 +915,8 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
     size_t size_trans_weight = 0;
     size_t size_trans_output = 0;
     size_t size_tensor_cast  = 0;
-    size_t buf_alignment     = 256;
+    
+    constexpr size_t buf_alignment     = 256;
 
     size_t workspace_size = 0;
     if(is_nchw)
