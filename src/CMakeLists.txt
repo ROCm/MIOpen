@@ -37,6 +37,9 @@ add_subdirectory(sqlite)
 #     remain in the future)  perform final conversion (and rounding) of FP32
 #     to BF16 results. This affects the main functionality of the library.
 option( MIOPEN_USE_RNE_BFLOAT16 "Sets rounding scheme for bfloat16 type" ON )
+set ( MIOPEN_DEFAULT_FIND_MODE "" CACHE STRING "Sets the default find mode")
+set_property(CACHE MIOPEN_DEFAULT_FIND_MODE PROPERTY STRINGS 
+    Normal Fast Hybrid FastHybrid DynamicHybrid)
 
 configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BINARY_DIR}/include/miopen/config.h")
 

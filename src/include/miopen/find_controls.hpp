@@ -114,7 +114,7 @@ class FindMode
         FastHybrid,
         DynamicHybrid,
         End_,
-        Default_ = Normal,
+        Default_ = DynamicHybrid,
     };
 
     private:
