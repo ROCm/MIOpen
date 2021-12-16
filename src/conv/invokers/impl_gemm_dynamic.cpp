@@ -541,7 +541,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     int trans_weight_idx = -1;
     int trans_output_idx = -1;
 
-    size_t buf_alignment = 256;
+    constexpr size_t buf_alignment = 256;
 
     if(is_nchw)
     {
