@@ -468,7 +468,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
 
 #if(MIO_BN_REM4)
-    unsigned int remkey = lid << 2*(1 - MIO_LAYOUT_NHWC) + MIO_BN_LESS4;
+    unsigned int remkey = (lid << 2*(1 - MIO_LAYOUT_NHWC)) + MIO_BN_LESS4;
     nidx  = remkey / MIO_BN_HW;
     hwidx = remkey - (nidx * MIO_BN_HW);
     index = nidx * MIO_BN_CHW +
