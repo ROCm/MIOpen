@@ -194,6 +194,7 @@ set( MIOpen_Source
     include/miopen/magic_div.hpp
     include/miopen/util_sol.hpp
     include/miopen/solver/gemm_common.hpp
+    include/miopen/solver_base.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp

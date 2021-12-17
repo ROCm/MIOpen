@@ -162,12 +162,7 @@ struct AnySolver
         }
 
         AnySolver_tmpl(T obj) : value(std::move(obj)){};
-#if 0
-        bool IsApplicable2(const ExecutionContext& exec_ctx, const std::vector<ProblemDescriptionBase> problems, const std::vector<solver::Primitive> prims) const override
-        {
-            return value.IsApplicable2(exec_ctx, problems, prims);
-        }
-#endif
+
         bool IsApplicable(const ConvolutionContext& ctx) const override
         {
             return value.IsApplicable(ctx);

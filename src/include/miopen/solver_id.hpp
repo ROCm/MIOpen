@@ -29,6 +29,7 @@
 
 #include <miopen/logger.hpp>
 #include <miopen/conv_algo_name.hpp>
+#include <miopen/solver_base.hpp>
 
 #include <cstdint>
 #include <unordered_map>
@@ -64,7 +65,7 @@ struct Id
     Id(const char* str);
 
     std::string ToString() const;
-    AnySolver GetSolver() const;
+    std::shared_ptr<SolverBase> GetSolver() const;
     std::string GetAlgo(conv::Direction dir) const;
     miopenConvAlgorithm_t GetAlgo() const;
     Primitive GetPrimitive() const;

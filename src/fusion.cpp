@@ -985,8 +985,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         auto solver = solver_id.GetSolver();
         std::vector<ProblemDescriptionBase> pd;
         ExecutionContext ctx;
-        // if(solver.IsApplicable(ctx, pd, prims)) {}
-        // if(solver.IsApplicable(ctxts, prims))
+        // if(solver->IsApplicable(ctx, pd, prims)) {}
+        // if(solver->IsApplicable(ctxts, prims))
         // {
         //     sols.emplace(solver.GetSolution(), solver_id);
         // }

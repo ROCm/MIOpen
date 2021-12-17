@@ -165,10 +165,10 @@ std::string Id::ToString() const
     return IdRegistry().value_to_entry[value].str_value;
 }
 
-AnySolver Id::GetSolver() const
+std::shared_ptr<SolverBase> Id::GetSolver() const
 {
     const auto it = IdRegistry().value_to_entry.find(value);
-    return it != IdRegistry().value_to_entry.end() ? it->second.solver : AnySolver{};
+    return it != IdRegistry().value_to_entry.end() ? it->second.solver : nullptr;
 }
 
 std::string Id::GetAlgo(conv::Direction dir) const
@@ -246,7 +246,7 @@ RegisterWithSolver(IdRegistryData& registry, uint64_t value, TSolver, miopenConv
 {
     if(!Register(registry, value, SolverDbId(TSolver{}), algo))
         return;
-    registry.value_to_entry.at(value).solver = TSolver{};
+    registry.value_to_entry.at(value).solver = std::make_shared<TSolver>();
 }
 
 template <typename TSolver>
