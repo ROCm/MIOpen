@@ -67,6 +67,9 @@ extern "C" {
  * * Dynamic Hybrid: This mode is similar to Fast Hybrid, but in case of Find-db miss skips all
  * non-dynamic kernels, thus saving compilation time. Versus Fast Hybrid, we expect similar start-up
  * times but better GPU performance.
+ *
+ * * The default find mode may be queried by using the miopenGetConvolutionFindMode API described
+ * below
  */
 typedef enum
 {
@@ -75,8 +78,6 @@ typedef enum
     miopenConvolutionFindModeHybrid        = 3, /*!< Hybrid mode */
     miopenConvolutionFindModeFastHybrid    = 4, /*!< Fast Hybrid mode */
     miopenConvolutionFindModeDynamicHybrid = 5, /*!< Dynamic Hybrid mode */
-    miopenConvolutionFindModeDefault =
-        miopenConvolutionFindModeDynamicHybrid, /*!< Default setting */
 } miopenConvolutionFindMode_t;
 
 /*! @brief Sets the Find Mode attribute in the convolution descriptor.

@@ -114,7 +114,7 @@ class FindMode
         FastHybrid,
         DynamicHybrid,
         End_,
-        Default_ = DynamicHybrid,
+        Default_ = MIOPEN_DEFAULT_FIND_MODE,
     };
 
     private:
