@@ -104,66 +104,154 @@ set( MIOpen_Source
     fusion.cpp
     handle_api.cpp
     include/miopen/activ.hpp
+    include/miopen/activ/invoke_params.hpp
+    include/miopen/activ/problem_description.hpp
+    include/miopen/activ/solvers.hpp
     include/miopen/algorithm.hpp
+    include/miopen/allocator.hpp
     include/miopen/any_solver.hpp
     include/miopen/batch_norm.hpp
     include/miopen/batched_transpose_sol.hpp
+    include/miopen/batchnorm/invoke_params.hpp
+    include/miopen/batchnorm/problem_description.hpp
+    include/miopen/batchnorm/solvers.hpp
     include/miopen/bfloat16.hpp
+    include/miopen/binary_cache.hpp
     include/miopen/buffer_info.hpp
     include/miopen/bz2.hpp
     include/miopen/check_numerics.hpp
+    include/miopen/clhelper.hpp
     include/miopen/comgr.hpp
     include/miopen/common.hpp
+    include/miopen/conv/asm_implicit_gemm.hpp
+    include/miopen/conv/compiled_in_parameters.hpp
+    include/miopen/conv/context.hpp
+    include/miopen/conv/data_invoke_params.hpp
+    include/miopen/conv/fused_data_invoke_params.hpp
+    include/miopen/conv/invokers/gcn_asm_1x1u.hpp
+    include/miopen/conv/invokers/gcn_asm_1x1u_ss.hpp
+    include/miopen/conv/invokers/gcn_asm_1x1u_us.hpp
+    include/miopen/conv/invokers/gen_x_w_y_pad.hpp
+    include/miopen/conv/invokers/impl_gemm.hpp
+    include/miopen/conv/invokers/impl_gemm_dynamic.hpp
+    include/miopen/conv/invokers/mlir_impl_gemm.hpp
+    include/miopen/conv/invokers/ocl_wrw_rdc.hpp
+    include/miopen/conv/problem_description.hpp
+    include/miopen/conv/tensors.hpp
+    include/miopen/conv/wrw_invoke_params.hpp
     include/miopen/conv_algo_name.hpp
     include/miopen/conv_solution.hpp
     include/miopen/convolution.hpp
     include/miopen/convolution_fft.hpp
     include/miopen/ctc.hpp
+    include/miopen/datatype.hpp
     include/miopen/db.hpp
+    include/miopen/db_path.hpp
     include/miopen/db_record.hpp
     include/miopen/dropout.hpp
+    include/miopen/each_args.hpp
+    include/miopen/env.hpp
     include/miopen/errors.hpp
     include/miopen/exec_utils.hpp
+    include/miopen/execution_context.hpp
+    include/miopen/exp_backoff.hpp
+    include/miopen/expanduser.hpp
     include/miopen/find_controls.hpp
+    include/miopen/find_db.hpp
+    include/miopen/find_solution.hpp
     include/miopen/finddb_kernel_cache_key.hpp
+    include/miopen/float_equal.hpp
+    include/miopen/functional.hpp
     include/miopen/fusion.hpp
     include/miopen/fusion_ops.hpp
+    include/miopen/fusion_plan.hpp
     include/miopen/gcn_asm_utils.hpp
+    include/miopen/gemm_geometry.hpp
+    include/miopen/gemm_v2.hpp
     include/miopen/generic_search.hpp
     include/miopen/handle.hpp
+    include/miopen/handle_lock.hpp
     include/miopen/hip_build_utils.hpp
+    include/miopen/hipoc_kernel.hpp
+    include/miopen/hipoc_program.hpp
+    include/miopen/hipoc_program_impl.hpp
+    include/miopen/implicitgemm_params.hpp
+    include/miopen/invoke_params.hpp
     include/miopen/invoker.hpp
+    include/miopen/invoker_cache.hpp
+    include/miopen/kernel.hpp
     include/miopen/kernel_build_params.hpp
     include/miopen/kernel_cache.hpp
+    include/miopen/kernel_cache_key.hpp
+    include/miopen/kernel_info.hpp
+    include/miopen/kernel_warnings.hpp
+    include/miopen/legacy_exhaustive_search.hpp
+    include/miopen/load_file.hpp
     include/miopen/lock_file.hpp
+    include/miopen/logger.hpp
     include/miopen/lrn.hpp
     include/miopen/magic_div.hpp
+    include/miopen/make_unique.hpp
+    include/miopen/manage_ptr.hpp
     include/miopen/md_graph.hpp
+    include/miopen/md5.hpp
     include/miopen/mdg_expr.hpp
+    include/miopen/miopen_internal.h
+    include/miopen/miopengemm.hpp
     include/miopen/mlir_build.hpp
     include/miopen/mlo_internal.hpp
     include/miopen/mlo_utils.hpp
+    include/miopen/names.hpp
+    include/miopen/object.hpp
+    include/miopen/ocldeviceinfo.hpp
     include/miopen/oclkernel.hpp
+    include/miopen/op_kernel_args.hpp
+    include/miopen/par_for.hpp
+    include/miopen/perf_field.hpp
+    include/miopen/pooling
     include/miopen/pooling.hpp
+    include/miopen/pooling/invoke_params.hpp
+    include/miopen/pooling/problem_description.hpp
+    include/miopen/pooling/solvers.hpp
+    include/miopen/precalc_xorwow_skipahead_matrices.hpp
+    include/miopen/precalc_xorwow_skipahead_sequence_matrices.hpp
     include/miopen/problem_description.hpp
     include/miopen/ramdb.hpp
+    include/miopen/rank.hpp
     include/miopen/readonlyramdb.hpp
     include/miopen/reduce_common.hpp
+    include/miopen/reduce_tunables.hpp
     include/miopen/reducetensor.hpp
+    include/miopen/returns.hpp
     include/miopen/rnn.hpp
     include/miopen/rnn_util.hpp
     include/miopen/rocm_features.hpp
     include/miopen/sequences.hpp
+    include/miopen/serializable.hpp
+    include/miopen/simple_hash.hpp
     include/miopen/softmax.hpp
     include/miopen/solver.hpp
+    include/miopen/solver/ck_utility_common.hpp
+    include/miopen/solver/conv_direct_naive_conv.hpp
+    include/miopen/solver/convolution_context_interpreter.hpp
     include/miopen/solver/gemm_common.hpp
+    include/miopen/solver/implicitgemm_util.hpp
+    include/miopen/solver/mlir_common.hpp
     include/miopen/solver_id.hpp
+    include/miopen/stringutils.hpp
     include/miopen/target_properties.hpp
     include/miopen/temp_file.hpp
     include/miopen/tensor.hpp
+    include/miopen/tensor_extra.hpp
     include/miopen/tensor_layout.hpp
     include/miopen/tensor_ops.hpp
+    include/miopen/timer.hpp
+    include/miopen/tmp_dir.hpp
+    include/miopen/type_name.hpp
+    include/miopen/util.hpp
     include/miopen/util_sol.hpp
+    include/miopen/visit_float.hpp
+    include/miopen/write_file.hpp
     invoker_cache.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
