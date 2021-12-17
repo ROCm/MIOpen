@@ -314,8 +314,6 @@ struct MultiBufferWorkspaceTraits
     size_t GetSize() const;
     size_t GetOffset(size_t index) const;
 
-    size_t size;
-    int buffer_num;
     std::vector<size_t> v_size;
     std::vector<size_t> v_offset;
     size_t alignment;

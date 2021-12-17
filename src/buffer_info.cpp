@@ -152,7 +152,6 @@ MultiBufferWorkspaceTraits::MultiBufferWorkspaceTraits(std::initializer_list<siz
                                                        size_t alignment_)
     : v_size(v_size_), alignment(alignment_)
 {
-    buffer_num         = v_size.size();
     size_t each_offset = 0;
     v_offset.push_back(each_offset);
     for(auto each_size : v_size)
@@ -161,10 +160,9 @@ MultiBufferWorkspaceTraits::MultiBufferWorkspaceTraits(std::initializer_list<siz
         each_offset += each_size + padding;
         v_offset.push_back(each_offset);
     }
-    size = v_offset[buffer_num];
 }
 
-size_t MultiBufferWorkspaceTraits::GetSize() const { return size; }
+size_t MultiBufferWorkspaceTraits::GetSize() const { return v_offset.back(); }
 
 size_t MultiBufferWorkspaceTraits::GetOffset(size_t index) const
 {
