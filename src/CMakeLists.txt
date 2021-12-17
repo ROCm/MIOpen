@@ -208,7 +208,6 @@ set( MIOpen_Source
     include/miopen/op_kernel_args.hpp
     include/miopen/par_for.hpp
     include/miopen/perf_field.hpp
-    include/miopen/pooling
     include/miopen/pooling.hpp
     include/miopen/pooling/invoke_params.hpp
     include/miopen/pooling/problem_description.hpp
