@@ -238,8 +238,5 @@ static_assert(miopenConvolutionFindModeFastHybrid ==
 static_assert(miopenConvolutionFindModeDynamicHybrid ==
                   static_cast<miopenConvolutionFindMode_t>(FindMode::Values::DynamicHybrid),
               "API is not in sync with the implementation.");
-static_assert(miopenConvolutionFindModeDefault ==
-                  static_cast<miopenConvolutionFindMode_t>(FindMode::Values::Default_),
-              "API is not in sync with the implementation.");
 
 } // namespace miopen
