@@ -1,5 +1,4 @@
 def rocmnode(name) {
-<<<<<<< HEAD
     return 'rocmtest && miopen && ' + name
 }
 
@@ -277,42 +276,12 @@ pipeline {
         Tensile_build_env = "MIOPEN_DEBUG_HIP_KERNELS=0 "
         Tensile_setup = " -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF"
     }
-    parameters {
-        booleanParam(
-            name: "STATIC_CHECKS",
-            defaultValue: true,
-            description: "")
-        booleanParam(
-            name: "SMOKE_TESTS",
-            defaultValue: true,
-            description: "")
-        booleanParam(
-            name: "FULL_TESTS",
-            defaultValue: true,
-            description: "")
-        booleanParam(
-            name: "MIOPENTENSILE",
-            defaultValue: false,
-            description: "")
-        booleanParam(
-            name: "PACKAGES",
-            defaultValue: true,
-            description: "")
-    }
     stages{
         stage("Static checks"){
             when { expression { params.STATIC_CHECKS && !params.DISABLE_ALL_STAGES } }
             parallel{
-<<<<<<< HEAD
-                stage('Clang Tidy') {
-                    agent{  label rocmnode("nogpu") }
-||||||| merged common ancestors
-                stage('Clang Tidy') {
-                    agent{  label rocmnode("rocmtest") }
-=======
                 stage('Hip Tidy') {
                     agent{  label rocmnode("nogpu") }
->>>>>>> release/rocm-rel-4.3
                     environment{
                         setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
                         build_cmd = "make -j\$(nproc) -k analyze"
@@ -368,7 +337,6 @@ pipeline {
             parallel{
                stage('Fp32 OpenCL Debug + Codecov') {
                     agent{ label rocmnode("vega") }
->>>>>>> release/rocm-rel-4.3
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, codecov: true)
                     }
@@ -425,7 +393,6 @@ pipeline {
                 }
                 stage('Fp32 HipNoGPU Debug') {
                     agent{  label rocmnode("nogpu") }
->>>>>>> release/rocm-rel-4.3
                     environment{
                         HipNoGPU_flags = "-DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On"
                         build_cmd = "make -j\$(nproc)"
@@ -522,16 +489,6 @@ pipeline {
                 }
             }
         }
-<<<<<<< HEAD
-
-        // Run fp16, bfp16, and int8 quick tests
-        stage("Fast low precision"){
-            when { expression { params.SMOKE_TESTS } }
-||||||| merged common ancestors
-
-        // Run fp16, bfp16, and int8 quick tests
-        stage("Fast low precision"){
-=======
         stage("Smoke Fp16/Bf16/Int8"){
             when { expression { params.SMOKE_FP16_BF16_INT8 && !params.DISABLE_ALL_STAGES } }
             environment{
@@ -885,30 +842,14 @@ pipeline {
         stage("Packages"){
             when { expression { params.PACKAGES && !params.DISABLE_ALL_STAGES } }
             parallel {
-<<<<<<< HEAD
-                stage('OpenCL Release Package') {
-                    agent{ label rocmnode("nogpu") }
-||||||| merged common ancestors
-                stage('OpenCL Release Package') {
-                    agent{ label rocmnode("rocmtest") }
-=======
                 stage('OpenCL Package') {
                     agent{ label rocmnode("nogpu") }
->>>>>>> release/rocm-rel-4.3
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', package_build: "true", gpu_arch: "gfx900;gfx906;gfx908;gfx90a")
                     }
                 }
-<<<<<<< HEAD
-                stage("HIP Release Package /opt/rocm"){
-                    agent{ label rocmnode("nogpu") }
-||||||| merged common ancestors
-                stage("HIP Release Package /opt/rocm"){
-                    agent{ label rocmnode("rocmtest") }
-=======
                 stage("HIP Package /opt/rocm"){
                     agent{ label rocmnode("nogpu") }
->>>>>>> release/rocm-rel-4.3
                     steps{
                         buildHipClangJobAndReboot( package_build: "true", prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908;gfx90a")
                     }
