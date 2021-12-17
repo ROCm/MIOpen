@@ -308,7 +308,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #if MIO_LAYOUT_NHWC
         index           = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
-        index = nidx * MIO_BN_CHW + chwid + hwidx;
+        index           = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
         _FLOAT_PREC xin = (_FLOAT_PREC)(*(in + index));
         mean += xin;
@@ -323,7 +323,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #if MIO_LAYOUT_NHWC
         index               = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
-        index = nidx * MIO_BN_CHW + chwid + hwidx;
+        index               = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
         _FLOAT_PREC xin = (index < MIO_BN_NCHW) ? (_FLOAT_PREC)(*(in + index)) : (_FLOAT_PREC)0.;
         mean += xin;
