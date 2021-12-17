@@ -161,17 +161,9 @@ std::ostream& operator<<(std::ostream& os, const FindMode::Values& v)
 FindMode::Values GetFindModeValueImpl2()
 {
     const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_MODE{});
-    std::string str           = p_asciz;
     if(p_asciz == nullptr)
-    {
-#ifdef MIOPEN_DEFAULT_FIND_MODE
-        const std::string cmake_find_mode = MIOPEN_DEFAULT_FIND_MODE;
-        if(!cmake_find_mode.empty())
-            str = cmake_find_mode;
-#else
         return FindMode::Values::Default_;
-#endif
-    }
+    std::string str = p_asciz;
     for(auto& c : str)
         c = toupper(static_cast<unsigned char>(c));
     if(str == "NORMAL")
@@ -226,9 +218,6 @@ static_assert(miopenConvolutionFindModeFastHybrid ==
               "API is not in sync with the implementation.");
 static_assert(miopenConvolutionFindModeDynamicHybrid ==
                   static_cast<miopenConvolutionFindMode_t>(FindMode::Values::DynamicHybrid),
-              "API is not in sync with the implementation.");
-static_assert(miopenConvolutionFindModeDefault ==
-                  static_cast<miopenConvolutionFindMode_t>(FindMode::Values::Default_),
               "API is not in sync with the implementation.");
 
 } // namespace miopen
