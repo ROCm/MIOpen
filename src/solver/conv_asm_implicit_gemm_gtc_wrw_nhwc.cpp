@@ -795,6 +795,11 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::Search(const ConvolutionContext& ctx
 
 bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_ISSUE_1317
+    if(ctx.IsLayoutDefault())
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC{}))
+            return false;
+#endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC{}))
         return false;
 
@@ -903,6 +908,9 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
             workspace_size += trans_weight.GetSize();
         if(!trans_output.IsSkippable())
             workspace_size += trans_output.GetSize();
+
+        // 4 bytes alignment to do atomic add
+        workspace_size = ((workspace_size + 3) >> 2) << 2;
     }
 
     if(!ctx.IsFp32())
@@ -1071,7 +1079,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     MIOPEN_LOG_I2(SolverDbId(*this) << ": " << config.ToString() << msg.str());
 
-    const size_t cast_offset = is_nchw ? (trans_output_offset + trans_output_size) : 0;
+    // 4 bytes alignment to do atomic add
+    const size_t cast_offset = is_nchw ? (((trans_output_offset + trans_output_size + 3) >> 2) << 2) : 0;
     const size_t cast_size = need_cast ?
         miopen::GetTypeSize(miopenFloat) * k * (c / group) * y * x  : 0;
 

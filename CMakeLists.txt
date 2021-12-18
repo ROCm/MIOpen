@@ -132,7 +132,6 @@ else()
 endif()
 set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
-option(MIOPEN_USE_MLIR "Use MLIR -- EXPERIMENTAL" Off)
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
 
@@ -324,15 +323,19 @@ endif()
 set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT MIOPEN_EMBED_BUILD)
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
 
+set(MIOPEN_USE_MLIR_DEFAULT Off)
+option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
+
 if(MIOPEN_USE_MLIR)
     # REQUIRED is not supported before cmake 3.18
     find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
-    if(NOT BUILD_SHARED_LIBS AND MIOPEN_USE_COMGR)
+    if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
         message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
     endif()
 
     if(NOT LIBMLIRMIOPEN)
-        message(FATAL_ERROR "libMLIRMIOpen not found")
+        message(FATAL_ERROR "libMLIRMIOpen not found, please reinstall dependencies. \
+        Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
     else()
         message(STATUS "Build with libMLIRMIOpen: " ${LIBMLIRMIOPEN})
     endif()

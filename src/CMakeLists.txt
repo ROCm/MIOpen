@@ -109,6 +109,7 @@ set( MIOpen_Source
     solver/gemm.cpp
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
+    solver/gemm_common.cpp
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
@@ -121,6 +122,7 @@ set( MIOpen_Source
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
     batchnorm/problem_description.cpp
+    pooling/problem_description.cpp
     solver/batchnorm/forward_spatial_single.cpp
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_per_activation.cpp
@@ -128,6 +130,8 @@ set( MIOpen_Source
     solver/batchnorm/backward_spatial_single.cpp
     solver/batchnorm/backward_spatial_multiple.cpp
     solver/batchnorm/backward_per_activation.cpp
+    solver/pooling/forward2d.cpp
+    solver/pooling/forwardNd.cpp
     include/miopen/buffer_info.hpp
     ramdb.cpp
     include/miopen/temp_file.hpp
@@ -189,6 +193,7 @@ set( MIOpen_Source
     include/miopen/batched_transpose_sol.hpp
     include/miopen/magic_div.hpp
     include/miopen/util_sol.hpp
+    include/miopen/solver/gemm_common.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
