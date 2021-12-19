@@ -173,6 +173,9 @@ option( WORKAROUND_ISSUE_1334 "" ${WORKAROUND_ISSUE_1334_DEFAULT})
 set_var_to_condition(WORKAROUND_SWDEV_292187_DEFAULT MIOPEN_TEST_GFX1030)
 option( WORKAROUND_SWDEV_292187 "" ${WORKAROUND_SWDEV_292187_DEFAULT})
 
+set_var_to_condition(WORKAROUND_ISSUE_1317_DEFAULT MIOPEN_TEST_OPENCL)
+option( WORKAROUND_ISSUE_1317 "" ${WORKAROUND_ISSUE_1317_DEFAULT})
+
 if(NOT MIOPEN_TEST_MIOTENSILE)
 	if(MIOPEN_TEST_HALF)
 	    if(MIOPEN_BACKEND_OPENCL)
@@ -597,6 +600,10 @@ function(add_custom_test NAME)
     endif()
     if(WORKAROUND_SWDEV_292187
         AND (${NAME} MATCHES "test_conv_ck_igemm_fwd_v6r1_dlops_nchw" ))
+        set_tests_properties(${NAME} PROPERTIES DISABLED On)
+    endif()
+    if(WORKAROUND_ISSUE_1317
+        AND (${NAME} MATCHES "test_regression_opencl_float_mi100" ))
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
 endfunction()
