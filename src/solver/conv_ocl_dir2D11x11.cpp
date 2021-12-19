@@ -39,11 +39,6 @@ namespace solver {
 
 bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& params) const
 {
-#if WORKAROUND_SWDEV_292187
-    if(StartsWith(params.GetStream().GetDeviceName(), "gfx10") && params.IsFp16())
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11{}))
-            return false;
-#endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11{}))
         return false;
     if(!params.use_opencl_convolutions)
