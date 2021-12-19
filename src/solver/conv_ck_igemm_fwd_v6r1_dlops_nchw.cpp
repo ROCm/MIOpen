@@ -81,6 +81,11 @@ bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::IsValid(const ConvolutionContext& c
 
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_SWDEV_292187
+    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") && ctx.IsFp16())
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW{}))
+            return false;
+#endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW{}))
         return false;
     if(!ctx.use_hip_kernels)

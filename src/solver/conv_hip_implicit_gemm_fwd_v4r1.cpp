@@ -42,6 +42,11 @@ namespace solver {
 
 bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_SWDEV_292187
+    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") && ctx.IsFp16())
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1{}))
+            return false;
+#endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1{}))
         return false;
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
@@ -80,6 +85,11 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
 
 bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if WORKAROUND_SWDEV_292187
+    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") && ctx.IsFp16())
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1{}))
+            return false;
+#endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1{}))
         return false;
     if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
