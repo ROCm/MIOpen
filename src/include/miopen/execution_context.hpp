@@ -296,6 +296,6 @@ class AutoUseFastDynamicSolutions
     }
 };
 
-bool IsHipKernelsEnabled(const TargetProperties& target);
+bool IsHipKernelsEnabled();
 
 } // namespace miopen
