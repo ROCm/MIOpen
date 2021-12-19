@@ -456,7 +456,7 @@ template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& params) const
 {
 #if WORKAROUND_SWDEV_292187
-    if(StartsWith(params.GetStream().GetDeviceName(), "gfx10"))
+    if(StartsWith(params.GetStream().GetDeviceName(), "gfx10") && params.IsFp16())
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2{}))
             return false;
 #endif
