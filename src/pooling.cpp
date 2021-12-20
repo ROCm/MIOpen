@@ -228,8 +228,30 @@ TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(const TensorDescripto
 
 std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& yDesc) const
 {
-    return GetMode() == miopenPoolingMax ? yDesc.GetElementSize() * get_data_size(GetIndexType())
-                                         : 0;
+    const auto y_size       = yDesc.GetElementSize();
+    const auto e_size       = get_data_size(yDesc.GetType());
+    const auto index_e_size = get_data_size(yDesc.GetType());
+
+    const auto main_ws = GetMode() == miopenPoolingMax ? y_size * index_e_size : 0;
+
+    const auto labels        = tensor_layout_get_default(yDesc.GetSize());
+    std::size_t transpose_ws = 0;
+
+    if(yDesc.GetLayout(labels) != labels)
+    {
+        auto transposed_strides = std::vector<std::size_t>{};
+        const auto in_layout    = yDesc.GetLayout(labels);
+        tensor_layout_to_strides(yDesc.GetLengths(), labels, in_layout, transposed_strides);
+        const auto transposed_y =
+            TensorDescriptor{yDesc.GetType(), yDesc.GetLengths(), transposed_strides};
+
+        transpose_ws = 2 * transposed_y.GetElementSpace() * e_size;
+    }
+
+    MIOPEN_LOG_I("Requested workspace: 0x" << std::hex << main_ws << " + 0x" << transpose_ws
+                                           << ", total: 0x" << (main_ws + transpose_ws));
+
+    return main_ws + transpose_ws;
 }
 
 std::ostream& operator<<(std::ostream& stream, const PoolingDescriptor& x)

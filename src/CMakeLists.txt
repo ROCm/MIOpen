@@ -483,7 +483,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_filter.s
         kernels/xform_bidirect_winograd_data.s
         kernels/xform_bidirect_winograd_filter.s
-        kernels/xform_bidirect_winograd_out.s)
+        kernels/xform_bidirect_winograd_out.s
+        kernels/UniversalTranspose.cl)
 
     add_kernels("kernel.cpp" "MIOPEN_KERNEL_" "" "${MIOPEN_KERNELS}")
     add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "__INC" "${MIOPEN_KERNEL_INCLUDES}")

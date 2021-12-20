@@ -3297,6 +3297,7 @@ struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmIm
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     size_t ComputeKernelOccupancy() const;
+
     private:
     void SetParamsForKSplit(const ConvolutionContext& ctx, const size_t& occupancy);
 };

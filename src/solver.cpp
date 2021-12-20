@@ -498,6 +498,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Pooling, SolverDbId(pooling::PoolingForward2d{}));
     Register(registry, ++id, Primitive::Pooling, SolverDbId(pooling::PoolingForwardNd{}));
 
+    Register(registry, ++id, Primitive::Pooling, SolverDbId(pooling::TransposedPoolingFwd2d{}));
+    Register(registry, ++id, Primitive::Pooling, SolverDbId(pooling::TransposedPoolingFwdNd{}));
+
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

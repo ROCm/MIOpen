@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  *
  * MIT License
  *
@@ -561,6 +561,21 @@ shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::siz
     cl_int error = 0;
     auto r       = region{offset, size};
     auto mem = clCreateSubBuffer(data, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &r, &error);
+
+    if(error != CL_SUCCESS)
+    {
+        MIOPEN_LOG_I("CL_DEVICE_MEM_BASE_ADDR_ALIGN: 0x"
+                     << std::hex
+                     << GetDeviceInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>(
+                            GetDevice(this->GetStream())));
+
+        auto ss = std::ostringstream{};
+        ss << "Failed to allocate a subbuffer from 0x" << std::hex
+           << reinterpret_cast<std::ptrdiff_t>(data) << " with an offset 0x" << offset
+           << " and size 0x" << size << ". OpenCL error:";
+        MIOPEN_THROW_CL_STATUS(error, ss.str());
+    }
+
     return {mem, manage_deleter<decltype(&clReleaseMemObject), &clReleaseMemObject>{}};
 }
 
