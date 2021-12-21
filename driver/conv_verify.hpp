@@ -28,11 +28,11 @@
 
 #include <cassert>
 
-template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
-          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
-void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
-                                 std::vector<_Tgpu>& in,
-                                 std::vector<_Tgpu>& dout,
+template <typename Tgpu_ /* the data type used in GPU computations (usually half) */,
+          typename Tcheck_ /* the data type used in CPU checkings (usually double) */>
+void RunBackwardWeightsCPUVerify(std::vector<Tcheck_>& dwei_host,
+                                 std::vector<Tgpu_>& in,
+                                 std::vector<Tgpu_>& dout,
                                  const int in_n,
                                  const int in_c,
                                  const int in_h,
@@ -74,7 +74,7 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
     (void)wei_wstride; // -warn
     (void)out_wstride; // -warn
 #endif
-    std::vector<_Tcheck> t_wei(wei_n * wei_c * wei_h * wei_w, static_cast<_Tcheck>(0));
+    std::vector<Tcheck_> t_wei(wei_n * wei_c * wei_h * wei_w, static_cast<Tcheck_>(0));
     for(int o = 0; o < out_n; o++) // mini-batch size
     {
         for(int w = 0; w < out_c; w++) // out_channels (num filters)
@@ -96,9 +96,9 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
                                 {
                                     t_wei[w * wei_nstride + k * wei_cstride + x * wei_hstride +
                                           y] +=
-                                        static_cast<_Tcheck>(in[o * in_nstride + k * in_cstride +
+                                        static_cast<Tcheck_>(in[o * in_nstride + k * in_cstride +
                                                                 in_i * in_hstride + in_j]) *
-                                        static_cast<_Tcheck>(
+                                        static_cast<Tcheck_>(
                                             dout[o * out_nstride + w * out_cstride +
                                                  i * out_hstride + j]);
                                 }
@@ -119,7 +119,7 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
         assert(stride_h == 1);
         assert(stride_w == 1);
 
-        std::fill(dwei_host.begin(), dwei_host.end(), (static_cast<_Tcheck>(0));
+        std::fill(dwei_host.begin(), dwei_host.end(), (static_cast<Tcheck_>(0));
 
         int batch_sz              = out_n;
         int outputs               = out_c;
@@ -156,8 +156,8 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
 
                         for(int i = 0, c_i = i - pad_w; i < top_width; i++, ++c_i)
                         {
-                            _Tcheck top_val =
-                                static_cast<_Tcheck>(dout[top_df_off + j * top_df_stride + i]);
+                            Tcheck_ top_val =
+                                static_cast<Tcheck_>(dout[top_df_off + j * top_df_stride + i]);
 
                             for(int k = 0, c_j = j - pad_h; k < filter_size_h; ++k, ++c_j)
                             {
@@ -165,12 +165,12 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
                                 for(int l = 0, c_i = i - pad_w; l < filter_size_w; ++l, ++c_i)
                                 {
 
-                                    _Tcheck bot_val =
+                                    Tcheck_ bot_val =
                                         (c_j >= 0 && c_j < bot_height && c_i >= 0 &&
                                          c_i < bot_width)
-                                            ? static_cast<_Tcheck>(
+                                            ? static_cast<Tcheck_>(
                                                   in[bot_off + c_j * bot_stride + c_i])
-                                            : static_cast<_Tcheck>(0);
+                                            : static_cast<Tcheck_>(0);
 
                                     dwei_host[we_off + k * filter_size_w + l] += bot_val * top_val;
                                 }
@@ -190,7 +190,7 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
         assert(stride_h == stride_w);
         assert(pad_h == pad_w);
 
-        std::fill(dwei_host.begin(), dwei_host.end(), static_cast<_Tcheck>(0));
+        std::fill(dwei_host.begin(), dwei_host.end(), static_cast<Tcheck_>(0));
 
         int batch_sz = out_n;
         int outputs = out_c;
@@ -216,9 +216,9 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
         int stride = stride_w;
 
         // allocate raw data for in, dout, dwei for using im2col/gemm aDNN functions
-        _Tcheck * weights_df_v_ptr = new _Tcheck[weights_width * weights_height];
-        _Tcheck * top_df_ptr = new _Tcheck[out_n*out_c*out_h*out_w];
-        _Tcheck * bot_ptr = new _Tcheck[in_n*in_c*in_h*in_w];
+        Tcheck_ * weights_df_v_ptr = new Tcheck_[weights_width * weights_height];
+        Tcheck_ * top_df_ptr = new Tcheck_[out_n*out_c*out_h*out_w];
+        Tcheck_ * bot_ptr = new Tcheck_[in_n*in_c*in_h*in_w];
 
         // copy input (in) into packed
         for (int n = 0; n < in_n; n++)
@@ -230,9 +230,9 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
                     for (int w = 0; w < in_w; w++)
                     {
 //                        if (mode == miopenTranspose)
-//                            bot_ptr[n*in_c*in_h*in_w + c*in_h*in_w + h*in_w + w] = static_cast<_Tcheck>(dout[n*in_nstride + c*in_cstride + h*in_hstride + w]);
+//                            bot_ptr[n*in_c*in_h*in_w + c*in_h*in_w + h*in_w + w] = static_cast<Tcheck_>(dout[n*in_nstride + c*in_cstride + h*in_hstride + w]);
 //                        else
-                        bot_ptr[n*in_c*in_h*in_w + c*in_h*in_w + h*in_w + w] = static_cast<_Tcheck>(in[n*in_nstride + c*in_cstride + h*in_hstride + w]);
+                        bot_ptr[n*in_c*in_h*in_w + c*in_h*in_w + h*in_w + w] = static_cast<Tcheck_>(in[n*in_nstride + c*in_cstride + h*in_hstride + w]);
                     }
                 }
             }
@@ -250,26 +250,26 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
 //                        if (mode == miopenTranspose)
 //                            top_df_ptr[n*out_c*out_h*out_w + c*out_h*out_w + h*out_w + w] = in[n*out_nstride + c*out_cstride + h*out_hstride + w];
 //                        else
-                        top_df_ptr[n*out_c*out_h*out_w + c*out_h*out_w + h*out_w + w] = static_cast<_Tcheck>(dout[n*out_nstride + c*out_cstride + h*out_hstride + w]);
+                        top_df_ptr[n*out_c*out_h*out_w + c*out_h*out_w + h*out_w + w] = static_cast<Tcheck_>(dout[n*out_nstride + c*out_cstride + h*out_hstride + w]);
                     }
                 }
             }
         }
 
         int im2col_batch_stride = weights_width * top_width * top_height;
-        _Tcheck * im2col_ptr = new _Tcheck[im2col_batch_stride * batch_sz];
+        Tcheck_ * im2col_ptr = new Tcheck_[im2col_batch_stride * batch_sz];
 
 #define ADNN_MM_TRANSPOSE 1
-        memset(im2col_ptr, 0, im2col_batch_stride * batch_sz * sizeof(_Tcheck));
-        memset(weights_df_v_ptr, 0, weights_width * weights_height * sizeof(_Tcheck));
+        memset(im2col_ptr, 0, im2col_batch_stride * batch_sz * sizeof(Tcheck_));
+        memset(weights_df_v_ptr, 0, weights_width * weights_height * sizeof(Tcheck_));
         for (int b = 0; b < batch_sz; ++b)
         {
-            ADNN_im2col_cpu<_Tcheck>((const _Tcheck*)&bot_ptr[bot_batch_stride * b], inputs,
+            ADNN_im2col_cpu<Tcheck_>((const Tcheck_*)&bot_ptr[bot_batch_stride * b], inputs,
                 bot_height, bot_width, wei_h, wei_w, pad,
                 stride, &im2col_ptr[im2col_batch_stride * b]);
             // sum up over mini-batch
-            ADNN_mm_cpu<_Tcheck>((const _Tcheck*)&top_df_ptr[top_df_batch_stride * b], top_width * top_height, outputs, top_df_channel_stride, 0,
-                (const _Tcheck *)&im2col_ptr[im2col_batch_stride * b], top_width * top_height, weights_width, top_width * top_height, ADNN_MM_TRANSPOSE,
+            ADNN_mm_cpu<Tcheck_>((const Tcheck_*)&top_df_ptr[top_df_batch_stride * b], top_width * top_height, outputs, top_df_channel_stride, 0,
+                (const Tcheck_ *)&im2col_ptr[im2col_batch_stride * b], top_width * top_height, weights_width, top_width * top_height, ADNN_MM_TRANSPOSE,
                 weights_df_v_ptr, weights_width, weights_height, weights_df_v_stride, 0,
                 1, 1);
 
