@@ -47,7 +47,7 @@ static inline std::size_t GetTypeSize(const std::string& s)
 {
     if(s == "fp32")
         return miopen::GetTypeSize(miopenFloat);
-    if (s == "fp16")
+    if(s == "fp16")
         return miopen::GetTypeSize(miopenHalf);
     else
         return miopen::GetTypeSize(miopenBFloat16);

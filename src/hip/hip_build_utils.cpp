@@ -178,10 +178,9 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                          " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
                          ".hsaco --unbundle");
 
-    auto hsaco =
-        std::find_if(boost::filesystem::directory_iterator{tmp_dir->path}, {}, [](auto entry) {
-            return (entry.path().extension() == ".hsaco");
-        });
+    auto hsaco = std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
+                              {},
+                              [](auto entry) { return (entry.path().extension() == ".hsaco"); });
 
     if(hsaco == boost::filesystem::directory_iterator{})
     {

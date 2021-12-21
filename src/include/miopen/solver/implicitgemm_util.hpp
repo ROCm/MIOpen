@@ -213,8 +213,7 @@ static inline bool IsXdlopsSupport(const ConvolutionContext& c)
     // 2) llvm intrin may has incorrect results
     bool is_xdlops_supported = StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
                                StartsWith(c.GetStream().GetDeviceName(), "gfx90a");
-    return is_xdlops_supported &&
-           !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{});
+    return is_xdlops_supported && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{});
 }
 
 ///\todo remove
