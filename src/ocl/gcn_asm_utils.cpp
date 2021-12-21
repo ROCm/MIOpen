@@ -58,8 +58,6 @@ bool ValidateGcnAssembler() { return true; }
 #include <unistd.h>
 #endif // __linux__
 
-/// SWDEV-220166: hcc reports unknown target instead of amdgpu but reports "HCC" at least.
-#define WORKAROUND_SWDEV_220166 1
 /// SWDEV-233338: hip-clang reports unknown target instead of amdgpu.
 /// \todo Try to assemble AMD GCN source?
 #define WORKAROUND_SWDEV_233338 1
@@ -120,11 +118,6 @@ bool ValidateGcnAssemblerImpl()
     std::string clang_result_line;
     std::getline(clang_stdout, clang_result_line);
     MIOPEN_LOG_NQI2(clang_result_line);
-
-#if WORKAROUND_SWDEV_220166
-    if(clang_result_line.find("HCC") != std::string::npos)
-        return true;
-#endif
 
     if(clang_result_line.find("clang") != std::string::npos)
     {

@@ -57,9 +57,6 @@ struct external_tool_version_t
 
 external_tool_version_t HipCompilerVersion();
 
-bool IsHccCompiler();
-bool IsHipClangCompiler();
-
 class LcOptionTargetStrings
 {
     public:
