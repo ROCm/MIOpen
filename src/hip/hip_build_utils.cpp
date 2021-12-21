@@ -260,35 +260,4 @@ void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
     buf = bin_file_strm.str();
 }
 
-bool operator>(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
-{
-    if(lhs.major > rhs.major)
-        return true;
-    else if(lhs.major == rhs.major)
-    {
-        if(lhs.minor > rhs.minor)
-            return true;
-        else if(lhs.minor == rhs.minor)
-            return (lhs.patch > rhs.patch);
-        else
-            return false;
-    }
-    else
-        return false;
-}
-
-bool operator<(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
-{
-    return rhs > lhs;
-}
-bool operator>=(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
-{
-    return !(lhs < rhs);
-}
-
-bool operator<=(const external_tool_version_t& lhs, const external_tool_version_t& rhs)
-{
-    return !(lhs > rhs);
-}
-
 } // namespace miopen
