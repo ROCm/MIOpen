@@ -55,8 +55,6 @@ struct external_tool_version_t
     friend bool operator<=(const external_tool_version_t& lhs, const external_tool_version_t& rhs);
 };
 
-external_tool_version_t HipCompilerVersion();
-
 class LcOptionTargetStrings
 {
     public:

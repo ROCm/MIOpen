@@ -117,11 +117,11 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     if(params.find("-std=") == std::string::npos)
         params += " --std=c++11";
 
-    if(HipCompilerVersion() < external_tool_version_t{4, 1, 0})
-        params += " --cuda-gpu-arch=" + lots.device;
-    else
-        params += " --cuda-gpu-arch=" + lots.device + lots.xnack;
-
+#if HIP_PACKAGE_VERSION_FLAT < 4001000000ULL
+    params += " --cuda-gpu-arch=" + lots.device;
+#else
+    params += " --cuda-gpu-arch=" + lots.device + lots.xnack;
+#endif
     params += " --cuda-device-only";
     params += " -c";
     params += " -O3 ";
@@ -166,13 +166,13 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     // Unbundling is not required for HIP runtime && hip-clang
     tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
                      "--type=o "
-#if(HIP_PACKAGE_VERSION_FLAT >= 4001021072 && HIP_PACKAGE_VERSION_FLAT < 4002000000) || \
-    HIP_PACKAGE_VERSION_FLAT >= 4002021072
+#if(HIP_PACKAGE_VERSION_FLAT >= 4001021072ULL && HIP_PACKAGE_VERSION_FLAT < 4002000000ULL) || \
+    HIP_PACKAGE_VERSION_FLAT >= 4002021072ULL
                      "--targets=hipv4-amdgcn-amd-amdhsa-"
 #else
                      "--targets=hip-amdgcn-amd-amdhsa-"
 #endif
-                         + (HipCompilerVersion() < external_tool_version_t{4, 1, 0}
+                         + (HIP_PACKAGE_VERSION_FLAT < 4001000000ULL
                                 ? lots.device
                                 : (std::string{'-'} + lots.device + lots.xnack)) +
                          " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
@@ -258,20 +258,6 @@ void bin_file_to_str(const boost::filesystem::path& file, std::string& buf)
     std::ostringstream bin_file_strm;
     bin_file_strm << bin_file_ptr.rdbuf();
     buf = bin_file_strm.str();
-}
-
-static external_tool_version_t HipCompilerVersionImpl()
-{
-    external_tool_version_t version = {HIP_PACKAGE_VERSION_MAJOR, HIP_PACKAGE_VERSION_MINOR, HIP_PACKAGE_VERSION_PATCH};
-    MIOPEN_LOG_NQI(version.major << '.' << version.minor << '.' << version.patch);
-    return version;
-}
-
-external_tool_version_t HipCompilerVersion()
-{
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static auto once = HipCompilerVersionImpl();
-    return once;
 }
 
 bool operator>(const external_tool_version_t& lhs, const external_tool_version_t& rhs)

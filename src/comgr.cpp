@@ -953,10 +953,9 @@ void BuildAsm(const std::string& name,
         SetIsaName(action, target);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
-#if WORKAROUND_SWDEV_255735
-        if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-            if(target.Xnack() && !*target.Xnack())
-                optAsm.emplace_back("-mno-xnack");
+#if ROCM_FEATURE_ASM_REQUIRES_NO_XNACK_OPTION
+        if(target.Xnack() && !*target.Xnack())
+            optAsm.emplace_back("-mno-xnack");
 #endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);
