@@ -148,8 +148,7 @@ class FindMode
     template <class Context>
     bool IsHybrid(const Context& context) const
     {
-        return (value == Values::Hybrid || value == Values::DynamicHybrid) &&
-               IsEnabled(context);
+        return (value == Values::Hybrid || value == Values::DynamicHybrid) && IsEnabled(context);
     }
 
     template <class Context>

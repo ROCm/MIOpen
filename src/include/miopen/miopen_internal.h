@@ -60,10 +60,10 @@ extern "C" {
  * use the existing Find machinery. Slower start-up times than Fast Find, but no GPU performance
  * drop.
  *
- * * Dynamic Hybrid: Checks the Find-db for an entry. If there is a hit, uses that entry. If there is
- * a miss, uses the existing Find machinery with skipping non-dynamic kernels, thus saving compilation
- * time.slow-compiling kernels. Faster start-up times than Hybrid Find, but GPU performance may be
- * a bit worse.
+ * * Dynamic Hybrid: Checks the Find-db for an entry. If there is a hit, uses that entry. If there
+ * is a miss, uses the existing Find machinery with skipping non-dynamic kernels, thus saving
+ * compilation time.slow-compiling kernels. Faster start-up times than Hybrid Find, but GPU
+ * performance may be a bit worse.
  */
 typedef enum
 {

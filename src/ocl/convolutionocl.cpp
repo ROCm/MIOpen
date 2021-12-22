@@ -1124,8 +1124,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         }();
 
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
-            const auto network_config = problem.BuildConfKey();
-            const auto invoke_ctx     = conv::DataInvokeParams{InvokeType::Evaluate,
+            const auto network_config      = problem.BuildConfKey();
+            const auto invoke_ctx          = conv::DataInvokeParams{InvokeType::Evaluate,
                                                            {dyDesc, dy, wDesc, w, dxDesc, dx},
                                                            workSpace,
                                                            workSpaceSize,
