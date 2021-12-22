@@ -139,6 +139,9 @@ struct SolverBase
     // Returns the workspace size required by the solver for a given ConvolutionContext
     virtual size_t GetWorkspaceSize(const boost::any& ctx) const = 0;
 
+    // Must return true if a Solver has its own implementation of GetWorkspaceSize().
+    virtual bool MayNeedWorkspace() const { return false; }
+
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
     /// ConvSolution GetSolution(const ConvolutionContext& params) const;
@@ -277,6 +280,7 @@ struct ConvAsm1x1U : ConvSolver
                                         const AnyInvokeParams& invoke_ctx) const;
     bool IsApplicable(const ConvolutionContext& params) const override;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
+    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm1x1U& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -1409,6 +1413,7 @@ struct ConvHipImplicitGemmBwdDataV1R1 : ConvSolver
                              const PerformanceImplicitGemmBwdDataV1R1& config,
                              bool disableConfigOverrideFromEnv = false) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return true; }
 };
 
 struct ConvMlirIgemmBwd : ConvSolver
@@ -1477,6 +1482,7 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops : ConvSolver
                                   const PerformanceImplicitGemmBwdV1R1Xdlops& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmBwdV1R1Xdlops& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -1503,6 +1509,7 @@ struct ConvAsmImplicitGemmV4R1DynamicWrw : ConvSolver
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     bool IsDynamic() const override { return true; }
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
@@ -1511,6 +1518,7 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlops : ConvSolver
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     bool IsDynamic() const override { return true; }
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
@@ -1704,6 +1712,7 @@ struct ConvMPBidirectWinograd : ConvSolver
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsDynamic() const override { return true; }
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
+    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 
     // kernel_file_name for solver identification
@@ -1765,6 +1774,7 @@ struct ConvMPBidirectWinograd_xdlops : ConvSolver
                ConvHipImplicitGemmForwardV4R4Xdlops{}.GetWorkspaceSize(
                    GetTransformedConvContext(ctx));
     }
+    bool MayNeedWorkspace() const { return true; }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmForwardV4R4Xdlops& config,
@@ -1833,6 +1843,7 @@ struct ConvWinograd3x3MultipassWrW : ConvSolver
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsDynamic() const override { return true; }
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
+    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 
     // kernel_file_name for solver identification
@@ -2046,6 +2057,7 @@ struct ConvAsmBwdWrW1x1 : ConvSolver
                                              const AnyInvokeParams& invoke_ctx) const;
     bool IsApplicable(const ConvolutionContext& params) const override;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
+    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsmBwdWrW1x1& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -2123,6 +2135,7 @@ struct ConvOclBwdWrW2 : ConvSolver
                                                           const AnyInvokeParams& invoke_ctx) const;
     bool IsApplicable(const ConvolutionContext& params) const override;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
+    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
                              bool disableConfigOverrideFromEnv = false) const;
@@ -2169,6 +2182,7 @@ struct ConvOclBwdWrW53 : ConvSolver
 {
     bool IsApplicable(const ConvolutionContext& params) const override;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
+    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
@@ -2177,12 +2191,14 @@ struct ConvOclBwdWrW1x1 : ConvSolver
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
+    bool MayNeedWorkspace() const override { return true; }
 };
 
 struct fft : ConvSolver
 {
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
@@ -2244,6 +2260,7 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops : ConvSolver
 {
     PerformanceImplicitGemmWrwV4R4Xdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return true; }
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmWrwV4R4Xdlops& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const override;
@@ -2321,6 +2338,7 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm : ConvSolver
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     GetPerformanceConfig(const ConvolutionContext& ctx) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return true; }
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& c) const;
     bool IsApplicable(const ConvolutionContext& ctx) const override;
@@ -2360,6 +2378,7 @@ struct ConvCkIgemmFwdV6r1DlopsNchw : ConvSolver
 {
     bool IsApplicable(const ConvolutionContext&) const override;
     size_t GetWorkspaceSize(const ConvolutionContext&) const override;
+    bool MayNeedWorkspace() const override { return true; }
     bool IsDynamic() const override { return true; }
     PerformanceConvCkIgemmFwdV6r1DlopsNchw GetPerformanceConfig(const ConvolutionContext&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
@@ -2426,6 +2445,7 @@ struct GemmFwd1x1_0_2 : GemmFwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
+    bool MayNeedWorkspace() const { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2452,6 +2472,7 @@ struct GemmFwd1x1_0_1_int8 : GemmFwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
+    bool MayNeedWorkspace() const { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2478,6 +2499,7 @@ struct GemmFwd1x1_0_1 : GemmFwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
+    bool MayNeedWorkspace() const { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2504,6 +2526,7 @@ struct GemmFwdRest : GemmFwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
+    bool MayNeedWorkspace() const { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2545,6 +2568,7 @@ struct GemmBwd1x1_stride2 : GemmBwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
+    bool MayNeedWorkspace() const { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2571,6 +2595,7 @@ struct GemmBwd1x1_stride1 : GemmBwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
+    bool MayNeedWorkspace() const { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2597,6 +2622,7 @@ struct GemmBwdRest : GemmBwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
+    bool MayNeedWorkspace() const { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2638,6 +2664,7 @@ struct GemmWrw1x1_stride1 : GemmWrwBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
+    bool MayNeedWorkspace() const { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2664,6 +2691,7 @@ struct GemmWrwUniversal : GemmWrwBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
+    bool MayNeedWorkspace() const { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -3061,6 +3089,7 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC : ConvSolver
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return true; }
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
@@ -3245,6 +3274,7 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC : ConvSolver
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return true; }
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
@@ -3433,6 +3463,7 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC : ConvSolver
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return true; }
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
