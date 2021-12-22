@@ -181,8 +181,6 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
 
     const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
     auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
-    ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-        findMode.IsFastHybrid(ctx);
     ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
     ctx.do_search                  = exhaustiveSearch;
     ctx.save_srch_req              = true;
@@ -220,8 +218,6 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
     auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
 
-    ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-        findMode.IsFastHybrid(ctx);
     ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
     ctx.do_search                  = exhaustiveSearch;
     ctx.save_srch_req              = true;
@@ -494,8 +490,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
         ctx.SetBufs(bufs);
-        ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-            findMode.IsFastHybrid(ctx);
         ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             DirConvFindCore(handle,
@@ -1136,9 +1130,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                            workSpace,
                                                            workSpaceSize,
                                                            this->attribute.gfx90aFp16alt.GetBwd()};
-
-            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
 
             // Find solutions
@@ -1494,8 +1485,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
             bufs.SetWrW(x, dw, dy);
-            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             ctx.do_search                  = exhaustiveSearch;
             ctx.SetStream(&handle);

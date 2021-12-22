@@ -358,8 +358,6 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         GetForwardSolutions(handle, wDesc, xDesc, yDesc, 1, &count, &sol, &fallback);
         if(count < 1 || (findMode.IsHybrid(ctx) && fallback))
         {
-            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
@@ -438,8 +436,6 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &sol, &fallback);
         if(count < 1 || (findMode.IsHybrid(ctx) && fallback))
         {
-            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
@@ -730,8 +726,6 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
         GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &sol, &fallback);
         if(count < 1 || (findMode.IsHybrid(ctx) && fallback))
         {
-            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
