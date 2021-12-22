@@ -1774,7 +1774,7 @@ struct ConvMPBidirectWinograd_xdlops : ConvSolver
                ConvHipImplicitGemmForwardV4R4Xdlops{}.GetWorkspaceSize(
                    GetTransformedConvContext(ctx));
     }
-    bool MayNeedWorkspace() const { return true; }
+    bool MayNeedWorkspace() const override { return true; }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmForwardV4R4Xdlops& config,
@@ -2445,7 +2445,7 @@ struct GemmFwd1x1_0_2 : GemmFwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
-    bool MayNeedWorkspace() const { return true; }
+    bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2472,7 +2472,7 @@ struct GemmFwd1x1_0_1_int8 : GemmFwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
-    bool MayNeedWorkspace() const { return true; }
+    bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2499,7 +2499,7 @@ struct GemmFwd1x1_0_1 : GemmFwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
-    bool MayNeedWorkspace() const { return true; }
+    bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2526,7 +2526,7 @@ struct GemmFwdRest : GemmFwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
-    bool MayNeedWorkspace() const { return true; }
+    bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2568,7 +2568,7 @@ struct GemmBwd1x1_stride2 : GemmBwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
-    bool MayNeedWorkspace() const { return true; }
+    bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2595,7 +2595,7 @@ struct GemmBwd1x1_stride1 : GemmBwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
-    bool MayNeedWorkspace() const { return true; }
+    bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2622,7 +2622,7 @@ struct GemmBwdRest : GemmBwdBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
-    bool MayNeedWorkspace() const { return true; }
+    bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2664,7 +2664,7 @@ struct GemmWrw1x1_stride1 : GemmWrwBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
-    bool MayNeedWorkspace() const { return true; }
+    bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -2691,7 +2691,7 @@ struct GemmWrwUniversal : GemmWrwBase
     {
         return GetWorkspaceSize(ctx, ctx.conv_problem);
     }
-    bool MayNeedWorkspace() const { return true; }
+    bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
