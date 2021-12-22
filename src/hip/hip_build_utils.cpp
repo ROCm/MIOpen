@@ -175,7 +175,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #if HIP_PACKAGE_VERSION_FLAT < 4001000000ULL
                          + lots.device
 #else
-                     + (std::string{'-'} + lots.device + lots.xnack))
+                         + (std::string{'-'} + lots.device + lots.xnack)
 #endif
                          + " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
                          ".hsaco --unbundle");
