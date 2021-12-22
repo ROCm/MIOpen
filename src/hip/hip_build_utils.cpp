@@ -172,10 +172,12 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #else
                      "--targets=hip-amdgcn-amd-amdhsa-"
 #endif
-                         + (HIP_PACKAGE_VERSION_FLAT < 4001000000ULL
-                                ? lots.device
-                                : (std::string{'-'} + lots.device + lots.xnack)) +
-                         " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
+#if HIP_PACKAGE_VERSION_FLAT < 4001000000ULL
+                         + lots.device
+#else
+                     + (std::string{'-'} + lots.device + lots.xnack))
+#endif
+                         + " --inputs=" + bin_file.string() + " --outputs=" + bin_file.string() +
                          ".hsaco --unbundle");
 
     auto hsaco = std::find_if(boost::filesystem::directory_iterator{tmp_dir->path},
