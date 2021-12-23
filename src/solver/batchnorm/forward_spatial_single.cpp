@@ -46,6 +46,9 @@ bool BnFwdTrainingSpatialSingle::IsApplicable(
        problem.GetMode() != miopenBNSpatial)
         return false;
 
+    if(problem.IsLayoutNHWC())
+        return true;
+
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
 
@@ -129,54 +132,58 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     unsigned int ldsgcn   = xlocalsize / 64;
     unsigned int ldsnogcn = xlocalsize;
 
+    if(!problem.IsLayoutNHWC())
+    {
 #if(WORKAROUND_SWDEV_253606 == 0)
-    if(n < 3)
-    {
-        variant    = 4;
-        xlocalsize = 256;
-        xgridsize  = c * xlocalsize;
-        ylocalsize = 1;
-        ygridsize  = 1;
-        ldsgcn     = xlocalsize / 64;
-        ldsnogcn   = xlocalsize;
-    }
-    else
+        if(n < 3)
+        {
+            variant    = 4;
+            xlocalsize = 256;
+            xgridsize  = c * xlocalsize;
+            ylocalsize = 1;
+            ygridsize  = 1;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
+        }
+        else
 #endif
+        {
+            // clang-format off
+            if( (in_nhw < 33554432 && in_cstride > 1024) ||
+                    ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
+                    ((in_cstride > 512) && bfpmixparm))
+            {
+                variant = 1;
+            }
+            else if(in_cstride <= 512)
+            {
+                variant = 0;
+            }
+            else
+            {
+                variant      = 2;
+                xlocalsize   = 1;
+                ylocalsize   = 1024;
+                auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
+                xgridsize    = c;
+                ygridsize    = segment * ylocalsize;
+                ldsgcn       = ylocalsize / 64;
+                ldsnogcn     = ylocalsize;
+            }
+            // clang-format on
 
-        // clang-format off
-    if((in_nhw < 33554432 && in_cstride > 1024) ||
-            ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
-            ((in_cstride > 512) && bfpmixparm))
-    {
-        variant = 1;
-    }
-    else if(in_cstride <= 512)
-    {
-        variant = 0;
-    }
-    else
-    {
-        variant      = 2;
-        xlocalsize   = 1;
-        ylocalsize   = 1024;
-        auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-        xgridsize    = c;
-        ygridsize    = segment * ylocalsize;
-        ldsgcn       = ylocalsize / 64;
-        ldsnogcn     = ylocalsize;
-    }
-    // clang-format on
-
-    if((n > 768) && (in_cstride > 150) && bfp32parm)
-    {
-        variant      = 2;
-        xlocalsize   = 1;
-        ylocalsize   = 1024;
-        auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-        xgridsize    = c;
-        ygridsize    = segment * ylocalsize;
-        ldsgcn       = ylocalsize / 64;
-        ldsnogcn     = ylocalsize;
+            if((n > 768) && (in_cstride > 150) && bfp32parm)
+            {
+                variant      = 2;
+                xlocalsize   = 1;
+                ylocalsize   = 1024;
+                auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
+                xgridsize    = c;
+                ygridsize    = segment * ylocalsize;
+                ldsgcn       = ylocalsize / 64;
+                ldsnogcn     = ylocalsize;
+            }
+        }
     }
 
     auto result = ConvSolution{miopenStatusSuccess};
@@ -204,6 +211,7 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             {"MIO_BN_GRP1", ylocalsize},
             {"MIO_BN_GRP2", zlocalsize},
             {"MIO_BN_GFX1030", ((handle.GetDeviceName() == "gfx1030") ? "1" : "0")},
+            {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
         };
 
         if(variant != 4)
