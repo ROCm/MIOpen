@@ -608,7 +608,6 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
     std::string _out_df_layout;
     std::string _out_df_data_type;
 };
-
 #define MLO_LRN_WITHIN_CHANNEL 0
 #define MLO_LRN_ACROSS_CHANNELS 1
 

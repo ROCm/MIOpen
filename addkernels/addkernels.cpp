@@ -104,7 +104,7 @@ void PrintHelp()
     std::cout << "           -n[o-recurse] : dont expand include files recursively. Default: off"
               << std::endl;
     std::cout << "           -m[ark-includes] : mark variables that represent include files with "
-                 "'__INC'. Default: off"
+                 "'_INCLUDE'. Default: off"
               << std::endl;
 }
 
@@ -196,7 +196,7 @@ void Process(const std::string& sourcePath,
     std::transform(variable.begin(), variable.end(), variable.begin(), ::toupper);
 
     if(mark_includes)
-        variable = variable + "__INC";
+        variable = variable + "_INCLUDE";
 
     if(as_extern && variable.length() != 0)
     {

@@ -109,6 +109,7 @@ set( MIOpen_Source
     solver/gemm.cpp
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
+    solver/gemm_common.cpp
     dropout.cpp
     dropout_api.cpp
     readonlyramdb.cpp
@@ -194,6 +195,7 @@ set( MIOpen_Source
     include/miopen/batched_transpose_sol.hpp
     include/miopen/magic_div.hpp
     include/miopen/util_sol.hpp
+    include/miopen/solver/gemm_common.hpp
     md_graph.cpp
     mdg_expr.cpp
     conv/invokers/gcn_asm_1x1u.cpp
@@ -488,7 +490,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_bidirect_winograd_out.s)
 
     add_kernels("kernel.cpp" "MIOPEN_KERNEL_" "" "${MIOPEN_KERNELS}")
-    add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "__INC" "${MIOPEN_KERNEL_INCLUDES}")
+    add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "_INCLUDE" "${MIOPEN_KERNEL_INCLUDES}")
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp

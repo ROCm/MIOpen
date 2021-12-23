@@ -32,6 +32,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/rocm_features.hpp>
+#include <miopen/solver/gemm_common.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/util.hpp>
@@ -77,10 +78,12 @@ static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
 }
 #endif
 
-bool GemmFwdBase::IsApplicable(const ExecutionContext&,
+bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx,
                                const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
+    if(conv::solver::gemm::IsWorkaroundIssue1315(ctx))
+        return false;
     const auto& xDesc = problem.GetIn();
     const auto& wDesc = problem.GetWeights();
     const auto& yDesc = problem.GetOut();
@@ -88,6 +91,7 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext&,
            !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBf16Supported) &&
            !(IsAnyBufferFp16(xDesc, yDesc, wDesc) && !IsFp16Supported);
 #else
+    std::ignore = ctx;
     std::ignore = problem;
     return false;
 #endif
