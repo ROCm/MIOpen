@@ -52,6 +52,10 @@ bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx) const
     // save compilation overhead
     if(IsXdlopsSupport(ctx))
         return false;
+    // Refer to https://github.com/ROCmSoftwarePlatform/llvm-project-private/issues/389
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if(StartsWith(device_name, "gfx900"))
+        return false;
 
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, false));
 #else
