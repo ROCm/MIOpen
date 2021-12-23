@@ -36,7 +36,7 @@ namespace miopen {
 class TempFile
 {
     public:
-    TempFile(const std::string& path_template);
+    TempFile(const std::string& path_infix);
 
     TempFile(TempFile&& other) noexcept : name(std::move(other.name)), dir(std::move(other.dir)) {}
 
