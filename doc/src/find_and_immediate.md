@@ -167,10 +167,10 @@ MIOpen provides a set of Find modes which are used to accelerate the Find calls.
 - `NORMAL`, or `1`: Normal Find: This is the full Find mode call, which will benchmark all the solvers and return a list.
 - `FAST`, or `2`: Fast Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, utilize the Immediate mode fallback. If Start-up times are expected to be faster, but worse GPU performance.
 - `HYBRID`, or `3`, or unset `MIOPEN_FIND_MODE`: Hybrid Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, use that entry. If there is a miss, use the existing Find machinery. Slower start-up times than Fast Find, but no GPU performance drop.
-- `FAST_HYBRID`, or `4`: Fast Hybrid Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, uses that entry. If there is a miss, uses the existing Find machinery with skipping slow-compiling kernels. Faster start-up times than Hybrid Find, but GPU performance is a bit worse.
-- `DYNAMIC_HYBRID`, or `5`: Dynamic Hybrid Find: This mode is similar to Fast Hybrid, but in case of Find-db miss, skips all non-dynamic kernels, thus saving compilation time. Versus FAST_HYBRID, we expect similar start-up times but better GPU performance. Use with caution, this mode is experimental for now.
+- `4`: This value is reserved and should not be used.
+- `DYNAMIC_HYBRID`, or `5`: Dynamic Hybrid Find: Checks the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html) for an entry. If there is a Find-Db hit, uses that entry. If there is a miss, uses the existing Find machinery with skipping non-dynamic kernels. Faster start-up times than Hybrid Find, but GPU performance may be a bit worse.
 
- As of MIOpen 2.7, the default mode is set to `HYBRID` mode as default. To run the full `NORMAL` Find mode, set the environment as:
+ Currently, the default Find mode is `DYNAMIC_HYBRID`. To run the full `NORMAL` Find mode, set the environment as:
  ```
  export MIOPEN_FIND_MODE=NORMAL
  ```
