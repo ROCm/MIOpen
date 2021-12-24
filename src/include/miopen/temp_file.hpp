@@ -38,21 +38,24 @@ class TempFile
     public:
     TempFile(const std::string& path_infix);
 
-    TempFile(TempFile&& other) noexcept : name(std::move(other.name)), dir(std::move(other.dir)) {}
+    TempFile(TempFile&& other) noexcept
+        : path_infix(std::move(other.path_infix)), dir(std::move(other.dir))
+    {
+    }
 
     TempFile& operator=(TempFile&& other) noexcept
     {
-        name = std::move(other.name);
-        dir  = std::move(other.dir);
+        path_infix = std::move(other.path_infix);
+        dir        = std::move(other.dir);
         return *this;
     }
 
-    const std::string& Name() const { return name; }
-    std::string Path() const { return (dir.path / name).string(); }
+    const std::string& GetPathInfix() const { return path_infix; }
+    std::string Path() const { return (dir.path / "file").string(); }
     operator std::string() const { return Path(); }
 
     private:
-    std::string name;
+    std::string path_infix;
     TmpDir dir;
 };
 } // namespace miopen
