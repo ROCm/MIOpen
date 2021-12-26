@@ -442,6 +442,12 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
                 }
             }
 
+            // Banchmarked kernels will not be used anymore.
+            // Now we can delete Program objects that belong to OCL/HIP
+            // runtime and free the associated resources (memory, file handles...)
+            for(const auto& kernelInfo : current_solution.construction_params)
+                profile_h.ClearProgram(kernelInfo.kernel_file, kernelInfo.comp_options);
+
             if(ret != 0)
             {
                 MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
@@ -467,7 +473,6 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
                           << n_best << ' ' << best_time << ' ' << best_config);
 
-    profile_h.ClearProgram();
     if(!is_passed)
         MIOPEN_THROW("Search failed");
     // Run once with the default config and show score.
