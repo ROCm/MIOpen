@@ -27,11 +27,15 @@
 #ifndef GUARD_MIOPEN_GENERIC_SEARCH_HPP_
 #define GUARD_MIOPEN_GENERIC_SEARCH_HPP_
 
+#include <miopen/binary_cache.hpp>
 #include <miopen/config.h>
-#include <miopen/logger.hpp>
+#include <miopen/conv/context.hpp>
+#include <miopen/conv_solution.hpp>
+#include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/invoke_params.hpp>
-#include <miopen/env.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/timer.hpp>
 
 #include <vector>
 #include <cstdlib>
@@ -39,12 +43,6 @@
 #include <iterator>
 #include <chrono>
 #include <cassert>
-
-#include <miopen/conv/context.hpp>
-#include <miopen/conv_solution.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/handle.hpp>
-#include <miopen/timer.hpp>
 
 namespace miopen {
 namespace solver {
@@ -340,21 +338,21 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
-// PrecompileKernels call saves to binary_cache, this needs to be escaped if KERN_CACHE is not on.
-#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-    std::vector<KernelInfo> kernels;
-    for(const auto& current_config : all_configs)
+    if(!miopen::IsCacheDisabled()) // Otherwise precompilation is useless.
     {
-        ConvSolution current_solution = s.GetSolution(context, current_config, true);
-        for(auto&& kernel : current_solution.construction_params)
+        std::vector<KernelInfo> kernels;
+        for(const auto& current_config : all_configs)
         {
-            if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
-                continue;
-            kernels.push_back(kernel);
+            ConvSolution current_solution = s.GetSolution(context, current_config, true);
+            for(auto&& kernel : current_solution.construction_params)
+            {
+                if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
+                    continue;
+                kernels.push_back(kernel);
+            }
         }
+        std::ignore = PrecompileKernels(profile_h, kernels);
     }
-    std::ignore = PrecompileKernels(profile_h, kernels);
-#endif
 
     if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
     {
