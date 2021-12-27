@@ -79,9 +79,8 @@ struct ExecutionContext
     // to optimize the getWorkspaceSize() calls for speed. This specific optimization is correct
     // because Solvers shall be written so that the required workspace size does not depend on the
     // performance config.
-    bool disable_perfdb_access                                                = false;
-    bool skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage = false;
-    bool use_dynamic_solutions_only                                           = false;
+    bool disable_perfdb_access      = false;
+    bool use_dynamic_solutions_only = false;
 
     inline Handle& GetStream() const { return *stream; }
     inline void SetStream(Handle* stream_) { stream = stream_; }
@@ -275,25 +274,18 @@ struct ExecutionContext
 
 class AutoUseFastDynamicSolutions
 {
-    bool prev_skip_slow_;
     bool prev_use_dynamic_;
     ExecutionContext* const ctx;
 
     public:
     AutoUseFastDynamicSolutions(ExecutionContext& ctx_) : ctx(&ctx_)
     {
-        prev_skip_slow_ = ctx->skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage;
         prev_use_dynamic_ = ctx->use_dynamic_solutions_only;
 
-        ctx->skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage = true;
-        ctx->use_dynamic_solutions_only                                           = true;
+        ctx->use_dynamic_solutions_only = true;
     }
 
-    ~AutoUseFastDynamicSolutions()
-    {
-        ctx->skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage = prev_skip_slow_;
-        ctx->use_dynamic_solutions_only = prev_use_dynamic_;
-    }
+    ~AutoUseFastDynamicSolutions() { ctx->use_dynamic_solutions_only = prev_use_dynamic_; }
 };
 
 bool IsHipKernelsEnabled(const TargetProperties& target);
