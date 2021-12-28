@@ -37,18 +37,8 @@ class TempFile
 {
     public:
     TempFile(const std::string& path_infix);
-
-    TempFile(TempFile&& other) noexcept
-        : path_infix(std::move(other.path_infix)), dir(std::move(other.dir))
-    {
-    }
-
-    TempFile& operator=(TempFile&& other) noexcept
-    {
-        path_infix = std::move(other.path_infix);
-        dir        = std::move(other.dir);
-        return *this;
-    }
+    TempFile(TempFile&& other) noexcept = default;
+    TempFile& operator=(TempFile&& other) noexcept = default;
 
     const std::string& GetPathInfix() const { return path_infix; }
     std::string Path() const { return (dir.path / "file").string(); }
