@@ -564,15 +564,19 @@ shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::siz
 
     if(error != CL_SUCCESS)
     {
-        MIOPEN_LOG_I("CL_DEVICE_MEM_BASE_ADDR_ALIGN: 0x"
-                     << std::hex
-                     << GetDeviceInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>(
-                            GetDevice(this->GetStream())));
-
         auto ss = std::ostringstream{};
         ss << "Failed to allocate a subbuffer from 0x" << std::hex
-           << reinterpret_cast<std::ptrdiff_t>(data) << " with an offset 0x" << offset
-           << " and size 0x" << size << ". OpenCL error:";
+           << reinterpret_cast<std::ptrdiff_t>(data) << " with an offset 0x" << r.origin
+           << " and size 0x" << r.size << ". ";
+
+        if(error == CL_MISALIGNED_SUB_BUFFER_OFFSET)
+        {
+            ss << "CL_DEVICE_MEM_BASE_ADDR_ALIGN: 0x" << std::hex
+               << GetDeviceInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>(GetDevice(this->GetStream()))
+               << " bits. ";
+        }
+
+        ss << "OpenCL error:";
         MIOPEN_THROW_CL_STATUS(error, ss.str());
     }
 

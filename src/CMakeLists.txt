@@ -204,6 +204,7 @@ set( MIOpen_Source
     invoker_cache.cpp
     tensor.cpp
     tensor_api.cpp
+    subbuffers.cpp
     solver.cpp
     solver/conv_asm_3x3u.cpp
     solver/conv_asm_1x1u.cpp

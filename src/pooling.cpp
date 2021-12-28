@@ -28,6 +28,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_layout.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/subbuffers.hpp>
 
 #include <cassert>
 #include <cmath>
@@ -229,8 +230,7 @@ TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(const TensorDescripto
 std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& yDesc) const
 {
     const auto y_size       = yDesc.GetElementSize();
-    const auto e_size       = get_data_size(yDesc.GetType());
-    const auto index_e_size = get_data_size(yDesc.GetType());
+    const auto index_e_size = get_data_size(GetIndexType());
 
     const auto main_ws = GetMode() == miopenPoolingMax ? y_size * index_e_size : 0;
 
@@ -239,17 +239,23 @@ std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& yDesc) c
 
     if(yDesc.GetLayout(labels) != labels)
     {
+        const auto e_size       = get_data_size(yDesc.GetType());
         auto transposed_strides = std::vector<std::size_t>{};
         const auto in_layout    = yDesc.GetLayout(labels);
         tensor_layout_to_strides(yDesc.GetLengths(), labels, in_layout, transposed_strides);
         const auto transposed_y =
             TensorDescriptor{yDesc.GetType(), yDesc.GetLengths(), transposed_strides};
 
-        transpose_ws = 2 * transposed_y.GetElementSpace() * e_size;
-    }
+        const auto y_transpose_size = transposed_y.GetElementSpace() * e_size;
+        // Todo: We do not have xDesc, so we infer that. But currently this is incorrect, x tensor
+        // is larger than y and should be calculated properly.
+        const auto x_transpose_size = y_transpose_size * 2;
+        const auto subbuffer_align  = GetSubbufferAlignment();
+        const auto align_after_mask = (subbuffer_align - main_ws) % subbuffer_align;
+        const auto align_after_x    = (subbuffer_align - x_transpose_size) % subbuffer_align;
 
-    MIOPEN_LOG_I("Requested workspace: 0x" << std::hex << main_ws << " + 0x" << transpose_ws
-                                           << ", total: 0x" << (main_ws + transpose_ws));
+        transpose_ws = align_after_mask + x_transpose_size + align_after_x + y_transpose_size;
+    }
 
     return main_ws + transpose_ws;
 }

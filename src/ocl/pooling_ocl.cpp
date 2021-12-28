@@ -115,8 +115,6 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         return tmp;
     }();
 
-    MIOPEN_LOG_I("Workspace: 0x" << std::hex << workSpace);
-
     const auto solvers = solver::SolverContainer<solver::pooling::PoolingForward2d,
                                                  solver::pooling::PoolingForwardNd,
                                                  solver::pooling::TransposedPoolingFwd2d,

@@ -29,6 +29,7 @@
 #include <miopen/solver.hpp>
 
 #include <miopen/datatype.hpp>
+#include <miopen/subbuffers.hpp>
 #include <miopen/tensor_layout.hpp>
 
 namespace miopen {
@@ -180,8 +181,8 @@ struct UniversalTransposeSolver : TransposePseudoSolver
 
             transposeKernel.kernel_file  = "UniversalTranspose.cl";
             transposeKernel.kernel_name  = "UniversalTranspose";
-            transposeKernel.g_wk         = {group_size, 1, 1};
-            transposeKernel.l_wk         = {group_size, 1, 1};
+            transposeKernel.g_wk         = {group_size * 16, 1, 1};
+            transposeKernel.l_wk         = {group_size * 16, 1, 1};
             transposeKernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
 
             sln.construction_params.emplace_back(std::move(transposeKernel));
@@ -216,6 +217,7 @@ class SegmentedGpuBuffer
     SegmentedGpuBuffer(const Handle& handle_, Data_t memory_, std::size_t offset_ = 0)
         : handle(&handle_), memory(memory_), offset(offset_)
     {
+        assert(handle);
     }
 
     SegmentedGpuBuffer(SegmentedGpuBuffer&)  = delete;
@@ -225,15 +227,11 @@ class SegmentedGpuBuffer
 
     miopen::shared<Data_t> operator()(std::size_t size)
     {
-        MIOPEN_LOG_I("Allocating 0x" << std::hex << size << " from 0x"
-                                     << reinterpret_cast<std::ptrdiff_t>(memory) << " + 0x"
-                                     << offset << ", total size: 0x" << (offset + size));
+        const auto align = GetSubbufferAlignment(handle);
+        offset += (align - offset) % align;
 
         const auto subbuffer = handle->CreateSubBuffer(memory, offset, size);
         offset += size;
-
-        MIOPEN_LOG_I("Allocated: 0x" << std::hex
-                                     << reinterpret_cast<std::ptrdiff_t>(subbuffer.get()));
 
         return subbuffer;
     }
@@ -341,7 +339,7 @@ class ProblemTensorTransposeInvoke
 
     void operator()(const Handle& handle) const
     {
-        auto time = handle.GetKernelTime();
+        const auto time = handle.GetKernelTime();
         invoker(handle, transpose_params);
         handle.AccumKernelTime(time);
     }
@@ -385,7 +383,7 @@ class ProblemTensorTransposeGroup
                                                     transposed_params);
             });
 
-        MIOPEN_LOG_I2("Executing the input solver transpose");
+        MIOPEN_LOG_I2("Executing the input transpose");
         for(const auto& transpose : inputs)
             transpose(*handle);
     }
@@ -397,7 +395,7 @@ class ProblemTensorTransposeGroup
 
     ~ProblemTensorTransposeGroup()
     {
-        MIOPEN_LOG_I2("Executing the output solver transpose");
+        MIOPEN_LOG_I2("Executing the output transpose");
         for(const auto& transpose : outputs)
             transpose(*handle);
     }
@@ -558,7 +556,7 @@ struct TransposingSolver : SolverBase<Context>
                     const auto& invoke_params = any_params.CastTo<InvokeParams>();
                     auto transposed_params    = invoke_params;
 
-                    MIOPEN_LOG_I("Workspace: 0x" << std::hex << invoke_params.workspace);
+                    handle.ResetKernelTime();
 
                     SegmentedGpuBuffer allocator{handle, invoke_params.workspace, ws_size};
 
@@ -571,7 +569,9 @@ struct TransposingSolver : SolverBase<Context>
 
                     // Execute the invoker provided by the inner solver
                     MIOPEN_LOG_I2("Executing the inner solver invoker");
+                    const auto time = handle.GetKernelTime();
                     invoker(handle, transposed_params);
+                    handle.AccumKernelTime(time);
                 };
             };
 
