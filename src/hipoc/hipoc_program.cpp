@@ -35,7 +35,7 @@
 #include <miopen/mlir_build.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/target_properties.hpp>
-#include <miopen/tmp_dir.hpp>
+#include <miopen/temp_file.hpp>
 #include <miopen/write_file.hpp>
 #include <miopen/env.hpp>
 #include <miopen/comgr.hpp>
@@ -59,6 +59,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
+
+#define MIOPEN_WORKAROUND_ISSUE_1359 1
 
 #if MIOPEN_USE_COMGR
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27 1
@@ -164,12 +166,18 @@ static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
 template <typename T> /// intended for std::string and std::vector<char>
 hipModulePtr CreateModuleInMem(const T& blob)
 {
+#if !MIOPEN_WORKAROUND_ISSUE_1359
     hipModule_t raw_m;
     auto status = hipModuleLoadData(&raw_m, reinterpret_cast<const void*>(blob.data()));
     hipModulePtr m{raw_m};
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Failed loading module");
     return m;
+#else
+    TempFile f("interim-hsaco");
+    WriteFile(blob, f.Path());
+    return CreateModule(f.Path());
+#endif
 }
 
 HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
