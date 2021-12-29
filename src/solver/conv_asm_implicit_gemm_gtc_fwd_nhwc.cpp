@@ -759,6 +759,14 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
     const auto& group     = ctx.group_counts;
     const auto is_nchw    = ctx.IsLayoutDefault();
     size_t workspace_size = 0;
+
+    size_t size_trans_input  = 0;
+    size_t size_trans_weight = 0;
+    size_t size_trans_output = 0;
+    size_t size_tensor_cast  = 0;
+
+    constexpr size_t buf_alignment = 256;
+
     if(is_nchw)
     {
 
@@ -772,31 +780,28 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
         TransposeSolutionNhwc2Default trans_output(ctx, ctx.out_data_type, n, k, ho, wo);
 
         if(!trans_input.IsSkippable())
-            workspace_size += trans_input.GetSize();
+            size_trans_input = trans_input.GetSize();
         if(!trans_weight.IsSkippable())
-            workspace_size += trans_weight.GetSize();
+            size_trans_weight = trans_weight.GetSize();
         if(!trans_output.IsSkippable())
-            workspace_size += trans_output.GetSize();
-
-        // 4 bytes alignment to do atomic add
-        workspace_size = ((workspace_size + 3) >> 2) << 2;
+            size_trans_output = trans_output.GetSize();
     }
 
     if(!ctx.IsFp32())
-        workspace_size += miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
-                                                           // kernel is FP32, when using FP32 atomic
-                          * n * k * ho * wo;
+        size_tensor_cast =
+            miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
+                                             // kernel is FP32, when using FP32 atomic
+            * n * k * ho * wo;
+
+    MultiBufferWorkspaceTraits wt(
+        {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
+    workspace_size = wt.GetSize();
 
     return workspace_size;
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
 {
-#if WORKAROUND_ISSUE_1317
-    if(ctx.IsLayoutDefault())
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC{}))
-            return false;
-#endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC{}))
         return false;
 
