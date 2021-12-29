@@ -133,8 +133,6 @@ struct Handle : miopenHandle
 
     bool HasProgram(const std::string& program_name, const std::string& params) const;
     void ClearProgram(const std::string& program_name, const std::string& params) const;
-    void ClearProgram() const;
-
     void AddProgram(Program prog, const std::string& program_name, const std::string& params) const;
 
     void Finish() const;

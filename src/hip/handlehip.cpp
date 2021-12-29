@@ -452,8 +452,6 @@ void Handle::ClearProgram(const std::string& program_name, const std::string& pa
     this->impl->cache.ClearProgram(program_name, params);
 }
 
-void Handle::ClearProgram() const { this->impl->cache.ClearProgram(); }
-
 void Handle::Finish() const
 {
     this->impl->set_ctx();

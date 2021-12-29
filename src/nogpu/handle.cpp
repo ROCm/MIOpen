@@ -152,8 +152,6 @@ void Handle::ClearProgram(const std::string& program_name, const std::string& pa
     this->impl->cache.ClearProgram(program_name, params);
 }
 
-void Handle::ClearProgram() const { this->impl->cache.ClearProgram(); }
-
 const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
                                                   const std::string& network_config) const
 {
