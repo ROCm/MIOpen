@@ -114,7 +114,7 @@ class FindMode
         Normal = Begin_,
         Fast,
         Hybrid,
-        FastHybrid,
+        DeprecatedFastHybrid,
         DynamicHybrid,
         End_,
         Default_ = MIOPEN_DEFAULT_FIND_MODE,
@@ -148,15 +148,7 @@ class FindMode
     template <class Context>
     bool IsHybrid(const Context& context) const
     {
-        return (value == Values::Hybrid || value == Values::FastHybrid ||
-                value == Values::DynamicHybrid) &&
-               IsEnabled(context);
-    }
-
-    template <class Context>
-    bool IsFastHybrid(const Context& context) const
-    {
-        return value == Values::FastHybrid && IsEnabled(context);
+        return (value == Values::Hybrid || value == Values::DynamicHybrid) && IsEnabled(context);
     }
 
     template <class Context>

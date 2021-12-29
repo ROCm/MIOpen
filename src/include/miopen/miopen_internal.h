@@ -60,13 +60,10 @@ extern "C" {
  * use the existing Find machinery. Slower start-up times than Fast Find, but no GPU performance
  * drop.
  *
- * * Fast Hybrid: Checks the Find-db for an entry. If there is a hit, use that entry. If there is a
- * miss, uses the existing Find machinery with skipping slow-compiling kernels. Faster start-up
- * times than Hybrid Find, but GPU performance is a bit worse.
- *
- * * Dynamic Hybrid: This mode is similar to Fast Hybrid, but in case of Find-db miss skips all
- * non-dynamic kernels, thus saving compilation time. Versus Fast Hybrid, we expect similar start-up
- * times but better GPU performance.
+ * * Dynamic Hybrid: Checks the Find-db for an entry. If there is a hit, uses that entry. If there
+ * is a miss, uses the existing Find machinery with skipping non-dynamic kernels, thus saving
+ * compilation time.slow-compiling kernels. Faster start-up times than Hybrid Find, but GPU
+ * performance may be a bit worse.
  *
  * * The default find mode may be queried by using the miopenGetConvolutionFindMode API described
  * below
@@ -76,7 +73,7 @@ typedef enum
     miopenConvolutionFindModeNormal        = 1, /*!< Normal mode */
     miopenConvolutionFindModeFast          = 2, /*!< Fast mode */
     miopenConvolutionFindModeHybrid        = 3, /*!< Hybrid mode */
-    miopenConvolutionFindModeFastHybrid    = 4, /*!< Fast Hybrid mode */
+    miopenConvolutionFindModeReserved_4    = 4, /*!< Reserved - do not use */
     miopenConvolutionFindModeDynamicHybrid = 5, /*!< Dynamic Hybrid mode */
 } miopenConvolutionFindMode_t;
 
