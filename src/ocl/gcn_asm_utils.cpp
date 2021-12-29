@@ -184,7 +184,7 @@ std::string AmdgcnAssemble(const std::string& source,
                            const miopen::TargetProperties& target)
 {
 #ifdef __linux__
-    miopen::TempFile outfile("amdgcn-asm-out-XXXXXX");
+    miopen::TempFile outfile("assembly");
 
     std::ostringstream options;
     options << " -x assembler -target amdgcn--amdhsa";
