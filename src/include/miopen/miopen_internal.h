@@ -64,6 +64,9 @@ extern "C" {
  * is a miss, uses the existing Find machinery with skipping non-dynamic kernels, thus saving
  * compilation time.slow-compiling kernels. Faster start-up times than Hybrid Find, but GPU
  * performance may be a bit worse.
+ *
+ * * The default find mode may be queried by using the miopenGetConvolutionFindMode API described
+ * below
  */
 typedef enum
 {
@@ -72,8 +75,6 @@ typedef enum
     miopenConvolutionFindModeHybrid        = 3, /*!< Hybrid mode */
     miopenConvolutionFindModeReserved_4    = 4, /*!< Reserved - do not use */
     miopenConvolutionFindModeDynamicHybrid = 5, /*!< Dynamic Hybrid mode */
-    miopenConvolutionFindModeDefault =
-        miopenConvolutionFindModeDynamicHybrid, /*!< Default setting */
 } miopenConvolutionFindMode_t;
 
 /*! @brief Sets the Find Mode attribute in the convolution descriptor.
