@@ -73,6 +73,9 @@
 //     to BF16 results. This affects the main functionality of the library.
 #cmakedefine01 MIOPEN_USE_RNE_BFLOAT16
 
+// clang-format off
+#cmakedefine MIOPEN_DEFAULT_FIND_MODE @MIOPEN_DEFAULT_FIND_MODE@
+// clang-format on
 #cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
 #cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
 #cmakedefine MIOPEN_HIP_COMPILER "@MIOPEN_HIP_COMPILER@"
