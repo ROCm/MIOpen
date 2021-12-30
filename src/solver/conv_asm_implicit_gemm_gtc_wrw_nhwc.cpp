@@ -1077,7 +1077,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
             trans_output_idx = idx++;
     }
 
-    MIOPEN_LOG_I2(SolverDbId(*this) << ": " << config.ToString() << msg.str());
+    MIOPEN_LOG_I2(SolverDbId() << ": " << config.ToString() << msg.str());
 
     // 4 bytes alignment to do atomic add
     const size_t cast_offset = is_nchw ? (((trans_output_offset + trans_output_size + 3) >> 2) << 2) : 0;
