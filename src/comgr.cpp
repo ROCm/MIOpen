@@ -51,7 +51,7 @@
 /// Correctness problems on MI200 with base driver 5.11.14 (~ROCm 4.3.1).
 /// With base driver 5.11.32 the errors disappear.
 /// More info at https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1257.
-#define WORKAROUND_ISSUE_1257 (HIP_PACKAGE_VERSION_FLAT >= 4003021331)
+#define WORKAROUND_ISSUE_1257 (HIP_PACKAGE_VERSION_FLAT >= 4003021331ULL)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
@@ -105,15 +105,15 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 #endif
 
 #if WORKAROUND_SWDEV_257056_PCH_INCORRECTLY_REPORTED
-#if(HIP_PACKAGE_VERSION_FLAT <= 3009999999)
+#if(HIP_PACKAGE_VERSION_FLAT <= 3009999999ULL)
 #undef HIP_SUPPORTS_PCH
 #define HIP_SUPPORTS_PCH 0
 #endif
 #endif
 
 // '__hipGetPCH' is not available in [4.4, 5.0). See SWDEV-308265.
-#if HIP_SUPPORTS_PCH && (HIP_PACKAGE_VERSION_FLAT >= 4004000000) && \
-    (HIP_PACKAGE_VERSION_FLAT < 5000000000)
+#if HIP_SUPPORTS_PCH && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL) && \
+    (HIP_PACKAGE_VERSION_FLAT < 5000000000ULL)
 #undef HIP_SUPPORTS_PCH
 #define HIP_SUPPORTS_PCH 0
 #endif
@@ -953,10 +953,9 @@ void BuildAsm(const std::string& name,
         SetIsaName(action, target);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
-#if WORKAROUND_SWDEV_255735
-        if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-            if(target.Xnack() && !*target.Xnack())
-                optAsm.emplace_back("-mno-xnack");
+#if ROCM_FEATURE_ASM_REQUIRES_NO_XNACK_OPTION
+        if(target.Xnack() && !*target.Xnack())
+            optAsm.emplace_back("-mno-xnack");
 #endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);
