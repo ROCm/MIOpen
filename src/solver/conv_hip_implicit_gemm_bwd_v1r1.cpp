@@ -656,9 +656,8 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
     if(ctx.group_counts != 1)
         return false;
 #if WORKAROUND_ISSUE_309
-    if(miopen::HipCompilerVersion() >= external_tool_version_t{3, 5, 0})
-        if(ctx.IsBfp16())
-            return false;
+    if(ctx.IsBfp16())
+        return false;
 #endif
     if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
         return false;

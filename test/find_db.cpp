@@ -213,12 +213,6 @@ struct FindDbTest : test_driver
         MIOPEN_LOG_I("Speedup: " << find_db_speedup);
 #if !MIOPEN_DISABLE_USERDB
         double limit = 3.0;
-#ifndef NDEBUG
-        // hcc debug builds are so slow at run time that the test may fail.
-        // We need to lower the threshold in this case:
-        if(miopen::IsHccCompiler())
-            limit = 1.5;
-#endif
         EXPECT_OP(find_db_speedup, >=, limit);
 #endif
     }
