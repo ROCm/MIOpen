@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#define CONV_MP_BIDIRECTIONAL_WINOGRAD_CPP
+
 #include <limits>
 #include <cassert>
 #include <miopen/solver.hpp>
