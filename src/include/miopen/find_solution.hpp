@@ -33,6 +33,7 @@
 #include <miopen/find_controls.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/solver.hpp>
 
 #include <limits>
 #include <vector>
@@ -123,8 +124,8 @@ template <class Solver, class Context, class Db>
 ConvSolution
 FindSolution(Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
 {
-    static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
-                  "Solver must be stateless");
+    static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
+    static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");
     // TODO: This assumes all solutions are ConvSolution
     auto solution      = FindSolutionImpl(rank<1>{}, s, context, db, invoke_ctx);
     solution.solver_id = SolverDbId(s);

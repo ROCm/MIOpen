@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#define CONV_OCL_DIR2D_BWDWRW_2_CPP
+
 #include <miopen/solver.hpp>
 
 #include <miopen/conv/invokers/ocl_wrw_rdc.hpp>
