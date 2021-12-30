@@ -167,19 +167,14 @@ static rocm_meta_version AmdRocmMetadataVersionDetect(const miopen::ExecutionCon
         }
 #else
         (void)context;
-        if(miopen::HipCompilerVersion() >=
-           miopen::external_tool_version_t{3, 5, 0}) // ROCm 3.5 RC and up
-            rmv = rocm_meta_version::AMDHSA_COv3;
-        else if(miopen::HipCompilerVersion() >=
-                miopen::external_tool_version_t{2, 10, 19392}) // ROCm 2.10 RC 1341
-            rmv = rocm_meta_version::AMDHSA_COv2_COv3;
-        else
-            rmv = rocm_meta_version::Default;
+        rmv = rocm_meta_version::Default;
 #endif // MIOPEN_BACKEND_OPENCL
     }
     MIOPEN_LOG_NQI(
         "ROCm MD version "
         << rmv
+        << ", HIP version " MIOPEN_STRINGIZE(HIP_PACKAGE_VERSION_MAJOR) "." MIOPEN_STRINGIZE(
+               HIP_PACKAGE_VERSION_MINOR) "." MIOPEN_STRINGIZE(HIP_PACKAGE_VERSION_PATCH)
         << ", MIOpen version " MIOPEN_STRINGIZE(MIOPEN_VERSION_MAJOR) "." MIOPEN_STRINGIZE(
                MIOPEN_VERSION_MINOR) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_PATCH) "." MIOPEN_STRINGIZE(MIOPEN_VERSION_TWEAK));
     return rmv;

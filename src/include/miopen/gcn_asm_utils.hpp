@@ -31,10 +31,6 @@
 #include <sstream>
 #include <string>
 
-/// Since 3.8.20403, ".amdhsa_reserve_xnack_mask 0" is not working without
-/// explicit "-mno-xnack" option.
-#define WORKAROUND_SWDEV_255735 1
-
 bool ValidateGcnAssembler();
 #if !MIOPEN_USE_COMGR
 std::string AmdgcnAssemble(const std::string& source,
