@@ -27,7 +27,6 @@
 #define GUARD_CONFIG_H_IN
 
 #cmakedefine01 MIOPEN_BACKEND_OPENCL
-#cmakedefine01 MIOPEN_BACKEND_HCC
 #cmakedefine01 MIOPEN_BACKEND_HIP
 #cmakedefine01 MIOPEN_MODE_NOGPU
 #cmakedefine01 MIOPEN_USE_MIOPENTENSILE
@@ -41,7 +40,6 @@
 #cmakedefine01 MIOPEN_DEBUG_FIND_DB_CACHING
 #cmakedefine01 MIOPEN_USE_COMGR
 #cmakedefine01 MIOPEN_USE_HIP_KERNELS
-#cmakedefine01 MIOPEN_HCC_ENABLE_COV3
 #cmakedefine01 MIOPEN_DISABLE_USERDB
 #cmakedefine01 MIOPEN_EMBED_DB
 #cmakedefine01 BUILD_SHARED_LIBS
@@ -73,6 +71,9 @@
 //     to BF16 results. This affects the main functionality of the library.
 #cmakedefine01 MIOPEN_USE_RNE_BFLOAT16
 
+// clang-format off
+#cmakedefine MIOPEN_DEFAULT_FIND_MODE @MIOPEN_DEFAULT_FIND_MODE@
+// clang-format on
 #cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
 #cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
 #cmakedefine MIOPEN_HIP_COMPILER "@MIOPEN_HIP_COMPILER@"

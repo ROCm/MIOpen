@@ -82,10 +82,11 @@ int DetectCodeObjectOptionSyntax()
 
     if(syntax == 0)
     {
-        if(HipCompilerVersion() >= external_tool_version_t{4, 1, 0})
-            return 4;
-        else
-            return 1;
+#if HIP_PACKAGE_VERSION_FLAT >= 4001000000ULL
+        return 4;
+#else
+        return 1;
+#endif
     }
     MIOPEN_LOG_I("MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION=" << syntax);
     return syntax;
@@ -103,12 +104,11 @@ int DetectCodeObjectVersion()
 
     if(co_version == 0)
     {
-        if(HipCompilerVersion() >= external_tool_version_t{4, 1, 0})
-            return 4;
-        else if(HipCompilerVersion() >= external_tool_version_t{3, 0, -1})
-            return 3;
-        else
-            return 2;
+#if HIP_PACKAGE_VERSION_FLAT >= 4001000000ULL
+        return 4;
+#else
+        return 3;
+#endif
     }
     MIOPEN_LOG_I("MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION=" << co_version);
     return co_version;
