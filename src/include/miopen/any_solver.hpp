@@ -46,13 +46,6 @@ struct AnySolver
     AnySolver() : ptr_value(nullptr){};
     template <class U>
     AnySolver(U src) : ptr_value(new AnySolver_tmpl<U>(std::forward<U>(src))){};
-#if 0
-    bool IsApplicable2(const ExecutionContext& exec_ctx, const std::vector<ProblemDescriptionBase> problems, const std::vector<solver::Primitive> prims) const
-    {
-        assert(ptr_value != nullptr);
-        return ptr_value->IsApplicable2(exec_ctx, problems, prims);
-    }
-#endif
     bool IsApplicable(const ConvolutionContext& ctx) const
     {
         assert(ptr_value != nullptr);

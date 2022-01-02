@@ -65,7 +65,7 @@ struct Id
     Id(const char* str);
 
     std::string ToString() const;
-    std::shared_ptr<SolverBase> GetSolver() const;
+    AnySolver GetSolver() const;
     std::string GetAlgo(conv::Direction dir) const;
     miopenConvAlgorithm_t GetAlgo() const;
     Primitive GetPrimitive() const;

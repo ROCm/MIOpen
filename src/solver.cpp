@@ -110,10 +110,10 @@ std::ostream& operator<<(std::ostream& os, const ConvSolution& s)
 
 struct IdRegistryEntry
 {
-    std::string str_value              = "";
-    Primitive primitive                = Primitive::Convolution;
-    miopenConvAlgorithm_t convAlgo     = miopenConvolutionAlgoDirect;
-    std::shared_ptr<SolverBase> solver = nullptr;
+    std::string str_value          = "";
+    Primitive primitive            = Primitive::Convolution;
+    miopenConvAlgorithm_t convAlgo = miopenConvolutionAlgoDirect;
+    AnySolver solver;
 };
 
 struct IdRegistryData
@@ -165,10 +165,10 @@ std::string Id::ToString() const
     return IdRegistry().value_to_entry[value].str_value;
 }
 
-std::shared_ptr<SolverBase> Id::GetSolver() const
+AnySolver Id::GetSolver() const
 {
     const auto it = IdRegistry().value_to_entry.find(value);
-    return it != IdRegistry().value_to_entry.end() ? it->second.solver : nullptr;
+    return it != IdRegistry().value_to_entry.end() ? it->second.solver : AnySolver{};
 }
 
 std::string Id::GetAlgo(conv::Direction dir) const
@@ -246,17 +246,7 @@ RegisterWithSolver(IdRegistryData& registry, uint64_t value, TSolver, miopenConv
 {
     if(!Register(registry, value, SolverDbId(TSolver{}), algo))
         return;
-    registry.value_to_entry.at(value).solver = std::make_shared<TSolver>();
-}
-
-template <typename TSolver>
-inline bool
-RegisterWithPrimitive(IdRegistryData& registry, uint64_t value, TSolver, Primitive primitive)
-{
-    if(!Register(registry, value, primitive, SolverDbId(TSolver{})))
-        return false;
     registry.value_to_entry.at(value).solver = TSolver{};
-    return true;
 }
 
 inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
@@ -271,7 +261,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvAsm3x3U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1UV2{}, miopenConvolutionAlgoDirect);
-    // RegisterWithPrimitive(registry, ++id, ConvBiasActivAsm1x1U{}, Primitive::Fusion);
+    Register(registry, ++id, Primitive::Fusion, SolverDbId(ConvBiasActivAsm1x1U{}));
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2f1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2b1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(

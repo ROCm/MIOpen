@@ -979,6 +979,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 
     // const auto ctxts = this->GetDescListAsCtxList();
     // get all the solvers from the registry with the Fusion Primitive
+
+    const auto solvers = solver::SolverContainer<solver::ConvBiasActivAsm1x1U>{};
+    // const auto sols = solvers.GetAllSolutions(execution_context, problem_desc);
     std::vector<std::pair<solver::ConvSolution, solver::Id>> sols;
     for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Fusion))
     {
