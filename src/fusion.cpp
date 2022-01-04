@@ -32,6 +32,7 @@
 #include <miopen/visit_float.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/fusion/solvers.hpp>
 #include <ostream>
 #include <ios>
 #include <algorithm>
@@ -980,7 +981,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     // const auto ctxts = this->GetDescListAsCtxList();
     // get all the solvers from the registry with the Fusion Primitive
 
-    const auto solvers = solver::SolverContainer<solver::ConvBiasActivAsm1x1U>{};
+    const auto solvers = solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U>{};
     // const auto sols = solvers.GetAllSolutions(execution_context, problem_desc);
     std::vector<std::pair<solver::ConvSolution, solver::Id>> sols;
     for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Fusion))

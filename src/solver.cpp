@@ -29,6 +29,8 @@
 #include <miopen/activ/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
+#include <miopen/fusion/solvers.hpp>
+
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
 #include <miopen/solver_id.hpp>
@@ -261,7 +263,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvAsm3x3U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1UV2{}, miopenConvolutionAlgoDirect);
-    Register(registry, ++id, Primitive::Fusion, SolverDbId(ConvBiasActivAsm1x1U{}));
+    Register(registry, ++id, Primitive::Fusion, SolverDbId(solver::fusion::ConvBiasActivAsm1x1U{}));
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2f1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2b1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(

@@ -44,22 +44,6 @@ boost::filesystem::path HipBuild(boost::optional<miopen::TmpDir>& tmp_dir,
 
 void bin_file_to_str(const boost::filesystem::path& file, std::string& buf);
 
-struct external_tool_version_t
-{
-    int major = -1;
-    int minor = -1;
-    int patch = -1;
-    friend bool operator>(const external_tool_version_t& lhs, const external_tool_version_t& rhs);
-    friend bool operator<(const external_tool_version_t& lhs, const external_tool_version_t& rhs);
-    friend bool operator>=(const external_tool_version_t& lhs, const external_tool_version_t& rhs);
-    friend bool operator<=(const external_tool_version_t& lhs, const external_tool_version_t& rhs);
-};
-
-external_tool_version_t HipCompilerVersion();
-
-bool IsHccCompiler();
-bool IsHipClangCompiler();
-
 class LcOptionTargetStrings
 {
     public:

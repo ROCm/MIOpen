@@ -35,7 +35,7 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/fusion/solvers.hpp>
 
 #include "half.hpp"
 
@@ -43,6 +43,8 @@ using half_float::half;
 
 namespace miopen {
 namespace solver {
+
+namespace fusion {
 
 bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const ConvolutionContext& config) const
 {
@@ -71,10 +73,13 @@ inline bool PerformanceConfigConvBiasActivAsm1x1U::operator==(
 PerformanceConfigConvBiasActivAsm1x1U
 ConvBiasActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
 {
+    std::ignore = params;
+#if 0
     PerformanceConfigConvBiasActivAsm1x1U pp;
     pp.HeuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
-    return pp;
+#endif
+    return {};
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
@@ -111,31 +116,27 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeP
     // return GenericSearch(*this, cba_context, fused_invoke_ctx);
 #endif
 }
-/*
-bool ConvBiasActivAsm1x1U::IsApplicable(const ExecutionContext& context,
-                                        const std::vector<miopen::ProblemDescriptionBase>& problems,
-                                        const std::vector<solver::Primitive>& prims) const
-{
-    std::ignore = context;
-    std::ignore = prims;
-    const conv::ProblemDescription tmp =
-        *(reinterpret_cast<const conv::ProblemDescription*>(&problems[0]));
-    const auto desc   = miopen::ProblemDescription{tmp};
-    const auto params = ConvolutionContext{desc};
-    return ConvAsm1x1U::IsApplicable(params);
-}
-*/
+
 ConvSolution
 ConvBiasActivAsm1x1U::GetSolution(const ExecutionContext& context,
-                                  const std::vector<miopen::ProblemDescriptionBase>& problems,
-                                  const std::vector<solver::Primitive>& prims,
+                                  const std::vector<const miopen::FusionOpDescriptor*>& problems,
+                                  const std::vector<solver::Primitive>& prims) const
+/*
                                   const PerformanceConfigConvAsm1x1U& config,
                                   bool disableConfigOverrideFromEnv) const
+*/
 {
     std::ignore = context;
+    std::ignore = problems;
     std::ignore = prims;
+#if 0
     std::ignore = config;
     std::ignore = disableConfigOverrideFromEnv;
+#endif
+
+    auto sol = ConvSolution();
+
+#if 0
     const conv::ProblemDescription tmp =
         *(reinterpret_cast<const conv::ProblemDescription*>(&problems[0]));
     const auto desc   = miopen::ProblemDescription{tmp};
@@ -203,9 +204,54 @@ ConvBiasActivAsm1x1U::GetSolution(const ExecutionContext& context,
             }
         };
     };
-
+#endif
     return sol;
 }
 
+bool ConvBiasActivAsm1x1U::IsApplicable(const ExecutionContext& context,
+                                        const std::vector<const miopen::FusionOpDescriptor*>& ops,
+                                        const std::vector<miopen::solver::Primitive> prims) const
+{
+    if(ops.empty() || prims.empty())
+    {
+        MIOPEN_THROW("");
+    }
+    if(prims.size() != ops.size())
+    {
+        MIOPEN_THROW("Up");
+    }
+    // check the sequence of prims
+    if(prims.size() > 3)
+        return false;
+    if(prims[0] != miopen::solver::Primitive::Convolution)
+        return false;
+    if(!(prims[1] == miopen::solver::Primitive::Bias ||
+         prims[1] == miopen::solver::Primitive::Activation))
+        return false;
+    if(prims[2] != miopen::solver::Primitive::Activation)
+        return false;
+
+        // Get the conv problem descriptor from the ops and pass it to the base class IsApplicable
+        // TODO: move to util function
+        // const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
+#if 0
+    const auto dir = conv::Direction::Forward;
+    auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this /* conv desc */ , dir};
+
+    ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
+    ctx.do_search                  = exhaustiveSearch;
+    ctx.save_srch_req              = true;
+    ctx.general_compile_options    = "";
+    ctx.SetStream(&handle);
+    ctx.SetBufs(bufs);
+    ctx.DetectRocm();
+    ctx.SetupFloats();
+#endif
+    std::ignore = context;
+    std::ignore = ops;
+    return false;
+}
+
+} // namespace fusion
 } // namespace solver
 } // namespace miopen

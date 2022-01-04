@@ -2,6 +2,9 @@
 
 #include <boost/any.hpp>
 
+namespace miopen {
+namespace solver {
+
 /// Base class for problem solvers.
 ///
 /// Solvers are to be instantiated as const objects and shall not have any variable
@@ -55,6 +58,9 @@ struct SolverBase
     // Returns the workspace size required by the solver for a given ConvolutionContext
     virtual size_t GetWorkspaceSize(const boost::any& ctx) const = 0;
 
+    // Must return true if a Solver has its own implementation of GetWorkspaceSize().
+    virtual bool MayNeedWorkspace() const { return false; }
+
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
     /// ConvSolution GetSolution(const ConvolutionContext& params) const;
@@ -63,3 +69,6 @@ struct SolverBase
     /// ConvSolution GetSolution(const ConvolutionContext& params,
     ///                          const PerformanceConfig& config) const;
 };
+
+} // namespace solver
+} // namespace miopen

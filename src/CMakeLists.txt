@@ -37,6 +37,9 @@ add_subdirectory(sqlite)
 #     remain in the future)  perform final conversion (and rounding) of FP32
 #     to BF16 results. This affects the main functionality of the library.
 option( MIOPEN_USE_RNE_BFLOAT16 "Sets rounding scheme for bfloat16 type" ON )
+set ( MIOPEN_DEFAULT_FIND_MODE "DynamicHybrid" CACHE STRING "Sets the default find mode")
+set_property(CACHE MIOPEN_DEFAULT_FIND_MODE PROPERTY STRINGS 
+    Normal Fast Hybrid FastHybrid DynamicHybrid)
 
 configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BINARY_DIR}/include/miopen/config.h")
 
@@ -489,7 +492,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_bidirect_winograd_out.s)
 
     add_kernels("kernel.cpp" "MIOPEN_KERNEL_" "" "${MIOPEN_KERNELS}")
-    add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "__INC" "${MIOPEN_KERNEL_INCLUDES}")
+    add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "_INCLUDE" "${MIOPEN_KERNEL_INCLUDES}")
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp

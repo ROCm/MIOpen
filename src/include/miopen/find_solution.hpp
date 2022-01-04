@@ -233,8 +233,8 @@ struct SolverContainer
 
     template <class Context>
     std::vector<std::pair<std::string, size_t>>
-    GetWorkspaceSize(const Context& search_params,
-                     std::size_t limit = std::numeric_limits<std::size_t>::max()) const
+    GetWorkspaceSizes(const Context& search_params,
+                      std::size_t limit = std::numeric_limits<std::size_t>::max()) const
     {
         std::vector<std::pair<std::string, size_t>> res;
         const auto find_only = GetEnvFindOnlySolver();
@@ -249,10 +249,14 @@ struct SolverContainer
                     find_only->end()))
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
-                else if(!solver.IsApplicable(search_params))
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                else if(!solver.MayNeedWorkspace())
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (no workspace required)");
+                // For better performance, check IsDynamic() first, because
+                // it is much faster than IsApplicable().
                 else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
                     MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                else if(!solver.IsApplicable(search_params))
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
                 else
                 {
                     ++count;
