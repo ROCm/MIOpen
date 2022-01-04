@@ -70,6 +70,12 @@ def cmake_build(Map conf=[:]){
        setup_args = "-DMIOPEN_TEST_FLAGS='${test_flags}'" + setup_args
     }
 
+    if(conf.containsKey("find_mode"))
+    {
+        def fmode = conf.get("find_mode", "")
+        setup_args = " -DMIOPEN_DEFAULT_FIND_MODE=${fmode} " + setup_args
+    }
+
     def pre_setup_cmd = """
             echo \$HSA_ENABLE_SDMA
             ulimit -c unlimited
@@ -555,10 +561,10 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     environment{
                         config_targets = "test_conv2d"
-                        execute_cmd = "MIOPEN_FIND_MODE=1 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
+                        execute_cmd = "MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
                     }
                     steps{
-                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd: execute_cmd)
+                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd: execute_cmd, find_mode: "Normal")
                     }
                 }
                 stage('Fp32 Hip Fast-Find') {

@@ -28,6 +28,10 @@
 
 #include <miopen/config.h>
 
+/// Fix for SWDEV-255735. Since 3.8.20403, ".amdhsa_reserve_xnack_mask 0"
+/// is not working without explicit "-mno-xnack" option.
+#define ROCM_FEATURE_ASM_REQUIRES_NO_XNACK_OPTION (HIP_PACKAGE_VERSION_FLAT >= 3008020403ULL)
+
 /// Older HIP runtimes return hipDeviceProp_t.gcnArchName with codenames
 /// of GPUs instead of valid names, e.g. "Vega 20" instead of "gfx906".
 /// To be removed as soon as support for ROCm 3.x is discontinued.

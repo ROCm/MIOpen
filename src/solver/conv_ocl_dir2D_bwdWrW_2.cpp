@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#define CONV_OCL_DIR2D_BWDWRW_2_CPP
+
 #include <miopen/solver.hpp>
 
 #include <miopen/conv/invokers/ocl_wrw_rdc.hpp>
@@ -80,10 +82,7 @@ inline static bool Inc_1_to_8_optimized(int& v)
     }
 }
 
-inline static bool Is_6_to_12(const int& v)
-{
-    return 6 <= v && v <= 12;
-}
+inline static bool Is_6_to_12(const int& v) { return 6 <= v && v <= 12; }
 
 inline static bool Inc_6_to_12(int& v)
 {
@@ -106,10 +105,7 @@ inline static bool Inc_6_to_12_optimized(int& v)
     }
 }
 
-inline static bool Is_2_to_11(const int& v)
-{
-    return 2 <= v && v <= 11;
-}
+inline static bool Is_2_to_11(const int& v) { return 2 <= v && v <= 11; }
 
 inline static bool Inc_2_to_11(int& v)
 {
