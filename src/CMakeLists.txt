@@ -110,6 +110,9 @@ set( MIOpen_Source
     include/miopen/activ/invoke_params.hpp
     include/miopen/activ/problem_description.hpp
     include/miopen/activ/solvers.hpp
+    include/miopen/gemm/invoke_params.hpp
+    include/miopen/gemm/problem_description.hpp
+    include/miopen/gemm/solvers.hpp
     include/miopen/algorithm.hpp
     include/miopen/allocator.hpp
     include/miopen/any_solver.hpp
