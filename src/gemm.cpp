@@ -74,9 +74,9 @@ double GemmNewDescriptor::GetBeta() const { return this->beta; }
 
 miopenDataType_t GemmNewDescriptor::GetMIOpenDataType() const { return this->dataType; }
 
+/*
 std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& x)
 {
-    /*
     MIOPEN_LOG_ENUM(stream,
                     x.mode,
                     miopenGemmPASTHRU,
@@ -90,7 +90,8 @@ std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& x)
                     miopenGemmLEAKYRELU,
                     miopenGemmELU)
         << ", ";
-    LogRange(stream, x.parms, ", ") << ", ";*/
+    LogRange(stream, x.parms, ", ") << ", ";
     return stream;
 }
+*/
 } // namespace miopen
