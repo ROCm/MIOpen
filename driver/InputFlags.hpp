@@ -36,7 +36,7 @@ struct Input
     std::string value;
     std::string help_text;
     std::string type;
-    bool is_case_insensitive;
+    bool convert2uppercase;
 };
 
 class InputFlags
@@ -50,7 +50,7 @@ class InputFlags
                       const std::string& _value,
                       const std::string& _help_text,
                       const std::string& type,
-                      const bool _is_case_insensitive = false );
+                      const bool _convert2uppercase = false );
     void Parse(int argc, char* argv[]);
     char FindShortName(const std::string& _long_name) const;
     void Print() const;
@@ -60,6 +60,7 @@ class InputFlags
     uint64_t GetValueUint64(const std::string& _long_name) const;
     double GetValueDouble(const std::string& _long_name) const;
     void SetValue(const std::string& long_name, const std::string& new_value);
+    void UpdateLayoutValue(char layout_short_name, const std::string layout_value);
 
     virtual ~InputFlags() {}
 };
