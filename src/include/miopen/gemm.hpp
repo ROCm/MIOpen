@@ -36,7 +36,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-struct GemmNewDescriptor : miopenGemmNewDescriptor
+struct GemmNewDescriptor// : miopenGemmDescriptor
 {
     GemmNewDescriptor();
     GemmNewDescriptor(//miopenGemmMode_t mode_,
@@ -81,5 +81,5 @@ struct GemmNewDescriptor : miopenGemmNewDescriptor
 };
 
 } // namespace miopen
-MIOPEN_DEFINE_OBJECT(miopenGemmNewDescriptor, miopen::GemmNewDescriptor);
+//MIOPEN_DEFINE_OBJECT(miopenGemmDescriptor, miopen::GemmNewDescriptor);
 #endif // _MIOPEN_GEMM_HPP_
