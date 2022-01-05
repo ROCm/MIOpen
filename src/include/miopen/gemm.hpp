@@ -39,7 +39,7 @@ struct TensorDescriptor;
 struct GemmNewDescriptor : miopenGemmNewDescriptor
 {
     GemmNewDescriptor();
-    GemmNewDescriptor(miopenGemmMode_t mode_,
+    GemmNewDescriptor(//miopenGemmMode_t mode_,
                    bool isColMajor_,
                    bool transA_,
                    bool transB_,
@@ -50,7 +50,7 @@ struct GemmNewDescriptor : miopenGemmNewDescriptor
                    double beta_,
                    miopenDataType_t dataType_);
 
-    miopenGemmMode_t GetMode() const;
+    //miopenGemmMode_t GetMode() const;
     bool GetIsColMajor() const;
     bool GetTransA() const;
     bool GetTransB() const;
@@ -72,7 +72,7 @@ struct GemmNewDescriptor : miopenGemmNewDescriptor
     friend std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& x);
 
     private:
-    miopenGemmMode_t mode = 1;
+    //miopenGemmMode_t mode = 1;
     bool isColMajor;
     bool transA, transB;
     int m, n, k;
