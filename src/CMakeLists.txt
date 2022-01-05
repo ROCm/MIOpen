@@ -110,6 +110,7 @@ set( MIOpen_Source
     include/miopen/activ/invoke_params.hpp
     include/miopen/activ/problem_description.hpp
     include/miopen/activ/solvers.hpp
+    include/miopen/gemm.hpp
     include/miopen/gemm/invoke_params.hpp
     include/miopen/gemm/problem_description.hpp
     include/miopen/gemm/solvers.hpp
@@ -585,6 +586,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
+        gemm.cpp
         kernel_cache.cpp
         lrn.cpp
         mlo_dir_conv.cpp
