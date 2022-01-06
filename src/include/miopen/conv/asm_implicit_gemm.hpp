@@ -225,6 +225,42 @@ HeuristicInitMacroTileNoPadGemmK(size_t gemm_m,
         return std::make_tuple(0, 0, 0);
 }
 
+// this is to support big tensor > 4G. need to decide how many splits needed
+// return the number of splits
+static inline size_t igemm_split_batch_size(const int hi,
+                                            const int wi,
+                                            const int ho,
+                                            const int wo,
+                                            const int n,
+                                            const int k,
+                                            const int c,
+                                            const int data_byte)
+{
+    size_t image_size_input = static_cast<size_t>(c) * hi * wi * data_byte;
+    size_t image_size_output = static_cast<size_t>(k) * ho * wo * data_byte;
+    size_t size_4g = 0xffffffffUL;
+    if(image_size_input >= size_4g || image_size_output >= size_4g)
+        return 0;
+
+    size_t image_size = image_size_input >= image_size_output ? image_size_input : image_size_output;
+    size_t splited_n = size_4g / image_size;
+
+    // round up splits, we must match
+    // 1. splited_n * image_size < size_4g
+    // 2. n % splited_n == 0
+    // if(splited_n >= n)
+    //     return 1;
+    assert(splited_n != 0);
+    while(splited_n >= 1){
+        // printf("n:%d, splited_n:%d\n", n, splited_n);
+        if(n % splited_n == 0 && splited_n * image_size < size_4g)
+            break;
+        splited_n--;
+    }
+    assert(splited_n * image_size < size_4g && n % splited_n == 0);
+    return static_cast<size_t>(n) / splited_n;
+}
+
 template <int L, int H>
 inline static bool IsLinear(const int v)
 {
