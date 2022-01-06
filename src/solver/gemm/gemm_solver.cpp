@@ -53,14 +53,14 @@ ConvSolution GemmSolver0::GetSolution(const ExecutionContext&,
     decltype(auto) CDesc = problem.GetCDesc();
 
     // tensors.y = tensors.w * tensors.x
-    GemmDescriptor gemm_desc = CreateGemmDescriptor(ADesc,BDesc,CDesc);
-    //GemmDescriptor gemm_desc = problem.GetGemmDescriptor();
+    //GemmDescriptor gemm_desc = CreateGemmDescriptor(ADesc,BDesc,CDesc);
+    GemmNewDescriptor gemm_desc = problem.GetGemmDescriptor();
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         MIOPEN_LOG_FUNCTION("gemm");
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            decltype(auto) gemm_params = primitive_params.CastTo<gemm::InvokeParams>();
+            decltype(auto) gemm_params = primitive_params.CastTo<miopen::gemm::InvokeParams>();
             const auto& B              = gemm_params.B;
             const auto& A              = gemm_params.A;
             const auto& C              = gemm_params.C;
@@ -80,6 +80,8 @@ ConvSolution GemmSolver0::GetSolution(const ExecutionContext&,
     };
 
     return solution;
+}
+
 } // namespace gemm
 
 } // namespace solver
