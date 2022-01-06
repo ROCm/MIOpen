@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include <miopen/gemm_v2.hpp>
+#include <miopen/gemm.hpp>
 #include <miopen/tensor.hpp>
 
 #include <cassert>
@@ -40,7 +40,7 @@ namespace gemm {
 
 struct ProblemDescription
 {
-    ProblemDescription(const GemmDescriptor& gemmDesc_,
+    ProblemDescription(const GemmNewDescriptor& gemmDesc_,
                        const TensorDescriptor& ADesc_,
                        const TensorDescriptor& BDesc_,
                        const TensorDescriptor& CDesc_)
@@ -51,7 +51,7 @@ struct ProblemDescription
     {
     }
 
-    const GemmDescriptor& GetGemmDescriptor() const {return gemmDesc;}
+    const GemmNewDescriptor& GetGemmDescriptor() const {return gemmDesc;}
     const TensorDescriptor& GetADesc() const { return ADesc; }
     const TensorDescriptor& GetBDesc() const { return BDesc; }
     const TensorDescriptor& GetCDesc() const { return CDesc; }
@@ -67,7 +67,7 @@ struct ProblemDescription
     }
 
     private:
-    GemmDescriptor gemmDesc;
+    GemmNewDescriptor gemmDesc;
     TensorDescriptor ADesc;
     TensorDescriptor BDesc;
     TensorDescriptor CDesc;
