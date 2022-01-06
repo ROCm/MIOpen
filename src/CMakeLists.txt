@@ -285,6 +285,7 @@ set( MIOpen_Source
     solver/activ/bwd_1.cpp
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
+    solver/gemm/gemm_solver.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_spatial_multiple.cpp
     solver/batchnorm/backward_spatial_single.cpp
