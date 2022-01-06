@@ -76,6 +76,7 @@ endfunction()
 
 set( MIOpen_Source
     activ/problem_description.cpp
+    gemm/problem_description.cpp
     activ_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
@@ -592,6 +593,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         mlo_dir_conv.cpp
         exec_utils.cpp
         ocl/activ_ocl.cpp
+        ocl/gemm_ocl.cpp
         ocl/batchnormocl.cpp
         ocl/convolutionocl.cpp
         ocl/lrn_ocl.cpp
