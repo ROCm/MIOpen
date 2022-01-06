@@ -194,7 +194,7 @@ std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& /*fpd
 
 // Fusion operator descriptors
 // Conv Forward
-miopenStatus_t ConvForwardOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+miopenStatus_t ConvForwardOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
 {
     return miopen::try_(
         [&]() { output_desc = base_desc.GetForwardOutputTensor(input_desc, filter_desc); });
@@ -392,7 +392,7 @@ OpKernelArg ActivFwdFusionOpDescriptor::GetOpAttr(const std::string& k) const
     MIOPEN_THROW(miopenStatusInternalError, "Unknown Activation Op Attribute");
 }
 
-miopenStatus_t ActivFwdFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+miopenStatus_t ActivFwdFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
 {
     // activation does not change the size
     output_desc = input_desc;
@@ -473,7 +473,7 @@ std::vector<std::pair<std::string, OpKernelArg>> ActivBwdFusionOpDescriptor::Get
     return keys;
 }
 
-miopenStatus_t ActivBwdFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+miopenStatus_t ActivBwdFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
 {
     // activation does not change the size
     output_desc = input_desc;
@@ -527,7 +527,8 @@ BatchNormInferenceFusionOpDescriptor::GetArgs() const
     return keys;
 }
 
-miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+miopenStatus_t
+BatchNormInferenceFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
 {
     output_desc = input_desc;
     return miopenStatusSuccess;
@@ -636,7 +637,8 @@ BatchNormFwdTrainFusionOpDescriptor::GetArgs() const
     return keys;
 }
 
-miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+miopenStatus_t
+BatchNormFwdTrainFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
 {
     output_desc = input_desc;
     return miopenStatusSuccess;
@@ -734,7 +736,8 @@ BatchNormBwdTrainFusionOpDescriptor::GetArgs() const
     return keys;
 }
 
-miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+miopenStatus_t
+BatchNormBwdTrainFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
 {
     output_desc = input_desc;
     return miopenStatusSuccess;
@@ -743,7 +746,7 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetOutputDesc(TensorDescript
 // end BN backwards training ---------------------------
 
 // Bias forward
-miopenStatus_t BiasFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+miopenStatus_t BiasFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
 {
     output_desc = input_desc;
     return miopenStatusSuccess;
@@ -973,29 +976,17 @@ OpKernelArg FusionPlanDescriptor::GetDevAttribute(const std::string& k, const Ha
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
-    // this->GetListOfPrims();
-
-    const std::vector<solver::Primitive> prims = {solver::Primitive::Convolution,
-                                                  solver::Primitive::Activation};
-
-    // const auto ctxts = this->GetDescListAsCtxList();
-    // get all the solvers from the registry with the Fusion Primitive
-
-    const auto solvers = solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U>{};
-    // const auto sols = solvers.GetAllSolutions(execution_context, problem_desc);
-    std::vector<std::pair<solver::ConvSolution, solver::Id>> sols;
-    for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Fusion))
+    const auto solvers    = solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U>{};
+    auto exec_ctx         = ExecutionContext{&handle};
+    exec_ctx.DetectRocm();
+    const auto sols = solvers.SearchForSolutions(exec_ctx, *this);
+    std::ostringstream ss;
+    for(const auto& op : op_map)
     {
-        auto solver = solver_id.GetSolver();
-        std::vector<ProblemDescriptionBase> pd;
-        ExecutionContext ctx;
-        // if(solver->IsApplicable(ctx, pd, prims)) {}
-        // if(solver->IsApplicable(ctxts, prims))
-        // {
-        //     sols.emplace(solver.GetSolution(), solver_id);
-        // }
+        std::string op_cfg;
+        op->GetNetworkConfig(op_cfg, handle);
+        ss << op_cfg << '-';
     }
-
     if(sols.empty())
     {
         use_fall_back_path = true;
@@ -1007,10 +998,14 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         {
             // get solver invoker
             // to force compilation
-            std::ignore = handle.GetInvoker({}, sol.second);
+            if(!sol.invoker_factory)
+                MIOPEN_THROW(miopenStatusInternalError,
+                             "Invoker missing from solver " + sol.solver_id);
+            const auto invoker =
+                handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
+            handle.RegisterInvoker(invoker, NetworkConfig{ss.str()}, sol.solver_id, {});
         }
     }
-
     return status;
 }
 

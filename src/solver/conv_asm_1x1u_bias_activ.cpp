@@ -35,6 +35,7 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/fusion_plan.hpp>
 #include <miopen/fusion/solvers.hpp>
 
 #include "half.hpp"
@@ -117,32 +118,49 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeP
 #endif
 }
 
-ConvSolution
-ConvBiasActivAsm1x1U::GetSolution(const ExecutionContext& context,
-                                  const std::vector<const miopen::FusionOpDescriptor*>& problems,
-                                  const std::vector<solver::Primitive>& prims) const
+inline ConvolutionContext ConvOp2Ctx(const ExecutionContext& context,
+                                     const ConvForwardOpDescriptor& conv_op)
+{
+    const auto dir = conv::Direction::Forward;
+    TensorDescriptor out_desc;
+    conv_op.GetOutputDesc(out_desc);
+    auto ctx = ConvolutionContext{
+        conv_op.input_desc, conv_op.filter_desc, out_desc, conv_op.base_desc /* conv desc */, dir};
+    ctx.do_search                  = context.do_search;
+    ctx.save_srch_req              = context.save_srch_req;
+    ctx.use_asm_kernels            = context.use_asm_kernels;
+    ctx.use_hip_kernels            = context.use_hip_kernels;
+    ctx.use_opencl_convolutions    = context.use_opencl_convolutions;
+    ctx.use_binaries               = context.use_binaries;
+    ctx.disable_search_enforce     = context.disable_search_enforce;
+    ctx.disable_perfdb_access      = context.disable_perfdb_access;
+    ctx.use_dynamic_solutions_only = context.use_dynamic_solutions_only;
+    ctx.general_compile_options    = "";
+
+    ctx.SetStream(&context.GetStream());
+    ctx.DetectRocm();
+    ctx.SetupFloats();
+    return ctx;
+}
+
+ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ExecutionContext& context,
+                                               const miopen::FusionPlanDescriptor& desc) const
 /*
                                   const PerformanceConfigConvAsm1x1U& config,
                                   bool disableConfigOverrideFromEnv) const
 */
 {
-    std::ignore = context;
-    std::ignore = problems;
-    std::ignore = prims;
+    const auto& conv_op = dynamic_cast<ConvForwardOpDescriptor&>(*desc.op_map[0]);
+    auto ctx            = ConvOp2Ctx(context, conv_op);
 #if 0
     std::ignore = config;
     std::ignore = disableConfigOverrideFromEnv;
 #endif
 
-    auto sol = ConvSolution();
+    auto config = PerformanceConfigConvAsm1x1U{};
+    config.HeuristicInit(ctx);
 
-#if 0
-    const conv::ProblemDescription tmp =
-        *(reinterpret_cast<const conv::ProblemDescription*>(&problems[0]));
-    const auto desc   = miopen::ProblemDescription{tmp};
-    const auto params = ConvolutionContext{desc};
-
-    auto sol = ConvAsm1x1U::GetSolution(params, config, disableConfigOverrideFromEnv);
+    auto sol = ConvAsm1x1U::GetSolution(ctx, config, false);
 
     if(sol.construction_params.size() != 1)
         MIOPEN_THROW("ConvBiasActivAsm1x1U expects only one kernel");
@@ -150,7 +168,7 @@ ConvBiasActivAsm1x1U::GetSolution(const ExecutionContext& context,
     auto& kernel_info       = sol.construction_params[0];
     kernel_info.kernel_file = "conv1x1u_bias_activ.s";
 
-    if(params.is_for_generic_search)
+    if(ctx.is_for_generic_search)
     {
         std::ostringstream cba_options;
         GenerateClangDefsym(cba_options, "activ_mode", 3);
@@ -160,7 +178,7 @@ ConvBiasActivAsm1x1U::GetSolution(const ExecutionContext& context,
         kernel_info.comp_options += cba_options.str();
     }
 
-    const auto out_data_type = params.conv_problem.GetOutDataType();
+    const auto out_data_type = ctx.conv_problem.GetOutDataType();
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -204,51 +222,47 @@ ConvBiasActivAsm1x1U::GetSolution(const ExecutionContext& context,
             }
         };
     };
-#endif
     return sol;
 }
 
 bool ConvBiasActivAsm1x1U::IsApplicable(const ExecutionContext& context,
-                                        const std::vector<const miopen::FusionOpDescriptor*>& ops,
-                                        const std::vector<miopen::solver::Primitive> prims) const
+                                        const miopen::FusionPlanDescriptor& desc) const
 {
-    if(ops.empty() || prims.empty())
+    std::ignore = context;
+    std::ignore = desc;
+    if(desc.op_map.empty())
     {
         MIOPEN_THROW("");
     }
-    if(prims.size() != ops.size())
-    {
-        MIOPEN_THROW("Up");
-    }
     // check the sequence of prims
-    if(prims.size() > 3)
+    if(desc.op_map.size() > 3)
         return false;
-    if(prims[0] != miopen::solver::Primitive::Convolution)
+    if(desc.op_map[0]->kind() != miopenFusionOpConvForward)
         return false;
-    if(!(prims[1] == miopen::solver::Primitive::Bias ||
-         prims[1] == miopen::solver::Primitive::Activation))
-        return false;
-    if(prims[2] != miopen::solver::Primitive::Activation)
-        return false;
+    if(desc.op_map.size() >= 2)
+    {
+        const auto prim = desc.op_map[1]->kind();
+        if(!(prim == miopenFusionOpBiasForward || prim == miopenFusionOpActivForward))
+            return false;
+    }
+    if(desc.op_map.size() == 3)
+    {
+        const auto prim = desc.op_map[2]->kind();
+        if(prim != miopenFusionOpActivForward)
+            return false;
+    }
+    // Get the conv problem descriptor from the ops and pass it to the base class IsApplicable
+    // TODO: move to util function
+    // const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
+    const auto& conv_op = dynamic_cast<ConvForwardOpDescriptor&>(*desc.op_map[0]);
+    auto ctx            = ConvOp2Ctx(context, conv_op);
 
-        // Get the conv problem descriptor from the ops and pass it to the base class IsApplicable
-        // TODO: move to util function
-        // const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
+    // Check if the conovlution part is applicable
+    if(!ConvAsm1x1U::IsApplicable(ctx))
+        return false;
 #if 0
-    const auto dir = conv::Direction::Forward;
-    auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this /* conv desc */ , dir};
-
-    ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
-    ctx.do_search                  = exhaustiveSearch;
-    ctx.save_srch_req              = true;
-    ctx.general_compile_options    = "";
-    ctx.SetStream(&handle);
     ctx.SetBufs(bufs);
-    ctx.DetectRocm();
-    ctx.SetupFloats();
 #endif
-    std::ignore = context;
-    std::ignore = ops;
     return false;
 }
 

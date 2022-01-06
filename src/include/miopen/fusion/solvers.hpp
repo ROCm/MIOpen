@@ -32,7 +32,7 @@
 
 namespace miopen {
 
-struct FusionOpDescriptor;
+struct FusionPlanDescriptor;
 
 namespace solver {
 namespace fusion {
@@ -48,9 +48,8 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
     bool operator==(const PerformanceConfigConvBiasActivAsm1x1U& other) const;
 };
 
-using FusionProblemDescription = std::tuple<const ExecutionContext*,
-                                            const std::vector<const miopen::FusionOpDescriptor*>,
-                                            const std::vector<miopen::solver::Primitive>>;
+using FusionProblemDescription =
+    std::tuple<const ExecutionContext*, const miopen::FusionPlanDescriptor*>;
 
 using FusionSolverBase = SolverMixin<FusionProblemDescription>;
 
@@ -61,19 +60,17 @@ struct ConvBiasActivAsm1x1U : FusionSolverBase, miopen::solver::ConvAsm1x1U
 
     virtual bool IsApplicable(const FusionProblemDescription& problem) const override
     {
-        return IsApplicable(*std::get<0>(problem), std::get<1>(problem), std::get<2>(problem));
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
     bool IsApplicable(const ExecutionContext& context,
-                      const std::vector<const miopen::FusionOpDescriptor*>& ops,
-                      const std::vector<miopen::solver::Primitive> prims) const;
+                      const miopen::FusionPlanDescriptor& desc) const;
 
     virtual inline ConvSolution GetSolution(const FusionProblemDescription& problem) const
     {
-        return GetSolution(*std::get<0>(problem), std::get<1>(problem), std::get<2>(problem));
+        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const std::vector<const miopen::FusionOpDescriptor*>& ops,
-                             const std::vector<miopen::solver::Primitive>& prims) const;
+                             const miopen::FusionPlanDescriptor& desc) const;
 
     PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
 
