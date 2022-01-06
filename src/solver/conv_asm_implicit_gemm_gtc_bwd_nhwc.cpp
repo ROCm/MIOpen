@@ -384,7 +384,8 @@ GetBwdXdlopsNHWCConfigList()
 
 static std::tuple<std::string, // kernel_name
                   size_t,      // block_size
-                  size_t>      // grid_size
+                  size_t,      // grid_size
+                  size_t>      // splits_4G
 GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     const ConvolutionContext& ctx, const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
 {
@@ -392,7 +393,7 @@ GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     const auto hi    = ctx.out_height;
     const auto wi    = ctx.out_width;
     const auto n     = ctx.batch_sz;
-    // const auto k          = ctx.n_inputs;
+    const auto k          = ctx.n_inputs;
     const auto c          = ctx.n_outputs;
     const auto ho         = ctx.in_height;
     const auto wo         = ctx.in_width;
@@ -425,7 +426,10 @@ GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     const auto h_tilda_slice = h_tilda_right - h_tilda_left;
     const auto w_tilda_slice = w_tilda_right - w_tilda_left;
     const auto num_of_gemm   = y_tilda * x_tilda;
-    const auto gemm_m        = n * h_tilda_slice * w_tilda_slice;
+
+    size_t splits_4G = igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+
+    const auto gemm_m        = (n / splits_4G) * h_tilda_slice * w_tilda_slice;
     const auto gemm_n        = c / group;
 
     size_t block_size = config.BlockSize();
@@ -435,7 +439,7 @@ GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     if(config.multihead != 0)
         grid_size *= num_of_gemm;
     std::string kernel_name = config.ToKernelName(ctx);
-    return std::make_tuple(kernel_name, block_size, grid_size);
+    return std::make_tuple(kernel_name, block_size, grid_size, splits_4G);
 }
 
 void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const ConvolutionContext& ctx)
@@ -684,7 +688,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
                     }
                 }
                 size_t current_grid_size;
-                std::tie(std::ignore, std::ignore, current_grid_size) =
+                std::tie(std::ignore, std::ignore, current_grid_size, std::ignore) =
                     GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(ctx, config);
                 size_t gks = ComputeLog2GemmKGlobalSplitsWith2DMerge(current_grid_size,
                                                                      1200,
@@ -962,8 +966,9 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     std::string kernel_name;
     size_t block_size;
     size_t grid_size;
+    size_t splits_4G;
 
-    std::tie(kernel_name, block_size, grid_size) =
+    std::tie(kernel_name, block_size, grid_size, splits_4G) =
         GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(ctx, config);
 
     const auto required_workspace_size = GetWorkspaceSize(ctx);
@@ -973,7 +978,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     kernel.g_wk.push_back(grid_size * block_size);
-    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(splits_4G);
     kernel.g_wk.push_back(1);
     kernel.l_wk.clear();
     kernel.l_wk.push_back(block_size);
