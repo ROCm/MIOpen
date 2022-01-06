@@ -103,6 +103,12 @@ struct AnySolver
         return ptr_value->GetWorkspaceSize(ctx);
     }
 
+    bool MayNeedWorkspace() const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->MayNeedWorkspace();
+    }
+
     // virtual base class
     struct AnySolver_base
     {
@@ -121,6 +127,7 @@ struct AnySolver
                                           Db& db,
                                           const miopen::AnyInvokeParams& invoke_ctx) const = 0;
         virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const               = 0;
+        virtual bool MayNeedWorkspace() const                                              = 0;
     };
 
     // templated derived class
@@ -208,6 +215,7 @@ struct AnySolver
         {
             return value.GetWorkspaceSize(ctx);
         }
+        bool MayNeedWorkspace() const override { return value.MayNeedWorkspace(); }
         const std::type_info& Type() const override { return typeid(T); };
         std::string GetSolverDbId() const override { return ComputeSolverDbId(value); }
 

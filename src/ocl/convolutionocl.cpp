@@ -181,8 +181,6 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
 
     const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
     auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
-    ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-        findMode.IsFastHybrid(ctx);
     ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
     ctx.do_search                  = exhaustiveSearch;
     ctx.save_srch_req              = true;
@@ -220,8 +218,6 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
     auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
 
-    ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-        findMode.IsFastHybrid(ctx);
     ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
     ctx.do_search                  = exhaustiveSearch;
     ctx.save_srch_req              = true;
@@ -494,8 +490,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
         ctx.SetBufs(bufs);
-        ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-            findMode.IsFastHybrid(ctx);
         ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             DirConvFindCore(handle,
@@ -913,6 +907,8 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
     auto sol = solver_id.GetSolver();
+    if(!sol.MayNeedWorkspace())
+        return 0;
     auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
@@ -1128,15 +1124,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         }();
 
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
-            const auto network_config = problem.BuildConfKey();
-            const auto invoke_ctx     = conv::DataInvokeParams{InvokeType::Evaluate,
+            const auto network_config      = problem.BuildConfKey();
+            const auto invoke_ctx          = conv::DataInvokeParams{InvokeType::Evaluate,
                                                            {dyDesc, dy, wDesc, w, dxDesc, dx},
                                                            workSpace,
                                                            workSpaceSize,
                                                            this->attribute.gfx90aFp16alt.GetBwd()};
-
-            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
 
             // Find solutions
@@ -1373,6 +1366,8 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
 
     auto sol = solver_id.GetSolver();
+    if(!sol.MayNeedWorkspace())
+        return 0;
     auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
@@ -1490,8 +1485,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
             bufs.SetWrW(x, dw, dy);
-            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             ctx.do_search                  = exhaustiveSearch;
             ctx.SetStream(&handle);
@@ -1722,6 +1715,8 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
 
     auto sol = solver_id.GetSolver();
+    if(!sol.MayNeedWorkspace())
+        return 0;
     auto problem =
         ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
     auto ctx = ConvolutionContext{problem};

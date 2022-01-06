@@ -165,7 +165,7 @@ const char* ToCString(const FindMode::Values mode)
     case FindMode::Values::Normal: return "NORMAL";
     case FindMode::Values::Fast: return "FAST";
     case FindMode::Values::Hybrid: return "HYBRID";
-    case FindMode::Values::FastHybrid: return "FAST_HYBRID";
+    case FindMode::Values::DeprecatedFastHybrid: break;
     case FindMode::Values::DynamicHybrid: return "DYNAMIC_HYBRID";
     case FindMode::Values::End_: break;
     }
@@ -191,8 +191,6 @@ FindMode::Values GetFindModeValueImpl2()
         return FindMode::Values::Fast;
     else if(str == "HYBRID")
         return FindMode::Values::Hybrid;
-    else if(str == "FAST_HYBRID")
-        return FindMode::Values::FastHybrid;
     else if(str == "DYNAMIC_HYBRID")
         return FindMode::Values::DynamicHybrid;
     else
@@ -232,14 +230,8 @@ static_assert(miopenConvolutionFindModeFast ==
 static_assert(miopenConvolutionFindModeHybrid ==
                   static_cast<miopenConvolutionFindMode_t>(FindMode::Values::Hybrid),
               "API is not in sync with the implementation.");
-static_assert(miopenConvolutionFindModeFastHybrid ==
-                  static_cast<miopenConvolutionFindMode_t>(FindMode::Values::FastHybrid),
-              "API is not in sync with the implementation.");
 static_assert(miopenConvolutionFindModeDynamicHybrid ==
                   static_cast<miopenConvolutionFindMode_t>(FindMode::Values::DynamicHybrid),
-              "API is not in sync with the implementation.");
-static_assert(miopenConvolutionFindModeDefault ==
-                  static_cast<miopenConvolutionFindMode_t>(FindMode::Values::Default_),
               "API is not in sync with the implementation.");
 
 } // namespace miopen
