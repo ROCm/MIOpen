@@ -155,7 +155,7 @@ set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
 # OpenCL 1.2
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
-    find_package( OpenCL REQUIRED )
+    find_package( OPENCL REQUIRED )
     set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     find_program(MIOPEN_HIP_COMPILER clang++
         PATH_SUFFIXES bin

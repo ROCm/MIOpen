@@ -106,7 +106,7 @@ find_package(rocblas REQUIRED PATHS /opt/rocm)
 if( FIN_BACKEND STREQUAL "OpenCL")
     message(STATUS "OpenCL Backend")
     set(FIN_BACKEND_OPENCL 1)
-    find_package( OpenCL REQUIRED )
+    find_package( OPENCL REQUIRED )
     find_program(FIN_HIP_COMPILER hcc
         PATH_SUFFIXES bin
         PATHS /opt/rocm
