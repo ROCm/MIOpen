@@ -38,8 +38,15 @@ GemmNewDescriptor::GemmNewDescriptor(//miopenGemmMode_t mode_,
                    int m_,
                    int n_, 
                    int k_,
+                   int lda_,
+                   int ldb_,
+                   int ldc_,
+                   long long int strideA_,
+                   long long int strideB_,
+                   long long int strideC_,
                    double alpha_,
                    double beta_,
+                   int batch_count_,
                    miopenDataType_t dataType_)
     : //mode(mode_),
       isColMajor(isColMajor_),
@@ -48,8 +55,15 @@ GemmNewDescriptor::GemmNewDescriptor(//miopenGemmMode_t mode_,
       m(m_),
       n(n_),
       k(k_),
+      lda(lda_),
+      ldb(ldb_),
+      ldc(ldc_),
+      strideA(strideA_),
+      strideB(strideB_),
+      strideC(strideC_),
       alpha(alpha_),
       beta(beta_),
+      batch_count(batch_count_),
       dataType(dataType_)
 {
 }
@@ -68,9 +82,23 @@ int GemmNewDescriptor::GetN() const { return this->n; }
 
 int GemmNewDescriptor::GetK() const { return this->k; }
 
+int GemmNewDescriptor::Getlda() const { return this->lda; }
+
+int GemmNewDescriptor::Getldb() const { return this->ldb; }
+
+int GemmNewDescriptor::Getldc() const { return this->ldc; }
+
+long long int GemmNewDescriptor::GetStrideA() const { return this->strideA; }
+
+long long int GemmNewDescriptor::GetStrideB() const { return this->strideB; }
+
+long long int GemmNewDescriptor::GetStrideC() const { return this->strideC; }
+
 double GemmNewDescriptor::GetAlpha() const { return this->alpha; }
 
 double GemmNewDescriptor::GetBeta() const { return this->beta; }
+
+int GemmNewDescriptor::GetBatchCount() const { return this->batch_count; }
 
 miopenDataType_t GemmNewDescriptor::GetMIOpenDataType() const { return this->dataType; }
 

@@ -46,8 +46,15 @@ struct GemmNewDescriptor// : miopenGemmDescriptor
                    int m_,
                    int n_, 
                    int k_,
+                   int lda_,
+                   int ldb_,
+                   int ldc_,
+                   long long int strideA_,
+                   long long int strideB_,
+                   long long int strideC_,
                    double alpha_,
                    double beta_,
+                   int batch_count_,
                    miopenDataType_t dataType_);
 
     //miopenGemmMode_t GetMode() const;
@@ -57,8 +64,15 @@ struct GemmNewDescriptor// : miopenGemmDescriptor
     int GetM() const;
     int GetN() const;
     int GetK() const;
+    int Getlda() const;
+    int Getldb() const;
+    int Getldc() const;
+    long long int GetStrideA() const;
+    long long int GetStrideB() const;
+    long long int GetStrideC() const;
     double GetAlpha() const;
     double GetBeta() const;
+    int GetBatchCount() const;
     miopenDataType_t GetMIOpenDataType() const;
 
     miopenStatus_t CallGemm(Handle& handle,
@@ -76,7 +90,10 @@ struct GemmNewDescriptor// : miopenGemmDescriptor
     bool isColMajor;
     bool transA, transB;
     int m, n, k;
+    int lda, ldb, ldc;
+    long long int strideA, strideB, strideC;
     double alpha, beta;
+    int batch_count;
     miopenDataType_t dataType;    
 };
 
