@@ -278,7 +278,7 @@ bool PerformanceConfigConvBinWinogradRxSf2x3::IsValid(const ConvolutionContext& 
     return true;
 }
 
-inline bool PerformanceConfigConvBinWinogradRxSf2x3::operator==(
+bool PerformanceConfigConvBinWinogradRxSf2x3::operator==(
     const PerformanceConfigConvBinWinogradRxSf2x3& other) const
 {
     return n_groups == other.n_groups;

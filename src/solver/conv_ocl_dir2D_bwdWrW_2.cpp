@@ -157,7 +157,7 @@ ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& par
 }
 
 template <int N_BATCH_LOOPS>
-inline bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::operator==(
+bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::operator==(
     const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
 {
     // clang-format off
