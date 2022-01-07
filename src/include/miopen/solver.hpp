@@ -2125,6 +2125,18 @@ struct PerformanceConfigConvOclBwdWrw2
 };
 
 template <int N_BATCH_LOOPS>
+bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::operator==(
+    const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
+{
+    // clang-format off
+    return n_waves == other.n_waves
+        && read_size == other.read_size
+        && n_out_channels_per_tile == other.n_out_channels_per_tile
+        && n_out_channels_tiles == other.n_out_channels_tiles
+        && n_out_rows_in_lcl == other.n_out_rows_in_lcl; // clang-format on
+}
+
+template <int N_BATCH_LOOPS>
 struct ConvOclBwdWrW2 : ConvSolver
 {
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
