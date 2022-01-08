@@ -33,6 +33,7 @@
 #include <miopen/find_controls.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/solver.hpp>
 
 #include <limits>
 #include <vector>
@@ -123,8 +124,8 @@ template <class Solver, class Context, class Db>
 ConvSolution
 FindSolution(Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
 {
-    static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
-                  "Solver must be stateless");
+    static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
+    static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");
     // TODO: This assumes all solutions are ConvSolution
     auto solution      = FindSolutionImpl(rank<1>{}, s, context, db, invoke_ctx);
     solution.solver_id = SolverDbId(s);
@@ -232,7 +233,7 @@ struct SolverContainer
 
     template <class Context>
     std::vector<std::pair<std::string, size_t>>
-    GetWorkspaceSize(const Context& search_params,
+    GetWorkspaceSizes(const Context& search_params,
                      std::size_t limit = std::numeric_limits<std::size_t>::max()) const
     {
         std::vector<std::pair<std::string, size_t>> res;
@@ -248,10 +249,14 @@ struct SolverContainer
                     find_only->end()))
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
-                else if(!solver.IsApplicable(search_params))
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                else if(!solver.MayNeedWorkspace())
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (no workspace required)");
+                // For better performance, check IsDynamic() first, because
+                // it is much faster than IsApplicable().
                 else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
                     MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                else if(!solver.IsApplicable(search_params))
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
                 else
                 {
                     ++count;

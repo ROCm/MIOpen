@@ -46,6 +46,15 @@ bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx) const
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
+    // Note: ConvMlirIgemmBwd can run on a machine with xdlops support, however, it is
+    // guaranteed to be slower than its xdlops alternative, therefore disabling it to
+    // save compilation overhead
+    if(IsXdlopsSupport(ctx))
+        return false;
+    // Refer to https://github.com/ROCmSoftwarePlatform/llvm-project-private/issues/389
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if(StartsWith(device_name, "gfx900"))
+        return false;
 
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, false));
 #else
