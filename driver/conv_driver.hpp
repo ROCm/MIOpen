@@ -568,21 +568,25 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
+
     inflags.AddInputFlag("in_layout",
                          'I',
                          "",
                          "Input Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
-                         "string");
+                         "string",
+                         true);
     inflags.AddInputFlag("out_layout",
                          'O',
                          "",
                          "Output Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
-                         "string");
+                         "string",
+                         true);
     inflags.AddInputFlag("fil_layout",
                          'f',
                          "",
                          "Filter Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
-                         "string");
+                         "string",
+                         true);
     inflags.AddInputFlag(
         "spatial_dim", '_', "2", "convolution spatial dimension (Default-2)", "int");
     inflags.AddInputFlag("forw",
