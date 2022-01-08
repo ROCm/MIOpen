@@ -14,7 +14,10 @@ RUN dpkg --add-architecture i386
 # Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
 # unless MLIR library is incompatible with current ROCm.
 
-RUN export ROCM_APT_VER=.apt_4.5 &&\
+RUN if [ "$USE_MLIR" = "ON" ] ; \
+        then export ROCM_APT_VER=.apt_4.3.1;\
+    else export ROCM_APT_VER=.apt_4.5.2;  \
+    fi && \
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ ubuntu main > /etc/apt/sources.list.d/rocm.list'
 RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu xenial main universe | tee -a /etc/apt/sources.list"
@@ -107,5 +110,10 @@ RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -pa
 
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
 RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
+
+ADD mlir-requirements.txt /mlir-requirements.txt
+RUN if [ "$USE_MLIR" = "ON" ]; \
+    then cget -p /opt/rocm install -f /mlir-requirements.txt; \
+    fi
 
 RUN groupadd -f render
