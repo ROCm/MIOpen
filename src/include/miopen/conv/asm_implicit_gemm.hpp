@@ -227,14 +227,14 @@ HeuristicInitMacroTileNoPadGemmK(size_t gemm_m,
 
 // this is to support big tensor > 4G. need to decide how many splits needed
 // return the number of splits
-static inline size_t igemm_split_batch_size(const int hi,
-                                            const int wi,
-                                            const int ho,
-                                            const int wo,
-                                            const int n,
-                                            const int k,
-                                            const int c,
-                                            const int data_byte)
+static inline int igemm_split_batch_size(const int hi,
+                                         const int wi,
+                                         const int ho,
+                                         const int wo,
+                                         const int n,
+                                         const int k,
+                                         const int c,
+                                         const int data_byte)
 {
     size_t image_size_input = static_cast<size_t>(c) * hi * wi * data_byte;
     size_t image_size_output = static_cast<size_t>(k) * ho * wo * data_byte;
@@ -258,7 +258,7 @@ static inline size_t igemm_split_batch_size(const int hi,
         splited_n--;
     }
     assert(splited_n * image_size < size_4g && n % splited_n == 0);
-    return static_cast<size_t>(n) / splited_n;
+    return n / splited_n;
 }
 
 template <int L, int H>

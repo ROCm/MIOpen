@@ -748,7 +748,9 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 
     int num_of_gemms = x_tilda * y_tilda;
 
-    uint32_t gemm_m = n * h_tilda_slice * w_tilda_slice;
+    int splits_4G = solver::igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+
+    uint32_t gemm_m = (n / splits_4G) * h_tilda_slice * w_tilda_slice;
     uint32_t gemm_n = c / group;
 
     magic_div_u32_t mdiv_x_tilda  = magic_div_u32_gen(x_tilda);
@@ -786,7 +788,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     opArgs.emplace_back(0); // placeholder
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
-    opArgs.emplace_back(n);
+    opArgs.emplace_back(n / splits_4G);
     opArgs.emplace_back(k / group);
     opArgs.emplace_back(c / group);
     opArgs.emplace_back(ho);
