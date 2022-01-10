@@ -793,6 +793,16 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const Convolution
     const auto y          = ctx.kernel_size_h;
     const auto x          = ctx.kernel_size_w;
 
+    const auto hi         = ctx.out_height;
+    const auto wi         = ctx.out_width;
+    const auto n          = ctx.batch_sz;
+    const auto ho         = ctx.in_height;
+    const auto wo         = ctx.in_width;
+
+    auto splits_4G = igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+    if(ctx.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
+        return false;
+
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
 
