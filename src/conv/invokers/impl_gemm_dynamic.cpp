@@ -442,7 +442,9 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     int y_karg               = y;
     int x_karg               = x;
 
-    uint32_t gemm_m = n * ho * wo;
+    int splits_4G = solver::igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+
+    uint32_t gemm_m = (n / splits_4G) * ho * wo;
     uint32_t gemm_n = k / group;
     magic_div_u32_t mdiv_0, mdiv_1, mdiv_2, mdiv_3, mdiv_4, mdiv_5;
     uint32_t shift_pack_0, shift_pack_1;
@@ -484,7 +486,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     opArgs.emplace_back(0); // placeholder
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
-    opArgs.emplace_back(n);
+    opArgs.emplace_back(n / splits_4G);
     opArgs.emplace_back(k / group);
     opArgs.emplace_back(c_karg);
     opArgs.emplace_back(ho);

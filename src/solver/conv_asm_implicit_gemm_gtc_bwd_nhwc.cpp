@@ -986,7 +986,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     std::string kernel_name;
     size_t block_size;
     size_t grid_size;
-    size_t splits_4G;
+    
+    int splits_4G;
 
     std::tie(kernel_name, block_size, grid_size, splits_4G) =
         GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(ctx, config);
