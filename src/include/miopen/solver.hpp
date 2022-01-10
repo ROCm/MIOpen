@@ -143,6 +143,7 @@ protected:
         return result;
     }
 
+private:
     static std::string ComputeSolverDbId(const std::string& type_name)
     {
         auto idx               = type_name.find_last_of(':');
