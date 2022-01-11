@@ -250,14 +250,15 @@ static inline int igemm_split_batch_size(const int hi,
     // 2. n % splited_n == 0
     // if(splited_n >= n)
     //     return 1;
-    assert(splited_n != 0);
+    if(splited_n == 0)
+        return 0;
     while(splited_n >= 1){
-        // printf("n:%d, splited_n:%d\n", n, splited_n);
         if(n % splited_n == 0 && splited_n * image_size < size_4g)
             break;
         splited_n--;
     }
-    assert(splited_n * image_size < size_4g && n % splited_n == 0);
+    if(splited_n == 0)
+        return 0;
     return n / splited_n;
 }
 
