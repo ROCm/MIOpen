@@ -64,62 +64,62 @@ T calculate_relative_error(T uref, T u)
     return std::abs(u - uref) / std::max(std::numeric_limits<T>::epsilon(), std::abs(uref));
 }
 
-template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
-          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
+template <typename Tgpu_ /* the data type used in GPU computations (usually half) */,
+          typename Tcheck_ /* the data type used in CPU checkings (usually double) */>
 int mloNeuronForwardRunHostAndVerify(int neuron_type,
-                                     _Tcheck gamma,
-                                     _Tcheck beta,
-                                     _Tcheck alpha,
+                                     Tcheck_ gamma,
+                                     Tcheck_ beta,
+                                     Tcheck_ alpha,
                                      size_t size,
-                                     const _Tgpu* bot_ptr,
-                                     const _Tgpu* top_ptr,
-                                     _Tcheck allowedEps)
+                                     const Tgpu_* bot_ptr,
+                                     const Tgpu_* top_ptr,
+                                     Tcheck_ allowedEps)
 {
 
     int match      = 1;
-    _Tcheck* c_res = new _Tcheck[size];
-    _Tcheck* data  = new _Tcheck[size];
+    Tcheck_* c_res = new Tcheck_[size];
+    Tcheck_* data  = new Tcheck_[size];
     for(size_t k = 0; k < size; k++)
-        data[k] = static_cast<_Tcheck>(bot_ptr[k]);
+        data[k] = static_cast<Tcheck_>(bot_ptr[k]);
 
-    std::function<_Tcheck(_Tcheck)> f;
+    std::function<Tcheck_(Tcheck_)> f;
 
     switch(neuron_type)
     {
     case MIOPEN_NEURON_PASTHRU: //	x
-        f = [=](_Tcheck x) { return x; };
+        f = [=](Tcheck_ x) { return x; };
         break;
     case MIOPEN_NEURON_LOGISTIC: //	1 / (1 + e^-x)	//Sigmoid
-        f = [=](_Tcheck x) { return 1 / (1 + std::exp(-x)); };
+        f = [=](Tcheck_ x) { return 1 / (1 + std::exp(-x)); };
         break;
     case MIOPEN_NEURON_TANH: //	beta * tanh(alpha * x)
-        f = [=](_Tcheck x) { return beta * std::tanh(alpha * x); };
+        f = [=](Tcheck_ x) { return beta * std::tanh(alpha * x); };
         break;
     case MIOPEN_NEURON_RELU: //	max(0, x)
-        f = [=](_Tcheck x) { return (x > 0) ? x : 0; };
+        f = [=](Tcheck_ x) { return (x > 0) ? x : 0; };
         break;
     case MIOPEN_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
-        f = [=](_Tcheck x) {
+        f = [=](Tcheck_ x) {
             return (x > 0.) ? (x + std::log1p(std::exp(-x))) : (std::log1p(std::exp(x)));
         };
         break;
     case MIOPEN_NEURON_ABS: //	abs(x)
-        f = [=](_Tcheck x) { return std::abs(x); };
+        f = [=](Tcheck_ x) { return std::abs(x); };
         break;
     case MIOPEN_NEURON_POWER: // (alpha + beta * x) ^ gamma
-        f = [=](_Tcheck x) {
-            _Tcheck v = alpha + beta * x;
-            return v <= std::numeric_limits<_Tcheck>::epsilon() ? 0 : pow(v, gamma);
+        f = [=](Tcheck_ x) {
+            Tcheck_ v = alpha + beta * x;
+            return v <= std::numeric_limits<Tcheck_>::epsilon() ? 0 : pow(v, gamma);
         };
         break;
     case MIOPEN_NEURON_CLIPPED_RELU: // min(alpha, max(0, x))
-        f = [=](_Tcheck x) { return std::min(alpha, std::max(_Tcheck(0), x)); };
+        f = [=](Tcheck_ x) { return std::min(alpha, std::max(Tcheck_(0), x)); };
         break;
     case MIOPEN_NEURON_LEAKY_RELU: // alpha * x | x<=0; x | x>0
-        f = [=](_Tcheck x) { return (x > 0) ? x : x * alpha; };
+        f = [=](Tcheck_ x) { return (x > 0) ? x : x * alpha; };
         break;
     case MIOPEN_NEURON_ELU: // alpah * (exp(x)-1) | x<=0; x | x>0
-        f = [=](_Tcheck x) { return (x > 0) ? x : alpha * std::expm1(x); };
+        f = [=](Tcheck_ x) { return (x > 0) ? x : alpha * std::expm1(x); };
         break;
     default: printf("ERROR: unknown neuron type: %d\n", neuron_type); break;
     }
@@ -129,8 +129,8 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
 
     for(size_t i = 0; i < size && match; i++)
     {
-        _Tcheck c_val  = c_res[i];
-        _Tcheck g_val  = static_cast<_Tcheck>(top_ptr[i]);
+        Tcheck_ c_val  = c_res[i];
+        Tcheck_ g_val  = static_cast<Tcheck_>(top_ptr[i]);
         double err     = std::abs(c_val - g_val);
         double err_rel = calculate_relative_error(c_val, g_val);
 
@@ -157,73 +157,73 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
     return (match);
 }
 
-template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
-          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
+template <typename Tgpu_ /* the data type used in GPU computations (usually half) */,
+          typename Tcheck_ /* the data type used in CPU checkings (usually double) */>
 int mloNeuronBackwardRunHostAndVerify(int neuron_type,
-                                      _Tcheck gamma,
-                                      _Tcheck beta,
-                                      _Tcheck alpha,
+                                      Tcheck_ gamma,
+                                      Tcheck_ beta,
+                                      Tcheck_ alpha,
                                       size_t size,
-                                      const _Tgpu* bot_ptr,
-                                      const _Tgpu* top_ptr,
-                                      const _Tgpu* bot_df_ptr,
-                                      const _Tgpu* top_df_ptr,
-                                      _Tcheck allowedEps)
+                                      const Tgpu_* bot_ptr,
+                                      const Tgpu_* top_ptr,
+                                      const Tgpu_* bot_df_ptr,
+                                      const Tgpu_* top_df_ptr,
+                                      Tcheck_ allowedEps)
 {
 
     int match           = 1;
-    _Tcheck* bot_cpu    = new _Tcheck[size];
-    _Tcheck* top_cpu    = new _Tcheck[size];
-    _Tcheck* bot_df_cpu = new _Tcheck[size];
-    _Tcheck* top_df_cpu = new _Tcheck[size];
+    Tcheck_* bot_cpu    = new Tcheck_[size];
+    Tcheck_* top_cpu    = new Tcheck_[size];
+    Tcheck_* bot_df_cpu = new Tcheck_[size];
+    Tcheck_* top_df_cpu = new Tcheck_[size];
 
     for(size_t k = 0; k < size; k++)
     {
-        bot_cpu[k]    = static_cast<_Tcheck>(bot_ptr[k]);
-        top_cpu[k]    = static_cast<_Tcheck>(top_ptr[k]);
-        top_df_cpu[k] = static_cast<_Tcheck>(top_df_ptr[k]);
+        bot_cpu[k]    = static_cast<Tcheck_>(bot_ptr[k]);
+        top_cpu[k]    = static_cast<Tcheck_>(top_ptr[k]);
+        top_df_cpu[k] = static_cast<Tcheck_>(top_df_ptr[k]);
     }
 
-    std::function<_Tcheck(_Tcheck, _Tcheck, _Tcheck)> f;
+    std::function<Tcheck_(Tcheck_, Tcheck_, Tcheck_)> f;
 
     switch(neuron_type)
     {
     case MIOPEN_NEURON_PASTHRU: //	x
-        f = [=](_Tcheck dy, _Tcheck, _Tcheck) { return dy; };
+        f = [=](Tcheck_ dy, Tcheck_, Tcheck_) { return dy; };
         break;
     case MIOPEN_NEURON_LOGISTIC: //	1 / (1 + e^-x)	//Sigmoid
-        f = [=](_Tcheck dy, _Tcheck, _Tcheck y) { return dy * y * (1 - y); };
+        f = [=](Tcheck_ dy, Tcheck_, Tcheck_ y) { return dy * y * (1 - y); };
         break;
     case MIOPEN_NEURON_TANH: //	beta * tanh(alpha * x)
-        f = [=](_Tcheck dy, _Tcheck, _Tcheck y) { return dy * alpha * (beta - y * y / beta); };
+        f = [=](Tcheck_ dy, Tcheck_, Tcheck_ y) { return dy * alpha * (beta - y * y / beta); };
         break;
     case MIOPEN_NEURON_RELU: //	max(0, x)
-        f = [=](_Tcheck dy, _Tcheck x, _Tcheck) { return (x > 0) ? dy : 0; };
+        f = [=](Tcheck_ dy, Tcheck_ x, Tcheck_) { return (x > 0) ? dy : 0; };
         break;
     case MIOPEN_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
-        f = [=](_Tcheck dy, _Tcheck x, _Tcheck) {
-            _Tcheck threshold = kBNLL_THRESHOLD;
-            _Tcheck expval    = std::exp(std::min(x, threshold));
+        f = [=](Tcheck_ dy, Tcheck_ x, Tcheck_) {
+            Tcheck_ threshold = kBNLL_THRESHOLD;
+            Tcheck_ expval    = std::exp(std::min(x, threshold));
             return dy * expval / (expval + 1.0);
         };
         break;
     case MIOPEN_NEURON_ABS: //	abs(x)
-        f = [=](_Tcheck dy, _Tcheck x, _Tcheck) { return dy * ((x > 0) ? 1 : -1); };
+        f = [=](Tcheck_ dy, Tcheck_ x, Tcheck_) { return dy * ((x > 0) ? 1 : -1); };
         break;
     case MIOPEN_NEURON_POWER: // (alpha + beta * x) ^ gamma
-        f = [=](_Tcheck, _Tcheck x, _Tcheck y) {
-            _Tcheck v = alpha + beta * x;
-            return v <= std::numeric_limits<_Tcheck>::epsilon() ? 0 : gamma * beta * y / v;
+        f = [=](Tcheck_, Tcheck_ x, Tcheck_ y) {
+            Tcheck_ v = alpha + beta * x;
+            return v <= std::numeric_limits<Tcheck_>::epsilon() ? 0 : gamma * beta * y / v;
         };
         break;
     case MIOPEN_NEURON_CLIPPED_RELU: // min(alpha, max(0, x))
-        f = [=](_Tcheck dy, _Tcheck x, _Tcheck) { return (x > 0 && x < alpha) ? dy : 0; };
+        f = [=](Tcheck_ dy, Tcheck_ x, Tcheck_) { return (x > 0 && x < alpha) ? dy : 0; };
         break;
     case MIOPEN_NEURON_LEAKY_RELU: // alpha * x | x<=0; x | x>0
-        f = [=](_Tcheck dy, _Tcheck x, _Tcheck) { return dy * ((x > 0) ? 1 : alpha); };
+        f = [=](Tcheck_ dy, Tcheck_ x, Tcheck_) { return dy * ((x > 0) ? 1 : alpha); };
         break;
     case MIOPEN_NEURON_ELU: // alpah * (exp(x)-1) | x<=0; x | x>0
-        f = [=](_Tcheck dy, _Tcheck x, _Tcheck y) { return dy * ((x > 0) ? 1 : y + alpha); };
+        f = [=](Tcheck_ dy, Tcheck_ x, Tcheck_ y) { return dy * ((x > 0) ? 1 : y + alpha); };
         break;
     default: printf("ERROR: unknown neuron type: %d\n", neuron_type); break;
     }
@@ -233,8 +233,8 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
 
     for(size_t i = 0; i < size && match; ++i)
     {
-        _Tcheck c_val  = bot_df_cpu[i];
-        _Tcheck g_val  = static_cast<_Tcheck>(bot_df_ptr[i]);
+        Tcheck_ c_val  = bot_df_cpu[i];
+        Tcheck_ g_val  = static_cast<Tcheck_>(bot_df_ptr[i]);
         double err     = std::abs(c_val - g_val);
         double err_rel = calculate_relative_error(c_val, g_val);
 

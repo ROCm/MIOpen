@@ -116,14 +116,14 @@ inline static bool NextLinear(int& v)
 }
 
 // This range is like regular range [0,4,8...32], but 1 is used instead of 0.
-inline static bool Is_1_4_8_12__32(const int& v) // NOLINT (bugprone-reserved-identifier)
+inline static bool Is_1_4_8_12_to_32(const int& v)
 {
     return v == 1 || (v % 4 == 0 && IsLinear<1, 8>(v / 4));
 }
 
-inline static bool Next_1_4_8_12__32(int& v) // NOLINT (bugprone-reserved-identifier)
+inline static bool Next_1_4_8_12_to_32(int& v)
 {
-    assert(Is_1_4_8_12__32(v));
+    assert(Is_1_4_8_12_to_32(v));
     int tmp        = v / 4;
     const bool ret = NextLinear<0, 8>(tmp);
     v              = ret ? 1 : tmp * 4;
@@ -173,7 +173,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue(const ConvolutionContext& /*conf
         }
         else
         {
-            if(!Next_1_4_8_12__32(k_mult))
+            if(!Next_1_4_8_12_to_32(k_mult))
                 break;
             if(!NextLinear<1, 16>(chunks_per_wave))
                 break;
@@ -244,7 +244,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidValue() const
 {
     // clang-format off
     return IsLinear<1,4>(read_size)
-        && Is_1_4_8_12__32(k_mult)
+        && Is_1_4_8_12_to_32(k_mult)
         && IsLinear<1,16>(chunks_per_wave)
         && IsTwoPower<1,64>(chunk_size)
         && IsLinear<1,8>(n_mult)
