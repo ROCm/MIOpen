@@ -36,8 +36,7 @@
 #include <miopen/implicitgemm_params.hpp>
 
 /// Fatal compiler errors with ROCm 3.7 on some BF16 configs.
-#define WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS \
-    (HIP_PACKAGE_VERSION_FLAT >= 3007000000 && HIP_PACKAGE_VERSION_FLAT <= 3007999999)
+#define WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS (HIP_PACKAGE_VERSION_FLAT <= 3007999999ULL)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS)
 
@@ -1106,9 +1105,6 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
 bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS{}))
-        return false;
-
-    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
         return false;
 
     if(!IsComposableKernelSupportedHardware(ctx))

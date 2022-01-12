@@ -41,6 +41,7 @@ struct Input
     std::string value;
     std::string help_text;
     std::string type;
+    bool convert2uppercase;
 };
 
 struct TensorParameters
@@ -72,7 +73,8 @@ class InputFlags
                       char _short_name,
                       const std::string& _value,
                       const std::string& _help_text,
-                      const std::string& type);
+                      const std::string& type,
+                      const bool _convert2uppercase = false);
 
     void AddTensorFlag(const std::string& name,
                        char short_name,
@@ -89,6 +91,7 @@ class InputFlags
     double GetValueDouble(const std::string& _long_name) const;
     TensorParameters GetValueTensor(const std::string& long_name) const;
     void SetValue(const std::string& long_name, const std::string& new_value);
+    void UpdateLayoutValue(char layout_short_name, const std::string layout_value);
 
     virtual ~InputFlags() {}
 };
