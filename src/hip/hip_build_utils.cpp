@@ -134,7 +134,9 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         params += hip_compiler_flags;
     }
 
+#if HIP_PACKAGE_VERSION_FLAT < 4004000000ULL
     params += " -mllvm --amdgpu-spill-vgpr-to-agpr=0";
+#endif
 
 #if MIOPEN_BUILD_DEV
     if(miopen::IsEnabled(MIOPEN_DEBUG_HIP_VERBOSE{}))
