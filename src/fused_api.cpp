@@ -254,7 +254,7 @@ extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
     return miopen::try_([&] {
         auto&& op = dynamic_cast<miopen::ConvForwardOpDescriptor&>(miopen::deref(convOp));
         auto tmp  = DataCast(w);
-        op.SetArgs(miopen::deref(args), alpha, beta, tmp);
+        op.SetArgs(alpha, beta, tmp);
     });
 }
 
@@ -268,7 +268,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
     MIOPEN_LOG_FUNCTION(args, biasOp, alpha, beta, bias);
     return miopen::try_([&] {
         auto&& op = dynamic_cast<miopen::BiasFusionOpDescriptor&>(miopen::deref(biasOp));
-        op.SetArgs(miopen::deref(args), alpha, beta, DataCast(bias));
+        op.SetArgs(alpha, beta, DataCast(bias));
     });
 }
 
@@ -284,7 +284,7 @@ extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
     MIOPEN_LOG_FUNCTION(args, activFwdOp, alpha, beta, activAlpha, activBeta, activGamma);
     return miopen::try_([&] {
         auto&& op = dynamic_cast<miopen::ActivFwdFusionOpDescriptor&>(miopen::deref(activFwdOp));
-        op.SetArgs(miopen::deref(args), alpha, beta, activAlpha, activBeta, activGamma);
+        op.SetArgs(alpha, beta, activAlpha, activBeta, activGamma);
     });
 }
 
@@ -301,14 +301,7 @@ extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args
     MIOPEN_LOG_FUNCTION(args, activBwdOp, alpha, beta, y, activAlpha, activBeta, activGamma);
     return miopen::try_([&] {
         auto&& op = dynamic_cast<miopen::ActivBwdFusionOpDescriptor&>(miopen::deref(activBwdOp));
-        op.SetArgs(miopen::deref(args),
-                   alpha,
-                   beta,
-                   DataCast(y),
-                   nullptr,
-                   activAlpha,
-                   activBeta,
-                   activGamma);
+        op.SetArgs(alpha, beta, DataCast(y), nullptr, activAlpha, activBeta, activGamma);
     });
 }
 
@@ -328,8 +321,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t
     return miopen::try_([&] {
         auto&& op =
             dynamic_cast<miopen::BatchNormInferenceFusionOpDescriptor&>(miopen::deref(bnOp));
-        op.SetArgs(miopen::deref(args),
-                   alpha,
+        op.SetArgs(alpha,
                    beta,
                    DataCast(bnScale),
                    DataCast(bnBias),
@@ -367,8 +359,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t a
     return miopen::try_([&] {
         auto&& op =
             dynamic_cast<miopen::BatchNormFwdTrainFusionOpDescriptor&>(miopen::deref(bnFwdOp));
-        op.SetArgs(miopen::deref(args),
-                   alpha,
+        op.SetArgs(alpha,
                    beta,
                    DataCast(runningMean),
                    DataCast(runningVariance),
@@ -407,8 +398,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t 
     return miopen::try_([&] {
         auto&& op =
             dynamic_cast<miopen::BatchNormBwdTrainFusionOpDescriptor&>(miopen::deref(bnBwdOp));
-        op.SetArgs(miopen::deref(args),
-                   alpha,
+        op.SetArgs(alpha,
                    beta,
                    DataCast(x),
                    DataCast(bnScale),

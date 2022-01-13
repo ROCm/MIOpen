@@ -33,6 +33,9 @@
 #include <miopen/stringutils.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/fusion/solvers.hpp>
+#include <miopen/fusion/fusion_invoke_params.hpp>
+#include <miopen/solver_id.hpp>
+
 #include <ostream>
 #include <ios>
 #include <algorithm>
@@ -200,23 +203,17 @@ miopenStatus_t ConvForwardOpDescriptor::GetOutputDesc(TensorDescriptor& output_d
         [&]() { output_desc = base_desc.GetForwardOutputTensor(input_desc, filter_desc); });
 }
 
-miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
-                                                const void* /*alpha*/,
-                                                const void* /*beta*/,
-                                                ConstData_t w)
+miopenStatus_t
+ConvForwardOpDescriptor::SetArgs(const void* /*alpha*/, const void* /*beta*/, ConstData_t w)
 {
-    auto w_any = OpKernelArg(w);
-    args.ins_arg("weights" + std::to_string(GetIdx()), w_any);
-
+    const auto& op_args = std::dynamic_pointer_cast<fusion::ConvolutionOpInvokeParam>(args);
+    op_args->workspace  = w;
     return miopenStatusSuccess;
 }
 
-std::vector<std::pair<std::string, OpKernelArg>> ConvForwardOpDescriptor::GetArgs() const
+std::shared_ptr<fusion::FusionOpInvokeParamBase> ConvForwardOpDescriptor::GetArgs() const
 {
-    ConstData_t w = nullptr;
-    std::vector<std::pair<std::string, OpKernelArg>> keys;
-    keys.emplace_back("weights" + std::to_string(GetIdx()), OpKernelArg(w));
-    return keys;
+    return args;
 }
 
 std::string ConvForwardOpDescriptor::GetArgKey(const std::string& k) const
@@ -316,13 +313,17 @@ OpKernelArg ConvForwardOpDescriptor::GetOpAttr(const std::string& k) const
 }
 // Activ Forward ------------------------------------
 
-miopenStatus_t ActivFwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
-                                                   const void* /*alpha*/,
+miopenStatus_t ActivFwdFusionOpDescriptor::SetArgs(const void* /*alpha*/,
                                                    const void* /*beta*/,
                                                    double activAlpha,
                                                    double activBeta,
                                                    double activGamma)
 {
+    const auto& op_args = std::dynamic_pointer_cast<fusion::ActivationOpInvokeParam>(args);
+    op_args->activAlpha = activAlpha;
+    op_args->activBeta  = activBeta;
+    op_args->activGamma = activGamma;
+#if 0
     auto id = std::to_string(GetIdx());
     if(input_desc.GetType() == miopenFloat)
     {
@@ -342,6 +343,7 @@ miopenStatus_t ActivFwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
                      OpKernelArg(static_cast<half_float::half>(
                          activGamma))); // NOLINT (cppcoreguidelines-narrowing-conversions)
     }
+#endif
     return miopenStatusSuccess;
 }
 
@@ -350,9 +352,11 @@ std::string ActivFwdFusionOpDescriptor::GetArgKey(const std::string& k) const
     return k + std::to_string(GetIdx());
 }
 
-std::vector<std::pair<std::string, OpKernelArg>> ActivFwdFusionOpDescriptor::GetArgs() const
+std::shared_ptr<fusion::FusionOpInvokeParamBase> ActivFwdFusionOpDescriptor::GetArgs() const
 {
-    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    return args;
+#if 0
+    std::shared_ptr<fusion::FusionOpInvokeParamBase> keys;
     auto id = std::to_string(GetIdx());
     if(input_desc.GetType() == miopenFloat)
     {
@@ -370,6 +374,7 @@ std::vector<std::pair<std::string, OpKernelArg>> ActivFwdFusionOpDescriptor::Get
     }
 
     return keys;
+#endif
 }
 
 bool ActivFwdFusionOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
@@ -399,8 +404,7 @@ miopenStatus_t ActivFwdFusionOpDescriptor::GetOutputDesc(TensorDescriptor& outpu
     return miopenStatusSuccess;
 }
 // Activ Backwards-----------------------------------------
-miopenStatus_t ActivBwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
-                                                   const void* /*alpha*/,
+miopenStatus_t ActivBwdFusionOpDescriptor::SetArgs(const void* /*alpha*/,
                                                    const void* /*beta*/,
                                                    const void* y,
                                                    const void* x,
@@ -408,6 +412,14 @@ miopenStatus_t ActivBwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                    double activBeta,
                                                    double activGamma)
 {
+    const auto& op_args = std::dynamic_pointer_cast<fusion::ActivationBwdOpInvokeParam>(args);
+    op_args->y          = y;
+    op_args->x          = x;
+    op_args->activAlpha = activAlpha;
+    op_args->activBeta  = activBeta;
+    op_args->activGamma = activGamma;
+    return miopenStatusSuccess;
+#if 0
     auto id             = std::to_string(GetIdx());
     auto activDiffScale = activBeta * activGamma;
     if(input_desc.GetType() == miopenFloat)
@@ -436,7 +448,7 @@ miopenStatus_t ActivBwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
     auto x_any = OpKernelArg(x);
     args.ins_arg("y" + id, y_any);
     args.ins_arg("x" + id, x_any);
-    return miopenStatusSuccess;
+#endif
 }
 
 std::string ActivBwdFusionOpDescriptor::GetArgKey(const std::string& k) const
@@ -449,9 +461,11 @@ OpKernelArg ActivBwdFusionOpDescriptor::GetOpAttr(const std::string& k) const
     MIOPEN_THROW("ActivBwdFusionOpDescriptor op does not support attribute: " + k);
 }
 
-std::vector<std::pair<std::string, OpKernelArg>> ActivBwdFusionOpDescriptor::GetArgs() const
+std::shared_ptr<fusion::FusionOpInvokeParamBase> ActivBwdFusionOpDescriptor::GetArgs() const
 {
-    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    return args;
+#if 0
+    fusion::FusionOpInvokeParamBase keys;
     auto id = std::to_string(GetIdx());
     if(input_desc.GetType() == miopenFloat)
     {
@@ -471,6 +485,7 @@ std::vector<std::pair<std::string, OpKernelArg>> ActivBwdFusionOpDescriptor::Get
     keys.emplace_back("y" + id, OpKernelArg(nullptr));
     keys.emplace_back("x" + id, OpKernelArg(nullptr));
     return keys;
+#endif
 }
 
 miopenStatus_t ActivBwdFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
@@ -481,8 +496,7 @@ miopenStatus_t ActivBwdFusionOpDescriptor::GetOutputDesc(TensorDescriptor& outpu
 }
 //==============================
 
-miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
-                                                             const void*,
+miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(const void*,
                                                              const void*,
                                                              ConstData_t bnScale,
                                                              ConstData_t bnBias,
@@ -490,6 +504,13 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                              ConstData_t estimatedVariance,
                                                              double epsilon)
 {
+    const auto& op_args = std::dynamic_pointer_cast<fusion::BatchNormInferenceOpInvokeParam>(args);
+    op_args->bnScale    = bnScale;
+    op_args->bnBias     = bnBias;
+    op_args->estimatedMean     = estimatedMean;
+    op_args->estimatedVariance = estimatedVariance;
+    op_args->epsilon           = epsilon;
+#if 0
     auto id                    = std::to_string(GetIdx());
     auto bnScale_any           = OpKernelArg(bnScale);
     auto bnBias_any            = OpKernelArg(bnBias);
@@ -501,6 +522,7 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
     args.ins_arg("bnBias" + id, bnBias_any);
     args.ins_arg("estimatedMean" + id, estimatedMean_any);
     args.ins_arg("estimatedVariance" + id, estimatedVariance_any);
+#endif
     return miopenStatusSuccess;
 }
 
@@ -509,10 +531,12 @@ std::string BatchNormInferenceFusionOpDescriptor::GetArgKey(const std::string& k
     return k + std::to_string(GetIdx());
 }
 
-std::vector<std::pair<std::string, OpKernelArg>>
+std::shared_ptr<fusion::FusionOpInvokeParamBase>
 BatchNormInferenceFusionOpDescriptor::GetArgs() const
 {
-    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    return args;
+#if 0
+    fusion::FusionOpInvokeParamBase keys;
     auto id        = std::to_string(GetIdx());
     double epsilon = 0.0;
     keys.emplace_back("epsilon" + id, OpKernelArg(epsilon));
@@ -525,6 +549,7 @@ BatchNormInferenceFusionOpDescriptor::GetArgs() const
     ConstData_t estimatedVariance = nullptr;
     keys.emplace_back("estimatedVariance" + id, OpKernelArg(estimatedVariance));
     return keys;
+#endif
 }
 
 miopenStatus_t
@@ -560,8 +585,7 @@ bool BatchNormInferenceFusionOpDescriptor::GetOpAttr(const std::string& sym, int
 }
 
 // Batch Normalization Forward Training --------------
-miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
-                                                            const void* /*alpha*/,
+miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::SetArgs(const void* /*alpha*/,
                                                             const void* /*beta*/,
                                                             Data_t runningMean,
                                                             Data_t runningVariance,
@@ -572,7 +596,25 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                             double expAvgFactor,
                                                             double epsilon)
 {
+    if(runningMeanVar && (runningMean == nullptr || runningVariance == nullptr))
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Save batch statistics was turned on at op creation time "
+                     "but runningMean or runningVariance is set to nullptr");
+    }
 
+    const auto& op_args =
+        std::dynamic_pointer_cast<fusion::BatchNormFwdTrainingOpInvokeParam>(args);
+    op_args->runningMean      = runningMean;
+    op_args->runningVariance  = runningVariance;
+    op_args->savedMean        = savedMean;
+    op_args->savedInvVariance = savedInvVariance;
+    op_args->bnScale          = bnScale;
+    op_args->bnBias           = bnBias;
+    op_args->expAvgFactor     = expAvgFactor;
+    op_args->epsilon          = epsilon;
+    return miopenStatusSuccess;
+#if 0
     // @todo add in saved versus running boolean toggles
     auto id                   = std::to_string(GetIdx());
     auto bnScale_any          = OpKernelArg(bnScale);
@@ -589,12 +631,6 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
 
     auto inhw_any = static_cast<float>(1.0f / nhw);
 
-    if(runningMeanVar && (runningMean == nullptr || runningVariance == nullptr))
-    {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "Save batch statistics was turned on at op creation time "
-                     "but runningMean or runningVariance is set to nullptr");
-    }
 
     args.ins_arg("inhw" + id, inhw_any);
     args.ins_arg("expAvgFactor" + id, expAvgFactor_any);
@@ -605,15 +641,17 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
     args.ins_arg("savedInvVariance" + id, savedInvVariance_any);
     args.ins_arg("runningMean" + id, runningMean_any);
     args.ins_arg("runningVariance" + id, runningVariance_any);
-    return miopenStatusSuccess;
+#endif
 }
 
-std::vector<std::pair<std::string, OpKernelArg>>
+std::shared_ptr<fusion::FusionOpInvokeParamBase>
 BatchNormFwdTrainFusionOpDescriptor::GetArgs() const
 {
+    return args;
 
+#if 0
     // @todo add in saved versus running boolean toggles
-    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    fusion::FusionOpInvokeParamBase keys;
     auto id        = std::to_string(GetIdx());
     Data_t d       = nullptr;
     ConstData_t cd = nullptr;
@@ -635,6 +673,7 @@ BatchNormFwdTrainFusionOpDescriptor::GetArgs() const
     keys.emplace_back("runningMean" + id, d_any);
     keys.emplace_back("runningVariance" + id, d_any);
     return keys;
+#endif
 }
 
 miopenStatus_t
@@ -684,8 +723,7 @@ OpKernelArg BatchNormBwdTrainFusionOpDescriptor::GetOpAttr(const std::string& k)
     else
         MIOPEN_THROW("BatchNormBwdTrainFusionOpDescriptor does not support attribute: " + k);
 }
-miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
-                                                            const void* /*alpha*/,
+miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::SetArgs(const void* /*alpha*/,
                                                             const void* /*beta*/,
                                                             ConstData_t x,
                                                             ConstData_t bnScale,
@@ -695,7 +733,18 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                             ConstData_t savedMean,
                                                             ConstData_t savedInvVariance)
 {
+    const auto& op_args =
+        std::dynamic_pointer_cast<fusion::BatchNormBwdTrainingOpInvokeParam>(args);
 
+    op_args->x                = x;
+    op_args->bnScale          = bnScale;
+    op_args->bnBias           = bnBias;
+    op_args->resBnScaleDiff   = resBnScaleDiff;
+    op_args->resBnBiasDiff    = resBnBiasDiff;
+    op_args->savedMean        = savedMean;
+    op_args->savedInvVariance = savedInvVariance;
+    return miopenStatusSuccess;
+#if 0
     // @todo add in saved boolean toggle
     auto id                   = std::to_string(GetIdx());
     auto x_any                = OpKernelArg(x);
@@ -713,13 +762,15 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
     args.ins_arg("resBnBiasDiff" + id, resBnBiasDiff_any);
     args.ins_arg("savedMean" + id, savedMean_any);
     args.ins_arg("savedInvVariance" + id, savedInvVariance_any);
-    return miopenStatusSuccess;
+#endif
 }
 
-std::vector<std::pair<std::string, OpKernelArg>>
+std::shared_ptr<fusion::FusionOpInvokeParamBase>
 BatchNormBwdTrainFusionOpDescriptor::GetArgs() const
 {
-    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    return args;
+#if 0
+    fusion::FusionOpInvokeParamBase keys;
     auto id        = std::to_string(GetIdx());
     Data_t d       = nullptr;
     ConstData_t cd = nullptr;
@@ -734,6 +785,7 @@ BatchNormBwdTrainFusionOpDescriptor::GetArgs() const
     keys.emplace_back("savedMean" + id, cd_any);
     keys.emplace_back("savedInvVariance" + id, cd_any);
     return keys;
+#endif
 }
 
 miopenStatus_t
@@ -752,14 +804,16 @@ miopenStatus_t BiasFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_de
     return miopenStatusSuccess;
 }
 
-miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
-                                               const void* /*alpha*/,
-                                               const void* /*beta*/,
-                                               ConstData_t bdata)
+miopenStatus_t
+BiasFusionOpDescriptor::SetArgs(const void* /*alpha*/, const void* /*beta*/, ConstData_t bdata)
 {
+    const auto& op_args = std::dynamic_pointer_cast<fusion::BiasOpInvokeParam>(args);
+    op_args->bdata      = bdata;
+    return miopenStatusSuccess;
+#if 0
     auto bdata_any = OpKernelArg(bdata);
     args.ins_arg("bias" + std::to_string(GetIdx()), bdata_any);
-    return miopenStatusSuccess;
+#endif
 }
 
 std::string BiasFusionOpDescriptor::GetArgKey(const std::string& k) const
@@ -772,12 +826,15 @@ OpKernelArg BiasFusionOpDescriptor::GetOpAttr(const std::string& /* k */) const
     MIOPEN_THROW(miopenStatusInternalError, "Unknown Bias Op Attribute");
 }
 
-std::vector<std::pair<std::string, OpKernelArg>> BiasFusionOpDescriptor::GetArgs() const
+std::shared_ptr<fusion::FusionOpInvokeParamBase> BiasFusionOpDescriptor::GetArgs() const
 {
+    return args;
+#if 0
     ConstData_t bdata = nullptr;
-    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    fusion::FusionOpInvokeParamBase keys;
     keys.emplace_back("bias" + std::to_string(GetIdx()), OpKernelArg(bdata));
     return keys;
+#endif
 }
 
 #if 0
@@ -994,206 +1051,30 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     }
     else
     {
-        for(const auto& sol : sols)
+        // for(const auto& sol : sols)
+        const auto& sol = sols[0];
         {
-            // get solver invoker
-            // to force compilation
             if(!sol.invoker_factory)
                 MIOPEN_THROW(miopenStatusInternalError,
                              "Invoker missing from solver " + sol.solver_id);
-            const auto invoker =
-                handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
-            handle.RegisterInvoker(invoker, NetworkConfig{ss.str()}, sol.solver_id, {});
+            const auto invoker = handle.PrepareInvoker(
+                *sol.invoker_factory, sol.construction_params); // force compilation
+            network_config = NetworkConfig{ss.str()};
+            handle.RegisterInvoker(invoker, network_config, sol.solver_id, {});
+            solution = sol;
+            status   = miopenStatusSuccess;
         }
     }
     return status;
 }
 
-std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(const Handle& /*handle*/)
-{
-#if 1
-    return {};
-#else
-    std::vector<Exec_arg_t> arg_keys;
-    // Construct the kernel args
-    std::set<size_t> arg_sizes; // a set of argument sizes
-    // A map between argument sizes and argument names
-    std::map<std::pair<size_t, size_t>, std::vector<std::string>> size_map;
-    // A map between argument pointers (buffers) and argument names
-    std::map<size_t, std::vector<std::string>> ptr_map;
-
-    for(size_t idx = 0; idx < op_map.size(); idx++)
-    {
-        auto op   = op_map.at(idx);
-        auto keys = op->GetArgs();
-        for(auto&& key_arg : keys)
-        {
-            if(!key_arg.second.is_ptr)
-            {
-                arg_sizes.insert(key_arg.second.size());
-                size_map[std::make_pair(idx, key_arg.second.size())].push_back(key_arg.first);
-            }
-            else
-            {
-                ptr_map[idx].push_back(key_arg.first);
-            }
-        }
-    }
-
-    arg_keys.clear();
-
-    // if(kernel_source_type != Binary)
-    if(lu.GetCurVertex(handle)->default_args.empty())
-    {
-        MIOPEN_LOG_I2("Predefined kernel args order not found");
-        for(auto sz : arg_sizes) // Populate args for scalars
-        {
-            for(std::size_t idx = 0; idx < op_map.size(); idx++)
-            {
-                auto key_pair = std::make_pair(idx, sz);
-                if(size_map.count(key_pair) > 0)
-                {
-                    auto keys = size_map.at(key_pair);
-                    std::sort(keys.begin(), keys.end());
-                    for(auto& key : keys)
-                    {
-                        MIOPEN_LOG_I("Scalar " << key << " = " << key);
-                        arg_keys.emplace_back(key, Scalar, sz);
-                    }
-                }
-            }
-        }
-        // insert input / output pointer
-        arg_keys.emplace_back("reserved_input_tensor_ptr", Input_Ptr, sizeof(ConstData_t));
-        arg_keys.emplace_back("reserved_output_tensor_ptr", Output_Ptr, sizeof(ConstData_t));
-        // add other pointers in op-order
-        for(std::size_t idx = 0; idx < op_map.size(); idx++)
-        {
-            auto op = op_map.at(idx);
-            if(ptr_map.count(idx) > 0)
-            {
-                auto keys = ptr_map.at(idx);
-                std::sort(keys.begin(), keys.end());
-                std::transform(keys.begin(),
-                               keys.end(),
-                               std::back_inserter(arg_keys),
-                               [&](auto&& key) -> Exec_arg_t {
-                                   return {key, Pointer, sizeof(ConstData_t)};
-                               });
-            }
-        }
-        if(kernel_source_type == AsmText)
-        { // Padded arguments
-            std::vector<Exec_arg_t> padded_args;
-            size_t running_sz = arg_keys[0].size;
-            padded_args.push_back(arg_keys[0]);
-            for(std::size_t idx = 1; idx < arg_keys.size(); idx++)
-            {
-                if(arg_keys[idx - 1].size != arg_keys[idx].size)
-                {
-                    auto padding = arg_keys[idx].size - running_sz % arg_keys[idx].size;
-                    if(padding != 0)
-                    {
-                        MIOPEN_LOG_I("*** Padding: " << padding);
-                        padded_args.emplace_back("reserved_padding", Padding, padding);
-                        running_sz += padding;
-                    }
-                }
-                padded_args.push_back(arg_keys[idx]);
-                running_sz += arg_keys[idx].size;
-            }
-            arg_keys = std::move(padded_args);
-        }
-
-        if(arg_keys.empty())
-        {
-            MIOPEN_THROW("Kernel arguments not setup properly");
-        }
-    }
-    else
-    {
-        auto default_args = lu.GetKernelArgs(handle);
-        if(default_args.empty())
-        {
-            MIOPEN_THROW(miopenStatusInternalError,
-                         "Default kernel args no supplied in metadata graph");
-        }
-        for(auto& arg : default_args)
-        {
-            MIOPEN_LOG_I2("Setting arg: " + arg.key);
-            switch(arg.type)
-            {
-            case OpArg:
-                if(arg.op_idx < op_map.size())
-                {
-                    auto& op = op_map.at(arg.op_idx);
-                    auto k   = op->GetArgKey(arg.key);
-                    arg_keys.emplace_back(
-                        k, arg.default_val.is_ptr ? Pointer : Scalar, arg.default_val.size());
-                    break;
-                }
-                else
-                {
-                    arg_keys.emplace_back(
-                        arg.key, Default, arg.default_val.size(), arg.default_val);
-                }
-                break;
-            case OpAttr:
-                if(arg.op_idx < op_map.size())
-                {
-                    auto& op     = op_map.at(arg.op_idx);
-                    auto op_attr = op->GetOpAttr(arg.key);
-                    arg_keys.emplace_back(arg.key, Default, op_attr.size(), op_attr);
-                }
-                else
-                {
-                    arg_keys.emplace_back(
-                        arg.key, Default, arg.default_val.size(), arg.default_val);
-                }
-                break;
-            case Other:
-                // The operator does not exist in the fusion plan, load the default value
-                arg_keys.emplace_back(arg.key, Default, arg.default_val.size(), arg.default_val);
-                break;
-            case InputTensor:
-                arg_keys.emplace_back("reserved_input_tensor_ptr", Input_Ptr, sizeof(ConstData_t));
-                break;
-            case OutputTensor:
-                arg_keys.emplace_back(
-                    "reserved_output_tensor_ptr", Output_Ptr, sizeof(ConstData_t));
-                break;
-            case DevAttribute: {
-                auto dev_attr = GetDevAttribute(arg.key, handle);
-                arg_keys.emplace_back(arg.key, Default, dev_attr.size(), dev_attr);
-            }
-            break;
-            case InputTensorDesc:
-            case OutputTensorDesc:
-                auto tensor_arg = GetTensorAttr(arg.key);
-                arg_keys.emplace_back(arg.key, Default, tensor_arg.size(), tensor_arg);
-                break;
-            }
-        }
-    }
-    return arg_keys;
-#endif
-}
-
-miopenStatus_t FusionPlanDescriptor::Execute(const Handle& /*handle*/,
-                                             const TensorDescriptor& /*inputDesc*/,
-                                             ConstData_t /*input*/,
-                                             const TensorDescriptor& /*outputDesc*/,
-                                             Data_t /*output*/,
+miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
+                                             const TensorDescriptor& inputDesc,
+                                             ConstData_t input,
+                                             const TensorDescriptor& outputDesc,
+                                             Data_t output,
                                              const OperatorArgs& /*op_args*/)
 {
-#if 1
-    return miopenStatusSuccess;
-#else
-    if(!isValid() || (lu.GetCurVertex(handle) == nullptr))
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "Attempting to execute an invalid fusion plan.");
-    }
-
     if(output_desc != outputDesc)
     {
         MIOPEN_THROW(miopenStatusBadParm, "The output descriptors dont match.");
@@ -1202,6 +1083,31 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& /*handle*/,
     {
         MIOPEN_THROW(miopenStatusBadParm, "The input descriptors dont match.");
     }
+
+    if(!solution.Succeeded())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "The Fusion Plan was not compiled");
+    }
+
+    if(use_fall_back_path)
+    {
+        // We need real tensors for each op input and output
+        MIOPEN_THROW(miopenStatusNotImplemented);
+    }
+    else
+    {
+        std::vector<std::shared_ptr<fusion::FusionOpInvokeParamBase>> params;
+        for(const auto& op : op_map)
+            params.push_back(op->GetArgs());
+        const auto invoker = handle.GetInvoker(network_config, solver::Id{solution.solver_id}, {});
+        const auto plan_params =
+            fusion::FusionInvokeParams{params, inputDesc, input, outputDesc, output, false};
+        (*invoker)(handle, plan_params);
+    }
+
+#if 1
+    return miopenStatusSuccess;
+#else
 
     auto ops_head = op_map[0];
 

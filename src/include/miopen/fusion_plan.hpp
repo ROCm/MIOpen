@@ -7,7 +7,13 @@
 #include <miopen/fusion.hpp>
 #include <miopen/md_graph.hpp>
 
+#include <boost/optional.hpp>
+
 namespace miopen {
+
+namespace solver {
+struct ConvSolution;
+}
 
 enum Exec_Arg_Type_t
 {
@@ -82,6 +88,8 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     miopenDataType_t data_type;
     std::vector<Exec_arg_t> arg_list;
     bool use_fall_back_path;
+    solver::ConvSolution solution;
+    NetworkConfig network_config;
 };
 
 } // namespace miopen

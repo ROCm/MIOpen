@@ -37,6 +37,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/fusion_plan.hpp>
 #include <miopen/fusion/solvers.hpp>
+#include <miopen/fusion/fusion_invoke_params.hpp>
 
 #include "half.hpp"
 
@@ -168,57 +169,97 @@ ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ExecutionContext& context,
     auto& kernel_info       = sol.construction_params[0];
     kernel_info.kernel_file = "conv1x1u_bias_activ.s";
 
-    if(ctx.is_for_generic_search)
-    {
-        std::ostringstream cba_options;
-        GenerateClangDefsym(cba_options, "activ_mode", 3);
+    const bool has_bias = [&]() {
+        if(desc.op_map.size() == 3)
+            return true;
+        else if(desc.op_map[1]->kind() == miopenFusionOpBiasForward)
+            return true;
+        return false;
+    }();
+    const int activ_idx = [&]() {
+        if(desc.op_map.size() == 3)
+            return 2;
+        else if(desc.op_map[1]->kind() == miopenFusionOpActivForward)
+            return 1;
+        return -1;
+    }();
+
+    std::ostringstream cba_options;
+    GenerateClangDefsym(cba_options, "fusion_mode", 1);
+    if(has_bias)
         GenerateClangDefsym(cba_options, "bias_mode", 1);
-        GenerateClangDefsym(cba_options, "fusion_mode", 1);
+    if(activ_idx != -1)
+    {
         GenerateClangDefsym(cba_options, "enable_activ", 1);
-        kernel_info.comp_options += cba_options.str();
+        const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
+        GenerateClangDefsym(cba_options, "activ_mode", static_cast<int>(activ_op.activMode));
     }
+    kernel_info.comp_options += cba_options.str();
 
     const auto out_data_type = ctx.conv_problem.GetOutDataType();
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            const auto& kernel       = handle.Run(kernels[0]);
-            const auto& invoke_ctx   = primitive_parameters.CastTo<conv::FusedDataInvokeParams>();
-            const auto& tensors      = invoke_ctx.tensors;
-            const auto& bot_ocl_buf  = tensors.in;
-            const auto& wei_ocl_buf  = tensors.w;
-            const auto& top_ocl_buf  = tensors.out;
-            const auto& bias_ocl_buf = tensors.bias;
+            const auto& kernel = handle.Run(kernels[0]);
+            const auto& invoke_ctx =
+                primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
+            const auto& bot_ocl_buf = invoke_ctx.in;
+            const auto& wei_ocl_buf =
+                std::dynamic_pointer_cast<miopen::fusion::ConvolutionOpInvokeParam>(
+                    invoke_ctx.op_invokers[0])
+                    ->workspace;
+            const auto& top_ocl_buf  = invoke_ctx.out;
+            const auto& bias_ocl_buf = [&]() -> ConstData_t {
+                if(has_bias)
+                    return std::dynamic_pointer_cast<miopen::fusion::BiasOpInvokeParam>(
+                               invoke_ctx.op_invokers[1])
+                        ->bdata;
+                else
+                    return nullptr;
+            }();
 
-            if(out_data_type == miopenHalf)
+            if(activ_idx == -1) // skip the activation args
             {
-                short unused = 0;
-                auto alpha   = half(1.0);
-                auto beta    = half(0.0);
-                auto gamma   = half(1.0);
-                kernel(alpha,
-                       beta,
-                       gamma,
-                       unused,
-                       bot_ocl_buf,
-                       top_ocl_buf,
-                       wei_ocl_buf,
-                       bias_ocl_buf);
+                kernel(bot_ocl_buf, top_ocl_buf, wei_ocl_buf, bias_ocl_buf);
             }
             else
             {
-                int unused  = 0;
-                float alpha = 1.0;
-                float beta  = 0.0;
-                float gamma = 1.0;
-                kernel(alpha,
-                       beta,
-                       gamma,
-                       unused,
-                       bot_ocl_buf,
-                       top_ocl_buf,
-                       wei_ocl_buf,
-                       bias_ocl_buf);
+                const auto& activ_invoker =
+                    std::dynamic_pointer_cast<miopen::fusion::ActivationOpInvokeParam>(
+                        invoke_ctx.op_invokers[activ_idx]);
+                const auto activ_alpha = activ_invoker->activAlpha;
+                const auto activ_beta  = activ_invoker->activBeta;
+                const auto activ_gamma = activ_invoker->activGamma;
+                if(out_data_type == miopenHalf)
+                {
+                    short unused = 0;
+                    auto alpha   = half(activ_alpha);
+                    auto beta    = half(activ_beta);
+                    auto gamma   = half(activ_gamma);
+                    kernel(alpha,
+                           beta,
+                           gamma,
+                           unused,
+                           bot_ocl_buf,
+                           top_ocl_buf,
+                           wei_ocl_buf,
+                           bias_ocl_buf);
+                }
+                else
+                {
+                    int unused  = 0;
+                    float alpha = activ_alpha;
+                    float beta  = activ_beta;
+                    float gamma = activ_gamma;
+                    kernel(alpha,
+                           beta,
+                           gamma,
+                           unused,
+                           bot_ocl_buf,
+                           top_ocl_buf,
+                           wei_ocl_buf,
+                           bias_ocl_buf);
+                }
             }
         };
     };
@@ -252,8 +293,6 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const ExecutionContext& context,
             return false;
     }
     // Get the conv problem descriptor from the ops and pass it to the base class IsApplicable
-    // TODO: move to util function
-    // const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
     const auto& conv_op = dynamic_cast<ConvForwardOpDescriptor&>(*desc.op_map[0]);
     auto ctx            = ConvOp2Ctx(context, conv_op);
 
@@ -263,7 +302,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const ExecutionContext& context,
 #if 0
     ctx.SetBufs(bufs);
 #endif
-    return false;
+    return true;
 }
 
 } // namespace fusion
