@@ -512,7 +512,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
             .single_vload \base, \s_offset, \mbufs_inflight, 1, 1
         .endif
         .rept (gprs_per_input_line / 4)
-            .single_vload \base, \s_offset, 4, 1
+            .single_vload \base, \s_offset, \mbufs_inflight, 4, 1
         .endr
         .single_vload \base, \s_offset, \mbufs_inflight, 3, 1
         .single_vload \base, \s_offset, \mbufs_inflight, 2, 1
