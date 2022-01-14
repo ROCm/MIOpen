@@ -831,15 +831,6 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(const ConvolutionC
                                    miopen::GetTypeSize(ctx.in_data_type)))
         return false;
 
-    std::cout << igemm_split_batch_size(ctx.out_height, 
-                                   ctx.out_width, 
-                                   ctx.in_height, 
-                                   ctx.in_width, 
-                                   ctx.batch_sz, 
-                                   ctx.n_inputs, 
-                                   ctx.n_outputs, 
-                                   miopen::GetTypeSize(ctx.in_data_type)) << std::endl;
-
     return true;
 }
 
