@@ -647,6 +647,9 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
         if(ctx.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
 
+    if(ctx.conv_problem.GetConv().attribute.deterministic.Get() && gemm_k_global_split != 0)
+        return false;
+
     const auto& c         = ctx.n_inputs;
     const auto& k         = ctx.n_outputs;
     const auto& group     = ctx.group_counts;
@@ -875,6 +878,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     result.construction_params[0].comp_options = opts_0.str();
 
     std::ostringstream msg;
+
+    msg << ", determ:" << (ctx.conv_problem.GetConv().attribute.deterministic.Get() ? "y" : "n");
 
     if(isGfx90aFp16altSupport)
     {

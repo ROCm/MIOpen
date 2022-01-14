@@ -44,6 +44,7 @@
 #include <unordered_map>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_DETERMINISTIC)
 
 namespace miopen {
 
@@ -91,6 +92,25 @@ struct ConvolutionAttribute
         inline bool GetBwd() const { return Get() != 0; } // true is the default.
         inline bool GetWrW() const { return Get() != 0; } // true is the default.
     } gfx90aFp16alt;
+
+    class deterministic
+    {
+        int value = -1;
+        friend struct ConvolutionAttribute;
+
+        public:
+        inline bool Get() const
+        {
+            int determ_value = value;
+            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_DETERMINISTIC{}))
+                determ_value = miopen::Value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_DETERMINISTIC{});
+#if MIOPEN_NDEBUG
+            return determ_value == 1; // false is the default.
+#else
+            return determ_value != 0; // true is the default.
+#endif
+        }
+    } deterministic;
 
     /// Tri-state attribute values:
     /// * -1: Default (attribute-specific).

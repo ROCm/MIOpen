@@ -517,8 +517,11 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
                     // xdlops_conv use tensors.in, tensors.w, tensors.out
                     ConvDataTensors xdlops_tensor = ConvDataTensors(ConvFwdTensors{
                         zeroDesc, wino_in_ptr, zeroDesc, wino_w_ptr, zeroDesc, wino_out_ptr});
-                    const auto invoke_params      = conv::DataInvokeParams{
-                        xdlops_tensor, workSpace, workSpaceSize, data_ctx.gfx90aFp16alt};
+                    const auto invoke_params      = conv::DataInvokeParams{xdlops_tensor,
+                                                                      workSpace,
+                                                                      workSpaceSize,
+                                                                      data_ctx.gfx90aFp16alt,
+                                                                      data_ctx.deterministic};
 
                     gemm_conv_invoker(handle, invoke_params);
                     kernel_name = gemm_conv_kernel_name;
@@ -820,8 +823,11 @@ conv::DataInvokeParams GetTransformedInvokeContext(const ConvolutionContext& ctx
     const auto zeroDesc           = TensorDescriptor();
     ConvDataTensors xdlops_tensor = ConvDataTensors(
         ConvFwdTensors{zeroDesc, wino_in_ptr, zeroDesc, wino_w_ptr, zeroDesc, wino_out_ptr});
-    return conv::DataInvokeParams{
-        xdlops_tensor, gemm_workSpace, gemm_workSpaceSize, data_ctx.gfx90aFp16alt};
+    return conv::DataInvokeParams{xdlops_tensor,
+                                  gemm_workSpace,
+                                  gemm_workSpaceSize,
+                                  data_ctx.gfx90aFp16alt,
+                                  data_ctx.deterministic};
 #else
     (void)invoke_ctx;
     (void)ctx;

@@ -783,6 +783,15 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
                              std::to_string(value));
         gfx90aFp16alt.value = value;
     }
+    else if(attr == MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC)
+    {
+        if(value < -1 || value > 1)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "[Set conv attribute] Error: Attempt to set invalid value of "
+                         "MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC: " +
+                             std::to_string(value));
+        deterministic.value = value;
+    }
     else
     {
         MIOPEN_THROW(miopenStatusBadParm,
@@ -795,6 +804,8 @@ int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
 {
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
         return gfx90aFp16alt.value;
+    if(attr == MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC)
+        return deterministic.value;
     MIOPEN_THROW(miopenStatusBadParm,
                  "[Get conv attribute] Error: Attribute [" +
                      std::to_string(static_cast<int>(attr)) + "] does not exist.");

@@ -363,7 +363,8 @@ static void DirConvFindCore(Handle& handle,
                                                    {xDesc, x, wDesc, w, yDesc, y},
                                                    workSpace,
                                                    workSpaceSize,
-                                                   conv.attribute.gfx90aFp16alt.GetFwd()};
+                                                   conv.attribute.gfx90aFp16alt.GetFwd(),
+                                                   conv.attribute.deterministic.Get()};
 
     // Find solutions
     const auto winograd = !use_winograd_only ? conv.FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
@@ -626,8 +627,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
         if(invoker)
         {
-            const auto& invoke_ctx = conv::DataInvokeParams{
-                tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetFwd()};
+            const auto& invoke_ctx = conv::DataInvokeParams{tensors,
+                                                            workSpace,
+                                                            workSpaceSize,
+                                                            this->attribute.gfx90aFp16alt.GetFwd(),
+                                                            this->attribute.deterministic.Get()};
             (*invoker)(handle, invoke_ctx);
             return;
         }
@@ -1053,8 +1057,11 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
         }
 
         const auto invoker = LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::Forward);
-        const auto invoke_ctx = conv::DataInvokeParams{
-            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetFwd()};
+        const auto invoke_ctx = conv::DataInvokeParams{tensors,
+                                                       workSpace,
+                                                       workSpaceSize,
+                                                       this->attribute.gfx90aFp16alt.GetFwd(),
+                                                       this->attribute.deterministic.Get()};
         invoker(handle, invoke_ctx);
     });
 }
@@ -1129,7 +1136,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                            {dyDesc, dy, wDesc, w, dxDesc, dx},
                                                            workSpace,
                                                            workSpaceSize,
-                                                           this->attribute.gfx90aFp16alt.GetBwd()};
+                                                           this->attribute.gfx90aFp16alt.GetBwd(),
+                                                           this->attribute.deterministic.Get()};
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
 
             // Find solutions
@@ -1290,8 +1298,11 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         if(!invoker)
             MIOPEN_THROW("No invoker was registered for convolution backward. Was find executed?");
 
-        const auto& invoke_ctx = conv::DataInvokeParams{
-            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetBwd()};
+        const auto& invoke_ctx = conv::DataInvokeParams{tensors,
+                                                        workSpace,
+                                                        workSpaceSize,
+                                                        this->attribute.gfx90aFp16alt.GetBwd(),
+                                                        this->attribute.deterministic.Get()};
         (*invoker)(handle, invoke_ctx);
     });
 }
@@ -1417,8 +1428,11 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
 
         const auto invoker =
             LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardData);
-        const auto invoke_ctx = conv::DataInvokeParams{
-            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetBwd()};
+        const auto invoke_ctx = conv::DataInvokeParams{tensors,
+                                                       workSpace,
+                                                       workSpaceSize,
+                                                       this->attribute.gfx90aFp16alt.GetBwd(),
+                                                       this->attribute.deterministic.Get()};
         invoker(handle, invoke_ctx);
     });
 }
@@ -1496,7 +1510,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                           {dyDesc, dy, xDesc, x, dwDesc, dw},
                                                           workSpace,
                                                           workSpaceSize,
-                                                          this->attribute.gfx90aFp16alt.GetWrW()};
+                                                          this->attribute.gfx90aFp16alt.GetWrW(),
+                                                          this->attribute.deterministic.Get()};
 
             // Find solutions
             const auto gemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
@@ -1633,8 +1648,11 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
         if(!invoker)
             MIOPEN_THROW("No invoker was registered for convolution weights. Was find executed?");
 
-        const auto invoke_ctx = conv::WrWInvokeParams{
-            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetWrW()};
+        const auto invoke_ctx = conv::WrWInvokeParams{tensors,
+                                                      workSpace,
+                                                      workSpaceSize,
+                                                      this->attribute.gfx90aFp16alt.GetWrW(),
+                                                      this->attribute.deterministic.Get()};
         (*invoker)(handle, invoke_ctx);
     });
 }
@@ -1764,8 +1782,11 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
 
         const auto invoker =
             LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardWeights);
-        const auto invoke_ctx = conv::WrWInvokeParams{
-            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetWrW()};
+        const auto invoke_ctx = conv::WrWInvokeParams{tensors,
+                                                      workSpace,
+                                                      workSpaceSize,
+                                                      this->attribute.gfx90aFp16alt.GetWrW(),
+                                                      this->attribute.deterministic.Get()};
         invoker(handle, invoke_ctx);
     });
 }

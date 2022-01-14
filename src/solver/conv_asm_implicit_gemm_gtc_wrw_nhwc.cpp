@@ -727,6 +727,9 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
         if(ctx.IsFp16() && tensor_b_thread_lengths[3] != 1 && gemm_k_global_split != 0 && vector_store != 1)
             return false;
 
+    if(ctx.conv_problem.GetConv().attribute.deterministic.Get() && gemm_k_global_split != 0)
+        return false;
+
     const auto& k         = ctx.n_inputs;
     const auto& c         = ctx.n_outputs;
     const auto& y         = ctx.kernel_size_h;
@@ -1000,6 +1003,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         GenerateClangDefsym(opts_0, "igemm_wrw_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
     std::ostringstream msg;
+
+    msg << ", determ:" << (ctx.conv_problem.GetConv().attribute.deterministic.Get() ? "y" : "n");
 
     if(isGfx90aFp16altSupport)
     {
