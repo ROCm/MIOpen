@@ -60,7 +60,7 @@ class InputFlags
     uint64_t GetValueUint64(const std::string& _long_name) const;
     double GetValueDouble(const std::string& _long_name) const;
     void SetValue(const std::string& long_name, const std::string& new_value);
-    void UpdateLayoutValue(char layout_short_name, const std::string layout_value);
+    void StoreOptionalFlagValue(char short_name, const std::string input_value);
 
     virtual ~InputFlags() {}
 };
