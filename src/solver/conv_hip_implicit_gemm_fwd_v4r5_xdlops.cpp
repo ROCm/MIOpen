@@ -387,11 +387,13 @@ PerformanceImplicitGemmForwardV4R5Xdlops::CalculateGemmABlockCopyPerformancePara
         if(GemmAThreadCopyMoreGemmK)
         {
             data_per_thread_copy_gemmk = gcd(GemmKPerBlock, tmp);
+            // NOLINTNEXTLINE (clang-analyzer-core.DivideZero)
             data_per_thread_copy_gemmm = tmp / data_per_thread_copy_gemmk;
         }
         else
         {
             data_per_thread_copy_gemmm = gcd(GemmMPerBlock, tmp);
+            // NOLINTNEXTLINE (clang-analyzer-core.DivideZero)
             data_per_thread_copy_gemmk = tmp / data_per_thread_copy_gemmm;
         }
 
@@ -536,11 +538,13 @@ PerformanceImplicitGemmForwardV4R5Xdlops::CalculateGemmBBlockCopyPerformancePara
         if(GemmBThreadCopyMoreGemmKPack)
         {
             data_per_thread_copy_gemmkpack = gcd(GemmKPack, tmp);
+            // NOLINTNEXTLINE (clang-analyzer-core.DivideZero)
             data_per_thread_copy_gemmk     = tmp / data_per_thread_copy_gemmkpack;
         }
         else
         {
             data_per_thread_copy_gemmk     = gcd(GemmKPerBlock, tmp);
+            // NOLINTNEXTLINE (clang-analyzer-core.DivideZero)
             data_per_thread_copy_gemmkpack = tmp / data_per_thread_copy_gemmk;
         }
 

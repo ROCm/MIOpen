@@ -556,11 +556,13 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
         if(GemmBThreadCopyMoreGemmK)
         {
             data_per_thread_copy_gemmk = gcd(GemmKPerBlock, tmp);
+            // NOLINTNEXTLINE (clang-analyzer-core.DivideZero)
             data_per_thread_copy_gemmn = tmp / data_per_thread_copy_gemmk;
         }
         else
         {
             data_per_thread_copy_gemmn = gcd(GemmNPerBlock, tmp);
+            // NOLINTNEXTLINE (clang-analyzer-core.DivideZero)
             data_per_thread_copy_gemmk = tmp / data_per_thread_copy_gemmn;
         }
 

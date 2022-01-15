@@ -418,13 +418,18 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmBBlockCopyPerformanceParamete
         if(GemmBThreadCopyMoreGemmKPack)
         {
             data_per_thread_copy_gemmkpack = gcd(GemmKPack, tmp);
+            // NOLINTNEXTLINE (clang-analyzer-core.DivideZero)
             data_per_thread_copy_gemmk     = tmp / data_per_thread_copy_gemmkpack;
         }
         else
         {
             data_per_thread_copy_gemmk     = gcd(GemmKPerBlock, tmp);
+            // NOLINTNEXTLINE (clang-analyzer-core.DivideZero)
             data_per_thread_copy_gemmkpack = tmp / data_per_thread_copy_gemmk;
         }
+
+        if(data_per_thread_copy_gemmk * data_per_thread_copy_gemmkpack == 0)
+            MIOPEN_THROW("invalid performance parameter");
 
         // vector write into LDS
         DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
