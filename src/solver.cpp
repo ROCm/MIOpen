@@ -498,6 +498,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Pooling, SolverDbId(pooling::PoolingForward2d{}));
     Register(registry, ++id, Primitive::Pooling, SolverDbId(pooling::PoolingForwardNd{}));
 
+    RegisterWithSolver(
+        registry, ++id, ConvBinWinogradUltraRxSf2x3{}, miopenConvolutionAlgoWinograd);
+
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
