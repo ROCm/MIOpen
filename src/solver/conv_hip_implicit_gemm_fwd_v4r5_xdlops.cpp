@@ -536,13 +536,11 @@ PerformanceImplicitGemmForwardV4R5Xdlops::CalculateGemmBBlockCopyPerformancePara
         if(GemmBThreadCopyMoreGemmKPack)
         {
             data_per_thread_copy_gemmkpack = gcd(GemmKPack, tmp);
-            // NOLINTNEXTLINE (clang-analyzer-core.UndefinedBinaryOperatorResult)
             data_per_thread_copy_gemmk     = tmp / data_per_thread_copy_gemmkpack;
         }
         else
         {
             data_per_thread_copy_gemmk     = gcd(GemmKPerBlock, tmp);
-            // NOLINTNEXTLINE (clang-analyzer-core.UndefinedBinaryOperatorResult)
             data_per_thread_copy_gemmkpack = tmp / data_per_thread_copy_gemmk;
         }
 
