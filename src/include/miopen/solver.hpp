@@ -1599,6 +1599,61 @@ struct ConvBinWinogradRxS : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
+struct PerformanceConfigConvBinWinogradUltraRxSf2x3
+    : Serializable<PerformanceConfigConvBinWinogradUltraRxSf2x3>
+{
+    int n_groups;
+    int intl_factor;
+
+    PerformanceConfigConvBinWinogradUltraRxSf2x3(int n_groups_, int intl_factor_);
+    PerformanceConfigConvBinWinogradUltraRxSf2x3()
+        : PerformanceConfigConvBinWinogradUltraRxSf2x3(-1, -1)
+    {
+    }
+    PerformanceConfigConvBinWinogradUltraRxSf2x3(bool)
+        : PerformanceConfigConvBinWinogradUltraRxSf2x3(1, 1)
+    {
+    }
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.n_groups, "n_groups");
+        f(self.intl_factor, "intl_factor");
+    }
+    int GetNGroups() const { return n_groups; }
+    int GetInterleaveFactor() const { return intl_factor; }
+
+    void HeuristicInit(const ConvolutionContext& config);
+    bool IsValidValue() const;
+    bool SetNextValue(const ConvolutionContext& config);
+    bool IsValid(const ConvolutionContext& config) const;
+    bool operator==(const PerformanceConfigConvBinWinogradUltraRxSf2x3& other) const;
+    std::string ToString() const;
+};
+
+struct ConvBinWinogradUltraRxSf2x3 : ConvSolver
+{
+    PerformanceConfigConvBinWinogradUltraRxSf2x3
+    GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigConvBinWinogradUltraRxSf2x3&) const;
+    PerformanceConfigConvBinWinogradUltraRxSf2x3 Search(const ConvolutionContext&,
+                                                        const AnyInvokeParams& invoke_ctx) const;
+
+    bool IsApplicable(const ConvolutionContext& params) const override;
+    bool IsDynamic() const override { return true; }
+    float GetWti(const ConvolutionContext& params) const override;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfigConvBinWinogradUltraRxSf2x3& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+    static size_t GetNGroups(const size_t group_conv, const size_t grid_group_size)
+    {
+        assert(group_conv != 0);
+        return grid_group_size / group_conv;
+    }
+};
+
 struct PerformanceConfigConvBinWinogradRxSf3x2
     : Serializable<PerformanceConfigConvBinWinogradRxSf3x2>
 {
