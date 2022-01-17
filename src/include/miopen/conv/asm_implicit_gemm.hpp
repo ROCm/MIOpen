@@ -225,8 +225,8 @@ HeuristicInitMacroTileNoPadGemmK(size_t gemm_m,
         return std::make_tuple(0, 0, 0);
 }
 
-// this is to support big tensor > 4G. need to decide how many splits needed
-// return the number of splits
+// This is to support big tensor > 4G. Need to decide how many splits needed.
+// Return the number of splits.
 static inline int igemm_split_batch_size(const int hi,
                                          const int wi,
                                          const int ho,
