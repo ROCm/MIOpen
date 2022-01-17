@@ -45,6 +45,65 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3_PERF_VALS)
 
 #define MAX_CU_LIMIT 512
 
+namespace miopen {
+namespace solver {
+
+namespace {
+// clang-format off
+    auto PerfFieldRules()
+    {
+        return seq::MakeRuleSet(
+            std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{}, &PerformanceConfigConvBinWinogradUltraRxSf2x3::n_groups)
+        );
+    }
+// clang-format on
+
+#if MIOPEN_BACKEND_HIP
+inline bool IsShaderContraintsMet(const int R,
+                                  const int S,
+                                  const int,
+                                  const int,
+                                  const int C,
+                                  const int K,
+                                  const int H,
+                                  const int W,
+                                  const int OH,
+                                  const int OW,
+                                  const int N,
+                                  const ConvolutionContext& params)
+{
+    // Padding for bwd data shall not be negative.
+    /// \todo Either remove WrW related code or re-use function from RxS
+    if(params.direction.IsBackwardData())
+    {
+        if(!(0 <= params.GetBackwardPadW() && params.GetBackwardPadW() < std::pow(2, 16)))
+            return false;
+        if(!(0 <= params.GetBackwardPadH() && params.GetBackwardPadH() < std::pow(2, 16)))
+            return false;
+    }
+    const auto grid_workgroup_count_x = params.GetStream().GetMaxHardwareComputeUnits();
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
+    // clang-format off
+    return N == 1
+        && C <= 16
+        && K <= 16
+        && H < std::pow(2, 16)
+        && W < std::pow(2, 16)
+        && OH < std::pow(2, 16)
+        && OW < std::pow(2, 16)
+        && params.pad_w < std::pow(2, 16)
+        && params.pad_h < std::pow(2, 16)
+        && S <= 3
+        && R <= 3
+        && grid_workgroup_count_x < std::pow(2, 16);
+    // clang-format on
+}
+#endif
+
 constexpr unsigned group_size = 64;
 constexpr unsigned o_tile_W   = 2;
 constexpr unsigned o_tile_H   = 2;
@@ -73,20 +132,20 @@ struct work_info
     uint64_t o_clip[o_clip_tiles_QW][o_tile_H];
 };
 
-static inline void WU_control_make_3x3_w_info(unsigned N,
-                                              unsigned H,
-                                              unsigned W,
-                                              unsigned o_H,
-                                              unsigned o_W,
-                                              int pad_H,
-                                              int pad_W,
-                                              unsigned d_stride_N,
-                                              unsigned d_stride_H,
-                                              unsigned d_stride_W,
-                                              unsigned o_stride_N,
-                                              unsigned o_stride_H,
-                                              unsigned o_stride_W,
-                                              std::vector<work_info>& w_info)
+inline void WU_control_make_3x3_w_info(unsigned N,
+                                       unsigned H,
+                                       unsigned W,
+                                       unsigned o_H,
+                                       unsigned o_W,
+                                       int pad_H,
+                                       int pad_W,
+                                       unsigned d_stride_N,
+                                       unsigned d_stride_H,
+                                       unsigned d_stride_W,
+                                       unsigned o_stride_N,
+                                       unsigned o_stride_H,
+                                       unsigned o_stride_W,
+                                       std::vector<work_info>& w_info)
 {
     //
     // We assume the filter position is controlled by the LEFT pads and output sizes only here
@@ -95,7 +154,7 @@ static inline void WU_control_make_3x3_w_info(unsigned N,
     // pads, it is supposed to be done somewhere outside
     //
 
-    int64_t o_cur_w = 0; // this should fit 16 bits
+    int64_t o_cur_w = 0;
     int64_t o_cur_h = 0;
     int64_t cur_n   = 0;
     int64_t n       = 0;
@@ -114,7 +173,6 @@ static inline void WU_control_make_3x3_w_info(unsigned N,
 
         for(unsigned n_tile = 0; n_tile < group_size; n_tile++)
         {
-
             for(unsigned i = 0; i < d_tile_W; i++)
             {
                 for(unsigned j = 0; j < d_tile_H; j++)
@@ -170,8 +228,8 @@ static inline void WU_control_make_3x3_w_info(unsigned N,
     }
 }
 
-static inline void WU_control_w_info_bit_encode(std::vector<work_info>& w_info,
-                                                std::vector<uint32_t>& gpu_control)
+inline void WU_control_w_info_bit_encode(std::vector<work_info>& w_info,
+                                         std::vector<uint32_t>& gpu_control)
 {
     for(auto i = 0; i < w_info.size(); i++)
     {
@@ -236,27 +294,26 @@ static inline void WU_control_w_info_bit_encode(std::vector<work_info>& w_info,
             }
         }
 
-        gpu_control.resize(block.size());
-        std::copy(block.begin(), block.end(), gpu_control.begin());
+        gpu_control.insert(gpu_control.end(), block.begin(), block.end());
     }
 }
 
-static inline void WU_control_make_3x3(unsigned N,
-                                       unsigned H,
-                                       unsigned W,
-                                       unsigned o_H,
-                                       unsigned o_W,
-                                       unsigned pad_H,
-                                       unsigned pad_W,
-                                       unsigned d_stride_N,
-                                       unsigned d_stride_H,
-                                       unsigned d_stride_W,
-                                       unsigned o_stride_N,
-                                       unsigned o_stride_H,
-                                       unsigned o_stride_W,
-                                       std::vector<uint32_t>& gpu_control,
-                                       unsigned n_groups,
-                                       unsigned intl_factor)
+inline void WU_control_make_3x3(unsigned N,
+                                unsigned H,
+                                unsigned W,
+                                unsigned o_H,
+                                unsigned o_W,
+                                unsigned pad_H,
+                                unsigned pad_W,
+                                unsigned d_stride_N,
+                                unsigned d_stride_H,
+                                unsigned d_stride_W,
+                                unsigned o_stride_N,
+                                unsigned o_stride_H,
+                                unsigned o_stride_W,
+                                std::vector<uint32_t>& gpu_control,
+                                unsigned n_groups,
+                                unsigned intl_factor)
 {
     std::vector<work_info> w_info;
     WU_control_make_3x3_w_info(N,
@@ -281,63 +338,6 @@ static inline void WU_control_make_3x3(unsigned N,
                 w_info_intl.push_back(w_info[i + j]);
 
     WU_control_w_info_bit_encode(w_info_intl, gpu_control);
-}
-
-namespace miopen {
-namespace solver {
-
-namespace {
-// clang-format off
-    auto PerfFieldRules()
-    {
-        return seq::MakeRuleSet(
-            std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{}, &PerformanceConfigConvBinWinogradUltraRxSf2x3::n_groups)
-        );
-    }
-// clang-format on
-
-inline bool IsShaderContraintsMet(const int R,
-                                  const int S,
-                                  const int,
-                                  const int,
-                                  const int C,
-                                  const int K,
-                                  const int H,
-                                  const int W,
-                                  const int OH,
-                                  const int OW,
-                                  const int N,
-                                  const ConvolutionContext& params)
-{
-    // Padding for bwd data shall not be negative.
-    /// \todo Either remove WrW related code or re-use function from RxS
-    if(params.direction.IsBackwardData())
-    {
-        if(!(0 <= params.GetBackwardPadW() && params.GetBackwardPadW() < std::pow(2, 16)))
-            return false;
-        if(!(0 <= params.GetBackwardPadH() && params.GetBackwardPadH() < std::pow(2, 16)))
-            return false;
-    }
-    const auto grid_workgroup_count_x = params.GetStream().GetMaxHardwareComputeUnits();
-    if(!params.IsLayoutDefault())
-    {
-        return false;
-    }
-
-    // clang-format off
-    return N == 1
-        && C <= 16
-        && K <= 16
-        && H < std::pow(2, 16)
-        && W < std::pow(2, 16)
-        && OH < std::pow(2, 16)
-        && OW < std::pow(2, 16)
-        && params.pad_w < std::pow(2, 16)
-        && params.pad_h < std::pow(2, 16)
-        && S <= 3
-        && R <= 3
-        && grid_workgroup_count_x < std::pow(2, 16);
-    // clang-format on
 }
 
 } // namespace
@@ -741,6 +741,8 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
 
     solution.construction_params.push_back(kernel);
     solution.invoker_factory = [=](std::vector<Kernel> kernels) {
+        void* control_buf_ptr = nullptr;
+
 #if MIOPEN_BACKEND_HIP
         const auto kern = kernels.front();
         const auto mod  = kern.program.GetModule();
@@ -756,6 +758,8 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
 
         params.GetStream().Copy(
             static_cast<const void*>(gpu_control.data()), dev_buf_ptr, control_buf_sz);
+
+        control_buf_ptr = dev_buf_ptr;
 #endif
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -793,7 +797,7 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
               o_step_2_pitch,
               in,
               out,
-              dev_buf_ptr,
+              control_buf_ptr,
               wei,
               reserved_ptr, // Unused bias_addr.
               relu_alpha,
