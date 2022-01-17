@@ -58,52 +58,6 @@ namespace {
     }
 // clang-format on
 
-#if MIOPEN_BACKEND_HIP
-inline bool IsShaderContraintsMet(const int R,
-                                  const int S,
-                                  const int,
-                                  const int,
-                                  const int C,
-                                  const int K,
-                                  const int H,
-                                  const int W,
-                                  const int OH,
-                                  const int OW,
-                                  const int N,
-                                  const ConvolutionContext& params)
-{
-    // Padding for bwd data shall not be negative.
-    /// \todo Either remove WrW related code or re-use function from RxS
-    if(params.direction.IsBackwardData())
-    {
-        if(!(0 <= params.GetBackwardPadW() && params.GetBackwardPadW() < std::pow(2, 16)))
-            return false;
-        if(!(0 <= params.GetBackwardPadH() && params.GetBackwardPadH() < std::pow(2, 16)))
-            return false;
-    }
-    const auto grid_workgroup_count_x = params.GetStream().GetMaxHardwareComputeUnits();
-    if(!params.IsLayoutDefault())
-    {
-        return false;
-    }
-
-    // clang-format off
-    return N == 1
-        && C <= 16
-        && K <= 16
-        && H < std::pow(2, 16)
-        && W < std::pow(2, 16)
-        && OH < std::pow(2, 16)
-        && OW < std::pow(2, 16)
-        && params.pad_w < std::pow(2, 16)
-        && params.pad_h < std::pow(2, 16)
-        && S <= 3
-        && R <= 3
-        && grid_workgroup_count_x < std::pow(2, 16);
-    // clang-format on
-}
-#endif
-
 constexpr unsigned group_size = 64;
 constexpr unsigned o_tile_W   = 2;
 constexpr unsigned o_tile_H   = 2;
@@ -339,6 +293,71 @@ inline void WU_control_make_3x3(unsigned N,
 
     WU_control_w_info_bit_encode(w_info_intl, gpu_control);
 }
+
+#if MIOPEN_BACKEND_HIP
+inline bool IsShaderContraintsMet(const int R,
+                                  const int S,
+                                  const int,
+                                  const int,
+                                  const int C,
+                                  const int K,
+                                  const int H,
+                                  const int W,
+                                  const int OH,
+                                  const int OW,
+                                  const int N,
+                                  const ConvolutionContext& params)
+{
+    // Padding for bwd data shall not be negative.
+    /// \todo Either remove WrW related code or re-use function from RxS
+    if(params.direction.IsBackwardData())
+    {
+        if(!(0 <= params.GetBackwardPadW() && params.GetBackwardPadW() < std::pow(2, 16)))
+            return false;
+        if(!(0 <= params.GetBackwardPadH() && params.GetBackwardPadH() < std::pow(2, 16)))
+            return false;
+    }
+    const auto grid_workgroup_count_x = params.GetStream().GetMaxHardwareComputeUnits();
+    if(!params.IsLayoutDefault())
+    {
+        return false;
+    }
+
+    constexpr auto ELEM_SZ    = static_cast<int64_t>(sizeof(half_float::half));
+    constexpr auto D_W_PITCH  = ELEM_SZ * 1;
+    constexpr auto O_W_PITCH  = ELEM_SZ * 1;
+    const auto D_H_PITCH      = D_W_PITCH * W;
+    const auto O_H_PITCH      = O_W_PITCH * OW;
+    const auto D_C_PITCH      = D_H_PITCH * H;
+    const auto O_K_PITCH      = O_H_PITCH * OH;
+    const auto D_N_PITCH      = D_C_PITCH * C;
+    const auto O_N_PITCH      = O_K_PITCH * K;
+    const auto TILES_N_ROW    = (OW + o_tile_step_W - 1) / o_tile_step_W;
+    const auto TILES_N_COLUMN = (OH + o_tile_step_H - 1) / o_tile_step_H;
+
+    const auto D_STEP_1_PITCH = d_tile_step_H * D_H_PITCH - TILES_N_ROW * d_tile_step_W * D_W_PITCH;
+    const auto O_STEP_1_PITCH = o_tile_step_H * O_H_PITCH - TILES_N_ROW * o_tile_step_W * O_W_PITCH;
+    const auto D_STEP_2_PITCH = D_N_PITCH - TILES_N_COLUMN * d_tile_step_H * D_H_PITCH;
+    const auto O_STEP_2_PITCH = O_N_PITCH - TILES_N_COLUMN * o_tile_step_H * O_H_PITCH;
+
+    // clang-format off
+    return N == 1
+        && C <= 240
+        && K <= 16
+        && S <= 3
+        && R <= 3
+        && D_H_PITCH < std::pow(2, 16)
+        && O_H_PITCH < std::pow(2, 16)
+        && D_C_PITCH < std::pow(2, 30)
+        && O_K_PITCH < std::pow(2, 30)
+        && D_STEP_1_PITCH < std::pow(2, 18)
+        && O_STEP_1_PITCH < std::pow(2, 18)
+        && D_STEP_2_PITCH < std::pow(2, 30)
+        && O_STEP_2_PITCH < std::pow(2, 30)
+        && grid_workgroup_count_x < std::pow(2, 16);
+    // clang-format on
+}
+#endif
 
 } // namespace
 
