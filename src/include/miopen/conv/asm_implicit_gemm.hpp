@@ -238,28 +238,29 @@ static inline int igemm_split_batch_size(const int hi,
 {
     size_t image_size_input = static_cast<size_t>(c) * hi * wi * data_byte;
     size_t image_size_output = static_cast<size_t>(k) * ho * wo * data_byte;
-    size_t size_4g = 0xffffffffUL;
-    if(image_size_input >= size_4g || image_size_output >= size_4g)
+    constexpr size_t max_tensor_size = 0xffffffffUL;
+    
+    size_t image_size = std::max(image_size_input, image_size_output);
+
+    // when image size is larger than max tensor size, max batch applicable is 0, so 0 is returned.
+    if(image_size >= max_tensor_size)
         return 0;
 
-    size_t image_size = image_size_input >= image_size_output ? image_size_input : image_size_output;
-    size_t splited_n = size_4g / image_size;
+    size_t max_n = max_tensor_size / image_size;
 
     // round up splits, we must match
-    // 1. splited_n * image_size < size_4g
-    // 2. n % splited_n == 0
-    // if(splited_n >= n)
+    // 1. max_n * image_size < max_tensor_size
+    // 2. n % max_n == 0
+    // if(max_n >= n)
     //     return 1;
-    if(splited_n == 0)
-        return 0;
-    while(splited_n >= 1){
-        if(n % splited_n == 0 && splited_n * image_size < size_4g)
+    while(max_n > 1){
+        if(n % max_n == 0)
             break;
-        splited_n--;
+        max_n--;
     }
-    if(splited_n == 0)
+    if(max_n == 0)
         return 0;
-    return n / splited_n;
+    return n / max_n;
 }
 
 template <int L, int H>
