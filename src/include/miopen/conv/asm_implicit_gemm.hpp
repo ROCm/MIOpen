@@ -242,13 +242,13 @@ static inline int igemm_split_batch_size(const int hi,
     
     size_t image_size = std::max(image_size_input, image_size_output);
 
-    // when image size is larger than max tensor size, max batch applicable is 0, so 0 is returned.
+    // When image size is larger than max tensor size, max batch applicable is 0, so 0 is returned.
     if(image_size >= max_tensor_size)
         return 0;
 
     size_t max_n = max_tensor_size / image_size;
 
-    // round up splits, we must match
+    // Round up splits, we must match
     // 1. max_n * image_size < max_tensor_size
     // 2. n % max_n == 0
     // if(max_n >= n)
