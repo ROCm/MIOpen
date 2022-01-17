@@ -258,8 +258,8 @@ static inline int igemm_split_batch_size(const int hi,
             break;
         max_n--;
     }
-    if(max_n == 0)
-        return 0;
+    // if(max_n == 0)
+    //     return 0;
     return n / max_n;
 }
 
