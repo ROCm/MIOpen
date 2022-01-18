@@ -87,9 +87,12 @@ struct PoolingForwardNd : OldStyleSolver
                              const miopen::pooling::ProblemDescription& problem) const;
 };
 
-struct PoolingBackward2d : public SolverBase<OldStyleProblemDescription>
+struct PoolingBackward2d : OldStyleSolver
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    // To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -105,9 +108,12 @@ struct PoolingBackward2d : public SolverBase<OldStyleProblemDescription>
                              const miopen::pooling::ProblemDescription& problem) const;
 };
 
-struct PoolingBackwardNd : public SolverBase<OldStyleProblemDescription>
+struct PoolingBackwardNd : OldStyleSolver
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    // To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
