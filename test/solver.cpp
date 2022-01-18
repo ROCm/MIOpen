@@ -44,8 +44,14 @@ namespace miopen {
 namespace tests {
 class TrivialTestSolver : public solver::ConvSolver
 {
-    public:
+public:
     static const char* FileName() { return "TrivialTestSolver"; }
+
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<TrivialTestSolver>();
+    }
+
     bool IsApplicable(const ConvolutionContext& context) const override
     {
         return context.in_width == 1;
@@ -77,10 +83,16 @@ struct TestConfig : solver::Serializable<TestConfig>
 
 class SearchableTestSolver : public solver::ConvSolver
 {
-    public:
+public:
     static int searches_done() { return _serches_done; }
     static const char* FileName() { return "SearchableTestSolver"; }
     static const char* NoSearchFileName() { return "SearchableTestSolver.NoSearch"; }
+
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<SearchableTestSolver>();
+    }
+
     bool IsApplicable(const ConvolutionContext& context) const override
     {
         std::ignore = context;
@@ -120,8 +132,9 @@ class SearchableTestSolver : public solver::ConvSolver
         return ret;
     }
 
-    private:
+private:
     static int _serches_done; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+
 };
 
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
