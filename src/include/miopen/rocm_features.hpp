@@ -28,6 +28,10 @@
 
 #include <miopen/config.h>
 
+/// Fix for SWDEV-255735. Since 3.8.20403, ".amdhsa_reserve_xnack_mask 0"
+/// is not working without explicit "-mno-xnack" option.
+#define ROCM_FEATURE_ASM_REQUIRES_NO_XNACK_OPTION (HIP_PACKAGE_VERSION_FLAT >= 3008020403ULL)
+
 /// Older HIP runtimes return hipDeviceProp_t.gcnArchName with codenames
 /// of GPUs instead of valid names, e.g. "Vega 20" instead of "gfx906".
 /// To be removed as soon as support for ROCm 3.x is discontinued.
@@ -55,12 +59,9 @@
 ///  --input 1, 4, 4, 161, 700 --weights 1, 4, 3, 11, 11
 ///   --pads_strides_dilations 3 3 3 2 2 2 4 4 4 --trans_output_pads 0 0 0
 ///
-/// W/A is in effect only when MIOpenGEMM is used (OCL BE) abd includes:
-/// - Disabling GEMM for failing configs.
-/// - Adding Naive Solvers. Naive solvers are inteded for use as backup for
-///   Immediate Mode Fallback when GEMM is disabled.
-/// - Note: When MIOpenGEMM is not in use, Naive Solvers are disabled. This minimizes
-///   impact of the W/A to the HIP backend.
+/// W/A is in effect only when MIOpenGEMM is used (OCL BE) and disables
+/// GEMM for the failing configs. When this happens, Naive solvers
+/// are used as backup on the Immediate Mode Fallback path.
 #define WORKAROUND_MIOPENGEMM_SINCE_ROCM41 \
     (MIOPEN_USE_MIOPENGEMM && (HIP_PACKAGE_VERSION_FLAT >= 4001000000ULL))
 

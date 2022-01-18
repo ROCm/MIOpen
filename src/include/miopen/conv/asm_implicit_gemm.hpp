@@ -25,6 +25,9 @@
  *******************************************************************************/
 #ifndef CK_ASM_IMPLICITGEMM_HPP_
 #define CK_ASM_IMPLICITGEMM_HPP_
+
+#include <miopen/config.h>
+
 #include <string>
 #include <ostream>
 #include <tuple>

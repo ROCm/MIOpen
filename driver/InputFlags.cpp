@@ -34,6 +34,7 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 int TensorParameters::SetTensordDescriptor(miopenTensorDescriptor_t result,
                                            miopenDataType_t data_type)
@@ -68,14 +69,17 @@ void InputFlags::AddInputFlag(const std::string& _long_name,
                               char _short_name,
                               const std::string& _value,
                               const std::string& _help_text,
-                              const std::string& _type)
+                              const std::string& _type,
+                              const bool _convert2uppercase)
 {
+
     Input in;
     in.long_name  = _long_name;
     in.short_name = _short_name;
     in.value      = _value;
     in.help_text  = _help_text;
     in.type       = _type;
+    in.convert2uppercase = _convert2uppercase; 
 
     if(MapInputs.count(_short_name) > 0)
         printf("Input flag: %s (%c) already exists !", _long_name.c_str(), _short_name);
@@ -99,7 +103,6 @@ void InputFlags::AddTensorFlag(const std::string& name,
 
 [[gnu::noreturn]] void InputFlags::Print() const
 {
-    printf("MIOpen Driver Input Flags: \n\n");
 
     for(auto& content : MapInputs)
     {
@@ -133,7 +136,6 @@ void InputFlags::AddTensorFlag(const std::string& name,
 char InputFlags::FindShortName(const std::string& long_name) const
 {
     char short_name = '\0';
-
     for(auto& content : MapInputs)
     {
         if(content.second.long_name == long_name)
@@ -144,7 +146,6 @@ char InputFlags::FindShortName(const std::string& long_name) const
         std::cout << "Long Name: " << long_name << " Not Found !";
         exit(0); // NOLINT (concurrency-mt-unsafe)
     }
-
     return short_name;
 }
 
@@ -165,21 +166,20 @@ void InputFlags::Parse(int argc, char* argv[])
             printf("Illegal input flag\n");
             Print();
         }
-        else if(temp[0] == '-' && temp[1] == '-') // Long Name Input
+        else if(temp[0] == '-' && temp[1] == '-') // I/O/F layout long Input
         {
             std::string long_name = temp.substr(2);
             if(long_name == "help")
                 Print();
 
-            char short_name = FindShortName(long_name);
-
-            MapInputs[short_name].value = args[i + 1];
+            char layout_short_name = FindShortName(long_name);
+            UpdateLayoutValue(layout_short_name,args[i+1]);
             i++;
-        }
-        else if(temp[0] == '-' && temp[1] == '?') // Help Input
-            Print();
-        else // Short Name Input
-        {
+         }
+         else if(temp[0] == '-' && temp[1] == '?') // Help Input
+             Print();
+         else // Short Name Input
+         {
             char short_name = temp[1];
             if(MapInputs.find(short_name) == MapInputs.end())
             {
@@ -197,6 +197,23 @@ void InputFlags::Parse(int argc, char* argv[])
                 i++;
             }
         }
+   }
+}
+
+// This function updates the In/Fill/Out layout input values.Depending upon the flag value,
+// input values are converted to uppercase or lowercase type.This function is used while
+// parsing the driver arguments.
+void InputFlags::UpdateLayoutValue(char layout_short_name, const std::string layout_value)
+{
+    if( MapInputs[layout_short_name].convert2uppercase == true )
+    {
+         std::string tvalue = layout_value;
+         std::transform(tvalue.begin(), tvalue.end(),tvalue.begin(), ::toupper);
+         MapInputs[layout_short_name].value = tvalue;
+    }
+    else
+    {
+         MapInputs[layout_short_name].value = layout_value;
     }
 }
 

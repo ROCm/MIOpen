@@ -95,8 +95,6 @@ bool KernelCache::HasProgram(const std::string& name, const std::string& params)
     return program_map.count(key) > 0;
 }
 
-void KernelCache::ClearProgram() { program_map.clear(); }
-
 void KernelCache::ClearProgram(const std::string& name, const std::string& params)
 {
     if(HasProgram(name, params))

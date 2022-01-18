@@ -406,8 +406,8 @@ class ProblemTensorTransposeGroup
     std::vector<ProblemTensorTransposeInvoke> outputs;
 };
 
-template <class Derived, class Context, class Problem, class InvokeParams, class Inner>
-struct TransposingSolver : SolverBase<Context>
+template <class Derived, class Base, class Problem, class InvokeParams, class Inner>
+struct TransposingSolver : Base
 {
     using TransposeDescriptor = ProblemTensorTransposeDescriptor<Problem, InvokeParams>;
 
@@ -424,7 +424,7 @@ struct TransposingSolver : SolverBase<Context>
         return ret;
     }
 
-    bool IsApplicable(const ExecutionContext& ctx, const Problem& problem) const
+    bool IsApplicable(const ExecutionContext& ctx, const Problem& problem) const override
     {
         const auto transpose_solvers    = Derived::GetTransposeSolversMap();
         const auto skip_transpose_check = transpose_solvers.find("*-*") != transpose_solvers.end();
@@ -449,7 +449,8 @@ struct TransposingSolver : SolverBase<Context>
         return any_difference && Inner{}.IsApplicable(ctx, Transpose(problem));
     }
 
-    ConvSolution GetWorkspaceSize(const ExecutionContext& ctx, const Problem& problem) const
+    std::size_t GetWorkspaceSize(const ExecutionContext& ctx,
+                                  const Problem& problem) const override
     {
         const auto transposed_problem = Transpose(problem);
         auto ws_size                  = Inner{}.GetWorkspaceSize(ctx, transposed_problem);
@@ -463,7 +464,7 @@ struct TransposingSolver : SolverBase<Context>
         return ws_size;
     }
 
-    ConvSolution GetSolution(const ExecutionContext& ctx, const Problem& problem) const
+    ConvSolution GetSolution(const ExecutionContext& ctx, const Problem& problem) const override
     {
         auto transposed_problem      = Transpose(problem);
         ConvSolution sln             = Inner{}.GetSolution(ctx, transposed_problem);

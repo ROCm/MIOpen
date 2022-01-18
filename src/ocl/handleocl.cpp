@@ -436,8 +436,6 @@ void Handle::ClearProgram(const std::string& program_name, const std::string& pa
     this->impl->cache.ClearProgram(program_name, params);
 }
 
-void Handle::ClearProgram() const { this->impl->cache.ClearProgram(); }
-
 bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
 {
     return this->impl->cache.HasProgram(program_name, params);
