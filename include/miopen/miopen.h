@@ -61,7 +61,8 @@
  * @defgroup fusion
  * @defgroup LossFunction
  * @defgroup TensorReduce
- *
+ * @defgroup gemm
+ *  
  */
 
 /*! Constructs type name from a struct */
@@ -301,6 +302,14 @@ MIOPEN_DECLARE_OBJECT(miopenLRNDescriptor);
  *
  */
 MIOPEN_DECLARE_OBJECT(miopenActivationDescriptor);
+
+/*! @ingroup gemm
+ * @brief Creates the miopenGemmDescriptor_t type
+ *
+ * Gemm descriptor is an object that allows the user to specify the gemm mode.
+ *
+ */
+MIOPEN_DECLARE_OBJECT(miopenGemmDescriptor);
 
 /*! @ingroup RNN
  * @brief Creates the miopenRNNDescriptor_t type
