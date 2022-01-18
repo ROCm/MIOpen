@@ -88,7 +88,7 @@ mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::An
         solution = solver.FindSolution(_search_params, db, invoke_ctx);
         if(solution.Succeeded() && solver.IsApplicable(_search_params))
         {
-            solver_id = miopen::solver::SolverDbId(solver);
+            solver_id = solver.GetSolverDbId();
             break;
         }
     }
