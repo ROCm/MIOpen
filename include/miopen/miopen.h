@@ -460,6 +460,15 @@ typedef enum
             */
 } miopenActivationMode_t;
 
+/*! @ingroup gemm
+ * @enum miopenGemmMode_t
+ * Gemm layer modes
+ */
+typedef enum
+{
+    miopenGemmDefault  = 0, /*!< Default Gemm */
+} miopenGemmMode_t;
+
 /*! @ingroup softmax
  * @enum miopenSoftmaxAlgorithm_t
  * Softmax implementation algorithms
