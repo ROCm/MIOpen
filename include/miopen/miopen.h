@@ -2629,6 +2629,87 @@ miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 /** @} */
 // CLOSEOUT ACTIVATION DOXYGEN GROUP
 
+// Gemm APIs
+/** @addtogroup gemm
+ *
+ *  @{
+ */
+/*! @brief Creates the Gemm descriptor object
+ *
+ * @param gemmDesc Pointer to an gemm tensor descriptor type
+ * @return          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateGemmDescriptor(miopenGemmDescriptor_t* gemmDesc);
+
+/*! @brief Sets the gemm layer descriptor details
+ *
+ * Sets all of the descriptor details for the gemm layer
+ *
+ * @param gemmDesc    Pointer to a gemm layer descriptor (output)
+ * @param mode        Gemm mode enum (input)
+ * @param gemmAlpha   Alpha value for gemm (input)
+ * @param gemmBeta    Beta value for gemm (input)
+ * @return            miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenSetGemmDescriptor(const miopenGemmDescriptor_t gemmDesc,
+                              miopenGemmMode_t mode,
+                              double gemmAlpha,
+                              double gemmBeta);
+
+/*! @brief Gets the gemm layer descriptor details
+ *
+ * Retrieves all of the descriptor details for the gemm layer.
+ *
+ * @param gemmDesc    Pointer to a gemm layer descriptor (input)
+ * @param mode        Gemm mode enum (output)
+ * @param gemmAlpha   Alpha value for gemm (output)
+ * @param gemmBeta    Beta value for gemm modes (output)
+ * @return            miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetGemmDescriptor(const miopenGemmDescriptor_t gemmDesc,
+                              miopenGemmMode_t* mode,
+                              double* gemmAlpha,
+                              double* gemmBeta);
+
+/*! @brief Execute a gemm forward layer
+ *
+ * @param handle        MIOpen handle (input)
+ * @param gemmDesc      Descriptor for gemm layer (input)
+ * @param alpha         Floating point scaling factor, allocated on the host (input)
+ * @param ADesc         Tensor descriptor for data input tensor A (input)
+ * @param A             Data tensor A (input)
+ * @param beta          Floating point shift factor, allocated on the host (input)
+ * @param BDesc         Tensor descriptor for data input tensor B (input)
+ * @param B             Data tensor B (input)
+ * @param CDesc         Tensor descriptor for output data tensor C (input)
+ * @param C             Data tensor C (output)
+ * @return              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGemmForward(miopenHandle_t handle,
+                                                     const miopenGemmDescriptor_t gemmDesc,
+                                                     const void* alpha,
+                                                     const miopenTensorDescriptor_t ADesc,
+                                                     const void* A,
+                                                     const void* beta,
+                                                     const miopenTensorDescriptor_t BDesc,
+                                                     const void* B,                                                     
+                                                     const miopenTensorDescriptor_t CDesc,
+                                                     void* C);
+
+/*! @brief Destroys the gemm descriptor object
+ *
+ * @param gemmDesc   Gemm tensor descriptor type (input)
+ * @return            miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenDestroyGemmDescriptor(miopenGemmDescriptor_t gemmDesc);
+
+/** @} */
+// CLOSEOUT GEMM DOXYGEN GROUP
+
 // Softmax APIs
 /** @addtogroup softmax
  *
