@@ -135,8 +135,13 @@ struct PoolingFwdNCHWTransposingSolver : TransposingSolver<PoolingFwdNCHWTranspo
     }
 };
 
-using TransposedPoolingFwd2d = PoolingFwdNCHWTransposingSolver<PoolingForward2d>;
-using TransposedPoolingFwdNd = PoolingFwdNCHWTransposingSolver<PoolingForwardNd>;
+struct TransposedPoolingFwd2d : PoolingFwdNCHWTransposingSolver<PoolingForward2d>
+{
+};
+
+struct TransposedPoolingFwdNd : PoolingFwdNCHWTransposingSolver<PoolingForwardNd>
+{
+};
 
 } // namespace pooling
 
