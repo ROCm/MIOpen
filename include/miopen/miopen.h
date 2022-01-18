@@ -2688,16 +2688,16 @@ miopenGetGemmDescriptor(const miopenGemmDescriptor_t gemmDesc,
  * @param C             Data tensor C (output)
  * @return              miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenGemmForward(miopenHandle_t handle,
-                                                     const miopenGemmDescriptor_t gemmDesc,
-                                                     const void* alpha,
-                                                     const miopenTensorDescriptor_t ADesc,
-                                                     const void* A,
-                                                     const void* beta,
-                                                     const miopenTensorDescriptor_t BDesc,
-                                                     const void* B,                                                     
-                                                     const miopenTensorDescriptor_t CDesc,
-                                                     void* C);
+MIOPEN_EXPORT miopenStatus_t miopenGemm(miopenHandle_t handle,
+                                        const miopenGemmDescriptor_t gemmDesc,
+                                        const void* alpha,
+                                        const miopenTensorDescriptor_t ADesc,
+                                        const void* A,
+                                        const void* beta,
+                                        const miopenTensorDescriptor_t BDesc,
+                                        const void* B,                                                     
+                                        const miopenTensorDescriptor_t CDesc,
+                                        void* C);
 
 /*! @brief Destroys the gemm descriptor object
  *
