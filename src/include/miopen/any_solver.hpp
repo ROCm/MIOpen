@@ -145,7 +145,7 @@ struct AnySolver
             using PerformanceConfig =
                 decltype(value.GetPerformanceConfig(std::declval<const ConvolutionContext&>()));
             PerformanceConfig config{};
-            return record.GetValues(SolverDbId(value), config);
+            return record.GetValues(value.SolverDbId(), config);
         }
         bool TestSysDbRecord(const DbRecord& record, std::false_type) const
         {
@@ -178,7 +178,7 @@ struct AnySolver
         }
         bool MayNeedWorkspace() const override { return value.MayNeedWorkspace(); }
         const std::type_info& Type() const override { return typeid(T); };
-        std::string GetSolverDbId() const override { return ComputeSolverDbId(value); }
+        std::string GetSolverDbId() const override { return value.SolverDbId(); }
 
         private:
         T value;

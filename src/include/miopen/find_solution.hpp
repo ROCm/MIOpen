@@ -52,53 +52,53 @@ auto FindSolutionImpl(
     const FindEnforce enforce;
     if(context.disable_perfdb_access)
     {
-        MIOPEN_LOG_I(SolverDbId(s) << " (db access disabled)");
+        MIOPEN_LOG_I(s.SolverDbId() << " (db access disabled)");
         return s.GetSolution(context, s.GetPerformanceConfig(context));
     }
-    MIOPEN_LOG_I(SolverDbId(s));
+    MIOPEN_LOG_I(s.SolverDbId());
     if(enforce.IsDbClean(context))
     {
-        if(db.Remove(context, SolverDbId(s)))
-            MIOPEN_LOG_W("Perf Db: record removed: " << SolverDbId(s) << ", enforce: " << enforce);
+        if(db.Remove(context, s.SolverDbId()))
+            MIOPEN_LOG_W("Perf Db: record removed: " << s.SolverDbId() << ", enforce: " << enforce);
     }
     else
     {
         if((context.do_search || enforce.IsSearch(context)) && enforce.IsDbUpdate(context))
         {
-            MIOPEN_LOG_W("Perf Db: load skipped: " << SolverDbId(s) << ", enforce: " << enforce);
+            MIOPEN_LOG_W("Perf Db: load skipped: " << s.SolverDbId() << ", enforce: " << enforce);
         }
         else
         {
             using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
             PerformanceConfig config{};
-            if(db.Load(context, SolverDbId(s), config))
+            if(db.Load(context, s.SolverDbId(), config))
             {
-                MIOPEN_LOG_I2("Perf Db: record loaded: " << SolverDbId(s));
+                MIOPEN_LOG_I2("Perf Db: record loaded: " << s.SolverDbId());
                 if(s.IsValidPerformanceConfig(context, config))
                 {
                     return s.GetSolution(context, config);
                 }
                 MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
-                              << SolverDbId(s) << ": " << config << ". Performance may degrade.");
+                              << s.SolverDbId() << ": " << config << ". Performance may degrade.");
             }
             else
             {
-                MIOPEN_LOG_I("Perf Db: record not found for: " << SolverDbId(s));
+                MIOPEN_LOG_I("Perf Db: record not found for: " << s.SolverDbId());
             }
         }
 
         if(context.do_search || enforce.IsSearch(context)) // TODO: Make it a customization point
         {
-            MIOPEN_LOG_I("Starting search: " << SolverDbId(s) << ", enforce: " << enforce);
+            MIOPEN_LOG_I("Starting search: " << s.SolverDbId() << ", enforce: " << enforce);
             try
             {
                 auto c = s.Search(context, invoke_ctx);
-                db.Update(context, SolverDbId(s), c);
+                db.Update(context, s.SolverDbId(), c);
                 return s.GetSolution(context, c);
             }
             catch(const miopen::Exception& ex)
             {
-                MIOPEN_LOG_E("Search failed for: " << SolverDbId(s) << ": " << ex.what());
+                MIOPEN_LOG_E("Search failed for: " << s.SolverDbId() << ": " << ex.what());
             }
         }
     }
@@ -110,7 +110,7 @@ template <class Solver, class Context, class Db>
 auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&, const AnyInvokeParams&)
     -> decltype(s.GetSolution(context))
 {
-    MIOPEN_LOG_I(SolverDbId(s) << " (not searchable)");
+    MIOPEN_LOG_I(s.SolverDbId() << " (not searchable)");
     return s.GetSolution(context);
 }
 
@@ -128,7 +128,7 @@ FindSolution(Solver s, const Context& context, Db& db, const AnyInvokeParams& in
     static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");
     // TODO: This assumes all solutions are ConvSolution
     auto solution      = FindSolutionImpl(rank<1>{}, s, context, db, invoke_ctx);
-    solution.solver_id = SolverDbId(s);
+    solution.solver_id = s.SolverDbId();
     return solution;
 }
 
@@ -151,16 +151,16 @@ struct SolverContainer
                 if(count >= limit)
                     return;
                 if(find_only &&
-                   (std::find(find_only->begin(), find_only->end(), Id{SolverDbId(solver)}) ==
+                   (std::find(find_only->begin(), find_only->end(), Id{solver.SolverDbId()}) ==
                     find_only->end()))
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
                 else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                    MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
                 else if(!solver.IsApplicable(search_params))
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                    MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
                 else
                 {
                     const Solution s = FindSolution(solver, search_params, db, invoke_ctx);
@@ -168,7 +168,7 @@ struct SolverContainer
                     {
                         ++count;
                         ss.push_back(s);
-                        MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
+                        MIOPEN_LOG_I2(solver.SolverDbId() << ": Success.");
                     }
                     else
                     {
@@ -177,7 +177,7 @@ struct SolverContainer
                         /// Normally we should not get here and message level should be Error.
                         /// For now, let's use Info (not Warning) level to avoid
                         /// flooding the console.
-                        MIOPEN_LOG_I(SolverDbId(solver)
+                        MIOPEN_LOG_I(solver.SolverDbId()
                                      << ": [Warning] Applicable Solver not succeeded.");
                     }
                 }
@@ -201,29 +201,29 @@ struct SolverContainer
                 if(count >= limit)
                     return;
                 if(find_only &&
-                   (std::find(find_only->begin(), find_only->end(), Id{SolverDbId(solver)}) ==
+                   (std::find(find_only->begin(), find_only->end(), Id{solver.SolverDbId()}) ==
                     find_only->end()))
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
                 // else if(problem.use_dynamic_solutions_only && !solver.IsDynamic())
-                //    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                //    MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
                 else if(!solver.IsApplicable(ctx, problem))
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                    MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
                 else
                 {
                     auto s      = solver.GetSolution(ctx, problem);
-                    s.solver_id = SolverDbId(solver);
+                    s.solver_id = solver.SolverDbId();
                     if(s.Succeeded())
                     {
                         ++count;
                         ss.push_back(s);
-                        MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
+                        MIOPEN_LOG_I2(solver.SolverDbId() << ": Success.");
                     }
                     else
                     {
-                        MIOPEN_LOG_E(SolverDbId(solver) << ": Applicable Solver not succeeded.");
+                        MIOPEN_LOG_E(solver.SolverDbId() << ": Applicable Solver not succeeded.");
                     }
                 }
             },
@@ -245,24 +245,24 @@ struct SolverContainer
                     return;
 
                 if(find_only &&
-                   (std::find(find_only->begin(), find_only->end(), Id{SolverDbId(solver)}) ==
+                   (std::find(find_only->begin(), find_only->end(), Id{solver.SolverDbId()}) ==
                     find_only->end()))
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
                 else if(!solver.MayNeedWorkspace())
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (no workspace required)");
+                    MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (no workspace required)");
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
                 else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                    MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
                 else if(!solver.IsApplicable(search_params))
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                    MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
                 else
                 {
                     ++count;
                     auto sz = solver.GetWorkspaceSize(search_params);
-                    res.push_back(std::make_pair(SolverDbId(solver), sz));
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": " << sz);
+                    res.push_back(std::make_pair(solver.SolverDbId(), sz));
+                    MIOPEN_LOG_I2(solver.SolverDbId() << ": " << sz);
                 }
             },
             Solvers{}...);
@@ -280,14 +280,14 @@ struct SolverContainer
             [&](auto solver) {
                 if(found || (find_only && (std::find(find_only->begin(),
                                                      find_only->end(),
-                                                     Id{SolverDbId(solver)}) == find_only->end())))
+                                                     Id{solver.SolverDbId()}) == find_only->end())))
                     return;
 
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
                 if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
                 {
-                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                    MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
                     return;
                 }
 
@@ -297,7 +297,7 @@ struct SolverContainer
                     return;
                 }
 
-                MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
             },
             Solvers{}...);
 

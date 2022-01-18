@@ -531,7 +531,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     if(!IsWarned)
     {
         if(params.GetStream().GetMaxHardwareComputeUnits() > MAX_CU_LIMIT)
-            MIOPEN_LOG_WE(SolverDbId(*this)
+            MIOPEN_LOG_WE(SolverDbId()
                           << ": GPU has " << params.GetStream().GetMaxHardwareComputeUnits()
                           << "CUs, but this solver supports max " << MAX_CU_LIMIT
                           << "and thus may show sub-optimal performance.");

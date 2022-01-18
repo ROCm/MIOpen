@@ -50,6 +50,11 @@ struct PoolingForward2d : OldStyleSolver
     //To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
 
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<PoolingForward2d>();
+    }
+
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
@@ -70,6 +75,11 @@ struct PoolingForwardNd : OldStyleSolver
 {
     //To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<PoolingForwardNd>();
+    }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
