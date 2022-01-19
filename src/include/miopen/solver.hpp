@@ -151,7 +151,7 @@ struct SolverBase
     ///                          const PerformanceConfig& config) const;
 };
 
-template<class Context>
+template <class Context>
 struct SolverMixin : SolverBase
 {
     virtual bool IsApplicable(const Context& ctx) const = 0;
@@ -174,9 +174,8 @@ struct SolverMixin : SolverBase
     }
 };
 
-//Typedef for convolution solvers
+// Typedef for convolution solvers
 using ConvSolver = SolverMixin<ConvolutionContext>;
-
 
 struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
 {
@@ -2422,9 +2421,9 @@ struct ConvDirectNaiveConvWrw : ConvSolver
 
 struct GemmFwdBase : ConvSolver
 {
-    //To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
+    // To suppress -Woverloaded-virtual
     using ConvSolver::GetWti;
+    using ConvSolver::IsApplicable;
 
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsDynamic() const override { return true; }
@@ -2437,7 +2436,7 @@ struct GemmFwdBase : ConvSolver
 
 struct GemmFwd1x1_0_2 : GemmFwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmFwdBase::GetWorkspaceSize;
     using GemmFwdBase::IsApplicable;
 
@@ -2464,7 +2463,7 @@ struct GemmFwd1x1_0_2 : GemmFwdBase
 
 struct GemmFwd1x1_0_1_int8 : GemmFwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmFwdBase::GetWorkspaceSize;
     using GemmFwdBase::IsApplicable;
 
@@ -2491,7 +2490,7 @@ struct GemmFwd1x1_0_1_int8 : GemmFwdBase
 
 struct GemmFwd1x1_0_1 : GemmFwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmFwdBase::GetWorkspaceSize;
     using GemmFwdBase::IsApplicable;
 
@@ -2518,7 +2517,7 @@ struct GemmFwd1x1_0_1 : GemmFwdBase
 
 struct GemmFwdRest : GemmFwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmFwdBase::GetWorkspaceSize;
     using GemmFwdBase::IsApplicable;
 
@@ -2545,9 +2544,9 @@ struct GemmFwdRest : GemmFwdBase
 
 struct GemmBwdBase : ConvSolver
 {
-    //To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
+    // To suppress -Woverloaded-virtual
     using ConvSolver::GetWti;
+    using ConvSolver::IsApplicable;
 
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsDynamic() const override { return true; }
@@ -2560,7 +2559,7 @@ struct GemmBwdBase : ConvSolver
 
 struct GemmBwd1x1_stride2 : GemmBwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmBwdBase::GetWorkspaceSize;
     using GemmBwdBase::IsApplicable;
 
@@ -2587,7 +2586,7 @@ struct GemmBwd1x1_stride2 : GemmBwdBase
 
 struct GemmBwd1x1_stride1 : GemmBwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmBwdBase::GetWorkspaceSize;
     using GemmBwdBase::IsApplicable;
 
@@ -2614,7 +2613,7 @@ struct GemmBwd1x1_stride1 : GemmBwdBase
 
 struct GemmBwdRest : GemmBwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmBwdBase::GetWorkspaceSize;
     using GemmBwdBase::IsApplicable;
 
@@ -2641,9 +2640,9 @@ struct GemmBwdRest : GemmBwdBase
 
 struct GemmWrwBase : ConvSolver
 {
-    //To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
+    // To suppress -Woverloaded-virtual
     using ConvSolver::GetWti;
+    using ConvSolver::IsApplicable;
 
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsDynamic() const override { return true; }
@@ -2656,7 +2655,7 @@ struct GemmWrwBase : ConvSolver
 
 struct GemmWrw1x1_stride1 : GemmWrwBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmWrwBase::GetWorkspaceSize;
     using GemmWrwBase::IsApplicable;
 
@@ -2683,7 +2682,7 @@ struct GemmWrw1x1_stride1 : GemmWrwBase
 
 struct GemmWrwUniversal : GemmWrwBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmWrwBase::GetWorkspaceSize;
     using GemmWrwBase::IsApplicable;
 

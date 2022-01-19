@@ -74,7 +74,7 @@ class InputFlags
                       const std::string& _value,
                       const std::string& _help_text,
                       const std::string& type,
-                      const bool _convert2uppercase = false );
+                      const bool _convert2uppercase = false);
 
     void AddTensorFlag(const std::string& name,
                        char short_name,

@@ -74,12 +74,12 @@ void InputFlags::AddInputFlag(const std::string& _long_name,
 {
 
     Input in;
-    in.long_name  = _long_name;
-    in.short_name = _short_name;
-    in.value      = _value;
-    in.help_text  = _help_text;
-    in.type       = _type;
-    in.convert2uppercase = _convert2uppercase; 
+    in.long_name         = _long_name;
+    in.short_name        = _short_name;
+    in.value             = _value;
+    in.help_text         = _help_text;
+    in.type              = _type;
+    in.convert2uppercase = _convert2uppercase;
 
     if(MapInputs.count(_short_name) > 0)
         printf("Input flag: %s (%c) already exists !", _long_name.c_str(), _short_name);
@@ -173,13 +173,13 @@ void InputFlags::Parse(int argc, char* argv[])
                 Print();
 
             char layout_short_name = FindShortName(long_name);
-            UpdateLayoutValue(layout_short_name,args[i+1]);
+            UpdateLayoutValue(layout_short_name, args[i + 1]);
             i++;
-         }
-         else if(temp[0] == '-' && temp[1] == '?') // Help Input
-             Print();
-         else // Short Name Input
-         {
+        }
+        else if(temp[0] == '-' && temp[1] == '?') // Help Input
+            Print();
+        else // Short Name Input
+        {
             char short_name = temp[1];
             if(MapInputs.find(short_name) == MapInputs.end())
             {
@@ -197,7 +197,7 @@ void InputFlags::Parse(int argc, char* argv[])
                 i++;
             }
         }
-   }
+    }
 }
 
 // This function updates the In/Fill/Out layout input values.Depending upon the flag value,
@@ -205,15 +205,15 @@ void InputFlags::Parse(int argc, char* argv[])
 // parsing the driver arguments.
 void InputFlags::UpdateLayoutValue(char layout_short_name, const std::string layout_value)
 {
-    if( MapInputs[layout_short_name].convert2uppercase == true )
+    if(MapInputs[layout_short_name].convert2uppercase == true)
     {
-         std::string tvalue = layout_value;
-         std::transform(tvalue.begin(), tvalue.end(),tvalue.begin(), ::toupper);
-         MapInputs[layout_short_name].value = tvalue;
+        std::string tvalue = layout_value;
+        std::transform(tvalue.begin(), tvalue.end(), tvalue.begin(), ::toupper);
+        MapInputs[layout_short_name].value = tvalue;
     }
     else
     {
-         MapInputs[layout_short_name].value = layout_value;
+        MapInputs[layout_short_name].value = layout_value;
     }
 }
 
@@ -263,7 +263,7 @@ TensorParameters InputFlags::GetValueTensor(const std::string& long_name) const
         for(auto&& str : strs)
         {
             auto elem = int{};
-            auto ss  = std::istringstream{str};
+            auto ss   = std::istringstream{str};
             ss >> elem;
 
             if(ss.bad() || ss.fail())
@@ -279,7 +279,7 @@ TensorParameters InputFlags::GetValueTensor(const std::string& long_name) const
     if(components.size() == 1)
         return {lens};
 
-    auto layout = std::string{};
+    auto layout  = std::string{};
     auto strides = std::vector<int>{};
 
     if(std::isdigit(components[1][0]))

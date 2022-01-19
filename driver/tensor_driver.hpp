@@ -98,15 +98,15 @@ inline std::vector<int> GetTensorStrides(miopenTensorDescriptor_t& tensor)
 }
 
 inline int SetTensor4d(miopenTensorDescriptor_t t,
-                std::vector<int>& len,
-                miopenDataType_t data_type = miopenFloat)
+                       std::vector<int>& len,
+                       miopenDataType_t data_type = miopenFloat)
 {
     return miopenSet4dTensorDescriptor(t, data_type, UNPACK_VEC4(len));
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
-                std::vector<int>& len,
-                miopenDataType_t data_type = miopenFloat)
+                       std::vector<int>& len,
+                       miopenDataType_t data_type = miopenFloat)
 {
     return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), nullptr);
 }
@@ -120,9 +120,9 @@ inline int SetTensorNd(miopenTensorDescriptor_t t,
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
-                std::vector<int>& len,
-                const std::string& layout,
-                miopenDataType_t data_type = miopenFloat)
+                       std::vector<int>& len,
+                       const std::string& layout,
+                       miopenDataType_t data_type = miopenFloat)
 {
     if(layout.empty())
     {
