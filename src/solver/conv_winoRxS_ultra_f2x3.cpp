@@ -116,9 +116,9 @@ inline void WU_control_make_3x3_w_info(unsigned N,
     while((o_cur_w < o_W) && (o_cur_h < o_H) && (cur_n < N))
     {
 
-        work_info cur_w_i;
-        int64_t d_cur_w = o_cur_w - pad_W;
-        int64_t d_cur_h = o_cur_h - pad_H;
+        work_info cur_w_i = {};
+        int64_t d_cur_w   = o_cur_w - pad_W;
+        int64_t d_cur_h   = o_cur_h - pad_H;
 
         cur_w_i.d_load_offset_addr =
             d_cur_w * d_stride_W + d_cur_h * d_stride_H + cur_n * d_stride_N;
@@ -133,10 +133,13 @@ inline void WU_control_make_3x3_w_info(unsigned N,
                 {
                     unsigned k = n_tile * d_tile_W / (sizeof(uint64_t) * CHAR_BIT);
 
+                    // clang-format off
                     cur_w_i.d_clip[k][j] <<= 1;
-                    cur_w_i.d_clip[k][j] |= (d_cur_w + i < 0) || (W <= d_cur_w + i) ||
+                    cur_w_i.d_clip[k][j] |= static_cast<uint64_t>(
+                                            (d_cur_w + i < 0) || (W <= d_cur_w + i) ||
                                             (d_cur_h + j < 0) || (H <= d_cur_h + j) ||
-                                            (cur_n < 0) || (N <= cur_n);
+                                            (cur_n < 0) || (N <= cur_n));
+                    // clang-format on
                 }
             }
             for(unsigned i = 0; i < o_tile_W; i++)
@@ -145,10 +148,13 @@ inline void WU_control_make_3x3_w_info(unsigned N,
                 {
                     unsigned k = n_tile * o_tile_W / (sizeof(uint64_t) * CHAR_BIT);
 
+                    // clang-format off
                     cur_w_i.o_clip[k][j] <<= 1;
-                    cur_w_i.o_clip[k][j] |= (o_cur_w + i < 0) || (o_W <= o_cur_w + i) ||
+                    cur_w_i.o_clip[k][j] |= static_cast<uint64_t>(
+                                            (o_cur_w + i < 0) || (o_W <= o_cur_w + i) ||
                                             (o_cur_h + j < 0) || (o_H <= o_cur_h + j) ||
-                                            (cur_n < 0) || (N <= cur_n);
+                                            (cur_n < 0) || (N <= cur_n));
+                    // clang-format on
                 }
             }
 
@@ -198,45 +204,45 @@ inline void WU_control_w_info_bit_encode(std::vector<work_info>& w_info,
             if(j == 0)
             {
                 qword       = w_i.d_load_offset_addr;
-                bit_reverse = 0;
+                bit_reverse = false;
             }
             else if(j == 1)
             {
                 qword       = w_i.o_store_offset_addr;
-                bit_reverse = 0;
+                bit_reverse = false;
             }
             else if(j == 2)
             {
                 qword       = w_i.step_1_pos;
-                bit_reverse = 1;
+                bit_reverse = true;
             }
             else if(j == 3)
             {
                 qword       = w_i.step_2_pos;
-                bit_reverse = 1;
+                bit_reverse = true;
             }
             else if(j >= 4 && j < 4 + d_clip_tiles_QW * d_tile_H)
             {
                 unsigned k  = j - 4;
                 qword       = w_i.d_clip[k / d_tile_H][k % d_tile_H];
-                bit_reverse = 1;
+                bit_reverse = true;
             }
             else if(j >= 4 + d_clip_tiles_QW * d_tile_H &&
                     j < 4 + d_clip_tiles_QW * d_tile_H + o_clip_tiles_QW * o_tile_H)
             {
                 unsigned k  = j - 4 - d_clip_tiles_QW * d_tile_H;
                 qword       = w_i.o_clip[k / o_tile_H][k % o_tile_H];
-                bit_reverse = 1;
+                bit_reverse = true;
             }
             else if(j == 24)
             {
                 qword       = i;
-                bit_reverse = 0;
+                bit_reverse = false;
             }
             else
             {
                 qword       = 0;
-                bit_reverse = 0;
+                bit_reverse = false;
             }
 
             for(auto k = 0; k < 64; k++)
