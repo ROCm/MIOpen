@@ -230,7 +230,7 @@ class SegmentedGpuBuffer
         const auto align = GetSubbufferAlignment(handle);
         offset += (align - offset) % align;
 
-        const auto subbuffer = handle->CreateSubBuffer(memory, offset, size);
+        auto subbuffer = handle->CreateSubBuffer(memory, offset, size);
         offset += size;
 
         return subbuffer;
@@ -437,8 +437,11 @@ struct TransposingSolver : Base
             const auto layout         = descriptor.GetLayout(labels);
             const auto to             = SyncLayoutDims(layout.c_str(), transpose.to);
 
+            auto specific_pair = layout + "-";
+            specific_pair.append(to);
+
             if(!skip_transpose_check &&
-               transpose_solvers.find(layout + "-" + to) == transpose_solvers.end() &&
+               transpose_solvers.find(specific_pair) == transpose_solvers.end() &&
                transpose_solvers.find(layout + "-*") == transpose_solvers.end() &&
                transpose_solvers.find(std::string("*-") + to) == transpose_solvers.end())
                 return false;
@@ -449,8 +452,7 @@ struct TransposingSolver : Base
         return any_difference && Inner{}.IsApplicable(ctx, Transpose(problem));
     }
 
-    std::size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                                  const Problem& problem) const override
+    std::size_t GetWorkspaceSize(const ExecutionContext& ctx, const Problem& problem) const override
     {
         const auto transposed_problem = Transpose(problem);
         auto ws_size                  = Inner{}.GetWorkspaceSize(ctx, transposed_problem);
@@ -485,7 +487,10 @@ struct TransposingSolver : Base
             if(layout == to)
                 continue;
 
-            auto transpose_solver = transpose_solvers.find(layout + "-" + to);
+            auto specific_pair = layout + "-";
+            specific_pair.append(to);
+
+            auto transpose_solver = transpose_solvers.find(specific_pair);
             if(transpose_solver == transpose_solvers.end())
             {
                 transpose_solver = transpose_solvers.find(layout + "-*");
