@@ -36,8 +36,10 @@
 namespace miopen {
 
 miopenStatus_t GemmNewDescriptor::CallGemm(Handle& handle,
+                                            const void* alpha,
                                             const TensorDescriptor& ADesc,
                                             ConstData_t A,
+                                            const void* beta,
                                             const TensorDescriptor& BDesc,
                                             ConstData_t B,
                                             const TensorDescriptor& CDesc,

@@ -39,37 +39,9 @@ extern "C" miopenStatus_t miopenCreateGemmDescriptor(miopenGemmDescriptor_t* gem
     return miopen::try_([&] { miopen::deref(gemmDesc) = new miopen::GemmNewDescriptor(); });
 }
 
-extern "C" miopenStatus_t miopenSetGemmDescriptor(miopenGemmDescriptor_t gemmDesc,
-                                                        miopenGemmMode_t mode,
-                                                        double gemmAlpha,
-                                                        double gemmBeta)
-{
-
-    MIOPEN_LOG_FUNCTION(gemmDesc, mode, gemmAlpha, gemmBeta);
-    return miopen::try_([&] {
-        std::initializer_list<double> parms = {gemmAlpha, gemmBeta};
-        miopen::deref(gemmDesc)            = miopen::GemmNewDescriptor(mode, parms.begin());
-    });
-}
-
-extern "C" miopenStatus_t miopenGetGemmDescriptor(miopenGemmDescriptor_t gemmDesc,
-                                                        miopenGemmMode_t* mode,
-                                                        double* gemmAlpha,
-                                                        double* gemmBeta)
-{
-
-    MIOPEN_LOG_FUNCTION(gemmDesc, mode, gemmAlpha, gemmBeta);
-    return miopen::try_([&] {
-        *mode       = miopen::deref(gemmDesc).GetMode();
-        *gemmAlpha = miopen::deref(gemmDesc).GetAlpha();
-        *gemmBeta  = miopen::deref(gemmDesc).GetBeta();
-    });
-}
-
 static void LogCmdGemm(const miopenTensorDescriptor_t ADesc,
-                             const miopenTensorDescriptor_t BDesc,
-                             const miopenGemmDescriptor_t gemmDesc,
-                             const bool Fwd)
+                       const miopenTensorDescriptor_t BDesc,
+                       const miopenGemmDescriptor_t gemmDesc)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -87,8 +59,6 @@ static void LogCmdGemm(const miopenTensorDescriptor_t ADesc,
            << " -M " << miopen::deref(ADesc).GetLengths()[2]
            << " -K " << miopen::deref(ADesc).GetLengths()[3]
            << " -N " << miopen::deref(BDesc).GetLengths()[3]
-           << " -m " << miopen::deref(gemmDesc).GetMode()
-           << " --forw " << (Fwd ? "1" : "2")
            << " -alpha "<< miopen::deref(gemmDesc).GetAlpha()
            << " -beta " << miopen::deref(gemmDesc).GetBeta();
         MIOPEN_LOG_DRIVER_CMD(ss.str());
@@ -116,7 +86,7 @@ extern "C" miopenStatus_t miopenGemm(miopenHandle_t handle,
     {
         return miopenStatusNotImplemented;
     }
-    LogCmdActivation(ADesc, BDesc, gemmDesc, true);
+    LogCmdActivation(ADesc, BDesc, gemmDesc);
     return miopen::try_([&] {
         miopen::deref(gemmDesc).CallGemm(miopen::deref(handle),
                                          alpha,

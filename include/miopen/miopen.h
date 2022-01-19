@@ -460,15 +460,6 @@ typedef enum
             */
 } miopenActivationMode_t;
 
-/*! @ingroup gemm
- * @enum miopenGemmMode_t
- * Gemm layer modes
- */
-typedef enum
-{
-    miopenGemmDefault  = 0, /*!< Default Gemm */
-} miopenGemmMode_t;
-
 /*! @ingroup softmax
  * @enum miopenSoftmaxAlgorithm_t
  * Softmax implementation algorithms
@@ -2642,39 +2633,7 @@ miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateGemmDescriptor(miopenGemmDescriptor_t* gemmDesc);
 
-/*! @brief Sets the gemm layer descriptor details
- *
- * Sets all of the descriptor details for the gemm layer
- *
- * @param gemmDesc    Pointer to a gemm layer descriptor (output)
- * @param mode        Gemm mode enum (input)
- * @param gemmAlpha   Alpha value for gemm (input)
- * @param gemmBeta    Beta value for gemm (input)
- * @return            miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t
-miopenSetGemmDescriptor(const miopenGemmDescriptor_t gemmDesc,
-                              miopenGemmMode_t mode,
-                              double gemmAlpha,
-                              double gemmBeta);
-
-/*! @brief Gets the gemm layer descriptor details
- *
- * Retrieves all of the descriptor details for the gemm layer.
- *
- * @param gemmDesc    Pointer to a gemm layer descriptor (input)
- * @param mode        Gemm mode enum (output)
- * @param gemmAlpha   Alpha value for gemm (output)
- * @param gemmBeta    Beta value for gemm modes (output)
- * @return            miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t
-miopenGetGemmDescriptor(const miopenGemmDescriptor_t gemmDesc,
-                              miopenGemmMode_t* mode,
-                              double* gemmAlpha,
-                              double* gemmBeta);
-
-/*! @brief Execute a gemm forward layer
+/*! @brief Execute a gemm layer
  *
  * @param handle        MIOpen handle (input)
  * @param gemmDesc      Descriptor for gemm layer (input)
