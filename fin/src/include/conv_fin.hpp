@@ -994,17 +994,25 @@ int ConvFin<Tgpu, Tref>::ProcessStep(const std::string& step_name)
     if(step_name == "copy_buf_from_device")
         return CopyFromDevice();
     if(step_name == "applicability")
+    {
         return TestApplicability();
+    }
     if(step_name == "perf_db_test")
         return TestPerfDbValid();
     if(step_name == "get_solvers")
         return GetSolverList();
     if(step_name == "miopen_find")
+    {
         return MIOpenFind();
+    }
     if(step_name == "miopen_find_compile")
+    {
         return MIOpenFindCompile();
+    }
     if(step_name == "miopen_find_eval")
+    {
         return MIOpenFindEval();
+    }
     return 0;
 }
 
