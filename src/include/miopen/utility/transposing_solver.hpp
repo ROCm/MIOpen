@@ -268,7 +268,7 @@ struct ProblemTensorTransposeDescriptor
     const char* to;
     bool is_input;
 
-    inline void Transpose(const Problem& src, Problem& dest) const
+    inline void Transpose(const Problem& src, Problem& dest) const // NOLINT
     {
         const auto& desc_from = (src.*cdescriptor)();
         auto& desc_to         = (dest.*descriptor)();
