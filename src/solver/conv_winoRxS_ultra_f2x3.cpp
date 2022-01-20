@@ -365,6 +365,37 @@ inline bool IsShaderContraintsMet(const int R,
 }
 #endif
 
+template <typename T>
+void* CopyDataToSymbol(const Handle& handle,
+                       const Kernel& kernel,
+                       const std::vector<T> data,
+                       const std::string& name)
+{
+#if MIOPEN_BACKEND_HIP
+    const auto module    = kernel.program.GetModule();
+    const auto data_size = data.size() * sizeof(T);
+
+    size_t dev_buf_sz;
+    hipDeviceptr_t dev_buf_ptr;
+    auto status = hipModuleGetGlobal(&dev_buf_ptr, &dev_buf_sz, module, name.c_str());
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status, "Failed hip to get control_buf info");
+
+    if(dev_buf_sz < data_size)
+        MIOPEN_THROW("Buffer size is than required");
+
+    handle.Copy(static_cast<const void*>(data.data()), dev_buf_ptr, data_size);
+
+    return static_cast<void*>(dev_buf_ptr);
+#else
+    (void)handle; // -warning
+    (void)kernel; // -warning
+    (void)data;   // -warning
+    (void)name;   // -warning
+    return nullptr;
+#endif
+}
+
 } // namespace
 
 PerformanceConfigConvBinWinogradUltraRxSf2x3::PerformanceConfigConvBinWinogradUltraRxSf2x3(
@@ -536,7 +567,7 @@ static bool IsApplicableBase(const ConvolutionContext& params)
                                      params);
     }
 #else
-    (void)params;
+    (void)params; // -warning
     return false;
 #endif
 }
@@ -766,29 +797,12 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
 
     solution.construction_params.push_back(kernel);
     solution.invoker_factory = [=](std::vector<Kernel> kernels) {
-        void* control_buf_ptr = nullptr;
-
-#if MIOPEN_BACKEND_HIP
-        const auto kern = kernels.front();
-        const auto mod  = kern.program.GetModule();
-
-        size_t dev_buf_sz;
-        hipDeviceptr_t dev_buf_ptr;
-        auto status = hipModuleGetGlobal(&dev_buf_ptr, &dev_buf_sz, mod, "control_buf");
-        if(status != hipSuccess)
-            MIOPEN_THROW_HIP_STATUS(status, "Failed hip to get control_buf info");
-
-        if(dev_buf_sz < control_buf_sz)
-            MIOPEN_THROW("Invalid buffer size");
-
-        params.GetStream().Copy(
-            static_cast<const void*>(gpu_control.data()), dev_buf_ptr, control_buf_sz);
-
-        control_buf_ptr = dev_buf_ptr;
-#endif
+        const auto& k              = kernels.front();
+        const auto& h              = params.GetStream();
+        const auto control_buf_ptr = CopyDataToSymbol(h, k, gpu_control, "control_buf");
 
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto k = handle.Run(kernels.front());
+            const auto kern = handle.Run(kernels.front());
             ConstData_t in, wei, out;
 
             if(!params.direction.IsBackwardWrW())
@@ -808,32 +822,32 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
                 out                       = tensors.dw;
             }
 
-            k(C,
-              K,
-              n_groups,
-              n_works,
-              d_C_pitch,
-              d_H_pitch,
-              d_step_1_pitch,
-              d_step_2_pitch,
-              o_K_pitch,
-              o_H_pitch,
-              o_step_1_pitch,
-              o_step_2_pitch,
-              in,
-              out,
-              control_buf_ptr,
-              wei,
-              reserved_ptr, // Unused bias_addr.
-              relu_alpha,
-              flags,
-              R,
-              S,
-              reserved_offset,
-              reserved_offset,
-              reserved_offset,
-              reserved_offset,
-              reserved_offset);
+            kern(C,
+                 K,
+                 n_groups,
+                 n_works,
+                 d_C_pitch,
+                 d_H_pitch,
+                 d_step_1_pitch,
+                 d_step_2_pitch,
+                 o_K_pitch,
+                 o_H_pitch,
+                 o_step_1_pitch,
+                 o_step_2_pitch,
+                 in,
+                 out,
+                 control_buf_ptr,
+                 wei,
+                 reserved_ptr, // Unused bias_addr.
+                 relu_alpha,
+                 flags,
+                 R,
+                 S,
+                 reserved_offset,
+                 reserved_offset,
+                 reserved_offset,
+                 reserved_offset,
+                 reserved_offset);
         };
     };
 
