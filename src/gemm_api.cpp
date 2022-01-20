@@ -35,7 +35,7 @@
 extern "C" miopenStatus_t miopenCreateGemmDescriptor(miopenGemmDescriptor_t* gemmDesc)
 {
 
-    MIOPEN_LOG_FUNCTION(gemmDesc);
+    //MIOPEN_LOG_FUNCTION(gemmDesc);
     return miopen::try_([&] { miopen::deref(gemmDesc) = new miopen::GemmNewDescriptor(); });
 }
 
@@ -59,8 +59,8 @@ static void LogCmdGemm(const miopenTensorDescriptor_t ADesc,
            << " -M " << miopen::deref(ADesc).GetLengths()[2]
            << " -K " << miopen::deref(ADesc).GetLengths()[3]
            << " -N " << miopen::deref(BDesc).GetLengths()[3]
-           << " -alpha "<< miopen::deref(gemmDesc).GetAlpha()
-           << " -beta " << miopen::deref(gemmDesc).GetBeta();
+           << " -A "<< miopen::deref(gemmDesc).GetAlpha()
+           << " -B " << miopen::deref(gemmDesc).GetBeta();
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
@@ -77,7 +77,7 @@ extern "C" miopenStatus_t miopenGemm(miopenHandle_t handle,
                                      void* C)
 {
 
-    MIOPEN_LOG_FUNCTION(handle, gemmDesc, alpha, ADesc, A, beta, BDesc, B, CDesc, C);
+    //MIOPEN_LOG_FUNCTION(handle, gemmDesc, alpha, ADesc, A, beta, BDesc, B, CDesc, C);
 
     // bfloat16 not supported for activation operation
     if(miopen::deref(CDesc).GetType() == miopenBFloat16 ||
@@ -86,7 +86,7 @@ extern "C" miopenStatus_t miopenGemm(miopenHandle_t handle,
     {
         return miopenStatusNotImplemented;
     }
-    LogCmdActivation(ADesc, BDesc, gemmDesc);
+    LogCmdGemm(ADesc, BDesc, gemmDesc);
     return miopen::try_([&] {
         miopen::deref(gemmDesc).CallGemm(miopen::deref(handle),
                                          alpha,
@@ -103,6 +103,6 @@ extern "C" miopenStatus_t miopenGemm(miopenHandle_t handle,
 extern "C" miopenStatus_t miopenDestroyGemmDescriptor(miopenGemmDescriptor_t gemmDesc)
 {
 
-    MIOPEN_LOG_FUNCTION(gemmDesc);
+    //MIOPEN_LOG_FUNCTION(gemmDesc);
     return miopen::try_([&] { miopen_destroy_object(gemmDesc); });
 }
