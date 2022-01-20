@@ -46,7 +46,7 @@ static void LogCmdGemm(const miopenTensorDescriptor_t ADesc,
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
-        if(miopen::deref(xDesc).GetType() == miopenHalf)
+        if(miopen::deref(ADesc).GetType() == miopenHalf)
         {
             ss << "gemmfp16";
         }
@@ -82,7 +82,7 @@ extern "C" miopenStatus_t miopenGemm(miopenHandle_t handle,
     // bfloat16 not supported for activation operation
     if(miopen::deref(CDesc).GetType() == miopenBFloat16 ||
        miopen::deref(ADesc).GetType() == miopenBFloat16 ||
-       miopen::deref(BDesc).getType() == miopenBFloat16)
+       miopen::deref(BDesc).GetType() == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }
