@@ -1096,7 +1096,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
             trans_output_idx = idx++;
     }
 
-    MIOPEN_LOG_I2(SolverDbId(*this) << ": " << config.ToString() << msg.str());
+    MIOPEN_LOG_I2(SolverDbId() << ": " << config.ToString() << msg.str());
 
     const size_t cast_size = need_cast ?
         miopen::GetTypeSize(miopenFloat) * k * (c / group) * y * x  : 0;
