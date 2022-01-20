@@ -127,7 +127,7 @@ struct GPUMem
 #endif
 };
 
-void PadBufferSize(size_t& sz, int datatype_sz)
+inline void PadBufferSize(size_t& sz, int datatype_sz)
 {
     size_t page_sz = (2 * 1024 * 1024) / datatype_sz;
     if(sz % page_sz != 0)
@@ -136,7 +136,7 @@ void PadBufferSize(size_t& sz, int datatype_sz)
     }
 }
 
-[[gnu::noreturn]] void Usage()
+[[gnu::noreturn]] inline void Usage()
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
     printf(
@@ -146,7 +146,7 @@ void PadBufferSize(size_t& sz, int datatype_sz)
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
-std::string ParseBaseArg(int argc, char* argv[])
+inline std::string ParseBaseArg(int argc, char* argv[])
 {
     if(argc < 2)
     {
@@ -225,35 +225,35 @@ class Driver
 };
 
 template <>
-void Driver::InitDataType<int8_t>()
+inline void Driver::InitDataType<int8_t>()
 {
     data_type = miopenInt8;
 }
 template <>
-void Driver::InitDataType<float>()
+inline void Driver::InitDataType<float>()
 {
     data_type = miopenFloat;
 }
 template <>
-void Driver::InitDataType<float16>()
+inline void Driver::InitDataType<float16>()
 {
     data_type = miopenHalf;
 }
 template <>
-void Driver::InitDataType<bfloat16>()
+inline void Driver::InitDataType<bfloat16>()
 {
     data_type = miopenBFloat16;
 }
 // "std::is_same<Tgpu, float>{}" used to avoid "static_assert" compilation error,
 // which occurs when the condition does not depend in any way on the template parameters.
 template <typename Tgpu>
-void Driver::InitDataType()
+inline void Driver::InitDataType()
 {
     static_assert(std::is_same<Tgpu, float>{}, "unsupported Tgpu");
 }
 
 template <typename T>
-std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
+inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
 {
     os << "{ size: " << vs.size() << ", entries: ";
     for(auto& v : vs)
