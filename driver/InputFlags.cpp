@@ -103,6 +103,7 @@ void InputFlags::AddTensorFlag(const std::string& name,
 
 [[gnu::noreturn]] void InputFlags::Print() const
 {
+    printf("MIOpen Driver Input Flags: \n\n");
 
     for(auto& content : MapInputs)
     {
@@ -166,14 +167,13 @@ void InputFlags::Parse(int argc, char* argv[])
             printf("Illegal input flag\n");
             Print();
         }
-        else if(temp[0] == '-' && temp[1] == '-') // I/O/F layout long Input
+        else if(temp[0] == '-' && temp[1] == '-') // Long Name Input
         {
             std::string long_name = temp.substr(2);
             if(long_name == "help")
                 Print();
-
-            char layout_short_name = FindShortName(long_name);
-            UpdateLayoutValue(layout_short_name, args[i + 1]);
+            char short_name = FindShortName(long_name);
+            StoreOptionalFlagValue(short_name,args[i+1]);
             i++;
         }
         else if(temp[0] == '-' && temp[1] == '?') // Help Input
@@ -200,20 +200,20 @@ void InputFlags::Parse(int argc, char* argv[])
     }
 }
 
-// This function updates the In/Fill/Out layout input values.Depending upon the flag value,
-// input values are converted to uppercase or lowercase type.This function is used while
+// This function updates the input flag parameters values.Depending on the flag setting,
+// input values are converted to uppercase & stored into map.This is used while
 // parsing the driver arguments.
-void InputFlags::UpdateLayoutValue(char layout_short_name, const std::string layout_value)
+void InputFlags::StoreOptionalFlagValue(char short_name, const std::string input_value)
 {
-    if(MapInputs[layout_short_name].convert2uppercase == true)
+    if( MapInputs[short_name].convert2uppercase == true )
     {
-        std::string tvalue = layout_value;
-        std::transform(tvalue.begin(), tvalue.end(), tvalue.begin(), ::toupper);
-        MapInputs[layout_short_name].value = tvalue;
+         std::string tvalue = input_value;
+         std::transform(tvalue.begin(), tvalue.end(),tvalue.begin(), ::toupper);
+         MapInputs[short_name].value = tvalue;
     }
     else
     {
-        MapInputs[layout_short_name].value = layout_value;
+         MapInputs[short_name].value = input_value;
     }
 }
 
