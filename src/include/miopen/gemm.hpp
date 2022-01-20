@@ -36,11 +36,10 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-struct GemmNewDescriptor// : miopenGemmDescriptor
+struct GemmNewDescriptor : miopenGemmDescriptor
 {
     GemmNewDescriptor();
-    GemmNewDescriptor(//miopenGemmMode_t mode_,
-                   bool isColMajor_,
+    GemmNewDescriptor(bool isColMajor_,
                    bool transA_,
                    bool transB_,
                    int m_,
@@ -57,7 +56,6 @@ struct GemmNewDescriptor// : miopenGemmDescriptor
                    int batch_count_,
                    miopenDataType_t dataType_);
 
-    //miopenGemmMode_t GetMode() const;
     bool GetIsColMajor() const;
     bool GetTransA() const;
     bool GetTransB() const;
@@ -88,7 +86,6 @@ struct GemmNewDescriptor// : miopenGemmDescriptor
     //friend std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& x);
 
     private:
-    //miopenGemmMode_t mode = 1;
     bool isColMajor;
     bool transA, transB;
     int m, n, k;
@@ -100,5 +97,5 @@ struct GemmNewDescriptor// : miopenGemmDescriptor
 };
 
 } // namespace miopen
-//MIOPEN_DEFINE_OBJECT(miopenGemmDescriptor, miopen::GemmNewDescriptor);
+MIOPEN_DEFINE_OBJECT(miopenGemmDescriptor, miopen::GemmNewDescriptor);
 #endif // _MIOPEN_GEMM_HPP_

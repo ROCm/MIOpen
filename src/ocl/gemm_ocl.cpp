@@ -45,14 +45,22 @@ miopenStatus_t GemmNewDescriptor::CallGemm(Handle& handle,
                                             const TensorDescriptor& CDesc,
                                             Data_t C)
 {
+    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta)), 0.0))
+    {
+        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
+
     const auto problem = gemm::ProblemDescription{*this, ADesc, BDesc, CDesc};
 
     const auto invoke_params = [&]() {
-        auto tmp = gemm::InvokeParams{};
-        tmp.type = InvokeType::Run;
-        tmp.A    = A;
-        tmp.B    = B;
-        tmp.C    = C;
+        auto tmp  = gemm::InvokeParams{};
+        tmp.type  = InvokeType::Run;
+        tmp.A     = A;
+        tmp.B     = B;
+        tmp.C     = C;
+        tmp.alpha = *(static_cast<const float*>(alpha));
+        tmp.beta  = *(static_cast<const float*>(beta));
         return tmp;
     }();
 
