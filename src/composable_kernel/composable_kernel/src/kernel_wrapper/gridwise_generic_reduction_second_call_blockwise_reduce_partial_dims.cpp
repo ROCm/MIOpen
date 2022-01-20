@@ -151,6 +151,7 @@ extern "C" __global__ void gridwise_generic_reduce_2_prepare(int GridSize,
         *static_cast<decltype(dst1dDesc)*>(p_dst1dDesc) = dst1dDesc;
 };
 
+namespace {
 template <index_t dstDims>
 struct get_ref_desc_types
 {
@@ -188,6 +189,7 @@ struct get_ref_desc_types
                                              make_tuple(Sequence<0>{}),
                                              make_tuple(Sequence<0>{})));
 };
+} // anonymous namespace
 
 using refType_src2dDesc = typename get_ref_desc_types<dstDims>::refType_src2dDesc;
 using refType_dst1dDesc = typename get_ref_desc_types<dstDims>::refType_dst1dDesc;

@@ -193,6 +193,7 @@ extern "C" __global__ void gridwise_generic_reduce_1_prepare(int GridSize,
     }
 };
 
+namespace {
 template <index_t srcDims, index_t dstDims, typename invariantDims, typename toReduceDims>
 struct get_ref_desc_types
 {
@@ -243,6 +244,7 @@ struct get_ref_desc_types
     using refType_src2dDesc = decltype(ref_src2dDesc);
     using refType_dst1dDesc = decltype(ref_dst1dDesc);
 };
+} // anonymous namespace
 
 using refType_src2dDesc =
     typename get_ref_desc_types<srcDims, dstDims, invariantDims, toReduceDims>::refType_src2dDesc;

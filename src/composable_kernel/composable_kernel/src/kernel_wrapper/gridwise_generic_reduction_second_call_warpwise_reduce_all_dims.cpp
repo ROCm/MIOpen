@@ -117,6 +117,7 @@ gridwise_generic_reduce_2_prepare(int GridSize, int BlkGroupSize, void* __restri
     }
 };
 
+namespace {
 struct get_ref_desc_types
 {
     static constexpr auto ref_tupleDstLengths = make_tuple(8);
@@ -146,6 +147,7 @@ struct get_ref_desc_types
                                              make_tuple(Sequence<0>{}),
                                              make_tuple(Sequence<0>{})));
 };
+} // anonymous namespace
 
 using refType_src2dDesc           = typename get_ref_desc_types::refType_src2dDesc;
 using refType_dst1dDesc           = typename get_ref_desc_types::refType_dst1dDesc;
