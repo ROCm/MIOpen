@@ -178,7 +178,7 @@ static std::string transform_mode(std::string s)
 }
 
 template <class T>
-struct na_fusion_driver : test_driver
+struct na_fusion_inference_driver : test_driver
 {
     tensor<T> input;
     tensor<PREC_TYPE> scale;
@@ -195,7 +195,7 @@ struct na_fusion_driver : test_driver
     unsigned long max_value = miopen_type<T>{} == miopenHalf ? 3 : 17;
     double alpha = 0., beta = 0., gamma = 0.;
 
-    na_fusion_driver()
+    na_fusion_inference_driver()
     {
         add(input, "input", get_input_tensor());
         add(alpha, "alpha", generate_data({/*1.,*/ 0.5}));
@@ -306,4 +306,4 @@ struct na_fusion_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<na_fusion_driver>(argc, argv); }
+int main(int argc, const char* argv[]) { test_drive<na_fusion_inference_driver>(argc, argv); }

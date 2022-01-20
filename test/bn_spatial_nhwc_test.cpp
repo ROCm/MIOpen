@@ -55,7 +55,7 @@
 #endif
 
 template <class T, class U>
-struct verify_forward_train_bn_spatial
+struct verify_forward_train_bn_spatial_nhwc
 {
     const tensor<T> input;
     const tensor<U> scale;
@@ -283,7 +283,7 @@ struct verify_forward_train_bn_spatial
 };
 
 template <class T, class U>
-struct verify_backward_bn_spatial_recalc
+struct verify_backward_bn_spatial_nhwc_recalc
 {
     const tensor<T> x_input;
     const tensor<T> dy_input;
@@ -489,7 +489,7 @@ struct verify_backward_bn_spatial_recalc
 };
 
 template <class T, class U>
-struct verify_backward_bn_spatial_use_saved
+struct verify_backward_bn_nhwc_spatial_use_saved
 {
     const tensor<T> x_input;
     const tensor<T> dy_input;
@@ -710,7 +710,7 @@ struct batch_norm_spatial_nhwc_driver : test_driver
             }
         }
 
-        auto outpair = verify(verify_forward_train_bn_spatial<T, PREC_TYPE>{input, scale, shift});
+        auto outpair = verify(verify_forward_train_bn_spatial_nhwc<T, PREC_TYPE>{input, scale, shift});
 
         auto dy_input = std::get<0>(outpair.second);
         for(std::size_t bidx = 0; bidx < n; bidx++)
@@ -727,11 +727,11 @@ struct batch_norm_spatial_nhwc_driver : test_driver
             }
         }
         this->tolerance = 80 * input.desc.GetElementSize();
-        verify(verify_backward_bn_spatial_recalc<T, PREC_TYPE>{input, dy_input, scale});
+        verify(verify_backward_bn_spatial_nhwc_recalc<T, PREC_TYPE>{input, dy_input, scale});
 
         auto savedMean   = std::get<3>(outpair.second);
         auto savedInvVar = std::get<4>(outpair.second);
-        verify(verify_backward_bn_spatial_use_saved<T, PREC_TYPE>{
+        verify(verify_backward_bn_nhwc_spatial_use_saved<T, PREC_TYPE>{
             input, dy_input, scale, savedMean, savedInvVar});
     }
 };

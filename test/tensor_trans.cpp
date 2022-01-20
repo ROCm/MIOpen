@@ -168,7 +168,7 @@ struct verify_tensor_trans
 };
 
 template <class T>
-struct tensor_vec_driver : test_driver
+struct tensor_trans_driver : test_driver
 {
     tensor<T> src;
     tensor<T> dst;
@@ -195,7 +195,7 @@ struct tensor_vec_driver : test_driver
         };
     }
 
-    tensor_vec_driver()
+    tensor_trans_driver()
     {
         disabled_cache = true;
         add(src_lens, "srcLens", generate_data(get_tensor_src()));
@@ -232,4 +232,4 @@ struct tensor_vec_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<tensor_vec_driver>(argc, argv); }
+int main(int argc, const char* argv[]) { test_drive<tensor_trans_driver>(argc, argv); }

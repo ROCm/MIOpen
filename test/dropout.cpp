@@ -230,8 +230,6 @@ struct dropout_driver : test_driver
     dropout_driver()
     {
         input_dims                                              = get_sub_tensor();
-        std::set<std::vector<int>> get_inputs_set               = get_inputs(1);
-        std::set<std::vector<int>> get_3d_conv_input_shapes_set = get_3d_conv_input_shapes(1);
 
 // Workaround for issue #1128
 #if DROPOUT_SINGLE_CTEST
@@ -244,6 +242,9 @@ struct dropout_driver : test_driver
 #else
 #define DROPOUT_LARGE_CTEST 0
 #if DROPOUT_LARGE_CTEST
+        std::set<std::vector<int>> get_inputs_set               = get_inputs(1);
+        std::set<std::vector<int>> get_3d_conv_input_shapes_set = get_3d_conv_input_shapes(1);
+        
         input_dims.insert(input_dims.end(), get_inputs_set.begin(), get_inputs_set.end());
         input_dims.insert(input_dims.end(),
                           get_3d_conv_input_shapes_set.begin(),

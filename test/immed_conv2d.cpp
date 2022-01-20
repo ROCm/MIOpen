@@ -26,9 +26,9 @@
 #include "conv_common.hpp"
 
 template <class T>
-struct conv2d_driver : conv_driver<T, true>
+struct immed_conv2d_driver : conv_driver<T, true>
 {
-    conv2d_driver() : conv_driver<T, true>()
+    immed_conv2d_driver() : conv_driver<T, true>()
     {
         this->add(this->input_dims, "input");
         this->add(this->weight_tensor_dims, "weights");
@@ -59,4 +59,4 @@ struct conv2d_driver : conv_driver<T, true>
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<conv2d_driver>(argc, argv); }
+int main(int argc, const char* argv[]) { test_drive<immed_conv2d_driver>(argc, argv); }
