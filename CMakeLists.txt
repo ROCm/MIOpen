@@ -533,6 +533,7 @@ enable_cppcheck(
         portability
     SUPPRESS
         ConfigurationNotChecked
+        compareBoolExpressionWithInt # TODO cpp26
         constStatement
         constParameter # TODO cpp26
         constVariable # TODO cpp26
@@ -541,6 +542,8 @@ enable_cppcheck(
         missingReturn # TODO cpp26
         noExplicitConstructor
         passedByValue
+        returnStdMoveLocal # TODO cpp26
+        rethrowNoCurrentException # TODO cpp26
         # preprocessorErrorDirective
         shadowVariable
         unreadVariable # TODO cpp26
