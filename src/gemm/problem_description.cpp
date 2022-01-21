@@ -35,9 +35,37 @@ namespace gemm {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
+    // short cut for packed tensors and 2D tensors with stride != width
+    const auto& A_lens = ADesc.GetLengths();
+
+    const auto A_elem_sz = ADesc.GetElementSize();
+
+    const auto A_width2D =
+        ((A_lens.size() == 2)
+             ? A_lens[1]
+             : (A_lens.size() == 3) ? A_lens[2] : (A_lens.size() == 4) ? A_lens[3] : A_lens[4]);
+
+    const auto height =
+        (A_lens.size() == 2)
+            ? A_lens[0]
+            : (A_lens.size() == 3) ? A_lens[1] : (A_lens.size() == 4) ? A_lens[2] : A_lens[3];
+
+    const auto packed = ADesc.IsPacked() && BDesc.IsPacked();
+
+    const auto read_len = (packed) ? A_elem_sz : A_width2D;
+
+    const auto read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
+    const auto MAP_RD    = read_len / read_unit;
+
     std::ostringstream ss;
 
-    ss << "gemm-test-config-string";
+    ss << "gemm-";
+
+    ss << ((packed) ? "11" : "10"); 
+    ss << ADesc.GetType();
+    ss << read_unit;
+    ss << MAP_RD;
+    ss << height;
 
     return NetworkConfig{ss.str()};
 }

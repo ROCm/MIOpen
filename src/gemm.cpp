@@ -68,8 +68,6 @@ GemmNewDescriptor::GemmNewDescriptor(//miopenGemmMode_t mode_,
 {
 }
 
-//miopenGemmMode_t GemmNewDescriptor::GetMode() const { return this->mode; }
-
 bool GemmNewDescriptor::GetIsColMajor() const { return this->isColMajor; }
 
 bool GemmNewDescriptor::GetTransA() const { return this->transA; }
