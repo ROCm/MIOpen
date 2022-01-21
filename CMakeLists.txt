@@ -548,6 +548,7 @@ enable_cppcheck(
         *:*.cl
         *:*src/kernels/*.h
         knownConditionTrueFalse:*src/kernels/static_composable_kernel/*/*
+        objectIndex:*src/kernels/static_composable_kernel/*/*
         redundantAssignment:*src/kernels/static_composable_kernel/*/*
         unreadVariable:*src/kernels/static_composable_kernel/*/*
         unusedScopedObject:*src/kernels/static_composable_kernel/*/*
