@@ -59,8 +59,8 @@ static void LogCmdGemm(const miopenTensorDescriptor_t ADesc,
            << " -M " << miopen::deref(ADesc).GetLengths()[2]
            << " -K " << miopen::deref(ADesc).GetLengths()[3]
            << " -N " << miopen::deref(BDesc).GetLengths()[3]
-           << " -A "<< miopen::deref(gemmDesc).GetAlpha()
-           << " -B " << miopen::deref(gemmDesc).GetBeta();
+           << " -alpha "<< miopen::deref(gemmDesc).GetAlpha()
+           << " -beta " << miopen::deref(gemmDesc).GetBeta();
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
