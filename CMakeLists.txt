@@ -534,11 +534,18 @@ enable_cppcheck(
     SUPPRESS
         ConfigurationNotChecked
         constStatement
+        constParameter # TODO cpp26
+        constVariable # TODO cpp26
+        CastIntegerToAddressAtReturn # TODO cpp26
         duplicateCondition
+        missingReturn # TODO cpp26
         noExplicitConstructor
         passedByValue
         # preprocessorErrorDirective
         shadowVariable
+        unreadVariable # TODO cpp26
+        knownConditionTrueFalse # TODO cpp26
+        overlappingWriteUnion # TODO cpp26
         unusedFunction
         unusedPrivateFunction
         unusedStructMember
@@ -546,6 +553,8 @@ enable_cppcheck(
         useInitializationList:*test/*.cpp
         *:*src/sqlite/*.cpp
         *:*.cl
+        *:*src/ocl/*.cpp
+        *:*test/tensor_vec.cpp # TODO cpp26
         *:*src/kernels/*.h
         knownConditionTrueFalse:*src/kernels/static_composable_kernel/*/*
         objectIndex:*src/kernels/static_composable_kernel/*/*
@@ -560,6 +569,7 @@ enable_cppcheck(
         unreadVariable:*src/composable_kernel/composable_kernel/*/*
         unreadVariable:*src/composable_kernel/host/*/*
         unreadVariable:*src/composable_kernel/external/*/*
+        overlappingWriteUnion:*src/composable_kernel/external/*/*
         unmatchedSuppression
     FORCE
     SOURCES
