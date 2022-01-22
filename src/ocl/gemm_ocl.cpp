@@ -36,17 +36,17 @@
 namespace miopen {
 
 miopenStatus_t GemmNewDescriptor::CallGemm(Handle& handle,
-                                            const void* alpha,
+                                            const void* alpha_,
                                             const TensorDescriptor& ADesc,
                                             ConstData_t A,
-                                            const void* beta,
+                                            const void* beta_,
                                             const TensorDescriptor& BDesc,
                                             ConstData_t B,
                                             const TensorDescriptor& CDesc,
                                             Data_t C)
 {
-    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
-       !float_equal(*(static_cast<const float*>(beta)), 0.0))
+    if(!float_equal(*(static_cast<const float*>(alpha_)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta_)), 0.0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
@@ -59,13 +59,13 @@ miopenStatus_t GemmNewDescriptor::CallGemm(Handle& handle,
         tmp.A     = A;
         tmp.B     = B;
         tmp.C     = C;
-        tmp.alpha = *(static_cast<const float*>(alpha));
-        tmp.beta  = *(static_cast<const float*>(beta));
+        tmp.alpha = *(static_cast<const float*>(alpha_));
+        tmp.beta  = *(static_cast<const float*>(beta_));
         return tmp;
     }();
 
     const auto algo    = AlgorithmName{"miopenGemm"};
-    const auto solvers = solver::SolverContainer<solver::gemm::GemmSolver0>{};
+    const auto solvers = solver::SolverContainer<solver::gemm::GemmSolver1x1>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     return miopenStatusSuccess;
 }

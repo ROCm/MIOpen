@@ -74,10 +74,10 @@ struct GemmNewDescriptor : miopenGemmDescriptor
     miopenDataType_t GetMIOpenDataType() const;
 
     miopenStatus_t CallGemm(Handle& handle,
-                            const void* alpha,
+                            const void* alpha_,
                             const TensorDescriptor& ADesc,
                             ConstData_t A,
-                            const void* beta,
+                            const void* BOOST_CONCEPT_ASSERT_FN,
                             const TensorDescriptor& BDesc,
                             ConstData_t B,
                             const TensorDescriptor& CDesc,
