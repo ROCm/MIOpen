@@ -37,14 +37,23 @@ namespace solver {
 
 namespace gemm {
 
-bool GemmSolver0::IsApplicable(const ExecutionContext&,
-                                   const miopen::gemm::ProblemDescription& problem) const
+bool GemmSolver1x1::IsApplicable(const ExecutionContext&,
+                               const miopen::gemm::ProblemDescription& problem) const
 {
+    const auto ADesc = problem.GetADesc();
+    const auto BDesc = problem.GetBDesc();
+
+    const auto A_elem_sz = ADesc.GetElementSize();
+    const auto B_elem_sz = BDesc.GetElementSize();
+
+    if(A_elem_sz != B_elem_sz)
+        return false;
+    
     return true;
 }
 
-ConvSolution GemmSolver0::GetSolution(const ExecutionContext&,
-                                          const miopen::gemm::ProblemDescription& problem) const
+ConvSolution GemmSolver1x1::GetSolution(const ExecutionContext&,
+                                        const miopen::gemm::ProblemDescription& problem) const
 {
     auto solution = ConvSolution{miopenStatusSuccess};
 

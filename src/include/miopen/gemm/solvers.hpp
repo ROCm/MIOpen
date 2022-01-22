@@ -45,7 +45,7 @@ using OldStyleProblemDescription =
 
 using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
 
-struct GemmSolver0 : OldStyleSolver
+struct GemmSolver1x1 : OldStyleSolver
 {
     //To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
