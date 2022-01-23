@@ -131,7 +131,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
         else if(in_nhw < (32 * 1024 * 1024) && in_cstride > 512)
         {
             variant    = (n >= 32) ? 1 : 3;
-            xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
+            xlocalsize = 1024;
             xgridsize  = c * xlocalsize;
             ldsgcn     = xlocalsize / 64;
             ldsnogcn   = xlocalsize;
@@ -144,28 +144,18 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
         {
             if((n > 64) && (in_cstride > 160))
             {
-                variant = 3;
-                xlocalsize =
-                    std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
-                xgridsize = c * xlocalsize;
-                ldsgcn    = xlocalsize / 64;
-                ldsnogcn  = xlocalsize;
+                variant    = 3;
+                xlocalsize = 1024;
+                xgridsize  = c * xlocalsize;
+                ldsgcn     = xlocalsize / 64;
+                ldsnogcn   = xlocalsize;
             }
             else
             {
-                variant = 0;
-                if(bfp32parm)
-                {
-                    xlocalsize = 1024;
-                    xgridsize  = 1024 * c;
-                }
-                else
-                {
-                    xlocalsize = 256;
-                    xgridsize  = 256 * c;
-                }
-                ldsgcn   = xlocalsize / 64;
-                ldsnogcn = xlocalsize;
+                variant    = 0;
+                xlocalsize = 1024;
+                ldsgcn     = xlocalsize / 64;
+                ldsnogcn   = xlocalsize;
             }
         }
         //*************************************************************************************************
@@ -224,8 +214,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
            (StartsWith(handle.GetDeviceName(), "gfx8") ||
             (StartsWith(handle.GetDeviceName(), "gfx9")
 #if WORKAROUND_ISSUE_1146
-             &&
-             (handle.GetDeviceName() != "gfx90a")
+             && (handle.GetDeviceName() != "gfx90a")
 #endif
                  )) &&
            (!handle.GetTargetProperties().Xnack() || !*handle.GetTargetProperties().Xnack()))
