@@ -61,8 +61,6 @@ ConvSolution GemmSolver1x1::GetSolution(const ExecutionContext&,
     decltype(auto) BDesc = problem.GetBDesc();
     decltype(auto) CDesc = problem.GetCDesc();
 
-    // tensors.y = tensors.w * tensors.x
-    //GemmDescriptor gemm_desc = CreateGemmDescriptor(ADesc,BDesc,CDesc);
     GemmNewDescriptor gemm_desc = problem.GetGemmDescriptor();
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
@@ -80,7 +78,7 @@ ConvSolution GemmSolver1x1::GetSolution(const ExecutionContext&,
             miopenStatus_t gemm_status;
             if(gemm_params.type == InvokeType::Run)
             {
-                
+                // kernel calls here
             }
 
             if(gemm_status != miopenStatusSuccess)

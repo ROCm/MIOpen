@@ -43,6 +43,7 @@ static void LogCmdGemm(const miopenTensorDescriptor_t ADesc,
                        const miopenTensorDescriptor_t BDesc,
                        const miopenGemmDescriptor_t gemmDesc)
 {
+    
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;

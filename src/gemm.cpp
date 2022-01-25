@@ -31,7 +31,7 @@ namespace miopen {
 
 GemmNewDescriptor::GemmNewDescriptor() {}
 
-GemmNewDescriptor::GemmNewDescriptor(//miopenGemmMode_t mode_,
+GemmNewDescriptor::GemmNewDescriptor(
                    bool isColMajor_,
                    bool transA_,
                    bool transB_,
@@ -48,8 +48,7 @@ GemmNewDescriptor::GemmNewDescriptor(//miopenGemmMode_t mode_,
                    double beta_,
                    int batch_count_,
                    miopenDataType_t dataType_)
-    : //mode(mode_),
-      isColMajor(isColMajor_),
+    :isColMajor(isColMajor_),
       transA(transA_),
       transB(transB_),
       m(m_),
