@@ -83,7 +83,7 @@ struct GemmNewDescriptor : miopenGemmDescriptor
                             const TensorDescriptor& CDesc,
                             Data_t C);
 
-    //friend std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& x);
+    friend std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& x);
 
     private:
     bool isColMajor;

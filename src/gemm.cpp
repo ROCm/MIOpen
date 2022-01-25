@@ -99,24 +99,25 @@ int GemmNewDescriptor::GetBatchCount() const { return this->batch_count; }
 
 miopenDataType_t GemmNewDescriptor::GetMIOpenDataType() const { return this->dataType; }
 
-/*
-std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& x)
+std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& gemm_desc)
 {
-    MIOPEN_LOG_ENUM(stream,
-                    x.mode,
-                    miopenGemmPASTHRU,
-                    miopenGemmLOGISTIC,
-                    miopenGemmTANH,
-                    miopenGemmRELU,
-                    miopenGemmSOFTRELU,
-                    miopenGemmABS,
-                    miopenGemmPOWER,
-                    miopenGemmCLIPPEDRELU,
-                    miopenGemmLEAKYRELU,
-                    miopenGemmELU)
-        << ", ";
-    LogRange(stream, x.parms, ", ") << ", ";
-    return stream;
+    return stream << "{"
+                  << "isColMajor " << gemm_desc.isColMajor << ", "
+                  << "transA " << gemm_desc.transA << ", "
+                  << "transB " << gemm_desc.transB << ", "
+                  << "m " << gemm_desc.m << ", "
+                  << "n " << gemm_desc.n << ", "
+                  << "k " << gemm_desc.k << ", "
+                  << "lda " << gemm_desc.lda << ", "
+                  << "ldb " << gemm_desc.ldb << ", "
+                  << "ldc " << gemm_desc.ldc << ", "
+                  << "batch_count " << gemm_desc.batch_count << ", "
+                  << "strideA " << gemm_desc.strideA << ", "
+                  << "strideB " << gemm_desc.strideB << ", "
+                  << "strideC " << gemm_desc.strideC << ", "
+                  << "alpha " << gemm_desc.alpha << ", "
+                  << "beta " << gemm_desc.beta << ", "
+                  << "dataType " << gemm_desc.dataType << "} ";
 }
-*/
+
 } // namespace miopen
