@@ -28,7 +28,6 @@
 #include <miopen/handle.hpp>
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
-#include <miopen/stringutils.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN)
 

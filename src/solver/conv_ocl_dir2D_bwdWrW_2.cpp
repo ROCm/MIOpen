@@ -31,7 +31,6 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/bfloat16.hpp>
 #include <miopen/mlo_utils.hpp>
-#include <miopen/stringutils.hpp>
 #include <miopen/visit_float.hpp>
 
 #include <algorithm>
