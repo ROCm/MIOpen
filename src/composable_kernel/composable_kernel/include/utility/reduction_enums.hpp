@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,20 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+#ifndef CK_REDUCTION_ENUMS_HPP
+#define CK_REDUCTION_ENUMS_HPP
 
-#include <string>
-#include <miopen/conv/context.hpp>
+namespace ck {
 
-namespace miopen {
+enum class ReduceTensorOp_t
+{
+    ADD   = 0,
+    MUL   = 1,
+    MIN   = 2,
+    MAX   = 3,
+    AMAX  = 4,
+    AVG   = 5,
+    NORM1 = 6,
+    NORM2 = 7,
+    // MUL_NO_ZEROS = 8,
+};
 
-namespace solver {
+enum class NanPropagation_t
+{
+    NOT_PROPAGATE_NAN = 0,
+    PROPAGATE_NAN     = 1,
+};
 
-bool ConvDirectNaiveConvIsAssemblyKernel(const ConvolutionContext& ctx);
-std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx);
-std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx);
-std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx);
-bool ConvDirectNaiveConvIsApplicableByKernelType(const ConvolutionContext& ctx);
+enum class ReduceTensorIndices_t
+{
+    NO_INDICES        = 0,
+    FLATTENED_INDICES = 1,
+};
 
-} // namespace solver
-} // namespace miopen
+enum class IndicesType_t
+{
+    INDICES_32BIT = 0,
+    INDICES_64BIT = 1,
+    INDICES_16BIT = 2,
+    INDICES_8BIT  = 3,
+};
+
+}; // end of namespace ck
+
+#endif
