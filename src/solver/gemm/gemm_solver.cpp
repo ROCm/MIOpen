@@ -74,7 +74,6 @@ ConvSolution GemmSolver1x1::GetSolution(const ExecutionContext&,
 
             MIOPEN_LOG_FUNCTION("gemm");
 
-            // tensors.y = tensors.w * tensors.x
             miopenStatus_t gemm_status;
             if(gemm_params.type == InvokeType::Run)
             {
