@@ -60,7 +60,7 @@ ConvSolution
 BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
                                         const miopen::batchnorm::ProblemDescription& problem) const
 {
-    const auto& handle = context.GetStream();
+    const auto& handle      = context.GetStream();
     const unsigned wavesize = (miopen::StartsWith(handle.GetDeviceName(), "gfx10") ? 32 : 64);
 
     bool bfpmixparm = false;
@@ -109,7 +109,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
         variant    = 1;
         xlocalsize = 1024;
         xgridsize  = c * xlocalsize;
-            ldsgcn     = xlocalsize / wavesize;
+        ldsgcn     = xlocalsize / wavesize;
         ldsnogcn   = xlocalsize;
     }
     //*************************************************************************************************
@@ -120,9 +120,9 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     else if(in_nhw < (32 * 1024 * 1024) && in_cstride > 512)
     {
         variant    = (n >= 32) ? 1 : 3;
-            xlocalsize = 1024;
+        xlocalsize = 1024;
         xgridsize  = c * xlocalsize;
-            ldsgcn     = xlocalsize / wavesize;
+        ldsgcn     = xlocalsize / wavesize;
         ldsnogcn   = xlocalsize;
     }
     //*************************************************************************************************
@@ -133,19 +133,19 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     {
         if((n > 64) && (in_cstride > 160))
         {
-                variant    = 3;
-                xlocalsize = 1024;
-                xgridsize  = c * xlocalsize;
-                ldsgcn     = xlocalsize / wavesize;
-                ldsnogcn   = xlocalsize;
+            variant    = 3;
+            xlocalsize = 1024;
+            xgridsize  = c * xlocalsize;
+            ldsgcn     = xlocalsize / wavesize;
+            ldsnogcn   = xlocalsize;
         }
         else
         {
-                variant    = 0;
-                xlocalsize = 1024;
-                xgridsize  = 1024 * c;
-                ldsgcn     = xlocalsize / wavesize;
-                ldsnogcn   = xlocalsize;
+            variant    = 0;
+            xlocalsize = 1024;
+            xgridsize  = 1024 * c;
+            ldsgcn     = xlocalsize / wavesize;
+            ldsnogcn   = xlocalsize;
         }
     }
     //*************************************************************************************************
@@ -159,7 +159,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
         auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
         xgridsize    = c;
         ygridsize    = segment * ylocalsize;
-            ldsgcn       = ylocalsize / wavesize;
+        ldsgcn       = ylocalsize / wavesize;
         ldsnogcn     = ylocalsize;
     }
     if((in_cstride < 200) && (in_cstride > 60) && bfpmixparm)
@@ -167,9 +167,8 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
         variant    = 1;
         xlocalsize = 1024;
         xgridsize  = c * xlocalsize;
-            ldsgcn     = xlocalsize / wavesize;
+        ldsgcn     = xlocalsize / wavesize;
         ldsnogcn   = xlocalsize;
-    }
     }
 
     auto result = ConvSolution{miopenStatusSuccess};
