@@ -23,197 +23,33 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/handle.hpp>
+#include <miopen/miopen.h>
+#include <miopen/util_sol.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_layout.hpp>
+#include <miopen/tensor_reorder_sol.hpp>
+#include <miopen/invoker.hpp>
+#include <miopen/invoke_params.hpp>
+#include <boost/optional.hpp>
 #include <vector>
-#include <string>
-#include <assert.h>
-#include <chrono>
-#include <functional>
-#include <hip/hip_ext.h>
-#include <hip/hip_runtime.h>
-#include <random>
-#include <stdio.h>
-#include <stdlib.h>
-#include <thread>
-#include <time.h>
-#include <vector>
-#include <float.h>
-#include <cmath>
-#include <iostream>
-#include "gpu_tensor_reorder.h"
+#include <cstdlib>
+#include <ctime>
+#include "test.hpp"
+#include "driver.hpp"
+#include "random.hpp"
 #include "sequence.hpp"
 
 
-#ifndef HIP_CALL
-#define HIP_CALL(call)                                                         \
-    do {                                                                       \
-        hipError_t err = call;                                                 \
-        if (err != hipSuccess) {                                               \
-            printf("[hiperror](%d) fail to call %s,(%s)\n", (int)err, #call,     \
-                   hipGetErrorString(err));                                    \
-            exit(1);                                                           \
-        }                                                                      \
-    } while (0)
-#endif
-
-static inline int env_get_int(const char *var_name, int default_int) {
-    char *v = getenv(var_name);
-    int r = default_int;
-    if (v)
-        r = atoi(v);
-    return r;
-}
-
-static int gen_rand_integer()
+template <>
+struct miopen_type<uint8_t> : std::integral_constant<miopenDataType_t, miopenInt8>
 {
-    static int inited = 0;
-    if(inited == 0)
-    {
-        std::srand(std::time(nullptr));
-        inited = 1;
-    }
-    return std::rand();
-}
-
-
-static inline char *env_get_str(char *var_name, char* default_str) {
-    char *v = getenv(var_name);
-    if (v)
-        return v;
-    return default_str;
-}
-
-template <typename T>
-struct distribution_t{
 };
 
 template <>
-struct distribution_t<int8_t>{
-    distribution_t(int min, int max) : distribution(min, max) {}
-    template<class URNG>
-    int8_t operator()(URNG & rng){
-        int value = distribution(rng);
-        return *reinterpret_cast<int8_t*>(&value);
-        //return 0xf;
-    }
-    std::uniform_int_distribution<int> distribution;
-};
-template <>
-struct distribution_t<int>{
-    distribution_t(int min, int max) : distribution(min, max) {}
-    template<class URNG>
-    int operator()(URNG & rng){ return distribution(rng);}
-    std::uniform_int_distribution<int> distribution;
-};
-template <>
-struct distribution_t<float>{
-    distribution_t(float min, float max) : distribution(min, max) {}
-    template<class URNG>
-    float operator()(URNG & rng){ return distribution(rng);}
-    std::uniform_real_distribution<float> distribution;
-};
-
-template <typename Dst_T, typename Src_T>
-void block_wise_rand_generator(Dst_T *p, int tid, int block_size, int total_size, Src_T min, Src_T max, Src_T scale)
+struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHalf>
 {
-    std::mt19937 rng(std::chrono::system_clock::now()
-                        .time_since_epoch()
-                        .count() +
-                    std::hash<std::thread::id>()(std::this_thread::get_id()));
-    distribution_t<Dst_T> distribution(min,max);
-    for (int i = tid; i < total_size; i += block_size) {
-        p[i] = static_cast<Dst_T>(scale * distribution(rng));
-    }
-}
-
-template <typename Dst_T, typename Src_T>
-void gen_rand_vector(Dst_T *vec, size_t vec_size, Src_T fmin, Src_T fmax, Src_T scale = 1) {
-    int num_threads = std::thread::hardware_concurrency();
-    if (num_threads < 4)
-        num_threads = 4;
-    // printf("total threads:%d\n",num_threads);
-    std::vector<std::thread> threads;
-    for (int t = 0; t < num_threads; t++) {
-        threads.push_back(std::thread(block_wise_rand_generator<Dst_T, Src_T>,
-            vec, t, num_threads, vec_size, fmin, fmax, scale));
-    }
-    for (auto &th : threads)
-        th.join();
-}
-
-static inline bool valid_float(float p)
-{
-    return !(std::isnan(p) || std::isinf(p));
-}
-#ifndef ABS
-#define ABS(b) ((b) > 0 ? (b) : -1 * (b))
-#endif
-static inline bool valid_vector(const float *ref, const float *pred, int n,
-                                double nrms = 1.5e-6) {
-    double s0 = 0.0;
-    double s1 = 0.0;
-    int igemm_per_pixel_check = env_get_int("PER_PIXEL_CHECK", 0);
-    int igemm_per_pixel_check_print = env_get_int("PER_PIXEL_CHECK_PRINT", 1);
-    int pp_err = 0;
-
-    for (int i = 0; i < n; ++i) {
-        if(!(valid_float(ref[i]) && valid_float(pred[i]))){
-            printf(" invalid float at %d, ref:%f, pred:%f\n", i, ref[i], pred[i]);
-            return -1;
-        }
-        double ri = (double)ref[i];
-        double pi = (double)pred[i];
-        double d = ri - pi;
-        double dd = d * d;
-        double rr = 2.0 * ri * ri;
-        s0 += dd;
-        s1 += rr;
-        if(igemm_per_pixel_check){
-            double delta = ABS(ABS(ri - pi) / ri);
-            printf("[%d] ref:%lf, pred:%lf(0x%08x) [%s]\n", i, ri, pi, ((uint32_t *)pred)[i], delta > 3e-5? "N":"Y");
-            if (delta > 3e-5) {
-                if(igemm_per_pixel_check_print){
-                    if (pp_err < 100)
-                        printf("diff at %d, ref:%lf, pred:%lf(0x%08x), d:%lf\n", i, ri,
-                            pi, ((uint32_t *)pred)[i], delta);
-                }
-                pp_err++;
-            }
-
-        }
-    }
-    // printf("\nnrms:%lf, s0:%lf, s1:%lf, expected_nrms is %1f\n",sqrt(s0/s1),s0,s1,nrms);
-    fflush(stdout);
-    return (sqrt(s0 / s1) < nrms)
-#ifdef PER_PIXEL_CHECK
-           && (pp_err == 0)
-#endif
-        ;
-}
-
-static inline bool valid_vector_binary(int8_t *ref, int8_t *pred, size_t bytes) {
-    int igemm_per_pixel_check = env_get_int("PER_PIXEL_CHECK", 0);
-    size_t err = 0;
-    for(int i = 0; i < bytes ; i++){
-        // {
-        //     uint32_t r = 0;
-        //     uint32_t p = 0;
-        //     memcpy(reinterpret_cast<void*>(&r), reinterpret_cast<void*>(&ref[i]), 1);
-        //     memcpy(reinterpret_cast<void*>(&p), reinterpret_cast<void*>(&pred[i]), 1);
-        //     printf("%7d, ref:0x%x, pred:0x%x, %s\n", i, r, p, r==p?"y":"n");
-        // }
-        if(ref[i] != pred[i]){
-            err ++;
-            if(igemm_per_pixel_check){
-                uint32_t r = 0;
-                uint32_t p = 0;
-                memcpy(reinterpret_cast<void*>(&r), reinterpret_cast<void*>(&ref[i]), 1);
-                memcpy(reinterpret_cast<void*>(&p), reinterpret_cast<void*>(&pred[i]), 1);
-                printf("fail at %d, ref:0x%x, pred:0x%x\n", i, r, p);
-            }
-        }
-    }
-    return err == 0;
-}
+};
 
 template<typename T,
          typename dst_order>
@@ -232,7 +68,7 @@ void cpu_tensor_reorder(T * dst, T * src, uint64_t dim_0, uint64_t dim_1, uint64
                                      dst_dim[3],
                                      1 };
 
-    uint64_t itr_src_dim[4]  = {0, 0, 0, 0};
+    uint64_t itr_src_dim[4] = {0, 0, 0, 0};
     uint64_t itr_dst_dim[4] = {0, 0, 0, 0};
 
     for(itr_src_dim[0] = 0; itr_src_dim[0] < src_dim[0]; itr_src_dim[0]++){
@@ -260,6 +96,128 @@ void cpu_tensor_reorder(T * dst, T * src, uint64_t dim_0, uint64_t dim_1, uint64
     }
 }
 
+template <typename T, typename dst_order>
+struct cpu_reorder
+{
+    static void run(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
+    {
+        cpu_tensor_reorder<T, dst_order>(dst, src, N, C, H, W);
+    }
+};
+
+template <typename dst_order>
+struct reorder_str
+{
+    static std::string get() { 
+        return ("r" + itoa(dst_order::at(0)) 
+                    + itoa(dst_order::at(1))
+                    + itoa(dst_order::at(2))
+                    + itoa(dst_order::at(3)) ); 
+        }
+};
+
+enum tensor_layout_t
+{
+    miopen_tensor_layout_nchw,
+    miopen_tensor_layout_ncdhw,
+    miopen_tensor_layout_nhwc,
+    miopen_tensor_layout_ndhwc,
+};
+
+std::string tensor_layout_to_string(tensor_layout_t layout)
+{
+    std::string layout_string("N/A");
+    if(layout == miopen_tensor_layout_nchw)
+        layout_string = "NCHW";
+    else if(layout == miopen_tensor_layout_ncdhw)
+        layout_string = "NCDHW";
+    else if(layout == miopen_tensor_layout_nhwc)
+        layout_string = "NHWC";
+    else if(layout == miopen_tensor_layout_ndhwc)
+        layout_string = "NDHWC";
+    else
+        MIOPEN_THROW("Unsupported tensor layout");
+    return layout_string;
+}
+
+
+template <typename T>
+struct to_miopen_data_type
+{
+};
+
+template <>
+struct to_miopen_data_type<float>
+{
+    static miopenDataType_t get() { return miopenFloat; }
+};
+
+template <>
+struct to_miopen_data_type<uint16_t>
+{
+    static miopenDataType_t get() { return miopenHalf; } // we actually didn't calculate 16bit float
+};
+
+template <>
+struct to_miopen_data_type<uint8_t>
+{
+    static miopenDataType_t get() { return miopenInt8; }
+};
+
+#define RAND_INTEGER_MAX 120
+#define RAND_INTEGER_MIN -88
+
+static int gen_rand_integer()
+{
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+    static int inited = 0;
+    if(inited == 0)
+    {
+        std::srand(std::time(nullptr));
+        inited = 1;
+    }
+    return GET_RAND();
+}
+
+template <typename T>
+void rand_tensor_integer(tensor<T>& t, int max = RAND_INTEGER_MAX, int min = RAND_INTEGER_MIN)
+{
+    // use integer to random.
+    for(int i = 0; i < t.data.size(); i++)
+        t[i] = static_cast<T>(gen_rand_integer() % (max - min) + min);
+}
+
+template <typename T>
+bool compare_equal(T r1, T r2)
+{
+    return r1 == r2;
+}
+
+template <>
+bool compare_equal<float>(float r1, float r2)
+{
+    return miopen::float_equal(r1, r2);
+}
+
+template <typename T>
+bool verify_tensor(tensor<T>& t_gpu, tensor<T>& t_cpu)
+{
+    if(t_gpu.data.size() != t_cpu.data.size())
+    {
+        MIOPEN_LOG_E("size not equal, should not happen");
+        return false;
+    }
+    auto idx          = miopen::mismatch_idx(t_gpu.data, t_cpu.data, compare_equal<T>);
+    bool valid_result = idx >= miopen::range_distance(t_cpu);
+
+    if(!valid_result)
+    {
+        std::cout << "diff at:" << idx << ", gpu:" << t_gpu[idx] << ", cpu:" << t_cpu[idx]
+                  << std::endl;
+    }
+    return valid_result;
+}
+
 //compile time for_loop
 namespace detail {
 
@@ -275,268 +233,212 @@ constexpr void loop(F&& f) {
     detail::loop(std::make_integer_sequence<T, count>{}, std::forward<F>(f));
 }
 
-#define WARMUP 3
-#define REPEAT 7
-#define BATCHED_TRANSPOSE_HSACO "out/batched_transpose.hsaco"
-#define GENERAL_TENSOR_REORDER_HSACO    "out/general_tensor_reorder.hsaco"
+struct reorder_base
+{
+    miopenHandle_t handle{};
+#if MIOPEN_BACKEND_OPENCL
+    cl_command_queue q{};
+#endif
 
-int main(int argc, char ** argv){
-    if(argc < 5){
-        printf("%s Please input tensor size in order of： DIM0, DIM1, DIM2, DIM3\n", argv[0]);
-        return -1;
+    reorder_base()
+    {
+        miopenCreate(&handle);
+#if MIOPEN_BACKEND_OPENCL
+        miopenGetStream(handle, &q);
+#endif
     }
-    if(argc > 5){
-        printf("Too many argument\n");
-        return -1;
+    ~reorder_base() { miopenDestroy(handle); }
+
+    static std::vector<uint32_t> get_dim_3_size() { return {1, 9, 14}; }
+    static std::vector<uint32_t> get_dim_2_size() { return {1, 9, 14}; }
+    static std::vector<uint32_t> get_dim_1_size() { return {3, 8, 14}; }
+    static std::vector<uint32_t> get_dim_0_size() { return {1, 2}; }
+
+    template <typename F>
+    void iterate_reorder(F f)
+    {
+        std::vector<uint32_t> dim_3_list = get_dim_3_size();
+        std::vector<uint32_t> dim_2_list = get_dim_2_size();
+        std::vector<uint32_t> dim_1_list = get_dim_1_size();
+        std::vector<uint32_t> dim_0_list = get_dim_0_size();
+        
+        dim_3_list.push_back(gen_rand_integer() % 13 + 29);
+        dim_2_list.push_back(gen_rand_integer() % 13 + 29);
+        dim_1_list.push_back(gen_rand_integer() % 13 + 15);
+        dim_0_list.push_back(gen_rand_integer() % 4 + 3);
+
+        for(uint32_t dim_3 : dim_3_list)
+        {
+            for(uint32_t dim_2 : dim_2_list)
+            {
+                for(uint32_t dim_1 : dim_1_list)
+                {
+                    for(uint32_t dim_0 : dim_0_list)
+                    {
+                        f(dim_0, dim_1, dim_2, dim_3);
+                    }
+                }
+            }
+        }
     }
-    int warmup = env_get_int("IGEMM_WARMUP", WARMUP);
-    int repeat = env_get_int("IGEMM_REPEAT", REPEAT);
-    const uint64_t dim_0 = std::stoull(std::string(argv[1]));
-    const uint64_t dim_1 = std::stoull(std::string(argv[2]));
-    const uint64_t dim_2 = std::stoull(std::string(argv[3]));
-    const uint64_t dim_3 = std::stoull(std::string(argv[4]));
-    
-    size_t size_byte = 4;
-    const char* fp = env_get_str("FP", "32");
-    std::string fp_str(fp);
-    if(fp_str == "32")
-        size_byte = 4;
-    else if(fp_str == "16")
-        size_byte = 2;
-    else if(fp_str == "8")
-        size_byte = 1;
-    else{
-        printf("error FP:%s\n", fp);
-        return -1;
+};
+
+struct reorder_invoke_param : public miopen::InvokeParams
+{
+    ConstData_t src = nullptr;
+    Data_t dst      = nullptr;
+
+    reorder_invoke_param(ConstData_t src_, Data_t dst_) : src(src_), dst(dst_) {}
+    reorder_invoke_param(miopen::InvokeType type_, ConstData_t src_, Data_t dst_)
+        : InvokeParams{type_}, src(src_), dst(dst_)
+    {
     }
+};
 
-    bool batched = false;
-    bool is_kernel_valid = false;
-    const char* hsaco;
-    void * src_cpu = malloc(dim_0*dim_1*dim_2*dim_3*size_byte);
-    void * dst_cpu = malloc(dim_0*dim_1*dim_2*dim_3*size_byte);
-    void * dst_gpu_valid = malloc(dim_0*dim_1*dim_2*dim_3*size_byte);
+template <typename T, typename dst_order, typename REORDER_SOL>
+struct reorder_test : reorder__base
+{
+    void run()
+    {
+        auto run_reorder = [this](uint32_t dim_0, uint32_t dim_1, uint32_t dim_2, uint32_t dim_3) {
+            int tensor_sz = dim_0 * dim_1 * dim_2 * dim_3;
+            std::vector<int> tensor_len({static_cast<int>(dim_0),
+                                         static_cast<int>(dim_1),
+                                         static_cast<int>(dim_2),
+                                         static_cast<int>(dim_3)});
 
-    void * src_gpu;
-    void * dst_gpu;
-    
-    HIP_CALL(hipMalloc(&src_gpu, dim_0*dim_1*dim_2*dim_3*size_byte));
-    HIP_CALL(hipMalloc(&dst_gpu, dim_0*dim_1*dim_2*dim_3*size_byte));
+            std::vector<int> tensor_strides;
 
-    gen_rand_vector<int8_t>(reinterpret_cast<int8_t*>(src_cpu), dim_0*dim_1*dim_2*dim_3*size_byte, -116, 121);
-    HIP_CALL(hipMemcpy(src_gpu, src_cpu, dim_0*dim_1*dim_2*dim_3*size_byte, hipMemcpyHostToDevice));
+            std::string layout_default = miopen::tensor_layout_get_default(4);
+            std::string layout_string  = tensor_layout_to_string(miopen_tensor_layout_nchw);
 
+            miopen::tensor_layout_to_strides(
+                tensor_len, layout_default, layout_string, tensor_strides);
+
+            tensor<T> t_src(tensor_len, tensor_strides);
+            tensor<T> t_dst(tensor_len, tensor_strides);
+            tensor<T> t_dst_gpu(tensor_len, tensor_strides);
+            rand_tensor_integer(t_src);
+#if MIOPEN_BACKEND_OPENCL
+            cl_context cl_ctx;
+            clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &cl_ctx, nullptr);
+            cl_int status = CL_SUCCESS;
+            cl_mem src_dev =
+                clCreateBuffer(cl_ctx, CL_MEM_READ_WRITE, sizeof(T) * tensor_sz, nullptr, &status);
+            cl_mem dst_dev =
+                clCreateBuffer(cl_ctx, CL_MEM_READ_WRITE, sizeof(T) * tensor_sz, nullptr, nullptr);
+            status |= clEnqueueWriteBuffer(q,
+                                           src_dev,
+                                           CL_TRUE,
+                                           0,
+                                           sizeof(T) * tensor_sz,
+                                           t_src.data.data(),
+                                           0,
+                                           nullptr,
+                                           nullptr);
+            EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
+            void* src_dev;
+            void* dst_dev;
+            EXPECT(hipMalloc(&src_dev, sizeof(T) * tensor_sz) == hipSuccess);
+            EXPECT(hipMalloc(&dst_dev, sizeof(T) * tensor_sz) == hipSuccess);
+            EXPECT(hipMemcpy(
+                       src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice) ==
+                   hipSuccess);
+#endif
+
+            const auto invoke_param = reorder_invoke_param{
+                DataCast(static_cast<const void*>(src_dev)), DataCast(dst_dev)};
+
+            miopen::ExecutionContext ctx;
+            ctx.SetStream(&miopen::deref(this->handle));
+            ctx.DetectRocm();
+            // ctx.SetupFloats();
+
+            REORDER_SOL reorder_sol(ctx, to_miopen_data_type<T>::get(), dim_0, dim_1, dim_2, dim_3);
+
+            std::vector<OpKernelArg> opArgs = reorder_sol.GetKernelArg();
+
+            boost::optional<miopen::InvokerFactory> invoker_factory(
+                [=](const std::vector<miopen::Kernel>& kernels) mutable {
+                    return [=](const miopen::Handle& handle,
+                               const miopen::AnyInvokeParams& primitive_param) mutable {
+                        decltype(auto) invoke_params =
+                            primitive_param.CastTo<reorder_invoke_param>();
+
+                        const auto k = handle.Run(kernels[0]);
+
+                        opArgs[0] = OpKernelArg(invoke_params.dst);
+                        opArgs[1] = OpKernelArg(invoke_params.src);
+
+                        k(opArgs);
+                    };
+                });
+
+            std::vector<miopen::solver::KernelInfo> construction_params{reorder_sol.GetKernel()};
+
+            const auto invoker =
+                miopen::deref(this->handle).PrepareInvoker(*invoker_factory, construction_params);
+
+            // run gpu
+            invoker(miopen::deref(this->handle), invoke_param);
+
+            // run cpu
+            cpu_reorder<T, dst_order>::run(t_dst.data.data(), t_src.data.data(), dim_0, dim_1, dim_2, dim_3);
+
+#if MIOPEN_BACKEND_OPENCL
+            status = clEnqueueReadBuffer(q,
+                                         dst_dev,
+                                         CL_TRUE,
+                                         0,
+                                         sizeof(T) * tensor_sz,
+                                         t_dst_gpu.data.data(),
+                                         0,
+                                         nullptr,
+                                         nullptr);
+            EXPECT(status == CL_SUCCESS);
+#elif MIOPEN_BACKEND_HIP
+            EXPECT(hipMemcpy(t_dst_gpu.data.data(),
+                             dst_dev,
+                             sizeof(T) * tensor_sz,
+                             hipMemcpyDeviceToHost) == hipSuccess);
+#endif
+
+            // we expect excact match, since use integer
+            bool valid_result = verify_tensor(t_dst_gpu, t_dst);
+
+            std::cout << "[" << reorder_str<dst_order>::get() << ", b" << (sizeof(T) * 8)
+                      << " ] "
+                      << "dim_0:" << dim_0 << ", dim_1:" << dim_1 << ", dim_2:" << dim_2 << ", dim_3:" << dim_3
+                      << ", valid:" << valid_result << std::endl;
+
+            EXPECT(valid_result == true);
+
+#if MIOPEN_BACKEND_OPENCL
+            clReleaseMemObject(src_dev);
+            clReleaseMemObject(dst_dev);
+#elif MIOPEN_BACKEND_HIP
+            hipFree(src_dev);
+            hipFree(dst_dev);
+#endif
+        };
+
+        iterate_reorder(run_reorder);
+    }
+};
+
+
+int main()
+{
 loop<int, 23>([&](auto i) {
     constexpr int all_possible_sequence[23][4] = {
-    {0, 1, 3, 2}, {2, 3, 0, 1}, {3, 0, 1, 2}, {0, 2, 3, 1}, {0, 3, 1, 2}, //BATCHED TRANSPOSE
-    {0, 2, 1, 3}, {0, 3, 2, 1},
+    {0, 1, 3, 2}, {0, 2, 1, 3}, {0, 2, 3, 1}, {0, 3, 1, 2}, {0, 3, 2, 1},
     {1, 0, 2, 3}, {1, 0, 3, 2}, {1, 2, 0, 3}, {1, 2, 3, 0}, {1, 3, 0, 2}, {1, 3, 2, 0},
-    {2, 0, 1, 3}, {2, 0, 3, 1}, {2, 1, 0, 3}, {2, 1, 3, 0}, {2, 3, 1, 0},
-    {3, 0, 2, 1}, {3, 1, 0, 2}, {3, 1, 2, 0}, {3, 2, 0, 1}, {3, 2, 1, 0} };
+    {2, 0, 1, 3}, {2, 0, 3, 1}, {2, 1, 0, 3}, {2, 1, 3, 0}, {2, 3, 0, 1}, {2, 3, 1, 0},
+    {3, 0, 1, 2}, {3, 0, 2, 1}, {3, 1, 0, 2}, {3, 1, 2, 0}, {3, 2, 0, 1}, {3, 2, 1, 0} };
     using dst_order = sequence<all_possible_sequence[i][0], all_possible_sequence[i][1], all_possible_sequence[i][2], all_possible_sequence[i][3]>;
-    std::cout <<" Tensor reorder to ("<< dst_order::at(0)<<","<< dst_order::at(1)<<","<< dst_order::at(2)<<","<< dst_order::at(3)<<")" << std::endl;
-    
-    //TODO: an API with more privacy
-    auto launch_gpu_init = [&](){
-        if((dst_order::at(0)==0 && dst_order::at(1)==1 && dst_order::at(2)==3 && dst_order::at(3)==2) || 
-           (dst_order::at(0)==0 && dst_order::at(1)==2 && dst_order::at(2)==3 && dst_order::at(3)==1) || 
-           (dst_order::at(0)==0 && dst_order::at(1)==3 && dst_order::at(2)==1 && dst_order::at(3)==2) ||
-           (dst_order::at(0)==3 && dst_order::at(1)==0 && dst_order::at(2)==1 && dst_order::at(3)==2) ||
-           (dst_order::at(0)==2 && dst_order::at(1)==3 && dst_order::at(2)==0 && dst_order::at(3)==1)
-           ){
-            printf("choose batched transpose kernel\n");
-            batched = true;
-            //batched transpose. NCHW <----> NHWC, (NC)cHW <----> (NC)HWc
-            hsaco = env_get_str("BATCHED_TRANSPOSE", BATCHED_TRANSPOSE_HSACO);
-            gpu_nhwc_nchw_transpose_init(hsaco);
-        }
-        else {
-            printf("choose general tensor reorder kernel\n");
-            hsaco = env_get_str("GENERAL_TENSOR_REORDER_HSACO", GENERAL_TENSOR_REORDER_HSACO);
-            gpu_tensor_reorder_init(hsaco);
-        }
-    };
-
-    auto launch_gpu_tensor_reorder = [&](const transpose_kernel_param_t * kparam){
-        if(fp_str == "32")
-            gpu_tensor_reorder<float,  dst_order>(reinterpret_cast<float*> (dst_gpu), reinterpret_cast<float*> (src_gpu), dim_0, dim_1, dim_2, dim_3, kparam);
-        else if(fp_str == "16")
-            gpu_tensor_reorder<ushort, dst_order>(reinterpret_cast<ushort*>(dst_gpu), reinterpret_cast<ushort*>(src_gpu), dim_0, dim_1, dim_2, dim_3, kparam);
-        else if(fp_str == "8")
-            gpu_tensor_reorder<int8_t, dst_order>(reinterpret_cast<int8_t*>(dst_gpu), reinterpret_cast<int8_t*>(src_gpu), dim_0, dim_1, dim_2, dim_3, kparam);
-    };
-
-    auto launch_cpu_tensor_reorder = [&](){
-        if(fp_str == "32")
-            cpu_tensor_reorder<float,  dst_order>(reinterpret_cast<float*> (dst_cpu), reinterpret_cast<float*> (src_cpu), dim_0, dim_1, dim_2, dim_3);
-        else if(fp_str == "16")
-            cpu_tensor_reorder<ushort, dst_order>(reinterpret_cast<ushort*>(dst_cpu), reinterpret_cast<ushort*>(src_cpu), dim_0, dim_1, dim_2, dim_3);
-        else if(fp_str == "8")
-            cpu_tensor_reorder<int8_t, dst_order>(reinterpret_cast<int8_t*>(dst_cpu), reinterpret_cast<int8_t*>(src_cpu), dim_0, dim_1, dim_2, dim_3);
-    };
-
-    auto test_batched_transpose = [&](const transpose_kernel_param_t *transpose_kparam){
-        float kernel_time = 0;
-        bool valid = false;
-        bool is_kernel_valid = false;
-
-        if(dst_order::at(0)==0 && dst_order::at(1)==2 && dst_order::at(2)==3 && dst_order::at(3)==1){
-            is_kernel_valid = transpose_kernel_is_valid(dim_0, dim_1, dim_2 * dim_3, transpose_kparam);
-        }
-        else if(dst_order::at(0)==0 && dst_order::at(1)==1 && dst_order::at(2)==3 && dst_order::at(3)==2){
-            is_kernel_valid = transpose_kernel_is_valid(dim_0 * dim_1, dim_2, dim_3, transpose_kparam);
-        }
-        else if(dst_order::at(0)==0 && dst_order::at(1)==3 && dst_order::at(2)==1 && dst_order::at(3)==2){
-            is_kernel_valid = transpose_kernel_is_valid(dim_0, dim_1 * dim_2, dim_3, transpose_kparam);
-        }
-        else if(dst_order::at(0)==3 && dst_order::at(1)==0 && dst_order::at(2)==1 && dst_order::at(3)==2){
-            is_kernel_valid = transpose_kernel_is_valid(1, dim_0 * dim_1 * dim_2, dim_3, transpose_kparam);
-        }
-        //dst_order::at(0)==2 && dst_order::at(1)==3 && dst_order::at(2)==0 && dst_order::at(3)==1
-        else{
-            is_kernel_valid = transpose_kernel_is_valid(1, dim_0 * dim_1, dim_2 * dim_3, transpose_kparam);
-        }
-        if(is_kernel_valid){
-            hipEvent_t start, stop;
-            HIP_CALL(hipMemset(dst_gpu, 0, dim_0*dim_1*dim_2*dim_3*size_byte));
-
-            for(int i=0; i< warmup; i++){
-                launch_gpu_tensor_reorder(transpose_kparam);
-            }
-
-            HIP_CALL(hipEventCreate(&start));
-            HIP_CALL(hipEventCreate(&stop));
-            HIP_CALL(hipDeviceSynchronize());
-            HIP_CALL(hipEventRecord(start, 0) );
-
-            for(int i=0; i< repeat; i++){
-                launch_gpu_tensor_reorder(transpose_kparam);
-            }
-            HIP_CALL(hipEventRecord(stop, 0) );
-            HIP_CALL(hipEventSynchronize(stop) );
-            HIP_CALL(hipEventElapsedTime(&kernel_time, start, stop) );
-            HIP_CALL(hipEventDestroy(start) );
-            HIP_CALL(hipEventDestroy(stop) );
-            kernel_time = kernel_time / repeat;
-
-            launch_cpu_tensor_reorder();
-
-            HIP_CALL(hipMemcpy(dst_gpu_valid, dst_gpu, dim_0*dim_1*dim_2*dim_3*size_byte, hipMemcpyDeviceToHost));
-
-            valid = valid_vector_binary(reinterpret_cast<int8_t*>(dst_cpu), reinterpret_cast<int8_t*>(dst_gpu_valid), dim_0*dim_1*dim_2*dim_3*size_byte);
-        }
-
-        double flop_cnt = 2 * dim_0*dim_1*dim_2*dim_3*size_byte;
-        double bw = is_kernel_valid ? flop_cnt / kernel_time / 1e6 : 0;
-
-        printf("[tensor_reorder fp%s] tensor_size:(%lu, %lu, %lu, %lu), flop:%.0f, time:%fms, bw:%.4fGB/s, valid:%s (%dx%d, %dx%d, %dx%d)\n",
-            fp_str.c_str(), dim_0, dim_1, dim_2, dim_3, flop_cnt, kernel_time, bw, is_kernel_valid ? (valid ? "y" : "n") : "x",
-            transpose_kparam->tile_x, transpose_kparam->tile_y, transpose_kparam->pack_x, transpose_kparam->pack_y, transpose_kparam->ediv_x, transpose_kparam->ediv_y);
-        fflush(stdout);
-
-        return valid && is_kernel_valid ? kernel_time : FLT_MAX;
-    };
-
-    auto test_general_tensor_reorder = [&](const transpose_kernel_param_t *transpose_kparam){
-        float kernel_time = 0;
-        bool valid = false;
-
-        bool is_kernel_valid = true;
-        if(is_kernel_valid){
-            hipEvent_t start, stop;
-            HIP_CALL(hipMemset(dst_gpu, 0, dim_0*dim_1*dim_2*dim_3*size_byte));
-
-            for(int i=0; i< warmup; i++){
-                launch_gpu_tensor_reorder(transpose_kparam);
-            }
-
-            HIP_CALL(hipEventCreate(&start));
-            HIP_CALL(hipEventCreate(&stop));
-            HIP_CALL(hipDeviceSynchronize());
-            HIP_CALL(hipEventRecord(start, 0) );
-
-            for(int i=0; i< repeat; i++){
-                launch_gpu_tensor_reorder(transpose_kparam);
-            }
-            HIP_CALL(hipEventRecord(stop, 0) );
-            HIP_CALL(hipEventSynchronize(stop) );
-            HIP_CALL(hipEventElapsedTime(&kernel_time, start, stop) );
-            HIP_CALL(hipEventDestroy(start) );
-            HIP_CALL(hipEventDestroy(stop) );
-            kernel_time = kernel_time / repeat;
-
-            launch_cpu_tensor_reorder();
-
-            HIP_CALL(hipMemcpy(dst_gpu_valid, dst_gpu, dim_0*dim_1*dim_2*dim_3*size_byte, hipMemcpyDeviceToHost));
-
-            valid = valid_vector_binary(reinterpret_cast<int8_t*>(dst_cpu), reinterpret_cast<int8_t*>(dst_gpu_valid), dim_0*dim_1*dim_2*dim_3*size_byte);
-        }
-
-        double flop_cnt = 2 * dim_0*dim_1*dim_2*dim_3*size_byte;
-        double bw = is_kernel_valid ? flop_cnt / kernel_time / 1e6 : 0;
-
-        printf("[tensor_reorder fp%s] tensor_size:(%lu, %lu, %lu, %lu), flop:%.0f, time:%fms, bw:%.4fGB/s, valid:%s (256x%d)\n",
-            fp_str.c_str(), dim_0, dim_1, dim_2, dim_3, flop_cnt, kernel_time, bw, is_kernel_valid ? (valid ? "y" : "n") : "x",
-            transpose_kparam->tile_x);
-        fflush(stdout);
-
-        return valid && is_kernel_valid ? kernel_time : FLT_MAX;
-    };
-
-    auto get_transpose_all_kernel = [&](){
-        if(fp_str == "32")
-            return transpose_kernel_get_all_param_t<4>::get();
-        else if(fp_str == "16")
-            return transpose_kernel_get_all_param_t<2>::get();
-        else if(fp_str == "8")
-            return transpose_kernel_get_all_param_t<1>::get();
-        else
-            assert(false);
-    };
-
-    auto get_tensor_reorder_all_kernel = [&](){
-        if(fp_str == "32")
-            return tensor_reorder_kernel_get_all_param_t<4>::get();
-        else if(fp_str == "16")
-            return tensor_reorder_kernel_get_all_param_t<2>::get();
-        else if(fp_str == "8")
-            return tensor_reorder_kernel_get_all_param_t<1>::get();
-        else
-            assert(false);
-    };
-
-    batched = false;
-    launch_gpu_init();
-    float min_tensor_reorder_time = FLT_MAX;
-    transpose_kernel_param_t min_tensor_reorder_kparam;
-    if(batched){
-        for(auto kparam : get_transpose_all_kernel()){
-            float current_time = test_batched_transpose(&kparam);
-            if(current_time < min_tensor_reorder_time){
-                min_tensor_reorder_time = current_time;
-                min_tensor_reorder_kparam = kparam;
-            }
-        }
-        printf("-> min time:%fms, kparam: %dx%d, %dx%d, %dx%d\n", min_tensor_reorder_time,
-        min_tensor_reorder_kparam.tile_x, min_tensor_reorder_kparam.tile_y, min_tensor_reorder_kparam.pack_x, min_tensor_reorder_kparam.pack_y, min_tensor_reorder_kparam.ediv_x, min_tensor_reorder_kparam.ediv_y);
-        fflush(stdout);
-        printf("-------------------------\n");
-    }
-    else{
-        for(auto kparam : get_tensor_reorder_all_kernel()){
-            float current_time = test_general_tensor_reorder(&kparam);
-            if(current_time < min_tensor_reorder_time){
-                min_tensor_reorder_time = current_time;
-                min_tensor_reorder_kparam = kparam;
-            }
-        }
-        printf("-> min time:%fms, kparam: 256x%d\n", min_tensor_reorder_time, min_tensor_reorder_kparam.tile_x);
-        fflush(stdout);
-        printf("-------------------------\n");
-    }
+    run_test<reorder_test<float,    miopen::TensorReorderSolution<dst_order> >>();
+    run_test<reorder_test<uint16_t, miopen::TensorReorderSolution<dst_order> >>();
+    run_test<reorder_test<uint8_t,  miopen::TensorReorderSolution<dst_order> >>();
 });
-
-    free(src_cpu);
-    free(dst_cpu);
-    free(dst_gpu_valid);
 }
