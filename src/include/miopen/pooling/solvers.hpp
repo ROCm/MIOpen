@@ -79,6 +79,7 @@ struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
 
 struct PoolingForward2d : OldStyleSolver
 {
+    const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForward2d>(); }
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pooling::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
@@ -89,6 +90,7 @@ struct PoolingForward2d : OldStyleSolver
 
 struct PoolingForwardNd : OldStyleSolver
 {
+    const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForwardNd>(); }
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pooling::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
@@ -137,10 +139,18 @@ struct PoolingFwdNCHWTransposingSolver : TransposingSolver<PoolingFwdNCHWTranspo
 
 struct TransposedPoolingFwd2d : PoolingFwdNCHWTransposingSolver<PoolingForward2d>
 {
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<TransposedPoolingFwd2d>();
+    }
 };
 
 struct TransposedPoolingFwdNd : PoolingFwdNCHWTransposingSolver<PoolingForwardNd>
 {
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<TransposedPoolingFwdNd>();
+    }
 };
 
 } // namespace pooling
