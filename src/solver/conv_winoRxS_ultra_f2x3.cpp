@@ -628,6 +628,10 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
     const auto intl_factor = pcfg->GetInterleaveFactor();
     const auto group_cnt   = params.group_counts;
 
+    constexpr unsigned F_REVERSE_R = 1 << 0;
+    constexpr unsigned F_REVERSE_S = 1 << 1;
+    constexpr unsigned F_FLIP_K_C  = 1 << 2;
+
     int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W, flags;
     BuffInfo d_buf, o_buf, f_buf;
 
@@ -639,10 +643,6 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
     if(!params.direction.IsBackwardWrW())
     {
         const auto is_forward = params.direction.IsForward();
-
-        constexpr unsigned F_REVERSE_R = 1 << 0;
-        constexpr unsigned F_REVERSE_S = 1 << 1;
-        constexpr unsigned F_FLIP_K_C  = 1 << 2;
 
         GetCompiledInParameters(
             params, &N, &C, &H, &W, &K, &unused, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
@@ -683,7 +683,7 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
         GetCompiledInParameters(
             params, &C, &K, &R, &S, &N, &unused, &H, &W, &out_H, &out_W, &unused, &unused);
 
-        flags = 0;
+        flags = F_FLIP_K_C;
         N     = N / group_cnt;
         K     = K / group_cnt;
         pad_H = params.conv_problem.GetConv().GetConvPads()[0];
