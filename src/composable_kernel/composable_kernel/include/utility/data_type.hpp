@@ -15,7 +15,7 @@ typedef float float_t;
 
 #else
 #include <cstdint> // int8_t, int16_t
-#include <cmath> // float_t
+#include <cmath>   // float_t
 #endif
 #endif // __HIPCC_RTC__
 

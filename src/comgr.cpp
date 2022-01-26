@@ -280,8 +280,8 @@ static void RemoveCommonOptionsUnwanted(OptionList& list)
     list.erase(
         remove_if(
             list.begin(),
-                         list.end(),
-                         [&](const auto& option) { // clang-format off
+            list.end(),
+            [&](const auto& option) { // clang-format off
                              return miopen::StartsWith(option, "-mcpu=")
                                 || (option == "-hc")
                                 || (option == "-x hip") || (option == "-xhip")
@@ -292,8 +292,8 @@ static void RemoveCommonOptionsUnwanted(OptionList& list)
                                 || ((option.find("clang_rt.builtins") != std::string::npos)
                                  && (option.find("x86_64") != std::string::npos))
                                 || miopen::StartsWith(option, "--hip-device-lib-path="); // clang-format on
-                         }),
-               list.end());
+            }),
+        list.end());
 }
 
 static void AddCompilerOptions(const OptionList& list) // `const` is for clang-tidy.
@@ -332,7 +332,7 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 static std::string GetIsaName(const miopen::TargetProperties& target, const bool isHlcBuild)
 {
 #if ROCM_FEATURE_TARGETID_OFF
-    std::ignore = isHlcBuild;
+    std::ignore                  = isHlcBuild;
     const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? "+sram-ecc" : "";
     return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
 #else
@@ -963,7 +963,7 @@ void BuildAsm(const std::string& name,
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
 #if ROCM_FEATURE_ASM_REQUIRES_NO_XNACK_OPTION
-            if(target.Xnack() && !*target.Xnack())
+        if(target.Xnack() && !*target.Xnack())
             optAsm.emplace_back("-mno-xnack");
 #endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
@@ -1012,9 +1012,7 @@ static inline void RemoveOptionsUnwanted(OptionList& list)
 {
     list.erase(remove_if(list.begin(),
                          list.end(),
-                         [&](const auto& option) {
-                             return miopen::StartsWith(option, "-mcpu=");
-                         }),
+                         [&](const auto& option) { return miopen::StartsWith(option, "-mcpu="); }),
                list.end());
 }
 
@@ -1245,10 +1243,10 @@ void BuildHip(const std::string& name,
         auto opts =
             miopen::SplitSpaceSeparated(options, miopen::comgr::compiler::lc::GetOptionsNoSplit());
         compiler::lc::RemoveOptionsUnwanted(opts);
-        opts.push_back("-DWORKAROUND_ISSUE_HIPRTC_TRUE_TYPE"); // Workaround for SWDEV-308073
+        opts.push_back("-DWORKAROUND_ISSUE_HIPRTC_TRUE_TYPE");       // Workaround for SWDEV-308073
         opts.push_back("-DWORKAROUND_ISSUE_HIPRTC_HALF_CONVERSION"); // Workaround for SWDEV-308250
-        opts.push_back("-D__HIP_PLATFORM_HCC__=1"); // Workaround?
-        opts.push_back("-D__HIP_PLATFORM_AMD__=1"); // Workaround?
+        opts.push_back("-D__HIP_PLATFORM_HCC__=1");                  // Workaround?
+        opts.push_back("-D__HIP_PLATFORM_AMD__=1");                  // Workaround?
 #if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
         if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
             opts.push_back("-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1");
@@ -1265,7 +1263,7 @@ void BuildHip(const std::string& name,
         if(std::none_of(opts.begin(), opts.end(), [](const std::string& s) {
                return StartsWith(s, "--std=") || StartsWith(s, "-std=");
            }))
-        opts.push_back("-std=c++17");
+            opts.push_back("-std=c++17");
 
         HiprtcProgram prog(name, text);
         prog.Compile(opts);

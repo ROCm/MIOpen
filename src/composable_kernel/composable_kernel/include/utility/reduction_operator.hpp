@@ -250,11 +250,10 @@ struct unary_abs<half_t, hasDividing>
 #ifdef WORKAROUND_ISSUE_HIPRTC_HALF_CONVERSION
         const auto val = __habs(a);
         return *(reinterpret_cast<const half_t*>(&val)) * type_convert<half_t>{}(scaler);
-#else    
+#else
         a = static_cast<half_t>(__habs(a));
         return a * type_convert<half_t>{}(scaler);
 #endif
-
     };
 
     float scaler = 1.0f;
@@ -270,7 +269,7 @@ struct unary_abs<half_t, false>
 #ifdef WORKAROUND_ISSUE_HIPRTC_HALF_CONVERSION
         const auto val = __habs(a);
         return *reinterpret_cast<const half_t*>(&val);
-#else    
+#else
         return static_cast<half_t>(__habs(a));
 #endif
     }
@@ -292,6 +291,7 @@ struct unary_sqrt<half_t>
     __device__ inline half_t operator()(half_t a) const
     {
 #ifdef WORKAROUND_ISSUE_HIPRTC_HALF_CONVERSION
+// clang-format off
 // .../reduction_operator.hpp:280:66: error: no matching conversion for static_cast from '__half' to 'ck::half_t' (aka '_Float16')
 //     __device__ inline half_t operator()(half_t a) const { return static_cast<half_t>(hsqrt(a)); };
 //                                                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -299,10 +299,11 @@ struct unary_sqrt<half_t>
 // value of type 'std::is_floating_point<_Float16>' is not implicitly convertible to 'bool'
 //                 operator T() const { return data; }
 //                 ^
+// clang-format on
         const auto val = hsqrt(a);
         return *reinterpret_cast<const half_t*>(&val);
 #else
-        return static_cast<half_t>(hsqrt(a));    
+        return static_cast<half_t>(hsqrt(a));
 #endif
     }
 };

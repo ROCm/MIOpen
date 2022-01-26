@@ -15,18 +15,18 @@
 
 namespace std {
 
-template<typename T>
-constexpr T && forward(typename remove_reference<T>::type & t_) noexcept
+template <typename T>
+constexpr T&& forward(typename remove_reference<T>::type& t_) noexcept
 {
-    return static_cast<T &&>(t_);
+    return static_cast<T&&>(t_);
 }
 
-template<typename T>
-constexpr T && forward(typename remove_reference<T>::type && t_) noexcept
+template <typename T>
+constexpr T&& forward(typename remove_reference<T>::type&& t_) noexcept
 {
-    return static_cast<T &&>(t_);
+    return static_cast<T&&>(t_);
 }
- 
+
 } // namespace std
 #else
 #include <utility> // std::forward
