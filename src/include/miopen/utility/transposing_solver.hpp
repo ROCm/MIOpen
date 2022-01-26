@@ -268,7 +268,7 @@ struct ProblemTensorTransposeDescriptor
     const char* to;
     bool is_input;
 
-    template <class Problem_>  // to deal with constParameter invalid warning
+    template <class Problem_> // to deal with constParameter invalid warning
     inline void Transpose(const Problem& src, Problem_& dest) const
     {
         const auto& desc_from = (src.*cdescriptor)();
