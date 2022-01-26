@@ -452,8 +452,6 @@ void Handle::ClearProgram(const std::string& program_name, const std::string& pa
     this->impl->cache.ClearProgram(program_name, params);
 }
 
-void Handle::ClearProgram() const { this->impl->cache.ClearProgram(); }
-
 void Handle::Finish() const
 {
     this->impl->set_ctx();
@@ -572,13 +570,13 @@ std::ostream& Handle::Print(std::ostream& os) const
     return os;
 }
 
-shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t)
+shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t) const
 {
     auto cdata = reinterpret_cast<char*>(data);
     return {cdata + offset, null_deleter{}};
 }
 
-shared<ConstData_t> Handle::CreateSubBuffer(ConstData_t data, std::size_t offset, std::size_t)
+shared<ConstData_t> Handle::CreateSubBuffer(ConstData_t data, std::size_t offset, std::size_t) const
 {
     auto cdata = reinterpret_cast<const char*>(data);
     return {cdata + offset, null_deleter{}};

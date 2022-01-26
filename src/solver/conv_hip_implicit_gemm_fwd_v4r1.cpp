@@ -44,8 +44,6 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1{}))
         return false;
-    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
-        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsForward())
@@ -57,9 +55,9 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
     if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
     if(!ctx.IsLayoutDefault())
-    {
         return false;
-    }
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+        return false;
 
     std::size_t n         = ctx.batch_sz;
     std::size_t k         = ctx.n_outputs / ctx.group_counts;
@@ -82,8 +80,6 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1{}))
         return false;
-    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
-        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsBackwardWrW())
@@ -95,9 +91,9 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
     if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
     if(!ctx.IsLayoutDefault())
-    {
         return false;
-    }
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+        return false;
 
     // retrieve dimension from ConvolutionContext
     // remember: ConvolutionContext has swapped some dimensions for you!

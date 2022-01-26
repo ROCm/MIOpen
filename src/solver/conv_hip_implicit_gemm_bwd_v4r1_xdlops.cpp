@@ -824,8 +824,6 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
         return false;
 #endif
-    if(ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage)
-        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsBackwardData())
@@ -841,9 +839,9 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
     if(!ctx.IsLayoutDefault())
-    {
         return false;
-    }
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+        return false;
 
     bool is_applicable = true;
     int gemm_g         = 0;

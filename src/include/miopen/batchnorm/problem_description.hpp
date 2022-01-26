@@ -48,8 +48,7 @@ enum class Direction
 struct ProblemDescription
 {
     // Forward
-    ProblemDescription(Direction direction_,
-                       miopenBatchNormMode_t bn_mode_,
+    ProblemDescription(miopenBatchNormMode_t bn_mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
                        const TensorDescriptor& bnScaleBiasMeanVarDesc_,
@@ -57,7 +56,7 @@ struct ProblemDescription
                        double epsilon_,
                        bool resultsave_,
                        bool resultrunning_)
-        : direction(direction_),
+        : direction(Direction::ForwardTraining),
           bn_mode(bn_mode_),
           xDesc(xDesc_),
           yOrDyDesc(yDesc_),
@@ -66,6 +65,23 @@ struct ProblemDescription
           epsilon(epsilon_),
           resultsave(resultsave_),
           resultrunning(resultrunning_)
+    {
+        in_layout  = xDesc.GetLayout(xDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+        out_layout = yOrDyDesc.GetLayout(yOrDyDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+    }
+
+    // Forward
+    ProblemDescription(miopenBatchNormMode_t bn_mode_,
+                       const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& yDesc_,
+                       const TensorDescriptor& bnScaleBiasMeanVarDesc_,
+                       double epsilon_)
+        : direction(Direction::ForwardInference),
+          bn_mode(bn_mode_),
+          xDesc(xDesc_),
+          yOrDyDesc(yDesc_),
+          scaleBiasDesc(bnScaleBiasMeanVarDesc_),
+          epsilon(epsilon_)
     {
     }
 
@@ -86,6 +102,9 @@ struct ProblemDescription
           epsilon(epsilon_),
           useSaved(useSaved_)
     {
+        in_layout  = xDesc.GetLayout(xDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+        out_layout = yOrDyDesc.GetLayout(yOrDyDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+        din_layout = dxDesc.GetLayout(dxDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
     }
 
     Direction GetDirection() const { return direction; }
@@ -140,6 +159,20 @@ struct ProblemDescription
         return useSaved;
     }
 
+    bool IsLayoutNHWC() const
+    {
+        if(direction == Direction::Backward)
+        {
+            return xDesc.GetLengths().size() == 4
+                       ? ((in_layout == "NHWC") && (out_layout == "NHWC") && (din_layout == "NHWC"))
+                       : ((in_layout == "NDHWC") && (out_layout == "NDHWC") &&
+                          (din_layout == "NDHWC"));
+        }
+
+        return xDesc.GetLengths().size() == 4 ? ((in_layout == "NHWC") && (out_layout == "NHWC"))
+                                              : ((in_layout == "NDHWC") && (out_layout == "NDHWC"));
+    }
+
     NetworkConfig MakeNetworkConfig() const;
 
     void Serialize(std::ostream& stream) const;
@@ -159,9 +192,12 @@ struct ProblemDescription
     TensorDescriptor scaleBiasDesc;
     double expAvgFactor = 0;
     double epsilon;
-    bool resultsave    = false;
-    bool resultrunning = false;
-    bool useSaved      = false;
+    bool resultsave        = false;
+    bool resultrunning     = false;
+    bool useSaved          = false;
+    std::string in_layout  = "NCHW";
+    std::string out_layout = "NCHW";
+    std::string din_layout = "NCHW";
 
     NetworkConfig MakeForwardTrainingNetworkConfig() const;
     NetworkConfig MakeForwardInferenceNetworkConfig() const;

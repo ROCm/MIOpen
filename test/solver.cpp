@@ -42,11 +42,20 @@
 
 namespace miopen {
 namespace tests {
-class TrivialTestSolver : public solver::SolverBase<ConvolutionContext>
+class TrivialTestSolver : public solver::ConvSolver
 {
-    public:
+public:
     static const char* FileName() { return "TrivialTestSolver"; }
-    bool IsApplicable(const ConvolutionContext& context) const { return context.in_width == 1; }
+
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<TrivialTestSolver>();
+    }
+
+    bool IsApplicable(const ConvolutionContext& context) const override
+    {
+        return context.in_width == 1;
+    }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&) const
     {
@@ -72,13 +81,23 @@ struct TestConfig : solver::Serializable<TestConfig>
     }
 };
 
-class SearchableTestSolver : public solver::SolverBase<ConvolutionContext>
+class SearchableTestSolver : public solver::ConvSolver
 {
-    public:
+public:
     static int searches_done() { return _serches_done; }
     static const char* FileName() { return "SearchableTestSolver"; }
     static const char* NoSearchFileName() { return "SearchableTestSolver.NoSearch"; }
-    bool IsApplicable(const ConvolutionContext& /* context */) const { return true; }
+
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<SearchableTestSolver>();
+    }
+
+    bool IsApplicable(const ConvolutionContext& context) const override
+    {
+        std::ignore = context;
+        return true;
+    }
 
     TestConfig GetPerformanceConfig(const ConvolutionContext&) const
     {
@@ -113,8 +132,9 @@ class SearchableTestSolver : public solver::SolverBase<ConvolutionContext>
         return ret;
     }
 
-    private:
+private:
     static int _serches_done; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+
 };
 
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
