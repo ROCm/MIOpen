@@ -288,7 +288,6 @@ size_t GeneralReorderSolution<dst_order>::GetSize() const
     return miopen::GetTypeSize(data_type) * dim_0 * dim_1 * dim_2 * dim_3;
 }
 
-} // namespace miopen
 //explicit instance
 template void GeneralReorderSolution<sequence<0, 3, 2, 1>>::GeneralReorderSolution(const ExecutionContext& ctx,
                                                           miopenDataType_t data_type_,
@@ -301,3 +300,4 @@ template std::vector<OpKernelArg> GeneralReorderSolution<sequence<0, 3, 2, 1>>::
 template std::string GeneralReorderSolution<sequence<0, 3, 2, 1>>::GetKernelName() const;
 template bool GeneralReorderSolution<sequence<0, 3, 2, 1>>::IsSkippable() const;
 template size_t GeneralReorderSolution<sequence<0, 3, 2, 1>>::GetSize() const;
+} // namespace miopen

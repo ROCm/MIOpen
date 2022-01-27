@@ -69,7 +69,6 @@ struct GeneralReorderSolution
 
     GeneralReorderParam kernel_param_heuristic;
 };
-
-} // namespace miopen
 template struct GeneralReorderSolution<sequence<0, 3, 2, 1>>;
+} // namespace miopen
 #endif
