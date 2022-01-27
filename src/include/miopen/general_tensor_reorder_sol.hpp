@@ -226,6 +226,7 @@ HeuristicGet(std::size_t data_size, uint32_t dim_0, uint32_t dim_1, uint32_t dim
             return GeneralReorderParam{1, 256, 1, 1, 1, 1};
         }
     }
+    MIOPEN_THROW("data type not supported");
 }
 
 } // namespace tensor_reorder
