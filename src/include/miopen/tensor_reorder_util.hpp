@@ -33,7 +33,7 @@
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/execution_context.hpp>
 #include <vector>
-#include <../kernels/gpu_tensor_reorder/order.hpp>
+#include <../kernels/gpu_general_tensor_reorder_kernel/order.hpp>
 
 namespace miopen {
 
