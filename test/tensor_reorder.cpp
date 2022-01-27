@@ -296,7 +296,7 @@ struct reorder_invoke_param : public miopen::InvokeParams
 };
 //The template parameter dst_order is just for CPU verification
 template <typename T, typename dst_order, typename REORDER_SOL>
-struct reorder_test : reorder__base
+struct reorder_test : reorder_base
 {
     void run()
     {

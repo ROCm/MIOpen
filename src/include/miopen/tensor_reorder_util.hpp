@@ -102,21 +102,7 @@ struct TensorReorderSolution<sequence<2, 3, 0, 1>> : public BatchedTransposeSolu
                           uint32_t dim_1_,
                           uint32_t dim_2_,
                           uint32_t dim_3_)
-        : BatchedTransposeSolution(ctx_, data_type_, 1, dim_0 *dim_1_, dim_2_ * dim_3_)
-        {
-        }
-};
-
-template<>
-struct TensorReorderSolution<sequence<2, 3, 0, 1>> : public BatchedTransposeSolution
-{
-    TensorReorderSolution(const ExecutionContext& ctx_,
-                          miopenDataType_t data_type_,
-                          uint32_t dim_0_,
-                          uint32_t dim_1_,
-                          uint32_t dim_2_,
-                          uint32_t dim_3_)
-        : BatchedTransposeSolution(ctx_, data_type_, 1, dim_0 *dim_1_, dim_2_ * dim_3_)
+        : BatchedTransposeSolution(ctx_, data_type_, 1, dim_0_ *dim_1_, dim_2_ * dim_3_)
         {
         }
 };
@@ -130,7 +116,7 @@ struct TensorReorderSolution<sequence<3, 0, 1, 2>> : public BatchedTransposeSolu
                           uint32_t dim_1_,
                           uint32_t dim_2_,
                           uint32_t dim_3_)
-        : BatchedTransposeSolution(ctx_, data_type_, 1, dim_0 * dim_1_ * dim_2_，dim_3_)
+        : BatchedTransposeSolution(ctx_, data_type_, 1, dim_0_ * dim_1_ * dim_2_, dim_3_)
         {
         }
 };
