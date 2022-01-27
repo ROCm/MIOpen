@@ -28,12 +28,12 @@
 
 #include <miopen/batched_transpose_sol.hpp>
 #include <miopen/general_tensor_reorder_sol.hpp>
-#include <../kernels/gpu_tensor_reorder/sequence.hpp>
 #include <miopen/miopen.h>
 #include <miopen/kernel_info.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/execution_context.hpp>
 #include <vector>
+#include <../kernels/gpu_tensor_reorder/sequence.hpp>
 
 namespace miopen {
 
@@ -52,7 +52,7 @@ struct TensorReorderSolution : public GeneralReorderSolution<dst_order>
 };
 
 template<>
-struct TensorReorderSolution<sequence<0, 2, 3, 1>> : public BatchedTransposeSolution
+struct TensorReorderSolution<(sequence<0, 2, 3, 1>)> : public BatchedTransposeSolution
 {
     TensorReorderSolution(const ExecutionContext& ctx_,
                           miopenDataType_t data_type_,
