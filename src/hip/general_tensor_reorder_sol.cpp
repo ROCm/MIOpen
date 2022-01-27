@@ -99,34 +99,7 @@ static inline const std::vector<GeneralReorderParam>& GetKernelList(std::size_t 
     }
     MIOPEN_THROW("data type not supported");
 }
-static inline bool IsApplicable(uint32_t /* batch */,
-                                uint32_t height,
-                                uint32_t width,
-                                const GeneralReorderParam* kparam)
-{
-    return width % kparam->ediv_x == 0 && height % kparam->ediv_y == 0;
-}
 
-static inline bool IsSameSide(uint32_t height, uint32_t width, const GeneralReorderParam* kparam)
-{
-    float radio = 0;
-    if(width > height)
-        radio = static_cast<float>(kparam->tile_x) / kparam->tile_y;
-    else
-        radio = static_cast<float>(kparam->tile_y) / kparam->tile_x;
-
-    // E.g. for cases like width=1000, height=10
-    // Allow at least 32x64, 64x64... 16x64 not allowed
-    return radio >= 0.4;
-}
-
-template <typename T>
-static inline float GetNormalizedRadio(T x, T y)
-{
-    if(y > x)
-        return static_cast<float>(y) / x;
-    return static_cast<float>(x) / y;
-}
 template<typename dst_order>
 static inline std::string GetKernelName(std::size_t data_size, const GeneralReorderParam* kparam)
 {
@@ -140,17 +113,6 @@ static inline std::string GetKernelName(std::size_t data_size, const GeneralReor
     }
     kernel_name << type_trait<<"_r"<<dst_order::at(0)<<dst_order::at(1)<<dst_order::at(2)<<dst_order::at(3);
     return kernel_name.str();
-}
-
-static inline std::size_t GetExtraPaddingSize(uint32_t /* batch */,
-                                              uint32_t height,
-                                              uint32_t width,
-                                              const GeneralReorderParam* kparam)
-{
-    // For simplicity and speed, we ignore batch, only compute h*w
-    uint32_t padded_h = ((height + kparam->tile_y - 1) / kparam->tile_y) * kparam->tile_y;
-    uint32_t padded_w = ((width + kparam->tile_x - 1) / kparam->tile_x) * kparam->tile_x;
-    return static_cast<std::size_t>(padded_h) * padded_w - static_cast<std::size_t>(height) * width;
 }
 
 static inline GeneralReorderParam
