@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/tensor_reorder_sol.hpp>
+#include <miopen/general_tensor_reorder_sol.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/magic_div.hpp>
 #include <miopen/float_equal.hpp>
@@ -55,11 +55,11 @@ static inline std::string GetNameTrait(std::size_t type_size)
     MIOPEN_THROW("data type not supported");
 }
 
-static inline const std::vector<TensorReorderParam>& GetKernelList(std::size_t data_size)
+static inline const std::vector<GeneralReorderParam>& GetKernelList(std::size_t data_size)
 {
     if(data_size == 1)
     {
-        static const std::vector<TensorReorderParam> byte_kernel_list{
+        static const std::vector<GeneralReorderParam> byte_kernel_list{
             // clang-format off
             {1, 256, 1, 1, 1, 1},
             {2, 256, 1, 1, 1, 1},
@@ -72,7 +72,7 @@ static inline const std::vector<TensorReorderParam>& GetKernelList(std::size_t d
     }
     if(data_size == 2)
     {
-        static const std::vector<TensorReorderParam> half_kernel_list{
+        static const std::vector<GeneralReorderParam> half_kernel_list{
             // clang-format off
             {1, 256, 1, 1, 1, 1},
             {2, 256, 1, 1, 1, 1},
@@ -85,7 +85,7 @@ static inline const std::vector<TensorReorderParam>& GetKernelList(std::size_t d
     }
     if(data_size == 4)
     {
-        static const std::vector<TensorReorderParam> dword_kernel_list{
+        static const std::vector<GeneralReorderParam> dword_kernel_list{
             // clang-format off
             {1, 256, 1, 1, 1, 1},
             {2, 256, 1, 1, 1, 1},
@@ -102,12 +102,12 @@ static inline const std::vector<TensorReorderParam>& GetKernelList(std::size_t d
 static inline bool IsApplicable(uint32_t /* batch */,
                                 uint32_t height,
                                 uint32_t width,
-                                const TensorReorderParam* kparam)
+                                const GeneralReorderParam* kparam)
 {
     return width % kparam->ediv_x == 0 && height % kparam->ediv_y == 0;
 }
 
-static inline bool IsSameSide(uint32_t height, uint32_t width, const TensorReorderParam* kparam)
+static inline bool IsSameSide(uint32_t height, uint32_t width, const GeneralReorderParam* kparam)
 {
     float radio = 0;
     if(width > height)
@@ -127,9 +127,8 @@ static inline float GetNormalizedRadio(T x, T y)
         return static_cast<float>(y) / x;
     return static_cast<float>(x) / y;
 }
-
 template<typename dst_order>
-static inline std::string GetKernelName(std::size_t data_size, const TensorReorderParam* kparam)
+static inline std::string GetKernelName(std::size_t data_size, const GeneralReorderParam* kparam)
 {
     std::ostringstream kernel_name;
     std::string type_trait = GetNameTrait(data_size);
@@ -146,7 +145,7 @@ static inline std::string GetKernelName(std::size_t data_size, const TensorReord
 static inline std::size_t GetExtraPaddingSize(uint32_t /* batch */,
                                               uint32_t height,
                                               uint32_t width,
-                                              const TensorReorderParam* kparam)
+                                              const GeneralReorderParam* kparam)
 {
     // For simplicity and speed, we ignore batch, only compute h*w
     uint32_t padded_h = ((height + kparam->tile_y - 1) / kparam->tile_y) * kparam->tile_y;
@@ -154,7 +153,7 @@ static inline std::size_t GetExtraPaddingSize(uint32_t /* batch */,
     return static_cast<std::size_t>(padded_h) * padded_w - static_cast<std::size_t>(height) * width;
 }
 
-static inline TensorReorderParam
+static inline GeneralReorderParam
 HeuristicGet(std::size_t data_size, uint32_t dim_0, uint32_t dim_1, uint32_t dim_2, uint32_t dim_3)
 {
     /*
@@ -166,30 +165,30 @@ HeuristicGet(std::size_t data_size, uint32_t dim_0, uint32_t dim_1, uint32_t dim
     {
         if(dim_3 >= 16)
         {
-            return TensorReorderParam{16, 256, 1, 1, 1, 1};
+            return GeneralReorderParam{16, 256, 1, 1, 1, 1};
         }
         else if(dim_3 >= 8)
         {
-            return TensorReorderParam{8, 256, 1, 1, 1, 1};
+            return GeneralReorderParam{8, 256, 1, 1, 1, 1};
         }
         else if(dim_3 >= 4)
         {
-            return TensorReorderParam{4, 256, 1, 1, 1, 1};
+            return GeneralReorderParam{4, 256, 1, 1, 1, 1};
         }
         else if(dim_3 >= 2)
         {
-            return TensorReorderParam{2, 256, 1, 1, 1, 1};
+            return GeneralReorderParam{2, 256, 1, 1, 1, 1};
         }
         else
         {
-            return TensorReorderParam{1, 256, 1, 1, 1, 1};
+            return GeneralReorderParam{1, 256, 1, 1, 1, 1};
         }
     }
 }
 
 } // namespace tensor_reorder
-
-TensorReorderSolution::TensorReorderSolution(const ExecutionContext& ctx,
+template<typename dst_order>
+GeneralReorderSolution::GeneralReorderSolution(const ExecutionContext& ctx,
                                                    miopenDataType_t data_type_,
                                                    uint32_t dim_0_,
                                                    uint32_t dim_1_,
@@ -204,7 +203,8 @@ TensorReorderSolution::TensorReorderSolution(const ExecutionContext& ctx,
     kernel_param_heuristic = tensor_reorder::HeuristicGet(data_size, dim_0, dim_1, dim_2, dim_3);
 }
 
-solver::KernelInfo TensorReorderSolution::GetKernel() const
+template<typename dst_order>
+solver::KernelInfo GeneralReorderSolution<dst_order>::GetKernel() const
 {
     std::size_t block_size = TENSOR_REORDER_BLOCK_SIZE;
 #if TENSOR_REORDER_PERSISTENT
@@ -214,9 +214,9 @@ solver::KernelInfo TensorReorderSolution::GetKernel() const
     uint32_t dim_total = (pixel_total + block_size * kernel_param_heuristic.tile_x - 1) / (block_size * kernel_param_heuristic.tile_x);
     std::size_t grid_size = dim_total;
 #endif
-    std::string kernel_name = GetKernelName<dst_order>();
+    std::string kernel_name = GetKernelName();
     solver::KernelInfo kernel;
-    kernel.kernel_file = "tensor_reorder.cpp";
+    kernel.kernel_file = "general_tensor_reorder.cpp";
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     kernel.g_wk.push_back(grid_size * block_size);
@@ -227,12 +227,12 @@ solver::KernelInfo TensorReorderSolution::GetKernel() const
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    MIOPEN_LOG_I2("TensorReorderSolution use kernel: " + kernel_name);
+    MIOPEN_LOG_I2("GeneralReorderSolution use kernel: " + kernel_name);
 
     return kernel;
 }
-
-std::vector<OpKernelArg> TensorReorderSolution::GetKernelArg() const
+template<typename dst_order>
+std::vector<OpKernelArg> GeneralReorderSolution::GetKernelArg() const
 {
     std::size_t block_size = TENSOR_REORDER_BLOCK_SIZE;
     uint32_t pixel_total = dim_0 * dim_1 * dim_2 * dim_3;
@@ -265,21 +265,22 @@ std::vector<OpKernelArg> TensorReorderSolution::GetKernelArg() const
 
     return opArgs;
 }
-
 template<typename dst_order>
-std::string TensorReorderSolution::GetKernelName() const
+std::string GeneralReorderSolution<dst_order>::GetKernelName() const
 {
     std::size_t data_size = miopen::GetTypeSize(data_type);
-    return tensor_reorder::GetKernelName<dst_order>(data_size, &kernel_param_heuristic);
+    return tensor_reorder::GetKernelName(data_size, &kernel_param_heuristic);
 }
 
-bool TensorReorderSolution::IsSkippable() const
+template<typename dst_order>
+bool GeneralReorderSolution::IsSkippable() const
 {
     // Disable the IsSkippable funciton
     return dim_0 == 0 || dim_1 == 0 || dim_2 == 0 || dim_3 == 0 ;
 }
 
-size_t TensorReorderSolution::GetSize() const
+template<typename dst_order>
+size_t GeneralReorderSolution::GetSize() const
 {
     return miopen::GetTypeSize(data_type) * dim_0 * dim_1 * dim_2 * dim_3;
 }

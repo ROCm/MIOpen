@@ -34,7 +34,7 @@
 
 namespace miopen {
 
-struct TensorReorderParam
+struct GeneralReorderParam
 {
     int tile_x{0};
     int tile_y{0};
@@ -45,9 +45,9 @@ struct TensorReorderParam
 };
 
 template<typename dst_order>
-struct TensorReorderSolution
+struct GeneralReorderSolution
 {
-    TensorReorderSolution(const ExecutionContext& ctx_,
+    GeneralReorderSolution(const ExecutionContext& ctx_,
                                 miopenDataType_t data_type_,
                                 uint32_t dim_0_,
                                 uint32_t dim_1_,
@@ -66,7 +66,7 @@ struct TensorReorderSolution
     uint32_t dim_3;
     int num_cu;
 
-    TensorReorderParam kernel_param_heuristic;
+    GeneralReorderParam kernel_param_heuristic;
 };
 
 } // namespace miopen

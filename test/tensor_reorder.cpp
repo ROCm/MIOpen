@@ -25,10 +25,10 @@
  *******************************************************************************/
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
-#include <miopen/util_sol.hpp>
+#include <miopen/tensor_reorder_util.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_layout.hpp>
-#include <miopen/tensor_reorder_sol.hpp>
+//#include <miopen/general_tensor_reorder_sol.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/invoke_params.hpp>
 #include <boost/optional.hpp>
@@ -294,7 +294,7 @@ struct reorder_invoke_param : public miopen::InvokeParams
     {
     }
 };
-
+//The template parameter dst_order is just for CPU verification
 template <typename T, typename dst_order, typename REORDER_SOL>
 struct reorder_test : reorder__base
 {
