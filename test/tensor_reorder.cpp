@@ -109,10 +109,10 @@ template <typename dst_order>
 struct reorder_str
 {
     static std::string get() { 
-        return ("r" + itoa(dst_order::at(0)) 
-                    + itoa(dst_order::at(1))
-                    + itoa(dst_order::at(2))
-                    + itoa(dst_order::at(3)) ); 
+        return ("r" + std::to_string(dst_order::at(0)) 
+                    + std::to_string(dst_order::at(1))
+                    + std::to_string(dst_order::at(2))
+                    + std::to_string(dst_order::at(3)) ); 
         }
 };
 
