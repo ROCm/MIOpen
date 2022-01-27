@@ -32,12 +32,13 @@
 #include <miopen/kernel_info.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/execution_context.hpp>
+#include <miopen/kernels/gpu_tensor_reorder/sequence.hpp>
 #include <vector>
 
 namespace miopen {
 
 template<typename dst_order>
-struct TensorReorderSolution : public GeneralReorderSolution
+struct TensorReorderSolution : public GeneralReorderSolution<dst_order>
 {
     TensorReorderSolution(const ExecutionContext& ctx_,
                           miopenDataType_t data_type_,
@@ -45,7 +46,7 @@ struct TensorReorderSolution : public GeneralReorderSolution
                           uint32_t dim_1_,
                           uint32_t dim_2_,
                           uint32_t dim_3_)
-        : GeneralReorderSolution(ctx_, data_type_, dim_0_, dim_1_, dim_2_, dim_3_)
+        : GeneralReorderSolution<dst_order>(ctx_, data_type_, dim_0_, dim_1_, dim_2_, dim_3_)
     {
     }
 };
