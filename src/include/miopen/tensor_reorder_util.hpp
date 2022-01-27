@@ -46,7 +46,7 @@ struct TensorReorderSolution : public GeneralReorderSolution<dst_order>
                           uint32_t dim_1_,
                           uint32_t dim_2_,
                           uint32_t dim_3_)
-        : GeneralReorderSolution<dst_order>(ctx_, data_type_, dim_0_, dim_1_, dim_2_, dim_3_)
+        : GeneralReorderSolution(ctx_, data_type_, dim_0_, dim_1_, dim_2_, dim_3_)
     {
     }
 };
