@@ -313,7 +313,17 @@ template<typename dst_order>
 std::string GeneralReorderSolution<dst_order>::GetKernelName() const
 {
     std::size_t data_size = miopen::GetTypeSize(data_type);
-    return tensor_reorder::GetKernelName(data_size, &kernel_param_heuristic);
+    std::ostringstream kernel_name;
+    std::string type_trait = GetNameTrait(data_size);
+    kernel_name << "general_4d_reorder_" << kparam->tile_x << "x" << kparam->tile_y << "_";
+    if(!(kparam->pack_x == 1 && kparam->pack_y == 1 && kparam->ediv_x == 1 && kparam->ediv_y == 1))
+    {
+        kernel_name << "pack_" << kparam->pack_x << "x" << kparam->pack_y << "_ediv_"
+                    << kparam->ediv_x << "x" << kparam->ediv_y << "_";
+    }
+    kernel_name << type_trait<<"_r"<<dst_order::at(0)<<dst_order::at(1)<<dst_order::at(2)<<dst_order::at(3);
+    return kernel_name.str();
+    //return tensor_reorder::GetKernelName(data_size, &kernel_param_heuristic);
 }
 
 template<typename dst_order>
