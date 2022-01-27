@@ -56,50 +56,6 @@ static inline std::string GetNameTrait(std::size_t type_size)
     MIOPEN_THROW("data type not supported");
 }
 
-static inline const std::vector<GeneralReorderParam>& GetKernelList(std::size_t data_size)
-{
-    if(data_size == 1)
-    {
-        static const std::vector<GeneralReorderParam> byte_kernel_list{
-            // clang-format off
-            {1, 256, 1, 1, 1, 1},
-            {2, 256, 1, 1, 1, 1},
-            {4, 256, 1, 1, 1, 1},
-            {8, 256, 1, 1, 1, 1},
-            {16, 256, 1, 1, 1, 1},
-            // clang-format on
-        };
-        return byte_kernel_list;
-    }
-    if(data_size == 2)
-    {
-        static const std::vector<GeneralReorderParam> half_kernel_list{
-            // clang-format off
-            {1, 256, 1, 1, 1, 1},
-            {2, 256, 1, 1, 1, 1},
-            {4, 256, 1, 1, 1, 1},
-            {8, 256, 1, 1, 1, 1},
-            {16, 256, 1, 1, 1, 1},
-            // clang-format on
-        };
-        return half_kernel_list;
-    }
-    if(data_size == 4)
-    {
-        static const std::vector<GeneralReorderParam> dword_kernel_list{
-            // clang-format off
-            {1, 256, 1, 1, 1, 1},
-            {2, 256, 1, 1, 1, 1},
-            {4, 256, 1, 1, 1, 1},
-            {8, 256, 1, 1, 1, 1},
-            {16, 256, 1, 1, 1, 1},
-            // clang-format on
-        };
-        return dword_kernel_list;
-    }
-    MIOPEN_THROW("data type not supported");
-}
-
 template<typename dst_order>
 static inline std::string GetKernelName(std::size_t data_size, const GeneralReorderParam* kparam)
 {
