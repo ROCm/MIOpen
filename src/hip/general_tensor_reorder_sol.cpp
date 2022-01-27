@@ -189,11 +189,11 @@ HeuristicGet(std::size_t data_size, uint32_t dim_0, uint32_t dim_1, uint32_t dim
 } // namespace tensor_reorder
 template<typename dst_order>
 GeneralReorderSolution<dst_order>::GeneralReorderSolution(const ExecutionContext& ctx,
-                                                     miopenDataType_t data_type_,
-                                                     uint32_t dim_0_,
-                                                     uint32_t dim_1_,
-                                                     uint32_t dim_2_,
-                                                     uint32_t dim_3_)
+                                                          miopenDataType_t data_type_,
+                                                          uint32_t dim_0_,
+                                                          uint32_t dim_1_,
+                                                          uint32_t dim_2_,
+                                                          uint32_t dim_3_)
     : data_type(data_type_), dim_0(dim_0_), dim_1(dim_1_), dim_2(dim_2_), dim_3(dim_3_)
 {
     if(data_type == miopenInt8x4 || data_type == miopenDouble)
