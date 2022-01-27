@@ -437,8 +437,8 @@ loop<int, 23>([&](auto i) {
     {2, 0, 1, 3}, {2, 0, 3, 1}, {2, 1, 0, 3}, {2, 1, 3, 0}, {2, 3, 0, 1}, {2, 3, 1, 0},
     {3, 0, 1, 2}, {3, 0, 2, 1}, {3, 1, 0, 2}, {3, 1, 2, 0}, {3, 2, 0, 1}, {3, 2, 1, 0} };
     using dst_order = sequence<all_possible_sequence[i][0], all_possible_sequence[i][1], all_possible_sequence[i][2], all_possible_sequence[i][3]>;
-    run_test<reorder_test<float,    miopen::TensorReorderSolution<dst_order> >>();
-    run_test<reorder_test<uint16_t, miopen::TensorReorderSolution<dst_order> >>();
-    run_test<reorder_test<uint8_t,  miopen::TensorReorderSolution<dst_order> >>();
+    run_test<reorder_test<float,    dst_order, miopen::TensorReorderSolution<dst_order> >>();
+    run_test<reorder_test<uint16_t, dst_order, miopen::TensorReorderSolution<dst_order> >>();
+    run_test<reorder_test<uint8_t,  dst_order, miopen::TensorReorderSolution<dst_order> >>();
 });
 }
