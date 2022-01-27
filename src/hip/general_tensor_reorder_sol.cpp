@@ -33,7 +33,7 @@
 #include <limits>
 #include <iostream>
 #include <sstream>
-#include <../kernels/gpu_tensor_reorder_kernel/order.hpp>
+#include <../kernels/gpu_general_tensor_reorder_kernel/order.hpp>
 
 #define TENSOR_REORDER_BLOCK_SIZE 256
 #define TENSOR_REORDER_PERSISTENT 0
