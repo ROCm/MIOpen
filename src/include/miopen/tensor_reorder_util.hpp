@@ -33,7 +33,7 @@
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/execution_context.hpp>
 #include <vector>
-#include <../kernels/gpu_tensor_reorder/sequence.hpp>
+#include <../kernels/gpu_tensor_reorder/order.hpp>
 
 namespace miopen {
 
@@ -52,7 +52,7 @@ struct TensorReorderSolution : public GeneralReorderSolution<dst_order>
 };
 
 template<>
-struct TensorReorderSolution<(sequence<0, 2, 3, 1>)> : public BatchedTransposeSolution
+struct TensorReorderSolution<order<0, 2, 3, 1>> : public BatchedTransposeSolution
 {
     TensorReorderSolution(const ExecutionContext& ctx_,
                           miopenDataType_t data_type_,
@@ -66,7 +66,7 @@ struct TensorReorderSolution<(sequence<0, 2, 3, 1>)> : public BatchedTransposeSo
 };
 
 template<>
-struct TensorReorderSolution<sequence<0, 1, 3, 2>> : public BatchedTransposeSolution
+struct TensorReorderSolution<order<0, 1, 3, 2>> : public BatchedTransposeSolution
 {
     TensorReorderSolution(const ExecutionContext& ctx_,
                           miopenDataType_t data_type_,
@@ -80,7 +80,7 @@ struct TensorReorderSolution<sequence<0, 1, 3, 2>> : public BatchedTransposeSolu
 };
 
 template<>
-struct TensorReorderSolution<sequence<0, 3, 1, 2>> : public BatchedTransposeSolution
+struct TensorReorderSolution<order<0, 3, 1, 2>> : public BatchedTransposeSolution
 {
     TensorReorderSolution(const ExecutionContext& ctx_,
                           miopenDataType_t data_type_,
@@ -94,7 +94,7 @@ struct TensorReorderSolution<sequence<0, 3, 1, 2>> : public BatchedTransposeSolu
 };
 
 template<>
-struct TensorReorderSolution<sequence<2, 3, 0, 1>> : public BatchedTransposeSolution
+struct TensorReorderSolution<order<2, 3, 0, 1>> : public BatchedTransposeSolution
 {
     TensorReorderSolution(const ExecutionContext& ctx_,
                           miopenDataType_t data_type_,
@@ -108,7 +108,7 @@ struct TensorReorderSolution<sequence<2, 3, 0, 1>> : public BatchedTransposeSolu
 };
 
 template<>
-struct TensorReorderSolution<sequence<3, 0, 1, 2>> : public BatchedTransposeSolution
+struct TensorReorderSolution<order<3, 0, 1, 2>> : public BatchedTransposeSolution
 {
     TensorReorderSolution(const ExecutionContext& ctx_,
                           miopenDataType_t data_type_,

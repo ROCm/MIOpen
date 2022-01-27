@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include <hip/hip_runtime.h>
 #include <hip/hip_fp16.h>
-#include "sequence.hpp"
+#include "order.hpp"
 
 #ifndef TENSOR_REORDER_OCCUPANCY
 #define TENSOR_REORDER_OCCUPANCY 4
@@ -358,29 +358,29 @@ inline __device__ void general_4d_reorder_16x256(T* dst,
                                                                    shift_stride2);                         \
     }
 //default order is 0 1 2 3
-using r0132   = sequence<0, 1, 3, 2>;
-using r0213   = sequence<0, 2, 1, 3>;//nhwc2nchwc
-using r0231   = sequence<0, 2, 3, 1>;//nchw2nchwc
-using r0312   = sequence<0, 3, 1, 2>;//nhwc2nchw
-using r0321   = sequence<0, 3, 2, 1>;
-using r1023   = sequence<1, 0, 2, 3>;
-using r1032   = sequence<1, 0, 3, 2>;
-using r1203   = sequence<1, 2, 0, 3>;
-using r1230   = sequence<1, 2, 3, 0>;
-using r1302   = sequence<1, 3, 0, 2>;//nchw2chwnc
-using r1320   = sequence<1, 3, 2, 0>;
-using r2013   = sequence<2, 0, 1, 3>;
-using r2031   = sequence<2, 0, 3, 1>;
-using r2103   = sequence<2, 1, 0, 3>;//nhwc2chwnc
-using r2130   = sequence<2, 1, 3, 0>;
-using r2301   = sequence<2, 3, 0, 1>;
-using r2310   = sequence<2, 3, 1, 0>;
-using r3012   = sequence<3, 0, 1, 2>;
-using r3021   = sequence<3, 0, 2, 1>;
-using r3102   = sequence<3, 1, 0, 2>;
-using r3120   = sequence<3, 1, 2, 0>;
-using r3201   = sequence<3, 2, 0, 1>;
-using r3210   = sequence<3, 2, 1, 0>;
+using r0132   = order<0, 1, 3, 2>;
+using r0213   = order<0, 2, 1, 3>;//nhwc2nchwc
+using r0231   = order<0, 2, 3, 1>;//nchw2nchwc
+using r0312   = order<0, 3, 1, 2>;//nhwc2nchw
+using r0321   = order<0, 3, 2, 1>;
+using r1023   = order<1, 0, 2, 3>;
+using r1032   = order<1, 0, 3, 2>;
+using r1203   = order<1, 2, 0, 3>;
+using r1230   = order<1, 2, 3, 0>;
+using r1302   = order<1, 3, 0, 2>;//nchw2chwnc
+using r1320   = order<1, 3, 2, 0>;
+using r2013   = order<2, 0, 1, 3>;
+using r2031   = order<2, 0, 3, 1>;
+using r2103   = order<2, 1, 0, 3>;//nhwc2chwnc
+using r2130   = order<2, 1, 3, 0>;
+using r2301   = order<2, 3, 0, 1>;
+using r2310   = order<2, 3, 1, 0>;
+using r3012   = order<3, 0, 1, 2>;
+using r3021   = order<3, 0, 2, 1>;
+using r3102   = order<3, 1, 0, 2>;
+using r3120   = order<3, 1, 2, 0>;
+using r3201   = order<3, 2, 0, 1>;
+using r3210   = order<3, 2, 1, 0>;
 
 DEFINE_GENERAL_4D_REORDER_KERNEL(1x256, r0132, dword, float, 256, TENSOR_REORDER_OCCUPANCY)
 DEFINE_GENERAL_4D_REORDER_KERNEL(1x256, r0213, dword, float, 256, TENSOR_REORDER_OCCUPANCY)

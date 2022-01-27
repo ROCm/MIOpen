@@ -23,11 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef SEQUENCE_HPP
-#define SEQUENCE_HPP
+#ifndef ORDER_HPP
+#define ORDER_HPP
 
 template <int... Is>
-struct sequence
+struct order
 {
     static constexpr int m_size = sizeof...(Is);
 
