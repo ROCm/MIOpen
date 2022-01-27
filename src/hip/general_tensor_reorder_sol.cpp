@@ -160,8 +160,8 @@ HeuristicGet(std::size_t data_size, uint32_t dim_0, uint32_t dim_1, uint32_t dim
      * TODO:
      * Design a algorithm to determine general tensor reorder tile size.
      */
-
-    if(dim_3 >= 1 )
+    GeneralReorderParam default_kernel;
+    if(data_size <= 4 && dim_0 >= 1 && dim_1 >= 1 && dim_2 >= 1 && dim_3 >= 1)
     {
         if(dim_3 >= 16)
         {
@@ -184,6 +184,10 @@ HeuristicGet(std::size_t data_size, uint32_t dim_0, uint32_t dim_1, uint32_t dim
             return GeneralReorderParam{1, 256, 1, 1, 1, 1};
         }
     }
+    else{
+        return default_kernel;
+    }
+
 }
 
 } // namespace tensor_reorder
@@ -288,5 +292,30 @@ size_t GeneralReorderSolution<dst_order>::GetSize() const
 }
 
 //Explicit instance
+template struct GeneralReorderSolution<order<0, 1, 3, 2>>;
+template struct GeneralReorderSolution<order<0, 2, 1, 3>>;
+template struct GeneralReorderSolution<order<0, 2, 3, 1>>;
+template struct GeneralReorderSolution<order<0, 3, 1, 2>>;
 template struct GeneralReorderSolution<order<0, 3, 2, 1>>;
+
+template struct GeneralReorderSolution<order<1, 0, 2, 3>>;
+template struct GeneralReorderSolution<order<1, 0, 3, 2>>;
+template struct GeneralReorderSolution<order<1, 2, 0, 3>>;
+template struct GeneralReorderSolution<order<1, 2, 3, 0>>;
+template struct GeneralReorderSolution<order<1, 3, 0, 2>>;
+template struct GeneralReorderSolution<order<1, 3, 2, 0>>;
+
+template struct GeneralReorderSolution<order<2, 0, 1, 3>>;
+template struct GeneralReorderSolution<order<2, 0, 3, 1>>;
+template struct GeneralReorderSolution<order<2, 1, 0, 3>>;
+template struct GeneralReorderSolution<order<2, 1, 3, 0>>;
+template struct GeneralReorderSolution<order<2, 3, 0, 1>>;
+template struct GeneralReorderSolution<order<2, 3, 1, 0>>;
+
+template struct GeneralReorderSolution<order<3, 0, 1, 2>>;
+template struct GeneralReorderSolution<order<3, 0, 2, 1>>;
+template struct GeneralReorderSolution<order<3, 1, 0, 2>>;
+template struct GeneralReorderSolution<order<3, 1, 2, 0>>;
+template struct GeneralReorderSolution<order<3, 2, 0, 1>>;
+template struct GeneralReorderSolution<order<3, 2, 1, 0>>;
 } // namespace miopen
