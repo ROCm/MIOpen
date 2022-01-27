@@ -32,7 +32,7 @@
 #include <miopen/kernel_info.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/execution_context.hpp>
-#include <miopen/kernels/gpu_tensor_reorder/sequence.hpp>
+#include <../kernels/gpu_tensor_reorder/sequence.hpp>
 #include <vector>
 
 namespace miopen {
