@@ -120,8 +120,6 @@ struct TensorReorderSolution<sequence<3, 0, 1, 2>> : public BatchedTransposeSolu
         {
         }
 };
-//explicit instance
-template struct TensorReorderSolution<sequence<0, 3, 2, 1>>;
 } // namespace miopen
 
 #endif // MIOPEN_TENSOR_REORDER_UTIL_HPP_
