@@ -84,9 +84,6 @@ struct GeneralReorderSolution
 
     GeneralReorderParam kernel_param_heuristic;
 };
-} // namespace miopen
-
-namespace miopen {
 namespace tensor_reorder {
 
 static inline std::string GetNameTrait(std::size_t type_size)
@@ -206,7 +203,7 @@ HeuristicGet(std::size_t data_size, uint32_t dim_0, uint32_t dim_1, uint32_t dim
      * Design a algorithm to determine general tensor reorder tile size.
      */
 
-    if(dim_3 >= 1 )
+    if(dim_0 >= 1 && dim_1 >= 1 && dim_2 >= 1 && dim_3 >= 1 && data_size<=4)
     {
         if(dim_3 >= 16)
         {
