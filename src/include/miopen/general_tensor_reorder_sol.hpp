@@ -31,6 +31,7 @@
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/execution_context.hpp>
 #include <vector>
+#include <../kernels/gpu_tensor_reorder/sequence.hpp>
 
 namespace miopen {
 
@@ -70,5 +71,5 @@ struct GeneralReorderSolution
 };
 
 } // namespace miopen
-
+template struct GeneralReorderSolution<sequence<0, 3, 2, 1>>;
 #endif

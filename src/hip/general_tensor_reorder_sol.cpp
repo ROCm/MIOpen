@@ -33,6 +33,7 @@
 #include <limits>
 #include <iostream>
 #include <sstream>
+#include <../kernels/gpu_tensor_reorder/sequence.hpp>
 
 #define TENSOR_REORDER_BLOCK_SIZE 256
 #define TENSOR_REORDER_PERSISTENT 0
@@ -231,6 +232,7 @@ solver::KernelInfo GeneralReorderSolution<dst_order>::GetKernel() const
 
     return kernel;
 }
+
 template<typename dst_order>
 std::vector<OpKernelArg> GeneralReorderSolution<dst_order>::GetKernelArg() const
 {
@@ -265,6 +267,7 @@ std::vector<OpKernelArg> GeneralReorderSolution<dst_order>::GetKernelArg() const
 
     return opArgs;
 }
+
 template<typename dst_order>
 std::string GeneralReorderSolution<dst_order>::GetKernelName() const
 {
@@ -286,3 +289,15 @@ size_t GeneralReorderSolution<dst_order>::GetSize() const
 }
 
 } // namespace miopen
+//explicit instance
+template void GeneralReorderSolution<sequence<0, 3, 2, 1>>::GeneralReorderSolution(const ExecutionContext& ctx,
+                                                          miopenDataType_t data_type_,
+                                                          uint32_t dim_0_,
+                                                          uint32_t dim_1_,
+                                                          uint32_t dim_2_,
+                                                          uint32_t dim_3_);
+template solver::KernelInfo GeneralReorderSolution<sequence<0, 3, 2, 1>>::GetKernel() const;
+template std::vector<OpKernelArg> GeneralReorderSolution<sequence<0, 3, 2, 1>>::GetKernelArg() const;
+template std::string GeneralReorderSolution<sequence<0, 3, 2, 1>>::GetKernelName() const;
+template bool GeneralReorderSolution<sequence<0, 3, 2, 1>>::IsSkippable() const;
+template size_t GeneralReorderSolution<sequence<0, 3, 2, 1>>::GetSize() const;
