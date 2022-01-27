@@ -99,7 +99,6 @@ static inline const std::vector<GeneralReorderParam>& GetKernelList(std::size_t 
     }
     MIOPEN_THROW("data type not supported");
 }
-
 static inline bool IsApplicable(uint32_t /* batch */,
                                 uint32_t height,
                                 uint32_t width,
@@ -288,16 +287,5 @@ size_t GeneralReorderSolution<dst_order>::GetSize() const
     return miopen::GetTypeSize(data_type) * dim_0 * dim_1 * dim_2 * dim_3;
 }
 
-//explicit instance
-template void GeneralReorderSolution<sequence<0, 3, 2, 1>>::GeneralReorderSolution(const ExecutionContext& ctx,
-                                                          miopenDataType_t data_type_,
-                                                          uint32_t dim_0_,
-                                                          uint32_t dim_1_,
-                                                          uint32_t dim_2_,
-                                                          uint32_t dim_3_);
-template solver::KernelInfo GeneralReorderSolution<sequence<0, 3, 2, 1>>::GetKernel() const;
-template std::vector<OpKernelArg> GeneralReorderSolution<sequence<0, 3, 2, 1>>::GetKernelArg() const;
-template std::string GeneralReorderSolution<sequence<0, 3, 2, 1>>::GetKernelName() const;
-template bool GeneralReorderSolution<sequence<0, 3, 2, 1>>::IsSkippable() const;
-template size_t GeneralReorderSolution<sequence<0, 3, 2, 1>>::GetSize() const;
 } // namespace miopen
+*/
