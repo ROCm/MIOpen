@@ -287,4 +287,6 @@ size_t GeneralReorderSolution<dst_order>::GetSize() const
     return miopen::GetTypeSize(data_type) * dim_0 * dim_1 * dim_2 * dim_3;
 }
 
+//Explicit instance
+template struct GeneralReorderSolution<order<0, 3, 2, 1>>;
 } // namespace miopen

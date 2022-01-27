@@ -84,6 +84,5 @@ struct GeneralReorderSolution
 
     GeneralReorderParam kernel_param_heuristic;
 };
-
 } // namespace miopen
 #endif
