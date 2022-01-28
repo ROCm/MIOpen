@@ -357,9 +357,9 @@ struct reorder_test : reorder_base
             std::cout<<"check point 1"<<std::endl;
 
             REORDER_SOL reorder_sol(ctx, to_miopen_data_type<T>::get(), dim_0, dim_1, dim_2, dim_3);
-
+            std::cout<<"check point 2"<<std::endl;
             std::vector<OpKernelArg> opArgs = reorder_sol.GetKernelArg();
-
+            std::cout<<"check point 3"<<std::endl;
             boost::optional<miopen::InvokerFactory> invoker_factory(
                 [=](const std::vector<miopen::Kernel>& kernels) mutable {
                     return [=](const miopen::Handle& handle,
