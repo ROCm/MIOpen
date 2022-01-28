@@ -1602,26 +1602,23 @@ struct ConvBinWinogradRxS : ConvSolver
 struct PerformanceConfigConvBinWinogradUltraRxSf2x3
     : Serializable<PerformanceConfigConvBinWinogradUltraRxSf2x3>
 {
-    int n_groups;
     int intl_factor;
 
-    PerformanceConfigConvBinWinogradUltraRxSf2x3(int n_groups_, int intl_factor_);
+    PerformanceConfigConvBinWinogradUltraRxSf2x3(int intl_factor_);
     PerformanceConfigConvBinWinogradUltraRxSf2x3()
-        : PerformanceConfigConvBinWinogradUltraRxSf2x3(-1, -1)
+        : PerformanceConfigConvBinWinogradUltraRxSf2x3(-1)
     {
     }
     PerformanceConfigConvBinWinogradUltraRxSf2x3(bool)
-        : PerformanceConfigConvBinWinogradUltraRxSf2x3(1, 1)
+        : PerformanceConfigConvBinWinogradUltraRxSf2x3(1)
     {
     }
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        f(self.n_groups, "n_groups");
         f(self.intl_factor, "intl_factor");
     }
-    int GetNGroups() const { return n_groups; }
     int GetInterleaveFactor() const { return intl_factor; }
 
     void HeuristicInit(const ConvolutionContext& config);

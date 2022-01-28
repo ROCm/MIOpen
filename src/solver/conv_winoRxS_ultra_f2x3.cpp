@@ -43,7 +43,19 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3_PERF_VALS)
 
-#define MAX_CU_LIMIT 512
+static inline auto IsPowerOf2(size_t v) { return ((v - 1) & v) == 0; }
+
+static inline auto GetBestInterleaveParam(const int N, const int C, const int H, const int W)
+{
+    int best_intl_factor = 1;
+
+    if(IsPowerOf2(W) && (N * C * H * W >= std::pow(2, 25)))
+    {
+        best_intl_factor = 3;
+    }
+
+    return best_intl_factor;
+}
 
 namespace miopen {
 namespace solver {
@@ -53,7 +65,7 @@ namespace {
     auto PerfFieldRules()
     {
         return seq::MakeRuleSet(
-            std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{}, &PerformanceConfigConvBinWinogradUltraRxSf2x3::n_groups)
+            std::make_tuple(seq::Sequence<int, 1, 2, 3, 5, 7, 11>{}, &PerformanceConfigConvBinWinogradUltraRxSf2x3::intl_factor)
         );
     }
 // clang-format on
@@ -311,7 +323,7 @@ inline bool IsShaderContraintsMet(const int R,
                                   const int W,
                                   const int OH,
                                   const int OW,
-                                  const int N,
+                                  const int,
                                   const ConvolutionContext& params)
 {
     // Padding for bwd data shall not be negative.
@@ -347,8 +359,7 @@ inline bool IsShaderContraintsMet(const int R,
     const auto O_STEP_2_PITCH = O_N_PITCH - TILES_N_COLUMN * o_tile_step_H * O_H_PITCH;
 
     // clang-format off
-    return N == 1
-        && C <= 240
+    return C <= 240
         && K <= 16
         && S <= 3
         && R <= 3
@@ -399,16 +410,29 @@ void* CopyDataToSymbol(const Handle& handle,
 } // namespace
 
 PerformanceConfigConvBinWinogradUltraRxSf2x3::PerformanceConfigConvBinWinogradUltraRxSf2x3(
-    int n_groups_, int intl_factor_)
-    : n_groups(n_groups_), intl_factor(intl_factor_)
+    int intl_factor_)
+    : intl_factor(intl_factor_)
 {
 }
 
 void PerformanceConfigConvBinWinogradUltraRxSf2x3::HeuristicInit(const ConvolutionContext& config)
 {
-    // TODO: Find best heuristics
-    n_groups    = config.GetStream().GetMaxHardwareComputeUnits();
-    intl_factor = 1;
+    int N, C, H, W, K, out_H, out_W, unused;
+
+    // clang-format off
+    if(!config.direction.IsBackwardWrW())
+    {
+        GetCompiledInParameters(config, &N, &C, &H, &W, &K, &unused, 
+                 &out_H, &out_W, &unused, &unused, &unused, &unused);
+    }
+    else
+    {
+        GetCompiledInParameters(config, &C, &K, &unused, &unused, 
+           &N, &unused, &H, &W, &out_H, &out_W, &unused, &unused);
+    }
+    // clang-format on
+
+    intl_factor = GetBestInterleaveParam(N, C, H, W);
 }
 
 bool PerformanceConfigConvBinWinogradUltraRxSf2x3::SetNextValue(
@@ -422,20 +446,15 @@ bool PerformanceConfigConvBinWinogradUltraRxSf2x3::IsValidValue() const
     return PerfFieldRules().IsIn(*this);
 }
 
-bool PerformanceConfigConvBinWinogradUltraRxSf2x3::IsValid(const ConvolutionContext& config) const
+bool PerformanceConfigConvBinWinogradUltraRxSf2x3::IsValid(const ConvolutionContext&) const
 {
-    if(config.GetStream().GetMaxHardwareComputeUnits() < n_groups)
-        return false;
-
-    if(!IsValidValue())
-        return false;
-    return true;
+    return IsValidValue();
 }
 
 inline bool PerformanceConfigConvBinWinogradUltraRxSf2x3::operator==(
     const PerformanceConfigConvBinWinogradUltraRxSf2x3& other) const
 {
-    return n_groups == other.n_groups;
+    return intl_factor == other.intl_factor;
 }
 
 std::string PerformanceConfigConvBinWinogradUltraRxSf2x3::ToString() const
@@ -477,8 +496,7 @@ class ShaderModel : public UnifiedDescriptionConv2d
     ShaderModel(const ConvolutionContext& ctx)
         : UnifiedDescriptionConv2d(ctx),
           DATATYPE_BITS(ctx.IsFp16() ? 16 : 32),
-          n_groups(ctx.GetStream()
-                       .GetMaxHardwareComputeUnits()), /// \todo Take n_groups from PerfConfig.
+          n_groups(ctx.GetStream().GetMaxHardwareComputeUnits()),
           out_of_model_scope(true)
     {
     }
@@ -584,18 +602,6 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
                                          const PerformanceConfigConvBinWinogradUltraRxSf2x3& config,
                                          const bool disableConfigOverrideFromEnv) const
 {
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static bool IsWarned;
-    if(!IsWarned)
-    {
-        if(params.GetStream().GetMaxHardwareComputeUnits() > MAX_CU_LIMIT)
-            MIOPEN_LOG_WE(SolverDbId(*this)
-                          << ": GPU has " << params.GetStream().GetMaxHardwareComputeUnits()
-                          << "CUs, but this solver supports max " << MAX_CU_LIMIT
-                          << "and thus may show sub-optimal performance.");
-        IsWarned = true;
-    }
-
     const PerformanceConfigConvBinWinogradUltraRxSf2x3* pcfg = &config;
     PerformanceConfigConvBinWinogradUltraRxSf2x3 fromEnv;
 
@@ -624,9 +630,9 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
         }
     }
 
-    const auto n_groups    = pcfg->GetNGroups();
-    const auto intl_factor = pcfg->GetInterleaveFactor();
+    const auto n_groups    = params.GetStream().GetMaxHardwareComputeUnits();
     const auto group_cnt   = params.group_counts;
+    const auto intl_factor = pcfg->GetInterleaveFactor();
 
     constexpr unsigned F_REVERSE_R = 1 << 0;
     constexpr unsigned F_REVERSE_S = 1 << 1;
