@@ -193,7 +193,7 @@ template<typename dst_order>
 std::string GeneralReorderSolution<dst_order>::GetKernelName() const
 {
     std::size_t data_size = miopen::GetTypeSize(data_type);
-    return tensor_reorder::GetKernelName<dst_order>(data_size, &kernel_param_heuristic);
+    return tensor_reorder::GetKernelName(data_size, &kernel_param_heuristic);
 }
 
 template<typename dst_order>
