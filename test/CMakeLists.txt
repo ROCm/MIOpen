@@ -170,9 +170,6 @@ option( WORKAROUND_ISSUE_1148 "" ${WORKAROUND_ISSUE_1148_DEFAULT})
 set_var_to_condition(WORKAROUND_ISSUE_1334_DEFAULT MIOPEN_TEST_GFX1030 AND MIOPEN_TEST_FLOAT)
 option( WORKAROUND_ISSUE_1334 "" ${WORKAROUND_ISSUE_1334_DEFAULT})
 
-set_var_to_condition(WORKAROUND_SWDEV_292187_DEFAULT MIOPEN_TEST_GFX1030)
-option( WORKAROUND_SWDEV_292187 "" ${WORKAROUND_SWDEV_292187_DEFAULT})
-
 set_var_to_condition(WORKAROUND_ISSUE_1317_DEFAULT MIOPEN_TEST_OPENCL)
 option( WORKAROUND_ISSUE_1317 "" ${WORKAROUND_ISSUE_1317_DEFAULT})
 
@@ -596,10 +593,6 @@ function(add_custom_test NAME)
 
     if(WORKAROUND_ISSUE_1187
         AND (${NAME} MATCHES "test_conv_for_implicit_gemm" ))
-        set_tests_properties(${NAME} PROPERTIES DISABLED On)
-    endif()
-    if(WORKAROUND_SWDEV_292187
-        AND (${NAME} MATCHES "test_conv_ck_igemm_fwd_v6r1_dlops_nchw" ))
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
     if(WORKAROUND_ISSUE_1317
