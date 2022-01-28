@@ -68,7 +68,7 @@ static inline std::string GetKernelName(std::size_t data_size, const GeneralReor
                     << kparam->ediv_x << "x" << kparam->ediv_y << "_";
     }
     kernel_name << type_trait<<"_r"<<dst_order::at(0)<<dst_order::at(1)<<dst_order::at(2)<<dst_order::at(3);
-    std::cout<<kernel_name.str()；
+    std::cout<<kernel_name.str();
     return kernel_name.str();
 }
 
