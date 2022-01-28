@@ -354,6 +354,7 @@ struct reorder_test : reorder_base
             ctx.SetStream(&miopen::deref(this->handle));
             ctx.DetectRocm();
             // ctx.SetupFloats();
+            std::cout<<"check point 1"<<std::endl;
 
             REORDER_SOL reorder_sol(ctx, to_miopen_data_type<T>::get(), dim_0, dim_1, dim_2, dim_3);
 
