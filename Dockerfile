@@ -30,7 +30,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     curl \
     libnuma-dev \
     gnupg && \
-wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - && \
+wget -qO - http://ginger.amd.com/rocm/rocm.renew.key 2>/dev/null | apt-key add -  && \
 apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     apt-utils \
     build-essential \
