@@ -28,6 +28,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/hipoc_kernel.hpp>
 #include <miopen/handle_lock.hpp>
+#include <miopen/logger.hpp>
 
 #include <hip/hip_ext.h>
 #include <hip/hip_runtime.h>
@@ -39,8 +40,32 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 
+#ifndef NDEBUG
+static std::string DimToFormattedString(const size_t* dims, size_t count)
+{
+    std::stringstream ss;
+    ss << '{';
+    for(size_t i = 0; i < count; ++i)
+    {
+        if(i > 0)
+            ss << ", ";
+        else
+            ss << ' ';
+        ss << dims[i];
+    }
+    ss << " }";
+    return ss.str();
+}
+#endif // !NDEBUG
+
 void HIPOCKernelInvoke::run(void* args, std::size_t size) const
 {
+#ifndef NDEBUG
+    MIOPEN_LOG_I2("kernel_name = "
+                  << GetName() << ", global_work_dim = " << DimToFormattedString(gdims.data(), 3)
+                  << ", local_work_dim = " << DimToFormattedString(ldims.data(), 3));
+#endif // !NDEBUG
+
     HipEventPtr start = nullptr;
     HipEventPtr stop  = nullptr;
     void* config[]    = {// HIP_LAUNCH_PARAM_* are macros that do horrible things
