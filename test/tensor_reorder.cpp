@@ -375,15 +375,15 @@ struct reorder_test : reorder_base
                         k(opArgs);
                     };
                 });
-
+            std::cout<<"check point 4"<<std::endl;
             std::vector<miopen::solver::KernelInfo> construction_params{reorder_sol.GetKernel()};
-
+            std::cout<<"check point 5"<<std::endl;
             const auto invoker =
                 miopen::deref(this->handle).PrepareInvoker(*invoker_factory, construction_params);
-
+            std::cout<<"check point 6"<<std::endl;
             // run gpu
             invoker(miopen::deref(this->handle), invoke_param);
-
+            std::cout<<"check point 7"<<std::endl;
             // run cpu
             cpu_reorder<T, dst_order>::run(t_dst.data.data(), t_src.data.data(), dim_0, dim_1, dim_2, dim_3);
 
