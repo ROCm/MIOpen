@@ -28,7 +28,7 @@
 #include <miopen/tensor_reorder_util.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_layout.hpp>
-//#include <miopen/general_tensor_reorder_sol.hpp>
+#include <miopen/general_tensor_reorder_sol.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/invoke_params.hpp>
 #include <boost/optional.hpp>

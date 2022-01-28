@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_TENSOR_REORDER_SOL_HPP
-#define GUARD_MIOPEN_TENSOR_REORDER_SOL_HPP
+#ifndef GUARD_GENERAL_MIOPEN_TENSOR_REORDER_SOL_HPP
+#define GUARD_GENERAL_MIOPEN_TENSOR_REORDER_SOL_HPP
 
 #include <miopen/miopen.h>
 #include <miopen/kernel_info.hpp>
