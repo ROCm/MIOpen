@@ -42,7 +42,8 @@ bool PoolingForwardNd::IsApplicable(const ExecutionContext&,
                                     const miopen::pooling::ProblemDescription& problem) const
 {
     return problem.GetDirection() == miopen::pooling::Direction::Forward &&
-           problem.GetXDesc().GetSize() == 5;
+           problem.GetXDesc().GetSize() == 5 && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW" &&
+           problem.GetYDesc().GetLayout("NCDHW") == "NCDHW";
 }
 
 ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
@@ -167,6 +168,15 @@ ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
     };
 
     return result;
+}
+
+std::size_t
+PoolingForwardNd::GetWorkspaceSize(const ExecutionContext&,
+                                   const miopen::pooling::ProblemDescription& problem) const
+{
+    if(problem.GetPooling().GetMode() != miopenPoolingMax)
+        return 0;
+    return problem.GetYDesc().GetElementSize() * get_data_size(problem.GetPooling().GetIndexType());
 }
 
 } // namespace pooling

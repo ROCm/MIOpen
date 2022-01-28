@@ -27,6 +27,7 @@
 #define GUARD_MIOPEN_DATATYPE_HPP
 
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/visit_float.hpp>
 
 #include <sstream>
 #include <string>
@@ -68,7 +69,12 @@ inline std::string GetDataType(miopenDataType_t type)
     return type_str;
 }
 
-inline std::size_t get_data_size(miopenDataType_t) { MIOPEN_THROW("not implemented"); }
+inline std::size_t get_data_size(miopenDataType_t type)
+{
+    auto ret = std::size_t{};
+    visit_float(type, [&](auto as_float) { ret = sizeof(decltype(as_float(1.f))); });
+    return ret;
+}
 
 inline std::size_t get_data_size(miopenIndexType_t index_type)
 {
