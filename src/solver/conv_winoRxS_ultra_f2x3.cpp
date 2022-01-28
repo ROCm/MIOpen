@@ -630,9 +630,9 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
         }
     }
 
-    const auto n_groups    = params.GetStream().GetMaxHardwareComputeUnits();
-    const auto group_cnt   = params.group_counts;
-    const auto intl_factor = pcfg->GetInterleaveFactor();
+    const unsigned n_groups = params.GetStream().GetMaxHardwareComputeUnits();
+    const auto group_cnt    = params.group_counts;
+    const auto intl_factor  = pcfg->GetInterleaveFactor();
 
     constexpr unsigned F_REVERSE_R = 1 << 0;
     constexpr unsigned F_REVERSE_S = 1 << 1;
