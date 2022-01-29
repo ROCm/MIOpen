@@ -186,8 +186,8 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     const auto invoke_params = [&]() {
         auto tmp      = pooling::BwdInvokeParams{};
         tmp.type      = InvokeType::Run;
-        tmp.dxDesc     = dxDesc;
-        tmp.dyDesc     = dyDesc;
+        tmp.dxDesc    = dxDesc;
+        tmp.dyDesc    = dyDesc;
         tmp.pooling   = *this;
         tmp.dx        = dx;
         tmp.dy        = dy;

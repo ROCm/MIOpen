@@ -223,7 +223,7 @@ PoolingBackwardNd::GetSolution(const ExecutionContext&,
 
 std::size_t
 PoolingBackwardNd::GetWorkspaceSize(const ExecutionContext&,
-                                   const miopen::pooling::ProblemDescription& problem) const
+                                    const miopen::pooling::ProblemDescription& problem) const
 {
     if(problem.GetPooling().GetMode() != miopenPoolingMax)
         return 0;
