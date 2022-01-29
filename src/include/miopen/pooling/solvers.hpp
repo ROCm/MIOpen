@@ -53,7 +53,7 @@ struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
     using SolverMixin<OldStyleProblemDescription>::GetWorkspaceSize;
     using SolverMixin<OldStyleProblemDescription>::IsApplicable;
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -63,7 +63,7 @@ struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    std::size_t GetWorkspaceSize(const OldStyleProblemDescription& problem) const override
+    std::size_t GetWorkspaceSize(const OldStyleProblemDescription& problem) const override final
     {
         return GetWorkspaceSize(*std::get<0>(problem), *std::get<1>(problem));
     }
