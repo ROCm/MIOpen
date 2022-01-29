@@ -182,6 +182,22 @@ struct PoolingBackwardNd : OldStyleSolver
                                  const miopen::pooling::ProblemDescription& problem) const override;
 };
 
+struct TransposedPoolingBwd2d : PoolingFwdNCHWTransposingSolver<PoolingBackward2d>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<TransposedPoolingBwd2d>();
+    }
+};
+
+struct TransposedPoolingBwdNd : PoolingFwdNCHWTransposingSolver<PoolingBackwardNd>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<TransposedPoolingBwdNd>();
+    }
+};
+
 } // namespace pooling
 
 } // namespace solver

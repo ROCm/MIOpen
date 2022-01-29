@@ -41,13 +41,17 @@ namespace miopen {
 static auto PoolingForwardSolvers()
 {
     return solver::SolverContainer<solver::pooling::PoolingForward2d,
-                                   solver::pooling::PoolingForwardNd>{};
+                                   solver::pooling::PoolingForwardNd,
+                                   solver::pooling::TransposedPoolingFwd2d,
+                                   solver::pooling::TransposedPoolingFwdNd>{};
 }
 
 static auto PoolingBackwardSolvers()
 {
     return solver::SolverContainer<solver::pooling::PoolingBackward2d,
-                                   solver::pooling::PoolingBackwardNd>{};
+                                   solver::pooling::PoolingBackwardNd,
+                                   solver::pooling::TransposedPoolingBwd2d,
+                                   solver::pooling::TransposedPoolingBwdNd>{};
 }
 
 miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
