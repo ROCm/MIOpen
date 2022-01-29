@@ -199,6 +199,15 @@ PoolingBackward2d::GetSolution(const ExecutionContext&,
     return result;
 }
 
+std::size_t
+PoolingBackward2d::GetWorkspaceSize(const ExecutionContext&,
+                                   const miopen::pooling::ProblemDescription& problem) const
+{
+    if(problem.GetPooling().GetMode() != miopenPoolingMax)
+        return 0;
+    return problem.GetYDesc().GetElementSize() * get_data_size(problem.GetPooling().GetIndexType());
+}
+
 } // namespace pooling
 
 } // namespace solver

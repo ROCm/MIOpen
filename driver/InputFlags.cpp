@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,11 +23,45 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include "InputFlags.hpp"
+
+#include "tensor_driver.hpp"
+
+#include <miopen/tensor.hpp>
+#include <miopen/stringutils.hpp>
+
 #include <iomanip>
 #include <iostream>
 #include <vector>
 #include <algorithm>
+
+int TensorParameters::SetTensordDescriptor(miopenTensorDescriptor_t result,
+                                           miopenDataType_t data_type)
+{
+    if(layout.empty() && strides.empty())
+        return SetTensorNd(result, lengths, data_type);
+
+    if(strides.empty() && !layout.empty())
+        CalculateStrides();
+
+    return SetTensorNd(result, lengths, strides, data_type);
+}
+
+void TensorParameters::CalculateStrides()
+{
+    if(layout.empty())
+        MIOPEN_THROW("Attempt to calculate strides without layout.");
+    if(layout.size() != lengths.size())
+        MIOPEN_THROW("Unmatched layout and lengths sizes.");
+
+    const auto len_layout = miopen::tensor_layout_get_default(layout.size());
+    if(len_layout.empty())
+        MIOPEN_THROW("Invalid tensor lengths dimentions.");
+
+    strides = {};
+    miopen::tensor_layout_to_strides(lengths, len_layout, layout, strides);
+}
 
 InputFlags::InputFlags() { AddInputFlag("help", 'h', "", "Print Help Message", "string"); }
 
@@ -40,12 +74,12 @@ void InputFlags::AddInputFlag(const std::string& _long_name,
 {
 
     Input in;
-    in.long_name  = _long_name;
-    in.short_name = _short_name;
-    in.value      = _value;
-    in.help_text  = _help_text;
-    in.type       = _type;
-    in.convert2uppercase = _convert2uppercase; 
+    in.long_name         = _long_name;
+    in.short_name        = _short_name;
+    in.value             = _value;
+    in.help_text         = _help_text;
+    in.type              = _type;
+    in.convert2uppercase = _convert2uppercase;
 
     if(MapInputs.count(_short_name) > 0)
         printf("Input flag: %s (%c) already exists !", _long_name.c_str(), _short_name);
@@ -53,8 +87,23 @@ void InputFlags::AddInputFlag(const std::string& _long_name,
         MapInputs[_short_name] = in;
 }
 
+void InputFlags::AddTensorFlag(const std::string& name,
+                               char short_name,
+                               const std::string& default_value,
+                               const std::string& default_desc)
+{
+    auto desc = std::ostringstream{};
+    desc << static_cast<char>(std::toupper(name[0])) << name.substr(1) << " tensor descriptor."
+         << std::endl;
+    desc << "Format: NxC[xD]xHxW[,LayoutOrStrides]" << std::endl;
+    desc << "Default: " << (default_desc.size() == 0 ? default_value : default_desc);
+
+    AddInputFlag(name, short_name, default_value, desc.str(), "tensor descriptor");
+}
+
 [[gnu::noreturn]] void InputFlags::Print() const
 {
+    printf("MIOpen Driver Input Flags: \n\n");
 
     for(auto& content : MapInputs)
     {
@@ -118,20 +167,19 @@ void InputFlags::Parse(int argc, char* argv[])
             printf("Illegal input flag\n");
             Print();
         }
-        else if(temp[0] == '-' && temp[1] == '-') // I/O/F layout long Input
+        else if(temp[0] == '-' && temp[1] == '-') // Long Name Input
         {
             std::string long_name = temp.substr(2);
             if(long_name == "help")
                 Print();
-
-            char layout_short_name = FindShortName(long_name);
-            UpdateLayoutValue(layout_short_name,args[i+1]);
+            char short_name = FindShortName(long_name);
+            StoreOptionalFlagValue(short_name,args[i+1]);
             i++;
-         }
-         else if(temp[0] == '-' && temp[1] == '?') // Help Input
-             Print();
-         else // Short Name Input
-         {
+        }
+        else if(temp[0] == '-' && temp[1] == '?') // Help Input
+            Print();
+        else // Short Name Input
+        {
             char short_name = temp[1];
             if(MapInputs.find(short_name) == MapInputs.end())
             {
@@ -149,23 +197,23 @@ void InputFlags::Parse(int argc, char* argv[])
                 i++;
             }
         }
-   }
+    }
 }
 
-// This function updates the In/Fill/Out layout input values.Depending upon the flag value,
-// input values are converted to uppercase or lowercase type.This function is used while
+// This function updates the input flag parameters values.Depending on the flag setting,
+// input values are converted to uppercase & stored into map.This is used while
 // parsing the driver arguments.
-void InputFlags::UpdateLayoutValue(char layout_short_name, const std::string layout_value)
+void InputFlags::StoreOptionalFlagValue(char short_name, const std::string input_value)
 {
-    if( MapInputs[layout_short_name].convert2uppercase == true )
+    if( MapInputs[short_name].convert2uppercase == true )
     {
-         std::string tvalue = layout_value;
+         std::string tvalue = input_value;
          std::transform(tvalue.begin(), tvalue.end(),tvalue.begin(), ::toupper);
-         MapInputs[layout_short_name].value = tvalue;
+         MapInputs[short_name].value = tvalue;
     }
     else
     {
-         MapInputs[layout_short_name].value = layout_value;
+         MapInputs[short_name].value = input_value;
     }
 }
 
@@ -201,6 +249,49 @@ double InputFlags::GetValueDouble(const std::string& long_name) const
     return value;
 }
 
+TensorParameters InputFlags::GetValueTensor(const std::string& long_name) const
+{
+    const auto& input     = MapInputs.at(FindShortName(long_name));
+    const auto components = miopen::SplitDelim(input.value.c_str(), ',');
+
+    if(components.size() < 1)
+        return {};
+
+    auto parse = [](auto line) {
+        auto ret        = std::vector<int>{};
+        const auto strs = miopen::SplitDelim(line, 'x');
+        for(auto&& str : strs)
+        {
+            auto elem = int{};
+            auto ss   = std::istringstream{str};
+            ss >> elem;
+
+            if(ss.bad() || ss.fail())
+                MIOPEN_THROW("Invalid tensor component " + str + " in " + line + ".");
+
+            ret.push_back(elem);
+        }
+        return ret;
+    };
+
+    auto lens = parse(components[0]);
+
+    if(components.size() == 1)
+        return {lens};
+
+    auto layout  = std::string{};
+    auto strides = std::vector<int>{};
+
+    if(std::isdigit(components[1][0]))
+        strides = parse(components[1]);
+    else
+        layout = components[1];
+
+    if(components.size() == 2)
+        return {lens, strides, layout};
+
+    MIOPEN_THROW("Too many tensor descriptor parameters.");
+}
 void InputFlags::SetValue(const std::string& long_name, const std::string& new_value)
 {
     char short_name                = FindShortName(long_name);
