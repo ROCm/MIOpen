@@ -27,6 +27,8 @@
 #ifndef MLO_CONVHOST_H_
 #define MLO_CONVHOST_H_
 
+#include <miopen/tensor.hpp>
+
 #include <cmath>
 #include <iomanip>
 #include <iostream>
@@ -1022,20 +1024,8 @@ int mloDirectSPHost(
 
 template <typename Tgpu_ /* the data type used in GPU computations (usually half) */,
           typename Tcheck_ /* the data type used in CPU checkings (usually double) */>
-bool mloVerify(int spatial_dim,
-               int n_batchs,
-               int n_channels,
-               int depth,
-               int height,
-               int width,
-               int c_batch_stride,
-               int c_channel_stride,
-               int c_depth_stride,
-               int c_stride,
-               int g_batch_stride,
-               int g_channel_stride,
-               int g_depth_stride,
-               int g_stride,
+bool mloVerify(const miopenTensorDescriptor_t& cpu_,
+               const miopenTensorDescriptor_t& gpu_,
                const Tcheck_* c_ptr,
                const Tgpu_* g_ptr,
                Tcheck_ eps,
@@ -1047,6 +1037,21 @@ bool mloVerify(int spatial_dim,
 )
 
 {
+    const auto& cpu = miopen::deref(cpu_);
+    const auto& gpu = miopen::deref(gpu_);
+
+    int spatial_dim = cpu.GetSize();
+
+    int n_batchs, n_channels, depth, height, width;
+    int c_batch_stride, c_channel_stride, c_depth_stride, c_height_stride, c_width_stride;
+    int g_batch_stride, g_channel_stride, g_depth_stride, g_height_stride, g_width_stride;
+
+    std::tie(n_batchs, n_channels, depth, height, width) =
+        miopen::GetNCDHW(cpu.GetSize(), cpu.GetLengths());
+    std::tie(c_batch_stride, c_channel_stride, c_depth_stride, c_height_stride, c_width_stride) =
+        miopen::GetNCDHW(cpu.GetSize(), cpu.GetStrides());
+    std::tie(g_batch_stride, g_channel_stride, g_depth_stride, g_height_stride, g_width_stride) =
+        miopen::GetNCDHW(gpu.GetSize(), gpu.GetStrides());
 
     Tcheck_ sqr_accum = static_cast<Tcheck_>(0);
     Tcheck_ c_val_err = static_cast<Tcheck_>(0);
@@ -1064,11 +1069,12 @@ bool mloVerify(int spatial_dim,
                 {
                     for(int i = 0; i < width; ++i)
                     {
-                        Tcheck_ c_val = c_ptr[b * c_batch_stride + c * c_channel_stride +
-                                              k * c_depth_stride + j * c_stride + i];
-                        Tcheck_ g_val =
-                            static_cast<Tcheck_>(g_ptr[b * g_batch_stride + c * g_channel_stride +
-                                                       k * g_depth_stride + j * g_stride + i]);
+                        Tcheck_ c_val =
+                            c_ptr[b * c_batch_stride + c * c_channel_stride + k * c_depth_stride +
+                                  j * c_height_stride + i * c_width_stride];
+                        Tcheck_ g_val = static_cast<Tcheck_>(
+                            g_ptr[b * g_batch_stride + c * g_channel_stride + k * g_depth_stride +
+                                  j * g_height_stride + i * g_width_stride]);
 
                         sqr_accum += (c_val - g_val) * (c_val - g_val);
                         Tcheck_ err = std::abs(c_val - static_cast<Tcheck_>(g_val));
@@ -1121,10 +1127,12 @@ bool mloVerify(int spatial_dim,
                             for(int i = 0; i < width && match; ++i)
                             {
                                 Tcheck_ c_val = c_ptr[b * c_batch_stride + c * c_channel_stride +
-                                                      k * c_depth_stride + j * c_stride + i];
+                                                      k * c_depth_stride + j * c_height_stride +
+                                                      i * c_width_stride];
                                 Tcheck_ g_val = static_cast<Tcheck_>(
                                     g_ptr[b * g_batch_stride + c * g_channel_stride +
-                                          k * g_depth_stride + j * g_stride + i]);
+                                          k * g_depth_stride + j * g_height_stride +
+                                          i * g_width_stride]);
 
                                 Tcheck_ err = CalcErr<Tcheck_>(c_val, g_val);
                                 if((err > eps && std::abs(c_val - g_val) > max_abs_diff) ||
