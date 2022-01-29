@@ -182,7 +182,45 @@ struct PoolingBackwardNd : OldStyleSolver
                                  const miopen::pooling::ProblemDescription& problem) const override;
 };
 
-struct TransposedPoolingBwd2d : PoolingFwdNCHWTransposingSolver<PoolingBackward2d>
+template <class Inner>
+struct PoolingBwdNCHWTransposingSolver : TransposingSolver<PoolingBwdNCHWTransposingSolver<Inner>,
+                                                           OldStyleSolver,
+                                                           miopen::pooling::ProblemDescription,
+                                                           miopen::pooling::BwdInvokeParams,
+                                                           Inner>
+{
+    using Problem      = miopen::pooling::ProblemDescription;
+    using InvokeParams = miopen::pooling::BwdInvokeParams;
+
+    inline static auto GetTransposes()
+    {
+        auto ret = std::array<ProblemTensorTransposeDescriptor<Problem, InvokeParams>, 2>{{
+            {
+                &Problem::GetXDesc,
+                &Problem::GetXDesc,
+                &InvokeParams::dxDesc,
+                {},
+                "NCDHW",
+                false,
+            },
+            {
+                &Problem::GetYDesc,
+                &Problem::GetYDesc,
+                &InvokeParams::dyDesc,
+                {&InvokeParams::dy},
+                "NCDHW",
+                true,
+            },
+        }};
+
+        // Before C++20 you can't aggregate initialize non-first union element
+        ret[0].as_output = &InvokeParams::dx;
+
+        return ret;
+    }
+};
+
+struct TransposedPoolingBwd2d : PoolingBwdNCHWTransposingSolver<PoolingBackward2d>
 {
     const std::string& SolverDbId() const override
     {
@@ -190,7 +228,7 @@ struct TransposedPoolingBwd2d : PoolingFwdNCHWTransposingSolver<PoolingBackward2
     }
 };
 
-struct TransposedPoolingBwdNd : PoolingFwdNCHWTransposingSolver<PoolingBackwardNd>
+struct TransposedPoolingBwdNd : PoolingBwdNCHWTransposingSolver<PoolingBackwardNd>
 {
     const std::string& SolverDbId() const override
     {

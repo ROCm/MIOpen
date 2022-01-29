@@ -45,7 +45,8 @@ bool PoolingBackwardNd::IsApplicable(const ExecutionContext&,
            (problem.GetPooling().GetMode() == miopenPoolingMax ||
             problem.GetPooling().GetMode() == miopenPoolingAverage ||
             problem.GetPooling().GetMode() == miopenPoolingAverageInclusive) &&
-           problem.GetXDesc().GetSize() == 5;
+           problem.GetXDesc().GetSize() == 5 && problem.GetXDesc().GetLayout("NCHW") == "NCHW" &&
+           problem.GetYDesc().GetLayout("NCHW") == "NCHW";
 }
 
 ConvSolution
