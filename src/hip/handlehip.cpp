@@ -66,24 +66,20 @@ namespace miopen {
 
 #if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30
 namespace {
-void toCallHipInit() __attribute__((constructor(1000)));
-void toCallHipInit() { hipInit(0); }
+static void toCallHipInit() __attribute__((constructor(1000)));
+static void toCallHipInit() { hipInit(0); }
 } // namespace
 #endif
 
 // Get current context
 // We leak resources for now as there is no hipCtxRetain API
-hipCtx_t get_ctx()
+static hipCtx_t get_ctx()
 {
     hipInit(0);
-    hipCtx_t ctx;
-    auto status = hipCtxGetCurrent(&ctx);
-    if(status != hipSuccess)
-        MIOPEN_THROW("No device");
-    return ctx;
+    return -1;
 }
 
-std::size_t GetAvailableMemory()
+static std::size_t GetAvailableMemory()
 {
     size_t free, total;
     auto status = hipMemGetInfo(&free, &total);
@@ -92,7 +88,7 @@ std::size_t GetAvailableMemory()
     return free;
 }
 
-void* default_allocator(void*, size_t sz)
+static void* default_allocator(void*, size_t sz)
 {
     if(sz > GetAvailableMemory())
         MIOPEN_THROW("Memory not available to allocate buffer: " + std::to_string(sz));
@@ -108,9 +104,9 @@ void* default_allocator(void*, size_t sz)
     return result;
 }
 
-void default_deallocator(void*, void* mem) { hipFree(mem); }
+static void default_deallocator(void*, void* mem) { hipFree(mem); }
 
-int get_device_id() // Get random device
+static int get_device_id() // Get random device
 {
     int device;
     auto status = hipGetDevice(&device);
@@ -119,21 +115,18 @@ int get_device_id() // Get random device
     return device;
 }
 
-void set_device(int id)
+static void set_device(int id)
 {
     auto status = hipSetDevice(id);
     if(status != hipSuccess)
         MIOPEN_THROW("Error setting device");
 }
 
-void set_ctx(hipCtx_t ctx)
+static void set_ctx(hipCtx_t ctx)
 {
-    auto status = hipCtxSetCurrent(ctx);
-    if(status != hipSuccess)
-        MIOPEN_THROW("Error setting context");
 }
 
-int set_default_device()
+static int set_default_device()
 {
     int n;
     auto status = hipGetDeviceCount(&n);
@@ -208,7 +201,7 @@ struct HandleImpl
     TargetProperties target_properties;
 };
 
-Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
+Handle::Handle(miopenAcceleratorQueue_t stream) : impl(std::make_unique<HandleImpl>())
 {
     this->impl->device = get_device_id();
     this->impl->ctx    = get_ctx();
@@ -227,7 +220,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
     MIOPEN_LOG_NQI(*this);
 }
 
-Handle::Handle() : impl(new HandleImpl())
+Handle::Handle() : impl(std::make_unique<HandleImpl>())
 {
 #if MIOPEN_BUILD_DEV
     this->impl->device = set_default_device();
