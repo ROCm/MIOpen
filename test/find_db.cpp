@@ -33,7 +33,6 @@
 #include <miopen/logger.hpp>
 #include <miopen/temp_file.hpp>
 #include <miopen/hip_build_utils.hpp>
-#include <miopen/target_properties.hpp>
 
 #include <chrono>
 #include <cstdlib>
@@ -230,11 +229,5 @@ int main(int argc, const char* argv[])
 {
     setenv("MIOPEN_LOG_LEVEL", "6", 1);              // NOLINT (concurrency-mt-unsafe)
     setenv("MIOPEN_COMPILE_PARALLEL_LEVEL", "1", 1); // NOLINT (concurrency-mt-unsafe)
-
-#if WORKAROUND_SWDEV_292187
-    setenv("MIOPEN_DEBUG_HIP_KERNELS", "1", 1);
-    setenv("MIOPEN_DEBUG_OPENCL_CONVOLUTIONS", "1", 1);
-#endif
-
     test_drive<miopen::FindDbTest>(argc, argv);
 }
