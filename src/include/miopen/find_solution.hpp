@@ -234,7 +234,7 @@ struct SolverContainer
     template <class Context>
     std::vector<std::pair<std::string, size_t>>
     GetWorkspaceSizes(const Context& search_params,
-                     std::size_t limit = std::numeric_limits<std::size_t>::max()) const
+                      std::size_t limit = std::numeric_limits<std::size_t>::max()) const
     {
         std::vector<std::pair<std::string, size_t>> res;
         const auto find_only = GetEnvFindOnlySolver();
@@ -327,10 +327,8 @@ struct SolverContainer
 
         const auto& sln = slns.front();
         if(!sln.invoker_factory)
-            MIOPEN_THROW(miopenStatusInternalError,
-                            "Invoker missing in solver " + sln.solver_id);
-        const auto invoker =
-            handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
+            MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
+        const auto invoker = handle.PrepareInvoker(*sln.invoker_factory, sln.construction_params);
         handle.RegisterInvoker(invoker, network_config, sln.solver_id, algo);
         invoker(handle, invoke_params);
     }
