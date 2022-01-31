@@ -64,22 +64,22 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
-#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30
 namespace {
-static void toCallHipInit() __attribute__((constructor(1000)));
-static void toCallHipInit() { hipInit(0); }
-} // namespace
+
+#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30
+void toCallHipInit() __attribute__((constructor(1000)));
+void toCallHipInit() { hipInit(0); }
 #endif
 
 // Get current context
 // We leak resources for now as there is no hipCtxRetain API
-static hipCtx_t get_ctx()
+hipCtx_t get_ctx()
 {
     hipInit(0);
     return nullptr;
 }
 
-static std::size_t GetAvailableMemory()
+std::size_t GetAvailableMemory()
 {
     size_t free, total;
     auto status = hipMemGetInfo(&free, &total);
@@ -88,7 +88,7 @@ static std::size_t GetAvailableMemory()
     return free;
 }
 
-static void* default_allocator(void*, size_t sz)
+void* default_allocator(void*, size_t sz)
 {
     if(sz > GetAvailableMemory())
         MIOPEN_THROW("Memory not available to allocate buffer: " + std::to_string(sz));
@@ -104,9 +104,9 @@ static void* default_allocator(void*, size_t sz)
     return result;
 }
 
-static void default_deallocator(void*, void* mem) { hipFree(mem); }
+void default_deallocator(void*, void* mem) { hipFree(mem); }
 
-static int get_device_id() // Get random device
+int get_device_id() // Get random device
 {
     int device;
     auto status = hipGetDevice(&device);
@@ -115,19 +115,19 @@ static int get_device_id() // Get random device
     return device;
 }
 
-static void set_device(int id)
+void set_device(int id)
 {
     auto status = hipSetDevice(id);
     if(status != hipSuccess)
         MIOPEN_THROW("Error setting device");
 }
 
-static void set_ctx(hipCtx_t ctx)
+void set_ctx(hipCtx_t ctx)
 {
     std::ignore = ctx;
 }
 
-static int set_default_device()
+int set_default_device()
 {
     int n;
     auto status = hipGetDeviceCount(&n);
@@ -139,6 +139,8 @@ static int set_default_device()
     set_device(pid % n);
     return (pid % n);
 }
+
+} // namespace
 
 struct HandleImpl
 {
