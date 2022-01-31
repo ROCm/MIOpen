@@ -76,7 +76,7 @@ static void toCallHipInit() { hipInit(0); }
 static hipCtx_t get_ctx()
 {
     hipInit(0);
-    return -1;
+    return nullptr;
 }
 
 static std::size_t GetAvailableMemory()
@@ -124,6 +124,7 @@ static void set_device(int id)
 
 static void set_ctx(hipCtx_t ctx)
 {
+    std::ignore = ctx;
 }
 
 static int set_default_device()
