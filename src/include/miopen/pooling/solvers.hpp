@@ -28,6 +28,10 @@
 
 #include <miopen/solver.hpp>
 
+#include <miopen/pooling/invoke_params.hpp>
+#include <miopen/pooling/problem_description.hpp>
+#include <miopen/utility/transposing_solver.hpp>
+
 #include <utility>
 
 namespace miopen {
@@ -43,40 +47,110 @@ namespace pooling {
 using OldStyleProblemDescription =
     std::tuple<const ExecutionContext*, const miopen::pooling::ProblemDescription*>;
 
-struct PoolingForward2d : public SolverBase<OldStyleProblemDescription>
+struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    // To suppress -Woverloaded-virtual
+    using SolverMixin<OldStyleProblemDescription>::GetWorkspaceSize;
+    using SolverMixin<OldStyleProblemDescription>::IsApplicable;
+
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
     {
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::pooling::ProblemDescription& problem) const;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::pooling::ProblemDescription& problem) const;
+    std::size_t GetWorkspaceSize(const OldStyleProblemDescription& problem) const override
+    {
+        return GetWorkspaceSize(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    virtual bool IsApplicable(const ExecutionContext& context,
+                              const miopen::pooling::ProblemDescription& problem) const        = 0;
+    virtual ConvSolution GetSolution(const ExecutionContext& context,
+                                     const miopen::pooling::ProblemDescription& problem) const = 0;
+    virtual std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::pooling::ProblemDescription& problem) const = 0;
 };
 
-struct PoolingForwardNd : public SolverBase<OldStyleProblemDescription>
+struct PoolingForward2d : OldStyleSolver
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
-    {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
-    {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
+    const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForward2d>(); }
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::pooling::ProblemDescription& problem) const;
+                      const miopen::pooling::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::pooling::ProblemDescription& problem) const;
+                             const miopen::pooling::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::pooling::ProblemDescription& problem) const override;
+};
+
+struct PoolingForwardNd : OldStyleSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForwardNd>(); }
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::pooling::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::pooling::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::pooling::ProblemDescription& problem) const override;
+};
+
+template <class Inner>
+struct PoolingFwdNCHWTransposingSolver : TransposingSolver<PoolingFwdNCHWTransposingSolver<Inner>,
+                                                           OldStyleSolver,
+                                                           miopen::pooling::ProblemDescription,
+                                                           miopen::pooling::FwdInvokeParams,
+                                                           Inner>
+{
+    using Problem      = miopen::pooling::ProblemDescription;
+    using InvokeParams = miopen::pooling::FwdInvokeParams;
+
+    inline static auto GetTransposes()
+    {
+        auto ret = std::array<ProblemTensorTransposeDescriptor<Problem, InvokeParams>, 2>{{
+            {
+                &Problem::GetXDesc,
+                &Problem::GetXDesc,
+                &InvokeParams::xDesc,
+                {&InvokeParams::x},
+                "NCDHW",
+                true,
+            },
+            {
+                &Problem::GetYDesc,
+                &Problem::GetYDesc,
+                &InvokeParams::yDesc,
+                {},
+                "NCDHW",
+                false,
+            },
+        }};
+
+        // Before C++20 you can't aggregate initialize non-first union element
+        ret[1].as_output = &InvokeParams::y;
+
+        return ret;
+    }
+};
+
+struct TransposedPoolingFwd2d : PoolingFwdNCHWTransposingSolver<PoolingForward2d>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<TransposedPoolingFwd2d>();
+    }
+};
+
+struct TransposedPoolingFwdNd : PoolingFwdNCHWTransposingSolver<PoolingForwardNd>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<TransposedPoolingFwdNd>();
+    }
 };
 
 } // namespace pooling

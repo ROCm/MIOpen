@@ -259,9 +259,9 @@ void ADNN_col2im_cpu(const Dtype* data_col,
     }
 }
 
-template <typename _T>
+template <typename T_>
 int mloConvForwarDirectOnHost(
-    _T padding_value,  // padding value
+    T_ padding_value,  // padding value
     int filter_size_h, // kernel 1 dim
     int pad_h,         // padding size
     int conv_stride_h, // scale factor
@@ -282,19 +282,19 @@ int mloConvForwarDirectOnHost(
     int bot_channel_stride,
     int bot_stride,
     int weights_stride,
-    const _T* bot_ptr, // input "tensor" - batch x channels (input images, feature maps, slices) x
+    const T_* bot_ptr, // input "tensor" - batch x channels (input images, feature maps, slices) x
                        // width x height
-    _T* top_ptr, // output "te4nsor"  - batch x channels (output images, feature maps, slices) x
+    T_* top_ptr, // output "te4nsor"  - batch x channels (output images, feature maps, slices) x
                  // width (scaled) x height (scaled)
-    const _T*
+    const T_*
         weights_ptr, // weights n output channels x n input channels x filter size_y x filter size_x
-    const _T* bias_ptr = NULL // bias, NULL if no bias
+    const T_* bias_ptr = NULL // bias, NULL if no bias
 )
 {
     int ret                   = 0;
-    const _T* run_bot_ptr     = bot_ptr;
-    _T* run_top_ptr           = top_ptr;
-    const _T* run_weights_ptr = weights_ptr;
+    const T_* run_bot_ptr     = bot_ptr;
+    T_* run_top_ptr           = top_ptr;
+    const T_* run_weights_ptr = weights_ptr;
 
     // over all batches
     for(int b = 0; b < n_batchs;
@@ -311,7 +311,7 @@ int mloConvForwarDirectOnHost(
                 for(int i = 0; i < top_width; i++)
                 {
                     // over all input channels
-                    _T accum = 0;
+                    T_ accum = 0;
                     for(int c = 0; c < n_inputs; c++)
                     {
                         // do convolution with kernel kernel_size x kerenl_size
@@ -323,7 +323,7 @@ int mloConvForwarDirectOnHost(
                             for(int k_i = 0; k_i < filter_size_w; k_i++)
                             {
                                 int in_x    = (i * conv_stride_w + k_i - pad_w);
-                                _T data_val = padding_value;
+                                T_ data_val = padding_value;
                                 if(!(in_y < 0 || in_x < 0 || in_y >= bot_height ||
                                      in_x >= bot_width))
                                 {
@@ -332,7 +332,7 @@ int mloConvForwarDirectOnHost(
                                     data_val = run_bot_ptr[in_data_off];
                                 }
 
-                                _T wei_val = run_weights_ptr[o * weights_stride +
+                                T_ wei_val = run_weights_ptr[o * weights_stride +
                                                              c * filter_size_h * filter_size_w +
                                                              k_j * filter_size_w + k_i];
 
@@ -351,7 +351,7 @@ int mloConvForwarDirectOnHost(
                         }
                     }
 
-                    _T final_val = (bias_ptr) ? accum + bias_ptr[o] : accum;
+                    T_ final_val = (bias_ptr) ? accum + bias_ptr[o] : accum;
                     run_top_ptr[o * top_channel_stride + j * top_stride + i] = final_val;
                 }
             }
@@ -361,16 +361,16 @@ int mloConvForwarDirectOnHost(
     return (ret);
 }
 
-template <typename _T>
+template <typename T_>
 int mloBackwardMMOnHost(int kernel_size_h,
                         int kernel_size_w,
                         int pad,
                         int stride,
-                        const _T* weights_ptr,
+                        const T_* weights_ptr,
                         int weights_height,
                         int weights_width,
                         int weights_stride,
-                        const _T* top_df_ptr,
+                        const T_* top_df_ptr,
                         int top_height,
                         int top_width,
                         int outputs,
@@ -378,7 +378,7 @@ int mloBackwardMMOnHost(int kernel_size_h,
                         int top_df_batch_stride,
                         int top_df_channel_stride,
                         int /*top_df_stride*/,
-                        _T* bot_df_ptr,
+                        T_* bot_df_ptr,
                         int bot_height,
                         int bot_width,
                         int inputs,
@@ -393,18 +393,18 @@ int mloBackwardMMOnHost(int kernel_size_h,
     int col_we_df_height    = weights_width; // - bias
     int col_we_batch_stride = col_we_df_width * col_we_df_height;
     int col_we_stride       = col_we_df_width;
-    _T* col_we_df_ptr       = new _T[col_we_batch_stride * batch_sz];
+    T_* col_we_df_ptr       = new T_[col_we_batch_stride * batch_sz];
 
     assert(col_we_df_ptr);
 
     for(int b = 0; b < batch_sz; ++b)
     {
-        ADNN_mm_cpu<_T>(weights_ptr,
+        ADNN_mm_cpu<T_>(weights_ptr,
                         weights_width,
                         weights_height,
                         weights_stride,
                         ADNN_MM_TRANSPOSE,
-                        &_T(&top_df_ptr[top_df_batch_stride * b]),
+                        &T_(&top_df_ptr[top_df_batch_stride * b]),
                         top_width * top_height,
                         outputs,
                         top_df_channel_stride,
@@ -417,7 +417,7 @@ int mloBackwardMMOnHost(int kernel_size_h,
                         1,
                         0); //- bias
 
-        ADNN_col2im_cpu<_T>(&col_we_df_ptr[col_we_batch_stride * b],
+        ADNN_col2im_cpu<T_>(&col_we_df_ptr[col_we_batch_stride * b],
                             inputs,
                             bot_height,
                             bot_width,
@@ -435,9 +435,9 @@ int mloBackwardMMOnHost(int kernel_size_h,
     return (0);
 }
 
-template <typename _T>
+template <typename T_>
 int mloBackwardDirectOnHost(
-    _T /*padding_value*/, // padding value
+    T_ /*padding_value*/, // padding value
     // TO DO: check top, bot dim are equal
     int filter_size_h, // kernel 1 dim
     int pad_h,         // padding size
@@ -459,18 +459,18 @@ int mloBackwardDirectOnHost(
     int bot_channel_stride,
     int bot_stride,
     int weights_stride,
-    _T* bot_ptr, // input "tensor" - batch x channels (input images, feature maps, slices) x width x
+    T_* bot_ptr, // input "tensor" - batch x channels (input images, feature maps, slices) x width x
                  // height
-    const _T* top_ptr, // output "te4nsor"  - batch x channels (output images, feature maps, slices)
+    const T_* top_ptr, // output "te4nsor"  - batch x channels (output images, feature maps, slices)
                        // x width (scaled) x height (scaled)
-    const _T*
+    const T_*
         weights_ptr // weights n output channels x n input channels x filter size_y x filter size_x
 )
 {
     int ret                   = 0;
-    _T* run_bot_ptr           = bot_ptr;
-    const _T* run_top_ptr     = top_ptr;
-    const _T* run_weights_ptr = weights_ptr;
+    T_* run_bot_ptr           = bot_ptr;
+    const T_* run_top_ptr     = top_ptr;
+    const T_* run_weights_ptr = weights_ptr;
 
     // over all batches
     for(int b = 0; b < n_batchs;
@@ -491,9 +491,9 @@ int mloBackwardDirectOnHost(
                     {
 
                         int out_data_off = o * top_channel_stride + j * top_stride + i;
-                        _T data_val      = run_top_ptr[out_data_off];
+                        T_ data_val      = run_top_ptr[out_data_off];
                         // over all input channels
-                        _T accum = 0;
+                        T_ accum = 0;
                         // do convolution with kernel kernel_size x kerenl_size
                         // with padding - left, right, top, bottom = pad, and value = 0
                         for(int k_j = 0; k_j < filter_size_h; ++k_j)
@@ -507,7 +507,7 @@ int mloBackwardDirectOnHost(
                                 if(!(bot_y < 0 || bot_x < 0 || bot_y >= bot_height ||
                                      bot_x >= bot_width))
                                 {
-                                    _T wei_val = run_weights_ptr[o * weights_stride +
+                                    T_ wei_val = run_weights_ptr[o * weights_stride +
                                                                  c * filter_size_h * filter_size_w +
                                                                  k_j * filter_size_w + k_i];
 
@@ -543,12 +543,12 @@ int mloBackwardDirectOnHost(
     return (ret);
 }
 
-template <typename _T>
+template <typename T_>
 void mloPrepad(int o,
                int c,
                int j,
                int i,
-               _T padding_value, // padding value
+               T_ padding_value, // padding value
                int pad_w,        // padding size
                int pad_h,        // padding size
                int bot_batch_stride,
@@ -561,8 +561,8 @@ void mloPrepad(int o,
                int new_bot_stride,
                int /*new_bot_height*/,
                int /*new_bot_width*/,
-               _T* new_bot_ptr,
-               const _T* bot_ptr // input "tensor" - batch x channels (input images, feature maps,
+               T_* new_bot_ptr,
+               const T_* bot_ptr // input "tensor" - batch x channels (input images, feature maps,
                                  // slices) x width x height
 )
 {
@@ -581,8 +581,8 @@ void mloPrepad(int o,
     }
 }
 
-template <typename _T>
-int mloDirectSPHostPrepad(_T padding_value, // padding value
+template <typename T_>
+int mloDirectSPHostPrepad(T_ padding_value, // padding value
                           int pad_w,        // padding size
                           int pad_h,        // padding size
                           int n_batchs,
@@ -597,8 +597,8 @@ int mloDirectSPHostPrepad(_T padding_value, // padding value
                           int new_bot_stride,
                           int new_bot_height,
                           int new_bot_width,
-                          _T* new_bot_ptr,
-                          const _T* bot_ptr // input "tensor" - batch x channels (input images,
+                          T_* new_bot_ptr,
+                          const T_* bot_ptr // input "tensor" - batch x channels (input images,
                                             // feature maps, slices) x width x height
 )
 {
@@ -611,7 +611,7 @@ int mloDirectSPHostPrepad(_T padding_value, // padding value
             {
                 for(int i = 0; i < new_bot_width; ++i)
                 {
-                    mloPrepad<_T>(o,
+                    mloPrepad<T_>(o,
                                   c,
                                   j,
                                   i,
@@ -647,7 +647,7 @@ n inputs
                 rows 3 * n output tiles
 */
 
-template <typename _T>
+template <typename T_>
 void mloInterleavelWeightsInOutputs(int c,
                                     int o_block,
                                     int o,
@@ -658,8 +658,8 @@ void mloInterleavelWeightsInOutputs(int c,
                                     int n_outputs,
                                     int MLO_N_OUT_TILES,
                                     int n_inputs,
-                                    const _T* wei_ptr,
-                                    _T* new_wei_ptr)
+                                    const T_* wei_ptr,
+                                    T_* new_wei_ptr)
 {
     int src_off = (o_block * MLO_N_OUT_TILES + o) * n_inputs * filter_size_h * filter_size_w +
                   c * filter_size_h * filter_size_w + k_j * filter_size_w + k_i;
@@ -669,15 +669,15 @@ void mloInterleavelWeightsInOutputs(int c,
     new_wei_ptr[dst_off] = wei_ptr[src_off];
 }
 
-template <typename _T>
+template <typename T_>
 void mloDirectSPHostIntlWeights(bool forward,      // forwad = 1, backward = 0
                                 int filter_size_w, // kernel 1 dim
                                 int filter_size_h, // kernel 1 dim
                                 int n_outputs,
                                 int n_inputs,
                                 int MLO_N_OUT_TILES,
-                                const _T* wei_ptr,
-                                _T* new_wei_ptr)
+                                const T_* wei_ptr,
+                                T_* new_wei_ptr)
 {
     if(forward)
     {
@@ -716,7 +716,7 @@ void mloDirectSPHostIntlWeights(bool forward,      // forwad = 1, backward = 0
     }
 }
 
-template <typename _T>
+template <typename T_>
 int mloDirectSPConvHost5x5(int MLO_GRP_SZ1,
                            int MLO_GRP_SZ0,
                            int MLO_OUT_TILE1,
@@ -737,14 +737,14 @@ int mloDirectSPConvHost5x5(int MLO_GRP_SZ1,
                            int MLO_BOT_STRIDE,
                            int /*MLO_BOT_HEIGHT*/,
                            int /*MLO_BOT_WIDTH*/,
-                           const _T* bot_ptr, // input "tensor" - batch x channels (input images,
+                           const T_* bot_ptr, // input "tensor" - batch x channels (input images,
                                               // feature maps, slices) x width x height
                            // interleaved weights
-                           const _T* wei_ptr, // weights n output channels x n input channels x
+                           const T_* wei_ptr, // weights n output channels x n input channels x
                                               // filter size_y x filter size_x
-                           _T* top_ptr, // output "te4nsor"  - batch x channels (output images,
+                           T_* top_ptr, // output "te4nsor"  - batch x channels (output images,
                                         // feature maps, slices) x width (scaled) x height (scaled)
-                           const _T* /*bias_ptr = NULL*/ // bias, NULL if no bias
+                           const T_* /*bias_ptr = NULL*/ // bias, NULL if no bias
 
 )
 {
@@ -753,9 +753,9 @@ int mloDirectSPConvHost5x5(int MLO_GRP_SZ1,
     int i_loops = (MLO_TOP_WIDTH + MLO_GRP_SZ0 * MLO_OUT_TILE0 - 1) / (MLO_GRP_SZ0 * MLO_OUT_TILE0);
     int o_loops = (MLO_N_OUTPUTS + MLO_N_OUT_TILES - 1) / MLO_N_OUT_TILES;
 
-    _T* bot_stage = new _T[MLO_OUT_TILE1 * (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1)];
-    _T* wei_stage = new _T[MLO_FILTER_SIZE1];
-    _T* out_tiles = new _T[MLO_OUT_TILE1 * MLO_OUT_TILE0 * MLO_N_OUT_TILES];
+    T_* bot_stage = new T_[MLO_OUT_TILE1 * (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1)];
+    T_* wei_stage = new T_[MLO_FILTER_SIZE1];
+    T_* out_tiles = new T_[MLO_OUT_TILE1 * MLO_OUT_TILE0 * MLO_N_OUT_TILES];
 
     for(int g2 = 0; g2 < o_loops * MLO_N_BATCHS; ++g2)
     {
@@ -906,7 +906,7 @@ int mloDirectSPConvHost5x5(int MLO_GRP_SZ1,
     return (0);
 }
 
-template <typename _T>
+template <typename T_>
 int mloDirectSPHost(
 
     int MLO_SPC_GRP1,
@@ -917,7 +917,7 @@ int mloDirectSPHost(
 
     bool forward,
     bool do_input_copy,
-    _T padding_value, // padding value
+    T_ padding_value, // padding value
     // TO DO: check top, bot dim are equal
     int filter_size_w,     // kernel 1 dim
     int pad_w,             // padding size
@@ -943,23 +943,23 @@ int mloDirectSPHost(
     int new_bot_stride,
     int new_bot_height,
     int new_bot_width,
-    _T* new_bot_ptr,
-    const _T* bot_ptr, // input "tensor" - batch x channels (input images, feature maps, slices) x
+    T_* new_bot_ptr,
+    const T_* bot_ptr, // input "tensor" - batch x channels (input images, feature maps, slices) x
                        // width x height
 
-    const _T*
+    const T_*
         wei_ptr, // weights n output channels x n input channels x filter size_y x filter size_x
-    _T* new_wei_ptr,
-    _T* top_ptr, // output "te4nsor"  - batch x channels (output images, feature maps, slices) x
+    T_* new_wei_ptr,
+    T_* top_ptr, // output "te4nsor"  - batch x channels (output images, feature maps, slices) x
                  // width (scaled) x height (scaled)
-    const _T* bias_ptr = NULL // bias, NULL if no bias
+    const T_* bias_ptr = NULL // bias, NULL if no bias
 
 )
 {
     int ret = 0;
     if(do_input_copy)
     {
-        mloDirectSPHostPrepad<_T>(padding_value, // padding value
+        mloDirectSPHostPrepad<T_>(padding_value, // padding value
                                   pad_w,         // padding size
                                   pad_h,         // padding size
                                   n_batchs,
@@ -980,7 +980,7 @@ int mloDirectSPHost(
         );
     }
 
-    mloDirectSPHostIntlWeights<_T>(forward,       // forwad = 1, backward = 0
+    mloDirectSPHostIntlWeights<T_>(forward,       // forwad = 1, backward = 0
                                    filter_size_w, // kernel 1 dim
                                    filter_size_h, // kernel 1 dim
                                    n_outputs,
@@ -989,7 +989,7 @@ int mloDirectSPHost(
                                    wei_ptr,
                                    new_wei_ptr);
 
-    mloDirectSPConvHost5x5<_T>(MLO_SPC_GRP1,
+    mloDirectSPConvHost5x5<T_>(MLO_SPC_GRP1,
                                MLO_SPC_GRP0,
                                MLO_OUT_TILE1,
                                MLO_OUT_TILE0,
@@ -1020,8 +1020,8 @@ int mloDirectSPHost(
 
 #endif // disable functions
 
-template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
-          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
+template <typename Tgpu_ /* the data type used in GPU computations (usually half) */,
+          typename Tcheck_ /* the data type used in CPU checkings (usually double) */>
 bool mloVerify(int spatial_dim,
                int n_batchs,
                int n_channels,
@@ -1036,11 +1036,11 @@ bool mloVerify(int spatial_dim,
                int g_channel_stride,
                int g_depth_stride,
                int g_stride,
-               const _Tcheck* c_ptr,
-               const _Tgpu* g_ptr,
-               _Tcheck eps,
-               _Tcheck max_abs_diff,
-               _Tcheck max_sqr,
+               const Tcheck_* c_ptr,
+               const Tgpu_* g_ptr,
+               Tcheck_ eps,
+               Tcheck_ max_abs_diff,
+               Tcheck_ max_sqr,
                bool get_error_pos
                //	int dir,
                //	std::string name
@@ -1048,10 +1048,10 @@ bool mloVerify(int spatial_dim,
 
 {
 
-    _Tcheck sqr_accum = static_cast<_Tcheck>(0);
-    _Tcheck c_val_err = static_cast<_Tcheck>(0);
-    _Tcheck g_val_err = static_cast<_Tcheck>(0);
-    _Tcheck max_err   = max_abs_diff;
+    Tcheck_ sqr_accum = static_cast<Tcheck_>(0);
+    Tcheck_ c_val_err = static_cast<Tcheck_>(0);
+    Tcheck_ g_val_err = static_cast<Tcheck_>(0);
+    Tcheck_ max_err   = max_abs_diff;
     int max_b = 0, max_c = 0, max_i = 0, max_j = 0, max_k = 0;
 
     for(int b = 0; b < n_batchs; ++b)
@@ -1064,14 +1064,14 @@ bool mloVerify(int spatial_dim,
                 {
                     for(int i = 0; i < width; ++i)
                     {
-                        _Tcheck c_val = c_ptr[b * c_batch_stride + c * c_channel_stride +
+                        Tcheck_ c_val = c_ptr[b * c_batch_stride + c * c_channel_stride +
                                               k * c_depth_stride + j * c_stride + i];
-                        _Tcheck g_val =
-                            static_cast<_Tcheck>(g_ptr[b * g_batch_stride + c * g_channel_stride +
+                        Tcheck_ g_val =
+                            static_cast<Tcheck_>(g_ptr[b * g_batch_stride + c * g_channel_stride +
                                                        k * g_depth_stride + j * g_stride + i]);
 
                         sqr_accum += (c_val - g_val) * (c_val - g_val);
-                        _Tcheck err = std::abs(c_val - static_cast<_Tcheck>(g_val));
+                        Tcheck_ err = std::abs(c_val - static_cast<Tcheck_>(g_val));
                         if(err > max_err)
                         {
                             max_err   = err;
@@ -1090,7 +1090,7 @@ bool mloVerify(int spatial_dim,
     }
 
     sqr_accum = std::sqrt(sqr_accum /
-                          (static_cast<_Tcheck>(n_batchs * n_channels * depth * height * width)));
+                          (static_cast<Tcheck_>(n_batchs * n_channels * depth * height * width)));
 
     bool match = true;
 
@@ -1120,13 +1120,13 @@ bool mloVerify(int spatial_dim,
                         {
                             for(int i = 0; i < width && match; ++i)
                             {
-                                _Tcheck c_val = c_ptr[b * c_batch_stride + c * c_channel_stride +
+                                Tcheck_ c_val = c_ptr[b * c_batch_stride + c * c_channel_stride +
                                                       k * c_depth_stride + j * c_stride + i];
-                                _Tcheck g_val = static_cast<_Tcheck>(
+                                Tcheck_ g_val = static_cast<Tcheck_>(
                                     g_ptr[b * g_batch_stride + c * g_channel_stride +
                                           k * g_depth_stride + j * g_stride + i]);
 
-                                _Tcheck err = CalcErr<_Tcheck>(c_val, g_val);
+                                Tcheck_ err = CalcErr<Tcheck_>(c_val, g_val);
                                 if((err > eps && std::abs(c_val - g_val) > max_abs_diff) ||
                                    std::isnan(c_val) || std::isnan(g_val) ||
                                    !std::isfinite(c_val) || !std::isfinite(g_val))
