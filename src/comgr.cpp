@@ -1272,7 +1272,7 @@ void BuildHip(const std::string& name,
     catch(Error& ex)
     {
         binary.resize(0);
-        MIOPEN_LOG_E("HIPRTC status = " << GetStatusText(ex.status));
+        MIOPEN_LOG_E("HIPRTC status = " << GetStatusText(ex.status) << ", source file: " << name);
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
     }
