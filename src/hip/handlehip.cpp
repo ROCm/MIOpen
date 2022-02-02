@@ -175,10 +175,10 @@ struct HandleImpl
     void set_ctx() const
     {
         miopen::set_ctx(this->ctx);
-        // miopen::set_device(this->device);
+        miopen::set_device(this->device);
         // Check device matches
-        if(this->device != get_device_id())
-            MIOPEN_THROW("Running handle on wrong device");
+        //if(this->device != get_device_id())
+        //    MIOPEN_THROW("Running handle on wrong device");
     }
 
     std::string get_device_name() const
