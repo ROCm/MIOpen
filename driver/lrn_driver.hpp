@@ -474,7 +474,7 @@ int LRNDriver<Tgpu, Tref>::VerifyForward()
 
     auto error           = miopen::rms_range(outhost, out);
     const Tref tolerance = 1.5e-4; // 1e-6;
-    if(error > tolerance)
+    if(!(error < tolerance))
     {
         std::cout << "Forward LRN Failed: " << error << "\n";
     }
@@ -569,7 +569,7 @@ int LRNDriver<Tgpu, Tref>::VerifyBackward()
 
     auto error           = miopen::rms_range(dinhost, din);
     const Tref tolerance = 6.0e-5;
-    if(error > tolerance)
+    if(!(error < tolerance))
     {
         std::cout << "Backward LRN Failed: " << error << "\n";
     }

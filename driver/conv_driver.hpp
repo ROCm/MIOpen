@@ -3287,7 +3287,7 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
     if(is_fwd_igemm)
         tolerance = tolerance * 10;
 
-    if(error > tolerance)
+    if(!(error < tolerance))
     {
         std::cout << "Forward Convolution Failed: " << error << " > " << tolerance << std::endl;
         return EC_VerifyFwd;
