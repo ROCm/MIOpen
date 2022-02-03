@@ -326,7 +326,7 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 static std::string GetIsaName(const miopen::TargetProperties& target, const bool isHlcBuild)
 {
 #if ROCM_FEATURE_TARGETID_OFF
-    std::ignore = isHlcBuild;
+    std::ignore                  = isHlcBuild;
     const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? "+sram-ecc" : "";
     return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
 #else
