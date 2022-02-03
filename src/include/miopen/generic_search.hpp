@@ -329,7 +329,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
     const int n_runs_total = useSpare ? spare_size : main_size;
     MIOPEN_LOG_W(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
-                               << (useSpare ? " (spare)" : "") << "...");
+                                << (useSpare ? " (spare)" : "") << "...");
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
