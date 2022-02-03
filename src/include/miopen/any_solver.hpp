@@ -91,6 +91,12 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->FindSolution(ctx, db, invoke_ctx);
     };
+    const std::string GetPerfCfgParams(const ConvolutionContext& ctx,
+                                  Db& db) const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->GetPerfCfgParams(ctx, db);
+    };
     std::string GetSolverDbId() const
     {
         assert(ptr_value != nullptr);
@@ -108,7 +114,7 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->MayNeedWorkspace();
     }
-
+    
     // virtual base class
     struct AnySolver_base
     {
@@ -126,6 +132,8 @@ struct AnySolver
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx,
                                           Db& db,
                                           const miopen::AnyInvokeParams& invoke_ctx) const = 0;
+        virtual const std::string GetPerfCfgParams(const ConvolutionContext& ctx,
+                                          Db& db) const = 0;
         virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const               = 0;
         virtual bool MayNeedWorkspace() const                                              = 0;
     };
@@ -136,16 +144,17 @@ struct AnySolver
     {
         struct TunableSolver
         {
+            template <typename U>
+            static constexpr auto Test(U*) ->
             /*
-            template <typename U>
-            static constexpr auto Test(U*) ->
-                typename std::is_class<decltype(std::declval<U>().GetPerformanceConfig(
-                    std::declval<const ConvolutionContext&>()))>::type;
+                typename std::is_class< 
+                decltype(
+                    std::declval<U>().GetPerformanceConfig(std::declval<const ConvolutionContext&>())
+                    std::declval<U>().Search(const ConvolutionContext&,
+                                          const AnyInvokeParams& invoke_ctx)
+                        )
+                >::type;
             */
-	    /*
-            */
-            template <typename U>
-            static constexpr auto Test(U*) ->
                 typename std::is_same<ConvSolution, 
 	            decltype(
 		        std::declval<U>().GetSolution(std::declval<const ConvolutionContext&>(),
@@ -162,39 +171,71 @@ struct AnySolver
             static constexpr bool Is = type::value;
         };
 
-        bool TestSysDbRecord(const DbRecord& record, std::true_type) const
+        struct LegacySolver
+        {
+            template <typename U>
+            static constexpr auto Test(U*) ->
+                typename std::is_same<ConvSolution, 
+	            decltype(
+		        std::declval<U>().GetSolution(std::declval<const ConvolutionContext&>(),
+                             std::declval<const LegacyPerformanceConfig&>())
+                )
+                >::type;
+
+            template <typename U>
+            static constexpr std::false_type Test(...);
+
+            using type               = decltype(Test<T>(nullptr));
+            static constexpr bool Is = type::value;
+        };
+
+
+        bool TestSysDbRecord_(const DbRecord& record, std::true_type) const
         {
             using PerformanceConfig =
                 decltype(value.GetPerformanceConfig(std::declval<const ConvolutionContext&>()));
             PerformanceConfig config{};
             return record.GetValues(SolverDbId(value), config);
         }
-        bool TestSysDbRecord(const DbRecord& record, std::false_type) const
+        bool TestSysDbRecord_(const DbRecord& record, std::false_type) const
         {
-            (void)(record);
+            std::ignore = record;
             return false;
         }
 
         bool TestSysDbRecord(const DbRecord& record) const override
         {
-            return TestSysDbRecord(record, std::integral_constant<bool, TunableSolver::Is>());
+            return TestSysDbRecord_(record, std::integral_constant<bool, TunableSolver::Is>());
+        }
+
+
+        std::vector<ConvSolution> GetAllSolutions_blegacy_(const ConvolutionContext& ctx, std::true_type) const
+        {
+            std::vector<ConvSolution> solutions;
+	        solutions.push_back(value.GetSolution(ctx, value.GetPerformanceConfig(ctx)));
+            return solutions;
+        }
+        std::vector<ConvSolution> GetAllSolutions_blegacy_(const ConvolutionContext& ctx, std::false_type) const
+        {
+            std::vector<ConvSolution> solutions;
+	        solutions.push_back(value.GetSolution(ctx));
+            return solutions;
         }
 
         std::vector<ConvSolution> GetAllSolutions_(const ConvolutionContext& ctx, std::true_type) const
         {
-	    return miopen::solver::GetAllSolutions(value, ctx);
+	        return miopen::solver::GetAllSolutions(value, ctx);
         }
         std::vector<ConvSolution> GetAllSolutions_(const ConvolutionContext& ctx, std::false_type) const
         {
-            std::ignore = ctx;
-            std::vector<ConvSolution> solutions;
-            return solutions;
+            return GetAllSolutions_blegacy_(ctx, std::integral_constant<bool, LegacySolver::Is>());
         }
 
         std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const override
         {
-            return GetAllSolutions_( ctx, std::integral_constant<bool, TunableSolver::Is>() );
+            return GetAllSolutions_(ctx, std::integral_constant<bool, TunableSolver::Is>());
         }
+
 
         AnySolver_tmpl(T obj) : value(std::move(obj)){};
         bool IsApplicable(const ConvolutionContext& ctx) const override
@@ -205,12 +246,49 @@ struct AnySolver
 
         bool IsDynamic() const override { return value.IsDynamic(); }
         float GetWti(const ConvolutionContext& ctx) const override { return value.GetWti(ctx); }
+
         ConvSolution FindSolution(const ConvolutionContext& ctx,
                                   Db& db,
                                   const miopen::AnyInvokeParams& invoke_ctx) const override
         {
             return miopen::solver::FindSolution(value, ctx, db, invoke_ctx);
         };
+
+
+        const std::string GetPerfCfgParams_(const ConvolutionContext& ctx,
+                                             Db& db,
+                                             std::true_type) const 
+        {
+            using PerformanceConfig = decltype(value.GetPerformanceConfig(ctx));
+            PerformanceConfig config{};
+            if(db.Load(ctx, miopen::solver::SolverDbId(value), config))
+            {
+                MIOPEN_LOG_I2("Perf Db: record loaded: " << miopen::solver::SolverDbId(value));
+                if(value.IsValidPerformanceConfig(ctx, config))
+                {
+                    std::ostringstream ss;
+                    config.Serialize(ss);
+                    return ss.str();
+                }
+            }
+            return "";
+        }
+        const std::string GetPerfCfgParams_(const ConvolutionContext& ctx,
+                                             Db& db,
+                                             std::false_type) const 
+        {
+            std::ignore = ctx;
+            std::ignore = db;
+            return "";
+        }
+
+        const std::string GetPerfCfgParams(const ConvolutionContext& ctx,
+                                        Db& db) const override 
+        {
+            return GetPerfCfgParams_(ctx, db, std::integral_constant<bool, TunableSolver::Is>());
+        }
+
+
         size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
         {
             return value.GetWorkspaceSize(ctx);
