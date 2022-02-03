@@ -45,7 +45,7 @@
 #define MIO_LAYOUT_NHWC 0
 #endif
 
-#if (MIO_LAYOUT_NHWC != 0) && (MIO_LAYOUT_NHWC != 1)
+#if(MIO_LAYOUT_NHWC != 0) && (MIO_LAYOUT_NHWC != 1)
 #error "MIO_LAYOUT_NHWC must be 0 or 1"
 #endif
 
@@ -77,7 +77,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
-                               )
+)
 {
 
     // SPATIAL
@@ -231,7 +231,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
-                               )
+)
 {
 
     // SPATIAL
@@ -308,7 +308,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #if MIO_LAYOUT_NHWC
         index           = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
-        index           = nidx * MIO_BN_CHW + chwid + hwidx;
+        index = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
         _FLOAT_PREC xin = (_FLOAT_PREC)(*(in + index));
         mean += xin;
@@ -323,7 +323,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #if MIO_LAYOUT_NHWC
         index               = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
-        index               = nidx * MIO_BN_CHW + chwid + hwidx;
+        index = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
         _FLOAT_PREC xin = (index < MIO_BN_NCHW) ? (_FLOAT_PREC)(*(in + index)) : (_FLOAT_PREC)0.;
         mean += xin;
@@ -357,9 +357,9 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #if(MIO_LAYOUT_NHWC || MIO_BN_REM == 0)
     const unsigned int k_limit =
 #if MIO_LAYOUT_NHWC
-                                                                     MIO_BN_NHW;
+        MIO_BN_NHW;
 #else
-                                                                     MIO_BN_LESS;
+        MIO_BN_LESS;
 #endif
     __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid; k < k_limit; k += MIO_BN_GRP0)
     {
@@ -512,7 +512,7 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
     ,
     __global _FLOAT* __restrict resultSaveInvVariance
 #endif
-    )
+)
 {
     _FLOAT variance             = (_FLOAT)0.;
     _FLOAT invVariance          = (_FLOAT)0.;
@@ -647,7 +647,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
-                               )
+)
 {
 
     // SPATIAL

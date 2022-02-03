@@ -366,14 +366,14 @@ pipeline {
                 stage('Clang Format') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        execute_cmd = "find . -iname \'*.h\' \
+                        execute_cmd = "find .. -iname \'*.h\' \
                                 -o -iname \'*.hpp\' \
                                 -o -iname \'*.cpp\' \
                                 -o -iname \'*.h.in\' \
                                 -o -iname \'*.hpp.in\' \
                                 -o -iname \'*.cpp.in\' \
                                 -o -iname \'*.cl\' \
-                                | grep -v 'build/' \
+                                | grep -v -E '(build/)|(install/)' \
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-10 -style=file {} | diff - {}\'"
                     }
                     steps{

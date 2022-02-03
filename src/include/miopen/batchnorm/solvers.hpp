@@ -206,10 +206,7 @@ struct BnFwdInference : OldStyleSolver
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<BnFwdInference>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<BnFwdInference>(); }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
