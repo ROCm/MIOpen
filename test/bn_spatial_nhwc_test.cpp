@@ -167,9 +167,9 @@ struct verify_forward_train_bn_spatial
             saveMean(0, 0, 0, cidx)   = mean_accum;
             saveInvVar(0, 0, 0, cidx) = invVar;
 
-            newRunMean = runMean(0, 0, 0, cidx) * (1 - expAvgFactor);
+            newRunMean             = runMean(0, 0, 0, cidx) * (1 - expAvgFactor);
             runMean(0, 0, 0, cidx) = mean_accum * expAvgFactor + newRunMean;
-            adjust = (n_batch * height * width == 1) ? variance_accum
+            adjust                 = (n_batch * height * width == 1) ? variance_accum
                                                      : (nhw / (nhw - 1)) * variance_accum;
             runVar(0, 0, 0, cidx) =
                 (1 - expAvgFactor) * runVar(0, 0, 0, cidx) + expAvgFactor * adjust;
@@ -397,8 +397,8 @@ struct verify_backward_bn_spatial_recalc
 
                         double tmp1 =
                             nhw * dy_input(bidx, cidx, row, column) - dshift(0, cidx, 0, 0);
-                        double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
-                        double tmp3 = (scale(0, 0, 0, cidx) * invVar) / nhw;
+                        double tmp2                     = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
+                        double tmp3                     = (scale(0, 0, 0, cidx) * invVar) / nhw;
                         dx_out(bidx, cidx, row, column) = tmp3 * (tmp2 + tmp1);
                     }
                 }
@@ -564,8 +564,8 @@ struct verify_backward_bn_spatial_use_saved
 
                         double tmp1 =
                             nhw * dy_input(bidx, cidx, row, column) - dshift(0, cidx, 0, 0);
-                        double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
-                        double tmp3 = (scale(0, 0, 0, cidx) * invVar) / nhw;
+                        double tmp2                     = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
+                        double tmp3                     = (scale(0, 0, 0, cidx) * invVar) / nhw;
                         dx_out(bidx, cidx, row, column) = tmp3 * (tmp2 + tmp1);
                     }
                 }
@@ -679,7 +679,7 @@ struct batch_norm_spatial_nhwc_driver : test_driver
         std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
 
         std::size_t ssn, ssc, ssh, ssw;
-        auto derivedBnDesc = miopen::TensorDescriptor(input.desc.GetType(),
+        auto derivedBnDesc           = miopen::TensorDescriptor(input.desc.GetType(),
                                                       std::vector<std::size_t>{1, 1, 1, c},
                                                       std::vector<std::size_t>{c, c, c, 1});
         std::tie(ssn, ssh, ssw, ssc) = miopen::tien<4>(derivedBnDesc.GetLengths());
