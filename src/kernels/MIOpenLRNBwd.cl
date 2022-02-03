@@ -161,6 +161,7 @@ MIOpenLRNWithinChannelBwd(const __global _FLOAT* top,
         }
     }
 
+    barrier(CLK_LOCAL_MEM_FENCE);
     // read top and load ratio tile
     int top_off = b * MLO_LRN_TOP_BATCH_STRIDE + o * MLO_LRN_TOP_CHANNEL_STRIDE;
     for(int b_j = lcl_id1; b_j < MLO_LRN_LCL_DATA_HEIGHT; b_j += MLO_LRN_GROUP_SZ1)
