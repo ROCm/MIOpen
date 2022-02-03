@@ -163,7 +163,10 @@
 #define MLO_PADDING_FIX0 (MLO_FILTER_SIZE0 % MLO_OUT_TILE0)
 
 #if defined(__AMDGCN__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-identifier"
 extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane");
+#pragma clang diagnostic pop // "-Wreserved-identifier"
 #define uniform(x) __llvm_amdgcn_readfirstlane(x)
 #else
 #define uniform(x) (x)

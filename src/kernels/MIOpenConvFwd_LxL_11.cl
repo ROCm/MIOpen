@@ -87,7 +87,10 @@
 #define MLO_HW_WAVE_ID_SETTING 1
 
 #if defined(__AMDGCN__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-identifier"
 extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane");
+#pragma clang diagnostic pop // "-Wreserved-identifier"
 #define uniform(x) __llvm_amdgcn_readfirstlane(x)
 #else
 #define uniform(x) (x)
