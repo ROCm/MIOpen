@@ -63,14 +63,14 @@ class FindEnforce
 {
     FindEnforceAction action;
 
-    private:
+private:
     template <class Context>
     bool IsEnabled(const Context& context) const
     {
         return !(context.disable_search_enforce || debug::FindEnforceDisable);
     }
 
-    public:
+public:
     FindEnforce();
 
     template <class Context>
@@ -107,7 +107,7 @@ boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolver();
 
 class FindMode
 {
-    public:
+public:
     enum class Values
     {
         Begin_ = 1, // 0 is returned for non-numeric env.vars.
@@ -120,7 +120,7 @@ class FindMode
         Default_ = MIOPEN_DEFAULT_FIND_MODE,
     };
 
-    private:
+private:
     Values value;
 
     template <class Context>
@@ -134,7 +134,7 @@ class FindMode
         return true;
     }
 
-    public:
+public:
     FindMode();
     Values Get() const { return value; }
     void Set(Values const v) { value = v; }

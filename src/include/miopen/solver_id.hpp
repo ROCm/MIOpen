@@ -77,7 +77,7 @@ struct Id
     }
     bool operator!=(const Id& other) const { return !(*this == other); }
 
-    private:
+private:
     uint64_t value = invalid_value;
     bool is_valid  = false;
 };

@@ -119,7 +119,7 @@ struct NativeTensorCoordinate
         return true;
     }
 
-    private:
+private:
     // mIndex may be saved and updated, however, the value of some (or all) of its entries may
     //   never be used. Compiler should be able to remove these entries as well as its calculation
     //   as dead code.
@@ -251,7 +251,7 @@ struct TransformedTensorCoordinate
                GetLowerCoordinate().IsOffsetValidAssumingUpperIndexIsValid();
     }
 
-    private:
+private:
     // mIndexUp may be calculated and updated, however, the value of some (or all) of its entries
     // may
     //   never be used. Compiler should be able to remove these entries as well as its calculation
@@ -264,7 +264,7 @@ struct TransformedTensorCoordinate
 template <typename TensorDesc>
 struct TensorCoordinate
 {
-    private:
+private:
     template <typename... Ts>
     __host__ __device__ static constexpr auto
         MakeDummyTensorCoordinate(NativeTensorDescriptor<Ts...>)
@@ -281,7 +281,7 @@ struct TensorCoordinate
             make_zero_array<index_t, TensorDesc::GetNumOfDimension()>());
     }
 
-    public:
+public:
     using type = decltype(MakeDummyTensorCoordinate(TensorDesc{}));
 };
 

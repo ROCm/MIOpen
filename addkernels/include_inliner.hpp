@@ -33,19 +33,19 @@
 
 class InlineException : public std::exception
 {
-    public:
+public:
     InlineException(const std::string& trace) : _trace(trace) {}
 
     virtual std::string What() const = 0;
     const std::string& GetTrace() const { return _trace; }
 
-    private:
+private:
     std::string _trace;
 };
 
 class InlineStackOverflowException : public InlineException
 {
-    public:
+public:
     InlineStackOverflowException(const std::string& trace) : InlineException(trace) {}
 
     std::string What() const override
@@ -56,7 +56,7 @@ class InlineStackOverflowException : public InlineException
 
 class IncludeExpectedException : public InlineException
 {
-    public:
+public:
     IncludeExpectedException(const std::string& trace) : InlineException(trace) {}
 
     std::string What() const override { return "Include directive expected"; }
@@ -64,7 +64,7 @@ class IncludeExpectedException : public InlineException
 
 class WrongInlineDirectiveException : public InlineException
 {
-    public:
+public:
     WrongInlineDirectiveException(const std::string& trace) : InlineException(trace) {}
 
     std::string What() const override { return "Include directive has wrong format"; }
@@ -72,7 +72,7 @@ class WrongInlineDirectiveException : public InlineException
 
 class IncludeFileExceptionBase : public InlineException
 {
-    public:
+public:
     IncludeFileExceptionBase(const std::string& file, const std::string& trace)
         : InlineException(trace), _file(file)
     {
@@ -81,13 +81,13 @@ class IncludeFileExceptionBase : public InlineException
     std::string What() const override;
     virtual std::string GetMessage() const = 0;
 
-    private:
+private:
     std::string _file;
 };
 
 class IncludeNotFoundException : public IncludeFileExceptionBase
 {
-    public:
+public:
     IncludeNotFoundException(const std::string& file, const std::string& trace)
         : IncludeFileExceptionBase(file, trace)
     {
@@ -102,7 +102,7 @@ class IncludeNotFoundException : public IncludeFileExceptionBase
 
 class IncludeCantBeOpenedException : public IncludeFileExceptionBase
 {
-    public:
+public:
     IncludeCantBeOpenedException(const std::string& file, const std::string& trace)
         : IncludeFileExceptionBase(file, trace)
     {
@@ -113,7 +113,7 @@ class IncludeCantBeOpenedException : public IncludeFileExceptionBase
 
 class IncludeInliner
 {
-    public:
+public:
     int include_depth_limit = 256;
 
     void Process(std::istream& input,
@@ -125,7 +125,7 @@ class IncludeInliner
                  bool recurse);
     std::string GetIncludeStackTrace(int line);
 
-    private:
+private:
     int _include_depth                                   = 0;
     std::shared_ptr<SourceFileDesc> _included_stack_head = nullptr;
 

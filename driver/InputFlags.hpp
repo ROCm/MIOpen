@@ -67,7 +67,7 @@ class InputFlags
 {
     std::map<char, Input> MapInputs;
 
-    public:
+public:
     InputFlags();
     void AddInputFlag(const std::string& _long_name,
                       char _short_name,

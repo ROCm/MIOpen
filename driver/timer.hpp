@@ -46,7 +46,7 @@
 
 class Timer
 {
-    public:
+public:
     Timer(){};
     void start(const bool enabled = true)
     {
@@ -66,14 +66,14 @@ class Timer
             .count();
     }
 
-    private:
+private:
     std::chrono::time_point<std::chrono::steady_clock> st;
     std::chrono::time_point<std::chrono::steady_clock> et;
 };
 
 class Timer2
 {
-    public:
+public:
     Timer2(){};
     void start(const bool enabled = true)
     {
@@ -119,7 +119,7 @@ class Timer2
                paused;
     }
 
-    private:
+private:
     enum
     {
         Started,

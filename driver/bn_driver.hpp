@@ -64,7 +64,7 @@
 template <typename Tgpu, typename Tref, typename Tmix = Tgpu>
 class BatchNormDriver : public Driver
 {
-    public:
+public:
     BatchNormDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -115,7 +115,7 @@ class BatchNormDriver : public Driver
         miopenDestroyTensorDescriptor(dyInputTensor);
     }
 
-    private:
+private:
     miopenBatchNormMode_t bn_mode;
     bool saveMeanVar;
     bool bsaveMeanVar;

@@ -55,7 +55,7 @@ struct KernelBuildParameter
 
 class KernelBuildParameters
 {
-    public:
+public:
     struct KBPInit
     {
         friend class KernelBuildParameters;
@@ -81,7 +81,7 @@ class KernelBuildParameters
         {
         }
 
-        private:
+    private:
         KernelBuildParameter data{};
     };
 
@@ -122,7 +122,7 @@ class KernelBuildParameters
         return TFor::Generate(options);
     }
 
-    private:
+private:
     std::vector<KernelBuildParameter> options = {};
 
     bool ValidateUniqueness(const std::string& name) const

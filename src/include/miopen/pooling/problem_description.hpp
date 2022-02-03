@@ -109,7 +109,7 @@ struct ProblemDescription
         return os;
     }
 
-    private:
+private:
     Direction direction;
     PoolingDescriptor pooling;
     TensorDescriptor xDesc;

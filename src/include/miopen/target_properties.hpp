@@ -44,7 +44,7 @@ struct TargetProperties
     boost::optional<bool> SrameccReported() const { return sramecc_reported; }
     void Init(const Handle*);
 
-    private:
+private:
     void InitDbId();
     std::string name;
     std::string dbId;

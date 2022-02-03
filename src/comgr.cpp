@@ -519,7 +519,7 @@ struct ComgrOwner
 {
     ComgrOwner(const ComgrOwner&) = delete;
 
-    protected:
+protected:
     ComgrOwner() {}
     ComgrOwner(ComgrOwner&&) = default;
 };
@@ -530,7 +530,7 @@ class Data : ComgrOwner
     friend class Dataset; // for GetData
     Data(amd_comgr_data_t h) : handle(h) {}
 
-    public:
+public:
     Data(amd_comgr_data_kind_t kind) { ECI_THROW(amd_comgr_create_data(kind, &handle), kind); }
     Data(Data&&) = default;
     ~Data() { EC(amd_comgr_release_data(handle)); }
@@ -550,7 +550,7 @@ class Data : ComgrOwner
     }
 #endif
 
-    private:
+private:
     std::size_t GetSize() const
     {
         std::size_t sz;
@@ -558,7 +558,7 @@ class Data : ComgrOwner
         return sz;
     }
 
-    public:
+public:
     std::size_t GetBytes(std::vector<char>& bytes) const
     {
         std::size_t sz = GetSize();
@@ -580,7 +580,7 @@ class Dataset : ComgrOwner
 {
     amd_comgr_data_set_t handle = {0};
 
-    public:
+public:
     Dataset() { EC_THROW(amd_comgr_create_data_set(&handle)); }
     ~Dataset() { EC(amd_comgr_destroy_data_set(handle)); }
     auto GetHandle() const { return handle; }
@@ -635,7 +635,7 @@ class ActionInfo : ComgrOwner
 {
     amd_comgr_action_info_t handle = {0};
 
-    public:
+public:
     ActionInfo() { EC_THROW(amd_comgr_create_action_info(&handle)); }
     ~ActionInfo() { EC(amd_comgr_destroy_action_info(handle)); }
     void SetLanguage(const amd_comgr_language_t language) const

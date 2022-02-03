@@ -45,7 +45,7 @@
 template <typename Tgpu, typename Tref, typename Index>
 class PoolDriver_impl : public Driver
 {
-    public:
+public:
     PoolDriver_impl() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -87,7 +87,7 @@ class PoolDriver_impl : public Driver
         miopenDestroyPoolingDescriptor(poolDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;
@@ -764,7 +764,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyBackward()
 template <typename Tgpu, typename Tref>
 class PoolDriver : public Driver
 {
-    public:
+public:
     PoolDriver() : Driver(), pool_driver_impl(nullptr) {}
 
     int AddCmdLineArgs() override
@@ -809,7 +809,7 @@ class PoolDriver : public Driver
     int RunBackwardGPU() override { return pool_driver_impl->RunBackwardGPU(); }
     int VerifyBackward() override { return pool_driver_impl->VerifyBackward(); }
 
-    private:
+private:
     Driver* pool_driver_impl;
 
     PoolDriver_impl<Tgpu, Tref, uint8_t> pool_driver_impl_uint8;

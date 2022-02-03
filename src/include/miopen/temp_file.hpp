@@ -35,7 +35,7 @@ namespace miopen {
 
 class TempFile
 {
-    public:
+public:
     TempFile(const std::string& path_infix);
     TempFile(TempFile&& other) noexcept = default;
     TempFile& operator=(TempFile&& other) noexcept = default;
@@ -44,7 +44,7 @@ class TempFile
     std::string Path() const { return (dir.path / "file").string(); }
     operator std::string() const { return Path(); }
 
-    private:
+private:
     std::string path_infix;
     TmpDir dir;
 };

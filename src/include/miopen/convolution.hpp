@@ -86,7 +86,7 @@ struct ConvolutionAttribute
             return value;
         }
 
-        public:
+    public:
         inline bool GetFwd() const { return Get() == 1; } // false is the default.
         inline bool GetBwd() const { return Get() != 0; } // true is the default.
         inline bool GetWrW() const { return Get() != 0; } // true is the default.

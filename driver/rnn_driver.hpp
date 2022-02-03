@@ -54,7 +54,7 @@
 template <typename Tgpu, typename Tref>
 class RNNDriver : public Driver
 {
-    public:
+public:
     RNNDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -100,7 +100,7 @@ class RNNDriver : public Driver
         miopenDestroyRNNDescriptor(rnnDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     std::vector<miopenTensorDescriptor_t> inputTensors;

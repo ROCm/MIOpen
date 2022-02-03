@@ -41,7 +41,7 @@ struct SimpleListTest
         EXPECT(++it == test_seq.end());
     }
 
-    private:
+private:
     using TestSequence = Sequence<int, 1, 2, 4, 5>;
     TestSequence test_seq;
 };
@@ -57,7 +57,7 @@ struct LinearListTest
         EXPECT(++it == test_seq.end());
     }
 
-    private:
+private:
     using TestSequence = Span<int, 1, 3>;
     TestSequence test_seq;
 };
@@ -73,7 +73,7 @@ struct TwoPowersListTest
         EXPECT(++it == test_seq.end());
     }
 
-    private:
+private:
     using TestSequence = TwoPowersSpan<int, 4, 16>;
     TestSequence test_seq;
 };
@@ -89,7 +89,7 @@ struct JoinTest
         EXPECT(++it == test_seq.end());
     }
 
-    private:
+private:
     using TestSequence = Join<Sequence<int, 1>, TwoPowersSpan<int, 4, 8>>;
     TestSequence test_seq;
 };
@@ -106,7 +106,7 @@ struct DividedTest
         EXPECT(++it == test_seq.end());
     }
 
-    private:
+private:
     using TestSequence = Multiplied<Sequence<int, 1, 2, 4, 5>, 3>;
     TestSequence test_seq;
 };
@@ -120,7 +120,7 @@ struct RuleTest
         CompareTest();
     }
 
-    private:
+private:
     struct TestData
     {
         int x;
@@ -176,7 +176,7 @@ struct RuleSetTest
         CompareTest();
     }
 
-    private:
+private:
     struct TestData
     {
         int x;

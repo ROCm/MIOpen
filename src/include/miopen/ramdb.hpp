@@ -47,7 +47,7 @@ class LockFile;
 
 class RamDb : protected PlainTextDb
 {
-    public:
+public:
     RamDb(std::string path, bool is_system, const std::string& /*arch*/, std::size_t /*num_cu*/)
         : RamDb(path, is_system)
     {
@@ -121,7 +121,7 @@ class RamDb : protected PlainTextDb
             return boost::none;
     }
 
-    private:
+private:
     struct CacheItem
     {
         int line;
@@ -161,7 +161,7 @@ class DbTimer<RamDb>
         return ret;
     }
 
-    public:
+public:
     template <class... TArgs>
     DbTimer(TArgs&&... args) : inner(RamDb::GetCached(args...))
     {

@@ -72,7 +72,7 @@ struct LRNDescriptor : miopenLRNDescriptor
 
     friend std::ostream& operator<<(std::ostream& stream, const LRNDescriptor& x);
 
-    private:
+private:
     unsigned int lrnN = 0;
     std::vector<double> parms;
 

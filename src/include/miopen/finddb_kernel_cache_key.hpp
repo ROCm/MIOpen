@@ -55,7 +55,7 @@ struct FindDbKCacheKey
         return {algo_name, GetUnusedNetworkConfig()};
     }
 
-    private:
+private:
     static const char* GetUnusedNetworkConfig() { return "<unused>"; }
 };
 

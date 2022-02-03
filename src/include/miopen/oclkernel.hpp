@@ -53,7 +53,7 @@ struct LocalMemArg
     LocalMemArg(size_t _size) : size(_size) {}
     size_t GetSize() const { return size; }
 
-    private:
+private:
     size_t size;
 };
 
@@ -129,7 +129,7 @@ struct OCLKernelInvoke
 class OCLKernel
 {
 
-    public:
+public:
     OCLKernel() {}
     OCLKernel(ClKernelPtr k) : kernel(std::move(k)) {}
     OCLKernel(ClKernelPtr k, std::vector<size_t> local_dims, std::vector<size_t> global_dims)
@@ -172,7 +172,7 @@ class OCLKernel
     inline const std::vector<size_t>& GetLocalDims() const { return ldims; }
     inline const std::vector<size_t>& GetGlobalDims() const { return gdims; }
 
-    private:
+private:
     SharedProgramPtr program;
     SharedKernelPtr kernel;
     std::vector<size_t> ldims;

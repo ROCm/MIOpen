@@ -193,7 +193,7 @@ struct Sequence
     constexpr const_iterator end() const { return data.end(); }
     constexpr const_iterator find(const TValue& value) const { return data.data() + find_(value); }
 
-    private:
+private:
     static constexpr std::array<int, sizeof...(values)> data = {{values...}};
 
     static constexpr int ValuesCount() { return sizeof...(values); }
@@ -247,7 +247,7 @@ struct SequenceIteratorBase
 
     TValue operator*() const { return value; }
 
-    protected:
+protected:
     TValue value = {};
 };
 
@@ -347,7 +347,7 @@ struct TwoPowersSpan
         return end();
     }
 
-    private:
+private:
     static constexpr bool IsTwoPower(TValue i) { return ((i - 1) & i) == 0; }
 };
 
@@ -381,7 +381,7 @@ struct JoinIterator : public SequenceIteratorBase<typename TFirst::ValueType>
 
     bool operator!=(const JoinIterator& other) const { return !(*this == other); }
 
-    private:
+private:
     bool finished = true;
 
     template <class...>
@@ -409,7 +409,7 @@ struct JoinIterator : public SequenceIteratorBase<typename TFirst::ValueType>
             return false;
         }
 
-        private:
+    private:
         TCur cur                    = {};
         TNext next                  = {};
         Next<TNext, TRest_...> rest = {};
@@ -430,7 +430,7 @@ struct JoinIterator : public SequenceIteratorBase<typename TFirst::ValueType>
             return false;
         }
 
-        private:
+    private:
         TSeq seq = {};
     };
 };
@@ -448,7 +448,7 @@ struct Join
     constexpr const_iterator end() const { return {}; }
     constexpr const_iterator find(ValueType value) const { return find_(value); }
 
-    private:
+private:
     template <class TCur, class... TRest_>
     struct Find
     {
@@ -458,7 +458,7 @@ struct Join
             return it ? it : rest(value);
         }
 
-        private:
+    private:
         Find<TCur> cur       = {};
         Find<TRest_...> rest = {};
     };
@@ -476,7 +476,7 @@ struct Join
             return {};
         }
 
-        private:
+    private:
         TSeq seq = {};
     };
 
@@ -525,7 +525,7 @@ struct MultipliedIterator
     bool operator==(const MultipliedIterator& other) const { return inner == other.inner; }
     bool operator!=(const MultipliedIterator& other) const { return !(*this == other); }
 
-    private:
+private:
     InnerIterator inner = {};
 };
 
@@ -543,7 +543,7 @@ struct Multiplied
         return {GenericFind(inner, value / mul)};
     }
 
-    private:
+private:
     TInner inner = {};
 };
 
@@ -565,7 +565,7 @@ struct MemberPtr<TType TContainer::*>
     const TType& RV(const TContainer& cont) const { return cont.*field; }
     TType& LV(TContainer& cont) const { return cont.*field; }
 
-    private:
+private:
     TType TContainer::*field;
 };
 
@@ -595,7 +595,7 @@ struct SeqNextImpl_Sequence<TValue, first, cur, next, values...>
         return rest(value);
     }
 
-    private:
+private:
     SeqNextImpl_Sequence<TValue, first, next, values...> rest = {};
 };
 
@@ -668,7 +668,7 @@ struct Rule
         return member.RV(container) == *sequence.begin();
     }
 
-    private:
+private:
     TMember member;
     TSequence sequence = {};
 };
@@ -705,7 +705,7 @@ struct RuleSet
     /// Compares all the fields specified in rules to appropriate begin() values.
     bool IsEqualToBegin(const Container& container) const { return impl.IsEqualToBegin(container); }
 
-    private:
+private:
     template <class...>
     struct Impl
     {
@@ -745,7 +745,7 @@ struct RuleSet
             return rule.IsEqualToBegin(container) && rest.IsEqualToBegin(container);
         }
 
-        private:
+    private:
         TRule rule;
         Impl<TRest...> rest;
     };
@@ -771,7 +771,7 @@ struct RuleSet
             return rule.IsEqualToBegin(container);
         }
 
-        private:
+    private:
         TRule rule;
     };
 
@@ -797,11 +797,11 @@ auto MakeMemberPtrFromTuple(const TTuple& tuple)
 template <class TTuple>
 struct RuleFromTuple
 {
-    private:
+private:
     using Sequence      = typename std::tuple_element<0, TTuple>::type;
     using MemberPtrType = decltype(MakeMemberPtrFromTuple(std::declval<TTuple>()));
 
-    public:
+public:
     using Type = Rule<MemberPtrType, Sequence>;
 };
 } // namespace detail

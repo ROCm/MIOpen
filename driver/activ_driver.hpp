@@ -50,7 +50,7 @@
 template <typename Tgpu, typename Tref>
 class ActivationDriver : public Driver
 {
-    public:
+public:
     ActivationDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -91,7 +91,7 @@ class ActivationDriver : public Driver
         miopenDestroyActivationDescriptor(activDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;
