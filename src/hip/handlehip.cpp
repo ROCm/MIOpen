@@ -127,6 +127,7 @@ void set_ctx(hipCtx_t ctx)
     std::ignore = ctx;
 }
 
+#if MIOPEN_BUILD_DEV
 int set_default_device()
 {
     int n;
@@ -139,6 +140,7 @@ int set_default_device()
     set_device(pid % n);
     return (pid % n);
 }
+#endif
 
 } // namespace
 
