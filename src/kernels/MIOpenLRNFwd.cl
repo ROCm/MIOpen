@@ -416,7 +416,7 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
         bot_in2[i] = 0;
     }
 
-    int top_off   = 0;
+    int top_off = 0;
 #if MLO_LRN_DO_SCALE
     int scale_off;
 #endif
