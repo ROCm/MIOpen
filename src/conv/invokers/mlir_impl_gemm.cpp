@@ -35,6 +35,7 @@
 #include <Miir.h>
 
 #include <boost/any.hpp>
+#include <boost/optional.hpp>
 #include <boost/range/adaptors.hpp>
 
 namespace miopen {
@@ -46,6 +47,7 @@ struct MlirConvArgs
     StridedMemRef5D filter;
     StridedMemRef5D input;
     StridedMemRef5D output;
+    boost::optional<StridedMemRef5D> workspace;
 };
 
 // Note: Below macros are required for opencl backend only because
@@ -148,7 +150,8 @@ MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
                               const std::vector<size_t>& weights_dims,
                               const std::vector<size_t>& weights_strides,
                               const std::vector<size_t>& out_dims,
-                              const std::vector<size_t>& out_strides)
+                              const std::vector<size_t>& out_strides,
+                              bool populateWorkspaceArg = false)
 {
     auto initDimStrides = [](const std::vector<size_t>& dims,
                              const std::vector<size_t>& strides,
@@ -164,7 +167,14 @@ MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
     StridedMemRef5D output{nullptr, nullptr, 0, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
     initDimStrides(out_dims, out_strides, output);
 
-    return {filter, input, output};
+    if(populateWorkspaceArg)
+    {
+        StridedMemRef5D workspace{nullptr, nullptr, 0, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
+        initDimStrides(weights_dims, weights_strides, workspace);
+        return {filter, input, output, workspace};
+    }
+
+    return {filter, input, output, {}};
 }
 
 // Note: This does not work for opencl backend because it is impossible
@@ -172,27 +182,49 @@ MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
 // way around is to call clSetKernelArg on a oclMemory object to pass
 // the device pointer to the kernel
 #if MIOPEN_BACKEND_HIP
-void SetMlirConvArgsPtr(ConstData_t in, ConstData_t out, ConstData_t w, MlirConvArgs& args)
+void SetMlirConvArgsPtr(ConstData_t in,
+                        ConstData_t out,
+                        ConstData_t w,
+                        ConstData_t wk,
+                        MlirConvArgs& args,
+                        bool populateWorkspaceArg = false)
 {
     void* filter = nullptr;
     void* input  = nullptr;
     void* output = nullptr;
+    void* workspace = nullptr;
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
     filter = const_cast<void*>(w);
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
     input = const_cast<void*>(in);
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
     output = const_cast<void*>(out);
+    // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
+    if(populateWorkspaceArg)
+    {
+        workspace = const_cast<void*>(wk);
+    }
 
     if((filter == nullptr) || (input == nullptr) || (output == nullptr))
+    {
         MIOPEN_THROW("Invalid device pointers");
+    }
 
-    args.filter.basePtr = filter;
-    args.filter.data    = filter;
-    args.input.basePtr  = input;
-    args.input.data     = input;
-    args.output.basePtr = output;
-    args.output.data    = output;
+    if(populateWorkspaceArg && (workspace == nullptr))
+    {
+        MIOPEN_THROW("Invalid device pointers for workspace");
+    }
+
+    args.filter.basePtr    = filter;
+    args.filter.data       = filter;
+    args.input.basePtr     = input;
+    args.input.data        = input;
+    args.output.basePtr    = output;
+    args.output.data       = output;
+    if(populateWorkspaceArg) {
+        args.workspace->basePtr = workspace;
+        args.workspace->data    = workspace;
+    }
 }
 #endif
 } // Anonymous namespace
@@ -232,7 +264,7 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
                                    tensors.out,
                                    EXPAND_MLIR_CONV_ARGS(args.output));
 #elif MIOPEN_BACKEND_HIP
-            SetMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, args);
+            SetMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, nullptr, args);
             handle.Run(kernels[0])(args);
 #endif
         };
@@ -301,7 +333,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
                 elapsed += handle.GetKernelTime();
             }
 #elif MIOPEN_BACKEND_HIP
-            SetMlirConvArgsPtr(tensors.out, tensors.in, tensors.w, args);
+            SetMlirConvArgsPtr(tensors.out, tensors.in, tensors.w, nullptr, args);
             for(const auto& k : kernels)
             {
                 handle.Run(k)(args);
@@ -332,34 +364,77 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
                            weights_strides,
                            out_dims,
                            out_strides);
-    MlirConvArgs args =
-        MakeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
+    MlirConvArgs args = MakeMlirConvArgs(in_dims,
+                                         in_strides,
+                                         weights_dims,
+                                         weights_strides,
+                                         out_dims,
+                                         out_strides,
+                                         /*populateWorkspace=*/true);
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             const auto& wrw_invoke_params = primitive_parameters.CastTo<conv::WrWInvokeParams>();
             const auto& tensors           = wrw_invoke_params.tensors;
+            const auto& workspace         = wrw_invoke_params.workSpace;
+            const size_t workspaceSize    = wrw_invoke_params.workSpaceSize;
+            const auto& type              = tensors.dwDesc.GetType();
 
-            // Only fp32 use atomic_add, which accumulate the result into dw.
-            // Therefore the need for setting to zero beforehand.
-            if(tensors.dwDesc.GetType() == miopenFloat)
+            // Only fp32/fp16 use atomic_add, which accumulate the result into
+            // dw.  Therefore the need for setting to zero beforehand.
+            if((type == miopenFloat) || (type == miopenHalf))
             {
                 float zero = 0.f;
                 SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
             }
 
 #if MIOPEN_BACKEND_OPENCL
-            handle.Run(kernels[0])(tensors.dw,
-                                   tensors.dw,
-                                   EXPAND_MLIR_CONV_ARGS(args.filter),
-                                   tensors.x,
-                                   tensors.x,
-                                   EXPAND_MLIR_CONV_ARGS(args.input),
-                                   tensors.dy,
-                                   tensors.dy,
-                                   EXPAND_MLIR_CONV_ARGS(args.output));
+            if(workspaceSize != 0)
+            {
+                handle.Run(kernels[0])(tensors.dw,
+                                       tensors.dw,
+                                       EXPAND_MLIR_CONV_ARGS(args.filter),
+                                       tensors.x,
+                                       tensors.x,
+                                       EXPAND_MLIR_CONV_ARGS(args.input),
+                                       tensors.dy,
+                                       tensors.dy,
+                                       EXPAND_MLIR_CONV_ARGS(args.output),
+                                       workspace,
+                                       workspace,
+                                       EXPAND_MLIR_CONV_ARGS(*args.workspace));
+            }
+            else
+            {
+                handle.Run(kernels[0])(tensors.dw,
+                                       tensors.dw,
+                                       EXPAND_MLIR_CONV_ARGS(args.filter),
+                                       tensors.x,
+                                       tensors.x,
+                                       EXPAND_MLIR_CONV_ARGS(args.input),
+                                       tensors.dy,
+                                       tensors.dy,
+                                       EXPAND_MLIR_CONV_ARGS(args.output));
+            }
 #elif MIOPEN_BACKEND_HIP
-            SetMlirConvArgsPtr(tensors.x, tensors.dy, tensors.dw, args);
+            if(workspaceSize != 0)
+            {
+                SetMlirConvArgsPtr(tensors.x,
+                                   tensors.dy,
+                                   tensors.dw,
+                                   workspace,
+                                   args,
+                                   /*populateWorkspaceArg=*/true);
+            }
+            else
+            {
+                SetMlirConvArgsPtr(tensors.x,
+                                   tensors.dy,
+                                   tensors.dw,
+                                   workspace,
+                                   args,
+                                   /*populateWorkspaceArg=*/false);
+            }
             handle.Run(kernels[0])(args);
 #endif
         };
