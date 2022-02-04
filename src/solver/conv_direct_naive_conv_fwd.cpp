@@ -40,6 +40,9 @@ bool ConvDirectNaiveConvFwd::IsApplicable(const ConvolutionContext& ctx) const
        miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD{}))
         return false;
 
+    if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx))
+        return false;
+
     if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
         return false;
 
