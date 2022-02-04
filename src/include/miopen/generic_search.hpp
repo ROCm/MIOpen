@@ -27,11 +27,15 @@
 #ifndef GUARD_MIOPEN_GENERIC_SEARCH_HPP_
 #define GUARD_MIOPEN_GENERIC_SEARCH_HPP_
 
+#include <miopen/binary_cache.hpp>
 #include <miopen/config.h>
-#include <miopen/logger.hpp>
+#include <miopen/conv/context.hpp>
+#include <miopen/conv_solution.hpp>
+#include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/invoke_params.hpp>
-#include <miopen/env.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/timer.hpp>
 
 #include <vector>
 #include <cstdlib>
@@ -39,12 +43,6 @@
 #include <iterator>
 #include <chrono>
 #include <cassert>
-
-#include <miopen/conv/context.hpp>
-#include <miopen/conv_solution.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/handle.hpp>
-#include <miopen/timer.hpp>
 
 namespace miopen {
 namespace solver {
@@ -330,8 +328,8 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
 
     const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
     const int n_runs_total = useSpare ? spare_size : main_size;
-    MIOPEN_LOG_W(SolverDbId(s) << ": Searching the best solution among " << n_runs_total
-                               << (useSpare ? " (spare)" : "") << "...");
+    MIOPEN_LOG_W(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
+                                << (useSpare ? " (spare)" : "") << "...");
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
@@ -340,21 +338,21 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
-// PrecompileKernels call saves to binary_cache, this needs to be escaped if KERN_CACHE is not on.
-#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-    std::vector<KernelInfo> kernels;
-    for(const auto& current_config : all_configs)
+    if(!miopen::IsCacheDisabled()) // Otherwise precompilation is useless.
     {
-        ConvSolution current_solution = s.GetSolution(context, current_config, true);
-        for(auto&& kernel : current_solution.construction_params)
+        std::vector<KernelInfo> kernels;
+        for(const auto& current_config : all_configs)
         {
-            if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
-                continue;
-            kernels.push_back(kernel);
+            ConvSolution current_solution = s.GetSolution(context, current_config, true);
+            for(auto&& kernel : current_solution.construction_params)
+            {
+                if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
+                    continue;
+                kernels.push_back(kernel);
+            }
         }
+        std::ignore = PrecompileKernels(profile_h, kernels);
     }
-    std::ignore = PrecompileKernels(profile_h, kernels);
-#endif
 
     if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
     {
@@ -442,6 +440,12 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
                 }
             }
 
+            // Banchmarked kernels will not be used anymore.
+            // Now we can delete Program objects that belong to OCL/HIP
+            // runtime and free the associated resources (memory, file handles...)
+            for(const auto& kernelInfo : current_solution.construction_params)
+                profile_h.ClearProgram(kernelInfo.kernel_file, kernelInfo.comp_options);
+
             if(ret != 0)
             {
                 MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
@@ -467,7 +471,6 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
                           << n_best << ' ' << best_time << ' ' << best_config);
 
-    profile_h.ClearProgram();
     if(!is_passed)
         MIOPEN_THROW("Search failed");
     // Run once with the default config and show score.

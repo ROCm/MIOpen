@@ -28,6 +28,7 @@
 
 #include <string>
 #include <cassert>
+#include <vector>
 
 namespace miopen {
 
@@ -305,6 +306,17 @@ struct WinogradBufferInfo
                              wino_xform_w)
     {
     }
+};
+
+struct MultiBufferWorkspaceTraits
+{
+    MultiBufferWorkspaceTraits(std::initializer_list<size_t> v_size_, size_t alignment_);
+    size_t GetSize() const;
+    size_t GetOffset(size_t index) const;
+
+    std::vector<size_t> v_size;
+    std::vector<size_t> v_offset;
+    size_t alignment;
 };
 
 } // namespace miopen

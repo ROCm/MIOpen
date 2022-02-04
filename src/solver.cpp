@@ -244,7 +244,7 @@ template <class TSolver>
 inline void
 RegisterWithSolver(IdRegistryData& registry, uint64_t value, TSolver, miopenConvAlgorithm_t algo)
 {
-    if(!Register(registry, value, SolverDbId(TSolver{}), algo))
+    if(!Register(registry, value, TSolver{}.SolverDbId(), algo))
         return;
     registry.value_to_entry.at(value).solver = TSolver{};
 }
@@ -450,7 +450,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvMlirIgemmBwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(registry, ++id, ConvMlirIgemmWrWXdlops{}, miopenConvolutionAlgoImplicitGEMM);
 
-    Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivFwdSolver0{}));
+    Register(registry, ++id, Primitive::Activation, activ::ActivFwdSolver0{}.SolverDbId());
 
     RegisterWithSolver(registry,
                        ++id,
@@ -461,17 +461,17 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC{},
                        miopenConvolutionAlgoImplicitGEMM);
 
-    Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivFwdSolver1{}));
+    Register(registry, ++id, Primitive::Activation, activ::ActivFwdSolver1{}.SolverDbId());
     RegisterWithSolver(registry,
                        ++id,
                        ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC{},
                        miopenConvolutionAlgoImplicitGEMM);
 
-    Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivBwdSolver0{}));
-    Register(registry, ++id, Primitive::Activation, SolverDbId(activ::ActivBwdSolver1{}));
+    Register(registry, ++id, Primitive::Activation, activ::ActivBwdSolver0{}.SolverDbId());
+    Register(registry, ++id, Primitive::Activation, activ::ActivBwdSolver1{}.SolverDbId());
 
     Register(
-        registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnFwdTrainingSpatialSingle{}));
+        registry, ++id, Primitive::Batchnorm, batchnorm::BnFwdTrainingSpatialSingle{}.SolverDbId());
 
     RegisterWithSolver(
         registry, ++id, ConvCkIgemmFwdV6r1DlopsNchw{}, miopenConvolutionAlgoImplicitGEMM);
@@ -479,24 +479,27 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry,
              ++id,
              Primitive::Batchnorm,
-             SolverDbId(batchnorm::BnFwdTrainingSpatialMultiple{}));
+             batchnorm::BnFwdTrainingSpatialMultiple{}.SolverDbId());
 
     Register(
-        registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnFwdTrainingPerActivation{}));
+        registry, ++id, Primitive::Batchnorm, batchnorm::BnFwdTrainingPerActivation{}.SolverDbId());
 
     Register(
-        registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnBwdTrainingSpatialSingle{}));
+        registry, ++id, Primitive::Batchnorm, batchnorm::BnBwdTrainingSpatialSingle{}.SolverDbId());
     Register(registry,
              ++id,
              Primitive::Batchnorm,
-             SolverDbId(batchnorm::BnBwdTrainingSpatialMultiple{}));
+             batchnorm::BnBwdTrainingSpatialMultiple{}.SolverDbId());
     Register(
-        registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnBwdTrainingPerActivation{}));
+        registry, ++id, Primitive::Batchnorm, batchnorm::BnBwdTrainingPerActivation{}.SolverDbId());
 
-    Register(registry, ++id, Primitive::Batchnorm, SolverDbId(batchnorm::BnFwdInference{}));
+    Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnFwdInference{}.SolverDbId());
 
-    Register(registry, ++id, Primitive::Pooling, SolverDbId(pooling::PoolingForward2d{}));
-    Register(registry, ++id, Primitive::Pooling, SolverDbId(pooling::PoolingForwardNd{}));
+    Register(registry, ++id, Primitive::Pooling, pooling::PoolingForward2d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Pooling, pooling::PoolingForwardNd{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Pooling, pooling::TransposedPoolingFwd2d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Pooling, pooling::TransposedPoolingFwdNd{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

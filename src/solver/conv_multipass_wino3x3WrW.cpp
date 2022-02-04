@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#define CONV_MULTIPASS_WINO3X3WRW_CPP
+
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/gcn_asm_utils.hpp>
