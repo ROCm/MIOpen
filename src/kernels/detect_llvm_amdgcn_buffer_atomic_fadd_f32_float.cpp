@@ -27,7 +27,8 @@
 typedef int32_t int32x4_t __attribute__((ext_vector_type(4)));
 
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunknown-warning-option" // clang in ROCm 4.3 does not support "reserved-identifier".
+#pragma clang diagnostic ignored \
+    "-Wunknown-warning-option" // clang in ROCm 4.3 does not support "reserved-identifier".
 #pragma clang diagnostic ignored "-Wreserved-identifier"
 
 __device__ float

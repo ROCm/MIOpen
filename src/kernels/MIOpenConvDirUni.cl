@@ -149,7 +149,8 @@
 
 #if defined(__AMDGCN__)
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunknown-warning-option" // clang in ROCm 4.3 does not support "reserved-identifier".
+#pragma clang diagnostic ignored \
+    "-Wunknown-warning-option" // clang in ROCm 4.3 does not support "reserved-identifier".
 #pragma clang diagnostic ignored "-Wreserved-identifier"
 extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane");
 #pragma clang diagnostic pop // "-Wreserved-identifier"
