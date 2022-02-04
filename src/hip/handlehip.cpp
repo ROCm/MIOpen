@@ -178,10 +178,10 @@ struct HandleImpl
     TargetProperties target_properties;
 
     private:
-    static hipError_t hip_init_status;
+    static const hipError_t hip_init_status;
 };
 
-hipError_t HandleImpl::hip_init_status = hipInit(0);
+const hipError_t HandleImpl::hip_init_status = hipInit(0);
 
 Handle::Handle(miopenAcceleratorQueue_t stream) : impl(std::make_unique<HandleImpl>())
 {
