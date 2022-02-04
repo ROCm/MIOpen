@@ -442,7 +442,11 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     int y_karg               = y;
     int x_karg               = x;
 
-    uint32_t gemm_m = n * ho * wo;
+    int splits_4G = solver::igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+    splits_4G = splits_4G == 0 ? n : splits_4G;
+
+    uint32_t gemm_m = (n / splits_4G) * ho * wo;
     uint32_t gemm_n = k / group;
     magic_div_u32_t mdiv_0, mdiv_1, mdiv_2, mdiv_3, mdiv_4, mdiv_5;
     uint32_t shift_pack_0, shift_pack_1;
@@ -484,7 +488,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     opArgs.emplace_back(0); // placeholder
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
-    opArgs.emplace_back(n);
+    opArgs.emplace_back(n / splits_4G);
     opArgs.emplace_back(k / group);
     opArgs.emplace_back(c_karg);
     opArgs.emplace_back(ho);
@@ -541,6 +545,8 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     int trans_weight_idx = -1;
     int trans_output_idx = -1;
 
+    constexpr size_t buf_alignment = 256;
+
     if(is_nchw)
     {
         TransposeSolutionDefault2Nhwc trans_input(ctx, ctx.in_data_type, n, c, hi, wi);
@@ -567,9 +573,6 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
         trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetSize();
         trans_output_size = trans_output_skippable ? 0 : trans_output.GetSize();
 
-        trans_weight_offset = trans_input_offset + trans_input_size;
-        trans_output_offset = trans_weight_offset + trans_weight_size;
-
         int idx = 0;
         if(!trans_input_skippable)
             trans_input_idx = idx++;
@@ -579,8 +582,16 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             trans_output_idx = idx++;
     }
 
-    const size_t cast_offset = is_nchw ? (trans_output_offset + trans_output_size) : 0;
-    const size_t cast_size   = need_cast ? miopen::GetTypeSize(miopenFloat) * n * k * ho * wo : 0;
+    const size_t cast_size = need_cast ? miopen::GetTypeSize(miopenFloat) * n * k * ho * wo : 0;
+
+    MultiBufferWorkspaceTraits wt(
+        {trans_input_size, trans_weight_size, trans_output_size, cast_size}, buf_alignment);
+
+    trans_input_offset  = wt.GetOffset(0);
+    trans_weight_offset = wt.GetOffset(1);
+    trans_output_offset = wt.GetOffset(2);
+
+    const size_t cast_offset = wt.GetOffset(3);
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
@@ -741,7 +752,11 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 
     int num_of_gemms = x_tilda * y_tilda;
 
-    uint32_t gemm_m = n * h_tilda_slice * w_tilda_slice;
+    int splits_4G = solver::igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+    int n_in_1_block = splits_4G == 0 ? 1 : (n / splits_4G);
+
+    uint32_t gemm_m = n_in_1_block * h_tilda_slice * w_tilda_slice;
     uint32_t gemm_n = c / group;
 
     magic_div_u32_t mdiv_x_tilda  = magic_div_u32_gen(x_tilda);
@@ -779,7 +794,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     opArgs.emplace_back(0); // placeholder
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
-    opArgs.emplace_back(n);
+    opArgs.emplace_back(n_in_1_block);
     opArgs.emplace_back(k / group);
     opArgs.emplace_back(c / group);
     opArgs.emplace_back(ho);
@@ -848,6 +863,8 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     int trans_weight_idx = -1;
     int trans_output_idx = -1;
 
+    constexpr size_t buf_alignment = 256;
+
     if(is_nchw)
     {
         TransposeSolutionNhwc2Default trans_input(ctx, ctx.out_data_type, n, c, hi, wi);
@@ -874,9 +891,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
         trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetSize();
         trans_output_size = trans_output_skippable ? 0 : trans_output.GetSize();
 
-        trans_weight_offset = trans_input_offset + trans_input_size;
-        trans_output_offset = trans_weight_offset + trans_weight_size;
-
         int idx = 0;
         if(!trans_input_skippable)
             trans_input_idx = idx++;
@@ -886,8 +900,16 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             trans_output_idx = idx++;
     }
 
-    const size_t cast_offset = is_nchw ? (trans_output_offset + trans_output_size) : 0;
-    const size_t cast_size   = need_cast ? miopen::GetTypeSize(miopenFloat) * n * c * hi * wi : 0;
+    const size_t cast_size = need_cast ? miopen::GetTypeSize(miopenFloat) * n * c * hi * wi : 0;
+
+    MultiBufferWorkspaceTraits wt(
+        {trans_input_size, trans_weight_size, trans_output_size, cast_size}, buf_alignment);
+
+    trans_input_offset  = wt.GetOffset(0);
+    trans_weight_offset = wt.GetOffset(1);
+    trans_output_offset = wt.GetOffset(2);
+
+    const size_t cast_offset = wt.GetOffset(3);
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 

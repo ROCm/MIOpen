@@ -47,7 +47,7 @@ static inline std::size_t GetTypeSize(const std::string& s)
 {
     if(s == "fp32")
         return miopen::GetTypeSize(miopenFloat);
-    if (s == "fp16")
+    if(s == "fp16")
         return miopen::GetTypeSize(miopenHalf);
     else
         return miopen::GetTypeSize(miopenBFloat16);
@@ -821,13 +821,24 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(const ConvolutionC
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
+    if(0 == igemm_split_batch_size(ctx.out_height, 
+                                   ctx.out_width, 
+                                   ctx.in_height, 
+                                   ctx.in_width, 
+                                   ctx.batch_sz, 
+                                   ctx.n_inputs, 
+                                   ctx.n_outputs, 
+                                   miopen::GetTypeSize(ctx.in_data_type)))
+        return false;
+
     return true;
 }
 
 inline std::vector<OpKernelArg>
 ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& conv_problem,
                                      const int gemm_k_global_splits,
-                                     const int gemm_k_per_wg)
+                                     const int gemm_k_per_wg,
+                                     const int splits_4G)
 {
     int hi         = conv_problem.GetOutHeight();
     int wi         = conv_problem.GetOutWidth();
@@ -852,7 +863,7 @@ ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& conv_proble
     opArgs.emplace_back(0); // placeholder
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
-    opArgs.emplace_back(n);
+    opArgs.emplace_back(n / splits_4G);
     opArgs.emplace_back(k / group);
     opArgs.emplace_back(c / group);
     opArgs.emplace_back(ho);
@@ -886,6 +897,14 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
     const auto& x         = ctx.kernel_size_w;
     const auto& group     = ctx.group_counts;
     const auto is_nchw     = ctx.IsLayoutDefault();
+
+    size_t size_trans_input  = 0;
+    size_t size_trans_weight = 0;
+    size_t size_trans_output = 0;
+    size_t size_tensor_cast  = 0;
+
+    constexpr size_t buf_alignment     = 256;
+
     size_t workspace_size = 0;
     if(is_nchw)
     {
@@ -898,17 +917,22 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
                                                  x); // group * k_per_group as batch for weight
         TransposeSolutionDefault2Nhwc trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
         if(!trans_input.IsSkippable())
-            workspace_size += trans_input.GetSize();
+            size_trans_input  = trans_input.GetSize();
         if(!trans_weight.IsSkippable())
-            workspace_size += trans_weight.GetSize();
+            size_trans_weight = trans_weight.GetSize();
         if(!trans_output.IsSkippable())
-            workspace_size += trans_output.GetSize();
+            size_trans_output = trans_output.GetSize();
+
     }
 
     if(!ctx.IsFp32())
-        workspace_size += miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
+        size_tensor_cast = miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
                                                            // kernel is FP32, when using FP32 atomic
-                          * (k / group) * c * y * x;
+                           * (k / group) * c * y * x;
+
+    MultiBufferWorkspaceTraits wt({size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
+    workspace_size = wt.GetSize();
+
     return workspace_size;
 }
 
@@ -927,6 +951,19 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     std::tie(kernel_name, block_size, grid_size, std::ignore) =
         GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(ctx, config);
 
+    const auto& hi        = ctx.out_height;
+    const auto& wi        = ctx.out_width;
+    const auto& n         = ctx.batch_sz;
+    const auto& k         = ctx.n_inputs;
+    const auto& c         = ctx.n_outputs;
+    const auto& ho        = ctx.in_height;
+    const auto& wo        = ctx.in_width;
+    const auto& y         = ctx.kernel_size_h;
+    const auto& x         = ctx.kernel_size_w;
+    const auto& group     = ctx.group_counts;
+
+    auto splits_4G = igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+
     size_t gemm_k_global_splits =
         config.gemm_k_global_split >= 1
             ? ComputeGemmKGlobalSplitsWith2DMerge(
@@ -940,7 +977,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         gemm_k_global_splits = 1;
 
     // compute workload for 1 workgroup and update gemmk splits (remove the ones compute 0 data)
-    size_t gemmk = integer_divide_ceil(static_cast<size_t>(ctx.batch_sz), min_n_per_block) *
+    size_t gemmk = integer_divide_ceil(static_cast<size_t>(ctx.batch_sz / splits_4G), min_n_per_block) *
                    ctx.in_height * ctx.in_width;
     size_t gemmk_per_wg = integer_divide_ceil(gemmk, gemm_k_global_splits);
 
@@ -954,7 +991,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     kernel.g_wk.push_back(grid_size * block_size);
-    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(splits_4G);
     kernel.g_wk.push_back(gemm_k_global_splits);
     kernel.l_wk.clear();
     kernel.l_wk.push_back(block_size);
@@ -966,16 +1003,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     const auto isGfx90aFp16altSupport = (ctx.GetStream().GetDeviceName() == "gfx90a") && isFp16;
     const bool need_cast = (conv_problem.IsBfp16() && gemm_k_global_splits >= 1) || (isFp16 && gemm_k_global_splits >= 1 && (config.tensor_b_thread_lengths[3] == 1 || config.vector_store == 1));
 
-    const auto& hi        = ctx.out_height;
-    const auto& wi        = ctx.out_width;
-    const auto& n         = ctx.batch_sz;
-    const auto& k         = ctx.n_inputs;
-    const auto& c         = ctx.n_outputs;
-    const auto& ho        = ctx.in_height;
-    const auto& wo        = ctx.in_width;
-    const auto& y         = ctx.kernel_size_h;
-    const auto& x         = ctx.kernel_size_w;
-    const auto& group     = ctx.group_counts;
     const auto is_nchw     = ctx.IsLayoutDefault();
 
     result.construction_params.push_back(kernel); // Intentionally without options.
@@ -1001,7 +1028,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     const auto lowp_quant = conv_problem.GetConv().lowp_quant;
 
     auto opArgs =
-        ComputeDynamicIGemmWrwKernelArgsNHWC(conv_problem, gemm_k_global_splits, gemmk_per_wg);
+        ComputeDynamicIGemmWrwKernelArgsNHWC(conv_problem, gemm_k_global_splits, gemmk_per_wg, splits_4G);
     std::vector<std::vector<OpKernelArg>> opArgsTrans;
     size_t trans_input_offset = 0;
     size_t trans_input_size   = 0;
@@ -1019,6 +1046,9 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     int trans_input_idx  = -1;
     int trans_weight_idx = -1;
     int trans_output_idx = -1;
+
+    constexpr size_t buf_alignment = 256;
+    
     if(is_nchw)
     {
         TransposeSolutionDefault2Nhwc trans_input(ctx, ctx.out_data_type, n, c, hi, wi);
@@ -1057,9 +1087,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetSize();
         trans_output_size = trans_output_skippable ? 0 : trans_output.GetSize();
 
-        trans_weight_offset = trans_input_offset + trans_input_size;
-        trans_output_offset = trans_weight_offset + trans_weight_size;
-
         int idx = 0;
         if(!trans_input_skippable)
             trans_input_idx = idx++;
@@ -1069,11 +1096,18 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
             trans_output_idx = idx++;
     }
 
-    MIOPEN_LOG_I2(SolverDbId(*this) << ": " << config.ToString() << msg.str());
+    MIOPEN_LOG_I2(SolverDbId() << ": " << config.ToString() << msg.str());
 
-    const size_t cast_offset = is_nchw ? (trans_output_offset + trans_output_size) : 0;
     const size_t cast_size = need_cast ?
         miopen::GetTypeSize(miopenFloat) * k * (c / group) * y * x  : 0;
+
+    MultiBufferWorkspaceTraits wt({trans_input_size, trans_weight_size, trans_output_size, cast_size}, buf_alignment);
+
+    trans_input_offset  = wt.GetOffset(0);
+    trans_weight_offset = wt.GetOffset(1);
+    trans_output_offset = wt.GetOffset(2);
+
+    const size_t cast_offset = wt.GetOffset(3);
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
