@@ -44,7 +44,7 @@ namespace miopen {
 namespace tests {
 class TrivialTestSolver : public solver::ConvSolver
 {
-public:
+    public:
     static const char* FileName() { return "TrivialTestSolver"; }
 
     const std::string& SolverDbId() const override { return GetSolverDbId<TrivialTestSolver>(); }
@@ -80,7 +80,7 @@ struct TestConfig : solver::Serializable<TestConfig>
 
 class SearchableTestSolver : public solver::ConvSolver
 {
-public:
+    public:
     static int searches_done() { return _serches_done; }
     static const char* FileName() { return "SearchableTestSolver"; }
     static const char* NoSearchFileName() { return "SearchableTestSolver.NoSearch"; }
@@ -126,7 +126,7 @@ public:
         return ret;
     }
 
-private:
+    private:
     static int _serches_done; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 };
 

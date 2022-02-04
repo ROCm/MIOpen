@@ -134,7 +134,7 @@ struct SolverBase
     /// ConvSolution GetSolution(const ConvolutionContext& params,
     ///                          const PerformanceConfig& config) const;
 
-protected:
+    protected:
     template <class Solver>
     static const std::string& GetSolverDbId()
     {
@@ -142,7 +142,7 @@ protected:
         return result;
     }
 
-private:
+    private:
     static std::string ComputeSolverDbId(const std::string& type_name)
     {
         auto idx  = type_name.find_last_of(':');
@@ -1688,7 +1688,7 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : ConvSolver
     LegacyPerformanceConfig Search(const ConvolutionContext&,
                                    const AnyInvokeParams& invoke_ctx) const;
 
-private:
+    private:
     template <typename Tgpu>
     LegacyPerformanceConfig SearchImpl(const ConvolutionContext&) const;
 };
@@ -1703,7 +1703,7 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
                              const LegacyPerformanceConfig& searched_params) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&, const LegacyPerformanceConfig&) const;
 
-protected:
+    protected:
     bool IsApplicableBase(const ConvolutionContext& params) const;
 };
 
@@ -2066,7 +2066,7 @@ struct ConvWinograd3x3MultipassWrW : ConvSolver
             return WinoDataW + (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : ctx.kernel_stride_w);
     }
 
-private:
+    private:
     InvokerFactory PrepareInvokerFactory(const ConvolutionContext& params, std::size_t ws_sz) const;
 };
 
@@ -2342,7 +2342,7 @@ struct ConvOclBwdWrW2 : ConvSolver
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-protected:
+    protected:
     bool IsApplicableBase(const ConvolutionContext& params) const;
 };
 
