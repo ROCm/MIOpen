@@ -409,7 +409,7 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
         in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
 
     auto solution        = ConvSolution{miopenStatusSuccess};
-    solution.workspce_sz = workspace_req;
+    solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));

@@ -384,7 +384,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         }
 
         const auto ws_sz   = GetWorkspaceSize(params);
-        result.workspce_sz = ws_sz;
+        result.workspace_sz = ws_sz;
 
         {
             // std::cout << comp_options << std::endl;

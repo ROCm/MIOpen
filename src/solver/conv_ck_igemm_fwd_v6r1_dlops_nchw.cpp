@@ -192,7 +192,7 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
     sol.construction_params.push_back(kernel1_info);
 
     // workspace is used to save transformed tensor descriptors
-    sol.workspce_sz = GetWorkspaceSize(ctx);
+    sol.workspace_sz = GetWorkspaceSize(ctx);
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
