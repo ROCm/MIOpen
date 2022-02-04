@@ -247,13 +247,9 @@ struct unary_abs<half_t, hasDividing>
 
     __device__ inline half_t operator()(half_t a) const
     {
-#ifdef WORKAROUND_ISSUE_HIPRTC_HALF_CONVERSION
-        const auto val = __habs(a);
-        return *(reinterpret_cast<const half_t*>(&val)) * type_convert<half_t>{}(scaler);
-#else
         a = static_cast<half_t>(__habs(a));
+
         return a * type_convert<half_t>{}(scaler);
-#endif
     };
 
     float scaler = 1.0f;
@@ -264,15 +260,7 @@ struct unary_abs<half_t, false>
 {
     __device__ unary_abs(const int divider = 1) { (void)divider; };
 
-    __device__ inline half_t operator()(half_t a) const
-    {
-#ifdef WORKAROUND_ISSUE_HIPRTC_HALF_CONVERSION
-        const auto val = __habs(a);
-        return *reinterpret_cast<const half_t*>(&val);
-#else
-        return static_cast<half_t>(__habs(a));
-#endif
-    }
+    __device__ inline half_t operator()(half_t a) const { return static_cast<half_t>(__habs(a)); };
 };
 
 template <class T>
@@ -288,24 +276,7 @@ struct unary_sqrt<half_t>
 {
     __device__ unary_sqrt(const int divider = 1) { (void)divider; };
 
-    __device__ inline half_t operator()(half_t a) const
-    {
-#ifdef WORKAROUND_ISSUE_HIPRTC_HALF_CONVERSION
-        // clang-format off
-// .../reduction_operator.hpp:280:66: error: no matching conversion for static_cast from '__half' to 'ck::half_t' (aka '_Float16')
-//     __device__ inline half_t operator()(half_t a) const { return static_cast<half_t>(hsqrt(a)); };
-//                                                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// .../include/hip/amd_detail/amd_hip_fp16.h:230:17: note: candidate template ignored: substitution failure [with T = _Float16]: 
-// value of type 'std::is_floating_point<_Float16>' is not implicitly convertible to 'bool'
-//                 operator T() const { return data; }
-//                 ^
-        // clang-format on
-        const auto val = hsqrt(a);
-        return *reinterpret_cast<const half_t*>(&val);
-#else
-        return static_cast<half_t>(hsqrt(a));
-#endif
-    }
+    __device__ inline half_t operator()(half_t a) const { return static_cast<half_t>(hsqrt(a)); };
 };
 
 }; // end of namespace reduce

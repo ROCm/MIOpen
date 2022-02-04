@@ -1249,7 +1249,6 @@ void BuildHip(const std::string& name,
             miopen::SplitSpaceSeparated(options, miopen::comgr::compiler::lc::GetOptionsNoSplit());
         compiler::lc::RemoveOptionsUnwanted(opts);
         opts.push_back("-DWORKAROUND_ISSUE_HIPRTC_TRUE_TYPE");       // Workaround for SWDEV-308073
-        opts.push_back("-DWORKAROUND_ISSUE_HIPRTC_HALF_CONVERSION"); // Workaround for SWDEV-308250
         opts.push_back("-D__HIP_PLATFORM_HCC__=1");                  // Workaround?
         opts.push_back("-D__HIP_PLATFORM_AMD__=1");                  // Workaround?
 #if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
