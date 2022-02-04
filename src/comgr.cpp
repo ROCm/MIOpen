@@ -1258,7 +1258,6 @@ void BuildHip(const std::string& name,
         opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
         opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1");
 #if WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H
-        opts.push_back("-Wno-reserved-id-macro");
         opts.push_back("-Wno-newline-eof");
 #endif
         opts.push_back("-Wno-cuda-compat");
