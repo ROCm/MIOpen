@@ -154,10 +154,7 @@ struct HandleImpl
             &HandleImpl::elapsed_time, this, std::placeholders::_1, std::placeholders::_2);
     }
 
-    void set_ctx() const
-    {
-        miopen::set_device(this->device);
-    }
+    void set_ctx() const { miopen::set_device(this->device); }
 
     std::string get_device_name() const
     {
@@ -180,7 +177,7 @@ struct HandleImpl
     KernelCache cache;
     TargetProperties target_properties;
 
-private:
+    private:
     static hipError_t hip_init_status;
 };
 
