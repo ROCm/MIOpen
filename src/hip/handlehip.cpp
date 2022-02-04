@@ -181,6 +181,9 @@ struct HandleImpl
     static const hipError_t hip_init_status;
 };
 
+// clang-tidy treats hipInit() as possibly throwing function:
+// hipInit() marked as 'extern "C"' function, but without "noexcept"
+// NOLINTNEXTLINE (cert-err-58-cpp)
 const hipError_t HandleImpl::hip_init_status = hipInit(0);
 
 Handle::Handle(miopenAcceleratorQueue_t stream) : impl(std::make_unique<HandleImpl>())
