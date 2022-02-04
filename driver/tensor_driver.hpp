@@ -26,6 +26,8 @@
 #ifndef GUARD_MIOPEN_TENSOR_DRIVER_HPP
 #define GUARD_MIOPEN_TENSOR_DRIVER_HPP
 
+#include "driver.hpp"
+
 #include <algorithm>
 #include <iterator>
 #include <miopen/miopen.h>
@@ -35,7 +37,7 @@
 #include <numeric>
 #include <vector>
 
-std::vector<int> GetTensorLengths(miopenTensorDescriptor_t& tensor)
+inline std::vector<int> GetTensorLengths(miopenTensorDescriptor_t& tensor)
 {
     int n;
     int c;
@@ -64,7 +66,7 @@ std::vector<int> GetTensorLengths(miopenTensorDescriptor_t& tensor)
     return tensor_len;
 }
 
-std::vector<int> GetTensorStrides(miopenTensorDescriptor_t& tensor)
+inline std::vector<int> GetTensorStrides(miopenTensorDescriptor_t& tensor)
 {
     int nstride;
     int cstride;
@@ -95,24 +97,32 @@ std::vector<int> GetTensorStrides(miopenTensorDescriptor_t& tensor)
     return tensor_strides;
 }
 
-int SetTensor4d(miopenTensorDescriptor_t t,
-                std::vector<int>& len,
-                miopenDataType_t data_type = miopenFloat)
+inline int SetTensor4d(miopenTensorDescriptor_t t,
+                       std::vector<int>& len,
+                       miopenDataType_t data_type = miopenFloat)
 {
     return miopenSet4dTensorDescriptor(t, data_type, UNPACK_VEC4(len));
 }
 
-int SetTensorNd(miopenTensorDescriptor_t t,
-                std::vector<int>& len,
-                miopenDataType_t data_type = miopenFloat)
+inline int SetTensorNd(miopenTensorDescriptor_t t,
+                       std::vector<int>& len,
+                       miopenDataType_t data_type = miopenFloat)
 {
     return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), nullptr);
 }
 
-int SetTensorNd(miopenTensorDescriptor_t t,
-                std::vector<int>& len,
-                const std::string& layout,
-                miopenDataType_t data_type = miopenFloat)
+inline int SetTensorNd(miopenTensorDescriptor_t t,
+                       std::vector<int>& len,
+                       std::vector<int>& strides,
+                       miopenDataType_t data_type = miopenFloat)
+{
+    return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), strides.data());
+}
+
+inline int SetTensorNd(miopenTensorDescriptor_t t,
+                       std::vector<int>& len,
+                       const std::string& layout,
+                       miopenDataType_t data_type = miopenFloat)
 {
     if(layout.empty())
     {
@@ -134,14 +144,14 @@ int SetTensorNd(miopenTensorDescriptor_t t,
     std::vector<int> strides;
     miopen::tensor_layout_to_strides(len, len_layout, layout, strides);
 
-    return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), strides.data());
+    return SetTensorNd(t, len, strides, data_type);
 }
 
 // This function ignores tensor strides completely and its result should not be interpreted as
 // memory required for an "unpacked" tensor. In such cases GetTensorSpace should be used instead.
 // For "packed" tensors result may be interpreted as an amount of memory required for the tensor.
 // The implementation is a copy-paste from miopen::TensorDescriptor.
-size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
+inline size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
 {
     assert(miopen::deref(tensor).IsPacked() &&
            "GetTensorSize should not be used on an unpacked tensor.");
@@ -154,7 +164,7 @@ size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
 // The result of this function may be interpreted as a correct amount of memory required for both
 // "packed" and "unpacked" tensors. In general it should be used for such purposes rather than
 // GetTensorSize. Unless, of course, there is absolutely zero chance to receive an unpacked tensor.
-size_t GetTensorSpace(miopenTensorDescriptor_t& tensor)
+inline size_t GetTensorSpace(miopenTensorDescriptor_t& tensor)
 {
     return miopen::deref(tensor).GetElementSpace();
 }

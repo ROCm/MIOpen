@@ -199,11 +199,8 @@ void BatchNormForwardInference(Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm);
         }
 
-        const auto problem = batchnorm::ProblemDescription{bn_mode,
-                                                           xDesc,
-                                                           yDesc,
-                                                           bnScaleBiasMeanVarDesc,
-                                                           epsilon};
+        const auto problem =
+            batchnorm::ProblemDescription{bn_mode, xDesc, yDesc, bnScaleBiasMeanVarDesc, epsilon};
 
         const auto invoke_params = [&]() {
             auto tmp              = batchnorm::InfInvokeParams{};

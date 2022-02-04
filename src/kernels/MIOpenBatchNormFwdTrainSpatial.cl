@@ -41,6 +41,14 @@
 #include "batchnorm_functions.h"
 #include "reduction_functions.h"
 
+#ifndef MIO_LAYOUT_NHWC
+#define MIO_LAYOUT_NHWC 0
+#endif
+
+#if(MIO_LAYOUT_NHWC != 0) && (MIO_LAYOUT_NHWC != 1)
+#error "MIO_LAYOUT_NHWC must be 0 or 1"
+#endif
+
 #if(MIO_BN_VARIANT == 0)
 
 #define MIO_BN_SEGTMP_1 (MIO_BN_GRP0 / MIO_BN_HW)
@@ -181,6 +189,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
 //===========
 
+#if MIO_LAYOUT_NHWC
+#define MIO_MAX_READ 1
+#define RD_BLK 1
+#define GRPRD (MIO_BN_GRP0 * RD_BLK)
+#else
 #if(MIO_BN_HW >= 4096)
 #define MIO_MAX_READ 3
 #else
@@ -188,6 +201,8 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
 #define RD_BLK 1
 #define GRPRD (MIO_BN_GRP0 * RD_BLK * 4)
+#endif
+
 #define MIO_BN_REM4 (MIO_BN_NHW - ((MIO_BN_NHW / GRPRD) * GRPRD))
 #define MIO_BN_LESS4 (MIO_BN_NHW - MIO_BN_REM4)
 #define MIO_BN_CHUNK4 (MIO_MAX_READ * GRPRD)
@@ -232,7 +247,9 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     uint index = 0;
     uint lid   = get_local_id(0);
     uint grpid = get_group_id(0);
+#if !MIO_LAYOUT_NHWC
     uint chwid = grpid * MIO_BN_HW;
+#endif
     uint nidx  = 0;
     uint hwidx = 0;
 
@@ -243,7 +260,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#if(MIO_BN_HW >= 4096)
+#if !MIO_LAYOUT_NHWC && MIO_BN_HW >= 4096
     _FLOAT4 read4;
     __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid << 2; k < MIO_BN_LESS4;
                                                k += GRPRD)
@@ -288,7 +305,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     {
         nidx            = k / MIO_BN_HW;
         hwidx           = k - (nidx * MIO_BN_HW);
-        index           = nidx * MIO_BN_CHW + chwid + hwidx;
+#if MIO_LAYOUT_NHWC
+        index           = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
+#else
+        index = nidx * MIO_BN_CHW + chwid + hwidx;
+#endif
         _FLOAT_PREC xin = (_FLOAT_PREC)(*(in + index));
         mean += xin;
         variance = mad(xin, xin, variance);
@@ -299,7 +320,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         unsigned int remkey = lid + MIO_BN_LESS;
         nidx                = remkey / MIO_BN_HW;
         hwidx               = remkey - (nidx * MIO_BN_HW);
-        index               = nidx * MIO_BN_CHW + chwid + hwidx;
+#if MIO_LAYOUT_NHWC
+        index               = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
+#else
+        index = nidx * MIO_BN_CHW + chwid + hwidx;
+#endif
         _FLOAT_PREC xin = (index < MIO_BN_NCHW) ? (_FLOAT_PREC)(*(in + index)) : (_FLOAT_PREC)0.;
         mean += xin;
         variance = mad(xin, xin, variance);
@@ -329,13 +354,22 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     pvscale = lcl_scale;
     pvbias  = lcl_bias;
 
-#if(MIO_BN_REM == 0)
-    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid; k < MIO_BN_LESS;
-                                               k += MIO_BN_GRP0)
+#if(MIO_LAYOUT_NHWC || MIO_BN_REM == 0)
+    const unsigned int k_limit =
+#if MIO_LAYOUT_NHWC
+        MIO_BN_NHW;
+#else
+        MIO_BN_LESS;
+#endif
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid; k < k_limit; k += MIO_BN_GRP0)
     {
         nidx  = k / MIO_BN_HW;
         hwidx = k - (nidx * MIO_BN_HW);
+#if MIO_LAYOUT_NHWC
+        index = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
+#else
         index = nidx * MIO_BN_CHW + chwid + hwidx;
+#endif
         out[index] =
             (_FLOAT)mad(pvscale, ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance, pvbias);
     } // end for

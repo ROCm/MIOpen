@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#define CONV_OCL_DIR2D_BWDWRW_2_CPP
+
 #include <miopen/solver.hpp>
 
 #include <miopen/conv/invokers/ocl_wrw_rdc.hpp>
@@ -41,7 +43,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2)
 namespace miopen {
 namespace solver {
 
-inline static bool Is_1__8(const int& v) // NOLINT (bugprone-reserved-identifier)
+inline static bool Is_1_to_8(const int& v)
 {
     // full: {1,2,4,8}, optimized: {1,3,8}
     switch(v)
@@ -55,9 +57,9 @@ inline static bool Is_1__8(const int& v) // NOLINT (bugprone-reserved-identifier
     }
 }
 
-inline static bool Inc_1__8(int& v) // NOLINT (bugprone-reserved-identifier)
+inline static bool Inc_1_to_8(int& v)
 {
-    assert(Is_1__8(v));
+    assert(Is_1_to_8(v));
     if(v == 8)
     {
         v = 1;
@@ -67,9 +69,9 @@ inline static bool Inc_1__8(int& v) // NOLINT (bugprone-reserved-identifier)
     return false;
 }
 
-inline static bool Inc_1__8_optimized(int& v) // NOLINT (bugprone-reserved-identifier)
+inline static bool Inc_1_to_8_optimized(int& v)
 {
-    assert(Is_1__8(v));
+    assert(Is_1_to_8(v));
     switch(v)
     {
     case 1: v = 3; return false;
@@ -79,23 +81,20 @@ inline static bool Inc_1__8_optimized(int& v) // NOLINT (bugprone-reserved-ident
     }
 }
 
-inline static bool Is_6__12(const int& v) // NOLINT (bugprone-reserved-identifier)
-{
-    return 6 <= v && v <= 12;
-}
+inline static bool Is_6_to_12(const int& v) { return 6 <= v && v <= 12; }
 
-inline static bool Inc_6__12(int& v) // NOLINT (bugprone-reserved-identifier)
+inline static bool Inc_6_to_12(int& v)
 {
-    assert(Is_6__12(v));
+    assert(Is_6_to_12(v));
     if(++v <= 12)
         return false;
     v = 6;
     return true;
 }
 
-inline static bool Inc_6__12_optimized(int& v) // NOLINT (bugprone-reserved-identifier)
+inline static bool Inc_6_to_12_optimized(int& v)
 {
-    assert(Is_6__12(v));
+    assert(Is_6_to_12(v));
     // {6,8,10,12}, {7,9,11}...
     switch(v)
     {
@@ -105,24 +104,21 @@ inline static bool Inc_6__12_optimized(int& v) // NOLINT (bugprone-reserved-iden
     }
 }
 
-inline static bool Is_2__11(const int& v) // NOLINT (bugprone-reserved-identifier)
-{
-    return 2 <= v && v <= 11;
-}
+inline static bool Is_2_to_11(const int& v) { return 2 <= v && v <= 11; }
 
-inline static bool Inc_2__11(int& v) // NOLINT (bugprone-reserved-identifier)
+inline static bool Inc_2_to_11(int& v)
 {
-    assert(Is_2__11(v));
+    assert(Is_2_to_11(v));
     if(++v <= 11)
         return false;
     v = 2;
     return true;
 }
 
-inline static bool Inc_2__11_optimized(int& v) // NOLINT (bugprone-reserved-identifier)
+inline static bool Inc_2_to_11_optimized(int& v)
 {
     // {2 3 5 7 9 11}
-    assert(Is_2__11(v));
+    assert(Is_2_to_11(v));
     switch(v)
     {
     case 2: v = 3; return false;
@@ -180,15 +176,15 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue(
     {
         do
         {
-            if(!Inc_1__8(n_waves))
+            if(!Inc_1_to_8(n_waves))
                 break;
-            if(!Inc_6__12(read_size))
+            if(!Inc_6_to_12(read_size))
                 break;
-            if(!Inc_1__8(n_out_channels_per_tile))
+            if(!Inc_1_to_8(n_out_channels_per_tile))
                 break;
-            if(!Inc_1__8(n_out_channels_tiles))
+            if(!Inc_1_to_8(n_out_channels_tiles))
                 break;
-            if(!Inc_2__11(n_out_rows_in_lcl))
+            if(!Inc_2_to_11(n_out_rows_in_lcl))
                 break;
             return false;
         } while(false);
@@ -197,15 +193,15 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue(
     {
         do
         {
-            if(!Inc_1__8_optimized(n_waves))
+            if(!Inc_1_to_8_optimized(n_waves))
                 break;
-            if(!Inc_6__12_optimized(read_size))
+            if(!Inc_6_to_12_optimized(read_size))
                 break;
-            if(!Inc_1__8_optimized(n_out_channels_per_tile))
+            if(!Inc_1_to_8_optimized(n_out_channels_per_tile))
                 break;
-            if(!Inc_1__8_optimized(n_out_channels_tiles))
+            if(!Inc_1_to_8_optimized(n_out_channels_tiles))
                 break;
-            if(!Inc_2__11_optimized(n_out_rows_in_lcl))
+            if(!Inc_2_to_11_optimized(n_out_rows_in_lcl))
                 break;
             return false;
         } while(false);
@@ -217,11 +213,11 @@ template <int N_BATCH_LOOPS>
 bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValidValue() const
 {
     // clang-format off
-    return Is_1__8(n_waves)
-        && Is_6__12(read_size)
-        && Is_1__8(n_out_channels_per_tile)
-        && Is_1__8(n_out_channels_tiles)
-        && Is_2__11(n_out_rows_in_lcl); // clang-format on
+    return Is_1_to_8(n_waves)
+        && Is_6_to_12(read_size)
+        && Is_1_to_8(n_out_channels_per_tile)
+        && Is_1_to_8(n_out_channels_tiles)
+        && Is_2_to_11(n_out_rows_in_lcl); // clang-format on
 }
 
 static const int N_STACKS = 1; // number  of batch iterations
