@@ -44,6 +44,8 @@ bool MiirIsConfigApplicable(const std::string& params);
 int MiirGetKernelCount(const std::string& params);
 
 void MiirGenBin(const std::string& params, std::vector<char>& buffer);
+
+int MiirGetWorkspaceSize(const std::string& params);
 } // namespace miopen
 
 #endif // MIOPEN_USE_MLIR
