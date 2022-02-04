@@ -46,6 +46,9 @@ bool BnBwdTrainingSpatialSingle::IsApplicable(
        problem.GetMode() != miopenBNSpatial)
         return false;
 
+    if(problem.IsLayoutNHWC())
+        return true;
+
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
 
@@ -99,85 +102,95 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     unsigned int ldsnogcn = 0;
     int variant           = 1;
 
-    //*************************************************************************************************
-    // N*H*W < 32M and H*W > 1024, use batchnorm variant#1 implementation which parallelize
-    // work groups over channels and loop through NHW.
-    //*************************************************************************************************
-    if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024))
+    if(problem.IsLayoutNHWC())
     {
-        variant    = 1;
         xlocalsize = 1024;
         xgridsize  = c * xlocalsize;
         ldsgcn     = xlocalsize / 64;
         ldsnogcn   = xlocalsize;
     }
-    //*************************************************************************************************
-    // N*H*W < 32M and H*W > 512  use batchnorm variant#1 or variant#3 implementation which
-    // parallelize
-    // work groups over channels and loop through N.
-    //*************************************************************************************************
-    else if(in_nhw < (32 * 1024 * 1024) && in_cstride > 512)
+    else
     {
-        variant    = (n >= 32) ? 1 : 3;
-        xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
-        xgridsize  = c * xlocalsize;
-        ldsgcn     = xlocalsize / 64;
-        ldsnogcn   = xlocalsize;
-    }
-    //*************************************************************************************************
-    // H*W < 512  use batchnorm variant#0 or variant#3 implementation based on batch size and
-    // H*W
-    //*************************************************************************************************
-    else if(in_cstride <= 512)
-    {
-        if((n > 64) && (in_cstride > 160))
+        //*************************************************************************************************
+        // N*H*W < 32M and H*W > 1024, use batchnorm variant#1 implementation which parallelize
+        // work groups over channels and loop through NHW.
+        //*************************************************************************************************
+        if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024))
         {
-            variant    = 3;
+            variant    = 1;
+            xlocalsize = 1024;
+            xgridsize  = c * xlocalsize;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
+        }
+        //*************************************************************************************************
+        // N*H*W < 32M and H*W > 512  use batchnorm variant#1 or variant#3 implementation which
+        // parallelize
+        // work groups over channels and loop through N.
+        //*************************************************************************************************
+        else if(in_nhw < (32 * 1024 * 1024) && in_cstride > 512)
+        {
+            variant    = (n >= 32) ? 1 : 3;
             xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
             xgridsize  = c * xlocalsize;
             ldsgcn     = xlocalsize / 64;
             ldsnogcn   = xlocalsize;
         }
-        else
+        //*************************************************************************************************
+        // H*W < 512  use batchnorm variant#0 or variant#3 implementation based on batch size and
+        // H*W
+        //*************************************************************************************************
+        else if(in_cstride <= 512)
         {
-            variant = 0;
-            if(bfp32parm)
+            if((n > 64) && (in_cstride > 160))
             {
-                xlocalsize = 1024;
-                xgridsize  = 1024 * c;
+                variant = 3;
+                xlocalsize =
+                    std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
+                xgridsize = c * xlocalsize;
+                ldsgcn    = xlocalsize / 64;
+                ldsnogcn  = xlocalsize;
             }
             else
             {
-                xlocalsize = 256;
-                xgridsize  = 256 * c;
+                variant = 0;
+                if(bfp32parm)
+                {
+                    xlocalsize = 1024;
+                    xgridsize  = 1024 * c;
+                }
+                else
+                {
+                    xlocalsize = 256;
+                    xgridsize  = 256 * c;
+                }
+                ldsgcn   = xlocalsize / 64;
+                ldsnogcn = xlocalsize;
             }
-            ldsgcn   = xlocalsize / 64;
-            ldsnogcn = xlocalsize;
+        }
+        //*************************************************************************************************
+        // N*H*W > 32M, use batchnorm variant#2 implementation which parallelize
+        // work groups over channels and data segments.
+        //*************************************************************************************************
+        else
+        {
+            variant      = 2;
+            ylocalsize   = 1024;
+            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
+            xgridsize    = c;
+            ygridsize    = segment * ylocalsize;
+            ldsgcn       = ylocalsize / 64;
+            ldsnogcn     = ylocalsize;
+        }
+        if((in_cstride < 200) && (in_cstride > 60) && bfpmixparm)
+        {
+            variant    = 1;
+            xlocalsize = 1024;
+            xgridsize  = c * xlocalsize;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
         }
     }
-    //*************************************************************************************************
-    // N*H*W > 32M, use batchnorm variant#2 implementation which parallelize
-    // work groups over channels and data segments.
-    //*************************************************************************************************
-    else
-    {
-        variant      = 2;
-        ylocalsize   = 1024;
-        auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-        xgridsize    = c;
-        ygridsize    = segment * ylocalsize;
-        ldsgcn       = ylocalsize / 64;
-        ldsnogcn     = ylocalsize;
-    }
-    if((in_cstride < 200) && (in_cstride > 60) && bfpmixparm)
-    {
-        variant    = 1;
-        xlocalsize = 1024;
-        xgridsize  = c * xlocalsize;
-        ldsgcn     = xlocalsize / 64;
-        ldsnogcn   = xlocalsize;
-    }
-
     auto result = ConvSolution{miopenStatusSuccess};
 
     {
@@ -203,6 +216,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             {"MIO_BN_GRP0", xlocalsize},
             {"MIO_BN_GRP1", ylocalsize},
             {"MIO_BN_GRP2", zlocalsize},
+            {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
         };
 
         if((n > 64) && (n % 2 == 0) && (variant == 3) && (bfpmixparm) && (problem.UseSaved()) &&

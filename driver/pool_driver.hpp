@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -63,7 +63,6 @@ class PoolDriver_impl : public Driver
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetInputTensorLengthsFromCmdLine();
 
     int SetPoolDescriptorFromCmdLineArgs();
 
@@ -137,29 +136,43 @@ int PoolDriver_impl<Tgpu, Tref, Index>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref, typename Index>
 int PoolDriver_impl<Tgpu, Tref, Index>::GetandSetData()
 {
-    spatial_dim             = inflags.GetValueInt("spatial_dim");
-    std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
+    auto input  = inflags.GetValueTensor("input");
+    spatial_dim = input.lengths.size() - 2;
 
-    SetTensorNd(inputTensor, in_len, data_type);
-    SetTensorNd(dInputTensor, in_len, data_type);
+    if(input.SetTensordDescriptor(inputTensor, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
+
+    auto dinput = inflags.GetValueTensor("dinput").FillMissing(input);
+    if(dinput.SetTensordDescriptor(dInputTensor, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing dinput tensor: " + inflags.GetValueStr("dinput") + ".");
+
     SetPoolDescriptorFromCmdLineArgs();
 
-    std::vector<int> out_len = GetOutputTensorLengths();
-    SetTensorNd(outputTensor, out_len, data_type);
-    SetTensorNd(dOutputTensor, out_len, data_type);
+    auto output = inflags.GetValueTensor("output");
+    if(output.lengths.empty())
+        output.lengths = GetOutputTensorLengths();
+    if(output.layout.empty() && output.strides.empty())
+        output.layout = input.layout;
+
+    if(output.SetTensordDescriptor(outputTensor, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing output tensor: " + inflags.GetValueStr("output") + ".");
+
+    auto doutput = inflags.GetValueTensor("doutput").FillMissing(output);
+    if(doutput.SetTensordDescriptor(dOutputTensor, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing doutput tensor: " + inflags.GetValueStr("doutput") + ".");
+
     return (0);
 }
 
 template <typename Tgpu, typename Tref, typename Index>
 int PoolDriver_impl<Tgpu, Tref, Index>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("spatial_dim", 'd', "2", "Pooling spatial dimension (Default-2)", "int");
+    inflags.AddTensorFlag("input", 'W', "100x3x32x32,NCHW");
+    inflags.AddTensorFlag("dinput", 'D', "", "input tensor descriptor");
+    inflags.AddTensorFlag("output", 'O', "", "generated from input tensor descriptor");
+    inflags.AddTensorFlag("doutput", 'H', "", "output tensor descriptor");
+
     inflags.AddInputFlag("forw", 'F', "0", "Run only Forward Pooling (Default=0)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
-    inflags.AddInputFlag("in_d", 'D', "32", "Input Depth (Default=32)", "int");
-    inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
-    inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag("win_d", 'Z', "3", "Window Depth (Default=3)", "int");
     inflags.AddInputFlag("win_h", 'y', "3", "Window Height (Default=3)", "int");
     inflags.AddInputFlag("win_w", 'x', "3", "Window Width (Default=3)", "int");
@@ -190,24 +203,6 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AddCmdLineArgs()
                          "str");
 
     return 0;
-}
-
-template <typename Tgpu, typename Tref, typename Index>
-std::vector<int> PoolDriver_impl<Tgpu, Tref, Index>::GetInputTensorLengthsFromCmdLine()
-{
-    if(spatial_dim != 2 && spatial_dim != 3)
-    {
-        MIOPEN_THROW("Unsupported spatial dimension");
-    }
-
-    int in_n = inflags.GetValueInt("batchsize");
-    int in_c = inflags.GetValueInt("in_channels");
-    int in_d = inflags.GetValueInt("in_d");
-    int in_h = inflags.GetValueInt("in_h");
-    int in_w = inflags.GetValueInt("in_w");
-
-    return spatial_dim == 2 ? std::vector<int>({in_n, in_c, in_h, in_w})
-                            : std::vector<int>({in_n, in_c, in_d, in_h, in_w});
 }
 
 template <typename Tgpu, typename Tref, typename Index>
@@ -589,22 +584,8 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyForward()
         pad_w,
         stride_w,
         windowWidth,
-        nIn,
-        cOut,
-        dIn,
-        hIn,
-        wIn,
-        hInStride,
-        dInStride,
-        cInStride,
-        nInStride,
-        dOut,
-        hOut,
-        wOut,
-        hOutStride,
-        dOutStride,
-        cOutStride,
-        nOutStride,
+        inputTensor,
+        outputTensor,
         in.data(),
         out.data(),
         do_backward,

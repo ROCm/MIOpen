@@ -70,6 +70,12 @@ def cmake_build(Map conf=[:]){
        setup_args = "-DMIOPEN_TEST_FLAGS='${test_flags}'" + setup_args
     }
 
+    if(conf.containsKey("find_mode"))
+    {
+        def fmode = conf.get("find_mode", "")
+        setup_args = " -DMIOPEN_DEFAULT_FIND_MODE=${fmode} " + setup_args
+    }
+
     def pre_setup_cmd = """
             echo \$HSA_ENABLE_SDMA
             ulimit -c unlimited
@@ -331,7 +337,6 @@ pipeline {
         Tensile_build_env = "MIOPEN_DEBUG_HIP_KERNELS=0 "
         Tensile_setup = " -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF"
         Smoke_targets = "check doc MIOpenDriver"
-        MLIR_flags    = " -DMIOPEN_USE_MLIR=On"
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
     }
     stages{
@@ -363,14 +368,14 @@ pipeline {
                 stage('Clang Format') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        execute_cmd = "find . -iname \'*.h\' \
+                        execute_cmd = "find .. -iname \'*.h\' \
                                 -o -iname \'*.hpp\' \
                                 -o -iname \'*.cpp\' \
                                 -o -iname \'*.h.in\' \
                                 -o -iname \'*.hpp.in\' \
                                 -o -iname \'*.cpp.in\' \
                                 -o -iname \'*.cl\' \
-                                | grep -v 'build/' \
+                                | grep -v -E '(build/)|(install/)' \
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-10 -style=file {} | diff - {}\'"
                     }
                     steps{
@@ -558,10 +563,10 @@ pipeline {
                     agent{ label rocmnode("vega") }
                     environment{
                         config_targets = "test_conv2d"
-                        execute_cmd = "MIOPEN_FIND_MODE=1 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
+                        execute_cmd = "MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
                     }
                     steps{
-                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd: execute_cmd)
+                        buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd: execute_cmd, find_mode: "Normal")
                     }
                 }
                 stage('Fp32 Hip Fast-Find') {
@@ -790,6 +795,36 @@ pipeline {
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", gpu_arch: "gfx90a:xnack-")
+                    }
+                }
+                stage('Fp32 OpenCL All gfx908') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
+                    }
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, gpu_arch: "gfx908")
+                    }
+                }
+                stage('Fp32 OpenCL Install All gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true", gpu_arch: "gfx90a:xnack-")
+                    }
+                }
+                stage('Fp16 Hip All gfx1030') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP16 }
+                    }
+                    agent{ label rocmnode("navi21") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, gpu_arch: "gfx1030")
                     }
                 }
             }

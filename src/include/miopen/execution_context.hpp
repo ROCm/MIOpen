@@ -45,7 +45,7 @@ class rocm_meta_version
         AMDHSA_COv2              = 1, // V2 metadata, https://llvm.org/docs/AMDGPUUsage.html
         AMDHSA_COv2_COv3         = 2, // E.g. ROCm 2.10 supports both.
         AMDHSA_COv3              = 3, // V3 metadata, https://llvm.org/docs/AMDGPUUsage.html
-        Default                  = AMDHSA_COv2; // Used when auto-detection fails.
+        Default                  = AMDHSA_COv3; // Used when auto-detection fails.
 
     private:
     static constexpr int End = 4, Begin = Unknown;
@@ -78,9 +78,8 @@ struct ExecutionContext
     // to optimize the getWorkspaceSize() calls for speed. This specific optimization is correct
     // because Solvers shall be written so that the required workspace size does not depend on the
     // performance config.
-    bool disable_perfdb_access                                                = false;
-    bool skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage = false;
-    bool use_dynamic_solutions_only                                           = false;
+    bool disable_perfdb_access      = false;
+    bool use_dynamic_solutions_only = false;
 
     inline Handle& GetStream() const { return *stream; }
     inline void SetStream(Handle* stream_) { stream = stream_; }
@@ -274,25 +273,18 @@ struct ExecutionContext
 
 class AutoUseFastDynamicSolutions
 {
-    bool prev_skip_slow_;
     bool prev_use_dynamic_;
     ExecutionContext* const ctx;
 
     public:
     AutoUseFastDynamicSolutions(ExecutionContext& ctx_) : ctx(&ctx_)
     {
-        prev_skip_slow_ = ctx->skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage;
         prev_use_dynamic_ = ctx->use_dynamic_solutions_only;
 
-        ctx->skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage = true;
-        ctx->use_dynamic_solutions_only                                           = true;
+        ctx->use_dynamic_solutions_only = true;
     }
 
-    ~AutoUseFastDynamicSolutions()
-    {
-        ctx->skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage = prev_skip_slow_;
-        ctx->use_dynamic_solutions_only = prev_use_dynamic_;
-    }
+    ~AutoUseFastDynamicSolutions() { ctx->use_dynamic_solutions_only = prev_use_dynamic_; }
 };
 
 bool IsHipKernelsEnabled();

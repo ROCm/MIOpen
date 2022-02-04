@@ -84,7 +84,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.15.0)
+rocm_setup_version(VERSION 2.16.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -105,7 +105,7 @@ add_compile_options(-std=c++14)
 # - OpenCL
 # - HIP
 check_cxx_compiler_flag("--cuda-host-only -x hip" HAS_HIP)
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*hipcc" OR HAS_HIP)
+if(HAS_HIP)
     set(MIOPEN_DEFAULT_BACKEND "HIP")
 else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
@@ -117,7 +117,7 @@ else()
     set(WINE_CMD)
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
@@ -156,26 +156,17 @@ set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
-    find_program(MIOPEN_HIP_COMPILER hcc
+    set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
+    find_program(MIOPEN_HIP_COMPILER clang++
         PATH_SUFFIXES bin
         PATHS
-            /opt/rocm
+            /opt/rocm/llvm
+            ${CMAKE_INSTALL_PREFIX}/llvm
     )
-    set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
         message("hip compiler: ${MIOPEN_HIP_COMPILER}")
     else()
-        find_program(MIOPEN_HIP_COMPILER clang++
-            PATH_SUFFIXES bin
-            PATHS
-                /opt/rocm/llvm
-                ${CMAKE_INSTALL_PREFIX}/llvm
-        )
-        if(MIOPEN_HIP_COMPILER)
-            message("hip compiler: ${MIOPEN_HIP_COMPILER}")
-        else()
-            message(FATAL_ERROR "hip compiler not found")
-        endif()
+        message(FATAL_ERROR "hip compiler not found")
     endif()
 
     # MIOpenTensile does not support opencl backend yet.
@@ -245,35 +236,16 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
             ${CMAKE_INSTALL_PREFIX}
     )
     if(HIP_OC_COMPILER)
-        message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
+        message(STATUS "OpenCL compiler: ${HIP_OC_COMPILER}")
         set(HIP_OC_COMPILER "${HIP_OC_COMPILER}")
     else()
-        message(FATAL_ERROR "clang-ocl not found")
+        message(FATAL_ERROR "OpenCL compiler not found")
     endif()
 
-    if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
-        link_libraries(stdc++)
-
-        # A hack to make this work without the device enumerator
-        link_libraries(-amdgpu-target=gfx803 -amdgpu-target=gfx900 -Wno-unused-command-line-argument)
-        CHECK_CXX_COMPILER_FLAG("-amdgpu-target=gfx906 -Werror" GFX_906_FLAG_VALID)
-        if(GFX_906_FLAG_VALID)
-            link_libraries(-amdgpu-target=gfx906)
-        endif()
-
-        CHECK_CXX_COMPILER_FLAG(-amdgpu-target=gfx908 -Werror, GFX_908_FLAG_VALID)
-        if(GFX_908_FLAG_VALID)
-            link_libraries(-amdgpu-target=gfx908)
-        endif()
-        # end hack
-    else()
-        # Hcc's clang always defines __HCC__ even when not using hcc driver
-        add_definitions(-U__HCC__)
-    endif()
-    # end hack
+    # Hcc's clang always defines __HCC__ even when not using hcc driver
+    add_definitions(-U__HCC__)
 
     set(MIOPEN_HIP_COMPILER ${CMAKE_CXX_COMPILER} CACHE PATH "")
-
 
     # rocblas
     set(MIOPEN_USE_ROCBLAS ON CACHE BOOL "")
@@ -306,10 +278,8 @@ else()
         PATH_SUFFIXES bin
         PATHS
             /opt/rocm/hip
-            /opt/rocm/hcc
             /opt/rocm
             ${CMAKE_INSTALL_PREFIX}/hip
-            ${CMAKE_INSTALL_PREFIX}/hcc
             ${CMAKE_INSTALL_PREFIX}
     )
     if(EXTRACTKERNEL_BIN)
@@ -349,10 +319,8 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
         ${MIOPEN_AMDGCN_ASSEMBLER_PATH}
         /opt/rocm
         /opt/rocm/llvm
-        /opt/rocm/hcc
         ${CMAKE_INSTALL_PREFIX}
         ${CMAKE_INSTALL_PREFIX}/llvm
-        ${CMAKE_INSTALL_PREFIX}/hcc
     PATH_SUFFIXES
         /opencl/bin/x86_64
         /opencl/bin
@@ -448,7 +416,7 @@ rocm_create_package(
 
 include(EnableCompilerWarnings)
 set(MIOPEN_TIDY_ERRORS ERRORS * -readability-inconsistent-declaration-parameter-name)
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
+if(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
     set(MIOPEN_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
 # Enable tidy on hip
 elseif(MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
