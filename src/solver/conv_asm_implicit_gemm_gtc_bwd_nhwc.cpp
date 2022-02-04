@@ -384,15 +384,16 @@ GetBwdXdlopsNHWCConfigList()
 
 static std::tuple<std::string, // kernel_name
                   size_t,      // block_size
-                  size_t>      // grid_size
+                  size_t,      // grid_size
+                  size_t>      // splits_4G
 GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     const ConvolutionContext& ctx, const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
 {
-    const auto group = ctx.group_counts;
-    const auto hi    = ctx.out_height;
-    const auto wi    = ctx.out_width;
-    const auto n     = ctx.batch_sz;
-    // const auto k          = ctx.n_inputs;
+    const auto group      = ctx.group_counts;
+    const auto hi         = ctx.out_height;
+    const auto wi         = ctx.out_width;
+    const auto n          = ctx.batch_sz;
+    const auto k          = ctx.n_inputs;
     const auto c          = ctx.n_outputs;
     const auto ho         = ctx.in_height;
     const auto wo         = ctx.in_width;
@@ -425,8 +426,12 @@ GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     const auto h_tilda_slice = h_tilda_right - h_tilda_left;
     const auto w_tilda_slice = w_tilda_right - w_tilda_left;
     const auto num_of_gemm   = y_tilda * x_tilda;
-    const auto gemm_m        = n * h_tilda_slice * w_tilda_slice;
-    const auto gemm_n        = c / group;
+
+    auto splits_4G =
+        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+
+    const auto gemm_m = (n / splits_4G) * h_tilda_slice * w_tilda_slice;
+    const auto gemm_n = c / group;
 
     size_t block_size = config.BlockSize();
     size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
@@ -435,7 +440,7 @@ GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     if(config.multihead != 0)
         grid_size *= num_of_gemm;
     std::string kernel_name = config.ToKernelName(ctx);
-    return std::make_tuple(kernel_name, block_size, grid_size);
+    return std::make_tuple(kernel_name, block_size, grid_size, splits_4G);
 }
 
 void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const ConvolutionContext& ctx)
@@ -684,7 +689,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
                     }
                 }
                 size_t current_grid_size;
-                std::tie(std::ignore, std::ignore, current_grid_size) =
+                std::tie(std::ignore, std::ignore, current_grid_size, std::ignore) =
                     GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(ctx, config);
                 size_t gks = ComputeLog2GemmKGlobalSplitsWith2DMerge(current_grid_size,
                                                                      1200,
@@ -788,6 +793,17 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const Convolution
     const auto pad_w      = ctx.pad_w;
     const auto y          = ctx.kernel_size_h;
     const auto x          = ctx.kernel_size_w;
+
+    const auto hi = ctx.out_height;
+    const auto wi = ctx.out_width;
+    const auto n  = ctx.batch_sz;
+    const auto ho = ctx.in_height;
+    const auto wo = ctx.in_width;
+
+    auto splits_4G =
+        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+    if(ctx.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
+        return false;
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
@@ -893,23 +909,41 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionC
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
+    if(0 == igemm_split_batch_size(ctx.out_height,
+                                   ctx.out_width,
+                                   ctx.in_height,
+                                   ctx.in_width,
+                                   ctx.batch_sz,
+                                   ctx.n_inputs,
+                                   ctx.n_outputs,
+                                   miopen::GetTypeSize(ctx.in_data_type)))
+        return false;
+
     return true;
 }
 
 size_t
 ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    const auto& hi        = ctx.out_height;
-    const auto& wi        = ctx.out_width;
-    const auto& n         = ctx.batch_sz;
-    const auto& k         = ctx.n_inputs;
-    const auto& c         = ctx.n_outputs;
-    const auto& ho        = ctx.in_height;
-    const auto& wo        = ctx.in_width;
-    const auto& y         = ctx.kernel_size_h;
-    const auto& x         = ctx.kernel_size_w;
-    const auto& group     = ctx.group_counts;
-    const auto is_nchw    = ctx.IsLayoutDefault();
+    const auto& hi     = ctx.out_height;
+    const auto& wi     = ctx.out_width;
+    const auto& n      = ctx.batch_sz;
+    const auto& k      = ctx.n_inputs;
+    const auto& c      = ctx.n_outputs;
+    const auto& ho     = ctx.in_height;
+    const auto& wo     = ctx.in_width;
+    const auto& y      = ctx.kernel_size_h;
+    const auto& x      = ctx.kernel_size_w;
+    const auto& group  = ctx.group_counts;
+    const auto is_nchw = ctx.IsLayoutDefault();
+
+    size_t size_trans_input  = 0;
+    size_t size_trans_weight = 0;
+    size_t size_trans_output = 0;
+    size_t size_tensor_cast  = 0;
+
+    constexpr size_t buf_alignment = 256;
+
     size_t workspace_size = 0;
     if(is_nchw)
     {
@@ -922,17 +956,22 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
                                                    x); // group * k_per_group as batch for weight
         TransposeSolutionDefault2Nhwc trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
         if(!trans_input.IsSkippable())
-            workspace_size += trans_input.GetSize();
+            size_trans_input = trans_input.GetSize();
         if(!trans_weight.IsSkippable())
-            workspace_size += trans_weight.GetSize();
+            size_trans_weight = trans_weight.GetSize();
         if(!trans_output.IsSkippable())
-            workspace_size += trans_output.GetSize();
+            size_trans_output = trans_output.GetSize();
     }
 
     if(!ctx.IsFp32())
-        workspace_size += miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
-                                                           // kernel is FP32, when using FP32 atomic
-                          * n * c * hi * wi;
+        size_tensor_cast =
+            miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
+                                             // kernel is FP32, when using FP32 atomic
+            * n * c * hi * wi;
+
+    MultiBufferWorkspaceTraits wt(
+        {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
+    workspace_size = wt.GetSize();
 
     return workspace_size;
 }
@@ -950,7 +989,9 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     size_t block_size;
     size_t grid_size;
 
-    std::tie(kernel_name, block_size, grid_size) =
+    int splits_4G;
+
+    std::tie(kernel_name, block_size, grid_size, splits_4G) =
         GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(ctx, config);
 
     const auto required_workspace_size = GetWorkspaceSize(ctx);
@@ -960,7 +1001,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     kernel.g_wk.push_back(grid_size * block_size);
-    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(splits_4G);
     kernel.g_wk.push_back(1);
     kernel.l_wk.clear();
     kernel.l_wk.push_back(block_size);
@@ -1034,7 +1075,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
         }
     }
 
-    MIOPEN_LOG_I2(SolverDbId(*this) << ": " << config.ToString() << msg.str());
+    MIOPEN_LOG_I2(SolverDbId() << ": " << config.ToString() << msg.str());
 
     result.invoker_factory =
         conv::MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(ctx, config);

@@ -314,7 +314,8 @@ GetFwdXdlopsNHWCConfigList()
 
 static std::tuple<std::string, // kernel_name
                   size_t,      // block_size
-                  size_t>      // grid_size
+                  size_t,      // grid_size
+                  size_t>      // splits_4G
 GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(
     const ConvolutionContext& ctx, const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
 {
@@ -324,14 +325,21 @@ GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(
     const auto& wo    = ctx.out_width;
     const auto& group = ctx.group_counts;
 
-    const auto gemm_m = n * ho * wo;
+    const auto& hi = ctx.in_height;
+    const auto& wi = ctx.in_width;
+    const auto& c  = ctx.n_inputs;
+
+    auto splits_4G =
+        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+
+    const auto gemm_m = (n / splits_4G) * ho * wo;
     const auto gemm_n = k / group;
     size_t block_size = config.BlockSize();
     size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
                        integer_divide_ceil(gemm_n, config.gemm_n_per_block) *
                        (1 << config.gemm_k_global_split);
     std::string kernel_name = config.ToKernelName(ctx);
-    return std::make_tuple(kernel_name, block_size, grid_size);
+    return std::make_tuple(kernel_name, block_size, grid_size, splits_4G);
 }
 
 void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const ConvolutionContext& ctx)
@@ -555,7 +563,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
                     }
                 }
                 size_t current_grid_size;
-                std::tie(std::ignore, std::ignore, current_grid_size) =
+                std::tie(std::ignore, std::ignore, current_grid_size, std::ignore) =
                     GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(ctx, config);
                 size_t gks = ComputeLog2GemmKGlobalSplitsWith2DMerge(current_grid_size,
                                                                      1200,
@@ -659,6 +667,16 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
     const auto& y         = ctx.kernel_size_h;
     const auto& x         = ctx.kernel_size_w;
 
+    const auto& n  = ctx.batch_sz;
+    const auto& ho = ctx.out_height;
+    const auto& wo = ctx.out_width;
+    const auto& hi = ctx.in_height;
+    const auto& wi = ctx.in_width;
+    auto splits_4G =
+        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+    if(ctx.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
+        return false;
+
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
 
@@ -759,6 +777,14 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
     const auto& group     = ctx.group_counts;
     const auto is_nchw    = ctx.IsLayoutDefault();
     size_t workspace_size = 0;
+
+    size_t size_trans_input  = 0;
+    size_t size_trans_weight = 0;
+    size_t size_trans_output = 0;
+    size_t size_tensor_cast  = 0;
+
+    constexpr size_t buf_alignment = 256;
+
     if(is_nchw)
     {
 
@@ -772,17 +798,22 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
         TransposeSolutionNhwc2Default trans_output(ctx, ctx.out_data_type, n, k, ho, wo);
 
         if(!trans_input.IsSkippable())
-            workspace_size += trans_input.GetSize();
+            size_trans_input = trans_input.GetSize();
         if(!trans_weight.IsSkippable())
-            workspace_size += trans_weight.GetSize();
+            size_trans_weight = trans_weight.GetSize();
         if(!trans_output.IsSkippable())
-            workspace_size += trans_output.GetSize();
+            size_trans_output = trans_output.GetSize();
     }
 
     if(!ctx.IsFp32())
-        workspace_size += miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
-                                                           // kernel is FP32, when using FP32 atomic
-                          * n * k * ho * wo;
+        size_tensor_cast =
+            miopen::GetTypeSize(miopenFloat) // The intermediate output of the 1st
+                                             // kernel is FP32, when using FP32 atomic
+            * n * k * ho * wo;
+
+    MultiBufferWorkspaceTraits wt(
+        {size_trans_input, size_trans_weight, size_trans_output, size_tensor_cast}, buf_alignment);
+    workspace_size = wt.GetSize();
 
     return workspace_size;
 }
@@ -815,6 +846,16 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionC
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
+    if(0 == igemm_split_batch_size(ctx.in_height,
+                                   ctx.in_width,
+                                   ctx.out_height,
+                                   ctx.out_width,
+                                   ctx.batch_sz,
+                                   ctx.n_outputs,
+                                   ctx.n_inputs,
+                                   miopen::GetTypeSize(ctx.in_data_type)))
+        return false;
+
     return true;
 }
 ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
@@ -830,7 +871,9 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     size_t block_size;
     size_t grid_size;
 
-    std::tie(kernel_name, block_size, grid_size) =
+    int splits_4G;
+
+    std::tie(kernel_name, block_size, grid_size, splits_4G) =
         GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(ctx, config);
 
     const auto required_workspace_size = GetWorkspaceSize(ctx);
@@ -840,7 +883,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
     kernel.g_wk.push_back(grid_size * block_size);
-    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(splits_4G);
     kernel.g_wk.push_back(1);
     kernel.l_wk.clear();
     kernel.l_wk.push_back(block_size);
@@ -915,7 +958,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
         }
     }
 
-    MIOPEN_LOG_I2(SolverDbId(*this) << ": " << config.ToString() << msg.str());
+    MIOPEN_LOG_I2(SolverDbId() << ": " << config.ToString() << msg.str());
 
     result.invoker_factory = conv::MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(ctx, config);
     return result;

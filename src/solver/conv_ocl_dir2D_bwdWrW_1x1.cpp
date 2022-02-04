@@ -41,13 +41,11 @@ namespace solver {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
-
 #if WORKAROUND_SWDEV_266868
-    const std::string name = params.GetStream().GetDeviceName();
-    if(name.find("gfx10") != std::string::npos)
-        return false;
+    if(StartsWith(params.GetStream().GetDeviceName(), "gfx10"))
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
+            return false;
 #endif
-
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
         return false;
     if(!params.use_opencl_convolutions)
