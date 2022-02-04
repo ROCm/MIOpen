@@ -45,7 +45,9 @@ bool PoolingForward2d::IsApplicable(const ExecutionContext&,
            problem.GetXDesc().GetSize() == 4 &&
            problem.GetXDesc().GetType() == problem.GetYDesc().GetType() &&
            (problem.GetXDesc().GetType() == miopenFloat ||
-            problem.GetXDesc().GetType() == miopenHalf);
+            problem.GetXDesc().GetType() == miopenHalf) &&
+           problem.GetXDesc().GetLayout("NCHW") == "NCHW" &&
+           problem.GetYDesc().GetLayout("NCHW") == "NCHW";
 }
 
 ConvSolution PoolingForward2d::GetSolution(const ExecutionContext&,
@@ -158,6 +160,15 @@ ConvSolution PoolingForward2d::GetSolution(const ExecutionContext&,
     };
 
     return result;
+}
+
+std::size_t
+PoolingForward2d::GetWorkspaceSize(const ExecutionContext&,
+                                   const miopen::pooling::ProblemDescription& problem) const
+{
+    if(problem.GetPooling().GetMode() != miopenPoolingMax)
+        return 0;
+    return problem.GetYDesc().GetElementSize() * get_data_size(problem.GetPooling().GetIndexType());
 }
 
 } // namespace pooling
