@@ -131,15 +131,18 @@ def buildHipClangJob(Map conf=[:]){
         def variant = env.STAGE_NAME
 
         def codecov = conf.get("codecov", false)
+        def needs_gpu = conf.get("needs_gpu", true)
 
         def retimage
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
             try {
                 retimage = docker.build("${image}", dockerArgs + '.')
-                withDockerContainer(image: image, args: dockerOpts) {
-                    timeout(time: 5, unit: 'MINUTES')
-                    {
-                        sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
+                if (needs_gpu) {
+                    withDockerContainer(image: image, args: dockerOpts) {
+                        timeout(time: 5, unit: 'MINUTES')
+                        {
+                            sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
+                        }
                     }
                 }
             }
@@ -149,10 +152,12 @@ def buildHipClangJob(Map conf=[:]){
             }
             catch(Exception ex) {
                 retimage = docker.build("${image}", dockerArgs + "--no-cache .")
-                withDockerContainer(image: image, args: dockerOpts) {
-                    timeout(time: 5, unit: 'MINUTES')
-                    {
-                        sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
+                if (needs_gpu) {
+                    withDockerContainer(image: image, args: dockerOpts) {
+                        timeout(time: 5, unit: 'MINUTES')
+                        {
+                            sh 'PATH="/opt/rocm/opencl/bin:/opt/rocm/opencl/bin/x86_64:$PATH" clinfo'
+                        }
                     }
                 }
             }
@@ -350,7 +355,7 @@ pipeline {
                         build_cmd = "make -j\$(nproc) -k analyze"
                     }
                     steps{
-                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, no_reboot:true)
+                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, no_reboot:true, needs_gpu:false)
                     }
                 }
                 stage('OpenCL Tidy') {
@@ -360,7 +365,7 @@ pipeline {
                         build_cmd = "make -j\$(nproc) -k analyze"
                     }
                     steps{
-                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, no_reboot:true)
+                        buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, no_reboot:true, needs_gpu:false)
                     }
                 }
                 stage('Clang Format') {
@@ -377,7 +382,7 @@ pipeline {
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-10 -style=file {} | diff - {}\'"
                     }
                     steps{
-                        buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, no_reboot:true)
+                        buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, no_reboot:true, needs_gpu:false)
                     }
                 }
                 stage('Tuna Fin Build Test') {
@@ -387,7 +392,7 @@ pipeline {
                       build_cmd = "make -j\$(nproc) "
                     }
                     steps{
-                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON")
+                      buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", no_reboot:true, build_cmd: build_cmd, build_fin: "ON", needs_gpu:false)
                   }
                 }
                 stage('Perf DB Deserialize Test') {
@@ -397,7 +402,7 @@ pipeline {
 
                     }
                     steps{
-                        CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true")
+                        CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
                     }
                 }
                 stage('HipNoGPU Debug Build Test') {
@@ -411,7 +416,7 @@ pipeline {
                         build_cmd = "make -j\$(nproc)"
                     }
                     steps{
-                        buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd)
+                        buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd, needs_gpu:false)
                     }
                 }
             }
@@ -1199,13 +1204,13 @@ pipeline {
                 stage('OpenCL Package') {
                     agent{ label rocmnode("nogpu") }
                     steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', package_build: "true", gpu_arch: "gfx900;gfx906;gfx908;gfx90a")
+                        buildHipClangJobAndReboot(compiler: 'g++', package_build: "true", gpu_arch: "gfx900;gfx906;gfx908;gfx90a", needs_gpu:false)
                     }
                 }
                 stage("HIP Package /opt/rocm") {
                     agent{ label rocmnode("nogpu") }
                     steps{
-                        buildHipClangJobAndReboot( package_build: "true", prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908;gfx90a")
+                        buildHipClangJobAndReboot( package_build: "true", prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908;gfx90a", needs_gpu:false)
                     }
                 }
             }
