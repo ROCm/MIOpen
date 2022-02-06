@@ -435,7 +435,9 @@ static inline uint32_t FlagsForRocblasFp32Fp16Call(const bool gfx90aFp16Alt)
 #else
     std::ignore = gfx90aFp16Alt;
     return 0;
-#endif // !USE_GEMM_FLAGS_FP16_ALT_IMPL
+#endif
+#if USE_GEMM_FLAGS_FP16_ALT_IMPL_242 // -warning: macro is not used
+#endif
 }
 #endif // MIOPEN_USE_ROCBLAS
 
