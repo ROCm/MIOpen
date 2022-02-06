@@ -7,7 +7,7 @@ def show_node_info() {
         echo "NODE_NAME = \$NODE_NAME"
         lsb_release -sd
         uname -r
-        cat /sys/module/amdgpu/version
+        if [ -r /sys/module/amdgpu/version ]; then cat /sys/module/amdgpu/version; fi
         ls /opt/ -la
     """
 }
