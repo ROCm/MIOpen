@@ -1191,7 +1191,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
                     i++)
                 {
                     diff = fabs(Tmix(fabs(runningMean[i]) - fabs(runningMean_host[i])));
-                    if(diff > tolerance)
+                    if(!(diff < tolerance))
                     {
                         std::cout << "rm[" << i << "]: " << runningMean[i];
                         std::cout << ", rm_host[" << i << "]: " << runningMean_host[i];
@@ -1219,7 +1219,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
                     i++)
                 {
                     diff = fabs(Tmix(fabs(runningVariance[i]) - fabs(runningVariance_host[i])));
-                    if(diff > tolerance)
+                    if(!(diff < tolerance))
                     {
                         std::cout << "rv[" << i << "]: " << runningVariance[i];
                         std::cout << ", rv_host[" << i << "]: " << runningVariance_host[i];
@@ -1254,7 +1254,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
                 {
                     diff   = fabs(Tmix(fabs(saveMean[i]) - fabs(saveMean_host[i])));
                     maxval = maxval < diff ? diff : maxval;
-                    if(diff > tolerance)
+                    if(!(diff < tolerance))
                     {
                         std::cout << "sm[" << i << "]: " << saveMean[i];
                         std::cout << ", sm_host[" << i << "]: " << saveMean_host[i];
@@ -1284,7 +1284,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
                     i++)
                 {
                     diff = fabs(Tmix(fabs(saveInvVariance[i]) - fabs(saveInvVariance_host[i])));
-                    if(diff > tolerance)
+                    if(!(diff < tolerance))
                     {
                         std::cout << "sv[" << i << "]: " << saveInvVariance[i];
                         std::cout << ", sv_host[" << i << "]: " << saveInvVariance_host[i];
@@ -1325,7 +1325,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             }
             diff   = Tref(fabs(out[i]) - fabs(out_host[i]));
             maxval = maxval < diff ? diff : maxval;
-            if(diff > tolerance)
+            if(!(diff < tolerance))
             {
                 std::cout << "out[" << i << "]: " << out[i];
                 std::cout << ", out_host[" << i << "]: " << out_host[i];
@@ -1457,7 +1457,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
         {
             diff   = fabs(Tgpu(fabs(dxout[i]) - fabs(dxout_host[i])));
             maxval = maxval < diff ? diff : maxval;
-            if(diff > tolerance)
+            if(!(diff < tolerance))
             {
                 std::cout << "dxout[" << i << "]: " << dxout[i];
                 std::cout << "\tdxout_host[" << i << "]: " << dxout_host[i];
@@ -1487,7 +1487,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
         {
             diff   = fabs(Tmix(fabs(dscale[i]) - fabs(dscale_host[i])));
             maxval = maxval < diff ? diff : maxval;
-            if(diff > tolerance)
+            if(!(diff < tolerance))
             {
                 std::cout << "dscale[" << i << "]: " << dscale[i];
                 std::cout << "\tdscale_host[" << i << "]: " << dscale_host[i];
@@ -1516,7 +1516,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
         for(int i = 0; i < dbias.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
             diff = fabs(Tmix(fabs(dbias[i]) - fabs(dbias_host[i])));
-            if(diff > tolerance)
+            if(!(diff < tolerance))
             {
                 std::cout << "dbias[" << i << "]: " << dbias[i];
                 std::cout << "\tdbias_host[" << i << "]: " << dbias_host[i];

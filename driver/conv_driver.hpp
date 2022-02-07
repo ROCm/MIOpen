@@ -3331,7 +3331,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         if(is_bwd_igemm)
             tolerance = tolerance * 10;
 
-        if(error_data > tolerance)
+        if(!(error_data < tolerance))
         {
             std::cout << "Backward Convolution Data Failed: " << error_data << " > " << tolerance
                       << std::endl;
@@ -3379,7 +3379,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         auto error_weights = is_wrw_run_failed ? std::numeric_limits<double>::max()
                                                : miopen::rms_range(dwei_host.data, dwei);
 
-        if(error_weights > tolerance)
+        if(!(error_weights < tolerance))
         {
             std::cout << "Backward Convolution Weights Failed: " << error_weights << " > "
                       << tolerance << std::endl;
@@ -3402,7 +3402,7 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
 
         auto error_bias      = miopen::rms_range(db_host.data, db);
         const auto tolerance = GetDefaultTolerance();
-        if(error_bias > tolerance)
+        if(!(error_bias < tolerance))
         {
             std::cout << "Backward Convolution Bias Failed: " << error_bias << " > " << tolerance
                       << std::endl;
