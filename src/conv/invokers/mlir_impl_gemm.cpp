@@ -215,13 +215,14 @@ void SetMlirConvArgsPtr(ConstData_t in,
         MIOPEN_THROW("Invalid device pointers for workspace");
     }
 
-    args.filter.basePtr    = filter;
-    args.filter.data       = filter;
-    args.input.basePtr     = input;
-    args.input.data        = input;
-    args.output.basePtr    = output;
-    args.output.data       = output;
-    if(populateWorkspaceArg) {
+    args.filter.basePtr = filter;
+    args.filter.data    = filter;
+    args.input.basePtr  = input;
+    args.input.data     = input;
+    args.output.basePtr = output;
+    args.output.data    = output;
+    if(populateWorkspaceArg)
+    {
         args.workspace->basePtr = workspace;
         args.workspace->data    = workspace;
     }
