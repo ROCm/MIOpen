@@ -187,9 +187,6 @@ struct HandleImpl
     Allocator allocator{};
     KernelCache cache;
     TargetProperties target_properties;
-
-    private:
-    static const hipError_t hip_init_status;
 };
 
 Handle::Handle(miopenAcceleratorQueue_t stream) : impl(std::make_unique<HandleImpl>())
