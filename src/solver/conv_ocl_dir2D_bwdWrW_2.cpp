@@ -396,7 +396,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
 
     if(n_batch_blks > 1)
     {
-        size_t data_len    = GetTypeSize(params.out_data_type);
+        size_t data_len     = GetTypeSize(params.out_data_type);
         result.workspace_sz = static_cast<std::size_t>(wei_bstride) *
                               static_cast<std::size_t>(params.n_inputs) * n_batch_blks *
                               static_cast<std::size_t>(data_len);

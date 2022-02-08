@@ -408,7 +408,7 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
     const auto in_spatial_size = std::accumulate(
         in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
 
-    auto solution        = ConvSolution{miopenStatusSuccess};
+    auto solution         = ConvSolution{miopenStatusSuccess};
     solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {

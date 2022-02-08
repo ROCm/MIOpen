@@ -383,7 +383,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             result.construction_params.push_back(kernel);
         }
 
-        const auto ws_sz   = GetWorkspaceSize(params);
+        const auto ws_sz    = GetWorkspaceSize(params);
         result.workspace_sz = ws_sz;
 
         {

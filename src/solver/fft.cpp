@@ -359,7 +359,7 @@ ConvSolution fft::GetSolution(const ConvolutionContext& ctx) const
     const std::string algorithm    = "miopenConvolutionFwdAlgoFFT";
     const std::string program_name = "MIOpenConvFFT.cl";
 
-    auto sol        = ConvSolution{miopenStatusSuccess};
+    auto sol         = ConvSolution{miopenStatusSuccess};
     sol.workspace_sz = workSpaceSize;
 
     // skip front transposes for 7x7

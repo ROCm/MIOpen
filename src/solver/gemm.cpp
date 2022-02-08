@@ -283,7 +283,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
 
     const std::size_t wei_k = wDesc.GetLengths()[0];
 
-    auto solution        = ConvSolution{miopenStatusSuccess};
+    auto solution         = ConvSolution{miopenStatusSuccess};
     solution.workspace_sz = workspace_req;
 
     const auto group_count  = conv.group_count;
@@ -551,7 +551,7 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
 
     const auto workspace_req = GetWorkspaceSize(context, problem);
 
-    auto solution        = ConvSolution{miopenStatusSuccess};
+    auto solution         = ConvSolution{miopenStatusSuccess};
     solution.workspace_sz = workspace_req;
 
     TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
@@ -1021,7 +1021,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
 
     const auto workspace_req = GetWorkspaceSize(context, problem);
 
-    auto solution        = ConvSolution{miopenStatusSuccess};
+    auto solution         = ConvSolution{miopenStatusSuccess};
     solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {

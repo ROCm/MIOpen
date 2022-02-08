@@ -258,7 +258,7 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
 
     const auto workspace_req = GetWorkspaceSize(context, problem);
 
-    auto solution        = ConvSolution{miopenStatusSuccess};
+    auto solution         = ConvSolution{miopenStatusSuccess};
     solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
@@ -442,7 +442,7 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
     const auto group_count = conv.group_count;
     const auto in_n        = dxDesc.GetLengths()[0];
 
-    auto solution        = ConvSolution{miopenStatusSuccess};
+    auto solution         = ConvSolution{miopenStatusSuccess};
     solution.workspace_sz = 0;
 
     // dx = transpose(w) * dy
@@ -667,7 +667,7 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
 
     const auto workspace_req = GetWorkspaceSize(context, problem);
 
-    auto solution        = ConvSolution{miopenStatusSuccess};
+    auto solution         = ConvSolution{miopenStatusSuccess};
     solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {

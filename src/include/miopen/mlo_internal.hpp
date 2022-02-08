@@ -398,10 +398,10 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
      */
     inline const std::vector<size_t>& getGlobalWkSize() const { return (_g_wk); }
 
-    int _grp_tile0      = 8; // total number ALUs per group
-    int _grp_tile1      = 8; // total number ALUs per group
-    int _out_pix_tile0  = 2; // # of generated pixels per output per wk-item  (ALU)
-    int _out_pix_tile1  = 4; // # of generated pixels per output per wk-item  (ALU)
+    int _grp_tile0       = 8; // total number ALUs per group
+    int _grp_tile1       = 8; // total number ALUs per group
+    int _out_pix_tile0   = 2; // # of generated pixels per output per wk-item  (ALU)
+    int _out_pix_tile1   = 4; // # of generated pixels per output per wk-item  (ALU)
     size_t _workspace_sz = 0;
 
     /*
