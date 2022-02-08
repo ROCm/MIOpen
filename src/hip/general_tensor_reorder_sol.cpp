@@ -68,7 +68,6 @@ static inline std::string GetKernelName(std::size_t data_size, const GeneralReor
                     << kparam->ediv_x << "x" << kparam->ediv_y << "_";
     }
     kernel_name << type_trait<<"_r"<<dst_order::at(0)<<dst_order::at(1)<<dst_order::at(2)<<dst_order::at(3);
-    std::cout<<kernel_name.str();
     return kernel_name.str();
 }
 
@@ -137,9 +136,7 @@ solver::KernelInfo GeneralReorderSolution<dst_order>::GetKernel() const
     uint32_t dim_total = (pixel_total + block_size * kernel_param_heuristic.tile_x - 1) / (block_size * kernel_param_heuristic.tile_x);
     std::size_t grid_size = dim_total;
 #endif
-    std::cout<<"check point before GetKernelName"<<std::endl;
     std::string kernel_name = GetKernelName();
-    std::cout<<"check point after GetKernelName with:"<<kernel_name<<std::endl;
     solver::KernelInfo kernel;
     kernel.kernel_file = "general_tensor_reorder.cpp";
     kernel.kernel_name = kernel_name;

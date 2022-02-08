@@ -33,21 +33,6 @@
 #include <vector>
 #include <../kernels/gpu_general_tensor_reorder_kernel/order.hpp>
 
-#include <miopen/tensor.hpp>
-#include <miopen/magic_div.hpp>
-#include <miopen/float_equal.hpp>
-#include <string>
-#include <limits>
-#include <iostream>
-#include <sstream>
-
-#define TENSOR_REORDER_BLOCK_SIZE 256
-#define TENSOR_REORDER_PERSISTENT 0
-
-#if TENSOR_REORDER_PERSISTENT
-#define TENSOR_REORDER_OCCUPANCY 4
-#endif
-
 namespace miopen {
 
 struct GeneralReorderParam

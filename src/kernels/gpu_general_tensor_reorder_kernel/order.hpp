@@ -31,9 +31,9 @@ struct order
 {
     static constexpr int m_size = sizeof...(Is);
 
-    __host__ __device__ static constexpr auto size() { return m_size; }
+    __host__ __device__ static constexpr int size() { return m_size; }
 
-    __host__ __device__ static constexpr auto get_size() { return size(); }
+    __host__ __device__ static constexpr int get_size() { return size(); }
 
     __host__ __device__ static constexpr int at(int I)
     {
