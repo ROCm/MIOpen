@@ -137,10 +137,7 @@ struct HandleImpl
     // typedef MIOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
     using StreamPtr = std::shared_ptr<typename std::remove_pointer<hipStream_t>::type>;
 
-    HandleImpl()
-    {
-        hipInit(0);
-    }
+    HandleImpl() { hipInit(0); }
 
     StreamPtr create_stream()
     {
