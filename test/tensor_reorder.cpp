@@ -28,7 +28,7 @@
 #include <miopen/tensor_reorder_util.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_layout.hpp>
-//#include <miopen/general_tensor_reorder_sol.hpp>
+#include <miopen/general_tensor_reorder_sol.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/invoke_params.hpp>
 #include <boost/optional.hpp>
@@ -356,9 +356,7 @@ struct reorder_test : reorder_base
             // ctx.SetupFloats();
 
             REORDER_SOL reorder_sol(ctx, to_miopen_data_type<T>::get(), dim_0, dim_1, dim_2, dim_3);
-
             std::vector<OpKernelArg> opArgs = reorder_sol.GetKernelArg();
-
             boost::optional<miopen::InvokerFactory> invoker_factory(
                 [=](const std::vector<miopen::Kernel>& kernels) mutable {
                     return [=](const miopen::Handle& handle,
@@ -374,15 +372,11 @@ struct reorder_test : reorder_base
                         k(opArgs);
                     };
                 });
-
             std::vector<miopen::solver::KernelInfo> construction_params{reorder_sol.GetKernel()};
-
             const auto invoker =
                 miopen::deref(this->handle).PrepareInvoker(*invoker_factory, construction_params);
-
             // run gpu
             invoker(miopen::deref(this->handle), invoke_param);
-
             // run cpu
             cpu_reorder<T, dst_order>::run(t_dst.data.data(), t_src.data.data(), dim_0, dim_1, dim_2, dim_3);
 
@@ -406,12 +400,10 @@ struct reorder_test : reorder_base
 
             // we expect excact match, since use integer
             bool valid_result = verify_tensor(t_dst_gpu, t_dst);
-
             std::cout << "[" << reorder_str<dst_order>::get() << ", b" << (sizeof(T) * 8)
                       << " ] "
                       << "dim_0:" << dim_0 << ", dim_1:" << dim_1 << ", dim_2:" << dim_2 << ", dim_3:" << dim_3
                       << ", valid:" << valid_result << std::endl;
-
             EXPECT(valid_result == true);
 
 #if MIOPEN_BACKEND_OPENCL
@@ -430,9 +422,9 @@ struct reorder_test : reorder_base
 
 int main()
 {
-loop<int, 1>([&](auto i) {
+loop<int, 23>([&](auto i) {
     constexpr int all_possible_sequence[23][4] = {
-    {0, 3, 2, 1}, {0, 1, 3, 2}, {0, 2, 1, 3}, {0, 2, 3, 1}, {0, 3, 1, 2}, 
+    {0, 1, 3, 2}, {0, 2, 1, 3}, {0, 2, 3, 1}, {0, 3, 1, 2}, {0, 3, 2, 1}, 
     {1, 0, 2, 3}, {1, 0, 3, 2}, {1, 2, 0, 3}, {1, 2, 3, 0}, {1, 3, 0, 2}, {1, 3, 2, 0},
     {2, 0, 1, 3}, {2, 0, 3, 1}, {2, 1, 0, 3}, {2, 1, 3, 0}, {2, 3, 0, 1}, {2, 3, 1, 0},
     {3, 0, 1, 2}, {3, 0, 2, 1}, {3, 1, 0, 2}, {3, 1, 2, 0}, {3, 2, 0, 1}, {3, 2, 1, 0} };

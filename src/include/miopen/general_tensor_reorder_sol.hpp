@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_TENSOR_REORDER_SOL_HPP
-#define GUARD_MIOPEN_TENSOR_REORDER_SOL_HPP
+#ifndef GUARD_GENERAL_MIOPEN_TENSOR_REORDER_SOL_HPP
+#define GUARD_GENERAL_MIOPEN_TENSOR_REORDER_SOL_HPP
 
 #include <miopen/miopen.h>
 #include <miopen/kernel_info.hpp>
@@ -32,21 +32,6 @@
 #include <miopen/execution_context.hpp>
 #include <vector>
 #include <../kernels/gpu_general_tensor_reorder_kernel/order.hpp>
-
-#include <miopen/tensor.hpp>
-#include <miopen/magic_div.hpp>
-#include <miopen/float_equal.hpp>
-#include <string>
-#include <limits>
-#include <iostream>
-#include <sstream>
-
-#define TENSOR_REORDER_BLOCK_SIZE 256
-#define TENSOR_REORDER_PERSISTENT 0
-
-#if TENSOR_REORDER_PERSISTENT
-#define TENSOR_REORDER_OCCUPANCY 4
-#endif
 
 namespace miopen {
 
