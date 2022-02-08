@@ -777,7 +777,9 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const Convolution
         if(ctx.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
 
-    if(ctx.conv_problem.GetConv().attribute.deterministic.Get() && gemm_k_global_split != 0)
+    // we always have 2 configs that are the same expect gemm_k_global_split=1 and 0
+    // so it's safe to disable the one with gemm_k_global_split=1 here
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}) && gemm_k_global_split != 0)
         return false;
 
     const auto group      = ctx.group_counts;
@@ -997,8 +999,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
         GenerateClangDefsym(opts_0, "igemm_bwd_fp16_alt_impl", 0);
     result.construction_params[0].comp_options = opts_0.str();
     std::ostringstream msg;
-
-    msg << ", determ:" << (ctx.conv_problem.GetConv().attribute.deterministic.Get() ? "y" : "n");
 
     if(isGfx90aFp16altSupport)
     {

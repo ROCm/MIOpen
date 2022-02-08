@@ -492,8 +492,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFindEval()
                                                         outputTensor.gpuData.buf.get()},
                                                        workspace.gpuData.buf.get(),
                                                        workspace.desc.GetNumBytes(),
-                                                       convDesc.attribute.gfx90aFp16alt.GetFwd(),
-                                                       convDesc.attribute.deterministic.Get()};
+                                                       convDesc.attribute.gfx90aFp16alt.GetFwd()};
                     for(auto idx = 0; idx < INVOKE_LIMIT; idx++)
                         invoker(h, invoke_ctx);
                 }
@@ -508,8 +507,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFindEval()
                                                         inputTensor.gpuData.buf.get()},
                                                        workspace.gpuData.buf.get(),
                                                        workspace.desc.GetNumBytes(),
-                                                       convDesc.attribute.gfx90aFp16alt.GetBwd(),
-                                                       convDesc.attribute.deterministic.Get()};
+                                                       convDesc.attribute.gfx90aFp16alt.GetBwd()};
                     for(auto idx = 0; idx < INVOKE_LIMIT; idx++)
                         invoker(h, invoke_ctx);
                 }
@@ -524,8 +522,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFindEval()
                                                        weightTensor.gpuData.buf.get()},
                                                       workspace.gpuData.buf.get(),
                                                       workspace.desc.GetNumBytes(),
-                                                      convDesc.attribute.gfx90aFp16alt.GetWrW(),
-                                                      convDesc.attribute.deterministic.Get()};
+                                                      convDesc.attribute.gfx90aFp16alt.GetWrW()};
                     for(auto idx = 0; idx < INVOKE_LIMIT; idx++)
                         invoker(h, invoke_ctx);
                 }
@@ -683,8 +680,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFind()
                                                         outputTensor.gpuData.buf.get()},
                                                        workspace.gpuData.buf.get(),
                                                        workspace.desc.GetNumBytes(),
-                                                       convDesc.attribute.gfx90aFp16alt.GetFwd(),
-                                                       convDesc.attribute.deterministic.Get()};
+                                                       convDesc.attribute.gfx90aFp16alt.GetFwd()};
                     for(auto idx = 0; idx < INVOKE_LIMIT; idx++)
                         invoker(h, invoke_ctx);
                 }
@@ -699,8 +695,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFind()
                                                         inputTensor.gpuData.buf.get()},
                                                        workspace.gpuData.buf.get(),
                                                        workspace.desc.GetNumBytes(),
-                                                       convDesc.attribute.gfx90aFp16alt.GetBwd(),
-                                                       convDesc.attribute.deterministic.Get()};
+                                                       convDesc.attribute.gfx90aFp16alt.GetBwd()};
                     for(auto idx = 0; idx < INVOKE_LIMIT; idx++)
                         invoker(h, invoke_ctx);
                 }
@@ -715,8 +710,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFind()
                                                        weightTensor.gpuData.buf.get()},
                                                       workspace.gpuData.buf.get(),
                                                       workspace.desc.GetNumBytes(),
-                                                      convDesc.attribute.gfx90aFp16alt.GetWrW(),
-                                                      convDesc.attribute.deterministic.Get()};
+                                                      convDesc.attribute.gfx90aFp16alt.GetWrW()};
                     for(auto idx = 0; idx < INVOKE_LIMIT; idx++)
                         invoker(h, invoke_ctx);
                 }

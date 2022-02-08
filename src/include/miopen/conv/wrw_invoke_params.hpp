@@ -38,18 +38,15 @@ struct WrWInvokeParams : InvokeParams
     Data_t workSpace;
     std::size_t workSpaceSize;
     bool gfx90aFp16alt;
-    bool deterministic;
 
     WrWInvokeParams(ConvWrwTensors tensors_,
                     Data_t workSpace_,
                     std::size_t workSpaceSize_,
-                    bool gfx90aFp16alt_,
-                    bool deterministic_)
+                    bool gfx90aFp16alt_)
         : tensors(tensors_),
           workSpace(workSpace_),
           workSpaceSize(workSpaceSize_),
-          gfx90aFp16alt(gfx90aFp16alt_),
-          deterministic(deterministic_)
+          gfx90aFp16alt(gfx90aFp16alt_)
     {
     }
 
@@ -57,14 +54,12 @@ struct WrWInvokeParams : InvokeParams
                     ConvWrwTensors tensors_,
                     Data_t workSpace_,
                     std::size_t workSpaceSize_,
-                    bool gfx90aFp16alt_,
-                    bool deterministic_)
+                    bool gfx90aFp16alt_)
         : InvokeParams{type_},
           tensors(tensors_),
           workSpace(workSpace_),
           workSpaceSize(workSpaceSize_),
-          gfx90aFp16alt(gfx90aFp16alt_),
-          deterministic(deterministic_)
+          gfx90aFp16alt(gfx90aFp16alt_)
     {
     }
 };
