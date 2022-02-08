@@ -58,11 +58,19 @@
 #include <chrono>
 #include <thread>
 
+#define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 \
+    (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS && (HIP_PACKAGE_VERSION_FLAT < 4003000000ULL))
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
 namespace {
+
+#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30
+void toCallHipInit() __attribute__((constructor(1000)));
+void toCallHipInit() { hipInit(0); }
+#endif
 
 std::size_t GetAvailableMemory()
 {
@@ -129,7 +137,10 @@ struct HandleImpl
     // typedef MIOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
     using StreamPtr = std::shared_ptr<typename std::remove_pointer<hipStream_t>::type>;
 
-    HandleImpl() {}
+    HandleImpl()
+    {
+        hipInit(0);
+    }
 
     StreamPtr create_stream()
     {
@@ -180,11 +191,6 @@ struct HandleImpl
     private:
     static const hipError_t hip_init_status;
 };
-
-// clang-tidy treats hipInit() as possibly throwing function:
-// hipInit() marked as 'extern "C"' function, but without "noexcept"
-// NOLINTNEXTLINE (cert-err-58-cpp)
-const hipError_t HandleImpl::hip_init_status = hipInit(0);
 
 Handle::Handle(miopenAcceleratorQueue_t stream) : impl(std::make_unique<HandleImpl>())
 {
