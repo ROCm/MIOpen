@@ -777,8 +777,10 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const Convolution
         if(ctx.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
 
-    // we always have 2 configs that are the same expect gemm_k_global_split=1 and 0
-    // so it's safe to disable the one with gemm_k_global_split=1 here
+    // An internal rule when we create the kernel_param_list. There always will be a config with
+    // gemm_k_global_split=0 in front of a almost the same config, with only gemm_k_global_split=1,
+    // so it will never choose the *=1 one. And indeed in the HeuristicInit() we never wish to find
+    // a config with gemm_k_global_split=1. So it is safe here to disable *=1 case
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}) && gemm_k_global_split != 0)
         return false;
 
