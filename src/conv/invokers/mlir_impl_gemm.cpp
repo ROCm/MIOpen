@@ -377,21 +377,16 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             const auto& wrw_invoke_params = primitive_parameters.CastTo<conv::WrWInvokeParams>();
             const auto& tensors           = wrw_invoke_params.tensors;
-            const auto& workspace         = wrw_invoke_params.workSpace;
-            const size_t workspaceSize    = wrw_invoke_params.workSpaceSize;
-            const auto& type              = tensors.dwDesc.GetType();
+            float zero                    = 0.f;
 
-            // Only fp32/fp16 use atomic_add, which accumulate the result into
-            // dw.  Therefore the need for setting to zero beforehand.
-            if((type == miopenFloat) || (type == miopenHalf))
+            if(ctx.IsFp16())
             {
-                float zero = 0.f;
-                SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
-            }
+                const auto& workspace = wrw_invoke_params.workSpace;
+                TensorDescriptor workspaceDesc(
+                    miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
+                SetTensor(handle, workspaceDesc, workspace, &zero);
 
 #if MIOPEN_BACKEND_OPENCL
-            if(workspaceSize != 0)
-            {
                 handle.Run(kernels[0])(tensors.dw,
                                        tensors.dw,
                                        EXPAND_MLIR_CONV_ARGS(args.filter),
@@ -404,9 +399,28 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
                                        workspace,
                                        workspace,
                                        EXPAND_MLIR_CONV_ARGS(*args.workspace));
+#elif MIOPEN_BACKEND_HIP
+                SetMlirConvArgsPtr(tensors.x,
+                                   tensors.dy,
+                                   tensors.dw,
+                                   workspace,
+                                   args,
+                                   /*populateWorkspaceArg=*/true);
+                handle.Run(kernels[0])(args);
+#endif
+                CastTensor(handle,
+                           &ctx.conv_problem.GetConv().lowp_quant,
+                           workspaceDesc,
+                           workspace,
+                           tensors.dwDesc,
+                           tensors.dw,
+                           0,
+                           0);
             }
             else
             {
+                SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+#if MIOPEN_BACKEND_OPENCL
                 handle.Run(kernels[0])(tensors.dw,
                                        tensors.dw,
                                        EXPAND_MLIR_CONV_ARGS(args.filter),
@@ -416,28 +430,16 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
                                        tensors.dy,
                                        tensors.dy,
                                        EXPAND_MLIR_CONV_ARGS(args.output));
-            }
 #elif MIOPEN_BACKEND_HIP
-            if(workspaceSize != 0)
-            {
                 SetMlirConvArgsPtr(tensors.x,
                                    tensors.dy,
                                    tensors.dw,
-                                   workspace,
-                                   args,
-                                   /*populateWorkspaceArg=*/true);
-            }
-            else
-            {
-                SetMlirConvArgsPtr(tensors.x,
-                                   tensors.dy,
-                                   tensors.dw,
-                                   workspace,
+                                   nullptr,
                                    args,
                                    /*populateWorkspaceArg=*/false);
-            }
-            handle.Run(kernels[0])(args);
+                handle.Run(kernels[0])(args);
 #endif
+            }
         };
     };
 }
