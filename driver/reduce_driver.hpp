@@ -504,7 +504,7 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
         {
             auto error2 = miopen::rms_range(outhost_indices, out_indices);
 
-            if(!std::isfinite(error2) || std::abs(static_cast<float>(error2)) > tolerance)
+            if(!std::isfinite(error2) || std::abs(static_cast<float>(error2)) != 0.0f)
             {
                 std::cout << "ReduceTensor() with indices output FAILED: " << error2 << std::endl;
             }
