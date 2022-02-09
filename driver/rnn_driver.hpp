@@ -1686,7 +1686,8 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
 
         if(!std::isfinite(error_data2) || error_data2 > tolerance)
         {
-            std::cout << std::string("difference at inital hidden state FAILED: ") << error_data2 << std::endl;
+            std::cout << std::string("difference at inital hidden state FAILED: ") << error_data2
+                      << std::endl;
         }
         else
         {
@@ -1699,7 +1700,8 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
 
             if(!std::isfinite(error_data3) || error_data3 > tolerance)
             {
-                std::cout << std::string("difference at inital cell state FAILED: ") << error_data3 << std::endl;
+                std::cout << std::string("difference at inital cell state FAILED: ") << error_data3
+                          << std::endl;
             }
             else
             {
