@@ -396,13 +396,13 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
 
     if(n_batch_blks > 1)
     {
-        size_t data_len    = GetTypeSize(params.out_data_type);
-        result.workspce_sz = static_cast<std::size_t>(wei_bstride) *
-                             static_cast<std::size_t>(params.n_inputs) * n_batch_blks *
-                             static_cast<std::size_t>(data_len);
+        size_t data_len     = GetTypeSize(params.out_data_type);
+        result.workspace_sz = static_cast<std::size_t>(wei_bstride) *
+                              static_cast<std::size_t>(params.n_inputs) * n_batch_blks *
+                              static_cast<std::size_t>(data_len);
 
 #if WORKAROUND_ISSUE_1185
-        if(result.workspce_sz >
+        if(result.workspace_sz >
            (std::size_t(6) * std::size_t(1024) * std::size_t(1024) * std::size_t(1024)))
         {
             return false;
@@ -729,7 +729,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
     }
 
     const auto ws_sz       = GetWorkspaceSize(params);
-    result.workspce_sz     = ws_sz;
+    result.workspace_sz    = ws_sz;
     result.invoker_factory = conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
 
     return result;

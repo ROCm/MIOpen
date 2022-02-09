@@ -37,7 +37,7 @@ namespace miopen {
 namespace conv {
 
 InvokerFactory MakeGcnAsm1x1UUSInvokerFactory(
-    int N, int C, int K, int n_groups, int H, int W, std::size_t workspce_sz)
+    int N, int C, int K, int n_groups, int H, int W, std::size_t workspace_sz)
 {
     return [=](const std::vector<Kernel>& kernels) {
         const auto kernel    = kernels[0];
@@ -52,7 +52,7 @@ InvokerFactory MakeGcnAsm1x1UUSInvokerFactory(
             if(workSpace == nullptr || workSpaceSize == 0)
                 MIOPEN_THROW("Workspace is required for SubSample");
 
-            if(workSpaceSize < workspce_sz)
+            if(workSpaceSize < workspace_sz)
                 MIOPEN_THROW("Not enough workspace has been provided for SubSample.");
 
             int unused       = 0;
