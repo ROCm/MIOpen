@@ -819,7 +819,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
         "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw";
     // clang-format on
 
-    result.workspce_sz = GetWorkspaceSize(ctx);
+    result.workspace_sz = GetWorkspaceSize(ctx);
 
     int grid_size  = 0;
     int block_size = 0;

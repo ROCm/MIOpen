@@ -995,7 +995,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
         GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(ctx, config);
 
     const auto required_workspace_size = GetWorkspaceSize(ctx);
-    result.workspce_sz                 = required_workspace_size;
+    result.workspace_sz                = required_workspace_size;
 
     kernel.kernel_file = kernel_name + ".s";
     kernel.kernel_name = kernel_name;

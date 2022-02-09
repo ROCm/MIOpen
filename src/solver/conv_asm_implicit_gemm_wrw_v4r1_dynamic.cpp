@@ -355,7 +355,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
     if(!ret)
         MIOPEN_THROW("this kernel should not run with igemm dynamic!");
 
-    result.workspce_sz = GetWorkspaceSize(ctx);
+    result.workspace_sz = GetWorkspaceSize(ctx);
 
     kernel.kernel_file = "igemm_v4r1_wrw_dynamic.s";
     kernel.kernel_name = kernel_name;
