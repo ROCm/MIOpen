@@ -1675,8 +1675,7 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
 
         if(!std::isfinite(error_data) || error_data > tolerance)
         {
-            std::cout << std::string("Backward RNN Data FAILED: ") << error_data
-                      << std::endl;
+            std::cout << std::string("Backward RNN Data FAILED: ") << error_data << std::endl;
         }
         else
         {
@@ -1687,8 +1686,7 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
 
         if(!std::isfinite(error_data2) || error_data2 > tolerance)
         {
-            std::cout << std::string("difference at inital hidden state FAILED: ") << error_data2
-                      << std::endl;
+            std::cout << std::string("difference at inital hidden state FAILED: ") << error_data2 << std::endl;
         }
         else
         {
@@ -1701,8 +1699,7 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
 
             if(!std::isfinite(error_data3) || error_data3 > tolerance)
             {
-                std::cout << std::string("difference at inital cell state FAILED: ") << error_data3
-                          << std::endl;
+                std::cout << std::string("difference at inital cell state FAILED: ") << error_data3 << std::endl;
             }
             else
             {
@@ -1721,8 +1718,7 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
         auto error_weights = miopen::rms_range(dwei_host, dwei);
         if(!std::isfinite(error_weights) || error_weights > tolerance)
         {
-            std::cout << std::string("Backward RNN Weights FAILED: ") << error_weights
-                      << std::endl;
+            std::cout << std::string("Backward RNN Weights FAILED: ") << error_weights << std::endl;
         }
         else
         {

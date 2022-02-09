@@ -1509,8 +1509,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
     auto errordbias = miopen::rms_range(dbias_host, dbias);
     if(!std::isfinite(errordbias) || errordbias > maxrms)
     {
-        std::cout << "Backwards prop batch norm verification FAILED on dbias: " << errordbias
-                  << std::endl;
+        std::cout << "Backwards prop batch norm verification FAILED on dbias: " << errordbias << std::endl;
         anError = true;
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < dbias.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
