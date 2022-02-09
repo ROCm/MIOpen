@@ -375,6 +375,7 @@ int SoftmaxDriver<Tgpu, Tref>::VerifyBackward()
 
     auto error           = miopen::rms_range(dinhost, din);
     const Tref tolerance = data_type == miopenHalf ? 5e-2 : 1e-3; // 1e-6;
+
     if(!std::isfinite(error) || error > tolerance)
     {
         std::cout << "Backward Softmax FAILED: " << error << std::endl;
