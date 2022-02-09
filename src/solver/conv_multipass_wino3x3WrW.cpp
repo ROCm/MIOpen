@@ -536,7 +536,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Get
     const ConvolutionContext& params) const
 {
     ConvSolution result;
-    result.workspce_sz = GetWorkspaceSize(params);
+    result.workspace_sz = GetWorkspaceSize(params);
 
     result.construction_params.push_back(
         InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetKernel(params));
@@ -545,7 +545,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Get
     result.construction_params.push_back(
         OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetKernel(params));
 
-    result.invoker_factory = PrepareInvokerFactory(params, result.workspce_sz);
+    result.invoker_factory = PrepareInvokerFactory(params, result.workspace_sz);
 
     return result;
 }

@@ -655,6 +655,9 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
         if(ctx.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
 
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}) && gemm_k_global_split != 0)
+        return false;
+
     const auto& c         = ctx.n_inputs;
     const auto& k         = ctx.n_outputs;
     const auto& group     = ctx.group_counts;
@@ -877,7 +880,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
         GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(ctx, config);
 
     const auto required_workspace_size = GetWorkspaceSize(ctx);
-    result.workspce_sz                 = required_workspace_size;
+    result.workspace_sz                = required_workspace_size;
 
     kernel.kernel_file = kernel_name + ".s";
     kernel.kernel_name = kernel_name;

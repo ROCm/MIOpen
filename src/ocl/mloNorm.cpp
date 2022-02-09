@@ -294,7 +294,7 @@ int mlo_construct_norm::mloConstructFwd()
 
     // calculate workspace
     size_t scale_sz = _search_params.batch_sz * scale_batch_stride * data_len;
-    _workspce_sz    = (doBackward()) ? scale_sz : 0;
+    _workspace_sz   = (doBackward()) ? scale_sz : 0;
 
     return (ret);
 }
