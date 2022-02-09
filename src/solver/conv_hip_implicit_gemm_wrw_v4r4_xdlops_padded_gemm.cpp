@@ -1098,7 +1098,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
             }
         };
     };
-    result.workspce_sz = GetWorkspaceSize(ctx);
+    result.workspace_sz = GetWorkspaceSize(ctx);
     return result;
 }
 

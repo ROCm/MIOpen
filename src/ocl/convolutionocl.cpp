@@ -277,20 +277,20 @@ static void EvaluateInvokers(Handle& handle,
 
     for(const auto& sol : solutions)
     {
-        if(sol.workspce_sz > 0)
+        if(sol.workspace_sz > 0)
         {
             if(invoke_ctx.workSpace == nullptr)
             {
                 MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
                                                           << "> due to no workspace provided ("
-                                                          << sol.workspce_sz << " required)");
+                                                          << sol.workspace_sz << " required)");
                 continue;
             }
-            if(invoke_ctx.workSpaceSize < sol.workspce_sz)
+            if(invoke_ctx.workSpaceSize < sol.workspace_sz)
             {
                 MIOPEN_LOG_I("Warning: skipping solver <"
                              << sol.solver_id << "> due to insufficient workspace ("
-                             << invoke_ctx.workSpaceSize << " < " << sol.workspce_sz << ")");
+                             << invoke_ctx.workSpaceSize << " < " << sol.workspace_sz << ")");
                 continue;
             }
         }
@@ -322,11 +322,11 @@ static void EvaluateInvokers(Handle& handle,
     {
         handle.RegisterInvoker(best_invoker, network_config, selected.solver_id, algorithm_name);
         MIOPEN_LOG_I("Selected: " << selected << ": " << best
-                                  << ", workspce_sz = " << selected.workspce_sz);
+                                  << ", workspace_sz = " << selected.workspace_sz);
         record.SetValues(algorithm_name,
                          FindDbData{selected.solver_id,
                                     best,
-                                    selected.workspce_sz,
+                                    selected.workspace_sz,
                                     FindDbKCacheKey::MakeUnused(algorithm_name)});
     }
 }
