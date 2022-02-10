@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/general_tensor_reorder_sol.hpp>
+#include <miopen/batched_transpose_sol.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/magic_div.hpp>
 #include <miopen/float_equal.hpp>
@@ -33,7 +34,6 @@
 #include <limits>
 #include <iostream>
 #include <sstream>
-#include <../kernels/gpu_general_tensor_reorder_kernel/order.hpp>
 
 #define TENSOR_REORDER_BLOCK_SIZE 256
 #define TENSOR_REORDER_PERSISTENT 0
@@ -56,8 +56,12 @@ static inline std::string GetNameTrait(std::size_t type_size)
     MIOPEN_THROW("data type not supported");
 }
 
-template<typename dst_order>
-static inline std::string GetKernelName(std::size_t data_size, const GeneralReorderParam* kparam)
+static inline std::string GetKernelName(std::size_t data_size, 
+                                        uint32_t order_0, 
+                                        uint32_t order_1, 
+                                        uint32_t order_2, 
+                                        uint32_t order_3, 
+                                        const GeneralReorderParam* kparam)
 {
     std::ostringstream kernel_name;
     std::string type_trait = GetNameTrait(data_size);
@@ -67,7 +71,7 @@ static inline std::string GetKernelName(std::size_t data_size, const GeneralReor
         kernel_name << "pack_" << kparam->pack_x << "x" << kparam->pack_y << "_ediv_"
                     << kparam->ediv_x << "x" << kparam->ediv_y << "_";
     }
-    kernel_name << type_trait<<"_r"<<dst_order::at(0)<<dst_order::at(1)<<dst_order::at(2)<<dst_order::at(3);
+    kernel_name << type_trait<<"_r"<<order_0<<order_1<<order_2<<order_3;
     return kernel_name.str();
 }
 
@@ -109,14 +113,18 @@ HeuristicGet(std::size_t data_size, uint32_t dim_0, uint32_t dim_1, uint32_t dim
 }
 
 } // namespace tensor_reorder
-template<typename dst_order>
-GeneralReorderSolution<dst_order>::GeneralReorderSolution(const ExecutionContext& ctx,
+GeneralReorderSolution::GeneralReorderSolution(const ExecutionContext& ctx,
                                                           miopenDataType_t data_type_,
                                                           uint32_t dim_0_,
                                                           uint32_t dim_1_,
                                                           uint32_t dim_2_,
-                                                          uint32_t dim_3_)
-    : data_type(data_type_), dim_0(dim_0_), dim_1(dim_1_), dim_2(dim_2_), dim_3(dim_3_)
+                                                          uint32_t dim_3_,
+                                                          uint32_t order_0_,
+                                                          uint32_t order_1_,
+                                                          uint32_t order_2_,
+                                                          uint32_t order_3_ )
+    : data_type(data_type_), dim_0(dim_0_), dim_1(dim_1_), dim_2(dim_2_), dim_3(dim_3_), 
+                             order_0(order_0_), order_1(order_1_), order_2(order_2_), order_3(order_3_)
 {
     if(data_type == miopenInt8x4 || data_type == miopenDouble)
         MIOPEN_THROW("These data type are not supported");
@@ -125,8 +133,7 @@ GeneralReorderSolution<dst_order>::GeneralReorderSolution(const ExecutionContext
     kernel_param_heuristic = tensor_reorder::HeuristicGet(data_size, dim_0, dim_1, dim_2, dim_3);
 }
 
-template<typename dst_order>
-solver::KernelInfo GeneralReorderSolution<dst_order>::GetKernel() const
+solver::KernelInfo GeneralReorderSolution::GetKernel() const
 {
     std::size_t block_size = TENSOR_REORDER_BLOCK_SIZE;
 #if TENSOR_REORDER_PERSISTENT
@@ -154,8 +161,7 @@ solver::KernelInfo GeneralReorderSolution<dst_order>::GetKernel() const
     return kernel;
 }
 
-template<typename dst_order>
-std::vector<OpKernelArg> GeneralReorderSolution<dst_order>::GetKernelArg() const
+std::vector<OpKernelArg> GeneralReorderSolution::GetKernelArg() const
 {
     std::size_t block_size = TENSOR_REORDER_BLOCK_SIZE;
     uint32_t pixel_total = dim_0 * dim_1 * dim_2 * dim_3;
@@ -189,51 +195,21 @@ std::vector<OpKernelArg> GeneralReorderSolution<dst_order>::GetKernelArg() const
     return opArgs;
 }
 
-template<typename dst_order>
-std::string GeneralReorderSolution<dst_order>::GetKernelName() const
+std::string GeneralReorderSolution::GetKernelName() const
 {
     std::size_t data_size = miopen::GetTypeSize(data_type);
-    return tensor_reorder::GetKernelName<dst_order>(data_size, &kernel_param_heuristic);
+    return tensor_reorder::GetKernelName(data_size, order_0, order_1, order_2, order_3, &kernel_param_heuristic);
 }
 
-template<typename dst_order>
-bool GeneralReorderSolution<dst_order>::IsSkippable() const
+bool GeneralReorderSolution::IsSkippable() const
 {
     // Disable the IsSkippable funciton
     return dim_0 == 0 || dim_1 == 0 || dim_2 == 0 || dim_3 == 0 ;
 }
 
-template<typename dst_order>
-size_t GeneralReorderSolution<dst_order>::GetSize() const
+size_t GeneralReorderSolution::GetSize() const
 {
     return miopen::GetTypeSize(data_type) * dim_0 * dim_1 * dim_2 * dim_3;
 }
 
-//Explicit instance
-template struct GeneralReorderSolution<order<0, 1, 3, 2>>;
-template struct GeneralReorderSolution<order<0, 2, 1, 3>>;
-template struct GeneralReorderSolution<order<0, 2, 3, 1>>;
-template struct GeneralReorderSolution<order<0, 3, 1, 2>>;
-template struct GeneralReorderSolution<order<0, 3, 2, 1>>;
-
-template struct GeneralReorderSolution<order<1, 0, 2, 3>>;
-template struct GeneralReorderSolution<order<1, 0, 3, 2>>;
-template struct GeneralReorderSolution<order<1, 2, 0, 3>>;
-template struct GeneralReorderSolution<order<1, 2, 3, 0>>;
-template struct GeneralReorderSolution<order<1, 3, 0, 2>>;
-template struct GeneralReorderSolution<order<1, 3, 2, 0>>;
-
-template struct GeneralReorderSolution<order<2, 0, 1, 3>>;
-template struct GeneralReorderSolution<order<2, 0, 3, 1>>;
-template struct GeneralReorderSolution<order<2, 1, 0, 3>>;
-template struct GeneralReorderSolution<order<2, 1, 3, 0>>;
-template struct GeneralReorderSolution<order<2, 3, 0, 1>>;
-template struct GeneralReorderSolution<order<2, 3, 1, 0>>;
-
-template struct GeneralReorderSolution<order<3, 0, 1, 2>>;
-template struct GeneralReorderSolution<order<3, 0, 2, 1>>;
-template struct GeneralReorderSolution<order<3, 1, 0, 2>>;
-template struct GeneralReorderSolution<order<3, 1, 2, 0>>;
-template struct GeneralReorderSolution<order<3, 2, 0, 1>>;
-template struct GeneralReorderSolution<order<3, 2, 1, 0>>;
 } // namespace miopen

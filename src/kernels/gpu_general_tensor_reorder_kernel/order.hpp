@@ -29,11 +29,11 @@
 template <int... Is>
 struct order
 {
-    static constexpr int m_size = sizeof...(Is);
+    __host__ __device__ static constexpr uint64_t m_size = sizeof...(Is);
 
-    __host__ __device__ static constexpr int size() { return m_size; }
+    __host__ __device__ static constexpr uint64_t size() { return m_size; }
 
-    __host__ __device__ static constexpr int get_size() { return size(); }
+    __host__ __device__ static constexpr uint64_t get_size() { return size(); }
 
     __host__ __device__ static constexpr int at(int I)
     {
