@@ -38,7 +38,6 @@
 #include "test.hpp"
 #include "driver.hpp"
 #include "random.hpp"
-#include "order.hpp"
 
 
 template <>
@@ -51,13 +50,12 @@ struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHa
 {
 };
 
-template<typename T,
-         typename dst_order>
-void cpu_tensor_reorder(T * dst, T * src, uint64_t dim_0, uint64_t dim_1, uint64_t dim_2, uint64_t dim_3)
+template<typename T>
+void cpu_tensor_reorder(T * dst, T * src, uint64_t dim_0, uint64_t dim_1, uint64_t dim_2, uint64_t dim_3,
+                                          uint64_t order_0, uint64_t order_1, uint64_t order_2, uint64_t order_3)
 {
-    constexpr auto dorder = dst_order{};
     const uint64_t src_dim[4] = {dim_0, dim_1, dim_2, dim_3};
-    const uint64_t dst_dim[4] = {src_dim[dorder.at(0)], src_dim[dorder.at(1)], src_dim[dorder.at(2)], src_dim[dorder.at(3)]};
+    const uint64_t dst_dim[4] = {src_dim[order_0], src_dim[order_1], src_dim[order_2], src_dim[order_3]};
     
     const uint64_t src_stride[4]   ={src_dim[1] * src_dim[2] * src_dim[3], 
                                      src_dim[2] * src_dim[3], 
@@ -75,10 +73,10 @@ void cpu_tensor_reorder(T * dst, T * src, uint64_t dim_0, uint64_t dim_1, uint64
         for(itr_src_dim[1] = 0; itr_src_dim[1] < src_dim[1]; itr_src_dim[1]++){
             for(itr_src_dim[2] = 0; itr_src_dim[2] < src_dim[2]; itr_src_dim[2]++){
                 for(itr_src_dim[3] = 0; itr_src_dim[3] < src_dim[3]; itr_src_dim[3]++){
-                    itr_dst_dim[0] = itr_src_dim[dorder.at(0)];
-                    itr_dst_dim[1] = itr_src_dim[dorder.at(1)];
-                    itr_dst_dim[2] = itr_src_dim[dorder.at(2)];
-                    itr_dst_dim[3] = itr_src_dim[dorder.at(3)];
+                    itr_dst_dim[0] = itr_src_dim[order_0];
+                    itr_dst_dim[1] = itr_src_dim[order_1];
+                    itr_dst_dim[2] = itr_src_dim[order_2];
+                    itr_dst_dim[3] = itr_src_dim[order_3];
 
                     uint64_t idx_src =   itr_src_dim[0] * src_stride[0] +
                                          itr_src_dim[1] * src_stride[1] +
@@ -96,23 +94,23 @@ void cpu_tensor_reorder(T * dst, T * src, uint64_t dim_0, uint64_t dim_1, uint64
     }
 }
 
-template <typename T, typename dst_order>
+template <typename T>
 struct cpu_reorder
 {
-    static void run(T* dst, T* src, uint64_t N, uint64_t C, uint64_t H, uint64_t W)
+    static void run(T* dst, T* src, uint64_t dim_0, uint64_t dim_1, uint64_t dim_2, uint64_t dim_3,
+                                    uint64_t order_0, uint64_t order_1, uint64_t order_2, uint64_t order_3)
     {
-        cpu_tensor_reorder<T, dst_order>(dst, src, N, C, H, W);
+        cpu_tensor_reorder<T>(dst, src, dim_0, dim_1, dim_2, dim_3, order_0, order_1, order_2, order_3);
     }
 };
 
-template <typename dst_order>
 struct reorder_str
 {
-    static std::string get() { 
-        return ("r" + std::to_string(dst_order::at(0)) 
-                    + std::to_string(dst_order::at(1))
-                    + std::to_string(dst_order::at(2))
-                    + std::to_string(dst_order::at(3)) ); 
+    static std::string get(uint32_t order_0, uint32_t order_1, uint32_t order_2, uint32_t order_3) { 
+        return ("r" + std::to_string(order_0) 
+                    + std::to_string(order_1)
+                    + std::to_string(order_2)
+                    + std::to_string(order_3) ); 
         }
 };
 
@@ -137,6 +135,40 @@ std::string tensor_layout_to_string(tensor_layout_t layout)
         layout_string = "NDHWC";
     else
         MIOPEN_THROW("Unsupported tensor layout");
+    return layout_string;
+}
+
+std::string supported_reorder_to_string(uint32_t order_0,
+                                        uint32_t order_1, 
+                                        uint32_t order_2, 
+                                        uint32_t order_3) 
+{
+    std::string layout_string("N/A");
+         if((order_0==0) && (order_1==1) && (order_2==3) && (order_3==2)) layout_string = "r0132";
+    else if((order_0==0) && (order_1==2) && (order_2==1) && (order_3==3)) layout_string = "r0213";
+    else if((order_0==0) && (order_1==2) && (order_2==3) && (order_3==1)) layout_string = "r0231";
+    else if((order_0==0) && (order_1==3) && (order_2==1) && (order_3==2)) layout_string = "r0312";
+    else if((order_0==0) && (order_1==3) && (order_2==2) && (order_3==1)) layout_string = "r0321";
+    else if((order_0==1) && (order_1==0) && (order_2==2) && (order_3==3)) layout_string = "r1023";
+    else if((order_0==1) && (order_1==0) && (order_2==3) && (order_3==2)) layout_string = "r1032";
+    else if((order_0==1) && (order_1==2) && (order_2==0) && (order_3==3)) layout_string = "r1203";
+    else if((order_0==1) && (order_1==2) && (order_2==3) && (order_3==0)) layout_string = "r1230";
+    else if((order_0==1) && (order_1==3) && (order_2==0) && (order_3==2)) layout_string = "r1302";
+    else if((order_0==1) && (order_1==3) && (order_2==2) && (order_3==0)) layout_string = "r1320";
+    else if((order_0==2) && (order_1==0) && (order_2==1) && (order_3==3)) layout_string = "r2013";
+    else if((order_0==2) && (order_1==0) && (order_2==3) && (order_3==1)) layout_string = "r2031";
+    else if((order_0==2) && (order_1==1) && (order_2==0) && (order_3==3)) layout_string = "r2103";
+    else if((order_0==2) && (order_1==1) && (order_2==3) && (order_3==0)) layout_string = "r2130";
+    else if((order_0==2) && (order_1==3) && (order_2==0) && (order_3==1)) layout_string = "r2301";
+    else if((order_0==2) && (order_1==3) && (order_2==1) && (order_3==0)) layout_string = "r2310";
+    else if((order_0==3) && (order_1==0) && (order_2==1) && (order_3==2)) layout_string = "r3012";
+    else if((order_0==3) && (order_1==0) && (order_2==2) && (order_3==1)) layout_string = "r3021";
+    else if((order_0==3) && (order_1==1) && (order_2==0) && (order_3==2)) layout_string = "r3102";
+    else if((order_0==3) && (order_1==1) && (order_2==2) && (order_3==0)) layout_string = "r3120";
+    else if((order_0==3) && (order_1==2) && (order_2==0) && (order_3==1)) layout_string = "r3201";
+    else if((order_0==3) && (order_1==2) && (order_2==1) && (order_3==0)) layout_string = "r3210";
+    else
+        MIOPEN_THROW("Unsupported reorder layout");
     return layout_string;
 }
 
@@ -218,21 +250,6 @@ bool verify_tensor(tensor<T>& t_gpu, tensor<T>& t_cpu)
     return valid_result;
 }
 
-//compile time for_loop
-namespace detail {
-
-    template<class T, T... inds, class F>
-    constexpr void loop(std::integer_sequence<T, inds...>, F&& f) {
-        (f(std::integral_constant<T, inds>{}), ...);// C++17 fold expression
-    }
-
-}
-
-template<class T, T count, class F>
-constexpr void loop(F&& f) {
-    detail::loop(std::make_integer_sequence<T, count>{}, std::forward<F>(f));
-}
-
 struct reorder_base
 {
     miopenHandle_t handle{};
@@ -267,15 +284,24 @@ struct reorder_base
         dim_1_list.push_back(gen_rand_integer() % 13 + 15);
         dim_0_list.push_back(gen_rand_integer() % 4 + 3);
 
-        for(uint32_t dim_3 : dim_3_list)
+        constexpr int all_possible_order[23][4] = {
+        {0, 1, 3, 2}, {0, 2, 1, 3}, {0, 2, 3, 1}, {0, 3, 1, 2}, {0, 3, 2, 1}, 
+        {1, 0, 2, 3}, {1, 0, 3, 2}, {1, 2, 0, 3}, {1, 2, 3, 0}, {1, 3, 0, 2}, {1, 3, 2, 0},
+        {2, 0, 1, 3}, {2, 0, 3, 1}, {2, 1, 0, 3}, {2, 1, 3, 0}, {2, 3, 0, 1}, {2, 3, 1, 0},
+        {3, 0, 1, 2}, {3, 0, 2, 1}, {3, 1, 0, 2}, {3, 1, 2, 0}, {3, 2, 0, 1}, {3, 2, 1, 0} };
+
+        for(auto order : all_possible_order)
         {
-            for(uint32_t dim_2 : dim_2_list)
+            for(uint32_t dim_3 : dim_3_list)
             {
-                for(uint32_t dim_1 : dim_1_list)
+                for(uint32_t dim_2 : dim_2_list)
                 {
-                    for(uint32_t dim_0 : dim_0_list)
+                    for(uint32_t dim_1 : dim_1_list)
                     {
-                        f(dim_0, dim_1, dim_2, dim_3);
+                        for(uint32_t dim_0 : dim_0_list)
+                        {
+                            f(dim_0, dim_1, dim_2, dim_3, order[0], order[1], order[2], order[3]);
+                        }
                     }
                 }
             }
@@ -294,13 +320,13 @@ struct reorder_invoke_param : public miopen::InvokeParams
     {
     }
 };
-//The template parameter dst_order is just for CPU verification
-template <typename T, typename dst_order, typename REORDER_SOL>
+template <typename T, typename REORDER_SOL>
 struct reorder_test : reorder_base
 {
     void run()
     {
-        auto run_reorder = [this](uint32_t dim_0, uint32_t dim_1, uint32_t dim_2, uint32_t dim_3) {
+        auto run_reorder = [this](uint32_t dim_0, uint32_t dim_1, uint32_t dim_2, uint32_t dim_3,
+                                  uint32_t order_0, uint32_t order_1, uint32_t order_2, uint32_t order_3) {
             int tensor_sz = dim_0 * dim_1 * dim_2 * dim_3;
             std::vector<int> tensor_len({static_cast<int>(dim_0),
                                          static_cast<int>(dim_1),
@@ -311,6 +337,7 @@ struct reorder_test : reorder_base
 
             std::string layout_default = miopen::tensor_layout_get_default(4);
             std::string layout_string  = tensor_layout_to_string(miopen_tensor_layout_nchw);
+            std::string reorder_string  = supported_reorder_to_string(order_0, order_1, order_2, order_3);
 
             miopen::tensor_layout_to_strides(
                 tensor_len, layout_default, layout_string, tensor_strides);
@@ -354,9 +381,9 @@ struct reorder_test : reorder_base
             ctx.SetStream(&miopen::deref(this->handle));
             ctx.DetectRocm();
             // ctx.SetupFloats();
-
-            REORDER_SOL reorder_sol(ctx, to_miopen_data_type<T>::get(), dim_0, dim_1, dim_2, dim_3);
-            std::vector<OpKernelArg> opArgs = reorder_sol.GetKernelArg();
+            auto reorder_sol = TensorReorderSolutionConstructor(ctx, to_miopen_data_type<T>::get(), dim_0, dim_1, dim_2, dim_3,
+                                                                                                   order_0, order_1, order_2, order_3);
+            std::vector<OpKernelArg> opArgs = reorder_sol->GetKernelArg();
             boost::optional<miopen::InvokerFactory> invoker_factory(
                 [=](const std::vector<miopen::Kernel>& kernels) mutable {
                     return [=](const miopen::Handle& handle,
@@ -372,13 +399,13 @@ struct reorder_test : reorder_base
                         k(opArgs);
                     };
                 });
-            std::vector<miopen::solver::KernelInfo> construction_params{reorder_sol.GetKernel()};
+            std::vector<miopen::solver::KernelInfo> construction_params{reorder_sol->GetKernel()};
             const auto invoker =
                 miopen::deref(this->handle).PrepareInvoker(*invoker_factory, construction_params);
             // run gpu
             invoker(miopen::deref(this->handle), invoke_param);
             // run cpu
-            cpu_reorder<T, dst_order>::run(t_dst.data.data(), t_src.data.data(), dim_0, dim_1, dim_2, dim_3);
+            cpu_reorder<T>::run(t_dst.data.data(), t_src.data.data(), dim_0, dim_1, dim_2, dim_3, order_0, order_1, order_2, order_3);
 
 #if MIOPEN_BACKEND_OPENCL
             status = clEnqueueReadBuffer(q,
@@ -400,7 +427,7 @@ struct reorder_test : reorder_base
 
             // we expect excact match, since use integer
             bool valid_result = verify_tensor(t_dst_gpu, t_dst);
-            std::cout << "[" << reorder_str<dst_order>::get() << ", b" << (sizeof(T) * 8)
+            std::cout << "[" << reorder_str::get(order_0, order_1, order_2, order_3) << ", b" << (sizeof(T) * 8)
                       << " ] "
                       << "dim_0:" << dim_0 << ", dim_1:" << dim_1 << ", dim_2:" << dim_2 << ", dim_3:" << dim_3
                       << ", valid:" << valid_result << std::endl;
@@ -422,15 +449,7 @@ struct reorder_test : reorder_base
 
 int main()
 {
-loop<int, 23>([&](auto i) {
-    constexpr int all_possible_sequence[23][4] = {
-    {0, 1, 3, 2}, {0, 2, 1, 3}, {0, 2, 3, 1}, {0, 3, 1, 2}, {0, 3, 2, 1}, 
-    {1, 0, 2, 3}, {1, 0, 3, 2}, {1, 2, 0, 3}, {1, 2, 3, 0}, {1, 3, 0, 2}, {1, 3, 2, 0},
-    {2, 0, 1, 3}, {2, 0, 3, 1}, {2, 1, 0, 3}, {2, 1, 3, 0}, {2, 3, 0, 1}, {2, 3, 1, 0},
-    {3, 0, 1, 2}, {3, 0, 2, 1}, {3, 1, 0, 2}, {3, 1, 2, 0}, {3, 2, 0, 1}, {3, 2, 1, 0} };
-    using dst_order = order<all_possible_sequence[i][0], all_possible_sequence[i][1], all_possible_sequence[i][2], all_possible_sequence[i][3]>;
-    run_test<reorder_test<float,    dst_order, miopen::TensorReorderSolution<dst_order> >>();
-    run_test<reorder_test<uint16_t, dst_order, miopen::TensorReorderSolution<dst_order> >>();
-    run_test<reorder_test<uint8_t,  dst_order, miopen::TensorReorderSolution<dst_order> >>();
-});
+    run_test<reorder_test<float,    miopen::TensorReorderSolution>>();
+    run_test<reorder_test<uint16_t, miopen::TensorReorderSolution>>();
+    run_test<reorder_test<uint8_t,  miopen::TensorReorderSolution>>();
 }

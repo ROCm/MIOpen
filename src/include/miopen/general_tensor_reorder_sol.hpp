@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,6 @@
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/execution_context.hpp>
 #include <vector>
-#include <../kernels/gpu_general_tensor_reorder_kernel/order.hpp>
 
 namespace miopen {
 
@@ -45,7 +44,6 @@ struct GeneralReorderParam
     int ediv_y{0};
 };
 
-template<typename dst_order>
 struct GeneralReorderSolution
 {
     GeneralReorderSolution(const ExecutionContext& ctx_,
@@ -53,7 +51,12 @@ struct GeneralReorderSolution
                                 uint32_t dim_0_,
                                 uint32_t dim_1_,
                                 uint32_t dim_2_,
-                                uint32_t dim_3_);
+                                uint32_t dim_3_,
+                                uint32_t order_0_,
+                                uint32_t order_1_,
+                                uint32_t order_2_,
+                                uint32_t order_3_ );
+    //TODO batched transpose API
     solver::KernelInfo GetKernel() const;
     std::vector<OpKernelArg> GetKernelArg() const;
     std::string GetKernelName() const;
@@ -65,6 +68,10 @@ struct GeneralReorderSolution
     uint32_t dim_1;
     uint32_t dim_2;
     uint32_t dim_3;
+    uint32_t order_0;
+    uint32_t order_1;
+    uint32_t order_2;
+    uint32_t order_3;
     int num_cu;
 
     GeneralReorderParam kernel_param_heuristic;

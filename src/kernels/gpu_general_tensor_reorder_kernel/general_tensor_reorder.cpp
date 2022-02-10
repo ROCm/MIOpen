@@ -41,36 +41,36 @@ inline __device__ uint32_t magic_div_u32(const uint32_t& numer,
 
 template <typename T, typename dst_order>
 inline __device__ void general_4d_reorder_1x256(T* dst,
-                                               T* src,
-                                               uint32_t dim_0,
-                                               uint32_t dim_1,
-                                               uint32_t dim_2,
-                                               uint32_t dim_3,
-                                               uint32_t dim_stride,
-                                               uint32_t dim_total,
-                                               uint32_t magic_stride0,
-                                               uint32_t shift_stride0,
-                                               uint32_t magic_stride1,
-                                               uint32_t shift_stride1,
-                                               uint32_t magic_stride2,
-                                               uint32_t shift_stride2)
+                                                T* src,
+                                                uint32_t dim_0,
+                                                uint32_t dim_1,
+                                                uint32_t dim_2,
+                                                uint32_t dim_3,
+                                                uint32_t dim_stride,
+                                                uint32_t dim_total,
+                                                uint32_t magic_stride0,
+                                                uint32_t shift_stride0,
+                                                uint32_t magic_stride1,
+                                                uint32_t shift_stride1,
+                                                uint32_t magic_stride2,
+                                                uint32_t shift_stride2)
 {
     constexpr auto dorder = dst_order{};
     uint32_t pixel_total = dim_0 * dim_1 * dim_2 * dim_3; 
-    uint32_t src_index =0, dst_index=0;
-    const uint64_t src_dim[4]  = {dim_0, dim_1, dim_2, dim_3};
+    uint32_t src_index, dst_index;
+    const uint64_t src_dim[4] = {dim_0, dim_1, dim_2, dim_3};
     const uint64_t dst_dim[4] = {src_dim[dorder.at(0)], src_dim[dorder.at(1)], src_dim[dorder.at(2)], src_dim[dorder.at(3)]};
-    const uint64_t src_stride[4]  =  {src_dim[1] * src_dim[2] * src_dim[3], 
-                                   src_dim[2] * src_dim[3], 
-                                   src_dim[3],
-                                   1 };
-    const uint64_t dst_stride[4]  =  {dst_dim[1] * dst_dim[2] * dst_dim[3], 
-                                   dst_dim[2] * dst_dim[3], 
-                                   dst_dim[3],
-                                   1 };
+    const uint64_t src_stride[4] = {src_dim[1] * src_dim[2] * src_dim[3], 
+                                    src_dim[2] * src_dim[3], 
+                                    src_dim[3],
+                                    1 };
+    const uint64_t dst_stride[4] = {dst_dim[1] * dst_dim[2] * dst_dim[3], 
+                                    dst_dim[2] * dst_dim[3], 
+                                    dst_dim[3],
+                                    1 };
 
-     uint32_t i_src[4] = {0, 0, 0, 0};
-     uint32_t i_dst[4] = {0, 0, 0, 0};
+    uint32_t i_src[4] = {0, 0, 0, 0};
+    uint32_t i_dst[4] = {0, 0, 0, 0};
 
     for(uint32_t dim_id = blockIdx.x; dim_id < dim_total; dim_id += dim_stride)
     {
@@ -79,8 +79,8 @@ inline __device__ void general_4d_reorder_1x256(T* dst,
                         //unroll k         block          thread
             src_index = k*dim_total*256 + dim_id * 256 + threadIdx.x;
             if(src_index < pixel_total){
-                i_src[0] = magic_div_u32(src_index,                                                   magic_stride0, shift_stride0);
-                i_src[1] = magic_div_u32(src_index -  i_src[0] * src_stride[0],                          magic_stride1, shift_stride1);
+                i_src[0] = magic_div_u32(src_index,                                                         magic_stride0, shift_stride0);
+                i_src[1] = magic_div_u32(src_index -  i_src[0] * src_stride[0],                             magic_stride1, shift_stride1);
                 i_src[2] = magic_div_u32(src_index -  i_src[0] * src_stride[0] -  i_src[1] * src_stride[1], magic_stride2, shift_stride2);
                 i_src[3] = src_index -  i_src[0] * src_stride[0] -  i_src[1] * src_stride[1] -  i_src[2] * src_stride[2];
     
@@ -98,36 +98,36 @@ inline __device__ void general_4d_reorder_1x256(T* dst,
 
 template <typename T, typename dst_order>
 inline __device__ void general_4d_reorder_2x256(T* dst,
-                                               T* src,
-                                               uint32_t dim_0,
-                                               uint32_t dim_1,
-                                               uint32_t dim_2,
-                                               uint32_t dim_3,
-                                               uint32_t dim_stride,
-                                               uint32_t dim_total,
-                                               uint32_t magic_stride0,
-                                               uint32_t shift_stride0,
-                                               uint32_t magic_stride1,
-                                               uint32_t shift_stride1,
-                                               uint32_t magic_stride2,
-                                               uint32_t shift_stride2)
+                                                T* src,
+                                                uint32_t dim_0,
+                                                uint32_t dim_1,
+                                                uint32_t dim_2,
+                                                uint32_t dim_3,
+                                                uint32_t dim_stride,
+                                                uint32_t dim_total,
+                                                uint32_t magic_stride0,
+                                                uint32_t shift_stride0,
+                                                uint32_t magic_stride1,
+                                                uint32_t shift_stride1,
+                                                uint32_t magic_stride2,
+                                                uint32_t shift_stride2)
 {
     constexpr auto dorder = dst_order{};
     uint32_t pixel_total = dim_0 * dim_1 * dim_2 * dim_3; 
-    uint32_t src_index =0, dst_index=0;
-    const uint64_t src_dim[4]  = {dim_0, dim_1, dim_2, dim_3};
+    uint32_t src_index, dst_index;
+    const uint64_t src_dim[4] = {dim_0, dim_1, dim_2, dim_3};
     const uint64_t dst_dim[4] = {src_dim[dorder.at(0)], src_dim[dorder.at(1)], src_dim[dorder.at(2)], src_dim[dorder.at(3)]};
-    const uint64_t src_stride[4]  =  {src_dim[1] * src_dim[2] * src_dim[3], 
-                                   src_dim[2] * src_dim[3], 
-                                   src_dim[3],
-                                   1 };
-    const uint64_t dst_stride[4]  =  {dst_dim[1] * dst_dim[2] * dst_dim[3], 
-                                   dst_dim[2] * dst_dim[3], 
-                                   dst_dim[3],
-                                   1 };
+    const uint64_t src_stride[4] = {src_dim[1] * src_dim[2] * src_dim[3], 
+                                    src_dim[2] * src_dim[3], 
+                                    src_dim[3],
+                                    1 };
+    const uint64_t dst_stride[4] = {dst_dim[1] * dst_dim[2] * dst_dim[3], 
+                                    dst_dim[2] * dst_dim[3], 
+                                    dst_dim[3],
+                                    1 };
 
-     uint32_t i_src[4] = {0, 0, 0, 0};
-     uint32_t i_dst[4] = {0, 0, 0, 0};
+    uint32_t i_src[4] = {0, 0, 0, 0};
+    uint32_t i_dst[4] = {0, 0, 0, 0};
 
     for(uint32_t dim_id = blockIdx.x; dim_id < dim_total; dim_id += dim_stride)
     {
@@ -136,8 +136,8 @@ inline __device__ void general_4d_reorder_2x256(T* dst,
                         //unroll k         block          thread
             src_index = k*dim_total*256 + dim_id * 256 + threadIdx.x;
             if(src_index < pixel_total){
-                i_src[0] = magic_div_u32(src_index,                                                   magic_stride0, shift_stride0);
-                i_src[1] = magic_div_u32(src_index -  i_src[0] * src_stride[0],                          magic_stride1, shift_stride1);
+                i_src[0] = magic_div_u32(src_index,                                                         magic_stride0, shift_stride0);
+                i_src[1] = magic_div_u32(src_index -  i_src[0] * src_stride[0],                             magic_stride1, shift_stride1);
                 i_src[2] = magic_div_u32(src_index -  i_src[0] * src_stride[0] -  i_src[1] * src_stride[1], magic_stride2, shift_stride2);
                 i_src[3] = src_index -  i_src[0] * src_stride[0] -  i_src[1] * src_stride[1] -  i_src[2] * src_stride[2];
     
@@ -155,36 +155,36 @@ inline __device__ void general_4d_reorder_2x256(T* dst,
 
 template <typename T, typename dst_order>
 inline __device__ void general_4d_reorder_4x256(T* dst,
-                                               T* src,
-                                               uint32_t dim_0,
-                                               uint32_t dim_1,
-                                               uint32_t dim_2,
-                                               uint32_t dim_3,
-                                               uint32_t dim_stride,
-                                               uint32_t dim_total,
-                                               uint32_t magic_stride0,
-                                               uint32_t shift_stride0,
-                                               uint32_t magic_stride1,
-                                               uint32_t shift_stride1,
-                                               uint32_t magic_stride2,
-                                               uint32_t shift_stride2)
+                                                T* src,
+                                                uint32_t dim_0,
+                                                uint32_t dim_1,
+                                                uint32_t dim_2,
+                                                uint32_t dim_3,
+                                                uint32_t dim_stride,
+                                                uint32_t dim_total,
+                                                uint32_t magic_stride0,
+                                                uint32_t shift_stride0,
+                                                uint32_t magic_stride1,
+                                                uint32_t shift_stride1,
+                                                uint32_t magic_stride2,
+                                                uint32_t shift_stride2)
 {
     constexpr auto dorder = dst_order{};
     uint32_t pixel_total = dim_0 * dim_1 * dim_2 * dim_3; 
-    uint32_t src_index =0, dst_index=0;
-    const uint64_t src_dim[4]  = {dim_0, dim_1, dim_2, dim_3};
+    uint32_t src_index, dst_index;
+    const uint64_t src_dim[4] = {dim_0, dim_1, dim_2, dim_3};
     const uint64_t dst_dim[4] = {src_dim[dorder.at(0)], src_dim[dorder.at(1)], src_dim[dorder.at(2)], src_dim[dorder.at(3)]};
-    const uint64_t src_stride[4]  =  {src_dim[1] * src_dim[2] * src_dim[3], 
-                                   src_dim[2] * src_dim[3], 
-                                   src_dim[3],
-                                   1 };
-    const uint64_t dst_stride[4]  =  {dst_dim[1] * dst_dim[2] * dst_dim[3], 
-                                   dst_dim[2] * dst_dim[3], 
-                                   dst_dim[3],
-                                   1 };
+    const uint64_t src_stride[4] = {src_dim[1] * src_dim[2] * src_dim[3], 
+                                    src_dim[2] * src_dim[3], 
+                                    src_dim[3],
+                                    1 };
+    const uint64_t dst_stride[4] = {dst_dim[1] * dst_dim[2] * dst_dim[3], 
+                                    dst_dim[2] * dst_dim[3], 
+                                    dst_dim[3],
+                                    1 };
 
-     uint32_t i_src[4] = {0, 0, 0, 0};
-     uint32_t i_dst[4] = {0, 0, 0, 0};
+    uint32_t i_src[4] = {0, 0, 0, 0};
+    uint32_t i_dst[4] = {0, 0, 0, 0};
 
     for(uint32_t dim_id = blockIdx.x; dim_id < dim_total; dim_id += dim_stride)
     {
@@ -193,8 +193,8 @@ inline __device__ void general_4d_reorder_4x256(T* dst,
                         //unroll k         block          thread
             src_index = k*dim_total*256 + dim_id * 256 + threadIdx.x;
             if(src_index < pixel_total){
-                i_src[0] = magic_div_u32(src_index,                                                   magic_stride0, shift_stride0);
-                i_src[1] = magic_div_u32(src_index -  i_src[0] * src_stride[0],                          magic_stride1, shift_stride1);
+                i_src[0] = magic_div_u32(src_index,                                                         magic_stride0, shift_stride0);
+                i_src[1] = magic_div_u32(src_index -  i_src[0] * src_stride[0],                             magic_stride1, shift_stride1);
                 i_src[2] = magic_div_u32(src_index -  i_src[0] * src_stride[0] -  i_src[1] * src_stride[1], magic_stride2, shift_stride2);
                 i_src[3] = src_index -  i_src[0] * src_stride[0] -  i_src[1] * src_stride[1] -  i_src[2] * src_stride[2];
     
@@ -212,36 +212,36 @@ inline __device__ void general_4d_reorder_4x256(T* dst,
 
 template <typename T, typename dst_order>
 inline __device__ void general_4d_reorder_8x256(T* dst,
-                                               T* src,
-                                               uint32_t dim_0,
-                                               uint32_t dim_1,
-                                               uint32_t dim_2,
-                                               uint32_t dim_3,
-                                               uint32_t dim_stride,
-                                               uint32_t dim_total,
-                                               uint32_t magic_stride0,
-                                               uint32_t shift_stride0,
-                                               uint32_t magic_stride1,
-                                               uint32_t shift_stride1,
-                                               uint32_t magic_stride2,
-                                               uint32_t shift_stride2)
+                                                T* src,
+                                                uint32_t dim_0,
+                                                uint32_t dim_1,
+                                                uint32_t dim_2,
+                                                uint32_t dim_3,
+                                                uint32_t dim_stride,
+                                                uint32_t dim_total,
+                                                uint32_t magic_stride0,
+                                                uint32_t shift_stride0,
+                                                uint32_t magic_stride1,
+                                                uint32_t shift_stride1,
+                                                uint32_t magic_stride2,
+                                                uint32_t shift_stride2)
 {
     constexpr auto dorder = dst_order{};
     uint32_t pixel_total = dim_0 * dim_1 * dim_2 * dim_3; 
-    uint32_t src_index =0, dst_index=0;
-    const uint64_t src_dim[4]  = {dim_0, dim_1, dim_2, dim_3};
+    uint32_t src_index, dst_index;
+    const uint64_t src_dim[4] = {dim_0, dim_1, dim_2, dim_3};
     const uint64_t dst_dim[4] = {src_dim[dorder.at(0)], src_dim[dorder.at(1)], src_dim[dorder.at(2)], src_dim[dorder.at(3)]};
-    const uint64_t src_stride[4]  =  {src_dim[1] * src_dim[2] * src_dim[3], 
-                                   src_dim[2] * src_dim[3], 
-                                   src_dim[3],
-                                   1 };
-    const uint64_t dst_stride[4]  =  {dst_dim[1] * dst_dim[2] * dst_dim[3], 
-                                   dst_dim[2] * dst_dim[3], 
-                                   dst_dim[3],
-                                   1 };
+    const uint64_t src_stride[4] = {src_dim[1] * src_dim[2] * src_dim[3], 
+                                    src_dim[2] * src_dim[3], 
+                                    src_dim[3],
+                                    1 };
+    const uint64_t dst_stride[4] = {dst_dim[1] * dst_dim[2] * dst_dim[3], 
+                                    dst_dim[2] * dst_dim[3], 
+                                    dst_dim[3],
+                                    1 };
 
-     uint32_t i_src[4] = {0, 0, 0, 0};
-     uint32_t i_dst[4] = {0, 0, 0, 0};
+    uint32_t i_src[4] = {0, 0, 0, 0};
+    uint32_t i_dst[4] = {0, 0, 0, 0};
 
     for(uint32_t dim_id = blockIdx.x; dim_id < dim_total; dim_id += dim_stride)
     {
@@ -250,8 +250,8 @@ inline __device__ void general_4d_reorder_8x256(T* dst,
                         //unroll k         block          thread
             src_index = k*dim_total*256 + dim_id * 256 + threadIdx.x;
             if(src_index < pixel_total){
-                i_src[0] = magic_div_u32(src_index,                                                   magic_stride0, shift_stride0);
-                i_src[1] = magic_div_u32(src_index -  i_src[0] * src_stride[0],                          magic_stride1, shift_stride1);
+                i_src[0] = magic_div_u32(src_index,                                                         magic_stride0, shift_stride0);
+                i_src[1] = magic_div_u32(src_index -  i_src[0] * src_stride[0],                             magic_stride1, shift_stride1);
                 i_src[2] = magic_div_u32(src_index -  i_src[0] * src_stride[0] -  i_src[1] * src_stride[1], magic_stride2, shift_stride2);
                 i_src[3] = src_index -  i_src[0] * src_stride[0] -  i_src[1] * src_stride[1] -  i_src[2] * src_stride[2];
     
@@ -285,20 +285,20 @@ inline __device__ void general_4d_reorder_16x256(T* dst,
 {
     constexpr auto dorder = dst_order{};
     uint32_t pixel_total = dim_0 * dim_1 * dim_2 * dim_3; 
-    uint32_t src_index =0, dst_index=0;
-    const uint64_t src_dim[4]  = {dim_0, dim_1, dim_2, dim_3};
+    uint32_t src_index, dst_index;
+    const uint64_t src_dim[4] = {dim_0, dim_1, dim_2, dim_3};
     const uint64_t dst_dim[4] = {src_dim[dorder.at(0)], src_dim[dorder.at(1)], src_dim[dorder.at(2)], src_dim[dorder.at(3)]};
-    const uint64_t src_stride[4]  =  {src_dim[1] * src_dim[2] * src_dim[3], 
-                                   src_dim[2] * src_dim[3], 
-                                   src_dim[3],
-                                   1 };
-    const uint64_t dst_stride[4]  =  {dst_dim[1] * dst_dim[2] * dst_dim[3], 
-                                   dst_dim[2] * dst_dim[3], 
-                                   dst_dim[3],
-                                   1 };
+    const uint64_t src_stride[4] = {src_dim[1] * src_dim[2] * src_dim[3], 
+                                    src_dim[2] * src_dim[3], 
+                                    src_dim[3],
+                                    1 };
+    const uint64_t dst_stride[4] = {dst_dim[1] * dst_dim[2] * dst_dim[3], 
+                                    dst_dim[2] * dst_dim[3], 
+                                    dst_dim[3],
+                                    1 };
 
-     uint32_t i_src[4] = {0, 0, 0, 0};
-     uint32_t i_dst[4] = {0, 0, 0, 0};
+    uint32_t i_src[4] = {0, 0, 0, 0};
+    uint32_t i_dst[4] = {0, 0, 0, 0};
 
     for(uint32_t dim_id = blockIdx.x; dim_id < dim_total; dim_id += dim_stride)
     {
@@ -307,8 +307,8 @@ inline __device__ void general_4d_reorder_16x256(T* dst,
                         //unroll k         block          thread
             src_index = k*dim_total*256 + dim_id * 256 + threadIdx.x;
             if(src_index < pixel_total){
-                i_src[0] = magic_div_u32(src_index,                                                   magic_stride0, shift_stride0);
-                i_src[1] = magic_div_u32(src_index -  i_src[0] * src_stride[0],                          magic_stride1, shift_stride1);
+                i_src[0] = magic_div_u32(src_index,                                                         magic_stride0, shift_stride0);
+                i_src[1] = magic_div_u32(src_index -  i_src[0] * src_stride[0],                             magic_stride1, shift_stride1);
                 i_src[2] = magic_div_u32(src_index -  i_src[0] * src_stride[0] -  i_src[1] * src_stride[1], magic_stride2, shift_stride2);
                 i_src[3] = src_index -  i_src[0] * src_stride[0] -  i_src[1] * src_stride[1] -  i_src[2] * src_stride[2];
     
