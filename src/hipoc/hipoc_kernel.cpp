@@ -91,7 +91,7 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
 
     MIOPEN_HANDLE_LOCK
 
-    auto status = hipHccModuleLaunchKernel(fun,
+    auto status = hipExtModuleLaunchKernel(fun,
                                            gdims[0],
                                            gdims[1],
                                            gdims[2],
