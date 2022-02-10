@@ -144,29 +144,52 @@ std::string supported_reorder_to_string(uint32_t order_0,
                                         uint32_t order_3) 
 {
     std::string layout_string("N/A");
-    if     ((order_0==0) && (order_1==1) && (order_2==3) && (order_3==2)) layout_string = "r0132";
-    else if((order_0==0) && (order_1==2) && (order_2==1) && (order_3==3)) layout_string = "r0213";
-    else if((order_0==0) && (order_1==2) && (order_2==3) && (order_3==1)) layout_string = "r0231";
-    else if((order_0==0) && (order_1==3) && (order_2==1) && (order_3==2)) layout_string = "r0312";
-    else if((order_0==0) && (order_1==3) && (order_2==2) && (order_3==1)) layout_string = "r0321";
-    else if((order_0==1) && (order_1==0) && (order_2==2) && (order_3==3)) layout_string = "r1023";
-    else if((order_0==1) && (order_1==0) && (order_2==3) && (order_3==2)) layout_string = "r1032";
-    else if((order_0==1) && (order_1==2) && (order_2==0) && (order_3==3)) layout_string = "r1203";
-    else if((order_0==1) && (order_1==2) && (order_2==3) && (order_3==0)) layout_string = "r1230";
-    else if((order_0==1) && (order_1==3) && (order_2==0) && (order_3==2)) layout_string = "r1302";
-    else if((order_0==1) && (order_1==3) && (order_2==2) && (order_3==0)) layout_string = "r1320";
-    else if((order_0==2) && (order_1==0) && (order_2==1) && (order_3==3)) layout_string = "r2013";
-    else if((order_0==2) && (order_1==0) && (order_2==3) && (order_3==1)) layout_string = "r2031";
-    else if((order_0==2) && (order_1==1) && (order_2==0) && (order_3==3)) layout_string = "r2103";
-    else if((order_0==2) && (order_1==1) && (order_2==3) && (order_3==0)) layout_string = "r2130";
-    else if((order_0==2) && (order_1==3) && (order_2==0) && (order_3==1)) layout_string = "r2301";
-    else if((order_0==2) && (order_1==3) && (order_2==1) && (order_3==0)) layout_string = "r2310";
-    else if((order_0==3) && (order_1==0) && (order_2==1) && (order_3==2)) layout_string = "r3012";
-    else if((order_0==3) && (order_1==0) && (order_2==2) && (order_3==1)) layout_string = "r3021";
-    else if((order_0==3) && (order_1==1) && (order_2==0) && (order_3==2)) layout_string = "r3102";
-    else if((order_0==3) && (order_1==1) && (order_2==2) && (order_3==0)) layout_string = "r3120";
-    else if((order_0==3) && (order_1==2) && (order_2==0) && (order_3==1)) layout_string = "r3201";
-    else if((order_0==3) && (order_1==2) && (order_2==1) && (order_3==0)) layout_string = "r3210";
+    if((order_0==0) && (order_1==1) && (order_2==3) && (order_3==2)) 
+        layout_string = "r0132";
+    else if((order_0==0) && (order_1==2) && (order_2==1) && (order_3==3)) 
+        layout_string = "r0213";
+    else if((order_0==0) && (order_1==2) && (order_2==3) && (order_3==1)) 
+        layout_string = "r0231";
+    else if((order_0==0) && (order_1==3) && (order_2==1) && (order_3==2)) 
+        layout_string = "r0312";
+    else if((order_0==0) && (order_1==3) && (order_2==2) && (order_3==1)) 
+        layout_string = "r0321";
+    else if((order_0==1) && (order_1==0) && (order_2==2) && (order_3==3)) 
+        layout_string = "r1023";
+    else if((order_0==1) && (order_1==0) && (order_2==3) && (order_3==2)) 
+        layout_string = "r1032";
+    else if((order_0==1) && (order_1==2) && (order_2==0) && (order_3==3)) 
+        layout_string = "r1203";
+    else if((order_0==1) && (order_1==2) && (order_2==3) && (order_3==0)) 
+        layout_string = "r1230";
+    else if((order_0==1) && (order_1==3) && (order_2==0) && (order_3==2)) 
+        layout_string = "r1302";
+    else if((order_0==1) && (order_1==3) && (order_2==2) && (order_3==0)) 
+        layout_string = "r1320";
+    else if((order_0==2) && (order_1==0) && (order_2==1) && (order_3==3)) 
+        layout_string = "r2013";
+    else if((order_0==2) && (order_1==0) && (order_2==3) && (order_3==1)) 
+        layout_string = "r2031";
+    else if((order_0==2) && (order_1==1) && (order_2==0) && (order_3==3)) 
+        layout_string = "r2103";
+    else if((order_0==2) && (order_1==1) && (order_2==3) && (order_3==0)) 
+        layout_string = "r2130";
+    else if((order_0==2) && (order_1==3) && (order_2==0) && (order_3==1)) 
+        layout_string = "r2301";
+    else if((order_0==2) && (order_1==3) && (order_2==1) && (order_3==0)) 
+        layout_string = "r2310";
+    else if((order_0==3) && (order_1==0) && (order_2==1) && (order_3==2)) 
+        layout_string = "r3012";
+    else if((order_0==3) && (order_1==0) && (order_2==2) && (order_3==1))
+        layout_string = "r3021";
+    else if((order_0==3) && (order_1==1) && (order_2==0) && (order_3==2)) 
+        layout_string = "r3102";
+    else if((order_0==3) && (order_1==1) && (order_2==2) && (order_3==0)) 
+        layout_string = "r3120";
+    else if((order_0==3) && (order_1==2) && (order_2==0) && (order_3==1)) 
+        layout_string = "r3201";
+    else if((order_0==3) && (order_1==2) && (order_2==1) && (order_3==0)) 
+        layout_string = "r3210";
     else
         MIOPEN_THROW("Unsupported reorder layout");
     return layout_string;
