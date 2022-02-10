@@ -493,7 +493,7 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
     if(std::is_same<Tgpu, float>::value && reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
         tolerance *= 12.0;
 
-    if(error > tolerance)
+    if(!(error < tolerance))
     {
         std::cout << "ReduceTensor() Failed with error = " << error
                   << " , tolerance = " << tolerance << "\n";

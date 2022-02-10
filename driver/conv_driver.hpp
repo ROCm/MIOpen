@@ -199,18 +199,17 @@ class ConvDriver : public Driver
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
 
-    //function to validate the Layout type parameters.
-    //Layout types are -In,Out,Fil etc.This function validates the
-    //layout parameter value to std (NCHW/NHWC/NCDHW/NDHWC) values,
-    //defined in MIOpen lib.
-    //layout_type - input value supplied with MIOpen driver command.
+    // function to validate the Layout type parameters.
+    // Layout types are -In,Out,Fil etc.This function validates the
+    // layout parameter value to std (NCHW/NHWC/NCDHW/NDHWC) values,
+    // defined in MIOpen lib.
+    // layout_type - input value supplied with MIOpen driver command.
     void ValidateLayoutInputParameters(std::string layout_type);
 
-    //Helper function to check the Layout type short names
-    //Short names are defined as I,O,f. W.r.t In/Out/fil layout
-    //types.
+    // Helper function to check the Layout type short names
+    // Short names are defined as I,O,f. W.r.t In/Out/fil layout
+    // types.
     int ChkLayout_ShortName();
-
 
     int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
@@ -447,39 +446,36 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 
     const std::string default_layout = (spatial_dim == 2) ? "NCHW" : "NCDHW";
 
-    //inflags value is empty, default value is used
-    //if it is supplied via cmd line, check the value.
+    // inflags value is empty, default value is used
+    // if it is supplied via cmd line, check the value.
     if(inflags.GetValueStr("in_layout").empty())
     {
         inflags.SetValue("in_layout", default_layout);
     }
     else
     {
-       std::string in_layoutValue = inflags.GetValueStr("in_layout");
-       ValidateLayoutInputParameters(in_layoutValue);
+        std::string in_layoutValue = inflags.GetValueStr("in_layout");
+        ValidateLayoutInputParameters(in_layoutValue);
     }
-    //fil layout argument value check
+    // fil layout argument value check
     if(inflags.GetValueStr("fil_layout").empty())
     {
         inflags.SetValue("fil_layout", default_layout);
     }
     else
     {
-       std::string fil_layoutValue = inflags.GetValueStr("fil_layout");
-       ValidateLayoutInputParameters(fil_layoutValue);
-
+        std::string fil_layoutValue = inflags.GetValueStr("fil_layout");
+        ValidateLayoutInputParameters(fil_layoutValue);
     }
-    //out layout argument check
+    // out layout argument check
     if(inflags.GetValueStr("out_layout").empty())
     {
         inflags.SetValue("out_layout", default_layout);
     }
     else
     {
-       std::string out_layoutValue = inflags.GetValueStr("out_layout");
-       ValidateLayoutInputParameters(out_layoutValue);
-
-
+        std::string out_layoutValue = inflags.GetValueStr("out_layout");
+        ValidateLayoutInputParameters(out_layoutValue);
     }
     num_iterations = inflags.GetValueInt("iter");
     if(num_iterations < 1)
@@ -531,52 +527,46 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     return 0;
 }
 
-
 template <typename Tgpu, typename Tref>
-void  ConvDriver<Tgpu, Tref>::ValidateLayoutInputParameters(std::string layout_value)
+void ConvDriver<Tgpu, Tref>::ValidateLayoutInputParameters(std::string layout_value)
 {
-     if ((ChkLayout_ShortName()))
-     {
+    if((ChkLayout_ShortName()))
+    {
         std::cerr << " Invalid Layout Short Name = " << ChkLayout_ShortName() << std::endl;
         exit(EXIT_FAILURE);
-     }
-     else
-     {
-        if((layout_value.compare("NCHW") == 0) ||
-          (layout_value.compare("NHWC") == 0) ||
-          (layout_value.compare("NCDHW") == 0) ||
-          (layout_value.compare("NDHWC") == 0))
-          {
-            //do nothing,Values are matching as defined in Lib.
-          }
-          else
-          {
-            std::cerr << "Invalid Layout Parameter Value - " << layout_value <<  std::endl;
+    }
+    else
+    {
+        if((layout_value.compare("NCHW") == 0) || (layout_value.compare("NHWC") == 0) ||
+           (layout_value.compare("NCDHW") == 0) || (layout_value.compare("NDHWC") == 0))
+        {
+            // do nothing,Values are matching as defined in Lib.
+        }
+        else
+        {
+            std::cerr << "Invalid Layout Parameter Value - " << layout_value << std::endl;
             exit(EXIT_FAILURE);
-          }
+        }
     }
 }
-
 
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::ChkLayout_ShortName()
 {
-    //check for short name of layout type
-    if ( (inflags.FindShortName("in_layout") == 'I') && 
-         (inflags.FindShortName("out_layout") == 'O') &&
-         (inflags.FindShortName("fil_layout") == 'f'))
+    // check for short name of layout type
+    if((inflags.FindShortName("in_layout") == 'I') &&
+       (inflags.FindShortName("out_layout") == 'O') && (inflags.FindShortName("fil_layout") == 'f'))
     {
-         //do noting
-         //found valid short names
-         return 0;
+        // do noting
+        // found valid short names
+        return 0;
     }
     else
     {
-        std::cerr << "Error:Invalid Short Name!"<< std::endl;
+        std::cerr << "Error:Invalid Short Name!" << std::endl;
         exit(EXIT_FAILURE);
     }
 }
-
 
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::GetandSetData()
@@ -3287,7 +3277,7 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
     if(is_fwd_igemm)
         tolerance = tolerance * 10;
 
-    if(error > tolerance)
+    if(!(error < tolerance))
     {
         std::cout << "Forward Convolution Failed: " << error << " > " << tolerance << std::endl;
         return EC_VerifyFwd;
