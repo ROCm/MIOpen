@@ -144,7 +144,7 @@ std::string supported_reorder_to_string(uint32_t order_0,
                                         uint32_t order_3) 
 {
     std::string layout_string("N/A");
-         if((order_0==0) && (order_1==1) && (order_2==3) && (order_3==2)) layout_string = "r0132";
+    if     ((order_0==0) && (order_1==1) && (order_2==3) && (order_3==2)) layout_string = "r0132";
     else if((order_0==0) && (order_1==2) && (order_2==1) && (order_3==3)) layout_string = "r0213";
     else if((order_0==0) && (order_1==2) && (order_2==3) && (order_3==1)) layout_string = "r0231";
     else if((order_0==0) && (order_1==3) && (order_2==1) && (order_3==2)) layout_string = "r0312";
