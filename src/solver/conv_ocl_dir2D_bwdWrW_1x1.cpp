@@ -41,7 +41,7 @@ namespace solver {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
-#if WORKAROUND_SWDEV_266868 || WORKAROUND_SWDEV_292187
+#if WORKAROUND_SWDEV_266868
     if(StartsWith(params.GetStream().GetDeviceName(), "gfx10"))
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1{}))
             return false;
@@ -383,8 +383,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             result.construction_params.push_back(kernel);
         }
 
-        const auto ws_sz   = GetWorkspaceSize(params);
-        result.workspce_sz = ws_sz;
+        const auto ws_sz    = GetWorkspaceSize(params);
+        result.workspace_sz = ws_sz;
 
         {
             // std::cout << comp_options << std::endl;

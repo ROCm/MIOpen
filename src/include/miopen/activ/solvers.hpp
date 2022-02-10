@@ -47,13 +47,10 @@ using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
 
 struct ActivFwdSolver0 : OldStyleSolver
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ActivFwdSolver0>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver0>(); }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
@@ -73,13 +70,10 @@ struct ActivFwdSolver0 : OldStyleSolver
 
 struct ActivFwdSolver1 : OldStyleSolver
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ActivFwdSolver1>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver1>(); }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
@@ -99,13 +93,10 @@ struct ActivFwdSolver1 : OldStyleSolver
 
 struct ActivBwdSolver0 : OldStyleSolver
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ActivBwdSolver0>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver0>(); }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
@@ -125,13 +116,10 @@ struct ActivBwdSolver0 : OldStyleSolver
 
 struct ActivBwdSolver1 : OldStyleSolver
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ActivBwdSolver1>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver1>(); }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {

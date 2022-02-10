@@ -236,10 +236,10 @@ static inline int igemm_split_batch_size(const int hi,
                                          const int c,
                                          const int data_byte)
 {
-    size_t image_size_input = static_cast<size_t>(c) * hi * wi * data_byte;
-    size_t image_size_output = static_cast<size_t>(k) * ho * wo * data_byte;
+    size_t image_size_input          = static_cast<size_t>(c) * hi * wi * data_byte;
+    size_t image_size_output         = static_cast<size_t>(k) * ho * wo * data_byte;
     constexpr size_t max_tensor_size = 0xffffffffUL;
-    
+
     size_t image_size = std::max(image_size_input, image_size_output);
 
     // When image size is larger than max tensor size, max batch applicable is 0, so 0 is returned.
@@ -253,7 +253,8 @@ static inline int igemm_split_batch_size(const int hi,
     // 2. n % max_n == 0
     // if(max_n >= n)
     //     return 1;
-    while(max_n > 1){
+    while(max_n > 1)
+    {
         if(n % max_n == 0)
             break;
         max_n--;

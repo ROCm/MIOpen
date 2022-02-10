@@ -73,6 +73,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
 /// \todo see issue #1222, PR #1316
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
+
 #ifndef MIOPEN_AMD_COMGR_VERSION_MAJOR
 #define MIOPEN_AMD_COMGR_VERSION_MAJOR 0
 #endif
@@ -105,7 +107,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 #endif
 
 #if WORKAROUND_SWDEV_257056_PCH_INCORRECTLY_REPORTED
-#if(HIP_PACKAGE_VERSION_FLAT <= 3009999999ULL)
+#if HIP_SUPPORTS_PCH && (HIP_PACKAGE_VERSION_FLAT <= 3009999999ULL)
 #undef HIP_SUPPORTS_PCH
 #define HIP_SUPPORTS_PCH 0
 #endif
@@ -210,8 +212,11 @@ static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties&
 #endif
     list.push_back("-mllvm");
     list.push_back("-amdgpu-prelink");
-    list.push_back("-mwavefrontsize64"); // gfx1000+ WAVE32 mode: always disabled.
-    list.push_back("-mcumode");          // gfx1000+ WGP mode: always disabled.
+    if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
+    {
+        list.push_back("-mwavefrontsize64");
+        list.push_back("-mcumode");
+    }
     list.push_back("-O3");
 
 #if ROCM_FEATURE_TARGETID_OFF
@@ -326,7 +331,7 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 static std::string GetIsaName(const miopen::TargetProperties& target, const bool isHlcBuild)
 {
 #if ROCM_FEATURE_TARGETID_OFF
-    std::ignore = isHlcBuild;
+    std::ignore                  = isHlcBuild;
     const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? "+sram-ecc" : "";
     return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
 #else

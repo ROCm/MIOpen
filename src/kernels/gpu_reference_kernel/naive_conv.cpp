@@ -29,24 +29,24 @@
 #endif
 
 // hcc seems need __device__ __host__ together to compile, and no extern "C"
-typedef union _cvt_bf16_fp32
+typedef union value_bf16_fp32_t
 {
     uint u32;
     ushort2 ushortx2;
     ushort ushortvec[2];
     float f32;
-} _cvt_bf16_fp32_t;
+} value_bf16_fp32_t;
 
-inline __device__ __host__ float __bfloat16_to_float(ushort src_val)
+inline __device__ __host__ float convert_bf16_to_fp32(ushort src_val)
 {
-    _cvt_bf16_fp32_t target_val;
+    value_bf16_fp32_t target_val;
     target_val.ushortx2 = make_ushort2(0, src_val);
     return target_val.f32;
 }
 
-inline __device__ __host__ ushort __float_to_bfloat16(float src_val)
+inline __device__ __host__ ushort convert_fp32_to_bf16(float src_val)
 {
-    _cvt_bf16_fp32_t target_val;
+    value_bf16_fp32_t target_val;
     target_val.f32 = src_val;
 
     if((~target_val.u32 & 0x7f800000) == 0) // Inf or NaN
@@ -1241,14 +1241,14 @@ extern "C" __global__ void naive_conv_fwd_nchw_bf16(const ushort* __restrict__ p
                                        static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
                         size_t f_idx = static_cast<size_t>(ic) * fy * fx +
                                        static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
-                        value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
-                                 static_cast<double>(__bfloat16_to_float(p_wei[f_idx]));
+                        value += static_cast<double>(convert_bf16_to_fp32(p_in[i_idx])) *
+                                 static_cast<double>(convert_bf16_to_fp32(p_wei[f_idx]));
                     }
                 }
             }
         }
         size_t o_idx = static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
-        p_out[o_idx] = __float_to_bfloat16(static_cast<float>(value));
+        p_out[o_idx] = convert_fp32_to_bf16(static_cast<float>(value));
     }
 }
 
@@ -1327,14 +1327,14 @@ extern "C" __global__ void naive_conv_bwd_nchw_bf16(ushort* __restrict__ p_in,
                                        static_cast<size_t>(cur_wo);
                         size_t f_idx = static_cast<size_t>(ik) * c_per_group * fy * fx +
                                        static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
-                        value += static_cast<double>(__bfloat16_to_float(p_out[o_idx])) *
-                                 static_cast<double>(__bfloat16_to_float(p_wei[f_idx]));
+                        value += static_cast<double>(convert_bf16_to_fp32(p_out[o_idx])) *
+                                 static_cast<double>(convert_bf16_to_fp32(p_wei[f_idx]));
                     }
                 }
             }
         }
         size_t i_idx = static_cast<size_t>(ihi) * wi + static_cast<size_t>(iwi);
-        p_in[i_idx]  = __float_to_bfloat16(static_cast<float>(value));
+        p_in[i_idx]  = convert_fp32_to_bf16(static_cast<float>(value));
     }
 }
 
@@ -1407,15 +1407,15 @@ extern "C" __global__ void naive_conv_wrw_nchw_bf16(const ushort* __restrict__ p
                                        static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
                         size_t o_idx = static_cast<size_t>(in) * k * ho * wo +
                                        static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
-                        value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
-                                 static_cast<double>(__bfloat16_to_float(p_out[o_idx]));
+                        value += static_cast<double>(convert_bf16_to_fp32(p_in[i_idx])) *
+                                 static_cast<double>(convert_bf16_to_fp32(p_out[o_idx]));
                     }
                 }
             }
         }
         size_t f_idx = static_cast<size_t>(ic) * fy * fx + static_cast<size_t>(iy) * fx +
                        static_cast<size_t>(ix);
-        p_wei[f_idx] = __float_to_bfloat16(static_cast<float>(value));
+        p_wei[f_idx] = convert_fp32_to_bf16(static_cast<float>(value));
     }
 }
 
@@ -1507,8 +1507,8 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_bf16(const ushort* __restrict__ 
                             size_t f_idx = static_cast<size_t>(ic) * fz * fy * fx +
                                            static_cast<size_t>(iz) * fy * fx +
                                            static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
-                            value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
-                                     static_cast<double>(__bfloat16_to_float(p_wei[f_idx]));
+                            value += static_cast<double>(convert_bf16_to_fp32(p_in[i_idx])) *
+                                     static_cast<double>(convert_bf16_to_fp32(p_wei[f_idx]));
                         }
                     }
                 }
@@ -1516,7 +1516,7 @@ extern "C" __global__ void naive_conv_fwd_ncdhw_bf16(const ushort* __restrict__ 
         }
         size_t o_idx = static_cast<size_t>(ido) * ho * wo + static_cast<size_t>(iho) * wo +
                        static_cast<size_t>(iwo);
-        p_out[o_idx] = __float_to_bfloat16(static_cast<float>(value));
+        p_out[o_idx] = convert_fp32_to_bf16(static_cast<float>(value));
     }
 }
 
@@ -1616,8 +1616,8 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_bf16(ushort* __restrict__ p_in,
                             size_t f_idx = static_cast<size_t>(ik) * c_per_group * fz * fy * fx +
                                            static_cast<size_t>(iz) * fy * fx +
                                            static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
-                            value += static_cast<double>(__bfloat16_to_float(p_out[o_idx])) *
-                                     static_cast<double>(__bfloat16_to_float(p_wei[f_idx]));
+                            value += static_cast<double>(convert_bf16_to_fp32(p_out[o_idx])) *
+                                     static_cast<double>(convert_bf16_to_fp32(p_wei[f_idx]));
                         }
                     }
                 }
@@ -1625,7 +1625,7 @@ extern "C" __global__ void naive_conv_bwd_ncdhw_bf16(ushort* __restrict__ p_in,
         }
         size_t i_idx = static_cast<size_t>(idi) * hi * wi + static_cast<size_t>(ihi) * wi +
                        static_cast<size_t>(iwi);
-        p_in[i_idx] = __float_to_bfloat16(static_cast<float>(value));
+        p_in[i_idx] = convert_fp32_to_bf16(static_cast<float>(value));
     }
 }
 
@@ -1715,8 +1715,8 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_bf16(const ushort* __restrict__ 
                             size_t o_idx = static_cast<size_t>(in) * k * do_ * ho * wo +
                                            static_cast<size_t>(ido) * ho * wo +
                                            static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
-                            value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
-                                     static_cast<double>(__bfloat16_to_float(p_out[o_idx]));
+                            value += static_cast<double>(convert_bf16_to_fp32(p_in[i_idx])) *
+                                     static_cast<double>(convert_bf16_to_fp32(p_out[o_idx]));
                         }
                     }
                 }
@@ -1724,7 +1724,7 @@ extern "C" __global__ void naive_conv_wrw_ncdhw_bf16(const ushort* __restrict__ 
         }
         size_t f_idx = static_cast<size_t>(ic) * fz * fy * fx + static_cast<size_t>(iz) * fy * fx +
                        static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
-        p_wei[f_idx] = __float_to_bfloat16(static_cast<float>(value));
+        p_wei[f_idx] = convert_fp32_to_bf16(static_cast<float>(value));
     }
 }
 
@@ -2905,14 +2905,14 @@ extern "C" __global__ void naive_conv_fwd_nhwc_bf16(const ushort* __restrict__ p
                                        static_cast<size_t>(iy) * fx * c_per_group +
                                        static_cast<size_t>(ix) * c_per_group +
                                        static_cast<size_t>(ic);
-                        value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
-                                 static_cast<double>(__bfloat16_to_float(p_wei[f_idx]));
+                        value += static_cast<double>(convert_bf16_to_fp32(p_in[i_idx])) *
+                                 static_cast<double>(convert_bf16_to_fp32(p_wei[f_idx]));
                     }
                 }
             }
         }
         size_t o_idx = static_cast<size_t>(iwo) * k + static_cast<size_t>(ik);
-        p_out[o_idx] = __float_to_bfloat16(static_cast<float>(value));
+        p_out[o_idx] = convert_fp32_to_bf16(static_cast<float>(value));
     }
 }
 
@@ -2991,14 +2991,14 @@ extern "C" __global__ void naive_conv_bwd_nhwc_bf16(ushort* __restrict__ p_in,
                                        static_cast<size_t>(iy) * fx * c_per_group +
                                        static_cast<size_t>(ix) * c_per_group +
                                        static_cast<size_t>(ic);
-                        value += static_cast<double>(__bfloat16_to_float(p_out[o_idx])) *
-                                 static_cast<double>(__bfloat16_to_float(p_wei[f_idx]));
+                        value += static_cast<double>(convert_bf16_to_fp32(p_out[o_idx])) *
+                                 static_cast<double>(convert_bf16_to_fp32(p_wei[f_idx]));
                     }
                 }
             }
         }
         size_t i_idx = static_cast<size_t>(iwi) * c + static_cast<size_t>(ic);
-        p_in[i_idx]  = __float_to_bfloat16(static_cast<float>(value));
+        p_in[i_idx]  = convert_fp32_to_bf16(static_cast<float>(value));
     }
 }
 
@@ -3072,15 +3072,15 @@ extern "C" __global__ void naive_conv_wrw_nhwc_bf16(const ushort* __restrict__ p
                         size_t o_idx = static_cast<size_t>(in) * ho * wo * k +
                                        static_cast<size_t>(iho) * wo * k +
                                        static_cast<size_t>(iwo) * k;
-                        value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
-                                 static_cast<double>(__bfloat16_to_float(p_out[o_idx]));
+                        value += static_cast<double>(convert_bf16_to_fp32(p_in[i_idx])) *
+                                 static_cast<double>(convert_bf16_to_fp32(p_out[o_idx]));
                     }
                 }
             }
         }
         size_t f_idx = static_cast<size_t>(iy) * fx * c_per_group +
                        static_cast<size_t>(ix) * c_per_group + static_cast<size_t>(ic);
-        p_wei[f_idx] = __float_to_bfloat16(static_cast<float>(value));
+        p_wei[f_idx] = convert_fp32_to_bf16(static_cast<float>(value));
     }
 }
 
@@ -3169,8 +3169,8 @@ extern "C" __global__ void naive_conv_fwd_ndhwc_bf16(const ushort* __restrict__ 
                                            static_cast<size_t>(iy) * fx * c_per_group +
                                            static_cast<size_t>(ix) * c_per_group +
                                            static_cast<size_t>(ic);
-                            value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
-                                     static_cast<double>(__bfloat16_to_float(p_wei[f_idx]));
+                            value += static_cast<double>(convert_bf16_to_fp32(p_in[i_idx])) *
+                                     static_cast<double>(convert_bf16_to_fp32(p_wei[f_idx]));
                         }
                     }
                 }
@@ -3178,7 +3178,7 @@ extern "C" __global__ void naive_conv_fwd_ndhwc_bf16(const ushort* __restrict__ 
         }
         size_t o_idx = static_cast<size_t>(iho) * wo * k + static_cast<size_t>(iwo) * k +
                        static_cast<size_t>(ik);
-        p_out[o_idx] = __float_to_bfloat16(static_cast<float>(value));
+        p_out[o_idx] = convert_fp32_to_bf16(static_cast<float>(value));
     }
 }
 
@@ -3276,8 +3276,8 @@ extern "C" __global__ void naive_conv_bwd_ndhwc_bf16(ushort* __restrict__ p_in,
                                            static_cast<size_t>(iy) * fx * c_per_group +
                                            static_cast<size_t>(ix) * c_per_group +
                                            static_cast<size_t>(ic);
-                            value += static_cast<double>(__bfloat16_to_float(p_out[o_idx])) *
-                                     static_cast<double>(__bfloat16_to_float(p_wei[f_idx]));
+                            value += static_cast<double>(convert_bf16_to_fp32(p_out[o_idx])) *
+                                     static_cast<double>(convert_bf16_to_fp32(p_wei[f_idx]));
                         }
                     }
                 }
@@ -3285,7 +3285,7 @@ extern "C" __global__ void naive_conv_bwd_ndhwc_bf16(ushort* __restrict__ p_in,
         }
         size_t i_idx = static_cast<size_t>(ihi) * wi * c + static_cast<size_t>(iwi) * c +
                        static_cast<size_t>(ic);
-        p_in[i_idx] = __float_to_bfloat16(static_cast<float>(value));
+        p_in[i_idx] = convert_fp32_to_bf16(static_cast<float>(value));
     }
 }
 
@@ -3374,8 +3374,8 @@ extern "C" __global__ void naive_conv_wrw_ndhwc_bf16(const ushort* __restrict__ 
                                            static_cast<size_t>(ido) * ho * wo * k +
                                            static_cast<size_t>(iho) * wo * k +
                                            static_cast<size_t>(iwo) * k;
-                            value += static_cast<double>(__bfloat16_to_float(p_in[i_idx])) *
-                                     static_cast<double>(__bfloat16_to_float(p_out[o_idx]));
+                            value += static_cast<double>(convert_bf16_to_fp32(p_in[i_idx])) *
+                                     static_cast<double>(convert_bf16_to_fp32(p_out[o_idx]));
                         }
                     }
                 }
@@ -3384,6 +3384,6 @@ extern "C" __global__ void naive_conv_wrw_ndhwc_bf16(const ushort* __restrict__ 
         size_t f_idx = static_cast<size_t>(iz) * fy * fx * c_per_group +
                        static_cast<size_t>(iy) * fx * c_per_group +
                        static_cast<size_t>(ix) * c_per_group + static_cast<size_t>(ic);
-        p_wei[f_idx] = __float_to_bfloat16(static_cast<float>(value));
+        p_wei[f_idx] = convert_fp32_to_bf16(static_cast<float>(value));
     }
 }

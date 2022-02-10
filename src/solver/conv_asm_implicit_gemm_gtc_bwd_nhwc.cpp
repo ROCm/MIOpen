@@ -389,10 +389,10 @@ static std::tuple<std::string, // kernel_name
 GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     const ConvolutionContext& ctx, const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
 {
-    const auto group = ctx.group_counts;
-    const auto hi    = ctx.out_height;
-    const auto wi    = ctx.out_width;
-    const auto n     = ctx.batch_sz;
+    const auto group      = ctx.group_counts;
+    const auto hi         = ctx.out_height;
+    const auto wi         = ctx.out_width;
+    const auto n          = ctx.batch_sz;
     const auto k          = ctx.n_inputs;
     const auto c          = ctx.n_outputs;
     const auto ho         = ctx.in_height;
@@ -427,10 +427,11 @@ GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     const auto w_tilda_slice = w_tilda_right - w_tilda_left;
     const auto num_of_gemm   = y_tilda * x_tilda;
 
-    auto splits_4G = igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+    auto splits_4G =
+        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
 
-    const auto gemm_m        = (n / splits_4G) * h_tilda_slice * w_tilda_slice;
-    const auto gemm_n        = c / group;
+    const auto gemm_m = (n / splits_4G) * h_tilda_slice * w_tilda_slice;
+    const auto gemm_n = c / group;
 
     size_t block_size = config.BlockSize();
     size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
@@ -781,6 +782,13 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const Convolution
         if(ctx.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
 
+    // An internal rule when we create the kernel_param_list. There always will be a config with
+    // gemm_k_global_split=0 in front of a almost the same config, with only gemm_k_global_split=1,
+    // so it will never choose the *=1 one. And indeed in the HeuristicInit() we never wish to find
+    // a config with gemm_k_global_split=1. So it is safe here to disable *=1 case
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}) && gemm_k_global_split != 0)
+        return false;
+
     const auto group      = ctx.group_counts;
     const auto k          = ctx.n_inputs;
     const auto c          = ctx.n_outputs;
@@ -793,13 +801,14 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const Convolution
     const auto y          = ctx.kernel_size_h;
     const auto x          = ctx.kernel_size_w;
 
-    const auto hi         = ctx.out_height;
-    const auto wi         = ctx.out_width;
-    const auto n          = ctx.batch_sz;
-    const auto ho         = ctx.in_height;
-    const auto wo         = ctx.in_width;
+    const auto hi = ctx.out_height;
+    const auto wi = ctx.out_width;
+    const auto n  = ctx.batch_sz;
+    const auto ho = ctx.in_height;
+    const auto wo = ctx.in_width;
 
-    auto splits_4G = igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+    auto splits_4G =
+        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
     if(ctx.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
         return false;
 
@@ -907,13 +916,13 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionC
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
-    if(0 == igemm_split_batch_size(ctx.out_height, 
-                                   ctx.out_width, 
-                                   ctx.in_height, 
-                                   ctx.in_width, 
-                                   ctx.batch_sz, 
-                                   ctx.n_inputs, 
-                                   ctx.n_outputs, 
+    if(0 == igemm_split_batch_size(ctx.out_height,
+                                   ctx.out_width,
+                                   ctx.in_height,
+                                   ctx.in_width,
+                                   ctx.batch_sz,
+                                   ctx.n_inputs,
+                                   ctx.n_outputs,
                                    miopen::GetTypeSize(ctx.in_data_type)))
         return false;
 
@@ -986,14 +995,14 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     std::string kernel_name;
     size_t block_size;
     size_t grid_size;
-    
+
     int splits_4G;
 
     std::tie(kernel_name, block_size, grid_size, splits_4G) =
         GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(ctx, config);
 
     const auto required_workspace_size = GetWorkspaceSize(ctx);
-    result.workspce_sz                 = required_workspace_size;
+    result.workspace_sz                = required_workspace_size;
 
     kernel.kernel_file = kernel_name + ".s";
     kernel.kernel_name = kernel_name;

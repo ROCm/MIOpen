@@ -65,7 +65,6 @@ namespace solver {
 /// \todo Move wave_size into abstraction wich represent GPU information
 const int wave_size = 64;
 
-
 /// Base class for problem solvers.
 ///
 /// Solvers are to be instantiated as const objects and shall not have any variable
@@ -135,7 +134,7 @@ struct SolverBase
     /// ConvSolution GetSolution(const ConvolutionContext& params,
     ///                          const PerformanceConfig& config) const;
 
-protected:
+    protected:
     template <class Solver>
     static const std::string& GetSolverDbId()
     {
@@ -143,11 +142,11 @@ protected:
         return result;
     }
 
-private:
+    private:
     static std::string ComputeSolverDbId(const std::string& type_name)
     {
-        auto idx               = type_name.find_last_of(':');
-        auto name              = type_name.substr(idx + 1);
+        auto idx  = type_name.find_last_of(':');
+        auto name = type_name.substr(idx + 1);
         std::replace(name.begin(), name.end(), ',', '-');
         name.erase(std::remove(name.begin(), name.end(), ' '), name.end());
 
@@ -155,7 +154,7 @@ private:
     }
 };
 
-template<class Context>
+template <class Context>
 struct SolverMixin : SolverBase
 {
     virtual bool IsApplicable(const Context& ctx) const = 0;
@@ -178,9 +177,8 @@ struct SolverMixin : SolverBase
     }
 };
 
-//Typedef for convolution solvers
+// Typedef for convolution solvers
 using ConvSolver = SolverMixin<ConvolutionContext>;
-
 
 struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
 {
@@ -210,10 +208,7 @@ struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
 
 struct ConvAsm3x3U : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvAsm3x3U>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm3x3U>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     PerformanceConfigConvAsm3x3U GetPerformanceConfig(const ConvolutionContext&) const;
@@ -282,10 +277,7 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
 
 struct ConvAsm1x1U : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvAsm1x1U>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
 
     PerformanceConfigConvAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
@@ -313,10 +305,7 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
 
 struct ConvBiasActivAsm1x1U : ConvAsm1x1U
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvBiasActivAsm1x1U>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
     PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
 
@@ -389,10 +378,7 @@ struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1
 
 struct ConvAsm1x1UV2 : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvAsm1x1UV2>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1UV2>(); }
 
     PerformanceConfigConvAsm1x1UV2 GetPerformanceConfig(const ConvolutionContext&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
@@ -407,10 +393,7 @@ struct ConvAsm1x1UV2 : ConvSolver
 
 struct ConvAsm5x10u2v2f1 : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvAsm5x10u2v2f1>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm5x10u2v2f1>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
@@ -418,10 +401,7 @@ struct ConvAsm5x10u2v2f1 : ConvSolver
 
 struct ConvAsm5x10u2v2b1 : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvAsm5x10u2v2b1>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm5x10u2v2b1>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
@@ -451,10 +431,7 @@ struct ConvOclDirectFwd11x11 : ConvSolver
 
 struct ConvOclDirectFwdGen : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvOclDirectFwdGen>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwdGen>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
@@ -926,10 +903,7 @@ struct PerformanceConvMlirIgemm : Serializable<PerformanceConvMlirIgemm>
 
 struct ConvMlirIgemmFwd : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvMlirIgemmFwd>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvMlirIgemmFwd>(); }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     PerformanceConvMlirIgemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
@@ -1074,10 +1048,7 @@ struct ConvHipImplicitGemmV4R4WrW : ConvSolver
 
 struct ConvMlirIgemmWrW : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvMlirIgemmWrW>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvMlirIgemmWrW>(); }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     PerformanceConvMlirIgemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
@@ -1527,10 +1498,7 @@ struct ConvHipImplicitGemmBwdDataV1R1 : ConvSolver
 
 struct ConvMlirIgemmBwd : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvMlirIgemmBwd>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvMlirIgemmBwd>(); }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     PerformanceConvMlirIgemm GetPerformanceConfig(const ConvolutionContext& ctx) const;
@@ -1720,17 +1688,14 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : ConvSolver
     LegacyPerformanceConfig Search(const ConvolutionContext&,
                                    const AnyInvokeParams& invoke_ctx) const;
 
-private:
+    private:
     template <typename Tgpu>
     LegacyPerformanceConfig SearchImpl(const ConvolutionContext&) const;
 };
 
 struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvOclDirectFwd>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
 
@@ -1738,7 +1703,7 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
                              const LegacyPerformanceConfig& searched_params) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&, const LegacyPerformanceConfig&) const;
 
-protected:
+    protected:
     bool IsApplicableBase(const ConvolutionContext& params) const;
 };
 
@@ -1755,10 +1720,7 @@ struct ConvOclDirectFwdFused : ConvOclDirectFwd
 
 struct ConvOclDirectFwd1x1 : ConvOclDirectFwdLegacyExhaustiveSearch
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvOclDirectFwd1x1>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd1x1>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params,
@@ -1771,10 +1733,7 @@ struct ConvOclDirectFwd1x1 : ConvOclDirectFwdLegacyExhaustiveSearch
 
 struct ConvBinWinograd3x3U : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvBinWinograd3x3U>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvBinWinograd3x3U>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsDynamic() const override { return true; }
@@ -1783,10 +1742,7 @@ struct ConvBinWinograd3x3U : ConvSolver
 
 struct ConvBinWinogradRxS : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvBinWinogradRxS>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvBinWinogradRxS>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsDynamic() const override { return true; }
@@ -1930,7 +1886,8 @@ struct ConvMPBidirectWinograd : ConvSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ConvMPBidirectWinograd<WinoDataH,WinoFilterH,WinoDataW,WinoFilterW>>();
+        return GetSolverDbId<
+            ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>>();
     }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
@@ -1984,7 +1941,8 @@ struct ConvMPBidirectWinograd_xdlops : ConvSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ConvMPBidirectWinograd_xdlops<WinoDataH,WinoFilterH,WinoDataW,WinoFilterW>>();
+        return GetSolverDbId<
+            ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>>();
     }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
@@ -2071,7 +2029,8 @@ struct ConvWinograd3x3MultipassWrW : ConvSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ConvWinograd3x3MultipassWrW<WinoDataH,WinoFilterH,WinoDataW,WinoFilterW>>();
+        return GetSolverDbId<
+            ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>>();
     }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
@@ -2107,7 +2066,7 @@ struct ConvWinograd3x3MultipassWrW : ConvSolver
             return WinoDataW + (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : ctx.kernel_stride_w);
     }
 
-private:
+    private:
     InvokerFactory PrepareInvokerFactory(const ConvolutionContext& params, std::size_t ws_sz) const;
 };
 
@@ -2180,10 +2139,7 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
 
 struct ConvAsmBwdWrW3x3 : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvAsmBwdWrW3x3>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsmBwdWrW3x3>(); }
 
     PerformanceConfigAsmDirect3x3WrW GetPerformanceConfig(const ConvolutionContext&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
@@ -2289,10 +2245,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
 
 struct ConvAsmBwdWrW1x1 : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvAsmBwdWrW1x1>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsmBwdWrW1x1>(); }
 
     PerformanceConfigConvAsmBwdWrW1x1 GetPerformanceConfig(const ConvolutionContext&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
@@ -2389,7 +2342,7 @@ struct ConvOclBwdWrW2 : ConvSolver
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-protected:
+    protected:
     bool IsApplicableBase(const ConvolutionContext& params) const;
 };
 
@@ -2434,10 +2387,7 @@ struct ConvOclBwdWrW2NonTunable : ConvOclBwdWrW2<1>
 
 struct ConvOclBwdWrW53 : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvOclBwdWrW53>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclBwdWrW53>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
@@ -2447,10 +2397,7 @@ struct ConvOclBwdWrW53 : ConvSolver
 
 struct ConvOclBwdWrW1x1 : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvOclBwdWrW1x1>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclBwdWrW1x1>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
@@ -2460,10 +2407,7 @@ struct ConvOclBwdWrW1x1 : ConvSolver
 
 struct fft : ConvSolver
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<fft>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<fft>(); }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
@@ -2721,9 +2665,9 @@ struct ConvDirectNaiveConvWrw : ConvSolver
 
 struct GemmFwdBase : ConvSolver
 {
-    //To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
+    // To suppress -Woverloaded-virtual
     using ConvSolver::GetWti;
+    using ConvSolver::IsApplicable;
 
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsDynamic() const override { return true; }
@@ -2736,14 +2680,11 @@ struct GemmFwdBase : ConvSolver
 
 struct GemmFwd1x1_0_2 : GemmFwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmFwdBase::GetWorkspaceSize;
     using GemmFwdBase::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<GemmFwd1x1_0_2>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_2>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
@@ -2768,14 +2709,11 @@ struct GemmFwd1x1_0_2 : GemmFwdBase
 
 struct GemmFwd1x1_0_1_int8 : GemmFwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmFwdBase::GetWorkspaceSize;
     using GemmFwdBase::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<GemmFwd1x1_0_1_int8>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_1_int8>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
@@ -2800,14 +2738,11 @@ struct GemmFwd1x1_0_1_int8 : GemmFwdBase
 
 struct GemmFwd1x1_0_1 : GemmFwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmFwdBase::GetWorkspaceSize;
     using GemmFwdBase::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<GemmFwd1x1_0_1>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_1>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
@@ -2832,14 +2767,11 @@ struct GemmFwd1x1_0_1 : GemmFwdBase
 
 struct GemmFwdRest : GemmFwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmFwdBase::GetWorkspaceSize;
     using GemmFwdBase::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<GemmFwdRest>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwdRest>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
@@ -2864,9 +2796,9 @@ struct GemmFwdRest : GemmFwdBase
 
 struct GemmBwdBase : ConvSolver
 {
-    //To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
+    // To suppress -Woverloaded-virtual
     using ConvSolver::GetWti;
+    using ConvSolver::IsApplicable;
 
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsDynamic() const override { return true; }
@@ -2879,14 +2811,11 @@ struct GemmBwdBase : ConvSolver
 
 struct GemmBwd1x1_stride2 : GemmBwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmBwdBase::GetWorkspaceSize;
     using GemmBwdBase::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<GemmBwd1x1_stride2>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwd1x1_stride2>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
@@ -2911,14 +2840,11 @@ struct GemmBwd1x1_stride2 : GemmBwdBase
 
 struct GemmBwd1x1_stride1 : GemmBwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmBwdBase::GetWorkspaceSize;
     using GemmBwdBase::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<GemmBwd1x1_stride1>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwd1x1_stride1>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
@@ -2943,14 +2869,11 @@ struct GemmBwd1x1_stride1 : GemmBwdBase
 
 struct GemmBwdRest : GemmBwdBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmBwdBase::GetWorkspaceSize;
     using GemmBwdBase::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<GemmBwdRest>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwdRest>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
@@ -2975,9 +2898,9 @@ struct GemmBwdRest : GemmBwdBase
 
 struct GemmWrwBase : ConvSolver
 {
-    //To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
+    // To suppress -Woverloaded-virtual
     using ConvSolver::GetWti;
+    using ConvSolver::IsApplicable;
 
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsDynamic() const override { return true; }
@@ -2990,14 +2913,11 @@ struct GemmWrwBase : ConvSolver
 
 struct GemmWrw1x1_stride1 : GemmWrwBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmWrwBase::GetWorkspaceSize;
     using GemmWrwBase::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<GemmWrw1x1_stride1>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrw1x1_stride1>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
@@ -3022,14 +2942,11 @@ struct GemmWrw1x1_stride1 : GemmWrwBase
 
 struct GemmWrwUniversal : GemmWrwBase
 {
-    //To suppress -Woverloaded-virtual
+    // To suppress -Woverloaded-virtual
     using GemmWrwBase::GetWorkspaceSize;
     using GemmWrwBase::IsApplicable;
 
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<GemmWrwUniversal>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrwUniversal>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
@@ -3804,6 +3721,7 @@ struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmIm
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     size_t ComputeKernelOccupancy() const;
+
     private:
     void SetParamsForKSplit(const ConvolutionContext& ctx, const size_t& occupancy);
 };

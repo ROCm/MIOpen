@@ -637,7 +637,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
     const ConvolutionContext& params) const
 {
     ConvSolution result;
-    result.workspce_sz = GetWorkspaceSize(params);
+    result.workspace_sz = GetWorkspaceSize(params);
 #if MIOPEN_BACKEND_HIP
 
     const int n_groups = params.GetStream().GetMaxComputeUnits();
@@ -873,7 +873,7 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
         ConvHipImplicitGemmForwardV4R4Xdlops{}.GetSolution(xdlops_conv_ctx, config);
 
     ConvSolution result;
-    result.workspce_sz = wino_transform.workspce_sz + xdlops_conv.workspce_sz;
+    result.workspace_sz = wino_transform.workspace_sz + xdlops_conv.workspace_sz;
 
     assert(xdlops_conv.construction_params.size() == 1);
 
