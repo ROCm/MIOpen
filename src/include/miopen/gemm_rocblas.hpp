@@ -33,16 +33,16 @@ namespace miopen {
 
 struct Handle;
 struct TensorDescriptor;
+struct GemmNewDescriptor;
 
 enum GemmCallBackend_t
 {
     default       = 0,
     rocblas       = 1,
-    miopengemm    = 2,
 };
 
 miopenStatus_t CallGemmRocblas(const Handle& handle,
-                                GemmDescriptor gemm_desc,
+                                GemmNewDescriptor gemm_desc,
                                 ConstData_t A,
                                 int a_offset,
                                 ConstData_t B,
