@@ -45,17 +45,7 @@ option( MIOPEN_TEST_DRIVER_ITER_MODE Off)
 option( MIOPEN_TEST_MIOTENSILE "Test MIOpenTensile path" OFF )
 option( MIOPEN_TEST_MLIR "Test for MLIR compilation backend" ${MIOPEN_USE_MLIR} )
 
-macro(set_var_to_condition var)
-    if(${ARGN})
-        set(${var} ON)
-    else()
-        set(${name} OFF)
-    endif()
-endmacro()
-
-set_var_to_condition(WORKAROUND_ISSUE_898_DEFAULT MIOPEN_USE_COMGR AND NOT MIOPEN_USE_HIPRTC)
-
-option( WORKAROUND_ISSUE_898 "" ${WORKAROUND_ISSUE_898_DEFAULT})
+option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" ON)
 
@@ -167,6 +157,14 @@ else()
     set(MIOPEN_TEST_FLOAT TRUE)
 endif()
 
+macro(set_var_to_condition var)
+    if(${ARGN})
+        set(${var} ON)
+    else()
+        set(${name} OFF)
+    endif()
+endmacro()
+
 set_var_to_condition(WORKAROUND_ISSUE_1187_DEFAULT MIOPEN_TEST_GFX90A AND MIOPEN_TEST_FLOAT)
 option( WORKAROUND_ISSUE_1187 "" ${WORKAROUND_ISSUE_1187_DEFAULT})
 
@@ -275,7 +273,7 @@ function(add_test_command NAME EXE)
         endif()
     endif()
 
-    if(WORKAROUND_ISSUE_898)
+    if(WORKAROUND_ISSUE_898 AND MIOPEN_USE_COMGR)
         set_property(TEST ${TEST_NAME} PROPERTY ENVIRONMENT MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE=0)
     endif()
 endfunction()
@@ -569,7 +567,7 @@ function(add_custom_test NAME)
     add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
     add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
 
-    if(WORKAROUND_ISSUE_898)
+    if(WORKAROUND_ISSUE_898 AND MIOPEN_USE_COMGR)
         set_property(TEST ${NAME} PROPERTY ENVIRONMENT MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE=0)
     endif()
 
