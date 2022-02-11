@@ -289,5 +289,4 @@ miopenStatus_t CallGemmRocblas(const Handle& handle,
     return miopenStatusUnknownError;
 }
 
-
 } //namespace miopen

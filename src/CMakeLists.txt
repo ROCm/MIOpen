@@ -177,6 +177,7 @@ set( MIOpen_Source
     include/miopen/gcn_asm_utils.hpp
     include/miopen/gemm_geometry.hpp
     include/miopen/gemm_v2.hpp
+    include/miopen/gemm_rocblas.hpp
     include/miopen/generic_search.hpp
     include/miopen/handle.hpp
     include/miopen/handle_lock.hpp
@@ -629,6 +630,7 @@ if(miopengemm_FOUND OR MIOPEN_USE_ROCBLAS OR MIOPEN_USE_MIOPENTENSILE)
     list(APPEND MIOpen_Source
         gemm_v2.cpp
         miopengemm.cpp
+        gemm_rocblas.cpp       
     )
 endif()
 
