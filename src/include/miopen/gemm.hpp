@@ -40,21 +40,21 @@ struct GemmNewDescriptor : miopenGemmDescriptor
 {
     GemmNewDescriptor();
     GemmNewDescriptor(bool isColMajor_,
-                   bool transA_,
-                   bool transB_,
-                   int m_,
-                   int n_, 
-                   int k_,
-                   int lda_,
-                   int ldb_,
-                   int ldc_,
-                   long long int strideA_,
-                   long long int strideB_,
-                   long long int strideC_,
-                   double alpha_,
-                   double beta_,
-                   int batch_count_,
-                   miopenDataType_t dataType_);
+                    bool transA_,
+                    bool transB_,
+                    int m_,
+                    int n_, 
+                    int k_,
+                    int lda_,
+                    int ldb_,
+                    int ldc_,
+                    long long int strideA_,
+                    long long int strideB_,
+                    long long int strideC_,
+                    double alpha_,
+                    double beta_,
+                    int batch_count_,
+                    miopenDataType_t dataType_);
 
     bool GetIsColMajor() const;
     bool GetTransA() const;
