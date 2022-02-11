@@ -102,7 +102,6 @@ else()
             endif()
             list(APPEND CMAKE_COMPILER_WARNINGS
                 -Wno-missing-field-initializers
-                -Wno-deprecated-declarations
             )
         endif()
         add_definitions(${CMAKE_COMPILER_WARNINGS})

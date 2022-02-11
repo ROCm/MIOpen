@@ -819,7 +819,7 @@ struct reduce_driver : test_driver
             max_value = 3;
         else
             max_value =
-                miopen_type<T>{} == miopenHalf ? 13 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
+                miopen_type<T>{} == miopenHalf ? 13 : miopen_type<T>{} == miopenInt8 ? 127 : 999;
 
         // default data gneration (used by MIN/MAX)
         auto gen_value = [&](auto... is) {
@@ -833,7 +833,7 @@ struct reduce_driver : test_driver
             auto rand_value = tensor_elem_gen_integer{max_value}(is...);
             auto sign_value = tensor_elem_gen_checkboard_sign{}(is...);
 
-            return (sign_value * rand_value + 1.0);
+            return (sign_value * rand_value / max_value + 0.01);
         };
 
         // Special data generation for MUL, to avoid all-zero and large accumulative error in the
@@ -867,6 +867,8 @@ struct reduce_driver : test_driver
         // default tolerance (refer to driver.hpp)
         this->tolerance = 80;
 
+        if(reduceOp == MIOPEN_REDUCE_TENSOR_ADD || reduceOp == MIOPEN_REDUCE_TENSOR_AVG)
+            this->tolerance = 80 * 10;
         if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
             this->tolerance = 80 * 300;
         else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
