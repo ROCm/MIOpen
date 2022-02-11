@@ -132,7 +132,6 @@ else()
 endif()
 set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
-option(MIOPEN_USE_HIPTRC "Use HIPRTC to build HIP kernels instead of COMGR" Off)
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
 
@@ -213,12 +212,19 @@ if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
     set(MIOPEN_hip_VERSION_PATCH "${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
     message(STATUS "MIOPEN_hip_VERSION_PATCH overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
 endif()
+# TODO: Unify MIOPEN_HIP_VERSION_FLAT in config.h with this.
+# in config.h we reserve 6 digits for patch, but here only 5 digits reserved to avoid overflow.
+# Actually 5 digits should be Ok everywhere.
+math(EXPR MIOPEN_hip_VERSION_FLAT "(${MIOPEN_hip_VERSION_MAJOR} * 1000 + ${MIOPEN_hip_VERSION_MINOR}) * 100000 + ${MIOPEN_hip_VERSION_PATCH}")
 
+# Do not enable HIPRTC by default for older ROCm versions in order to avoid
+# build time errors, because HIPRTC is a relatively new component.
+set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 500000000))
+option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
 add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
-
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
