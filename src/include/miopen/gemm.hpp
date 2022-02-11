@@ -83,6 +83,7 @@ struct GemmNewDescriptor : miopenGemmDescriptor
                             const TensorDescriptor& CDesc,
                             Data_t C);
 
+    //stream out operator overloading for MIOpen log functions
     friend std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& x);
 
     private:
