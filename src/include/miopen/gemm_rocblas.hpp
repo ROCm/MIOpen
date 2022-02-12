@@ -35,12 +35,6 @@ struct Handle;
 struct TensorDescriptor;
 struct GemmNewDescriptor;
 
-enum GemmCallBackend_t
-{
-    KERNEL   = 0,
-    ROCBLAS  = 1,
-};
-
 miopenStatus_t CallGemmRocblas(const Handle& handle,
                                 GemmNewDescriptor gemm_desc,
                                 ConstData_t A,
@@ -48,8 +42,7 @@ miopenStatus_t CallGemmRocblas(const Handle& handle,
                                 ConstData_t B,
                                 int b_offset,
                                 Data_t C,
-                                int c_offset,
-                                GemmCallBackend_t gemm_backend = GemmCallBackend_t::ROCBLAS);
+                                int c_offset);
 
 
 } // namespace miopen

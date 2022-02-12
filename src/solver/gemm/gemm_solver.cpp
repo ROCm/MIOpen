@@ -87,8 +87,7 @@ ConvSolution GemmSolver1x1::GetSolution(const ExecutionContext&,
                                             B,
                                             0,
                                             C,
-                                            0,
-                                            GemmCallBackend_t::ROCBLAS);               
+                                            0);               
             }
 
             if(gemm_status != miopenStatusSuccess)
