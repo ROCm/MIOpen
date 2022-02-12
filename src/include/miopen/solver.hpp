@@ -1644,11 +1644,6 @@ struct ConvBinWinogradUltraRxSf2x3 : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvBinWinogradUltraRxSf2x3& config,
                              bool disableConfigOverrideFromEnv = false) const;
-    static size_t GetNGroups(const size_t group_conv, const size_t grid_group_size)
-    {
-        assert(group_conv != 0);
-        return grid_group_size / group_conv;
-    }
 };
 
 struct PerformanceConfigConvBinWinogradRxSf3x2

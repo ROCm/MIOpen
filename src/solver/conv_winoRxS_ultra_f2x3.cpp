@@ -399,10 +399,10 @@ void* CopyDataToSymbol(const Handle& handle,
 
     return static_cast<void*>(dev_buf_ptr);
 #else
-    (void)handle; // -warning
-    (void)kernel; // -warning
-    (void)data;   // -warning
-    (void)name;   // -warning
+    std::ignore = handle;
+    std::ignore = kernel;
+    std::ignore = data;
+    std::ignore = name;
     return nullptr;
 #endif
 }
@@ -417,22 +417,8 @@ PerformanceConfigConvBinWinogradUltraRxSf2x3::PerformanceConfigConvBinWinogradUl
 
 void PerformanceConfigConvBinWinogradUltraRxSf2x3::HeuristicInit(const ConvolutionContext& config)
 {
-    int N, C, H, W, K, out_H, out_W, unused;
-
-    // clang-format off
-    if(!config.direction.IsBackwardWrW())
-    {
-        GetCompiledInParameters(config, &N, &C, &H, &W, &K, &unused, 
-                 &out_H, &out_W, &unused, &unused, &unused, &unused);
-    }
-    else
-    {
-        GetCompiledInParameters(config, &C, &K, &unused, &unused, 
-           &N, &unused, &H, &W, &out_H, &out_W, &unused, &unused);
-    }
-    // clang-format on
-
-    intl_factor = GetBestInterleaveParam(N, C, H, W);
+    auto desc   = UnifiedDescriptionConv2d(config.conv_problem);
+    intl_factor = GetBestInterleaveParam(desc.N, desc.C, desc.out_h, desc.out_w);
 }
 
 bool PerformanceConfigConvBinWinogradUltraRxSf2x3::SetNextValue(
@@ -486,46 +472,17 @@ ConvBinWinogradUltraRxSf2x3::Search(const ConvolutionContext& context,
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-class ShaderModel : public UnifiedDescriptionConv2d
-{
-    const size_t DATATYPE_BITS;    // S
-    const size_t n_groups;         // BQ ~compute units
-    const bool out_of_model_scope; // Shader model produces unreliable results.
-
-    public:
-    ShaderModel(const ConvolutionContext& ctx)
-        : UnifiedDescriptionConv2d(ctx),
-          DATATYPE_BITS(ctx.IsFp16() ? 16 : 32),
-          n_groups(ctx.GetStream().GetMaxHardwareComputeUnits()),
-          out_of_model_scope(true)
-    {
-    }
-
-    double ComputeWti() const
-    {
-        if(out_of_model_scope)
-            return -1.0; // Shader model produces unreliable results.
-
-        // TODO: Define performance model
-        const auto WTI_predicted = -1.0;
-        return WTI_predicted;
-    }
-};
-
-static float GetWtiBase(const ConvolutionContext& params)
+float ConvBinWinogradUltraRxSf2x3::GetWti(const ConvolutionContext&) const
 {
     constexpr auto WTI_UNKNOWN = -2.0;
-    const auto rv              = ShaderModel(params).ComputeWti();
-    return rv < 0 ? WTI_UNKNOWN : rv;
+    return WTI_UNKNOWN;
 }
 
-float ConvBinWinogradUltraRxSf2x3::GetWti(const ConvolutionContext& params) const
+bool ConvBinWinogradUltraRxSf2x3::IsApplicable(const ConvolutionContext& params) const
 {
-    return GetWtiBase(params);
-}
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3{}))
+        return false;
 
-static bool IsApplicableBase(const ConvolutionContext& params)
-{
 #if MIOPEN_BACKEND_HIP
     if(!params.Is2d())
         return false;
@@ -585,16 +542,9 @@ static bool IsApplicableBase(const ConvolutionContext& params)
                                      params);
     }
 #else
-    (void)params; // -warning
+    std::ignore = params;
     return false;
 #endif
-}
-
-bool ConvBinWinogradUltraRxSf2x3::IsApplicable(const ConvolutionContext& params) const
-{
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3{}))
-        return false;
-    return IsApplicableBase(params);
 }
 
 ConvSolution
@@ -638,10 +588,20 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
     constexpr unsigned F_REVERSE_S = 1 << 1;
     constexpr unsigned F_FLIP_K_C  = 1 << 2;
 
-    int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W, flags;
+    const auto desc = UnifiedDescriptionConv2d(params.conv_problem);
+    int H, W;
+    int N           = desc.N;
+    int C           = desc.C;
+    int K           = desc.K;
+    const int out_H = desc.out_h;
+    const int out_W = desc.out_w;
+    const int R     = desc.R;
+    const int S     = desc.S;
+    const int pad_H = desc.pad_h;
+    const int pad_W = desc.pad_w;
     BuffInfo d_buf, o_buf, f_buf;
 
-    int unused               = 0;
+    int flags                = 0;
     uint64_t reserved_offset = 0;
     int* reserved_ptr        = nullptr;
     float relu_alpha         = 1.0;
@@ -650,10 +610,9 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
     {
         const auto is_forward = params.direction.IsForward();
 
-        GetCompiledInParameters(
-            params, &N, &C, &H, &W, &K, &unused, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
-
         flags = is_forward ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
+        H     = params.in_height;
+        W     = params.in_width;
         C     = C / group_cnt;
         K     = K / group_cnt;
 
@@ -686,14 +645,11 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
     }
     else
     {
-        GetCompiledInParameters(
-            params, &C, &K, &R, &S, &N, &unused, &H, &W, &out_H, &out_W, &unused, &unused);
-
         flags = F_FLIP_K_C;
+        H     = params.out_height;
+        W     = params.out_width;
         N     = N / group_cnt;
         K     = K / group_cnt;
-        pad_H = params.conv_problem.GetConv().GetConvPads()[0];
-        pad_W = params.conv_problem.GetConv().GetConvPads()[1];
 
         d_buf =
             BuffInfo(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.in_layout)), true),
@@ -795,9 +751,10 @@ ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
         {"hash_pad_W", pad_W},
         {"hash_n_groups", n_groups},
         {"hash_intl_factor", intl_factor},
+        {kbp::Option{}, "mcumode"},
+        {kbp::Option{}, "mwavefrontsize64"},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
-    kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
 
     ConvSolution solution;
 
