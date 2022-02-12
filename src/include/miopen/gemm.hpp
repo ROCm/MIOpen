@@ -73,6 +73,8 @@ struct GemmNewDescriptor : miopenGemmDescriptor
     int GetBatchCount() const;
     miopenDataType_t GetMIOpenDataType() const;
 
+    void SetIsColMajor(bool);
+
     miopenStatus_t CallGemm(Handle& handle,
                             const void* alpha_,
                             const TensorDescriptor& ADesc,
@@ -86,7 +88,7 @@ struct GemmNewDescriptor : miopenGemmDescriptor
     //stream out operator overloading for MIOpen log functions
     friend std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& x);
 
-    private:
+    //private:
     bool isColMajor;
     bool transA, transB;
     int m, n, k;

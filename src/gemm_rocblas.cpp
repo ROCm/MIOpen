@@ -90,6 +90,25 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_GEMM_ENFORCE_BACKEND)
 
 namespace miopen {
 
+#if MIOPEN_BACKEND_HIP
+inline void ProfilingRecordStart(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
+{
+    start = make_hip_event();
+    stop  = make_hip_event();
+    hipEventRecord(start.get(), handle.GetStream());
+}
+
+inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
+{
+    hipEventRecord(stop.get(), handle.GetStream());
+    hipEventSynchronize(stop.get());
+    float mS = 0;
+    hipEventElapsedTime(&mS, start.get(), stop.get());
+    handle.ResetKernelTime();
+    handle.AccumKernelTime(mS);
+}
+#endif    
+
 miopenStatus_t CallGemmRocblas(const Handle& handle,
                                 GemmNewDescriptor gemm_desc,
                                 ConstData_t A,
@@ -102,7 +121,7 @@ miopenStatus_t CallGemmRocblas(const Handle& handle,
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
-    if(!gemm_desc.isColMajor)
+    if(!gemm_desc.GetIsColMajor())
     {
         gemm_desc.isColMajor = !gemm_desc.isColMajor;
         std::swap(A, B);
@@ -114,7 +133,7 @@ miopenStatus_t CallGemmRocblas(const Handle& handle,
 
     switch(gemm_backend)
     {
-    case GemmCallBackend_t::rocblas: {
+    case GemmCallBackend_t::ROCBLAS: {
 #if MIOPEN_USE_ROCBLAS
         MIOPEN_LOG_FUNCTION("rocBLAS");
 
@@ -197,7 +216,7 @@ miopenStatus_t CallGemmRocblas(const Handle& handle,
                 rocblas_datatype::rocblas_datatype_f32_r,
                 rocblas_gemm_algo::rocblas_gemm_algo_standard,
                 0,
-                FlagsForRocblasFp32Fp16Call(gfx90a_alt_impl)
+                0
             );
         }
         break;

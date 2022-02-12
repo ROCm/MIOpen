@@ -99,6 +99,8 @@ int GemmNewDescriptor::GetBatchCount() const { return this->batch_count; }
 
 miopenDataType_t GemmNewDescriptor::GetMIOpenDataType() const { return this->dataType; }
 
+void GemmNewDescriptor::SetIsColMajor(bool icm){ this->isColMajor = icm; }
+
 std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& gemm_desc)
 {
     return stream << "{"

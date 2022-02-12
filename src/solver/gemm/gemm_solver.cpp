@@ -30,6 +30,7 @@
 #include <miopen/gemm/problem_description.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/gemm_rocblas.hpp>
 
 namespace miopen {
 
@@ -57,9 +58,9 @@ ConvSolution GemmSolver1x1::GetSolution(const ExecutionContext&,
 {
     auto solution = ConvSolution{miopenStatusSuccess};
 
-    decltype(auto) ADesc = problem.GetADesc();
-    decltype(auto) BDesc = problem.GetBDesc();
-    decltype(auto) CDesc = problem.GetCDesc();
+    //decltype(auto) ADesc = problem.GetADesc();
+    //decltype(auto) BDesc = problem.GetBDesc();
+    //decltype(auto) CDesc = problem.GetCDesc();
 
     GemmNewDescriptor gemm_desc = problem.GetGemmDescriptor();
 
@@ -78,6 +79,16 @@ ConvSolution GemmSolver1x1::GetSolution(const ExecutionContext&,
             if(gemm_params.type == InvokeType::Run)
             {
                 // kernel calls here
+                // call rocblas (temp solution)
+                gemm_status = CallGemmRocblas(handle,
+                                            gemm_desc,
+                                            A,
+                                            0,
+                                            B,
+                                            0,
+                                            C,
+                                            0,
+                                            GemmCallBackend_t::ROCBLAS);               
             }
 
             if(gemm_status != miopenStatusSuccess)

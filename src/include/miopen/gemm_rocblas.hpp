@@ -37,8 +37,8 @@ struct GemmNewDescriptor;
 
 enum GemmCallBackend_t
 {
-    default       = 0,
-    rocblas       = 1,
+    KERNEL   = 0,
+    ROCBLAS  = 1,
 };
 
 miopenStatus_t CallGemmRocblas(const Handle& handle,
@@ -49,7 +49,7 @@ miopenStatus_t CallGemmRocblas(const Handle& handle,
                                 int b_offset,
                                 Data_t C,
                                 int c_offset,
-                                GemmCallBackend_t gemm_backend = GemmCallBackend_t::rocblas);
+                                GemmCallBackend_t gemm_backend = GemmCallBackend_t::ROCBLAS);
 
 
 } // namespace miopen
