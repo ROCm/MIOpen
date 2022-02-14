@@ -395,9 +395,9 @@ int GemmDriver<T>::VerifyForward()
     auto error = miopen::rms_range(chost, c);
     const double tolerance =
         ((sizeof(T) == 4) ? static_cast<double>(1e-6) : static_cast<double>(7e-2));
-    if(!(error < tolerance))
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << std::string("Forward GEMM Failed: ") << error << "\n";
+        std::cout << std::string("Forward GEMM FAILED: ") << error << std::endl;
     }
     else
     {
