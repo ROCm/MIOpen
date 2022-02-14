@@ -235,6 +235,18 @@ TensorReorderSolutionConstructor(const ExecutionContext& ctx_,
     if((data_type_ != miopenDouble) && (order_0_ == 3) && (order_1_ == 0) && (order_2_ == 1) &&
        (order_3_ == 2))
         which = 5;
+    // Order [0, 1, 3, 2], [0, 2, 3, 1], [0, 3, 1, 2], [2, 3, 0, 1], [3, 0, 1, 2] are using batched
+    // transpose kernel to achieve higher performance. Details as following:
+    // reorder to [0, 1, 3, 2] from [0, 1, 2, 3], we can fix layout index [0] and [1], transpose [2,
+    // 3] to [3, 2]. reorder to [0, 2, 3, 1] from [0, 1, 2, 3], we can fix layout index [0], see [2,
+    // 3] as an entity, then transpose [1, (2, 3)] to [(2, 3), 1]. reorder to [0, 3, 1, 2] from [0,
+    // 1, 2, 3], we can fix layout index [0], see [1, 2] as an entity, then transpose [(1, 2), 3)]
+    // to [3, (1, 2)]. reorder to [2, 3, 0, 1] from [0, 1, 2, 3], we can add a fixed layout index ,
+    // see [0, 1] and [2, 3] as entities, then transpose [(0, 1), (2, 3)] to [(2, 3), (0, 1)].
+    // reorder to [3, 0, 1, 2] from [0, 1, 2, 3], we can add a fixed layout index , see [0, 1, 2] as
+    // an entity, then transpose [(0, 1, 2), 3] to [3, (0, 1, 2)]. The reason we have different API
+    // like WrapperBatchedTransposeSolution_0132 is that we choose different fixed index and two
+    // dimensions which will be transposed.
 
     switch(which)
     {
