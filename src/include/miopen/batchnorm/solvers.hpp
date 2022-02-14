@@ -49,6 +49,7 @@ struct BnFwdTrainingSpatialSingle : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+    using OldStyleSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
@@ -60,7 +61,7 @@ struct BnFwdTrainingSpatialSingle : OldStyleSolver
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -75,6 +76,7 @@ struct BnFwdTrainingSpatialMultiple : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+    using OldStyleSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
@@ -86,7 +88,7 @@ struct BnFwdTrainingSpatialMultiple : OldStyleSolver
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -101,6 +103,7 @@ struct BnFwdTrainingPerActivation : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+    using OldStyleSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
@@ -112,7 +115,7 @@ struct BnFwdTrainingPerActivation : OldStyleSolver
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -127,6 +130,7 @@ struct BnBwdTrainingSpatialSingle : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+    using OldStyleSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
@@ -138,7 +142,7 @@ struct BnBwdTrainingSpatialSingle : OldStyleSolver
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -153,6 +157,7 @@ struct BnBwdTrainingSpatialMultiple : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+    using OldStyleSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
@@ -164,7 +169,7 @@ struct BnBwdTrainingSpatialMultiple : OldStyleSolver
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -179,6 +184,7 @@ struct BnBwdTrainingPerActivation : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+    using OldStyleSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
@@ -190,7 +196,7 @@ struct BnBwdTrainingPerActivation : OldStyleSolver
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -205,6 +211,7 @@ struct BnFwdInference : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+    using OldStyleSolver::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<BnFwdInference>(); }
 
@@ -213,7 +220,7 @@ struct BnFwdInference : OldStyleSolver
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }

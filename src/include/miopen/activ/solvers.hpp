@@ -49,6 +49,7 @@ struct ActivFwdSolver0 : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+    using OldStyleSolver::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver0>(); }
 
@@ -57,7 +58,7 @@ struct ActivFwdSolver0 : OldStyleSolver
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -72,6 +73,7 @@ struct ActivFwdSolver1 : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+    using OldStyleSolver::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver1>(); }
 
@@ -80,7 +82,7 @@ struct ActivFwdSolver1 : OldStyleSolver
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -95,6 +97,7 @@ struct ActivBwdSolver0 : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+    using OldStyleSolver::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver0>(); }
 
@@ -103,7 +106,7 @@ struct ActivBwdSolver0 : OldStyleSolver
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -118,6 +121,7 @@ struct ActivBwdSolver1 : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+    using OldStyleSolver::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver1>(); }
 
@@ -126,7 +130,7 @@ struct ActivBwdSolver1 : OldStyleSolver
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
