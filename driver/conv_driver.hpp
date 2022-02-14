@@ -3277,9 +3277,9 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
     if(is_fwd_igemm)
         tolerance = tolerance * 10;
 
-    if(!(error < tolerance))
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward Convolution Failed: " << error << " > " << tolerance << std::endl;
+        std::cout << "Forward Convolution FAILED: " << error << " > " << tolerance << std::endl;
         return EC_VerifyFwd;
     }
 
@@ -3321,9 +3321,9 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         if(is_bwd_igemm)
             tolerance = tolerance * 10;
 
-        if(error_data > tolerance)
+        if(!std::isfinite(error_data) || error_data > tolerance)
         {
-            std::cout << "Backward Convolution Data Failed: " << error_data << " > " << tolerance
+            std::cout << "Backward Convolution Data FAILED: " << error_data << " > " << tolerance
                       << std::endl;
             cumulative_rc |= EC_VerifyBwd;
         }
@@ -3369,9 +3369,9 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         auto error_weights = is_wrw_run_failed ? std::numeric_limits<double>::max()
                                                : miopen::rms_range(dwei_host.data, dwei);
 
-        if(error_weights > tolerance)
+        if(!std::isfinite(error_weights) || error_weights > tolerance)
         {
-            std::cout << "Backward Convolution Weights Failed: " << error_weights << " > "
+            std::cout << "Backward Convolution Weights FAILED: " << error_weights << " > "
                       << tolerance << std::endl;
             cumulative_rc |= EC_VerifyWrw;
         }
@@ -3392,9 +3392,9 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
 
         auto error_bias      = miopen::rms_range(db_host.data, db);
         const auto tolerance = GetDefaultTolerance();
-        if(error_bias > tolerance)
+        if(!std::isfinite(error_bias) || error_bias > tolerance)
         {
-            std::cout << "Backward Convolution Bias Failed: " << error_bias << " > " << tolerance
+            std::cout << "Backward Convolution Bias FAILED: " << error_bias << " > " << tolerance
                       << std::endl;
             cumulative_rc |= EC_VerifyBwdBias;
         }
