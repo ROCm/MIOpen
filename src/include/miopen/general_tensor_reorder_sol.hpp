@@ -47,16 +47,16 @@ struct GeneralReorderParam
 struct GeneralReorderSolution
 {
     GeneralReorderSolution(const ExecutionContext& ctx_,
-                                miopenDataType_t data_type_,
-                                uint32_t dim_0_,
-                                uint32_t dim_1_,
-                                uint32_t dim_2_,
-                                uint32_t dim_3_,
-                                uint32_t order_0_,
-                                uint32_t order_1_,
-                                uint32_t order_2_,
-                                uint32_t order_3_ );
-    //TODO batched transpose API
+                           miopenDataType_t data_type_,
+                           uint32_t dim_0_,
+                           uint32_t dim_1_,
+                           uint32_t dim_2_,
+                           uint32_t dim_3_,
+                           uint32_t order_0_,
+                           uint32_t order_1_,
+                           uint32_t order_2_,
+                           uint32_t order_3_);
+    // TODO batched transpose API
     solver::KernelInfo GetKernel() const;
     std::vector<OpKernelArg> GetKernelArg() const;
     std::string GetKernelName() const;

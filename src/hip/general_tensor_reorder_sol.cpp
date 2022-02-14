@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include <miopen/general_tensor_reorder_sol.hpp>
-#include <miopen/batched_transpose_sol.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/magic_div.hpp>
 #include <miopen/float_equal.hpp>
@@ -36,11 +35,6 @@
 #include <sstream>
 
 #define TENSOR_REORDER_BLOCK_SIZE 256
-#define TENSOR_REORDER_PERSISTENT 0
-
-#if TENSOR_REORDER_PERSISTENT
-#define TENSOR_REORDER_OCCUPANCY 4
-#endif
 
 namespace miopen {
 namespace tensor_reorder {
@@ -53,14 +47,16 @@ static inline std::string GetNameTrait(std::size_t type_size)
         return "half";
     if(type_size == 4)
         return "dword";
+    if(type_size == 8)
+        return "dwordx2";
     MIOPEN_THROW("data type not supported");
 }
 
-static inline std::string GetKernelName(std::size_t data_size, 
-                                        uint32_t order_0, 
-                                        uint32_t order_1, 
-                                        uint32_t order_2, 
-                                        uint32_t order_3, 
+static inline std::string GetKernelName(std::size_t data_size,
+                                        uint32_t order_0,
+                                        uint32_t order_1,
+                                        uint32_t order_2,
+                                        uint32_t order_3,
                                         const GeneralReorderParam* kparam)
 {
     std::ostringstream kernel_name;
@@ -71,7 +67,7 @@ static inline std::string GetKernelName(std::size_t data_size,
         kernel_name << "pack_" << kparam->pack_x << "x" << kparam->pack_y << "_ediv_"
                     << kparam->ediv_x << "x" << kparam->ediv_y << "_";
     }
-    kernel_name << type_trait<<"_r"<<order_0<<order_1<<order_2<<order_3;
+    kernel_name << type_trait << "_r" << order_0 << order_1 << order_2 << order_3;
     return kernel_name.str();
 }
 
@@ -83,7 +79,7 @@ HeuristicGet(std::size_t data_size, uint32_t dim_0, uint32_t dim_1, uint32_t dim
      * Design a algorithm to determine general tensor reorder tile size.
      */
     GeneralReorderParam default_kernel;
-    if(data_size <= 4 && dim_0 >= 1 && dim_1 >= 1 && dim_2 >= 1 && dim_3 >= 1)
+    if(data_size <= 8 && dim_0 >= 1 && dim_1 >= 1 && dim_2 >= 1 && dim_3 >= 1)
     {
         if(dim_3 >= 16)
         {
@@ -106,27 +102,34 @@ HeuristicGet(std::size_t data_size, uint32_t dim_0, uint32_t dim_1, uint32_t dim
             return GeneralReorderParam{1, 256, 1, 1, 1, 1};
         }
     }
-    else{
+    else
+    {
         return default_kernel;
     }
-
 }
 
 } // namespace tensor_reorder
 GeneralReorderSolution::GeneralReorderSolution(const ExecutionContext& ctx,
-                                                          miopenDataType_t data_type_,
-                                                          uint32_t dim_0_,
-                                                          uint32_t dim_1_,
-                                                          uint32_t dim_2_,
-                                                          uint32_t dim_3_,
-                                                          uint32_t order_0_,
-                                                          uint32_t order_1_,
-                                                          uint32_t order_2_,
-                                                          uint32_t order_3_ )
-    : data_type(data_type_), dim_0(dim_0_), dim_1(dim_1_), dim_2(dim_2_), dim_3(dim_3_), 
-                             order_0(order_0_), order_1(order_1_), order_2(order_2_), order_3(order_3_)
+                                               miopenDataType_t data_type_,
+                                               uint32_t dim_0_,
+                                               uint32_t dim_1_,
+                                               uint32_t dim_2_,
+                                               uint32_t dim_3_,
+                                               uint32_t order_0_,
+                                               uint32_t order_1_,
+                                               uint32_t order_2_,
+                                               uint32_t order_3_)
+    : data_type(data_type_),
+      dim_0(dim_0_),
+      dim_1(dim_1_),
+      dim_2(dim_2_),
+      dim_3(dim_3_),
+      order_0(order_0_),
+      order_1(order_1_),
+      order_2(order_2_),
+      order_3(order_3_)
 {
-    if(data_type == miopenInt8x4 || data_type == miopenDouble)
+    if(data_type == miopenInt8x4)
         MIOPEN_THROW("These data type are not supported");
     num_cu                 = ctx.GetStream().GetMaxComputeUnits();
     std::size_t data_size  = miopen::GetTypeSize(data_type);
@@ -136,13 +139,11 @@ GeneralReorderSolution::GeneralReorderSolution(const ExecutionContext& ctx,
 solver::KernelInfo GeneralReorderSolution::GetKernel() const
 {
     std::size_t block_size = TENSOR_REORDER_BLOCK_SIZE;
-#if TENSOR_REORDER_PERSISTENT
-    std::size_t grid_size = num_cu * TENSOR_REORDER_OCCUPANCY;
-#else
-    uint32_t pixel_total = dim_0 * dim_1 * dim_2 * dim_3;
-    uint32_t dim_total = (pixel_total + block_size * kernel_param_heuristic.tile_x - 1) / (block_size * kernel_param_heuristic.tile_x);
+    uint32_t pixel_total   = dim_0 * dim_1 * dim_2 * dim_3;
+    uint32_t dim_total     = (pixel_total + block_size * kernel_param_heuristic.tile_x - 1) /
+                         (block_size * kernel_param_heuristic.tile_x);
     std::size_t grid_size = dim_total;
-#endif
+
     std::string kernel_name = GetKernelName();
     solver::KernelInfo kernel;
     kernel.kernel_file = "general_tensor_reorder.cpp";
@@ -164,13 +165,10 @@ solver::KernelInfo GeneralReorderSolution::GetKernel() const
 std::vector<OpKernelArg> GeneralReorderSolution::GetKernelArg() const
 {
     std::size_t block_size = TENSOR_REORDER_BLOCK_SIZE;
-    uint32_t pixel_total = dim_0 * dim_1 * dim_2 * dim_3;
-    uint32_t dim_total = (pixel_total + block_size * kernel_param_heuristic.tile_x - 1) / (block_size * kernel_param_heuristic.tile_x);
-#if TENSOR_REORDER_PERSISTENT
-    std::size_t grid_size = num_cu * TENSOR_REORDER_OCCUPANCY;
-#else
+    uint32_t pixel_total   = dim_0 * dim_1 * dim_2 * dim_3;
+    uint32_t dim_total     = (pixel_total + block_size * kernel_param_heuristic.tile_x - 1) /
+                         (block_size * kernel_param_heuristic.tile_x);
     std::size_t grid_size = dim_total;
-#endif
 
     magic_div_u32_t magic_stride0 = magic_div_u32_gen(dim_1 * dim_2 * dim_3);
     magic_div_u32_t magic_stride1 = magic_div_u32_gen(dim_2 * dim_3);
@@ -198,13 +196,14 @@ std::vector<OpKernelArg> GeneralReorderSolution::GetKernelArg() const
 std::string GeneralReorderSolution::GetKernelName() const
 {
     std::size_t data_size = miopen::GetTypeSize(data_type);
-    return tensor_reorder::GetKernelName(data_size, order_0, order_1, order_2, order_3, &kernel_param_heuristic);
+    return tensor_reorder::GetKernelName(
+        data_size, order_0, order_1, order_2, order_3, &kernel_param_heuristic);
 }
 
 bool GeneralReorderSolution::IsSkippable() const
 {
     // Disable the IsSkippable funciton
-    return dim_0 == 0 || dim_1 == 0 || dim_2 == 0 || dim_3 == 0 ;
+    return dim_0 == 0 || dim_1 == 0 || dim_2 == 0 || dim_3 == 0;
 }
 
 size_t GeneralReorderSolution::GetSize() const
