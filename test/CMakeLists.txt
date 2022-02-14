@@ -1546,11 +1546,11 @@ COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> 
 COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128   64 56 56  --weights   64   64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
 )
 
-add_custom_test(test_reduce_custom GFX1030_ENABLED SKIP_UNLESS_ALL
+add_custom_test(test_reduce_custom_fp32 GFX1030_ENABLED SKIP_UNLESS_ALL
 COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 1024 30528 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(test_reduce_custom HALF_ENABLED GFX1030_ENABLED SKIP_UNLESS_ALL
+add_custom_test(test_reduce_custom_all HALF_ENABLED GFX1030_ENABLED SKIP_UNLESS_ALL
 COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 8 2 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
 COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 160 10 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
 COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 7 1024 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
