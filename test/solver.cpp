@@ -54,7 +54,7 @@ class TrivialTestSolver : public solver::ConvSolver
         return context.in_width == 1;
     }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&) const
+    solver::ConvSolution GetSolution(const ConvolutionContext&) const override
     {
         solver::ConvSolution ret;
         solver::KernelInfo kernel;
@@ -80,6 +80,9 @@ struct TestConfig : solver::Serializable<TestConfig>
 
 class SearchableTestSolver : public solver::ConvSolver
 {
+    // To suppress -Woverloaded-virtual
+    using solver::ConvSolver::GetSolution;
+
     public:
     static int searches_done() { return _serches_done; }
     static const char* FileName() { return "SearchableTestSolver"; }

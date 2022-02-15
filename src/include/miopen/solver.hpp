@@ -1001,7 +1001,6 @@ struct ConvMlirIgemmFwdXdlops : ConvSolver
     }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const override;
     PerformanceConvMlirIgemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const;
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceConvMlirIgemmXdlops& config) const;
