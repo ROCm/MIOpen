@@ -48,8 +48,8 @@ using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
 struct ActivFwdSolver0 : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
     using OldStyleSolver::GetSolution;
+    using OldStyleSolver::IsApplicable;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver0>(); }
 
@@ -72,8 +72,8 @@ struct ActivFwdSolver0 : OldStyleSolver
 struct ActivFwdSolver1 : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
     using OldStyleSolver::GetSolution;
+    using OldStyleSolver::IsApplicable;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver1>(); }
 
@@ -96,8 +96,8 @@ struct ActivFwdSolver1 : OldStyleSolver
 struct ActivBwdSolver0 : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
     using OldStyleSolver::GetSolution;
+    using OldStyleSolver::IsApplicable;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver0>(); }
 
@@ -120,8 +120,8 @@ struct ActivBwdSolver0 : OldStyleSolver
 struct ActivBwdSolver1 : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
     using OldStyleSolver::GetSolution;
+    using OldStyleSolver::IsApplicable;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver1>(); }
 

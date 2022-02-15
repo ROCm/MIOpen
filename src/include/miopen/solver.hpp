@@ -2782,9 +2782,9 @@ struct GemmFwdBase : ConvSolver
 struct GemmFwd1x1_0_2 : GemmFwdBase
 {
     // To suppress -Woverloaded-virtual
+    using GemmFwdBase::GetSolution;
     using GemmFwdBase::GetWorkspaceSize;
     using GemmFwdBase::IsApplicable;
-    using GemmFwdBase::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_2>(); }
 
@@ -2812,9 +2812,9 @@ struct GemmFwd1x1_0_2 : GemmFwdBase
 struct GemmFwd1x1_0_1_int8 : GemmFwdBase
 {
     // To suppress -Woverloaded-virtual
+    using GemmFwdBase::GetSolution;
     using GemmFwdBase::GetWorkspaceSize;
     using GemmFwdBase::IsApplicable;
-    using GemmFwdBase::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_1_int8>(); }
 
@@ -2842,9 +2842,9 @@ struct GemmFwd1x1_0_1_int8 : GemmFwdBase
 struct GemmFwd1x1_0_1 : GemmFwdBase
 {
     // To suppress -Woverloaded-virtual
+    using GemmFwdBase::GetSolution;
     using GemmFwdBase::GetWorkspaceSize;
     using GemmFwdBase::IsApplicable;
-    using GemmFwdBase::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_1>(); }
 
@@ -2872,9 +2872,9 @@ struct GemmFwd1x1_0_1 : GemmFwdBase
 struct GemmFwdRest : GemmFwdBase
 {
     // To suppress -Woverloaded-virtual
+    using GemmFwdBase::GetSolution;
     using GemmFwdBase::GetWorkspaceSize;
     using GemmFwdBase::IsApplicable;
-    using GemmFwdBase::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwdRest>(); }
 
@@ -2917,9 +2917,9 @@ struct GemmBwdBase : ConvSolver
 struct GemmBwd1x1_stride2 : GemmBwdBase
 {
     // To suppress -Woverloaded-virtual
+    using GemmBwdBase::GetSolution;
     using GemmBwdBase::GetWorkspaceSize;
     using GemmBwdBase::IsApplicable;
-    using GemmBwdBase::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwd1x1_stride2>(); }
 
@@ -2947,9 +2947,9 @@ struct GemmBwd1x1_stride2 : GemmBwdBase
 struct GemmBwd1x1_stride1 : GemmBwdBase
 {
     // To suppress -Woverloaded-virtual
+    using GemmBwdBase::GetSolution;
     using GemmBwdBase::GetWorkspaceSize;
     using GemmBwdBase::IsApplicable;
-    using GemmBwdBase::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwd1x1_stride1>(); }
 
@@ -2977,9 +2977,9 @@ struct GemmBwd1x1_stride1 : GemmBwdBase
 struct GemmBwdRest : GemmBwdBase
 {
     // To suppress -Woverloaded-virtual
+    using GemmBwdBase::GetSolution;
     using GemmBwdBase::GetWorkspaceSize;
     using GemmBwdBase::IsApplicable;
-    using GemmBwdBase::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwdRest>(); }
 
@@ -3022,9 +3022,9 @@ struct GemmWrwBase : ConvSolver
 struct GemmWrw1x1_stride1 : GemmWrwBase
 {
     // To suppress -Woverloaded-virtual
+    using GemmWrwBase::GetSolution;
     using GemmWrwBase::GetWorkspaceSize;
     using GemmWrwBase::IsApplicable;
-    using GemmWrwBase::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrw1x1_stride1>(); }
 
@@ -3052,9 +3052,9 @@ struct GemmWrw1x1_stride1 : GemmWrwBase
 struct GemmWrwUniversal : GemmWrwBase
 {
     // To suppress -Woverloaded-virtual
+    using GemmWrwBase::GetSolution;
     using GemmWrwBase::GetWorkspaceSize;
     using GemmWrwBase::IsApplicable;
-    using GemmWrwBase::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrwUniversal>(); }
 
