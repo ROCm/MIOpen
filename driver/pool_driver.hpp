@@ -595,7 +595,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyForward()
         spatial_dim == 3 ? 1 : inflags.GetValueInt("index_position"));
 
     printf(match ? "Forward Pooling Verifies on CPU and GPU\n"
-                 : "Forward Pooling Verification Failed !!\n");
+                 : "Forward Pooling verification FAILED !!\n");
 
     return 0;
 }
