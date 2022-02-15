@@ -24,6 +24,7 @@ Sources and binaries can be found at `MIOpen's GitHub site <https://github.com/R
     finddb
     find_and_immediate
     Getting_Started_FusionAPI
+    MI200AlternateImplementation
     apireference
 
 
