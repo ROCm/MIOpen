@@ -41,34 +41,11 @@
 #include <tuple>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3_PERF_VALS)
-
-static inline auto IsPowerOf2(size_t v) { return ((v - 1) & v) == 0; }
-
-static inline auto GetBestInterleaveParam(const int N, const int C, const int H, const int W)
-{
-    int best_intl_factor = 1;
-
-    if(IsPowerOf2(W) && (N * C * H * W >= std::pow(2, 25)))
-    {
-        best_intl_factor = 3;
-    }
-
-    return best_intl_factor;
-}
 
 namespace miopen {
 namespace solver {
 
 namespace {
-// clang-format off
-    auto PerfFieldRules()
-    {
-        return seq::MakeRuleSet(
-            std::make_tuple(seq::Sequence<int, 1, 2, 3, 5, 7, 11>{}, &PerformanceConfigConvBinWinogradUltraRxSf2x3::intl_factor)
-        );
-    }
-// clang-format on
 
 constexpr unsigned group_size = 64;
 constexpr unsigned o_tile_W   = 2;
@@ -409,75 +386,6 @@ void* CopyDataToSymbol(const Handle& handle,
 
 } // namespace
 
-PerformanceConfigConvBinWinogradUltraRxSf2x3::PerformanceConfigConvBinWinogradUltraRxSf2x3(
-    int intl_factor_)
-    : intl_factor(intl_factor_)
-{
-}
-
-void PerformanceConfigConvBinWinogradUltraRxSf2x3::HeuristicInit(const ConvolutionContext& config)
-{
-    auto desc   = UnifiedDescriptionConv2d(config.conv_problem);
-    intl_factor = GetBestInterleaveParam(desc.N, desc.C, desc.out_h, desc.out_w);
-}
-
-bool PerformanceConfigConvBinWinogradUltraRxSf2x3::SetNextValue(
-    const ConvolutionContext& /*config*/)
-{
-    return !PerfFieldRules().Next(*this);
-}
-
-bool PerformanceConfigConvBinWinogradUltraRxSf2x3::IsValidValue() const
-{
-    return PerfFieldRules().IsIn(*this);
-}
-
-bool PerformanceConfigConvBinWinogradUltraRxSf2x3::IsValid(const ConvolutionContext&) const
-{
-    return IsValidValue();
-}
-
-inline bool PerformanceConfigConvBinWinogradUltraRxSf2x3::operator==(
-    const PerformanceConfigConvBinWinogradUltraRxSf2x3& other) const
-{
-    return intl_factor == other.intl_factor;
-}
-
-std::string PerformanceConfigConvBinWinogradUltraRxSf2x3::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
-PerformanceConfigConvBinWinogradUltraRxSf2x3
-ConvBinWinogradUltraRxSf2x3::GetPerformanceConfig(const ConvolutionContext& params) const
-{
-    PerformanceConfigConvBinWinogradUltraRxSf2x3 pp;
-    pp.HeuristicInit(params);
-    MIOPEN_LOG_I(pp.ToString());
-    return pp;
-}
-
-bool ConvBinWinogradUltraRxSf2x3::IsValidPerformanceConfig(
-    const ConvolutionContext& problem, const PerformanceConfigConvBinWinogradUltraRxSf2x3& c) const
-{
-    return c.IsValidValue() && c.IsValid(problem);
-}
-
-PerformanceConfigConvBinWinogradUltraRxSf2x3
-ConvBinWinogradUltraRxSf2x3::Search(const ConvolutionContext& context,
-                                    const AnyInvokeParams& invoke_ctx) const
-{
-    return GenericSearch(*this, context, invoke_ctx);
-}
-
-float ConvBinWinogradUltraRxSf2x3::GetWti(const ConvolutionContext&) const
-{
-    constexpr auto WTI_UNKNOWN = -2.0;
-    return WTI_UNKNOWN;
-}
-
 bool ConvBinWinogradUltraRxSf2x3::IsApplicable(const ConvolutionContext& params) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3{}))
@@ -547,42 +455,11 @@ bool ConvBinWinogradUltraRxSf2x3::IsApplicable(const ConvolutionContext& params)
 #endif
 }
 
-ConvSolution
-ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params,
-                                         const PerformanceConfigConvBinWinogradUltraRxSf2x3& config,
-                                         const bool disableConfigOverrideFromEnv) const
+ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params) const
 {
-    const PerformanceConfigConvBinWinogradUltraRxSf2x3* pcfg = &config;
-    PerformanceConfigConvBinWinogradUltraRxSf2x3 fromEnv;
-
-    if(!disableConfigOverrideFromEnv)
-    {
-        std::string s;
-        const auto p_asciz =
-            miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3_PERF_VALS{});
-        if(p_asciz != nullptr)
-        {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
-            {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
-            }
-        }
-    }
-
     const unsigned n_groups = params.GetStream().GetMaxHardwareComputeUnits();
     const auto group_cnt    = params.group_counts;
-    const auto intl_factor  = pcfg->GetInterleaveFactor();
+    const auto intl_factor  = 1;
 
     constexpr unsigned F_REVERSE_R = 1 << 0;
     constexpr unsigned F_REVERSE_S = 1 << 1;
