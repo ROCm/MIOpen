@@ -157,17 +157,17 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
     set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
-        find_program(MIOPEN_HIP_COMPILER clang++
-            PATH_SUFFIXES bin
-            PATHS
-                /opt/rocm/llvm
-                ${CMAKE_INSTALL_PREFIX}/llvm
-        )
-        if(MIOPEN_HIP_COMPILER)
-            message("hip compiler: ${MIOPEN_HIP_COMPILER}")
-        else()
-            message(FATAL_ERROR "hip compiler not found")
-        endif()
+    find_program(MIOPEN_HIP_COMPILER clang++
+        PATH_SUFFIXES bin
+        PATHS
+            /opt/rocm/llvm
+            ${CMAKE_INSTALL_PREFIX}/llvm
+    )
+    if(MIOPEN_HIP_COMPILER)
+        message("hip compiler: ${MIOPEN_HIP_COMPILER}")
+    else()
+        message(FATAL_ERROR "hip compiler not found")
+    endif()
 
     # MIOpenTensile does not support opencl backend yet.
     set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
@@ -212,6 +212,10 @@ if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
     set(MIOPEN_hip_VERSION_PATCH "${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
     message(STATUS "MIOPEN_hip_VERSION_PATCH overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
 endif()
+
+set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
+option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
+
 # TODO: Unify MIOPEN_HIP_VERSION_FLAT in config.h with this.
 # in config.h we reserve 6 digits for patch, but here only 5 digits reserved to avoid overflow.
 # Actually 5 digits should be Ok everywhere.
@@ -302,9 +306,6 @@ else()
     endif()
 endif()
 
-set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT DEFINED MIOPEN_MODE_NOGPU))
-option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
-
 set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
@@ -382,7 +383,7 @@ add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 find_path(HALF_INCLUDE_DIR half.hpp)
-message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
+message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
