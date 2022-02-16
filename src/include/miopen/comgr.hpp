@@ -58,4 +58,21 @@ void BuildAsm(const std::string& name,
 } // namespace miopen
 
 #endif // MIOPEN_USE_COMGR
+
+#if MIOPEN_USE_HIPRTC
+
+namespace miopen {
+namespace hiprtc {
+
+void BuildHip(const std::string& name,
+              const std::string& text,
+              const std::string& options,
+              const miopen::TargetProperties& target,
+              std::vector<char>& binary);
+
+} // namespace hiprtc
+} // namespace miopen
+
+#endif // MIOPEN_USE_HIPRTC
+
 #endif // GUARD_COMGR_HPP
