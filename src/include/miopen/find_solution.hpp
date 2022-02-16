@@ -63,7 +63,7 @@ auto FindSolutionImpl(
     }
     else
     {
-        if((context.do_search || enforce.IsSearch(context)) && enforce.IsDbUpdate(context))
+        if((context.do_search || enforce.IsSearch(context)) && (context.db_update || enforce.IsDbUpdate(context)))
         {
             MIOPEN_LOG_W("Perf Db: load skipped: " << SolverDbId(s) << ", enforce: " << enforce);
         }

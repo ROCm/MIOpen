@@ -256,34 +256,37 @@ struct AnySolver
 
 
         const std::string GetPerfCfgParams_(const ConvolutionContext& ctx,
-                                             Db& db,
-                                             std::true_type) const 
+                                            Db& db,
+                                            std::true_type) const 
         {
             using PerformanceConfig = decltype(value.GetPerformanceConfig(ctx));
             PerformanceConfig config{};
             if(db.Load(ctx, miopen::solver::SolverDbId(value), config))
             {
-                MIOPEN_LOG_I2("Perf Db: record loaded: " << miopen::solver::SolverDbId(value));
+                MIOPEN_LOG_I2("Perf Db: Record Loaded: " << miopen::solver::SolverDbId(value));
                 if(value.IsValidPerformanceConfig(ctx, config))
                 {
                     std::ostringstream ss;
                     config.Serialize(ss);
                     return ss.str();
                 }
+                MIOPEN_LOG_I2("Perf Db: Invalid Config: " << miopen::solver::SolverDbId(value));
             }
+            MIOPEN_LOG_I2("Perf Db: Failed Loading: " << miopen::solver::SolverDbId(value));
             return "";
         }
         const std::string GetPerfCfgParams_(const ConvolutionContext& ctx,
-                                             Db& db,
-                                             std::false_type) const 
+                                            Db& db,
+                                            std::false_type) const 
         {
+            MIOPEN_LOG_I2("Perf Db: No Config: " << miopen::solver::SolverDbId(value));
             std::ignore = ctx;
             std::ignore = db;
             return "";
         }
 
         const std::string GetPerfCfgParams(const ConvolutionContext& ctx,
-                                        Db& db) const override 
+                                           Db& db) const override 
         {
             return GetPerfCfgParams_(ctx, db, std::integral_constant<bool, TunableSolver::Is>());
         }

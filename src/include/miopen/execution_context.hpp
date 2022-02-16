@@ -68,6 +68,7 @@ struct ExecutionContext
 {
     // Operation modes & environment
     bool do_search               = false;
+    bool db_update               = false;
     bool save_srch_req           = false;
     bool use_asm_kernels         = false;
     bool use_hip_kernels         = true;
