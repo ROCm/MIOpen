@@ -55,6 +55,23 @@ std::string GetKernelInc(std::string key)
     return it->second;
 }
 
+/// \todo [Optimization] Kernels are stored as strings in the static onstant object.
+/// Let's eliminate unnecessary copying: return pointer to the string.
+/// Get rid of GetKernelInc().
+
+const std::string* GetKernelIncPtr(std::string key)
+{
+    auto it = kernel_includes().find(key);
+    if(it == kernel_includes().end())
+        MIOPEN_THROW("Failed to load kernel source: " + key);
+
+    return &(it->second);
+}
+
+/// \todo [Optimization] Kernel storage is constant.
+/// Collect lists in the static object during the first
+/// invocation and return that object on subsequent calls.
+
 std::vector<std::string> GetKernelIncList()
 {
     std::vector<std::string> keys;
