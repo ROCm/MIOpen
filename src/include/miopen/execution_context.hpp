@@ -29,7 +29,6 @@
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/sqlite_db.hpp>
-#include <miopen/target_properties.hpp>
 #if MIOPEN_EMBED_DB
 #include <miopen_data.hpp>
 #endif
@@ -288,6 +287,6 @@ class AutoUseFastDynamicSolutions
     ~AutoUseFastDynamicSolutions() { ctx->use_dynamic_solutions_only = prev_use_dynamic_; }
 };
 
-bool IsHipKernelsEnabled(const TargetProperties& target);
+bool IsHipKernelsEnabled();
 
 } // namespace miopen

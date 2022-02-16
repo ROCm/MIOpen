@@ -669,10 +669,10 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     for(int i = 0; i < inDescLengths.size(); i++)
     {
-        if(outDescLengths[i] == inDescLengths[i])
-            invariantDims.push_back(i);
-        else
+        if(outDescLengths[i] == 1)
             toReduceDims.push_back(i);
+        else
+            invariantDims.push_back(i);
     };
 
     if(toReduceDims.empty())

@@ -88,7 +88,9 @@ def cmake_build(Map conf=[:]){
             cd build
         """
     def setup_cmd = conf.get("setup_cmd", "${cmake_envs} cmake ${setup_args}   .. ")
-    def build_cmd = conf.get("build_cmd", "${build_envs} dumb-init make -j\$(nproc) ${config_targets}")
+    // WORKAROUND_SWDEV_290754
+    // It seems like this W/A is not required since 4.5.
+    def build_cmd = conf.get("build_cmd", "LLVM_PATH=/opt/rocm/llvm ${build_envs} dumb-init make -j\$(nproc) ${config_targets}")
     def execute_cmd = conf.get("execute_cmd", "")
 
     def cmd = conf.get("cmd", """
@@ -226,7 +228,7 @@ def CheckDeserializePerfDb(Map conf=[:]){
 ///   * "GCC" is the default for OpenCL backend.
 ///   * The default compiler is usually not specified.
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
-///   * BuildTypeModifier := { COMGR | Embedded | Static | Normal-Find | Fast-Find
+///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
 ///                            MLIR | Tensile | Tensile-Latest | Package | ... }
 /// TestSet := { All | Smoke* } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
@@ -335,7 +337,7 @@ pipeline {
         Tensile_build_env = "MIOPEN_DEBUG_HIP_KERNELS=0 "
         Tensile_setup = " -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF"
         Smoke_targets = "check doc MIOpenDriver"
-        COMGR_flags   = " -DMIOPEN_USE_COMGR=On"
+        NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
     }
     stages{
         stage("Static checks") {
@@ -366,14 +368,14 @@ pipeline {
                 stage('Clang Format') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        execute_cmd = "find . -iname \'*.h\' \
+                        execute_cmd = "find .. -iname \'*.h\' \
                                 -o -iname \'*.hpp\' \
                                 -o -iname \'*.cpp\' \
                                 -o -iname \'*.h.in\' \
                                 -o -iname \'*.hpp.in\' \
                                 -o -iname \'*.cpp.in\' \
                                 -o -iname \'*.cl\' \
-                                | grep -v 'build/' \
+                                | grep -v -E '(build/)|(install/)' \
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-10 -style=file {} | diff - {}\'"
                     }
                     steps{
@@ -516,18 +518,18 @@ pipeline {
                 expression { params.BUILD_SMOKE_AUX1 && params.DATATYPE_FP32 }
             }
             parallel{
-                stage('Fp32 Hip Debug COMGR') {
+                stage('Fp32 Hip Debug NOCOMGR') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
                     agent{ label rocmnode("vega") }
                     environment{
-                        // See SWDEV-290754 for why LLVM_PATH is required.
-                        COMGR_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
+                        // Can be removed altogether with when WORKAROUND_SWDEV_290754.
+                        NOCOMGR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
                     }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: COMGR_flags, build_cmd: COMGR_build_cmd, test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCOMGR_flags, build_cmd: NOCOMGR_build_cmd, test_flags: ' --verbose ')
                     }
                 }
                 stage('Fp32 Hip Debug Embedded Vega20') {
@@ -550,7 +552,7 @@ pipeline {
                     }
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off")
+                        buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF')
                     }
                 }
                 stage('Fp32 Hip Normal-Find') {
@@ -834,8 +836,9 @@ pipeline {
             }
             environment{
                 WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"
-                // WORKAROUND_ISSUE_1148:
-                Navi21_build_cmd = "CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
+                // WORKAROUND_ISSUE_1148: "CTEST_PARALLEL_LEVEL=2"
+                // WORKAROUND_SWDEV_290754: "LLVM_PATH=/opt/rocm/llvm"
+                Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
             }
             parallel{
                 stage('Fp32 Hip All gfx908') {
