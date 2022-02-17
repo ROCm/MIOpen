@@ -1751,6 +1751,11 @@ struct ConvBinWinogradRxS : ConvSolver
 
 struct ConvBinWinogradUltraRxSf2x3 : ConvSolver
 {
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvBinWinogradUltraRxSf2x3>();
+    }
+
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& params) const;
