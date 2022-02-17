@@ -557,8 +557,8 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
         {
             if(sz < pr.second)
             {
-                MIOPEN_LOG_I2(sz << " < " << pr.second); // solution.workspce_sz);
-                sz = pr.second;                          // solution.workspce_sz;
+                MIOPEN_LOG_I2(sz << " < " << pr.second); // solution.workspace_sz);
+                sz = pr.second;                          // solution.workspace_sz;
             }
         }
         return sz;

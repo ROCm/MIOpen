@@ -442,7 +442,11 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     int y_karg               = y;
     int x_karg               = x;
 
-    uint32_t gemm_m = n * ho * wo;
+    int splits_4G = solver::igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+    splits_4G = splits_4G == 0 ? n : splits_4G;
+
+    uint32_t gemm_m = (n / splits_4G) * ho * wo;
     uint32_t gemm_n = k / group;
     magic_div_u32_t mdiv_0, mdiv_1, mdiv_2, mdiv_3, mdiv_4, mdiv_5;
     uint32_t shift_pack_0, shift_pack_1;
@@ -484,7 +488,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     opArgs.emplace_back(0); // placeholder
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
-    opArgs.emplace_back(n);
+    opArgs.emplace_back(n / splits_4G);
     opArgs.emplace_back(k / group);
     opArgs.emplace_back(c_karg);
     opArgs.emplace_back(ho);
@@ -748,7 +752,11 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 
     int num_of_gemms = x_tilda * y_tilda;
 
-    uint32_t gemm_m = n * h_tilda_slice * w_tilda_slice;
+    int splits_4G = solver::igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+    int n_in_1_block = splits_4G == 0 ? 1 : (n / splits_4G);
+
+    uint32_t gemm_m = n_in_1_block * h_tilda_slice * w_tilda_slice;
     uint32_t gemm_n = c / group;
 
     magic_div_u32_t mdiv_x_tilda  = magic_div_u32_gen(x_tilda);
@@ -786,7 +794,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     opArgs.emplace_back(0); // placeholder
     opArgs.emplace_back(hi);
     opArgs.emplace_back(wi);
-    opArgs.emplace_back(n);
+    opArgs.emplace_back(n_in_1_block);
     opArgs.emplace_back(k / group);
     opArgs.emplace_back(c / group);
     opArgs.emplace_back(ho);

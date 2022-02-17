@@ -328,8 +328,8 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
 
     const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
     const int n_runs_total = useSpare ? spare_size : main_size;
-    MIOPEN_LOG_W(SolverDbId(s) << ": Searching the best solution among " << n_runs_total
-                               << (useSpare ? " (spare)" : "") << "...");
+    MIOPEN_LOG_W(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
+                                << (useSpare ? " (spare)" : "") << "...");
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
@@ -370,13 +370,13 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
             try
             {
                 current_solution = s.GetSolution(context, current_config, true);
-                if(default_solution.workspce_sz != current_solution.workspce_sz)
+                if(default_solution.workspace_sz != current_solution.workspace_sz)
                 {
                     ret = -2;
                     MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
                                      << "Workspace size should not depend on PerformanceConfig: "
-                                     << default_solution.workspce_sz
-                                     << " != " << current_solution.workspce_sz);
+                                     << default_solution.workspace_sz
+                                     << " != " << current_solution.workspace_sz);
                 }
 
                 invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
