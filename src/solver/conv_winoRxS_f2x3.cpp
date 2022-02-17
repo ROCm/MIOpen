@@ -870,7 +870,7 @@ float ConvBinWinogradRxSf2x3g1::GetWti(const ConvolutionContext& params) const
 ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& params) const
 {
     const auto tunable = ConvBinWinogradRxSf2x3{};
-    return tunable.GetSolution(params, tunable.GetPerformanceConfig(params), false);
+    return tunable.GetSolution(params, tunable.GetPerformanceConfig(params));
 }
 
 bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const ConvolutionContext&) const
