@@ -213,6 +213,18 @@ if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
     message(STATUS "MIOPEN_hip_VERSION_PATCH overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
 endif()
 
+set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
+option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
+
+# TODO: Unify MIOPEN_HIP_VERSION_FLAT in config.h with this.
+# in config.h we reserve 6 digits for patch, but here only 5 digits reserved to avoid overflow.
+# Actually 5 digits should be Ok everywhere.
+math(EXPR MIOPEN_hip_VERSION_FLAT "(${MIOPEN_hip_VERSION_MAJOR} * 1000 + ${MIOPEN_hip_VERSION_MINOR}) * 100000 + ${MIOPEN_hip_VERSION_PATCH}")
+
+# Do not enable HIPRTC by default for older ROCm versions in order to avoid
+# build time errors, because HIPRTC is a relatively new component.
+set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 500000000))
+option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
@@ -242,8 +254,8 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(FATAL_ERROR "OpenCL compiler not found")
     endif()
 
-    # Hcc's clang always defines __HCC__ even when not using hcc driver
-    add_definitions(-U__HCC__)
+        # Hcc's clang always defines __HCC__ even when not using hcc driver
+        add_definitions(-U__HCC__)
 
     set(MIOPEN_HIP_COMPILER ${CMAKE_CXX_COMPILER} CACHE PATH "")
 
@@ -254,6 +266,10 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "Build with rocblas")
     else()
         message(STATUS "Build without rocblas")
+    endif()
+else()
+    if(MIOPEN_USE_HIPRTC)
+        message(FATAL_ERROR "HIPRTC cannot be used without HIP backend")
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
@@ -289,9 +305,6 @@ else()
         message(FATAL_ERROR "extractkernel not found")
     endif()
 endif()
-
-set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT DEFINED MIOPEN_MODE_NOGPU))
-option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
 
 set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
@@ -356,13 +369,21 @@ if(MIOPEN_USE_COMGR)
     message(STATUS "Build with comgr ${amd_comgr_VERSION}")
 endif()
 
+if(MIOPEN_USE_HIPRTC)
+    if(NOT MIOPEN_USE_COMGR)
+        message(FATAL_ERROR "HIPRTC can be used only together with COMGR")
+    else()
+        message(STATUS "Build with HIPRTC")
+    endif()
+endif()
+
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
 set(BOOST_COMPONENTS filesystem)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 find_path(HALF_INCLUDE_DIR half.hpp)
-message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
+message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
