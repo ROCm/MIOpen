@@ -113,7 +113,8 @@ class SearchableTestSolver : public solver::SearchableSolver<TestConfig>
         return config;
     }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&, const TestConfig& config) const final
+    solver::ConvSolution GetSolution(const ConvolutionContext&,
+                                     const TestConfig& config) const final
     {
 
         solver::ConvSolution ret;
