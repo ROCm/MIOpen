@@ -2437,13 +2437,11 @@ struct ConvOclBwdWrW2 : SearchableSolverBase
         return IsValidPerformanceConfig(
             ctx, boost::any_cast<const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&>(config));
     }
-    boost::any Search_(const ConvolutionContext& ctx,
-                       const AnyInvokeParams& invoke_ctx) const final
+    boost::any Search_(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const final
     {
         return Search(ctx, invoke_ctx);
     }
-    ConvSolution GetSolution_(const ConvolutionContext& ctx,
-                              const boost::any& config) const final
+    ConvSolution GetSolution_(const ConvolutionContext& ctx, const boost::any& config) const final
     {
         return GetSolution(
             ctx, boost::any_cast<const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&>(config));
