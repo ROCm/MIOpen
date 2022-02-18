@@ -440,17 +440,17 @@ int CTCDriver<Tgpu, Tref>::VerifyForward()
 
     const double tolerance1 = 1e-5;
     const double tolerance2 = 1e-3;
-    if(!(error1 < tolerance1))
+    if(!std::isfinite(error1) || error1 > tolerance1)
     {
-        std::cout << std::string("CTC loss Failed: ") << error1 << "\n";
+        std::cout << std::string("CTC loss FAILED: ") << error1 << std::endl;
     }
     else
     {
         printf("CTC loss Verifies on CPU and GPU\n");
     }
-    if(!(error2 < tolerance2))
+    if(!std::isfinite(error2) || error2 > tolerance2)
     {
-        std::cout << std::string("CTC gradient Failed: ") << error2 << "\n";
+        std::cout << std::string("CTC gradient FAILED: ") << error2 << std::endl;
     }
     else
     {
