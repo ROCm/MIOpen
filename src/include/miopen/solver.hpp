@@ -2710,8 +2710,9 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm
 
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     GetPerformanceConfig(const ConvolutionContext& ctx) const final;
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& c) const final;
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& c) const final;
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     using SearchableSolver1::GetSolution;
@@ -3518,8 +3519,9 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC
 
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
     GetPerformanceConfig(const ConvolutionContext&) const final;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC&) const final;
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext&,
+                             const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC&) const final;
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     using SearchableSolver1::GetSolution;
@@ -3711,8 +3713,9 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC
 
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
     GetPerformanceConfig(const ConvolutionContext&) const final;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC&) const final;
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext&,
+                             const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC&) const final;
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     using SearchableSolver1::GetSolution;
@@ -3909,8 +3912,9 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC
 
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
     GetPerformanceConfig(const ConvolutionContext&) const final;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const final;
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext&,
+                             const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const final;
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     using SearchableSolver1::GetSolution;

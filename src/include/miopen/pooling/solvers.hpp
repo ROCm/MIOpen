@@ -69,9 +69,10 @@ struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
     }
 
     virtual bool IsApplicable(const ExecutionContext& context,
-                              const miopen::pooling::ProblemDescription& problem) const        = 0;
-    virtual std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                         const miopen::pooling::ProblemDescription& problem) const = 0;
+                              const miopen::pooling::ProblemDescription& problem) const = 0;
+    virtual std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::pooling::ProblemDescription& problem) const                 = 0;
     virtual ConvSolution GetSolution(const ExecutionContext& context,
                                      const miopen::pooling::ProblemDescription& problem) const = 0;
 };
