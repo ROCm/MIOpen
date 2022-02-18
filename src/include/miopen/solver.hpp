@@ -2406,23 +2406,23 @@ struct ConvOclBwdWrW2 : SearchableSolverBase
 
     // GetPerformanceConfig_(), IsValidPerformanceConfig_(), Search_() and GetSolution_()
     // are only needed if SearchableSolverBase is used as a base class for solver
-    virtual boost::any GetPerformanceConfig_(const ConvolutionContext& ctx) const final
+    boost::any GetPerformanceConfig_(const ConvolutionContext& ctx) const final
     {
         return GetPerformanceConfig(ctx);
     }
-    virtual bool IsValidPerformanceConfig_(const ConvolutionContext& ctx,
-                                           const boost::any& config) const final
+    bool IsValidPerformanceConfig_(const ConvolutionContext& ctx,
+                                   const boost::any& config) const final
     {
         return IsValidPerformanceConfig(
             ctx, boost::any_cast<const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&>(config));
     }
-    virtual boost::any Search_(const ConvolutionContext& ctx,
-                               const AnyInvokeParams& invoke_ctx) const final
+    boost::any Search_(const ConvolutionContext& ctx,
+                       const AnyInvokeParams& invoke_ctx) const final
     {
         return Search(ctx, invoke_ctx);
     }
-    virtual ConvSolution GetSolution_(const ConvolutionContext& ctx,
-                                      const boost::any& config) const final
+    ConvSolution GetSolution_(const ConvolutionContext& ctx,
+                              const boost::any& config) const final
     {
         return GetSolution(
             ctx, boost::any_cast<const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&>(config));
