@@ -49,10 +49,6 @@ using OldStyleProblemDescription =
 
 struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
 {
-    // To suppress -Woverloaded-virtual
-    using SolverMixin<OldStyleProblemDescription>::GetWorkspaceSize;
-    using SolverMixin<OldStyleProblemDescription>::IsApplicable;
-
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
