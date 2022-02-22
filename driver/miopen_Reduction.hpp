@@ -42,7 +42,7 @@ using float16 = half_float::half;
 template <typename Tgpu, typename Tref>
 class miopenReductionHost
 {
-    public:
+public:
     miopenReductionHost() = default;
     miopenReductionHost(const miopenReduceTensorDescriptor_t reduceDesc,
                         miopenTensorDescriptor_t inDesc,
@@ -96,7 +96,7 @@ class miopenReductionHost
         return;
     };
 
-    private:
+private:
     miopenReduceTensorOp_t reduceOp;
     miopenDataType_t compTypeVal;
     miopenNanPropagation_t nanOpt;

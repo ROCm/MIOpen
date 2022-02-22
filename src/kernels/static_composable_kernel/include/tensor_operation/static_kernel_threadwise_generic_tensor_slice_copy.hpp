@@ -507,7 +507,7 @@ struct ThreadwiseGenericTensorSliceCopy_v4r2
         }).Else([&](auto) { mDstSliceOrigin -= step_sizes; });
     }
 
-    private:
+private:
     SrcCoord mSrcSliceOrigin;
     DstCoord mDstSliceOrigin;
 };

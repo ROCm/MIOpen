@@ -31,7 +31,7 @@
 
 class bfloat16 : boost::totally_ordered<bfloat16, boost::arithmetic<bfloat16>>
 {
-    public:
+public:
     bfloat16() : data_{0} {}
     explicit bfloat16(float rhs)
     {
@@ -146,7 +146,7 @@ class bfloat16 : boost::totally_ordered<bfloat16, boost::arithmetic<bfloat16>>
 
     static constexpr bfloat16 generate(uint16_t val) { return bfloat16{val, true}; }
 
-    private:
+private:
     constexpr bfloat16(std::uint16_t val, bool) : data_{val} {}
 
     std::uint16_t data_;
@@ -156,7 +156,7 @@ namespace std {
 template <>
 class numeric_limits<bfloat16>
 {
-    public:
+public:
     static constexpr bool is_specialized = true;
     static constexpr bfloat16 min() noexcept { return bfloat16::generate(0x007F); }
     static constexpr bfloat16 max() noexcept { return bfloat16::generate(0x7F7F); }

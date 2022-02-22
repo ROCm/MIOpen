@@ -109,7 +109,7 @@ struct AutoMiopenWarmupMode
         miopen::debug::FindEnforceDisable = debug_find_enforce_disable_prev;
     }
 
-    private:
+private:
     bool debug_logging_quiet_prev;
     bool debug_find_enforce_disable_prev;
 };
@@ -123,7 +123,7 @@ struct AutoConvDirectNaiveAlwaysEnable
     }
     ~AutoConvDirectNaiveAlwaysEnable() { miopen::debug::AlwaysEnableConvDirectNaive = prev; }
 
-    private:
+private:
     bool prev;
 };
 
@@ -171,7 +171,7 @@ class ConvDriver : public Driver
 #elif MIOPEN_BACKEND_HIP
     typedef uint32_t context_t;
 #endif
-    public:
+public:
     ConvDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -267,7 +267,7 @@ class ConvDriver : public Driver
         miopenDestroyConvolutionDescriptor(warmupConvDesc);
     }
 
-    private:
+private:
     const miopenDataType_t warmup_data_type = miopenFloat;
     typedef float warmup_Tgpu;
 

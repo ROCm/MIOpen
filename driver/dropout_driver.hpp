@@ -48,7 +48,7 @@
 template <typename Tgpu, typename Tref = Tgpu>
 class DropoutDriver : public Driver
 {
-    public:
+public:
     DropoutDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -83,7 +83,7 @@ class DropoutDriver : public Driver
         miopenDestroyDropoutDescriptor(DropoutDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;

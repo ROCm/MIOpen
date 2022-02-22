@@ -581,7 +581,7 @@ struct BlockwiseGenericTensorSliceCopy_v2_deprecated
         mThreadwiseStore.MoveDstSliceWindow(step_sizes, positive_direction);
     }
 
-    private:
+private:
     using ThreadBufferDesc = decltype(make_ConstantTensorDescriptor_packed(SubLengths{}));
 
     using ThreadwiseLoad = ThreadwiseGenericTensorSliceCopy_v2r1_deprecated<SrcDesc,
