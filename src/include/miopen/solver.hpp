@@ -141,7 +141,6 @@ struct SolverMixin : SolverBase
     virtual float GetWti(const Context&) const { return -2.0; };
     virtual size_t GetWorkspaceSize(const Context&) const { return 0; };
 
-private:
     bool IsApplicable_(const boost::any& ctx) const final
     {
         return IsApplicable(boost::any_cast<const Context&>(ctx));
@@ -194,7 +193,6 @@ struct SearchableSolver : SearchableSolverBase
     virtual PerformanceConfig Search(const ConvolutionContext&, const AnyInvokeParams&) const   = 0;
     virtual ConvSolution GetSolution(const ConvolutionContext&, const PerformanceConfig&) const = 0;
 
-private:
     boost::any GetPerformanceConfig_(const ConvolutionContext& ctx) const final
     {
         return GetPerformanceConfig(ctx);
@@ -2466,7 +2464,6 @@ struct ConvOclBwdWrW2 : SearchableSolverBase
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-private:
     // GetPerformanceConfig_(), IsValidPerformanceConfig_(), Search_() and GetSolution_()
     // are only needed if SearchableSolverBase is used as a base class for solver
     boost::any GetPerformanceConfig_(const ConvolutionContext& ctx) const final
