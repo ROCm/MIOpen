@@ -49,12 +49,12 @@ using OldStyleProblemDescription =
 
 struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
 {
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    std::size_t GetWorkspaceSize(const OldStyleProblemDescription& problem) const override
+    std::size_t GetWorkspaceSize(const OldStyleProblemDescription& problem) const final
     {
         return GetWorkspaceSize(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -75,26 +75,26 @@ struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
 
 struct PoolingForward2d : OldStyleSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForward2d>(); }
+    const std::string& SolverDbId() const final { return GetSolverDbId<PoolingForward2d>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::pooling::ProblemDescription& problem) const override;
+                      const miopen::pooling::ProblemDescription& problem) const final;
     std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::pooling::ProblemDescription& problem) const override;
+                                 const miopen::pooling::ProblemDescription& problem) const final;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::pooling::ProblemDescription& problem) const override;
+                             const miopen::pooling::ProblemDescription& problem) const final;
 };
 
 struct PoolingForwardNd : OldStyleSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForwardNd>(); }
+    const std::string& SolverDbId() const final { return GetSolverDbId<PoolingForwardNd>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::pooling::ProblemDescription& problem) const override;
+                      const miopen::pooling::ProblemDescription& problem) const final;
     std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::pooling::ProblemDescription& problem) const override;
+                                 const miopen::pooling::ProblemDescription& problem) const final;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::pooling::ProblemDescription& problem) const override;
+                             const miopen::pooling::ProblemDescription& problem) const final;
 };
 
 template <class Inner>
@@ -137,7 +137,7 @@ struct PoolingFwdNCHWTransposingSolver : TransposingSolver<PoolingFwdNCHWTranspo
 
 struct TransposedPoolingFwd2d : PoolingFwdNCHWTransposingSolver<PoolingForward2d>
 {
-    const std::string& SolverDbId() const override
+    const std::string& SolverDbId() const final
     {
         return GetSolverDbId<TransposedPoolingFwd2d>();
     }
@@ -145,7 +145,7 @@ struct TransposedPoolingFwd2d : PoolingFwdNCHWTransposingSolver<PoolingForward2d
 
 struct TransposedPoolingFwdNd : PoolingFwdNCHWTransposingSolver<PoolingForwardNd>
 {
-    const std::string& SolverDbId() const override
+    const std::string& SolverDbId() const final
     {
         return GetSolverDbId<TransposedPoolingFwdNd>();
     }

@@ -47,9 +47,9 @@ using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
 
 struct ActivFwdSolver0 : OldStyleSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver0>(); }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ActivFwdSolver0>(); }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -67,9 +67,9 @@ struct ActivFwdSolver0 : OldStyleSolver
 
 struct ActivFwdSolver1 : OldStyleSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver1>(); }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ActivFwdSolver1>(); }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -87,9 +87,9 @@ struct ActivFwdSolver1 : OldStyleSolver
 
 struct ActivBwdSolver0 : OldStyleSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver0>(); }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ActivBwdSolver0>(); }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -107,9 +107,9 @@ struct ActivBwdSolver0 : OldStyleSolver
 
 struct ActivBwdSolver1 : OldStyleSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver1>(); }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ActivBwdSolver1>(); }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }

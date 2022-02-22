@@ -47,12 +47,12 @@ using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
 
 struct BnFwdTrainingSpatialSingle : OldStyleSolver
 {
-    const std::string& SolverDbId() const override
+    const std::string& SolverDbId() const final
     {
         return GetSolverDbId<BnFwdTrainingSpatialSingle>();
     }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -70,12 +70,12 @@ struct BnFwdTrainingSpatialSingle : OldStyleSolver
 
 struct BnFwdTrainingSpatialMultiple : OldStyleSolver
 {
-    const std::string& SolverDbId() const override
+    const std::string& SolverDbId() const final
     {
         return GetSolverDbId<BnFwdTrainingSpatialMultiple>();
     }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -93,12 +93,12 @@ struct BnFwdTrainingSpatialMultiple : OldStyleSolver
 
 struct BnFwdTrainingPerActivation : OldStyleSolver
 {
-    const std::string& SolverDbId() const override
+    const std::string& SolverDbId() const final
     {
         return GetSolverDbId<BnFwdTrainingPerActivation>();
     }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -116,12 +116,12 @@ struct BnFwdTrainingPerActivation : OldStyleSolver
 
 struct BnBwdTrainingSpatialSingle : OldStyleSolver
 {
-    const std::string& SolverDbId() const override
+    const std::string& SolverDbId() const final
     {
         return GetSolverDbId<BnBwdTrainingSpatialSingle>();
     }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -139,12 +139,12 @@ struct BnBwdTrainingSpatialSingle : OldStyleSolver
 
 struct BnBwdTrainingSpatialMultiple : OldStyleSolver
 {
-    const std::string& SolverDbId() const override
+    const std::string& SolverDbId() const final
     {
         return GetSolverDbId<BnBwdTrainingSpatialMultiple>();
     }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -162,12 +162,12 @@ struct BnBwdTrainingSpatialMultiple : OldStyleSolver
 
 struct BnBwdTrainingPerActivation : OldStyleSolver
 {
-    const std::string& SolverDbId() const override
+    const std::string& SolverDbId() const final
     {
         return GetSolverDbId<BnBwdTrainingPerActivation>();
     }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -185,9 +185,9 @@ struct BnBwdTrainingPerActivation : OldStyleSolver
 
 struct BnFwdInference : OldStyleSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<BnFwdInference>(); }
+    const std::string& SolverDbId() const final { return GetSolverDbId<BnFwdInference>(); }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
