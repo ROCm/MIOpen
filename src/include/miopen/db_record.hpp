@@ -68,7 +68,7 @@ namespace miopen {
 /// All operations are MP- and MT-safe.
 class DbRecord
 {
-    public:
+public:
     template <class TValue>
     class Iterator : public std::iterator<std::input_iterator_tag, std::pair<std::string, TValue>>
     {
@@ -77,7 +77,7 @@ class DbRecord
         using Container     = std::unordered_map<std::string, std::string>;
         using InnerIterator = Container::const_iterator;
 
-        public:
+    public:
         using Value = std::pair<std::string, TValue>;
 
         Value operator*() const
@@ -115,7 +115,7 @@ class DbRecord
         bool operator==(const Iterator& other) const { return it == other.it; }
         bool operator!=(const Iterator& other) const { return it != other.it; }
 
-        private:
+    private:
         InnerIterator it;
         const Container* container;
         Value value;
@@ -139,18 +139,18 @@ class DbRecord
     template <class TValue>
     class IterationHelper
     {
-        public:
+    public:
         Iterator<TValue> begin() const { return {record.map.begin(), &record.map}; }
         Iterator<TValue> end() const { return {record.map.end(), &record.map}; }
 
-        private:
+    private:
         IterationHelper(const DbRecord& record_) : record(record_) {}
 
         const DbRecord& record;
         friend class DbRecord;
     };
 
-    private:
+private:
     std::string key;
     std::unordered_map<std::string, std::string> map;
 
@@ -178,7 +178,7 @@ class DbRecord
         return ParseContents(ss);
     }
 
-    public:
+public:
     DbRecord() : key(""){};
     /// T shall provide a db KEY by means of the "void Serialize(std::ostream&) const" member
     /// function.

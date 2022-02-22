@@ -47,7 +47,7 @@
 template <typename Tgpu, typename Tref = Tgpu>
 class CTCDriver : public Driver
 {
-    public:
+public:
     CTCDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&probsDesc);
@@ -83,7 +83,7 @@ class CTCDriver : public Driver
         miopenDestroyCTCLossDescriptor(ctcLossDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t probsDesc;

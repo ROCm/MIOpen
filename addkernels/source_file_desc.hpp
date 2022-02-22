@@ -31,7 +31,7 @@
 
 class SourceFileDesc
 {
-    public:
+public:
     const std::string path;
     int included_line;
     std::shared_ptr<SourceFileDesc> included_from;
