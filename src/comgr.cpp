@@ -1147,7 +1147,7 @@ class HiprtcProgram
     const std::string& src_name;
     const std::string& src_text;
 
-    public:
+public:
     HiprtcProgram(const std::string& src_name_, const std::string& src_text_)
         : src_name(src_name_), src_text(src_text_)
     {
@@ -1194,7 +1194,7 @@ class HiprtcProgram
         HIPRTC_CALL_INFO_THROW(hiprtcGetCode(prog.get(), &bytes[0]), src_name);
     }
 
-    private:
+private:
     void LogInputFile(const std::string& name, const std::string& content)
     {
         if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
