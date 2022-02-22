@@ -114,7 +114,7 @@ struct SolverBase
     /// and computes information required to build and run the kernel(s).
     /// ConvSolution GetSolution(const ConvolutionContext& params) const;
 
-    protected:
+protected:
     template <class Solver>
     static const std::string& GetSolverDbId()
     {
@@ -122,7 +122,7 @@ struct SolverBase
         return result;
     }
 
-    private:
+private:
     static std::string ComputeSolverDbId(const std::string& type_name)
     {
         auto idx  = type_name.find_last_of(':');
@@ -1785,7 +1785,7 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : SearchableSolver<LegacyPerforman
     LegacyPerformanceConfig Search(const ConvolutionContext&,
                                    const AnyInvokeParams& invoke_ctx) const final;
 
-    private:
+private:
     template <typename Tgpu>
     LegacyPerformanceConfig SearchImpl(const ConvolutionContext&) const;
 };
@@ -1801,7 +1801,7 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const LegacyPerformanceConfig& searched_params) const override;
 
-    protected:
+protected:
     bool IsApplicableBase(const ConvolutionContext& params) const;
 };
 
@@ -2178,7 +2178,7 @@ struct ConvWinograd3x3MultipassWrW : ConvSolver
             return WinoDataW + (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : ctx.kernel_stride_w);
     }
 
-    private:
+private:
     InvokerFactory PrepareInvokerFactory(const ConvolutionContext& params, std::size_t ws_sz) const;
 };
 
@@ -2486,7 +2486,7 @@ struct ConvOclBwdWrW2 : SearchableSolverBase
             ctx, boost::any_cast<const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&>(config));
     }
 
-    protected:
+protected:
     bool IsApplicableBase(const ConvolutionContext& params) const;
 };
 
@@ -2520,7 +2520,7 @@ struct ConvOclBwdWrW2NonTunable : ConvOclBwdWrW2<1>
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 
-    private:
+private:
     // This function dervied from ConvOclBwdWrW2 is declared private
     // so that this solver is not marked searchable/tunable.
     ConvSolution GetSolution(const ConvolutionContext& params,
@@ -3893,7 +3893,7 @@ struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmIm
     bool IsValid(const ConvolutionContext& ctx) const;
     size_t ComputeKernelOccupancy() const;
 
-    private:
+private:
     void SetParamsForKSplit(const ConvolutionContext& ctx, const size_t& occupancy);
 };
 
