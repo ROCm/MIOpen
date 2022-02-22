@@ -137,18 +137,12 @@ struct PoolingFwdNCHWTransposingSolver : TransposingSolver<PoolingFwdNCHWTranspo
 
 struct TransposedPoolingFwd2d : PoolingFwdNCHWTransposingSolver<PoolingForward2d>
 {
-    const std::string& SolverDbId() const final
-    {
-        return GetSolverDbId<TransposedPoolingFwd2d>();
-    }
+    const std::string& SolverDbId() const final { return GetSolverDbId<TransposedPoolingFwd2d>(); }
 };
 
 struct TransposedPoolingFwdNd : PoolingFwdNCHWTransposingSolver<PoolingForwardNd>
 {
-    const std::string& SolverDbId() const final
-    {
-        return GetSolverDbId<TransposedPoolingFwdNd>();
-    }
+    const std::string& SolverDbId() const final { return GetSolverDbId<TransposedPoolingFwdNd>(); }
 };
 
 } // namespace pooling

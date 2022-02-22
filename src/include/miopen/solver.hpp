@@ -475,10 +475,7 @@ struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 : ConvSolver
 
 struct ConvOclDirectFwd11x11 : ConvSolver
 {
-    const std::string& SolverDbId() const final
-    {
-        return GetSolverDbId<ConvOclDirectFwd11x11>();
-    }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ConvOclDirectFwd11x11>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const final;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
@@ -1028,10 +1025,7 @@ struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdl
 
 struct ConvMlirIgemmFwdXdlops : SearchableSolver1<PerformanceConvMlirIgemmXdlops>
 {
-    const std::string& SolverDbId() const final
-    {
-        return GetSolverDbId<ConvMlirIgemmFwdXdlops>();
-    }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ConvMlirIgemmFwdXdlops>(); }
 
     bool IsApplicable(const ConvolutionContext& ctx) const final;
 
@@ -1135,10 +1129,7 @@ struct ConvMlirIgemmWrW : SearchableSolver1<PerformanceConvMlirIgemm>
 
 struct ConvMlirIgemmWrWXdlops : SearchableSolver1<PerformanceConvMlirIgemmXdlops>
 {
-    const std::string& SolverDbId() const final
-    {
-        return GetSolverDbId<ConvMlirIgemmWrWXdlops>();
-    }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ConvMlirIgemmWrWXdlops>(); }
 
     bool IsApplicable(const ConvolutionContext& ctx) const final;
 
@@ -1612,10 +1603,7 @@ struct ConvMlirIgemmBwd : SearchableSolver1<PerformanceConvMlirIgemm>
 
 struct ConvMlirIgemmBwdXdlops : SearchableSolver1<PerformanceConvMlirIgemmXdlops>
 {
-    const std::string& SolverDbId() const final
-    {
-        return GetSolverDbId<ConvMlirIgemmBwdXdlops>();
-    }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ConvMlirIgemmBwdXdlops>(); }
 
     bool IsApplicable(const ConvolutionContext& ctx) const final;
 
@@ -1833,10 +1821,7 @@ protected:
 
 struct ConvOclDirectFwdFused : ConvOclDirectFwd
 {
-    const std::string& SolverDbId() const final
-    {
-        return GetSolverDbId<ConvOclDirectFwdFused>();
-    }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ConvOclDirectFwdFused>(); }
 
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const LegacyPerformanceConfig& searched_params) const final;
@@ -1901,10 +1886,7 @@ struct PerformanceConfigConvBinWinogradRxSf3x2
 
 struct ConvBinWinogradRxSf3x2 : SearchableSolver1<PerformanceConfigConvBinWinogradRxSf3x2>
 {
-    const std::string& SolverDbId() const final
-    {
-        return GetSolverDbId<ConvBinWinogradRxSf3x2>();
-    }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ConvBinWinogradRxSf3x2>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const final;
     bool IsDynamic() const final { return true; }
@@ -1953,10 +1935,7 @@ struct PerformanceConfigConvBinWinogradRxSf2x3
 
 struct ConvBinWinogradRxSf2x3 : SearchableSolver1<PerformanceConfigConvBinWinogradRxSf2x3>
 {
-    const std::string& SolverDbId() const final
-    {
-        return GetSolverDbId<ConvBinWinogradRxSf2x3>();
-    }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ConvBinWinogradRxSf2x3>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const final;
     bool IsDynamic() const final { return true; }
@@ -2007,10 +1986,7 @@ struct ConvBinWinogradRxSf2x3g1Fused : ConvSolver
 
 struct ConvBinWinogradRxSFused : ConvSolver
 {
-    const std::string& SolverDbId() const final
-    {
-        return GetSolverDbId<ConvBinWinogradRxSFused>();
-    }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ConvBinWinogradRxSFused>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const final;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
@@ -2801,10 +2777,7 @@ struct ConvCkIgemmFwdV6r1DlopsNchw : SearchableSolver1<PerformanceConvCkIgemmFwd
 
 struct ConvDirectNaiveConvFwd : ConvSolver
 {
-    const std::string& SolverDbId() const final
-    {
-        return GetSolverDbId<ConvDirectNaiveConvFwd>();
-    }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ConvDirectNaiveConvFwd>(); }
 
     bool IsApplicable(const ConvolutionContext& ctx) const final;
     bool IsDynamic() const final { return true; }
@@ -2816,10 +2789,7 @@ struct ConvDirectNaiveConvFwd : ConvSolver
 
 struct ConvDirectNaiveConvBwd : ConvSolver
 {
-    const std::string& SolverDbId() const final
-    {
-        return GetSolverDbId<ConvDirectNaiveConvBwd>();
-    }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ConvDirectNaiveConvBwd>(); }
 
     bool IsApplicable(const ConvolutionContext& ctx) const final;
     bool IsDynamic() const final { return true; }
@@ -2831,10 +2801,7 @@ struct ConvDirectNaiveConvBwd : ConvSolver
 
 struct ConvDirectNaiveConvWrw : ConvSolver
 {
-    const std::string& SolverDbId() const final
-    {
-        return GetSolverDbId<ConvDirectNaiveConvWrw>();
-    }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ConvDirectNaiveConvWrw>(); }
 
     bool IsApplicable(const ConvolutionContext& ctx) const final;
     bool IsDynamic() const final { return true; }
