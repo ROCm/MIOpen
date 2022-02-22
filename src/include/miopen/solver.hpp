@@ -141,7 +141,7 @@ struct SolverMixin : SolverBase
     virtual float GetWti(const Context&) const { return -2.0; };
     virtual size_t GetWorkspaceSize(const Context&) const { return 0; };
 
-    private:
+private:
     bool IsApplicable_(const boost::any& ctx) const final
     {
         return IsApplicable(boost::any_cast<const Context&>(ctx));
@@ -194,7 +194,7 @@ struct SearchableSolver : SearchableSolverBase
     virtual PerformanceConfig Search(const ConvolutionContext&, const AnyInvokeParams&) const   = 0;
     virtual ConvSolution GetSolution(const ConvolutionContext&, const PerformanceConfig&) const = 0;
 
-    private:
+private:
     boost::any GetPerformanceConfig_(const ConvolutionContext& ctx) const final
     {
         return GetPerformanceConfig(ctx);
@@ -914,7 +914,7 @@ struct ConvHipImplicitGemmV4R4Fwd : SearchableSolver1<PerformanceImplicitGemmV4R
                              const PerformanceImplicitGemmV4R4Fwd& config,
                              bool disableConfigOverrideFromEnv) const final;
 
-    private:
+private:
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
 
     friend struct PerformanceImplicitGemmV4R4Fwd;
@@ -1110,7 +1110,7 @@ struct ConvHipImplicitGemmV4R4WrW : SearchableSolver1<PerformanceImplicitGemmV4R
                              const PerformanceImplicitGemmV4R4WrW& config,
                              bool disableConfigOverrideFromEnv) const final;
 
-    private:
+private:
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
 
     friend struct PerformanceImplicitGemmV4R4WrW;
@@ -1441,7 +1441,7 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops
                              const PerformanceImplicitGemmForwardV4R4Xdlops& config,
                              bool disableConfigOverrideFromEnv) const final;
 
-    private:
+private:
     static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
 
     friend struct PerformanceImplicitGemmForwardV4R4Xdlops;
@@ -1469,7 +1469,7 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm
                              const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config,
                              bool disableConfigOverrideFromEnv) const final;
 
-    private:
+private:
     static std::tuple<int, int, int, int, int, int, int> CalculateGemmSize(
         const ConvolutionContext& ctx, int GemmMFactor, int GemmNFactor, int GemmKFactor);
 
@@ -1587,7 +1587,7 @@ struct ConvHipImplicitGemmBwdDataV1R1 : SearchableSolver1<PerformanceImplicitGem
                              const PerformanceImplicitGemmBwdDataV1R1& config,
                              bool disableConfigOverrideFromEnv) const final;
 
-    private:
+private:
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
 
     friend struct PerformanceImplicitGemmBwdDataV1R1;
@@ -1650,7 +1650,7 @@ struct ConvHipImplicitGemmBwdDataV4R1 : SearchableSolver1<PerformanceImplicitGem
                              const PerformanceImplicitGemmBwdDataV4R1& config,
                              bool disableConfigOverrideFromEnv) const final;
 
-    private:
+private:
     static int CalculateNumberOfGemm(const ConvolutionContext& ctx);
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx, int gemm_id);
 
@@ -1678,7 +1678,7 @@ struct ConvHipImplicitGemmBwdDataV4R1Xdlops
                              const PerformanceImplicitGemmBwdDataV4R1Xdlops& config,
                              bool disableConfigOverrideFromEnv) const final;
 
-    private:
+private:
     static int CalculateNumberOfGemm(const ConvolutionContext& ctx);
     static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx,
                                                             int gemm_id);
@@ -1709,7 +1709,7 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops
                              const PerformanceImplicitGemmBwdV1R1Xdlops& config,
                              bool disableConfigOverrideFromEnv) const final;
 
-    private:
+private:
     static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
 
     friend struct PerformanceImplicitGemmBwdV1R1Xdlops;
@@ -1920,7 +1920,7 @@ struct ConvBinWinogradRxSf3x2 : SearchableSolver1<PerformanceConfigConvBinWinogr
                              const PerformanceConfigConvBinWinogradRxSf3x2& config,
                              bool disableConfigOverrideFromEnv) const final;
 
-    private:
+private:
     static size_t GetNGroups(const size_t group_conv, const size_t grid_group_size)
     {
         assert(group_conv != 0);
@@ -1973,7 +1973,7 @@ struct ConvBinWinogradRxSf2x3 : SearchableSolver1<PerformanceConfigConvBinWinogr
                              const PerformanceConfigConvBinWinogradRxSf2x3& config,
                              bool disableConfigOverrideFromEnv) const final;
 
-    private:
+private:
     static size_t GetNGroups(const size_t group_conv, const size_t grid_group_size)
     {
         assert(group_conv != 0);
@@ -2122,7 +2122,7 @@ struct ConvMPBidirectWinograd_xdlops : SearchableSolver1<PerformanceImplicitGemm
                              const PerformanceImplicitGemmForwardV4R4Xdlops& config,
                              bool disableConfigOverrideFromEnv) const final;
 
-    private:
+private:
     ConvolutionContext GetTransformedConvContext(const ConvolutionContext&) const;
 
     // kernel_file_name for solver identification
@@ -2490,7 +2490,7 @@ struct ConvOclBwdWrW2 : SearchableSolverBase
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
                              bool disableConfigOverrideFromEnv = false) const;
 
-    private:
+private:
     // GetPerformanceConfig_(), IsValidPerformanceConfig_(), Search_() and GetSolution_()
     // are only needed if SearchableSolverBase is used as a base class for solver
     boost::any GetPerformanceConfig_(const ConvolutionContext& ctx) const final
@@ -2855,7 +2855,7 @@ struct GemmFwdBase : ConvSolver
         return GetWti(ctx, ctx.conv_problem);
     }
 
-    private:
+private:
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
 
@@ -2886,7 +2886,7 @@ struct GemmFwd1x1_0_2 : GemmFwdBase
         return GetSolution(ctx, ctx.conv_problem);
     }
 
-    private:
+private:
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
@@ -2915,7 +2915,7 @@ struct GemmFwd1x1_0_1_int8 : GemmFwdBase
         return GetSolution(ctx, ctx.conv_problem);
     }
 
-    private:
+private:
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
@@ -2944,7 +2944,7 @@ struct GemmFwd1x1_0_1 : GemmFwdBase
         return GetSolution(ctx, ctx.conv_problem);
     }
 
-    private:
+private:
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
@@ -2973,7 +2973,7 @@ struct GemmFwdRest : GemmFwdBase
         return GetSolution(ctx, ctx.conv_problem);
     }
 
-    private:
+private:
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
@@ -2990,7 +2990,7 @@ struct GemmBwdBase : ConvSolver
         return GetWti(ctx, ctx.conv_problem);
     }
 
-    private:
+private:
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
 
@@ -3023,7 +3023,7 @@ struct GemmBwd1x1_stride2 : GemmBwdBase
         return GetSolution(ctx, ctx.conv_problem);
     }
 
-    private:
+private:
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
@@ -3052,7 +3052,7 @@ struct GemmBwd1x1_stride1 : GemmBwdBase
         return GetSolution(ctx, ctx.conv_problem);
     }
 
-    private:
+private:
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
@@ -3081,7 +3081,7 @@ struct GemmBwdRest : GemmBwdBase
         return GetSolution(ctx, ctx.conv_problem);
     }
 
-    private:
+private:
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
@@ -3098,7 +3098,7 @@ struct GemmWrwBase : ConvSolver
         return GetWti(ctx, ctx.conv_problem);
     }
 
-    private:
+private:
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
 
@@ -3130,7 +3130,7 @@ struct GemmWrw1x1_stride1 : GemmWrwBase
         return GetSolution(ctx, ctx.conv_problem);
     }
 
-    private:
+private:
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
@@ -3159,7 +3159,7 @@ struct GemmWrwUniversal : GemmWrwBase
         return GetSolution(ctx, ctx.conv_problem);
     }
 
-    private:
+private:
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
