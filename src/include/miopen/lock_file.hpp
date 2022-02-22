@@ -52,12 +52,12 @@ std::string LockFilePath(const boost::filesystem::path& filename_);
 // Also on windows mutex can be removed because file locks are MT-safe there.
 class LockFile
 {
-    private:
+private:
     class PassKey
     {
     };
 
-    public:
+public:
     LockFile(const char* path_, PassKey);
     LockFile(const LockFile&) = delete;
     LockFile operator=(const LockFile&) = delete;
@@ -164,7 +164,7 @@ class LockFile
         return try_lock_shared_for(point - std::chrono::system_clock::now());
     }
 
-    private:
+private:
     const char* path; // For logging purposes
     std::shared_timed_mutex access_mutex;
     boost::interprocess::file_lock flock;

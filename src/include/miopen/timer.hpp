@@ -32,7 +32,7 @@ namespace miopen {
 
 class Timer
 {
-    public:
+public:
     Timer(){};
     void start() { st = std::chrono::steady_clock::now(); }
     float elapsed_ms()
@@ -42,7 +42,7 @@ class Timer
             .count();
     }
 
-    private:
+private:
     void capture() { et = std::chrono::steady_clock::now(); }
     std::chrono::time_point<std::chrono::steady_clock> st;
     std::chrono::time_point<std::chrono::steady_clock> et;
@@ -53,7 +53,7 @@ class CompileTimer
 #if MIOPEN_BUILD_DEV
     Timer timer;
 #endif
-    public:
+public:
     CompileTimer()
     {
 #if MIOPEN_BUILD_DEV

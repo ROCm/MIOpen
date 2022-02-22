@@ -83,7 +83,7 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     void SetInputDesc(TensorDescriptor i_desc) { input_desc = i_desc; };
     TensorDescriptor input_desc;
 
-    private:
+private:
     int plan_idx                       = 0;
     std::shared_ptr<OperatorArgs> args = nullptr;
 };
@@ -301,7 +301,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     bool kernel_info_valid;
     std::string conv_compiler_options;
 
-    private:
+private:
     mlo_construct_direct2D_fusion ConstructParams(Handle& handle);
 };
 

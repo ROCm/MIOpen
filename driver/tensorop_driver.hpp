@@ -43,7 +43,7 @@
 template <typename Tgpu, typename Tref>
 class TensorOpDriver : public Driver
 {
-    public:
+public:
     TensorOpDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&aTensor);
@@ -83,7 +83,7 @@ class TensorOpDriver : public Driver
         miopenDestroyTensorDescriptor(cTensor);
     }
 
-    private:
+private:
     std::function<Tgpu(Tgpu, Tgpu)> TensorOpFn(miopenTensorOp_t op);
     int CheckTensor(std::vector<Tgpu>& cpu_res, std::vector<Tgpu>& gpu_res, double allowedEps);
     InputFlags inflags;

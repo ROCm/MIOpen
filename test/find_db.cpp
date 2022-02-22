@@ -49,7 +49,7 @@ struct TestRordbEmbedFsOverrideLock
 
     ~TestRordbEmbedFsOverrideLock() { debug::rordb_embed_fs_override() = cached; }
 
-    private:
+private:
     bool cached;
 };
 
@@ -96,7 +96,7 @@ struct FindDbTest : test_driver
         TestWeights();
     }
 
-    private:
+private:
     void TestBwdData()
     {
         MIOPEN_LOG_I("Starting backward find-db test.");

@@ -45,7 +45,7 @@
 template <typename Tgpu, typename Tref>
 class SoftmaxDriver : public Driver
 {
-    public:
+public:
     SoftmaxDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -84,7 +84,7 @@ class SoftmaxDriver : public Driver
         miopenDestroyTensorDescriptor(dInputTensor);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;

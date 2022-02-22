@@ -167,13 +167,13 @@ class SQLite
     // do we need propagate const
     std::unique_ptr<impl> pImpl;
 
-    public:
+public:
     class Statement
     {
         class impl;
         std::unique_ptr<impl> pImpl;
 
-        public:
+    public:
         Statement(const SQLite& sql, const std::string& query);
         Statement(const SQLite& sql,
                   const std::string& query,
@@ -210,8 +210,8 @@ class SQLite
 template <typename Derived>
 class SQLiteBase
 {
-    protected:
-    public:
+protected:
+public:
     SQLiteBase(const std::string& filename_, bool is_system_)
         : filename(filename_), is_system(is_system_)
     {
@@ -396,7 +396,7 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path, bool is_system)
 
 class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
-    public:
+public:
     static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.1.0";
     SQLitePerfDb(const std::string& filename_, bool is_system);
 

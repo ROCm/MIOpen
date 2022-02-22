@@ -180,7 +180,7 @@ struct AnySolver
         const std::type_info& Type() const override { return typeid(T); };
         std::string GetSolverDbId() const override { return value.SolverDbId(); }
 
-        private:
+    private:
         T value;
     };
 

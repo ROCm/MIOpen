@@ -101,7 +101,7 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
             Next();
     }
 
-    public:
+public:
     // STL-like iterator shall be default contructible. Also implements container's end()
     ComputedIterator() : v(), p(nullptr) {}
     // STL-like iterator shall be copy contructible. The default copy ctor is ok.
@@ -140,7 +140,7 @@ class ComputedContainer
     /// for the sake of flexibility. Nevertheless, all element accesses of
     /// the "computed container" shall be const.
 
-    public:
+public:
     using const_iterator = ComputedIterator<PerformanceConfig, Context>;
 
     ComputedContainer(const Context& problem_, const bool spare_ = false)
@@ -168,7 +168,7 @@ class HeartBeat
         timer.start();
     }
 
-    public:
+public:
     HeartBeat() : n_within_beat(), n_best(), best_time(), elapsed_cumulative() {}
 
     void Start()

@@ -319,7 +319,7 @@ class ShaderModel : public UnifiedDescriptionConv2d
     const size_t n_groups;         // BQ ~compute units
     const bool out_of_model_scope; // Shader model produces unreliable results.
 
-    public:
+public:
     ShaderModel(const ConvolutionContext& ctx)
         : UnifiedDescriptionConv2d(ctx),
           DATATYPE_BITS(ctx.IsFp16() ? 16 : 32),

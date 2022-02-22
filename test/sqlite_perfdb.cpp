@@ -77,12 +77,12 @@ static bool& full_set()
 
 class Random
 {
-    public:
+public:
     Random(unsigned int seed = 0) : rng(seed) {}
 
     std::mt19937::result_type Next() { return dist(rng); }
 
-    private:
+private:
     std::mt19937 rng;
     std::uniform_int_distribution<std::mt19937::result_type> dist;
 };
@@ -202,7 +202,7 @@ struct SolverData
 
     bool operator==(const SolverData& other) const { return x == other.x && y == other.y; }
 
-    private:
+private:
     static bool DeserializeField(std::istream& from, int* ret, char separator)
     {
         std::string part;
@@ -230,12 +230,12 @@ std::ostream& operator<<(std::ostream& s, const SolverData& td)
 
 class DbTest
 {
-    public:
+public:
     DbTest() : temp_file("miopen.tests.perfdb"), db_inst{std::string(temp_file), false} {}
 
     virtual ~DbTest() {}
 
-    protected:
+protected:
     TempFile temp_file;
     SQLitePerfDb db_inst;
 
@@ -332,7 +332,7 @@ class DbTest
 
 class SchemaTest : public DbTest
 {
-    public:
+public:
     void Run() const
     {
         // check if the config and perf_db tables exist
@@ -360,7 +360,7 @@ class SchemaTest : public DbTest
 
 class DbFindTest : public DbTest
 {
-    public:
+public:
     void Run()
     {
         ResetDb();
@@ -389,7 +389,7 @@ class DbFindTest : public DbTest
 
 class DbOperationsTest : public DbTest
 {
-    public:
+public:
     void Run() const
     {
         std::cout << "Testing different db operations db..." << std::endl;
@@ -463,7 +463,7 @@ class DbOperationsTest : public DbTest
 
 class DbParallelTest : public DbTest
 {
-    public:
+public:
     void Run() const
     {
         std::cout << "Testing db for using two objects targeting one file existing in one scope..."
@@ -502,7 +502,7 @@ class DbParallelTest : public DbTest
 
 class DBMultiThreadedTestWork
 {
-    public:
+public:
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static unsigned int threads_count;
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
@@ -566,7 +566,7 @@ class DBMultiThreadedTestWork
         }
     }
 
-    private:
+private:
     template <class TWorker>
     static void RedirectLogs(unsigned int id, const std::string& log_postfix, const TWorker& worker)
     {
@@ -727,7 +727,7 @@ unsigned int DBMultiThreadedTestWork::unique_part_size = 16;
 
 class DbMultiThreadedTest : public DbTest
 {
-    public:
+public:
     static constexpr const char* logs_path_arg = "thread-logs-root";
 
     void Run() const
@@ -767,7 +767,7 @@ class DbMultiThreadedTest : public DbTest
 };
 class DbMultiThreadedReadTest : public DbTest
 {
-    public:
+public:
     void Run() const
     {
         std::cout << "Testing db for multithreaded read access..." << std::endl;
@@ -801,7 +801,7 @@ class DbMultiThreadedReadTest : public DbTest
 
 class DbMultiProcessTest : public DbTest
 {
-    public:
+public:
     static constexpr const char* write_arg = "mp-test-child-write";
     static constexpr const char* id_arg    = "mp-test-child";
     static constexpr const char* path_arg  = "mp-test-child-path";
@@ -874,13 +874,13 @@ class DbMultiProcessTest : public DbTest
             DBMultiThreadedTestWork::ReadWorkItem(id, c, "mp");
     }
 
-    private:
+private:
     static std::string LockFilePath(const std::string& db_path) { return db_path + ".test.lock"; }
 };
 
 class DbMultiProcessReadTest : public DbTest
 {
-    public:
+public:
     void Run() const
     {
         std::cout << "Testing db for multiprocess read access..." << std::endl;
@@ -941,13 +941,13 @@ class DbMultiProcessReadTest : public DbTest
         DBMultiThreadedTestWork::WorkItem(id, c, "mp");
     }
 
-    private:
+private:
     static std::string LockFilePath(const std::string& db_path) { return db_path + ".test.lock"; }
 };
 
 class DbMultiFileTest : public DbTest
 {
-    protected:
+protected:
     const std::string user_db_path = temp_file.Path() + ".user";
 
     void ResetDb() const
@@ -960,7 +960,7 @@ class DbMultiFileTest : public DbTest
 template <bool merge_records>
 class DbMultiFileReadTest : public DbMultiFileTest
 {
-    public:
+public:
     void Run() const
     {
         std::cout << "Running multifile read test";
@@ -981,7 +981,7 @@ class DbMultiFileReadTest : public DbMultiFileTest
         ReadConflict();
     }
 
-    private:
+private:
     static const std::array<std::pair<std::string, SolverData>, 1>& single_item_data()
     {
         static const std::array<std::pair<std::string, SolverData>, 1> data{{{id0(), value2()}}};
@@ -1037,7 +1037,7 @@ class DbMultiFileReadTest : public DbMultiFileTest
 };
 class DbMultiFileWriteTest : public DbMultiFileTest
 {
-    public:
+public:
     void Run() const
     {
         std::cout << "Running multifile write test..." << std::endl;
@@ -1060,7 +1060,7 @@ class DbMultiFileWriteTest : public DbMultiFileTest
 
 class DbMultiFileOperationsTest : public DbMultiFileTest
 {
-    public:
+public:
     void Run() const
     {
         ResetDb();
@@ -1148,7 +1148,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
 
 class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
 {
-    public:
+public:
     void Run() const
     {
         std::cout << "Testing db for multifile multithreaded read access..." << std::endl;
@@ -1184,7 +1184,7 @@ class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
 
 class DbMultiFileMultiThreadedTest : public DbMultiFileTest
 {
-    public:
+public:
     static constexpr const char* logs_path_arg = "thread-logs-root";
 
     void Run() const
@@ -1269,7 +1269,7 @@ struct PerfDbDriver : test_driver
 #endif
     }
 
-    private:
+private:
     bool test_write = false;
     std::string logs_root;
 

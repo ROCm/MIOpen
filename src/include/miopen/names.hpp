@@ -37,7 +37,7 @@ struct NetworkConfig
     operator std::string() const { return value; }
     std::string ToString() const { return value; }
 
-    private:
+private:
     std::string value;
 };
 
@@ -48,7 +48,7 @@ struct AlgorithmName
     operator std::string() const { return value; }
     std::string ToString() const { return value; }
 
-    private:
+private:
     std::string value;
 };
 

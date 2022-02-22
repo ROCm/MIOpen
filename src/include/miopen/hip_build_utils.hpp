@@ -46,15 +46,15 @@ void bin_file_to_str(const boost::filesystem::path& file, std::string& buf);
 
 class LcOptionTargetStrings
 {
-    public:
+public:
     const std::string& device;
     const std::string xnack;
 
-    private:
+private:
     const std::string sramecc;
     const std::string sramecc_reported;
 
-    public:
+public:
     const std::string targetId;
     LcOptionTargetStrings(const TargetProperties& target)
         : device(target.Name()),

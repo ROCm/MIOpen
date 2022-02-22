@@ -42,7 +42,7 @@ class AutoMiirHandle
 {
     MiirHandle handle;
 
-    public:
+public:
     AutoMiirHandle(const std::string& options) : handle(miirCreateHandle(options.c_str())) {}
     // Explicitly disable copy and assignment of the handle to avoid double-free risk
     AutoMiirHandle(const AutoMiirHandle&) = delete;

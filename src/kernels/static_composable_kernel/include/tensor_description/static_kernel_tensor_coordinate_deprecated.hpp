@@ -91,7 +91,7 @@ struct NormalTensorCoordinate_deprecated
         return offset_diff;
     }
 
-    private:
+private:
     index_t mOffset;
 };
 
@@ -303,7 +303,7 @@ struct MergedTensorCoordinate_deprecated
 
     __host__ __device__ static constexpr index_t RepositionOrigin() { return 0; }
 
-    private:
+private:
     // Allocate register memory for all merged dimensions and normal dimensions.
     // However, only those merged dimensions, whose index will be involved in arithmetic
     // after the construction of this TensorCoordinate (e.g. when user move a slicing
@@ -324,7 +324,7 @@ struct MergedTensorCoordinate_deprecated
 template <class TensorDesc>
 struct TensorCoordinate_deprecated
 {
-    private:
+private:
     template <class... Ts>
     __host__ __device__ static constexpr auto
         MakeDummyTensorCoordinate(ConstantTensorDescriptor_deprecated<Ts...>)
@@ -340,7 +340,7 @@ struct TensorCoordinate_deprecated
             ConstantMergedTensorDescriptor_deprecated<Ts...>>();
     }
 
-    public:
+public:
     using type = decltype(MakeDummyTensorCoordinate(TensorDesc{}));
 };
 

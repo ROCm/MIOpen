@@ -149,7 +149,7 @@ inline double subtractTimes(double endTime, double startTime)
  */
 class mloFile
 {
-    public:
+public:
     /**
      *Default constructor
      */
@@ -267,7 +267,7 @@ class mloFile
      */
     mloFile& operator=(const mloFile&) = delete;
 
-    private:
+private:
     std::string source_; //!< source code of the CL program
 };
 

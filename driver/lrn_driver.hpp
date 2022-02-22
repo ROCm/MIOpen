@@ -45,7 +45,7 @@
 template <typename Tgpu, typename Tref>
 class LRNDriver : public Driver
 {
-    public:
+public:
     LRNDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -86,7 +86,7 @@ class LRNDriver : public Driver
         miopenDestroyLRNDescriptor(lrnDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;

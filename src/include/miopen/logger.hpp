@@ -352,7 +352,7 @@ std::string LoggingParseFunction(const char* func, const char* pretty_func);
 #if MIOPEN_LOG_FUNC_TIME_ENABLE
 class LogScopeTime
 {
-    public:
+public:
     LogScopeTime(std::string name)
         : m_name(std::move(name)), m_beg(std::chrono::high_resolution_clock::now())
     {
@@ -364,7 +364,7 @@ class LogScopeTime
         MIOPEN_LOG_I2(m_name << " : " << dur.count() << " us");
     }
 
-    private:
+private:
     std::string m_name;
     std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
 };

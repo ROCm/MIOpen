@@ -51,7 +51,7 @@
 template <typename Tgpu, typename Tref>
 class ReduceDriver : public Driver
 {
-    public:
+public:
     ReduceDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -95,7 +95,7 @@ class ReduceDriver : public Driver
         miopenDestroyReduceTensorDescriptor(reduceDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;

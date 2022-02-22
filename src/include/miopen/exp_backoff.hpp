@@ -47,7 +47,7 @@ struct LazyExponentialBackoff
     const int max_buf_sz = 20;
     int buf_idx          = 0;
 
-    public:
+public:
     LazyExponentialBackoff(int _max_rand              = 10,
                            int _base                  = 2,
                            std::chrono::seconds _secs = std::chrono::seconds(30))
