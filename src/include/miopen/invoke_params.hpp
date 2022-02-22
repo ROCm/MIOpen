@@ -49,7 +49,7 @@ struct InvokeParams
 
 struct AnyInvokeParams
 {
-    public:
+public:
     AnyInvokeParams() = default;
 
     template <
@@ -111,10 +111,10 @@ struct AnyInvokeParams
 
     operator bool() const { return impl != nullptr; }
 
-    private:
+private:
     struct Interface
     {
-        public:
+    public:
         Interface(const Interface&) = delete;
         Interface(Interface&&)      = delete;
         Interface& operator=(const Interface&) = delete;
@@ -128,14 +128,14 @@ struct AnyInvokeParams
         virtual void* GetRawPtr()                           = 0;
         virtual std::unique_ptr<Interface> Copy() const     = 0;
 
-        protected:
+    protected:
         Interface() = default;
     };
 
     template <class Actual>
     struct Implementation : public Interface
     {
-        public:
+    public:
         Implementation(const Actual& actual) : value(actual) {}
         Implementation(Actual&& actual) : value(std::move(actual)) {}
 
@@ -149,7 +149,7 @@ struct AnyInvokeParams
             return std::make_unique<Implementation<Actual>>(value);
         }
 
-        private:
+    private:
         Actual value;
     };
 

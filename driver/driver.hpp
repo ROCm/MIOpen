@@ -175,7 +175,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
 
 class Driver
 {
-    public:
+public:
     Driver()
     {
         data_type = miopenFloat;
@@ -211,7 +211,7 @@ class Driver
     virtual int RunBackwardGPU()                         = 0;
     virtual int VerifyBackward()                         = 0;
 
-    protected:
+protected:
     template <typename Tgpu>
     void InitDataType();
     miopenHandle_t handle;
