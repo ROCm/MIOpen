@@ -377,9 +377,10 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             const auto& wrw_invoke_params = primitive_parameters.CastTo<conv::WrWInvokeParams>();
             const auto& tensors           = wrw_invoke_params.tensors;
+            const auto& workspaceSize     = wrw_invoke_params.workSpaceSize;
             float zero                    = 0.f;
 
-            if(ctx.IsFp16())
+            if(workspaceSize > 0)
             {
                 const auto& workspace = wrw_invoke_params.workSpace;
                 TensorDescriptor workspaceDesc(
