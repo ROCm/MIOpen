@@ -116,17 +116,12 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
 
 std::size_t ConvMlirIgemmWrWXdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    if(ctx.IsFp32())
-        return 0;
-    else
-    {
-        const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-        const auto c = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-        const auto y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-        const auto x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-
-        return k * c * y * x * miopen::GetTypeSize(miopenFloat);
-    }
+#if MIOPEN_USE_MLIR
+    std::string comp_options = mlir::ConstructBuildOptions(ctx, /*is_xdlops=*/true);
+    return MiirGetWorkspaceSize(comp_options);
+#else
+    return 0;
+#endif
 }
 
 } // namespace solver
