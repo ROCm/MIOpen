@@ -182,10 +182,7 @@ MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
 // way around is to call clSetKernelArg on a oclMemory object to pass
 // the device pointer to the kernel
 #if MIOPEN_BACKEND_HIP
-void SetMlirConvArgsPtr(ConstData_t in,
-                        ConstData_t out,
-                        ConstData_t w,
-                        MlirConvArgs& args)
+void SetMlirConvArgsPtr(ConstData_t in, ConstData_t out, ConstData_t w, MlirConvArgs& args)
 {
     void* filter = nullptr;
     void* input  = nullptr;
@@ -210,11 +207,8 @@ void SetMlirConvArgsPtr(ConstData_t in,
     args.output.data    = output;
 }
 
-void SetMlirConvArgsPtr(ConstData_t in,
-                        ConstData_t out,
-                        ConstData_t w,
-                        ConstData_t wk,
-                        MlirConvArgs& args)
+void SetMlirConvArgsPtr(
+    ConstData_t in, ConstData_t out, ConstData_t w, ConstData_t wk, MlirConvArgs& args)
 {
     SetMlirConvArgsPtr(in, out, w, args);
     void* workspace = nullptr;
@@ -415,11 +409,7 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
                                        workspace,
                                        EXPAND_MLIR_CONV_ARGS(*args.workspace));
 #elif MIOPEN_BACKEND_HIP
-                SetMlirConvArgsPtr(tensors.x,
-                                   tensors.dy,
-                                   tensors.dw,
-                                   workspace,
-                                   args);
+                SetMlirConvArgsPtr(tensors.x, tensors.dy, tensors.dw, workspace, args);
                 handle.Run(kernels[0])(args);
 #endif
                 CastTensor(handle,
@@ -445,10 +435,7 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
                                        tensors.dy,
                                        EXPAND_MLIR_CONV_ARGS(args.output));
 #elif MIOPEN_BACKEND_HIP
-                SetMlirConvArgsPtr(tensors.x,
-                                   tensors.dy,
-                                   tensors.dw,
-                                   args);
+                SetMlirConvArgsPtr(tensors.x, tensors.dy, tensors.dw, args);
                 handle.Run(kernels[0])(args);
 #endif
             }
