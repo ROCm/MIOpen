@@ -962,7 +962,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
             // clang-format on
 
             // TODO: add fp16 calculation by GetWorkspaceSize(ctx);
-            result.workspce_sz = 0;
+            result.workspace_sz = 0;
 
             int GemmABlockCopySrcDataPerRead_GemmM = 1;
             int GemmBBlockCopySrcDataPerRead_GemmN = 1;

@@ -140,7 +140,8 @@ struct par_ford_impl
         strides.fill(1);
         std::partial_sum(
             lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<std::size_t>());
-        auto size = std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<std::size_t>());
+        auto size = std::accumulate(
+            lens.begin(), lens.end(), static_cast<std::size_t>(1), std::multiplies<std::size_t>());
         par_for(size, [&](std::size_t i) {
             array_type indices;
             std::transform(strides.begin(),

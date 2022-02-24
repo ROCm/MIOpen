@@ -148,7 +148,7 @@ struct AnyInvokeParams;
 template <class TInstance>
 class StaticContainer
 {
-    public:
+public:
     inline static TInstance& Instance()
     {
         // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
@@ -355,7 +355,7 @@ struct mlo_construct_base
         return _db_path != nullptr ? _db_path : _search_params.GetPerfDbPath();
     }
 
-    protected:
+protected:
     miopen::ConvolutionContext _search_params;
 
     const char* _db_path = nullptr;
@@ -398,16 +398,16 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
      */
     inline const std::vector<size_t>& getGlobalWkSize() const { return (_g_wk); }
 
-    int _grp_tile0      = 8; // total number ALUs per group
-    int _grp_tile1      = 8; // total number ALUs per group
-    int _out_pix_tile0  = 2; // # of generated pixels per output per wk-item  (ALU)
-    int _out_pix_tile1  = 4; // # of generated pixels per output per wk-item  (ALU)
-    size_t _workspce_sz = 0;
+    int _grp_tile0       = 8; // total number ALUs per group
+    int _grp_tile1       = 8; // total number ALUs per group
+    int _out_pix_tile0   = 2; // # of generated pixels per output per wk-item  (ALU)
+    int _out_pix_tile1   = 4; // # of generated pixels per output per wk-item  (ALU)
+    size_t _workspace_sz = 0;
 
     /*
      * get workspace size
      */
-    inline size_t getWorkSpaceSzBytes() const { return (_workspce_sz); }
+    inline size_t getWorkSpaceSzBytes() const { return (_workspace_sz); }
 
     void setupFloats();
 
@@ -584,7 +584,7 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
      */
     inline bool doBackward() const { return (_do_backward); }
 
-    protected:
+protected:
     bool _do_backward = false;
     int _hw_wave_sz   = 0;
 
@@ -669,7 +669,7 @@ struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
     inline int getPoolingMethod() const { return (_pooling_method); }
     int mloConstruct();
 
-    protected:
+protected:
     int _pooling_method;
     miopenIndexType_t _index_type;
     miopenPoolingWorkspaceIndexMode_t _wsp_index;
@@ -714,7 +714,7 @@ struct mlo_construct_norm : mlo_construct_activ_lrn_pooling_common
 
     void mloConstruct();
 
-    protected:
+protected:
     int mloConstructFwd();
     int mloConstructBwd();
     int _norm_region  = 0;
@@ -752,7 +752,7 @@ struct mlo_construct_neuron : mlo_construct_activ_lrn_pooling_common
 
     void mloConstruct();
 
-    protected:
+protected:
     int mloConstructFwd();
     int mloConstructBwd();
     int _neuron_type;

@@ -669,10 +669,10 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     for(int i = 0; i < inDescLengths.size(); i++)
     {
-        if(outDescLengths[i] == inDescLengths[i])
-            invariantDims.push_back(i);
-        else
+        if(outDescLengths[i] == 1)
             toReduceDims.push_back(i);
+        else
+            invariantDims.push_back(i);
     };
 
     if(toReduceDims.empty())
@@ -949,6 +949,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         param += " -DCK_PARAM_IN_DIMS=" + std::to_string(inDescLengths.size());
         param += " -DCK_PARAM_OUT_DIMS=";
         param += reduceAllDims ? "1" : std::to_string(invariantDims.size());
+
+        param += " -DCK_PARAM_WAVEFRONT_SIZE=" + std::to_string(handle.GetWavefrontWidth());
 
         float time_reduce = 0.0f;
 

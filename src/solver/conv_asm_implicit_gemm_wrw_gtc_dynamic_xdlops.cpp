@@ -881,7 +881,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     //                           << (1 << log2_gemm_k_global_splits));
 
     const auto required_workspace_size = GetWorkspaceSize(ctx);
-    result.workspce_sz                 = required_workspace_size;
+    result.workspace_sz                = required_workspace_size;
 
     std::ostringstream kernel_file_name;
     kernel_file_name << kernel_name << ".s";

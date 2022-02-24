@@ -45,7 +45,7 @@
 #define MIO_LAYOUT_NHWC 0
 #endif
 
-#if (MIO_LAYOUT_NHWC != 0) && (MIO_LAYOUT_NHWC != 1)
+#if(MIO_LAYOUT_NHWC != 0) && (MIO_LAYOUT_NHWC != 1)
 #error "MIO_LAYOUT_NHWC must be 0 or 1"
 #endif
 
@@ -152,7 +152,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     {
         variance = 0;
     }
-    invVariance            = rsqrt(variance + epsilon);
+    invVariance = rsqrt(variance + epsilon);
 #endif // end -- Recalc mean and variance
     //-------------------------------------------
 
@@ -369,7 +369,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #if MIO_LAYOUT_NHWC
         index          = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
-        index          = nidx * MIO_BN_CHW + chwid + hwidx;
+        index = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
         _FLOAT_PREC in = (_FLOAT_PREC)(*(x_in + index));
         mean += in;
@@ -384,7 +384,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #if MIO_LAYOUT_NHWC
         index               = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
-        index               = nidx * MIO_BN_CHW + chwid + hwidx;
+        index = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
         _FLOAT_PREC in = (index < MIO_BN_NCHW) ? (_FLOAT_PREC)(*(x_in + index)) : (_FLOAT_PREC)0.;
         mean += in;
@@ -430,11 +430,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     _FLOAT_PREC4 xhat4;
 #endif
 #if(MIO_BN_N > MIO_BN_LOOP_UNROLL_MAXN)
-    __attribute__((opencl_unroll_hint(4))) for(unsigned int k = lid << 2*(1 - MIO_LAYOUT_NHWC);
+    __attribute__((opencl_unroll_hint(4))) for(unsigned int k = lid << 2 * (1 - MIO_LAYOUT_NHWC);
                                                k < MIO_BN_LESS4;
                                                k += GRPRD)
 #else
-    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid << 2*(1 - MIO_LAYOUT_NHWC);
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid << 2 * (1 - MIO_LAYOUT_NHWC);
                                                k < MIO_BN_LESS4;
                                                k += GRPRD)
 #endif
@@ -468,10 +468,10 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
 
 #if(MIO_BN_REM4)
-    unsigned int remkey = (lid << 2*(1 - MIO_LAYOUT_NHWC)) + MIO_BN_LESS4;
-    nidx  = remkey / MIO_BN_HW;
-    hwidx = remkey - (nidx * MIO_BN_HW);
-    index = nidx * MIO_BN_CHW +
+    unsigned int remkey = (lid << 2 * (1 - MIO_LAYOUT_NHWC)) + MIO_BN_LESS4;
+    nidx                = remkey / MIO_BN_HW;
+    hwidx               = remkey - (nidx * MIO_BN_HW);
+    index               = nidx * MIO_BN_CHW +
 #if MIO_LAYOUT_NHWC
             hwidx * MIO_BN_C + grpid;
     if(index < MIO_BN_NCHW)
@@ -544,16 +544,16 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         for(unsigned int j = 0; j < MIO_MAX_READ; j++)
 #endif
         {
-            unsigned int l = k + j;
-            nidx           = l / MIO_BN_HW;
-            hwidx          = l - (nidx * MIO_BN_HW);
+            unsigned int l  = k + j;
+            nidx            = l / MIO_BN_HW;
+            hwidx           = l - (nidx * MIO_BN_HW);
 #if MIO_LAYOUT_NHWC
-            index          = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
+            index           = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
-            index          = nidx * MIO_BN_CHW + chwid + hwidx;
+            index   = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
-            dyvalue        = (_FLOAT_PREC)(*(dy_in + index));
-            xhat = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance;
+            dyvalue         = (_FLOAT_PREC)(*(dy_in + index));
+            xhat            = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance;
 #if MIOPEN_USE_FP16 == 1
             float temp_tmp1 = mad((float)NHW, (float)dyvalue, -temp_db);
             float temp_tmp2 = -((float)xhat) * temp_ds;
@@ -578,7 +578,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #if MIO_LAYOUT_NHWC
             index             = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
-            index             = nidx * MIO_BN_CHW + chwid + hwidx;
+            index = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
             *(dx_out + index) = (_FLOAT)vals[j];
         }
@@ -598,7 +598,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #if MIO_LAYOUT_NHWC
         index          = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
-        index          = nidx * MIO_BN_CHW + chwid + hwidx;
+        index = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
         if(index < MIO_BN_NCHW)
         {
@@ -622,7 +622,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #if MIO_LAYOUT_NHWC
         index          = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
-        index          = nidx * MIO_BN_CHW + chwid + hwidx;
+        index = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
         if(index < MIO_BN_NCHW)
         {
@@ -750,7 +750,7 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
                                      const __global _FLOAT* savedMean,
                                      const __global _FLOAT* savedInvVariance
 #endif
-                                     )
+)
 {
 
     unsigned int xgid    = get_global_id(0);
@@ -1064,7 +1064,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #else  // maxn
             db += (_FLOAT_PREC)(*(dy_in + index));
             _FLOAT_PREC xhat = (((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance);
-            ds = mad(xhat, (_FLOAT_PREC)(*(dy_in + index)), ds);
+            ds               = mad(xhat, (_FLOAT_PREC)(*(dy_in + index)), ds);
 #endif
         }
     }

@@ -319,7 +319,7 @@ class ShaderModel : public UnifiedDescriptionConv2d
     const size_t n_groups;         // BQ ~compute units
     const bool out_of_model_scope; // Shader model produces unreliable results.
 
-    public:
+public:
     ShaderModel(const ConvolutionContext& ctx)
         : UnifiedDescriptionConv2d(ctx),
           DATATYPE_BITS(ctx.IsFp16() ? 16 : 32),
@@ -531,7 +531,7 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     if(!IsWarned)
     {
         if(params.GetStream().GetMaxHardwareComputeUnits() > MAX_CU_LIMIT)
-            MIOPEN_LOG_WE(SolverDbId(*this)
+            MIOPEN_LOG_WE(SolverDbId()
                           << ": GPU has " << params.GetStream().GetMaxHardwareComputeUnits()
                           << "CUs, but this solver supports max " << MAX_CU_LIMIT
                           << "and thus may show sub-optimal performance.");

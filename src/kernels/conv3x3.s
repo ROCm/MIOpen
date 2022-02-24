@@ -512,7 +512,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
             .single_vload \base, \s_offset, \mbufs_inflight, 1, 1
         .endif
         .rept (gprs_per_input_line / 4)
-            .single_vload \base, \s_offset, 4, 1
+            .single_vload \base, \s_offset, \mbufs_inflight, 4, 1
         .endr
         .single_vload \base, \s_offset, \mbufs_inflight, 3, 1
         .single_vload \base, \s_offset, \mbufs_inflight, 2, 1
@@ -780,7 +780,7 @@ loop_begin:
   .load_input linesB, mbufs_cnt_B, linesB_start_offset
   .move_input_ptr 1
 
-  s_waitcnt vmcnt(1*mbufs_cnt_A) & lgkmcnt(0)
+  s_waitcnt vmcnt(1*mbufs_cnt_B) & lgkmcnt(0)
 
   .conv3x3 linesA, filtersA, filtersA_part
   // load 2nd set of filters and adjust weights pointer
@@ -792,7 +792,7 @@ loop_begin:
   .load_input linesA, mbufs_cnt_A
   .move_input_ptr 0
 
-  s_waitcnt vmcnt(1*mbufs_cnt_B) & lgkmcnt(0)
+  s_waitcnt vmcnt(1*mbufs_cnt_A) & lgkmcnt(0)
   .conv3x3 linesB, filtersB, filtersB_part
   .load_filters filtersA, filtersA_part, 0
 
@@ -801,8 +801,9 @@ loop_end:
   s_cmpk_ge_u32 s[loop_cnt], 0 + c_group_size/2 - 1
   s_cbranch_scc0 loop_begin
 
-  .load_input linesB, linesB_start_offset
-  s_waitcnt vmcnt(1*mbufs_cnt_A) & lgkmcnt(0)
+  mbufs_cnt_B = 0
+  .load_input linesB, mbufs_cnt_B, linesB_start_offset
+  s_waitcnt vmcnt(1*mbufs_cnt_B) & lgkmcnt(0)
   .conv3x3 linesA, filtersA, filtersA_part
   .load_filters filtersB, filtersB_part, filter_c_stride
   s_waitcnt 0
@@ -823,7 +824,7 @@ loop_begin:
   .load_input linesB, mbufs_cnt_B, linesB_start_offset
   .move_input_ptr 1
 
-  s_waitcnt vmcnt(1*mbufs_cnt_A) & lgkmcnt(0)
+  s_waitcnt vmcnt(1*mbufs_cnt_B) & lgkmcnt(0)
 
   // load 2nd set of filters and adjust weights pointer
   .load_filters filtersB, filtersB_part, filter_c_stride
@@ -837,7 +838,7 @@ loop_begin:
   .load_input linesA, mbufs_cnt_A
   .move_input_ptr 0
 
-  s_waitcnt vmcnt(1*mbufs_cnt_B) & lgkmcnt(0)
+  s_waitcnt vmcnt(1*mbufs_cnt_A) & lgkmcnt(0)
   // load set of 4 filters
   .load_filters filtersA, filtersA_part, 0
 
@@ -853,7 +854,7 @@ loop_end:
   // load 2nd feature map and move to next feature map
   mbufs_cnt_B = 0
   .load_input linesB, mbufs_cnt_B, linesB_start_offset
-  s_waitcnt vmcnt(1*mbufs_cnt_A) & lgkmcnt(0)
+  s_waitcnt vmcnt(1*mbufs_cnt_B) & lgkmcnt(0)
   .load_filters filtersB, filtersB_part, filter_c_stride
   .conv3x3 linesA, filtersA, filtersA_part
   s_waitcnt 0
