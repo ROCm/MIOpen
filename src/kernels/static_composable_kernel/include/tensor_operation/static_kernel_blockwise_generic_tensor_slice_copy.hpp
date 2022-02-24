@@ -178,7 +178,7 @@ struct BlockwiseGenericTensorSliceCopy_v4
         }
     }
 
-    private:
+private:
     using ThreadBufferDesc = decltype(make_native_tensor_descriptor_packed(ThreadSliceLengths{}));
 
     using ThreadwiseLoad = ThreadwiseGenericTensorSliceCopy_v4r2<BlockSrcDesc,

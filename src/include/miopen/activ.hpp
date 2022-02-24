@@ -75,7 +75,7 @@ struct ActivationDescriptor : miopenActivationDescriptor
 
     friend std::ostream& operator<<(std::ostream& stream, const ActivationDescriptor& x);
 
-    private:
+private:
     std::vector<double> parms;
 
     miopenActivationMode_t mode = miopenActivationPASTHRU;
