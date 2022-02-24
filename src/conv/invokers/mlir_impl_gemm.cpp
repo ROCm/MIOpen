@@ -367,6 +367,18 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
                            weights_strides,
                            out_dims,
                            out_strides);
+    // Explicitly assume we will use a workspace, and prepare the
+    // optional StridedMemRef5D field inside MlirConvArgs structure.
+    // The reasons are:
+    // a) The logic to determine whether a config requires a workspace is
+    //    non-trivial inside MLIR kernel generator. We need to minimize the
+    //    number of call sites.
+    // b) The solver, not the invoker factor, will be responsible asking
+    //    MLIR kernel generator to compute the size of workspace needed.
+    // c) In the nested lambda returned below, the actual size of workspace
+    //    and the pointer will be supplied by the solver.
+    // d) In case a workspace is not needed, the pointer of a workspace will
+    //    not be passed to MLIR-generated kernel.
     MlirConvArgs args = MakeMlirConvArgs(in_dims,
                                          in_strides,
                                          weights_dims,
