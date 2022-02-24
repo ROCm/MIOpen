@@ -32,8 +32,9 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <mutex>
-#include <miopen/errors.hpp>
 #include <miopen/config.h>
+#include <miopen/errors.hpp>
+#include <miopen/logger.hpp>
 
 namespace miopen {
 
@@ -45,8 +46,9 @@ namespace miopen {
 
 #if MIOPEN_GPU_SYNC
 MIOPEN_DECLARE_HANDLE_MUTEX(gpu_handle_mutex)
-#define MIOPEN_HANDLE_LOCK \
-    auto miopen_handle_lock_guard_##__LINE__ = miopen::get_handle_lock(miopen::gpu_handle_mutex{});
+#define MIOPEN_HANDLE_LOCK                                    \
+    auto MIOPEN_PP_CAT(miopen_handle_lock_guard_, __LINE__) = \
+        miopen::get_handle_lock(miopen::gpu_handle_mutex{});
 #else
 #define MIOPEN_HANDLE_LOCK
 #endif

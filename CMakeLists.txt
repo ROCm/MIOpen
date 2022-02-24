@@ -290,7 +290,7 @@ else()
     endif()
 endif()
 
-set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT MIOPEN_EMBED_BUILD)
+set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT DEFINED MIOPEN_MODE_NOGPU))
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
 
 set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))

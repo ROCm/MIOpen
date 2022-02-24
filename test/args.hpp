@@ -28,6 +28,7 @@
 #include <cassert>
 #include <functional>
 
+#include <miopen/logger.hpp>
 #include <miopen/each_args.hpp>
 #include <numeric>
 #include <sstream>
@@ -128,10 +129,13 @@ struct is_output_streamable : decltype(detail::is_output_streamable(
 #define ARGS_REQUIRES_BOOL(...) (__VA_ARGS__)
 #endif
 
-#define ARGS_REQUIRES(...)                                                                    \
-    bool RequiresBool##__LINE__             = true,                                           \
-         typename std::enable_if<ARGS_REQUIRES_BOOL(RequiresBool##__LINE__ && (__VA_ARGS__)), \
-                                 int>::type = 0
+#define ARGS_REQUIRES(...)                                                                  \
+    bool MIOPEN_PP_CAT(                                                                     \
+        RequiresBool,                                                                       \
+        __LINE__)                          = true,                                          \
+        typename std::enable_if<ARGS_REQUIRES_BOOL(MIOPEN_PP_CAT(RequiresBool, __LINE__) && \
+                                                   (__VA_ARGS__)),                          \
+                                int>::type = 0
 
 template <class T>
 struct value_parser
