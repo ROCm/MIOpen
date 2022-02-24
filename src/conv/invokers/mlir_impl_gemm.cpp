@@ -185,34 +185,21 @@ MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
 void SetMlirConvArgsPtr(ConstData_t in,
                         ConstData_t out,
                         ConstData_t w,
-                        ConstData_t wk,
-                        MlirConvArgs& args,
-                        bool populateWorkspaceArg = false)
+                        MlirConvArgs& args)
 {
     void* filter = nullptr;
     void* input  = nullptr;
     void* output = nullptr;
-    void* workspace = nullptr;
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
     filter = const_cast<void*>(w);
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
     input = const_cast<void*>(in);
     // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
     output = const_cast<void*>(out);
-    // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-    if(populateWorkspaceArg)
-    {
-        workspace = const_cast<void*>(wk);
-    }
 
     if((filter == nullptr) || (input == nullptr) || (output == nullptr))
     {
         MIOPEN_THROW("Invalid device pointers");
-    }
-
-    if(populateWorkspaceArg && (workspace == nullptr))
-    {
-        MIOPEN_THROW("Invalid device pointers for workspace");
     }
 
     args.filter.basePtr = filter;
@@ -221,11 +208,26 @@ void SetMlirConvArgsPtr(ConstData_t in,
     args.input.data     = input;
     args.output.basePtr = output;
     args.output.data    = output;
-    if(populateWorkspaceArg)
+}
+
+void SetMlirConvArgsPtr(ConstData_t in,
+                        ConstData_t out,
+                        ConstData_t w,
+                        ConstData_t wk,
+                        MlirConvArgs& args)
+{
+    SetMlirConvArgsPtr(in, out, w, args);
+    void* workspace = nullptr;
+    // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
+    workspace = const_cast<void*>(wk);
+
+    if(workspace == nullptr)
     {
-        args.workspace->basePtr = workspace;
-        args.workspace->data    = workspace;
+        MIOPEN_THROW("Invalid device pointers for workspace");
     }
+
+    args.workspace->basePtr = workspace;
+    args.workspace->data    = workspace;
 }
 #endif
 } // Anonymous namespace
@@ -265,7 +267,7 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
                                    tensors.out,
                                    EXPAND_MLIR_CONV_ARGS(args.output));
 #elif MIOPEN_BACKEND_HIP
-            SetMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, nullptr, args);
+            SetMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, args);
             handle.Run(kernels[0])(args);
 #endif
         };
@@ -334,7 +336,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
                 elapsed += handle.GetKernelTime();
             }
 #elif MIOPEN_BACKEND_HIP
-            SetMlirConvArgsPtr(tensors.out, tensors.in, tensors.w, nullptr, args);
+            SetMlirConvArgsPtr(tensors.out, tensors.in, tensors.w, args);
             for(const auto& k : kernels)
             {
                 handle.Run(k)(args);
@@ -405,8 +407,7 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
                                    tensors.dy,
                                    tensors.dw,
                                    workspace,
-                                   args,
-                                   /*populateWorkspaceArg=*/true);
+                                   args);
                 handle.Run(kernels[0])(args);
 #endif
                 CastTensor(handle,
@@ -435,9 +436,7 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
                 SetMlirConvArgsPtr(tensors.x,
                                    tensors.dy,
                                    tensors.dw,
-                                   nullptr,
-                                   args,
-                                   /*populateWorkspaceArg=*/false);
+                                   args);
                 handle.Run(kernels[0])(args);
 #endif
             }
