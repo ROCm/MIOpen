@@ -330,11 +330,10 @@ std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context
     for(const auto& current_config : all_configs)
     {
         ConvSolution current_solution = s.GetSolution(context, current_config, true);
-	solutions.push_back(current_solution);
+        solutions.push_back(current_solution);
     }
     return solutions;
 }
-
 
 template <class Solver, class Context>
 auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
@@ -349,10 +348,10 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     context.is_for_generic_search = true;
 
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
-    auto& profile_h = context.GetStream();
+    auto& profile_h         = context.GetStream();
     AutoEnableProfiling enableProfiling{profile_h};
 
-    auto all_configs = GetAllConfigs(s, context);
+    auto all_configs       = GetAllConfigs(s, context);
     const int n_runs_total = std::distance(all_configs.begin(), all_configs.end());
 
     HeartBeat<PerformanceConfig> heartbeat;
