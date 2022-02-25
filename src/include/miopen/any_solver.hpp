@@ -234,7 +234,6 @@ struct AnySolver
             return value.IsApplicable(ctx);
         }
         bool IsTunable() const override { return TunableSolver::Is; }
-
         bool IsDynamic() const override { return value.IsDynamic(); }
         float GetWti(const ConvolutionContext& ctx) const override { return value.GetWti(ctx); }
 
