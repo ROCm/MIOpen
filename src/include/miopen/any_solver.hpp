@@ -244,24 +244,24 @@ struct AnySolver
         {
             using PerformanceConfig = decltype(value.GetPerformanceConfig(ctx));
             PerformanceConfig config{};
-            if(db.Load(ctx, miopen::solver::SolverDbId(value), config))
+            if(db.Load(ctx, value.SolverDbId(), config))
             {
-                MIOPEN_LOG_I2("Perf Db: Record Loaded: " << miopen::solver::SolverDbId(value));
+                MIOPEN_LOG_I2("Perf Db: Record Loaded: " << value.SolverDbId());
                 if(value.IsValidPerformanceConfig(ctx, config))
                 {
                     std::ostringstream ss;
                     config.Serialize(ss);
                     return ss.str();
                 }
-                MIOPEN_LOG_I2("Perf Db: Invalid Config: " << miopen::solver::SolverDbId(value));
+                MIOPEN_LOG_I2("Perf Db: Invalid Config: " << value.SolverDbId());
             }
-            MIOPEN_LOG_I2("Perf Db: Failed Loading: " << miopen::solver::SolverDbId(value));
+            MIOPEN_LOG_I2("Perf Db: Failed Loading: " << value.SolverDbId());
             return "";
         }
         const std::string
         GetPerfCfgParams_(const ConvolutionContext& ctx, Db& db, std::false_type) const
         {
-            MIOPEN_LOG_I2("Perf Db: No Config: " << miopen::solver::SolverDbId(value));
+            MIOPEN_LOG_I2("Perf Db: No Config: " << value.SolverDbId());
             std::ignore = ctx;
             std::ignore = db;
             return "";
