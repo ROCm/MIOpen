@@ -35,7 +35,6 @@
 #include <Miir.h>
 
 #include <boost/any.hpp>
-#include <boost/optional.hpp>
 #include <boost/range/adaptors.hpp>
 
 namespace miopen {
@@ -47,7 +46,7 @@ struct MlirConvArgs
     StridedMemRef5D filter;
     StridedMemRef5D input;
     StridedMemRef5D output;
-    boost::optional<StridedMemRef5D> workspace;
+    StridedMemRef5D workspace;
 };
 
 // Note: Below macros are required for opencl backend only because
@@ -167,14 +166,14 @@ MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
     StridedMemRef5D output{nullptr, nullptr, 0, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
     initDimStrides(out_dims, out_strides, output);
 
+    StridedMemRef5D workspace{nullptr, nullptr, 0, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
     if(populateWorkspaceArg)
     {
-        StridedMemRef5D workspace{nullptr, nullptr, 0, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
         initDimStrides(weights_dims, weights_strides, workspace);
         return {filter, input, output, workspace};
     }
 
-    return {filter, input, output, {}};
+    return {filter, input, output, workspace};
 }
 
 // Note: This does not work for opencl backend because it is impossible
@@ -220,8 +219,8 @@ void SetMlirConvArgsPtr(
         MIOPEN_THROW("Invalid device pointers for workspace");
     }
 
-    args.workspace->basePtr = workspace;
-    args.workspace->data    = workspace;
+    args.workspace.basePtr = workspace;
+    args.workspace.data    = workspace;
 }
 #endif
 } // Anonymous namespace
@@ -362,7 +361,7 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
                            out_dims,
                            out_strides);
     // Explicitly assume we will use a workspace, and prepare the
-    // optional StridedMemRef5D field inside MlirConvArgs structure.
+    // StridedMemRef5D field inside MlirConvArgs structure.
     // The reasons are:
     // a) The logic to determine whether a config requires a workspace is
     //    non-trivial inside MLIR kernel generator. We need to minimize the
@@ -407,7 +406,7 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
                                        EXPAND_MLIR_CONV_ARGS(args.output),
                                        workspace,
                                        workspace,
-                                       EXPAND_MLIR_CONV_ARGS(*args.workspace));
+                                       EXPAND_MLIR_CONV_ARGS(args.workspace));
 #elif MIOPEN_BACKEND_HIP
                 SetMlirConvArgsPtr(tensors.x, tensors.dy, tensors.dw, workspace, args);
                 handle.Run(kernels[0])(args);
