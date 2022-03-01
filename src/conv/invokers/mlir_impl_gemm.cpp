@@ -379,7 +379,7 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
                                          weights_strides,
                                          out_dims,
                                          out_strides,
-                                         /*populateWorkspace=*/true);
+                                         /*populateWorkspaceArg=*/true);
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {

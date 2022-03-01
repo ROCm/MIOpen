@@ -114,10 +114,10 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
 #endif
 }
 
-std::size_t ConvMlirIgemmWrWXdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
+std::size_t ConvMlirIgemmWrWXdlops::GetWorkspaceSize(const ConvolutionContext& params) const
 {
 #if MIOPEN_USE_MLIR
-    std::string comp_options = mlir::ConstructBuildOptions(ctx, /*is_xdlops=*/true);
+    std::string comp_options = mlir::ConstructBuildOptions(params, /*is_xdlops=*/true);
     return MiirGetWorkspaceSize(comp_options);
 #else
     return 0;
