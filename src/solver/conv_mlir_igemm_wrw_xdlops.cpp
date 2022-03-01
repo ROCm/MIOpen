@@ -120,6 +120,7 @@ std::size_t ConvMlirIgemmWrWXdlops::GetWorkspaceSize(const ConvolutionContext& p
     std::string comp_options = mlir::ConstructBuildOptions(params, /*is_xdlops=*/true);
     return MiirGetWorkspaceSize(comp_options);
 #else
+    std::ignore = params;
     return 0;
 #endif
 }
