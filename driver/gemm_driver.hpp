@@ -105,7 +105,7 @@ void callCpuGemmStridedBatched(bool isColMajor,
 template <typename T>
 class GemmDriver : public Driver
 {
-    public:
+public:
     GemmDriver() : Driver() {}
 
     int AddCmdLineArgs() override;
@@ -127,7 +127,7 @@ class GemmDriver : public Driver
     int VerifyForward() override;
     ~GemmDriver() override {}
 
-    private:
+private:
     InputFlags inflags;
 
     std::unique_ptr<GPUMem> a_dev;

@@ -81,7 +81,7 @@ namespace tests {
 
 class InlinerTest
 {
-    public:
+public:
     void Run(const bf::path& exe_path) const
     {
         const TmpDir test_srcs{"test_include_inliner"};
