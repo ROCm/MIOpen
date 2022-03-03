@@ -2333,22 +2333,6 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::operator==(
         && n_out_rows_in_lcl == other.n_out_rows_in_lcl; // clang-format on
 }
 
-// To suppress misleading clang warnings
-#if defined(__clang__) && defined(CONV_OCL_DIR2D_BWDWRW_2_CPP)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wweak-template-vtables"
-#endif
-
-extern template struct PerformanceConfigConvOclBwdWrw2<1>;
-extern template struct PerformanceConfigConvOclBwdWrw2<2>;
-extern template struct PerformanceConfigConvOclBwdWrw2<4>;
-extern template struct PerformanceConfigConvOclBwdWrw2<8>;
-extern template struct PerformanceConfigConvOclBwdWrw2<16>;
-
-#if defined(__clang__) && defined(CONV_OCL_DIR2D_BWDWRW_2_CPP)
-#pragma clang diagnostic pop
-#endif
-
 template <int N_BATCH_LOOPS>
 struct ConvOclBwdWrW2 : ConvSolver
 {
@@ -2378,7 +2362,14 @@ protected:
 #if defined(__clang__) && defined(CONV_OCL_DIR2D_BWDWRW_2_CPP)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wweak-template-vtables"
+#pragma clang diagnostic ignored "-Wunneeded-internal-declaration"
 #endif
+
+extern template struct PerformanceConfigConvOclBwdWrw2<1>;
+extern template struct PerformanceConfigConvOclBwdWrw2<2>;
+extern template struct PerformanceConfigConvOclBwdWrw2<4>;
+extern template struct PerformanceConfigConvOclBwdWrw2<8>;
+extern template struct PerformanceConfigConvOclBwdWrw2<16>;
 
 extern template struct ConvOclBwdWrW2<1>;
 extern template struct ConvOclBwdWrW2<2>;
