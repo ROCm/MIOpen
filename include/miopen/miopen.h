@@ -579,6 +579,33 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
 MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
     miopenTensorDescriptor_t tensorDesc, miopenDataType_t dataType, int n, int c, int h, int w);
 
+/*! @brief Set shape and stride of 4D tensor
+ *
+ * Interface for setting 4-D tensor shape and stride.
+ *
+ * @param tensorDesc Tensor descriptor type (output)
+ * @param dataType   MIOpen datatype (input)
+ * @param n          Mini-batch size (input)
+ * @param c          Number of channels (input)
+ * @param h          Data height dimension size (input)
+ * @param w          Data width dimension size (input)
+ * @param nStride    Mini-batch dimension stride (input)
+ * @param cStride    Channel dimension stride (input)
+ * @param hStride    Height dimension stride (input)
+ * @param wStride    Width dimension stride (input)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
+                                                           miopenDataType_t dataType,
+                                                           int n,
+                                                           int c,
+                                                           int h,
+                                                           int w,
+                                                           int nStride,
+                                                           int cStride,
+                                                           int hStride,
+                                                           int wStride);
+
 /*! @brief Get the details of the tensor descriptor
  *
  * Interface to query the 4-D tensor shape.
