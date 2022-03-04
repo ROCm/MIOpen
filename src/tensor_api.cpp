@@ -48,6 +48,26 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
     });
 }
 
+extern "C" miopenStatus_t miopenSet4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
+                                                        miopenDataType_t dataType,
+                                                        int n,
+                                                        int c,
+                                                        int h,
+                                                        int w,
+                                                        int nStride,
+                                                        int cStride,
+                                                        int hStride,
+                                                        int wStride)
+{
+    MIOPEN_LOG_FUNCTION(tensorDesc, dataType, n, c, h, w, nStride, cStride, hStride, wStride);
+    return miopen::try_([&] {
+        std::initializer_list<int> lens    = {n, c, h, w};
+        std::initializer_list<int> strides = {nStride, cStride, hStride, wStride};
+        miopen::deref(tensorDesc) =
+            miopen::TensorDescriptor(dataType, lens.begin(), strides.begin(), 4);
+    });
+}
+
 extern "C" miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
                                                       miopenDataType_t* dataType,
                                                       int* n,
