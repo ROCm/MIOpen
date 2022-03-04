@@ -91,7 +91,7 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->FindSolution(ctx, db, invoke_ctx);
     };
-    const std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const
+    std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const
     {
         assert(ptr_value != nullptr);
         return ptr_value->GetPerfCfgParams(ctx, db);
@@ -131,7 +131,7 @@ struct AnySolver
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx,
                                           Db& db,
                                           const miopen::AnyInvokeParams& invoke_ctx) const      = 0;
-        virtual const std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const = 0;
+        virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const = 0;
         virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const                    = 0;
         virtual bool MayNeedWorkspace() const                                                   = 0;
     };
@@ -239,7 +239,7 @@ struct AnySolver
             return miopen::solver::FindSolution(value, ctx, db, invoke_ctx);
         };
 
-        const std::string
+        std::string
         GetPerfCfgParams_(const ConvolutionContext& ctx, Db& db, std::true_type) const
         {
             using PerformanceConfig = decltype(value.GetPerformanceConfig(ctx));
@@ -258,7 +258,7 @@ struct AnySolver
             MIOPEN_LOG_I2("Perf Db: Failed Loading: " << value.SolverDbId());
             return "";
         }
-        const std::string
+        std::string
         GetPerfCfgParams_(const ConvolutionContext& ctx, Db& db, std::false_type) const
         {
             MIOPEN_LOG_I2("Perf Db: No Config: " << value.SolverDbId());
@@ -267,7 +267,7 @@ struct AnySolver
             return "";
         }
 
-        const std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const override
+        std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const override
         {
             return GetPerfCfgParams_(ctx, db, std::integral_constant<bool, TunableSolver::Is>());
         }
