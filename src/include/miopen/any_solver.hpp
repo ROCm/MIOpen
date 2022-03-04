@@ -120,20 +120,20 @@ struct AnySolver
         using ptr = std::shared_ptr<const AnySolver_base>;
 
         virtual ~AnySolver_base(){};
-        virtual bool IsApplicable(const ConvolutionContext& ctx) const                          = 0;
-        virtual bool IsTunable() const                                                          = 0;
-        virtual bool TestSysDbRecord(const DbRecord& record) const                              = 0;
-        virtual std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const  = 0;
-        virtual bool IsDynamic() const                                                          = 0;
-        virtual float GetWti(const ConvolutionContext& ctx) const                               = 0;
-        virtual const std::type_info& Type() const                                              = 0;
-        virtual std::string GetSolverDbId() const                                               = 0;
+        virtual bool IsApplicable(const ConvolutionContext& ctx) const                         = 0;
+        virtual bool IsTunable() const                                                         = 0;
+        virtual bool TestSysDbRecord(const DbRecord& record) const                             = 0;
+        virtual std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const = 0;
+        virtual bool IsDynamic() const                                                         = 0;
+        virtual float GetWti(const ConvolutionContext& ctx) const                              = 0;
+        virtual const std::type_info& Type() const                                             = 0;
+        virtual std::string GetSolverDbId() const                                              = 0;
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx,
                                           Db& db,
-                                          const miopen::AnyInvokeParams& invoke_ctx) const      = 0;
-        virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const = 0;
-        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const                    = 0;
-        virtual bool MayNeedWorkspace() const                                                   = 0;
+                                          const miopen::AnyInvokeParams& invoke_ctx) const     = 0;
+        virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const      = 0;
+        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const                   = 0;
+        virtual bool MayNeedWorkspace() const                                                  = 0;
     };
 
     // templated derived class
@@ -239,8 +239,7 @@ struct AnySolver
             return miopen::solver::FindSolution(value, ctx, db, invoke_ctx);
         };
 
-        std::string
-        GetPerfCfgParams_(const ConvolutionContext& ctx, Db& db, std::true_type) const
+        std::string GetPerfCfgParams_(const ConvolutionContext& ctx, Db& db, std::true_type) const
         {
             using PerformanceConfig = decltype(value.GetPerformanceConfig(ctx));
             PerformanceConfig config{};
@@ -258,8 +257,7 @@ struct AnySolver
             MIOPEN_LOG_I2("Perf Db: Failed Loading: " << value.SolverDbId());
             return "";
         }
-        std::string
-        GetPerfCfgParams_(const ConvolutionContext& ctx, Db& db, std::false_type) const
+        std::string GetPerfCfgParams_(const ConvolutionContext& ctx, Db& db, std::false_type) const
         {
             MIOPEN_LOG_I2("Perf Db: No Config: " << value.SolverDbId());
             std::ignore = ctx;
