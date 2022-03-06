@@ -706,12 +706,10 @@ rocm_install_targets(
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}/include
     ${MIOPEN_CXX_HEADER_PATH}
-  PREFIX ${MIOPEN_INSTALL_DIR}
 )
 
 rocm_export_targets(
   TARGETS MIOpen
-  PREFIX ${MIOPEN_INSTALL_DIR}
   DEPENDS
     ${PACKAGE_DEPENDS}
   STATIC_DEPENDS
@@ -754,4 +752,3 @@ else()
 
     endif()
 endif()
-rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
