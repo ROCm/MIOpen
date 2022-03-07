@@ -114,9 +114,10 @@ def buildHipClangJob(Map conf=[:]){
 
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
+        env.DOCKER_BUILDKIT=1
         checkout scm
-
-        def image = "miopen"
+        def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
+        def image = "${NODE_DOCKER_REGISTRY}/miopen_build_cache/miopen:${branch}"
         def prefixpath = conf.get("prefixpath", "/usr/local")
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
 
@@ -128,7 +129,7 @@ def buildHipClangJob(Map conf=[:]){
         if (conf.get("enforce_xnack_on", false)) {
             dockerOpts = dockerOpts + " --env HSA_XNACK=1"
         }
-        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' --build-arg USE_FIN='${build_fin}' "
+        def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' --build-arg USE_FIN='${build_fin}' "
 
         def variant = env.STAGE_NAME
 

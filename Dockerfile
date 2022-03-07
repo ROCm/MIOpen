@@ -1,11 +1,6 @@
 FROM ubuntu:18.04
 
-ARG PREFIX=/usr/local
-ARG GPU_ARCH=";"
-ARG MIOTENSILE_VER="default"
-ARG USE_TARGETID="OFF"
 ARG USE_MLIR="OFF"
-ARG USE_FIN="OFF"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -94,6 +89,9 @@ ADD requirements.txt /requirements.txt
 ADD dev-requirements.txt /dev-requirements.txt
 # Install dependencies
 # TODO: Add --std=c++14
+ARG GPU_ARCH=";"
+ARG PREFIX=/usr/local
+ARG USE_FIN="OFF"
 RUN if [ "$USE_FIN" = "ON" ]; then \
         rbuild prepare -s fin -d $PREFIX -DAMDGPU_TARGETS=${GPU_ARCH}; \
     else \
@@ -106,9 +104,11 @@ RUN pip3 install -r /doc-requirements.txt
 
 # Use parallel job to accelerate tensile build
 # Workaround for Tensile with TargetID feature
+ARG USE_TARGETID="OFF"
 RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -parallel-jobs=4' && export HIPCC_COMPILE_FLAGS_APPEND='-O3 -Wno-format-nonliteral -parallel-jobs=4' && rm -f /usr/bin/hipcc; fi
 
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
+ARG MIOTENSILE_VER="default"
 RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
 
 RUN groupadd -f render
