@@ -2436,8 +2436,8 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
  *
  * If either estimatedMean, or estimatedVariance are null pointers then the values for the mean and
  * variance will be calculated from input data and this calculated mean and variance will be used
- * to update input values. 
- * If variance is zero and epsilon is also zero, this function outputs NAN values.  Input espilon 
+ * to update input values.
+ * If variance is zero and epsilon is also zero, this function outputs NAN values.  Input espilon
  * value should always be non zero positive value.
  *
  * @param handle                    MIOpen handle (input)
