@@ -1110,6 +1110,9 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const Convolutio
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+        return false;
+
     if(!IsXdlopsSupport(ctx))
         return false;
 
