@@ -8,7 +8,12 @@ RUN dpkg --add-architecture i386
 # Add rocm repository
 RUN apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y curl apt-utils wget gnupg2
-RUN curl https://raw.githubusercontent.com/RadeonOpenCompute/ROCm-docker/master/add-rocm.sh | bash
+
+#RUN curl https://raw.githubusercontent.com/RadeonOpenCompute/ROCm-docker/master/add-rocm.sh | bash
+ARG ROCMVERSION=4.5
+ARG DEB_ROCM_REPO=http://repo.radeon.com/rocm/apt/.apt_$ROCMVERSION/
+RUN wget -qO - http://repo.radeon.com/rocm/rocm.gpg.key | apt-key add -
+RUN sh -c "echo deb [arch=amd64] $DEB_ROCM_REPO ubuntu main > /etc/apt/sources.list.d/rocm.list"
 
 # Install dependencies required to build hcc
 # Ubuntu csomic contains llvm-7 required to build Tensile

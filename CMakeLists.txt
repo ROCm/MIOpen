@@ -101,14 +101,6 @@ set_property( CACHE FIN_BACKEND PROPERTY STRINGS
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
 find_package(rocblas REQUIRED PATHS /opt/rocm)
-# probably not required
-target_flags(HIP_COMPILER_FLAGS hip::device)
-# Remove cuda arch flags
-string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-
-message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
-
-add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 
 # OpenCL 1.2
 if( FIN_BACKEND STREQUAL "OpenCL")
@@ -208,6 +200,8 @@ elseif(FIN_BACKEND STREQUAL "HIP")
     set(MIOPEN_TIDY_ERRORS ALL)
 endif()
 
+if(NOT MIOPEN_ENABLE_FIN)
+    message("MIOPEN_ENABLE_FIN is NOT SET")
 include(ClangTidy)
 enable_clang_tidy(
     CHECKS
@@ -329,6 +323,9 @@ enable_cppcheck(
         MIOPEN_USE_MIOPENGEMM=1
         __linux__=1
 )
+else()
+    message("MIOPEN_ENABLE_FIN is SET")
+endif()
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
