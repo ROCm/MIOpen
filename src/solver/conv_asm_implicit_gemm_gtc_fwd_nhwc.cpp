@@ -655,9 +655,6 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
         if(ctx.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
 
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}) && gemm_k_global_split != 0)
-        return false;
-
     const auto& c         = ctx.n_inputs;
     const auto& k         = ctx.n_outputs;
     const auto& group     = ctx.group_counts;
@@ -824,6 +821,9 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC{}))
+        return false;
+
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
