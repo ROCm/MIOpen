@@ -103,9 +103,10 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(ctx);
+    size_t workspace_req   = GetWorkspaceSize(ctx);
+    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(ctx, workspace_req);
     result.construction_params.push_back(construction_parameters);
-    result.workspace_sz = GetWorkspaceSize(ctx);
+    result.workspace_sz = workspace_req;
     return result;
 #else
     std::ignore = ctx;

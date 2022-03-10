@@ -150,7 +150,7 @@ MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
                               const std::vector<size_t>& weights_strides,
                               const std::vector<size_t>& out_dims,
                               const std::vector<size_t>& out_strides,
-                              bool populateWorkspaceArg = false)
+                              size_t workspace_req)
 {
     auto initDimStrides = [](const std::vector<size_t>& dims,
                              const std::vector<size_t>& strides,
@@ -167,10 +167,9 @@ MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
     initDimStrides(out_dims, out_strides, output);
 
     StridedMemRef5D workspace{nullptr, nullptr, 0, {0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
-    if(populateWorkspaceArg)
+    if(workspace_req > 0)
     {
         initDimStrides(weights_dims, weights_strides, workspace);
-        return {filter, input, output, workspace};
     }
 
     return {filter, input, output, workspace};
@@ -346,7 +345,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
     };
 }
 
-InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
+InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t workspace_req)
 {
     assert((ctx.direction.IsBackwardWrW()));
 
@@ -360,36 +359,25 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx)
                            weights_strides,
                            out_dims,
                            out_strides);
-    // Explicitly assume we will use a workspace, and prepare the
-    // StridedMemRef5D field inside MlirConvArgs structure.
-    // The reasons are:
-    // a) The logic to determine whether a config requires a workspace is
-    //    non-trivial inside MLIR kernel generator. We need to minimize the
-    //    number of call sites.
-    // b) The solver, not the invoker factor, will be responsible asking
-    //    MLIR kernel generator to compute the size of workspace needed.
-    // c) In the nested lambda returned below, the actual size of workspace
-    //    and the pointer will be supplied by the solver.
-    // d) In case a workspace is not needed, the pointer of a workspace will
-    //    not be passed to MLIR-generated kernel.
-    MlirConvArgs args = MakeMlirConvArgs(in_dims,
-                                         in_strides,
-                                         weights_dims,
-                                         weights_strides,
-                                         out_dims,
-                                         out_strides,
-                                         /*populateWorkspaceArg=*/true);
+    MlirConvArgs args = MakeMlirConvArgs(
+        in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides, workspace_req);
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             const auto& wrw_invoke_params = primitive_parameters.CastTo<conv::WrWInvokeParams>();
             const auto& tensors           = wrw_invoke_params.tensors;
-            const auto& workspaceSize     = wrw_invoke_params.workSpaceSize;
             float zero                    = 0.f;
 
-            if(workspaceSize > 0)
+            if(workspace_req > 0)
             {
-                const auto& workspace = wrw_invoke_params.workSpace;
+                const auto& workspace         = wrw_invoke_params.workSpace;
+                const auto workspaceSpaceSize = wrw_invoke_params.worksSpaceSize;
+
+                if((workspace == nullptr) || (workspaceSize < workspace_req))
+                    MIOPEN_THROW("Not enough workspace for MLIR WRW (" +
+                                 std::to_string(workSpaceSize) + " provided, " +
+                                 std::to_string(workspace_req) + " required)");
+
                 TensorDescriptor workspaceDesc(
                     miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
                 SetTensor(handle, workspaceDesc, workspace, &zero);
