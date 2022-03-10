@@ -104,14 +104,8 @@ bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx) const
 
 bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*config*/)
 {
-    static bool allTuningExercised = false;
-
-    // This signals the end of tuning
     if(*this == MlirHeuristicInitRequest())
-    {
-        allTuningExercised = false;
-        return false;
-    }
+        MIOPEN_THROW("Should not iterate from the heuristic value");
 
     // always search full space, no matter if use_spare_set or not
     do
@@ -128,21 +122,7 @@ bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*config*/
             break;
         if(!NextTwoPower<2, 4>(GemmNPerThread))
             break;
-        if(!allTuningExercised)
-        {
-            // When all tuning parameters have been enumerated, insert the
-            // heuristic request. This is such that in the case that only
-            // padding kernel available, at least one valid tuning parameters
-            // can populate and persist to perfdb.
-            *this              = MlirHeuristicInitRequest();
-            allTuningExercised = true;
-            break;
-        }
 
-        // Realistically it is impossible to return from here as the
-        // next round performance config will be equivalent to
-        // MlirHeuristicInitRequest therefore returned earlier in this
-        // routine.
         return false;
     } while(false);
 
