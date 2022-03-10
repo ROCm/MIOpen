@@ -239,8 +239,8 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
                            out_dims,
                            out_strides);
 
-    MlirConvArgs args =
-        MakeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
+    MlirConvArgs args = MakeMlirConvArgs(
+        in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides, 0);
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
@@ -280,8 +280,8 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
                            weights_strides,
                            out_dims,
                            out_strides);
-    MlirConvArgs args =
-        MakeMlirConvArgs(in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides);
+    MlirConvArgs args = MakeMlirConvArgs(
+        in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides, 0);
 
     const auto& conv  = ctx.conv_problem.GetConv();
     const auto& wDesc = ctx.conv_problem.GetWeights();
@@ -371,7 +371,7 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t w
             if(workspace_req > 0)
             {
                 const auto& workspace         = wrw_invoke_params.workSpace;
-                const auto workspaceSpaceSize = wrw_invoke_params.worksSpaceSize;
+                const auto workspaceSpaceSize = wrw_invoke_params.workSpaceSize;
 
                 if((workspace == nullptr) || (workspaceSize < workspace_req))
                     MIOPEN_THROW("Not enough workspace for MLIR WRW (" +
