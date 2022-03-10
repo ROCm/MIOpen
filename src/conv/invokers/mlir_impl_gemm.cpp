@@ -370,12 +370,12 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t w
 
             if(workspace_req > 0)
             {
-                const auto& workspace         = wrw_invoke_params.workSpace;
-                const auto workspaceSpaceSize = wrw_invoke_params.workSpaceSize;
+                const auto& workspace    = wrw_invoke_params.workSpace;
+                const auto workspaceSize = wrw_invoke_params.workSpaceSize;
 
                 if((workspace == nullptr) || (workspaceSize < workspace_req))
                     MIOPEN_THROW("Not enough workspace for MLIR WRW (" +
-                                 std::to_string(workSpaceSize) + " provided, " +
+                                 std::to_string(workspaceSize) + " provided, " +
                                  std::to_string(workspace_req) + " required)");
 
                 TensorDescriptor workspaceDesc(

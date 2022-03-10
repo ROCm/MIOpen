@@ -107,7 +107,7 @@ ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(ctx, 0);
     result.construction_params.push_back(construction_parameters);
     return result;
 #else
