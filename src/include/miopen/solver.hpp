@@ -867,19 +867,21 @@ struct PerformanceConvMlirIgemm : Serializable<PerformanceConvMlirIgemm>
     int GemmKPerBlock;
     int GemmMPerThread;
     int GemmNPerThread;
+
+    bool SpareConfig;
     bool use_spare_set;
 
     /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1154
     static const PerformanceConvMlirIgemm& MlirHeuristicInitRequest();
 
-    PerformanceConvMlirIgemm(int, int, int, int, int, int, bool);
+    PerformanceConvMlirIgemm(int, int, int, int, int, int, bool, bool);
 
-    PerformanceConvMlirIgemm(int a, int b, int c, int d, int e, int f)
-        : PerformanceConvMlirIgemm(a, b, c, d, e, f, false)
+    PerformanceConvMlirIgemm(int a, int b, int c, int d, int e, int f, bool g)
+        : PerformanceConvMlirIgemm(a, b, c, d, e, f, g, false)
     {
     }
 
-    PerformanceConvMlirIgemm() : PerformanceConvMlirIgemm(-1, -1, -1, -1, -1, -1, false) {}
+    PerformanceConvMlirIgemm() : PerformanceConvMlirIgemm(-1, -1, -1, -1, -1, -1, false, false) {}
 
     PerformanceConvMlirIgemm(bool spare);
 
@@ -929,17 +931,18 @@ struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdl
     bool GemmAThreadCopyMoreGemmK;
     bool GemmBThreadCopyMoreGemmKPack;
 
+    bool SpareConfig;
     bool use_spare_set;
 
     /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1154
     static const PerformanceConvMlirIgemmXdlops& MlirHeuristicInitRequest();
 
-    PerformanceConvMlirIgemmXdlops(int, int, int, int, int, int, bool, bool, bool);
+    PerformanceConvMlirIgemmXdlops(int, int, int, int, int, int, bool, bool, bool, bool);
 
     PerformanceConvMlirIgemmXdlops();
     PerformanceConvMlirIgemmXdlops(bool spare);
-    PerformanceConvMlirIgemmXdlops(int a, int b, int c, int d, int e, int f, bool g, bool h)
-        : PerformanceConvMlirIgemmXdlops(a, b, c, d, e, f, g, h, false)
+    PerformanceConvMlirIgemmXdlops(int a, int b, int c, int d, int e, int f, bool g, bool h, bool i)
+        : PerformanceConvMlirIgemmXdlops(a, b, c, d, e, f, g, h, i, false)
     {
     }
 
