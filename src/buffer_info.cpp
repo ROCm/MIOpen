@@ -164,7 +164,7 @@ MultiBufferWorkspaceTraits::MultiBufferWorkspaceTraits(std::initializer_list<siz
 
 size_t MultiBufferWorkspaceTraits::GetSize() const
 {
-    return v_offset[v_offset.size() - 2] + v_size.back();
+    return (&v_offset.back())[-1] + v_size.back();
 }
 
 size_t MultiBufferWorkspaceTraits::GetOffset(size_t index) const
