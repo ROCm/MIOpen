@@ -88,15 +88,13 @@ PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(int GemmMPerBlock
 }
 
 PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(bool spare)
+    : PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(
+          4, 16, 1, 4, 16, 4, false, false, false, spare)
 {
     // In case of spare, search only the MlirHeuristicInitRequest
-    if(spare == true)
+    if(spare)
     {
         *this = MlirHeuristicInitRequest();
-    }
-    else
-    {
-        *this = PerformanceConvMlirIgemmXdlops(4, 16, 1, 4, 16, 4, false, false, false, spare);
     }
 }
 

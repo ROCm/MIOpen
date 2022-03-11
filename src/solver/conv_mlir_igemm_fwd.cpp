@@ -65,15 +65,12 @@ PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(int BlockSize_,
 }
 
 PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(bool spare)
+    : PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(64, 32, 32, 4, 2, 2, false, spare)
 {
     // In case of spare, search only the MlirHeuristicInitRequest
-    if(spare == true)
+    if(spare)
     {
         *this = MlirHeuristicInitRequest();
-    }
-    else
-    {
-        *this = PerformanceConvMlirIgemm(64, 32, 32, 4, 2, 2, false, spare);
     }
 }
 
