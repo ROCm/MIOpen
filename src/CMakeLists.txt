@@ -46,9 +46,11 @@ configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BIN
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/version.h.in" "${PROJECT_BINARY_DIR}/include/miopen/version.h" )
 
+
+if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
 #Copy header to Build Dir
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINARY_DIR}/include/miopen/miopen.h" )
-
+endif()
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
