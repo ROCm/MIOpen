@@ -431,12 +431,12 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t w
                     elapsed += handle.GetKernelTime();
                 }
 #endif
+            }
 
-                if(handle.IsProfilingEnabled())
-                {
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(elapsed);
-                }
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
             }
         };
     };
