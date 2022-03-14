@@ -40,7 +40,7 @@ namespace miopen {
 
 class InvokerCache
 {
-    public:
+public:
     // network_config, solver_id
     using Key = std::pair<std::string, std::string>;
 
@@ -54,7 +54,7 @@ class InvokerCache
                        const std::string& algorithm,
                        const std::string& solver_id);
 
-    private:
+private:
     struct Item
     {
         // algorithm -> solver_id

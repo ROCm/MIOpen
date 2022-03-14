@@ -157,7 +157,7 @@ class SQLite::impl
         return rc;
     }
 
-    public:
+public:
     impl(const std::string& filename_, bool is_system)
     {
         boost::filesystem::path filepath(filename_);
@@ -280,7 +280,7 @@ class SQLite::Statement::impl
         return sqlite3_stmt_ptr{ptr};
     }
 
-    public:
+public:
     impl(const SQLite& sql, const std::string& query) { ptrStmt = Prepare(sql, query); }
     impl(const SQLite& sql, const std::string& query, const std::vector<std::string>& vals)
     {

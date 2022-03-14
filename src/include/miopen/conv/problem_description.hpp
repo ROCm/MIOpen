@@ -365,7 +365,7 @@ struct ProblemDescription
         f(std::to_string(self.GetGroupCount()), "group_count");
     }
 
-    private:
+private:
     TensorDescriptor in;
     TensorDescriptor weights;
     TensorDescriptor out;

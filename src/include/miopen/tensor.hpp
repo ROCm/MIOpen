@@ -208,7 +208,7 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
 
-    private:
+private:
     std::vector<std::size_t> lens;
     std::vector<std::size_t> strides;
 

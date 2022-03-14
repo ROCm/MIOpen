@@ -145,7 +145,7 @@ struct ThreadwiseGenericTensorSliceCopy_v1r2_deprecated
             });
     }
 
-    private:
+private:
     Array<index_t, nDim> mSrcSliceOrigin;
     Array<index_t, nDim> mDstSliceOrigin;
 };
@@ -434,7 +434,7 @@ struct ThreadwiseGenericTensorSliceCopy_v2r1_deprecated
         }).Else([&](auto) { mDstSliceOrigin -= step_sizes; });
     }
 
-    private:
+private:
     SrcCoordinate mSrcSliceOrigin;
     DstCoordinate mDstSliceOrigin;
 };
