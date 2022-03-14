@@ -741,6 +741,8 @@ add_custom_test(test_conv_igemm_mlir_xdlops SKIP_UNLESS_ALL HALF_ENABLED SKIP_UN
     COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
     COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
     COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 256 1024 14 14 --weights 1024 32   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 32
+
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_W} --input 64 1024 14 14 --weights 1024 1024  1 1 --pads_strides_dilations 0 0 1 1 1 1
 )
 
 set(IMPLICITGEMM_TESTING_ENV

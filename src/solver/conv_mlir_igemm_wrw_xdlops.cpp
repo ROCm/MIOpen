@@ -105,13 +105,26 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(ctx);
+    size_t workspace_req   = GetWorkspaceSize(ctx);
+    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(ctx, workspace_req);
     result.construction_params.push_back(construction_parameters);
+    result.workspace_sz = workspace_req;
     return result;
 #else
     std::ignore = ctx;
     std::ignore = config;
     return {};
+#endif
+}
+
+std::size_t ConvMlirIgemmWrWXdlops::GetWorkspaceSize(const ConvolutionContext& params) const
+{
+#if MIOPEN_USE_MLIR
+    std::string comp_options = mlir::ConstructBuildOptions(params, /*is_xdlops=*/true);
+    return MiirGetWorkspaceSize(comp_options);
+#else
+    std::ignore = params;
+    return 0;
 #endif
 }
 

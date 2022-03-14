@@ -101,4 +101,10 @@ int MiirGetKernelCount(const std::string& params)
     return kernel_count;
 }
 
+int MiirGetWorkspaceSize(const std::string& params)
+{
+    AutoMiirHandle handle(params);
+    return miirGetWorkspaceSize(handle());
+}
+
 } // namespace miopen
