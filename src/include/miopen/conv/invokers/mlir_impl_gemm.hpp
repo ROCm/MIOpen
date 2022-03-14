@@ -34,7 +34,7 @@ namespace conv {
 
 InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx);
 InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx);
-InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx);
+InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t workspace_req);
 
 } // namespace conv
 } // namespace miopen

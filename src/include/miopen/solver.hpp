@@ -1074,6 +1074,8 @@ struct ConvMlirIgemmWrWXdlops : ConvSolver
                                   const PerformanceConvMlirIgemmXdlops& config) const;
     PerformanceConvMlirIgemmXdlops Search(const ConvolutionContext&,
                                           const AnyInvokeParams& invoke_ctx) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
+    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceConvMlirIgemmXdlops& config,
                              bool disableConfigOverrideFromEnv = false) const;
