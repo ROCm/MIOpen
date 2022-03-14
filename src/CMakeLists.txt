@@ -48,7 +48,7 @@ configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/version.h.in" "${PROJECT_B
 
 
 if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
-#Copy header to Build Dir
+#Copy header to Build Dir for generating backward compatibility
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINARY_DIR}/include/miopen/miopen.h" )
 endif()
 
@@ -760,13 +760,15 @@ else()
 endif()
 
 if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
-  rocm_wrap_header_dir(
-    ${PROJECT_BINARY_DIR}/include/miopen
-    PATTERNS "*.h"
+  #Generating Wrapper of each headers for backward compatibility
+  rocm_wrap_header_file(
+    export.h config.h version.h miopen.h
+    HEADER_LOCATION include/miopen
     GUARDS WRAPPER
     WRAPPER_LOCATIONS miopen/include/miopen
   )
 
+  #Installing Wrapper Headers
   rocm_install(
     DIRECTORY
        "${PROJECT_BINARY_DIR}/miopen/include"
