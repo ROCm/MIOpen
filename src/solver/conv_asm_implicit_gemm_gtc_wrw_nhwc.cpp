@@ -727,9 +727,6 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
         if(ctx.IsFp16() && tensor_b_thread_lengths[3] != 1 && gemm_k_global_split != 0 && vector_store != 1)
             return false;
 
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}) && gemm_k_global_split != 0)
-        return false;
-
     const auto& k         = ctx.n_inputs;
     const auto& c         = ctx.n_outputs;
     const auto& y         = ctx.kernel_size_h;
@@ -799,6 +796,9 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::Search(const ConvolutionContext& ctx
 bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC{}))
+        return false;
+
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
