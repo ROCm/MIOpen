@@ -152,7 +152,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
                                            const void* beta,
                                            const TensorDescriptor& dxDesc,
                                            Data_t dx,
-                                           ConstData_t workSpace) const
+                                           Data_t workSpace) const
 {
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta)), 0))
