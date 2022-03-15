@@ -36,7 +36,6 @@
 namespace ck {
 
 template <index_t BlockSize,
-          index_t WavefrontSize,
           typename srcDataType,
           typename dstDataType,
           typename compType,
@@ -94,7 +93,7 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             in_thread_buf;
 
         using warpwise_reduce =
-            WarpReduce<decltype(in_thread_buf), BlockSize, WavefrontSize, opReduce, nanPropaOpt>;
+            WarpReduce<decltype(in_thread_buf), BlockSize, opReduce, nanPropaOpt>;
 
         StaticBuffer<AddressSpaceEnum_t::Vgpr, compType, 1, true> accuValue_buf;
 
@@ -111,8 +110,8 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             make_tuple(Number<1>{}, Number<GredAccessesPerThreadInWarp>{}));
 
         index_t thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
-        index_t warp_global_1d_id   = thread_global_1d_id / WavefrontSize;
-        index_t thread_inwarp_id    = thread_global_1d_id % WavefrontSize;
+        index_t warp_global_1d_id   = thread_global_1d_id / warpSize;
+        index_t thread_inwarp_id    = thread_global_1d_id % warpSize;
 
         auto threadwise_src_load = ThreadwiseTensorSliceTransfer_v2<srcDataType,
                                                                     compType,
@@ -128,10 +127,10 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             make_multi_index(warp_global_1d_id, thread_inwarp_id * GredAccessesPerThreadInWarp));
 
         constexpr auto in_thread_copy_step =
-            make_multi_index(0, WavefrontSize * GredAccessesPerThreadInWarp);
+            make_multi_index(0, warpSize * GredAccessesPerThreadInWarp);
 
         for(index_t reducedLength = 0; reducedLength < toReduceLength;
-            reducedLength += WavefrontSize * GredAccessesPerThreadInWarp)
+            reducedLength += warpSize * GredAccessesPerThreadInWarp)
         {
             threadwise_src_load.Run(
                 src2dDesc, src_global_buf, ThreadBufferDesc, make_tuple(I0, I0), in_thread_buf);
@@ -229,7 +228,7 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             in_thread_buf;
 
         using warpwise_reduce =
-            WarpReduce<decltype(in_thread_buf), BlockSize, WavefrontSize, opReduce, nanPropaOpt>;
+            WarpReduce<decltype(in_thread_buf), BlockSize, opReduce, nanPropaOpt>;
 
         StaticBuffer<AddressSpaceEnum_t::Vgpr, compType, 1, true> accuValue_buf;
         StaticBuffer<AddressSpaceEnum_t::Vgpr, int, 1, true> accuIndex_buf;
@@ -247,8 +246,8 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             make_tuple(Number<1>{}, Number<GredAccessesPerThreadInWarp>{}));
 
         index_t thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
-        index_t warp_global_1d_id   = thread_global_1d_id / WavefrontSize;
-        index_t thread_inwarp_id    = thread_global_1d_id % WavefrontSize;
+        index_t warp_global_1d_id   = thread_global_1d_id / warpSize;
+        index_t thread_inwarp_id    = thread_global_1d_id % warpSize;
 
         auto threadwise_src_load = ThreadwiseTensorSliceTransfer_v2<srcDataType,
                                                                     compType,
@@ -264,11 +263,11 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             make_multi_index(warp_global_1d_id, thread_inwarp_id * GredAccessesPerThreadInWarp));
 
         constexpr auto in_thread_copy_step =
-            make_multi_index(0, WavefrontSize * GredAccessesPerThreadInWarp);
+            make_multi_index(0, warpSize * GredAccessesPerThreadInWarp);
 
         index_t indexOffset = 0;
         for(index_t reducedLength = 0; reducedLength < toReduceLength;
-            reducedLength += WavefrontSize * GredAccessesPerThreadInWarp)
+            reducedLength += warpSize * GredAccessesPerThreadInWarp)
         {
             threadwise_src_load.Run(
                 src2dDesc, src_global_buf, ThreadBufferDesc, make_tuple(I0, I0), in_thread_buf);
@@ -281,7 +280,7 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             warpwise_reduce::Reduce2(
                 in_thread_buf, accuValue_buf(I0), accuIndex_buf(I0), indexOffset);
 
-            indexOffset += WavefrontSize * GredAccessesPerThreadInWarp;
+            indexOffset += warpSize * GredAccessesPerThreadInWarp;
 
             threadwise_src_load.MoveSrcSliceWindow(src2dDesc, in_thread_copy_step);
         }
@@ -395,7 +394,6 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
         using warpwise_reduce = WarpReduceWithIndicesInput<decltype(in_thread_val_buf),
                                                            decltype(in_thread_idx_buf),
                                                            BlockSize,
-                                                           WavefrontSize,
                                                            opReduce,
                                                            nanPropaOpt>;
 
@@ -412,8 +410,8 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             make_tuple(Number<1>{}, Number<GredAccessesPerThreadInWarp>{}));
 
         index_t thread_global_1d_id = get_block_1d_id() * BlockSize + get_thread_local_1d_id();
-        index_t warp_global_1d_id   = thread_global_1d_id / WavefrontSize;
-        index_t thread_inwarp_id    = thread_global_1d_id % WavefrontSize;
+        index_t warp_global_1d_id   = thread_global_1d_id / warpSize;
+        index_t thread_inwarp_id    = thread_global_1d_id % warpSize;
 
         auto threadwise_src_val_load = ThreadwiseTensorSliceTransfer_v2<srcDataType,
                                                                         compType,
@@ -442,10 +440,10 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             make_multi_index(warp_global_1d_id, thread_inwarp_id * GredAccessesPerThreadInWarp));
 
         constexpr auto in_thread_copy_step =
-            make_multi_index(0, WavefrontSize * GredAccessesPerThreadInWarp);
+            make_multi_index(0, warpSize * GredAccessesPerThreadInWarp);
 
         for(index_t reducedLength = 0; reducedLength < toReduceLength;
-            reducedLength += WavefrontSize * GredAccessesPerThreadInWarp)
+            reducedLength += warpSize * GredAccessesPerThreadInWarp)
         {
             threadwise_src_val_load.Run(src2dDesc,
                                         src_global_val_buf,
