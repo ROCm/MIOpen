@@ -143,13 +143,9 @@ struct AnySolver
         struct TunableSolver
         {
             template <typename U>
-            static constexpr auto Test(U*) -> typename std::is_same<
-                ConvSolution,
-                decltype(std::declval<U>().GetSolution(
-                    std::declval<const ConvolutionContext&>(),
-                    std::declval<const decltype(std::declval<U>().GetPerformanceConfig(
-                        std::declval<const ConvolutionContext&>()))&>(),
-                    std::declval<bool>()))>::type;
+            static constexpr auto Test(U*) ->
+                typename std::is_class<decltype(std::declval<U>().GetPerformanceConfig(
+                    std::declval<const ConvolutionContext&>()))>::type;
 
             template <typename U>
             static constexpr std::false_type Test(...);
@@ -202,20 +198,20 @@ struct AnySolver
         std::vector<ConvSolution> GetAllSolutions_blegacy_(const ConvolutionContext& ctx,
                                                            std::false_type) const
         {
-            std::vector<ConvSolution> solutions;
-            solutions.push_back(value.GetSolution(ctx));
-            return solutions;
+            return miopen::solver::GetAllSolutions(value, ctx);
         }
 
         std::vector<ConvSolution> GetAllSolutions_(const ConvolutionContext& ctx,
                                                    std::true_type) const
         {
-            return miopen::solver::GetAllSolutions(value, ctx);
+            return GetAllSolutions_blegacy_(ctx, std::integral_constant<bool, LegacySolver::Is>());
         }
         std::vector<ConvSolution> GetAllSolutions_(const ConvolutionContext& ctx,
                                                    std::false_type) const
         {
-            return GetAllSolutions_blegacy_(ctx, std::integral_constant<bool, LegacySolver::Is>());
+            std::vector<ConvSolution> solutions;
+            solutions.push_back(value.GetSolution(ctx));
+            return solutions;
         }
 
         std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const override

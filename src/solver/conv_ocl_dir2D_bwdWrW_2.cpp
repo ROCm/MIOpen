@@ -148,6 +148,13 @@ bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& params) co
     return ConvOclBwdWrW2<1>::IsApplicableBase(params) && !IsTunable(params);
 }
 
+PerformanceConfigConvOclBwdWrw2<1>
+ConvOclBwdWrW2NonTunable::GetPerformanceConfig(const ConvolutionContext& params) const
+{
+    // Invoking base class GetPerformanceConfig
+    return ConvOclBwdWrW2<1>::GetPerformanceConfig(params);
+}
+
 ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& params) const
 {
     // Invoking base class GetSolution with default values for params obtained

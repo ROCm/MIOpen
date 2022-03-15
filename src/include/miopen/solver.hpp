@@ -2386,6 +2386,7 @@ struct ConvOclBwdWrW2NonTunable : ConvOclBwdWrW2<1>
 private:
     // This function dervied from ConvOclBwdWrW2 is declared private
     // so that this solver is not marked searchable/tunable.
+    PerformanceConfigConvOclBwdWrw2<1> GetPerformanceConfig(const ConvolutionContext&) const;
     template <int N_BATCH_LOOPS>
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
