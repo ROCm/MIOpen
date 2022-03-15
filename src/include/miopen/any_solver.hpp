@@ -257,7 +257,8 @@ struct AnySolver
             MIOPEN_LOG_I2("Perf Db: Failed Loading: " << value.SolverDbId());
             return "";
         }
-        std::string GetPerfCfgParams_(const ConvolutionContext& ctx, const Db& db, std::false_type) const
+        std::string
+        GetPerfCfgParams_(const ConvolutionContext& ctx, const Db& db, std::false_type) const
         {
             MIOPEN_LOG_I2("Perf Db: No Config: " << value.SolverDbId());
             std::ignore = ctx;
