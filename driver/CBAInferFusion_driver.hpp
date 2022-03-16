@@ -82,7 +82,7 @@ typedef enum
 template <typename Tgpu, typename Tref>
 class CBAInferFusionDriver : public Driver
 {
-    public:
+public:
     CBAInferFusionDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -204,7 +204,7 @@ class CBAInferFusionDriver : public Driver
         miopenDestroyOperatorArgs(fusionArgs);
     }
 
-    private:
+private:
     miopenBatchNormMode_t bn_mode;
     int bias_mode   = 0;
     int fusion_mode = 0;
