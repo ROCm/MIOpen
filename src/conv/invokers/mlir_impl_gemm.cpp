@@ -300,7 +300,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
-            float elapsed        = 0;
+            float elapsed        = 0.f;
             const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
 
@@ -364,9 +364,9 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t w
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
+            float elapsed                 = 0.f;
             const auto& wrw_invoke_params = primitive_parameters.CastTo<conv::WrWInvokeParams>();
             const auto& tensors           = wrw_invoke_params.tensors;
-            float zero                    = 0.f;
 
             if(workspace_req > 0)
             {
@@ -380,51 +380,63 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t w
 
                 TensorDescriptor workspaceDesc(
                     miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
-                SetTensor(handle, workspaceDesc, workspace, &zero);
 
 #if MIOPEN_BACKEND_OPENCL
-                handle.Run(kernels[0])(tensors.dw,
-                                       tensors.dw,
-                                       EXPAND_MLIR_CONV_ARGS(args.filter),
-                                       tensors.x,
-                                       tensors.x,
-                                       EXPAND_MLIR_CONV_ARGS(args.input),
-                                       tensors.dy,
-                                       tensors.dy,
-                                       EXPAND_MLIR_CONV_ARGS(args.output),
-                                       workspace,
-                                       workspace,
-                                       EXPAND_MLIR_CONV_ARGS(args.workspace));
+                for(const auto& k : kernels)
+                {
+                    handle.Run(k)(tensors.dw,
+                                  tensors.dw,
+                                  EXPAND_MLIR_CONV_ARGS(args.filter),
+                                  tensors.x,
+                                  tensors.x,
+                                  EXPAND_MLIR_CONV_ARGS(args.input),
+                                  tensors.dy,
+                                  tensors.dy,
+                                  EXPAND_MLIR_CONV_ARGS(args.output),
+                                  workspace,
+                                  workspace,
+                                  EXPAND_MLIR_CONV_ARGS(args.workspace));
+                    elapsed += handle.GetKernelTime();
+                }
 #elif MIOPEN_BACKEND_HIP
                 SetMlirConvArgsPtr(tensors.x, tensors.dy, tensors.dw, workspace, args);
-                handle.Run(kernels[0])(args);
+                for(const auto& k : kernels)
+                {
+                    handle.Run(k)(args);
+                    elapsed += handle.GetKernelTime();
+                }
 #endif
-                CastTensor(handle,
-                           &ctx.conv_problem.GetConv().lowp_quant,
-                           workspaceDesc,
-                           workspace,
-                           tensors.dwDesc,
-                           tensors.dw,
-                           0,
-                           0);
             }
             else
             {
-                SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
 #if MIOPEN_BACKEND_OPENCL
-                handle.Run(kernels[0])(tensors.dw,
-                                       tensors.dw,
-                                       EXPAND_MLIR_CONV_ARGS(args.filter),
-                                       tensors.x,
-                                       tensors.x,
-                                       EXPAND_MLIR_CONV_ARGS(args.input),
-                                       tensors.dy,
-                                       tensors.dy,
-                                       EXPAND_MLIR_CONV_ARGS(args.output));
+                for(const auto& k : kernels)
+                {
+                    handle.Run(k)(tensors.dw,
+                                  tensors.dw,
+                                  EXPAND_MLIR_CONV_ARGS(args.filter),
+                                  tensors.x,
+                                  tensors.x,
+                                  EXPAND_MLIR_CONV_ARGS(args.input),
+                                  tensors.dy,
+                                  tensors.dy,
+                                  EXPAND_MLIR_CONV_ARGS(args.output));
+                    elapsed += handle.GetKernelTime();
+                }
 #elif MIOPEN_BACKEND_HIP
                 SetMlirConvArgsPtr(tensors.x, tensors.dy, tensors.dw, args);
-                handle.Run(kernels[0])(args);
+                for(const auto& k : kernels)
+                {
+                    handle.Run(k)(args);
+                    elapsed += handle.GetKernelTime();
+                }
 #endif
+            }
+
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
             }
         };
     };
