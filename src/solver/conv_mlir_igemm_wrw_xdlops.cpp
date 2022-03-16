@@ -87,28 +87,33 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
-    KernelInfo construction_parameters;
+    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, true));
 
-    construction_parameters.kernel_name  = mlir::GetKernelName(ctx, true);
-    construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
-    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, config, true);
+    for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
+    {
+        KernelInfo construction_parameters;
 
-    size_t local_size  = 0;
-    size_t global_size = 0;
-    MiirGenLaunchParams(construction_parameters.comp_options, local_size, global_size);
+        construction_parameters.kernel_name = mlir::GetKernelName(ctx, true, kernel_id);
+        construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
+        construction_parameters.comp_options =
+            mlir::ConstructBuildOptions(ctx, config, true, kernel_id);
 
-    construction_parameters.l_wk.push_back(local_size);
-    construction_parameters.l_wk.push_back(1);
-    construction_parameters.l_wk.push_back(1);
+        size_t local_size  = 0;
+        size_t global_size = 0;
+        MiirGenLaunchParams(construction_parameters.comp_options, local_size, global_size);
+        construction_parameters.l_wk.push_back(local_size);
+        construction_parameters.l_wk.push_back(1);
+        construction_parameters.l_wk.push_back(1);
+        construction_parameters.g_wk.push_back(global_size);
+        construction_parameters.g_wk.push_back(1);
+        construction_parameters.g_wk.push_back(1);
 
-    construction_parameters.g_wk.push_back(global_size);
-    construction_parameters.g_wk.push_back(1);
-    construction_parameters.g_wk.push_back(1);
+        result.construction_params.push_back(construction_parameters);
+    }
 
     size_t workspace_req   = GetWorkspaceSize(ctx);
     result.invoker_factory = conv::MakeMlirWrWInvokerFactory(ctx, workspace_req);
-    result.construction_params.push_back(construction_parameters);
-    result.workspace_sz = workspace_req;
+    result.workspace_sz    = workspace_req;
     return result;
 #else
     std::ignore = ctx;
