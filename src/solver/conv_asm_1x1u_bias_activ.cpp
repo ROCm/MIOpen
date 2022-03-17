@@ -77,6 +77,22 @@ ConvBiasActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) con
     return pp;
 }
 
+bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(const ConvolutionContext& problem,
+                                                    const PerformanceConfigConvBiasActivAsm1x1U& c) const
+{
+    return c.IsValidValue() && c.IsValid(problem);
+}
+
+bool ConvBiasActivAsm1x1U::IsApplicable(const ConvolutionContext& params) const
+{
+    return ConvAsm1x1U{}.IsApplicable(params);
+}
+
+size_t ConvBiasActivAsm1x1U::GetWorkspaceSize(const ConvolutionContext& params) const
+{
+    return ConvAsm1x1U{}.GetWorkspaceSize(params);
+}
+
 PerformanceConfigConvBiasActivAsm1x1U
 ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeParams&) const
 {
@@ -111,7 +127,7 @@ ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ConvolutionContext& params,
                                                const PerformanceConfigConvBiasActivAsm1x1U& config,
                                                bool disableConfigOverrideFromEnv) const
 {
-    auto sol = ConvAsm1x1U::GetSolution(params, config, disableConfigOverrideFromEnv);
+    auto sol = ConvAsm1x1U{}.GetSolution(params, config, disableConfigOverrideFromEnv);
 
     if(sol.construction_params.size() != 1)
         MIOPEN_THROW("ConvBiasActivAsm1x1U expects only one kernel");

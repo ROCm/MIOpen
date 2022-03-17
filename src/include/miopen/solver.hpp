@@ -304,12 +304,17 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
 };
 
 // Fused solver
-struct ConvBiasActivAsm1x1U : ConvAsm1x1U
+struct ConvBiasActivAsm1x1U : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
-    PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsApplicable(const ConvolutionContext& params) const override;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
+    PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigConvBiasActivAsm1x1U&) const;
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
                                                  const AnyInvokeParams& invoke_ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
