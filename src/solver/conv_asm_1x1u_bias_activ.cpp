@@ -77,8 +77,8 @@ ConvBiasActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) con
     return pp;
 }
 
-bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(const ConvolutionContext& problem,
-                                                    const PerformanceConfigConvBiasActivAsm1x1U& c) const
+bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
+    const ConvolutionContext& problem, const PerformanceConfigConvBiasActivAsm1x1U& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
 }
