@@ -44,6 +44,8 @@ bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS{}))
         return false;
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+        return false;
     if(!IsXdlopsSupport(ctx))
         return false;
     if(!ctx.direction.IsBackwardWrW())
@@ -109,8 +111,9 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
         result.construction_params.push_back(construction_parameters);
     }
 
-    result.workspace_sz    = GetWorkspaceSize(ctx);
-    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(ctx);
+    size_t workspace_req   = GetWorkspaceSize(ctx);
+    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(ctx, workspace_req);
+    result.workspace_sz    = workspace_req;
     return result;
 #else
     std::ignore = ctx;
