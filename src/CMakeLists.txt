@@ -46,6 +46,12 @@ configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BIN
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/version.h.in" "${PROJECT_BINARY_DIR}/include/miopen/version.h" )
 
+
+if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
+#Copy header to Build Dir for generating backward compatibility
+configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINARY_DIR}/include/miopen/miopen.h" )
+endif()
+
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 
@@ -706,12 +712,10 @@ rocm_install_targets(
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}/include
     ${MIOPEN_CXX_HEADER_PATH}
-  PREFIX ${MIOPEN_INSTALL_DIR}
 )
 
 rocm_export_targets(
   TARGETS MIOpen
-  PREFIX ${MIOPEN_INSTALL_DIR}
   DEPENDS
     ${PACKAGE_DEPENDS}
   STATIC_DEPENDS
@@ -754,4 +758,20 @@ else()
 
     endif()
 endif()
-rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
+
+if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
+  #Generating Wrapper of each headers for backward compatibility
+  rocm_wrap_header_file(
+    export.h config.h version.h miopen.h
+    HEADER_LOCATION include/miopen
+    GUARDS WRAPPER
+    WRAPPER_LOCATIONS miopen/include/miopen
+  )
+
+  #Installing Wrapper Headers
+  rocm_install(
+    DIRECTORY
+       "${PROJECT_BINARY_DIR}/miopen/include"
+        DESTINATION "miopen" )
+  message( STATUS "Backward Compatible Sym Link Created for include directories" )
+endif()
