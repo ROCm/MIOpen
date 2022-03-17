@@ -108,7 +108,7 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeP
 }
 
 ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ConvolutionContext& params,
-                                               const PerformanceConfigConvAsm1x1U& config,
+                                               const PerformanceConfigConvBiasActivAsm1x1U& config,
                                                bool disableConfigOverrideFromEnv) const
 {
     auto sol = ConvAsm1x1U::GetSolution(params, config, disableConfigOverrideFromEnv);

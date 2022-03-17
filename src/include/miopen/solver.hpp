@@ -303,6 +303,7 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
     bool operator==(const PerformanceConfigConvBiasActivAsm1x1U& other) const;
 };
 
+// Fused solver
 struct ConvBiasActivAsm1x1U : ConvAsm1x1U
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
@@ -312,7 +313,7 @@ struct ConvBiasActivAsm1x1U : ConvAsm1x1U
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
                                                  const AnyInvokeParams& invoke_ctx) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfigConvAsm1x1U& config,
+                             const PerformanceConfigConvBiasActivAsm1x1U& config,
                              bool disableConfigOverrideFromEnv = false) const;
 };
 
