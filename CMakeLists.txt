@@ -541,6 +541,18 @@ enable_clang_tidy(
         -readability-qualified-auto
         -readability-redundant-string-init
         -readability-uppercase-literal-suffix
+        #TODO Code Quality WORKAROUND ROCm 5.1 update
+        -altera-id-dependent-backward-branch
+        -bugprone-easily-swappable-parameters
+        -bugprone-implicit-widening-of-multiplication-result
+        -cert-err33-c
+        -google-readability-casting
+        -hicpp-use-emplace
+        -modernize-use-emplace
+        -performance-unnecessary-copy-initialization
+        -readability-container-data-pointer
+        -readability-identifier-length
+        -readability-suspicious-call-argument
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
