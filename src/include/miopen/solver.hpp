@@ -1133,6 +1133,8 @@ struct ConvMlirIgemmWrWXdlops : SearchableSolver1<PerformanceConvMlirIgemmXdlops
     }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     PerformanceConvMlirIgemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
