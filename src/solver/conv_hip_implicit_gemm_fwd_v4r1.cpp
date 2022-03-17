@@ -46,6 +46,8 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+        return false;
     if(!ctx.direction.IsForward())
         return false;
     if(!ctx.use_hip_kernels)

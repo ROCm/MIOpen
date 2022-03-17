@@ -1130,6 +1130,8 @@ struct ConvMlirIgemmWrWXdlops : SearchableSolver1<PerformanceConvMlirIgemmXdlops
     const std::string& SolverDbId() const final { return GetSolverDbId<ConvMlirIgemmWrWXdlops>(); }
 
     bool IsApplicable(const ConvolutionContext& ctx) const final;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const final;
+    bool MayNeedWorkspace() const final { return true; }
 
     PerformanceConvMlirIgemmXdlops GetPerformanceConfig(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
