@@ -456,13 +456,9 @@ enable_clang_tidy(
         *
         -abseil-*
         -altera-struct-pack-align
-        # TODO Code Quality
-        -altera-id-dependent-backward-branch
         -altera-unroll-loops
         -android-cloexec-fopen
         -bugprone-exception-escape
-        # TODO Code Quality
-        -bugprone-easily-swappable-parameters
         -bugprone-macro-parentheses
         # too many narrowing conversions in our code
         -bugprone-narrowing-conversions
@@ -539,21 +535,22 @@ enable_clang_tidy(
         -readability-else-after-return
         # we are not ready to use it, but very useful
         -readability-function-cognitive-complexity
-        # too many short variable names in our code
-        # TODO Code Quality
-        -readability-identifier-length
         -readability-isolate-declaration
         -readability-magic-numbers
         -readability-named-parameter
         -readability-qualified-auto
         -readability-redundant-string-init
         -readability-uppercase-literal-suffix
-        #TODO Code Quality ROCm 5.0.2 update
-        -readability-container-data-pointer
+        #TODO Code Quality WORKAROUND ROCm 5.0.2 update
+        -altera-id-dependent-backward-branch
+        -bugprone-easily-swappable-parameters
         -bugprone-implicit-widening-of-multiplication-result
         -cert-err33-c
-        -performance-unnecessary-copy-initialization
         -hicpp-use-emplace
+        -modernize-use-emplace
+        -performance-unnecessary-copy-initialization
+        -readability-container-data-pointer
+        -readability-identifier-length
         -readability-suspicious-call-argument
 
         ${MIOPEN_TIDY_CHECKS}
