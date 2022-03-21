@@ -821,6 +821,10 @@ void BuildHip(const std::string& name,
                 raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
             }
 #endif
+//            raw +=" -DWORKAROUND_ISSUE_1431=1";
+            if(StartsWith(target.Name(),"gfx10"))
+                raw += " -DwarpSize=32";
+
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             auto optLink    = optCompile;
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
@@ -831,7 +835,8 @@ void BuildHip(const std::string& name,
             action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, inputs, compiledBc);
 
             OptionList addDevLibs;
-            addDevLibs.push_back("wavefrontsize64");
+//            if(!StartsWith(target.Name(),"gfx10"))
+                addDevLibs.push_back("wavefrontsize64");
             addDevLibs.push_back("daz_opt");     // Assume that it's ok to flush denormals to zero.
             addDevLibs.push_back("finite_only"); // No need to handle INF correcly.
             addDevLibs.push_back("unsafe_math"); // Prefer speed over correctness for FP math.
