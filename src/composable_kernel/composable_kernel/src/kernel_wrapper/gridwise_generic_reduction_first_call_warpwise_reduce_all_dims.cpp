@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "workaround_issue_1431.hpp"
 #include "config.hpp"
 #include "number.hpp"
 #include "sequence.hpp"

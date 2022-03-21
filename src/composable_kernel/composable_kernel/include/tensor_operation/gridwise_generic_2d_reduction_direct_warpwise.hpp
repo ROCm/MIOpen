@@ -26,6 +26,7 @@
 #ifndef CK_GRIDWISE_GENERIC_2D_REDUCTION_DIRECT_WARPWISE_HPP
 #define CK_GRIDWISE_GENERIC_2D_REDUCTION_DIRECT_WARPWISE_HPP
 
+#include "workaround_issue_1431.hpp"
 #include "data_type.hpp"
 #include "reduction_common.hpp"
 #include "reduction_operator.hpp"

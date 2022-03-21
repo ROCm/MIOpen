@@ -322,6 +322,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/gpr_alloc.inc
         kernels/bfloat16_dev.hpp
         kernels/float_types.h
+        kernels/workaround_issue_1431.hpp
         )
 
     set(MIOPEN_KERNELS

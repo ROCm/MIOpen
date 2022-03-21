@@ -26,6 +26,7 @@
 #ifndef CK_REDUCTION_FUNCTIONS_WARPWISE_HPP
 #define CK_REDUCTION_FUNCTIONS_WARPWISE_HPP
 
+#include "workaround_issue_1431.hpp"
 #include "data_type.hpp"
 
 #include "reduction_common.hpp"
