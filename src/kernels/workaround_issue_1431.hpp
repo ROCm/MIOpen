@@ -26,7 +26,7 @@
 #ifndef WORKAROUND_ISSUE_1431_HPP
 #define WORKAROUND_ISSUE_1431_HPP
 
-// This is for the case compiler defines `warpSize` as a macro.
+// This is for the case if compiler defines `warpSize` as a macro.
 #ifdef warpSize
 #undef warpSize
 #endif
