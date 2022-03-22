@@ -1286,9 +1286,7 @@ void BuildHip(const std::string& name,
         opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1");
 #if WORKAROUND_ISSUE_1431
         if(StartsWith(target.Name(), "gfx10") && !miopen::comgr::IsWave64Enforced(opts))
-        {
-            opts.push_back("-DwarpSize=32"); // Hack: Replace each `warpSize` by literal `32`.
-        }
+            opts.push_back("-DWORKAROUND_ISSUE_1431=1");
 #endif
 #if WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H
         opts.push_back("-Wno-newline-eof");
