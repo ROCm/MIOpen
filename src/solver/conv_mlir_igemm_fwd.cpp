@@ -39,8 +39,9 @@ namespace solver {
 
 const PerformanceConvMlirIgemm& PerformanceConvMlirIgemm::MlirHeuristicInitRequest()
 {
+    // These values are equivalent to when tuning config is heuristically initialized
     static const PerformanceConvMlirIgemm p =
-        PerformanceConvMlirIgemm(-2, -2, -2, -2, -2, -2, false);
+        PerformanceConvMlirIgemm(-2, -2, -2, -2, -2, -2, true);
     return p;
 }
 
@@ -62,18 +63,10 @@ PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(int BlockSize_,
 }
 
 PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(bool spare)
+    : PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(64, 32, 32, 4, 2, 2, spare)
 {
-    // always search full space, no matter if use_spare_set or not
-    BlockSize = 64;
-
-    GemmMPerBlock = 32;
-    GemmNPerBlock = 32;
-    GemmKPerBlock = 4;
-
-    GemmMPerThread = 2;
-    GemmNPerThread = 2;
-
-    use_spare_set = spare;
+    if(spare)
+        *this = MlirHeuristicInitRequest();
 }
 
 bool PerformanceConvMlirIgemm::operator==(const PerformanceConvMlirIgemm& other) const
@@ -84,8 +77,7 @@ bool PerformanceConvMlirIgemm::operator==(const PerformanceConvMlirIgemm& other)
         && GemmNPerBlock == other.GemmNPerBlock
         && GemmKPerBlock == other.GemmKPerBlock
         && GemmMPerThread == other.GemmMPerThread
-        && GemmNPerThread == other.GemmNPerThread
-        && use_spare_set == other.use_spare_set;
+        && GemmNPerThread == other.GemmNPerThread;
     // clang-format on
 }
 
@@ -104,10 +96,9 @@ bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx) const
 
 bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*config*/)
 {
-    if(*this == MlirHeuristicInitRequest())
-        MIOPEN_THROW("Should not iterate from the heuristic value");
+    if(use_spare_set)
+        return false;
 
-    // always search full space, no matter if use_spare_set or not
     do
     {
         if(!NextTwoPower<64, 256>(BlockSize))

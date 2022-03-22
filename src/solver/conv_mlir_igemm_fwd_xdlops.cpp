@@ -40,8 +40,9 @@ namespace solver {
 
 const PerformanceConvMlirIgemmXdlops& PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest()
 {
+    // These values are equivalent to when tuning config is heuristically initialized
     static const PerformanceConvMlirIgemmXdlops p =
-        PerformanceConvMlirIgemmXdlops(-2, -2, -2, -2, -2, -2, false, false, false);
+        PerformanceConvMlirIgemmXdlops(-2, -2, -2, -2, -2, -2, false, false, true);
     return p;
 }
 
@@ -90,6 +91,8 @@ PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(bool spare)
     : PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(
           4, 16, 1, 4, 16, 4, false, false, spare)
 {
+    if(spare)
+        *this = MlirHeuristicInitRequest();
 }
 
 PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops()
@@ -108,8 +111,7 @@ bool PerformanceConvMlirIgemmXdlops::operator==(const PerformanceConvMlirIgemmXd
         && GemmNPerWave == other.GemmNPerWave
         && GemmKPACKSize == other.GemmKPACKSize
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
-        && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack
-        && use_spare_set == other.use_spare_set;
+        && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack;
     // clang-format on
 }
 
@@ -128,8 +130,8 @@ bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx) cons
 
 bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& /*config*/)
 {
-    if(*this == MlirHeuristicInitRequest())
-        MIOPEN_THROW("Should not iterate from the heuristic value");
+    if(use_spare_set)
+        return false;
 
     GemmBThreadCopyMoreGemmKPack = true;
     GemmAThreadCopyMoreGemmK     = true;
