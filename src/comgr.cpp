@@ -752,6 +752,12 @@ static std::string GetDebugCompilerOptionsInsert()
     return {p};
 }
 
+static inline bool IsWave64Enforced(const OptionList& opts)
+{
+    return std::any_of(
+        opts.begin(), opts.end(), [](const std::string& s) { return s == "-mwavefrontsize64"; });
+}
+
 void BuildHip(const std::string& name,
               const std::string& text,
               const std::string& options,
@@ -835,8 +841,12 @@ void BuildHip(const std::string& name,
             action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, inputs, compiledBc);
 
             OptionList addDevLibs;
-//            if(!StartsWith(target.Name(),"gfx10"))
+            // Use device libs for wavefrontsize64 for non-gfx10 targets
+            // or when enforced via option.
+            if(!StartsWith(target.Name(), "gfx10") || IsWave64Enforced(optCompile))
+            {
                 addDevLibs.push_back("wavefrontsize64");
+            }
             addDevLibs.push_back("daz_opt");     // Assume that it's ok to flush denormals to zero.
             addDevLibs.push_back("finite_only"); // No need to handle INF correcly.
             addDevLibs.push_back("unsafe_math"); // Prefer speed over correctness for FP math.
@@ -910,7 +920,12 @@ void BuildOcl(const std::string& name,
         action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, addedPch, compiledBc);
 
         OptionList optLink;
-        optLink.push_back("wavefrontsize64");
+        // Use device libs for wavefrontsize64 for non-gfx10 targets
+        // or when enforced via option.
+        if(!StartsWith(target.Name(), "gfx10") || IsWave64Enforced(optCompile))
+        {
+            optLink.push_back("wavefrontsize64");
+        }
         for(const auto& opt : optCompile)
         {
             if(opt == "-cl-fp32-correctly-rounded-divide-sqrt")
