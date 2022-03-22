@@ -128,6 +128,11 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 
 #define PCH_IS_SUPPORTED (COMGR_SUPPORTS_PCH && HIP_SUPPORTS_PCH)
 
+/// It seems like precompiled headers are built with "warpSize" fixed to 64.
+/// This leads to issues in HIP kernels that use "warpSize" on devices that
+/// have wavesize != 64 (currently gfx10 with default build settings).
+#define WORKAROUND_ISSUE_1431 PCH_IS_SUPPORTED
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
 
 #define COMPILER_LC 1
@@ -827,15 +832,17 @@ void BuildHip(const std::string& name,
                 raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
             }
 #endif
-//            raw +=" -DWORKAROUND_ISSUE_1431=1";
-            if(StartsWith(target.Name(),"gfx10"))
-                raw += " -DwarpSize=32";
-
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             auto optLink    = optCompile;
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
             compiler::lc::hip::AddCompilerOptions(optCompile);
-
+#if WORKAROUND_ISSUE_1431
+            if(StartsWith(target.Name(), "gfx10") && !IsWave64Enforced(optCompile))
+            {
+                optCompile.push_back(
+                    "-DwarpSize=32"); // Hack: Replace each `warpSize` by literal `32`.
+            }
+#endif
             action.SetOptionList(optCompile);
             const Dataset compiledBc;
             action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, inputs, compiledBc);
