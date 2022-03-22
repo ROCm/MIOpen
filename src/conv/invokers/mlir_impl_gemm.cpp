@@ -343,7 +343,6 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t w
             float elapsed                 = 0.f;
             const auto& wrw_invoke_params = primitive_parameters.CastTo<conv::WrWInvokeParams>();
             const auto& tensors           = wrw_invoke_params.tensors;
-            const auto& workspaceSize     = wrw_invoke_params.workSpaceSize;
 
             if(workspace_req > 0)
             {
