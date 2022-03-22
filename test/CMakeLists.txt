@@ -575,7 +575,8 @@ function(add_custom_test NAME)
         AND (${NAME} MATCHES "test_conv_3d"
           OR ${NAME} MATCHES "test_conv_group"
           OR ${NAME} MATCHES "test_conv_extra"
-          OR ${NAME} MATCHES "test_conv_for_implicit_gemm" ))
+          OR ${NAME} MATCHES "test_conv_for_implicit_gemm" 
+          OR ${NAME} MATCHES "test_conv_ck_igemm_fwd_v6r1_dlops_nchw"))
         set_tests_properties(${NAME} PROPERTIES RUN_SERIAL On)
     endif()
 
