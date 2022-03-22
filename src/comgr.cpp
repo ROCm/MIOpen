@@ -838,10 +838,7 @@ void BuildHip(const std::string& name,
             compiler::lc::hip::AddCompilerOptions(optCompile);
 #if WORKAROUND_ISSUE_1431
             if(StartsWith(target.Name(), "gfx10") && !IsWave64Enforced(optCompile))
-            {
-                optCompile.push_back(
-                    "-DwarpSize=32"); // Hack: Replace each `warpSize` by literal `32`.
-            }
+                optCompile.push_back("-DWORKAROUND_ISSUE_1431=1");
 #endif
             action.SetOptionList(optCompile);
             const Dataset compiledBc;
