@@ -39,9 +39,8 @@ namespace solver {
 
 const PerformanceConvMlirIgemm& PerformanceConvMlirIgemm::MlirHeuristicInitRequest()
 {
-    // HeuristicInit is "spare" in nature
     static const PerformanceConvMlirIgemm p =
-        PerformanceConvMlirIgemm(-2, -2, -2, -2, -2, -2, false, true);
+        PerformanceConvMlirIgemm(-2, -2, -2, -2, -2, -2, false);
     return p;
 }
 
@@ -51,7 +50,6 @@ PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(int BlockSize_,
                                                    int GemmKPerBlock_,
                                                    int GemmMPerThread_,
                                                    int GemmNPerThread_,
-                                                   bool SpareConfig_,
                                                    bool use_spare_set_)
     : BlockSize(BlockSize_),
       GemmMPerBlock(GemmMPerBlock_),
@@ -59,19 +57,23 @@ PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(int BlockSize_,
       GemmKPerBlock(GemmKPerBlock_),
       GemmMPerThread(GemmMPerThread_),
       GemmNPerThread(GemmNPerThread_),
-      SpareConfig(SpareConfig_),
       use_spare_set(use_spare_set_)
 {
 }
 
 PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(bool spare)
-    : PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(64, 32, 32, 4, 2, 2, false, spare)
 {
-    // In case of spare, search only the MlirHeuristicInitRequest
-    if(spare)
-    {
-        *this = MlirHeuristicInitRequest();
-    }
+    // always search full space, no matter if use_spare_set or not
+    BlockSize = 64;
+
+    GemmMPerBlock = 32;
+    GemmNPerBlock = 32;
+    GemmKPerBlock = 4;
+
+    GemmMPerThread = 2;
+    GemmNPerThread = 2;
+
+    use_spare_set = spare;
 }
 
 bool PerformanceConvMlirIgemm::operator==(const PerformanceConvMlirIgemm& other) const
@@ -83,7 +85,6 @@ bool PerformanceConvMlirIgemm::operator==(const PerformanceConvMlirIgemm& other)
         && GemmKPerBlock == other.GemmKPerBlock
         && GemmMPerThread == other.GemmMPerThread
         && GemmNPerThread == other.GemmNPerThread
-        && SpareConfig == other.SpareConfig
         && use_spare_set == other.use_spare_set;
     // clang-format on
 }
@@ -109,26 +110,18 @@ bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*config*/
     // always search full space, no matter if use_spare_set or not
     do
     {
-        if(use_spare_set)
-        {
-            if(!NextFlag<false, true>(SpareConfig))
-                break;
-        }
-        else
-        {
-            if(!NextTwoPower<64, 256>(BlockSize))
-                break;
-            if(!NextTwoPower<32, 128>(GemmMPerBlock))
-                break;
-            if(!NextTwoPower<32, 128>(GemmNPerBlock))
-                break;
-            if(!NextTwoPower<4, 16>(GemmKPerBlock))
-                break;
-            if(!NextTwoPower<2, 4>(GemmMPerThread))
-                break;
-            if(!NextTwoPower<2, 4>(GemmNPerThread))
-                break;
-        }
+        if(!NextTwoPower<64, 256>(BlockSize))
+            break;
+        if(!NextTwoPower<32, 128>(GemmMPerBlock))
+            break;
+        if(!NextTwoPower<32, 128>(GemmNPerBlock))
+            break;
+        if(!NextTwoPower<4, 16>(GemmKPerBlock))
+            break;
+        if(!NextTwoPower<2, 4>(GemmMPerThread))
+            break;
+        if(!NextTwoPower<2, 4>(GemmNPerThread))
+            break;
 
         return false;
     } while(false);

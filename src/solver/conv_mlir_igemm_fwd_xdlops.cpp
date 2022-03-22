@@ -40,9 +40,8 @@ namespace solver {
 
 const PerformanceConvMlirIgemmXdlops& PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest()
 {
-    // HeuristicInit is "spare" in nature
     static const PerformanceConvMlirIgemmXdlops p =
-        PerformanceConvMlirIgemmXdlops(-2, -2, -2, -2, -2, -2, false, false, false, true);
+        PerformanceConvMlirIgemmXdlops(-2, -2, -2, -2, -2, -2, false, false, false);
     return p;
 }
 
@@ -74,7 +73,6 @@ PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(int GemmMPerBlock
                                                                int GemmKPACKSize_,
                                                                bool GemmAThreadCopyMoreGemmK_,
                                                                bool GemmBThreadCopyMoreGemmKPack_,
-                                                               bool SpareConfig_,
                                                                bool use_spare_set_)
     : GemmMPerBlock(GemmMPerBlock_),
       GemmNPerBlock(GemmNPerBlock_),
@@ -84,25 +82,19 @@ PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(int GemmMPerBlock
       GemmKPACKSize(GemmKPACKSize_),
       GemmAThreadCopyMoreGemmK(GemmAThreadCopyMoreGemmK_),
       GemmBThreadCopyMoreGemmKPack(GemmBThreadCopyMoreGemmKPack_),
-      SpareConfig(SpareConfig_),
       use_spare_set(use_spare_set_)
 {
 }
 
 PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(bool spare)
     : PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(
-          4, 16, 1, 4, 16, 4, false, false, false, spare)
+          4, 16, 1, 4, 16, 4, false, false, spare)
 {
-    // In case of spare, search only the MlirHeuristicInitRequest
-    if(spare)
-    {
-        *this = MlirHeuristicInitRequest();
-    }
 }
 
 PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops()
     : PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(
-          -1, -1, -1, -1, -1, -1, false, false, false, false)
+          -1, -1, -1, -1, -1, -1, false, false)
 {
 }
 
@@ -117,7 +109,6 @@ bool PerformanceConvMlirIgemmXdlops::operator==(const PerformanceConvMlirIgemmXd
         && GemmKPACKSize == other.GemmKPACKSize
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
         && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack
-        && SpareConfig == other.SpareConfig
         && use_spare_set == other.use_spare_set;
     // clang-format on
 }
@@ -137,30 +128,25 @@ bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx) cons
 
 bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& /*config*/)
 {
+    if(*this == MlirHeuristicInitRequest())
+        MIOPEN_THROW("Should not iterate from the heuristic value");
+
     GemmBThreadCopyMoreGemmKPack = true;
     GemmAThreadCopyMoreGemmK     = true;
     do
     {
-        if(use_spare_set)
-        {
-            if(!NextFlag<false, true>(SpareConfig))
-                break;
-        }
-        else
-        {
-            if(!NextTwoPower<4, 256>(GemmMPerBlock))
-                break;
-            if(!NextTwoPower<16, 256>(GemmNPerBlock))
-                break;
-            if(!NextTwoPower<1, 8>(GemmKPerBlock))
-                break;
-            if(!NextTwoPower<4, 128>(GemmMPerWave))
-                break;
-            if(!NextTwoPower<16, 128>(GemmNPerWave))
-                break;
-            if(!NextTwoPower<4, 8>(GemmKPACKSize))
-                break;
-        }
+        if(!NextTwoPower<4, 256>(GemmMPerBlock))
+            break;
+        if(!NextTwoPower<16, 256>(GemmNPerBlock))
+            break;
+        if(!NextTwoPower<1, 8>(GemmKPerBlock))
+            break;
+        if(!NextTwoPower<4, 128>(GemmMPerWave))
+            break;
+        if(!NextTwoPower<16, 128>(GemmNPerWave))
+            break;
+        if(!NextTwoPower<4, 8>(GemmKPACKSize))
+            break;
 
         return false;
     } while(false);
