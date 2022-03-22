@@ -26,14 +26,12 @@
 #ifndef WORKAROUND_ISSUE_1431_HPP
 #define WORKAROUND_ISSUE_1431_HPP
 
-#ifdef WORKAROUND_ISSUE_1431
 // This is for the case compiler defines `warpSize` as a macro.
 #ifdef warpSize
 #undef warpSize
 #endif
+
 // Hack: this replaces each `warpSize` by literal `32`.
 #define warpSize 32
-
-#endif // WORKAROUND_ISSUE_1431
 
 #endif // WORKAROUND_ISSUE_1431_HPP
