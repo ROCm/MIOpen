@@ -68,11 +68,8 @@ function(generate_embed_source EMBED_NAME)
     foreach(idx RANGE ${LEN})
         list(GET PARSE_SYMBOLS ${idx} SYMBOL)
         list(GET PARSE_OBJECTS ${idx} OBJECT)
-        set(START_SYMBOL "binary_${SYMBOL}_start")
-        set(END_SYMBOL "binary_${SYMBOL}_end")
-        #TODO Code Quality WORKAROUND ROCm 5.0.2 update
-        string(REGEX REPLACE "_______" "_" START_SYMBOL "${START_SYMBOL}")
-        string(REGEX REPLACE "_______" "_" END_SYMBOL "${END_SYMBOL}")
+        set(START_SYMBOL "_binary_${SYMBOL}_start")
+        set(END_SYMBOL "_binary_${SYMBOL}_end")
         string(APPEND EXTERNS "
             extern const char ${START_SYMBOL}[];
             extern const char ${END_SYMBOL}[];
@@ -91,6 +88,8 @@ const std::unordered_map<std::string, std::pair<const char*,const char*>>& ${EMB
 ")
 
     file(WRITE "${PARSE_SRC}" "
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored \"-Wreserved-identifier\"
 #include <${EMBED_NAME}.hpp>
 ${EXTERNS}
 const std::unordered_map<std::string, std::pair<const char*,const char*>>& ${EMBED_NAME}()
@@ -98,6 +97,7 @@ const std::unordered_map<std::string, std::pair<const char*,const char*>>& ${EMB
     static const std::unordered_map<std::string, std::pair<const char*,const char*>> result = {${INIT_KERNELS}};
     return result;
 }
+#pragma clang diagnostic pop // \"-Wreserved-identifier\"
 ")
 endfunction()
 
