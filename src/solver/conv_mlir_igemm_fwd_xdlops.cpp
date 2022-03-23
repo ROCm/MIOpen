@@ -88,7 +88,7 @@ PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(int GemmMPerBlock
 
 PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(bool spare)
     : PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(
-          4, 16, 1, 4, 16, 4, false, false, spare)
+          4, 16, 4, 4, 16, 1, false, false, spare)
 {
 }
 
@@ -126,7 +126,7 @@ bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx) cons
 #endif
 }
 
-bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& config)
 {
     if(*this == MlirHeuristicInitRequest())
         MIOPEN_THROW("Should not iterate from the heuristic value");
@@ -139,14 +139,33 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& /*co
             break;
         if(!NextTwoPower<16, 256>(GemmNPerBlock))
             break;
-        if(!NextTwoPower<1, 8>(GemmKPerBlock))
+        if(!NextTwoPower<4, 8>(GemmKPerBlock))
             break;
         if(!NextTwoPower<4, 128>(GemmMPerWave))
             break;
         if(!NextTwoPower<16, 128>(GemmNPerWave))
             break;
-        if(!NextTwoPower<4, 8>(GemmKPACKSize))
-            break;
+        if(config.IsFp32())
+        {
+            if(!NextTwoPower<1, 4>(GemmKPACKSize))
+                break;
+        }
+        else if(config.IsFp16())
+        {
+            if(!NextTwoPower<1, 8>(GemmKPACKSize))
+            {
+                if(GemmKPACKSize == 2)
+                {
+                    GemmKPACKSize = 4;
+                }
+                break;
+            }
+        }
+        else
+        {
+            if(!NextTwoPower<1, 1>(GemmKPACKSize))
+                break;
+        }
 
         return false;
     } while(false);
