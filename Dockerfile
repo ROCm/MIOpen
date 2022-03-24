@@ -89,11 +89,12 @@ RUN cget -p $PREFIX install ROCmSoftwarePlatform/rocm-recipes
 RUN groupadd -f render
 WORKDIR /root
 ARG CK_COMMIT=284178d3f61acfbedc75a067fcbf0d6c434da90b
-RUN  git clone https://github.com/ROCmSoftwarePlatform/composable_kernel && \
-    cd composable_kernel && git checkout ${CK_COMMIT} && \
+RUN  wget -O ck.tar.gz https://www.github.com/rocmsoftwareplatform/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
+    tar zxvf ck.tar.gz &&\
+    cd composable_kernel-${CK_COMMIT} && \
     mkdir build && cd build && \
     CXX=/opt/rocm/bin/hipcc cmake -DCMAKE_PREFIX_PATH=/opt/rocm -D CMAKE_CXX_FLAGS="-DCK_AMD_GPU_GFX908 --amdgpu-target=gfx908 -O3 " .. && \
-    make -j $(nproc) install
+    make -j $(nproc) package && cp *.deb /root/
 
 
 FROM ubuntu:18.04 as miopen
@@ -111,7 +112,8 @@ RUN dpkg --add-architecture i386
 # Add rocm repository
 # Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
 # unless MLIR library is incompatible with current ROCm.
-
+RUN apt-get update
+RUN apt-get install -y wget gnupg
 RUN if [ "$USE_MLIR" = "ON" ] ; \
         then export ROCM_APT_VER=.apt_4.3.1;\
     else export ROCM_APT_VER=.apt_4.3.1;  \
@@ -214,5 +216,5 @@ RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."
 
 RUN groupadd -f render
 
-COPY --from=composable_kernel /usr/local/include/ck ${PREFIX}/include/
-COPY --from=composable_kernel /usr/local/lib/*.a /${PREFIX}/lib/
+COPY --from=composable_kernel /root/composable_kernel/build/*.deb /tmp/
+RUN dpkg -i /tmp/*.deb
