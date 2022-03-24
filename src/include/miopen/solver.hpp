@@ -3750,6 +3750,45 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC : ConvSolver
                              bool disableConfigOverrideFromEnv = false) const;
 };
 
+struct PerformanceConfigHipImplicitGemmFwdXdlops
+    : Serializable<PerformanceConfigHipImplicitGemmFwdXdlops>
+{
+    int index;
+    std::string kernel_id;
+    int total_size;
+    PerformanceConfigHipImplicitGemmFwdXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id), total_size(-1)
+    {
+    }
+    PerformanceConfigHipImplicitGemmFwdXdlops() : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue(const ConvolutionContext& ctx);
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+};
+
+struct ConvHipImplicitGemmFwdXdlops : ConvSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemmFwdXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemmFwdXdlops GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigHipImplicitGemmFwdXdlops&) const;
+    PerformanceConfigHipImplicitGemmFwdXdlops Search(const ConvolutionContext&,
+                                                     const AnyInvokeParams& invoke_ctx) const;
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return false; }
+    bool IsApplicable(const ConvolutionContext& ctx) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConfigHipImplicitGemmFwdXdlops& config) const;
+};
+
 struct AnySolver;
 
 } // namespace solver

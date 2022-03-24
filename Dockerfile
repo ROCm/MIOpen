@@ -216,5 +216,8 @@ RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."
 
 RUN groupadd -f render
 
-COPY --from=composable_kernel /root/composable_kernel/build/*.deb /tmp/
-RUN dpkg -i /tmp/*.deb
+COPY --from=composable_kernel /root/composablekernel_*.deb /tmp/
+WORKDIR /tmp
+RUN ar x composablekernel_*.deb
+RUN tar zxvf data.tar.gz
+RUN cp -r /tmp/usr/local/* /usr/local/
