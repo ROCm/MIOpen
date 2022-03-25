@@ -147,8 +147,21 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& conf
             break;
         if(config.IsFp32())
         {
-            if(!NextTwoPower<1, 4>(GemmKPACKSize))
-                break;
+            if(config.direction.IsForward())
+            {
+                if(!NextTwoPower<1, 4>(GemmKPACKSize))
+                    break;
+            }
+            else if(config.direction.IsBackwardWrW())
+            {
+                if(!NextTwoPower<1, 2>(GemmKPACKSize))
+                    break;
+            }
+            else if(config.direction.IsBackwardData())
+            {
+                if(!NextTwoPower<1, 1>(GemmKPACKSize))
+                    break;
+            }
         }
         else if(config.IsFp16())
         {
