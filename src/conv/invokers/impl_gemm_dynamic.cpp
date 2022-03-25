@@ -568,9 +568,9 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
         if(!trans_output_skippable)
             opArgsTrans.emplace_back(trans_output.GetKernelArg());
 
-        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetSize();
-        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetSize();
-        trans_output_size = trans_output_skippable ? 0 : trans_output.GetSize();
+        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
+        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetOutputTensorSize();
+        trans_output_size = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
 
         int idx = 0;
         if(!trans_input_skippable)
@@ -885,9 +885,9 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
         if(!trans_output_skippable)
             opArgsTrans.emplace_back(trans_output.GetKernelArg());
 
-        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetSize();
-        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetSize();
-        trans_output_size = trans_output_skippable ? 0 : trans_output.GetSize();
+        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
+        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetOutputTensorSize();
+        trans_output_size = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
 
         int idx = 0;
         if(!trans_input_skippable)
