@@ -173,7 +173,7 @@ void InputFlags::Parse(int argc, char* argv[])
             if(long_name == "help")
                 Print();
             char short_name = FindShortName(long_name);
-            StoreOptionalFlagValue(short_name,args[i+1]);
+            StoreOptionalFlagValue(short_name, args[i + 1]);
             i++;
         }
         else if(temp[0] == '-' && temp[1] == '?') // Help Input
@@ -205,15 +205,15 @@ void InputFlags::Parse(int argc, char* argv[])
 // parsing the driver arguments.
 void InputFlags::StoreOptionalFlagValue(char short_name, const std::string input_value)
 {
-    if( MapInputs[short_name].convert2uppercase == true )
+    if(MapInputs[short_name].convert2uppercase == true)
     {
-         std::string tvalue = input_value;
-         std::transform(tvalue.begin(), tvalue.end(),tvalue.begin(), ::toupper);
-         MapInputs[short_name].value = tvalue;
+        std::string tvalue = input_value;
+        std::transform(tvalue.begin(), tvalue.end(), tvalue.begin(), ::toupper);
+        MapInputs[short_name].value = tvalue;
     }
     else
     {
-         MapInputs[short_name].value = input_value;
+        MapInputs[short_name].value = input_value;
     }
 }
 

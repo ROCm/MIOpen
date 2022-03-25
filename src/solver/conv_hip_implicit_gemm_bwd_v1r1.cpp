@@ -638,6 +638,8 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}))
         return false;
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+        return false;
     if(!ctx.use_hip_kernels)
         return false;
     if(!ctx.IsLayoutDefault())
@@ -779,7 +781,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
     std::tie(GemmCThreadCopyDstDataPerWrite_GemmN1, std::ignore) =
         config.CalculateGemmCThreadCopyPerformanceParameters(ctx);
 
-    result.workspce_sz = GetWorkspaceSize(ctx);
+    result.workspace_sz = GetWorkspaceSize(ctx);
 
     // clang-format off
     construction_parameters.comp_options =

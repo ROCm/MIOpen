@@ -243,7 +243,7 @@ void test_arch_name()
 int main()
 {
     auto&& h = get_handle();
-    if(h.GetDeviceName() != "gfx803" && miopen::IsHipKernelsEnabled(h.GetTargetProperties()))
+    if(h.GetDeviceName() != "gfx803" && miopen::IsHipKernelsEnabled())
     {
         test_multithreads(miopenHIPKernelType);
         test_errors(miopenHIPKernelType);

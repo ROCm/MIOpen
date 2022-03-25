@@ -4,6 +4,35 @@
 #include "functional2.hpp"
 #include "sequence.hpp"
 
+#ifdef __HIPCC_RTC__
+#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
+/// We need <utility> for std::forward. In some cases, it includes <type_traits>
+/// (this is against the Standard, but it doesn't matter in this case).
+/// But <type_traits> also defines std::true_type, per Standard.
+/// However the latter definition conflicts with
+/// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h,
+/// which defines std::true_type as well (which is wrong).
+
+namespace std {
+
+template <typename T>
+constexpr T&& forward(typename remove_reference<T>::type& t_) noexcept
+{
+    return static_cast<T&&>(t_);
+}
+
+template <typename T>
+constexpr T&& forward(typename remove_reference<T>::type&& t_) noexcept
+{
+    return static_cast<T&&>(t_);
+}
+
+} // namespace std
+#else
+#include <utility> // std::forward
+#endif
+#endif // __HIPCC_RTC__
+
 namespace ck {
 
 template <typename TData, index_t NSize>

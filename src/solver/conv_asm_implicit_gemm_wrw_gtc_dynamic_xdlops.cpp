@@ -810,6 +810,9 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionConte
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS{}))
         return false;
 
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+        return false;
+
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(device_name != "gfx908")
         return false;
@@ -881,7 +884,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     //                           << (1 << log2_gemm_k_global_splits));
 
     const auto required_workspace_size = GetWorkspaceSize(ctx);
-    result.workspce_sz                 = required_workspace_size;
+    result.workspace_sz                = required_workspace_size;
 
     std::ostringstream kernel_file_name;
     kernel_file_name << kernel_name << ".s";

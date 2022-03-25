@@ -101,7 +101,7 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
             Next();
     }
 
-    public:
+public:
     // STL-like iterator shall be default contructible. Also implements container's end()
     ComputedIterator() : v(), p(nullptr) {}
     // STL-like iterator shall be copy contructible. The default copy ctor is ok.
@@ -140,7 +140,7 @@ class ComputedContainer
     /// for the sake of flexibility. Nevertheless, all element accesses of
     /// the "computed container" shall be const.
 
-    public:
+public:
     using const_iterator = ComputedIterator<PerformanceConfig, Context>;
 
     ComputedContainer(const Context& problem_, const bool spare_ = false)
@@ -168,7 +168,7 @@ class HeartBeat
         timer.start();
     }
 
-    public:
+public:
     HeartBeat() : n_within_beat(), n_best(), best_time(), elapsed_cumulative() {}
 
     void Start()
@@ -329,7 +329,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
     const int n_runs_total = useSpare ? spare_size : main_size;
     MIOPEN_LOG_W(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
-                               << (useSpare ? " (spare)" : "") << "...");
+                                << (useSpare ? " (spare)" : "") << "...");
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
@@ -370,13 +370,13 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
             try
             {
                 current_solution = s.GetSolution(context, current_config, true);
-                if(default_solution.workspce_sz != current_solution.workspce_sz)
+                if(default_solution.workspace_sz != current_solution.workspace_sz)
                 {
                     ret = -2;
                     MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
                                      << "Workspace size should not depend on PerformanceConfig: "
-                                     << default_solution.workspce_sz
-                                     << " != " << current_solution.workspce_sz);
+                                     << default_solution.workspace_sz
+                                     << " != " << current_solution.workspace_sz);
                 }
 
                 invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,

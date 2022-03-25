@@ -1027,13 +1027,16 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
             }
         };
     };
-    result.workspce_sz = GetWorkspaceSize(ctx);
+    result.workspace_sz = GetWorkspaceSize(ctx);
     return result;
 }
 
 bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS{}))
+        return false;
+
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
 
     if(!ctx.use_hip_kernels)

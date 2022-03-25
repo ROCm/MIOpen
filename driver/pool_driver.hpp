@@ -45,7 +45,7 @@
 template <typename Tgpu, typename Tref, typename Index>
 class PoolDriver_impl : public Driver
 {
-    public:
+public:
     PoolDriver_impl() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -87,7 +87,7 @@ class PoolDriver_impl : public Driver
         miopenDestroyPoolingDescriptor(poolDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;
@@ -584,22 +584,8 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyForward()
         pad_w,
         stride_w,
         windowWidth,
-        nIn,
-        cOut,
-        dIn,
-        hIn,
-        wIn,
-        hInStride,
-        dInStride,
-        cInStride,
-        nInStride,
-        dOut,
-        hOut,
-        wOut,
-        hOutStride,
-        dOutStride,
-        cOutStride,
-        nOutStride,
+        inputTensor,
+        outputTensor,
         in.data(),
         out.data(),
         do_backward,
@@ -609,7 +595,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyForward()
         spatial_dim == 3 ? 1 : inflags.GetValueInt("index_position"));
 
     printf(match ? "Forward Pooling Verifies on CPU and GPU\n"
-                 : "Forward Pooling Verification Failed !!\n");
+                 : "Forward Pooling verification FAILED !!\n");
 
     return 0;
 }
@@ -778,7 +764,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyBackward()
 template <typename Tgpu, typename Tref>
 class PoolDriver : public Driver
 {
-    public:
+public:
     PoolDriver() : Driver(), pool_driver_impl(nullptr) {}
 
     int AddCmdLineArgs() override
@@ -823,7 +809,7 @@ class PoolDriver : public Driver
     int RunBackwardGPU() override { return pool_driver_impl->RunBackwardGPU(); }
     int VerifyBackward() override { return pool_driver_impl->VerifyBackward(); }
 
-    private:
+private:
     Driver* pool_driver_impl;
 
     PoolDriver_impl<Tgpu, Tref, uint8_t> pool_driver_impl_uint8;

@@ -46,6 +46,12 @@ configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BIN
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/version.h.in" "${PROJECT_BINARY_DIR}/include/miopen/version.h" )
 
+
+if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
+#Copy header to Build Dir for generating backward compatibility
+configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINARY_DIR}/include/miopen/miopen.h" )
+endif()
+
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 
@@ -204,6 +210,7 @@ set( MIOpen_Source
     solver/gemm_wrw.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNd.cpp
+    subbuffers.cpp
     target_properties.cpp
     temp_file.cpp
     tensor.cpp
@@ -432,7 +439,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_filter.s
         kernels/xform_bidirect_winograd_data.s
         kernels/xform_bidirect_winograd_filter.s
-        kernels/xform_bidirect_winograd_out.s)
+        kernels/xform_bidirect_winograd_out.s
+        kernels/UniversalTranspose.cl)
 
     add_kernels("kernel.cpp" "MIOPEN_KERNEL_" "" "${MIOPEN_KERNELS}")
     add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "_INCLUDE" "${MIOPEN_KERNEL_INCLUDES}")
@@ -710,12 +718,10 @@ rocm_install_targets(
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}/include
     ${MIOPEN_CXX_HEADER_PATH}
-  PREFIX ${MIOPEN_INSTALL_DIR}
 )
 
 rocm_export_targets(
   TARGETS MIOpen
-  PREFIX ${MIOPEN_INSTALL_DIR}
   DEPENDS
     ${PACKAGE_DEPENDS}
   STATIC_DEPENDS
@@ -758,4 +764,20 @@ else()
 
     endif()
 endif()
-rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
+
+if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
+  #Generating Wrapper of each headers for backward compatibility
+  rocm_wrap_header_file(
+    export.h config.h version.h miopen.h
+    HEADER_LOCATION include/miopen
+    GUARDS WRAPPER
+    WRAPPER_LOCATIONS miopen/include/miopen
+  )
+
+  #Installing Wrapper Headers
+  rocm_install(
+    DIRECTORY
+       "${PROJECT_BINARY_DIR}/miopen/include"
+        DESTINATION "miopen" )
+  message( STATUS "Backward Compatible Sym Link Created for include directories" )
+endif()

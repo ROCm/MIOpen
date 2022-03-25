@@ -548,7 +548,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
         ss_us_kernel.comp_options = subsample_kernel_compilation_options;
     }
-    result.workspce_sz = GetWorkspaceSize(params);
+    result.workspace_sz = GetWorkspaceSize(params);
 
     GenerateClangDefsym(options, "stride_h", 1);
     GenerateClangDefsym(options, "stride_w", 1);
@@ -738,14 +738,14 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         int N, C, H, W, K, n_groups, out_H, out_W;
         GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
         result.invoker_factory = conv::MakeGcnAsm1x1USSInvokerFactory(
-            N, C, K, n_groups, out_H, out_W, result.workspce_sz);
+            N, C, K, n_groups, out_H, out_W, result.workspace_sz);
     }
     else if(UseUpsample(params))
     {
         int N, C, H, W, K, n_groups;
         GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
         result.invoker_factory =
-            conv::MakeGcnAsm1x1UUSInvokerFactory(N, C, K, n_groups, H, W, result.workspce_sz);
+            conv::MakeGcnAsm1x1UUSInvokerFactory(N, C, K, n_groups, H, W, result.workspace_sz);
     }
     else
     {

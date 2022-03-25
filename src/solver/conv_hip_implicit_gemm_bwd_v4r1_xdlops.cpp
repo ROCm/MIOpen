@@ -824,6 +824,8 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
         return false;
 #endif
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsBackwardData())
@@ -962,7 +964,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
             // clang-format on
 
             // TODO: add fp16 calculation by GetWorkspaceSize(ctx);
-            result.workspce_sz = 0;
+            result.workspace_sz = 0;
 
             int GemmABlockCopySrcDataPerRead_GemmM = 1;
             int GemmBBlockCopySrcDataPerRead_GemmN = 1;

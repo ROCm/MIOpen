@@ -116,7 +116,9 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     }();
 
     const auto solvers = solver::SolverContainer<solver::pooling::PoolingForward2d,
-                                                 solver::pooling::PoolingForwardNd>{};
+                                                 solver::pooling::PoolingForwardNd,
+                                                 solver::pooling::TransposedPoolingFwd2d,
+                                                 solver::pooling::TransposedPoolingFwdNd>{};
 
     solvers.ExecutePrimitive(handle, problem, algo_name, invoke_params);
 

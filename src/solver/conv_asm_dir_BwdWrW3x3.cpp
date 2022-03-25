@@ -512,7 +512,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     kernel.kernel_name = "miopenGcnAsmConv3x3WrW";
 
     result.construction_params.push_back(kernel);
-    result.workspce_sz = 0;
+    result.workspace_sz = 0;
 
     int N, C, H, W, K, n_groups;
     GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);

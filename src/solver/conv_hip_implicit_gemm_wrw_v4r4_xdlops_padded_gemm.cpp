@@ -1098,7 +1098,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
             }
         };
     };
-    result.workspce_sz = GetWorkspaceSize(ctx);
+    result.workspace_sz = GetWorkspaceSize(ctx);
     return result;
 }
 
@@ -1108,6 +1108,9 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const Convolutio
         return false;
 
     if(!IsComposableKernelSupportedHardware(ctx))
+        return false;
+
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
 
     if(!IsXdlopsSupport(ctx))

@@ -325,11 +325,12 @@ GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(
     const auto& wo    = ctx.out_width;
     const auto& group = ctx.group_counts;
 
-    const auto& hi    = ctx.in_height;
-    const auto& wi    = ctx.in_width;
-    const auto& c     = ctx.n_inputs;
+    const auto& hi = ctx.in_height;
+    const auto& wi = ctx.in_width;
+    const auto& c  = ctx.n_inputs;
 
-    auto splits_4G = igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+    auto splits_4G =
+        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
 
     const auto gemm_m = (n / splits_4G) * ho * wo;
     const auto gemm_n = k / group;
@@ -666,12 +667,13 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
     const auto& y         = ctx.kernel_size_h;
     const auto& x         = ctx.kernel_size_w;
 
-    const auto& n     = ctx.batch_sz;
-    const auto& ho    = ctx.out_height;
-    const auto& wo    = ctx.out_width;
-    const auto& hi    = ctx.in_height;
-    const auto& wi    = ctx.in_width;
-    auto splits_4G = igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+    const auto& n  = ctx.batch_sz;
+    const auto& ho = ctx.out_height;
+    const auto& wo = ctx.out_width;
+    const auto& hi = ctx.in_height;
+    const auto& wi = ctx.in_width;
+    auto splits_4G =
+        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
     if(ctx.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
         return false;
 
@@ -821,6 +823,9 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionC
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC{}))
         return false;
 
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+        return false;
+
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx908") && (device_name != "gfx90a"))
         return false;
@@ -844,13 +849,13 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionC
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
-    if(0 == igemm_split_batch_size(ctx.in_height, 
-                                   ctx.in_width, 
-                                   ctx.out_height, 
-                                   ctx.out_width, 
-                                   ctx.batch_sz, 
-                                   ctx.n_outputs, 
-                                   ctx.n_inputs, 
+    if(0 == igemm_split_batch_size(ctx.in_height,
+                                   ctx.in_width,
+                                   ctx.out_height,
+                                   ctx.out_width,
+                                   ctx.batch_sz,
+                                   ctx.n_outputs,
+                                   ctx.n_inputs,
                                    miopen::GetTypeSize(ctx.in_data_type)))
         return false;
 
@@ -875,7 +880,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
         GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(ctx, config);
 
     const auto required_workspace_size = GetWorkspaceSize(ctx);
-    result.workspce_sz                 = required_workspace_size;
+    result.workspace_sz                = required_workspace_size;
 
     kernel.kernel_file = kernel_name + ".s";
     kernel.kernel_name = kernel_name;

@@ -167,13 +167,13 @@ class SQLite
     // do we need propagate const
     std::unique_ptr<impl> pImpl;
 
-    public:
+public:
     class Statement
     {
         class impl;
         std::unique_ptr<impl> pImpl;
 
-        public:
+    public:
         Statement(const SQLite& sql, const std::string& query);
         Statement(const SQLite& sql,
                   const std::string& query,
@@ -210,8 +210,8 @@ class SQLite
 template <typename Derived>
 class SQLiteBase
 {
-    protected:
-    public:
+protected:
+public:
     SQLiteBase(const std::string& filename_, bool is_system_)
         : filename(filename_), is_system(is_system_)
     {
@@ -250,20 +250,23 @@ class SQLiteBase
         if(!sql.Valid())
         {
             bool isKDB = boost::filesystem::path(filename).extension() == ".kdb";
-            dbInvalid = true;
-            filename  = "";
+            dbInvalid  = true;
+            filename   = "";
             if(!is_system)
                 MIOPEN_THROW(miopenStatusInternalError, "Cannot open database file:" + filename_);
             else
             {
                 const auto log_level =
                     (!MIOPEN_DISABLE_SYSDB) ? LoggingLevel::Warning : LoggingLevel::Info;
-                if (isKDB && (log_level == LoggingLevel::Warning))
+                if(isKDB && (log_level == LoggingLevel::Warning))
                 {
-                    static const auto kdb_message_issued = [&](){
-                        MIOPEN_LOG_W("Missing system database file: " << filename_ << 
-                            " Performance may degrade. Please follow instructions to install: " 
-                            "https://github.com/ROCmSoftwarePlatform/MIOpen#installing-miopen-kernels-package");
+                    static const auto kdb_message_issued = [&]() {
+                        MIOPEN_LOG_W(
+                            "Missing system database file: "
+                            << filename_
+                            << " Performance may degrade. Please follow instructions to install: "
+                               "https://github.com/ROCmSoftwarePlatform/"
+                               "MIOpen#installing-miopen-kernels-package");
                         return true;
                     }();
                     std::ignore = kdb_message_issued;
@@ -271,8 +274,8 @@ class SQLiteBase
                 else
                 {
                     MIOPEN_LOG(log_level,
-                            "Unable to read system database file:" + filename_ +
-                                " Performance may degrade");
+                               "Unable to read system database file:" + filename_ +
+                                   " Performance may degrade");
                 }
             }
         }
@@ -393,7 +396,7 @@ Derived& SQLiteBase<Derived>::GetCached(const std::string& path, bool is_system)
 
 class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
-    public:
+public:
     static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.1.0";
     SQLitePerfDb(const std::string& filename_, bool is_system);
 
