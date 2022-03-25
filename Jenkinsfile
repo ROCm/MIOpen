@@ -772,16 +772,17 @@ pipeline {
                         buildHipClangJobAndReboot( setup_flags: Int8_flags + Full_test, prefixpath: '/opt/rocm')
                     }
                 }
-                stage('Fp32 OpenCL Install All') {
-                    when {
-                        beforeAgent true
-                        expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true")
-                    }
-                }
+                // #TODO Code Quality WORKAROUND ROCm 5.0.2 update
+                // stage('Fp32 OpenCL Install All') {
+                //     when {
+                //         beforeAgent true
+                //         expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 }
+                //     }
+                //     agent{ label rocmnode("vega") }
+                //     steps{
+                //         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true")
+                //     }
+                // }
                 stage('Bf16 Hip Install All gfx908') {
                     when {
                         beforeAgent true
