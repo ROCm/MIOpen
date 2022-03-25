@@ -44,6 +44,12 @@ bool ProblemDescription::IsLayoutNHWC() const
     }
 }
 
+bool ProblemDescription::IsLayoutNCHWC() const
+{
+    return ((spatial_dims == 2) && (in_layout == "NCHWC") && (out_layout == "NCHWC") && (weights_layout == "NCHWC")) || 
+           ((spatial_dims == 2) && (in_layout == "NCHWC") && (out_layout == "NCHWC") && (weights_layout == "CHWNC"));
+}
+
 void ProblemDescription::Serialize(std::ostream& stream) const
 {
     if(!direction.IsKnown())

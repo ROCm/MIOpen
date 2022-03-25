@@ -69,6 +69,17 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
         MIOPEN_THROW("Invalid strides. Strides must be greater than 0.");
     packed = (this->GetElementSize() == this->GetElementSpace());
 }
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
+                                   miopenTensorLayout_t playout,
+                                   const int* plens,
+                                   int size)
+    : lens(plens, plens + size), packed(true), type(t), tensorLayout(playout)
+{
+    vector_c = ( (type == miopenHalfx8) ? 8 : ( type == miopenHalfx4 ? 4 : 1) );
+    if(!std::all_of(plens, plens + size, [](int x) { return x >= 0; }))
+        MIOPEN_THROW("Invalid length. Length must be greater than 0.");
+    this->CalculateStrides();
+}
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    std::vector<std::size_t> lens_in,
@@ -84,9 +95,17 @@ void TensorDescriptor::CalculateStrides()
     strides.resize(lens.size(), 0);
     if(strides.empty())
         return;
-    strides.back() = 1;
+    if(tensorLayout == miopenTensorNCHW_VECT_C){
+        lens[1] /= vector_c;
+    }
+    else if(tensorLayout == miopenTensorCHWN_VECT_C){
+        lens[0] /= vector_c;
+    }
+
+    strides.back() = vector_c;
     std::partial_sum(
         lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<std::size_t>());
+    for(int i=0; i<strides.size()-1; i++) strides[i] *= vector_c;
 }
 
 const std::vector<std::size_t>& TensorDescriptor::GetLengths() const { return lens; }
@@ -120,7 +139,7 @@ std::size_t TensorDescriptor::GetElementSpace() const
                    std::minus<std::size_t>());
     return std::inner_product(
                maxIndices.begin(), maxIndices.end(), strides.begin(), std::size_t{0}) +
-           1;
+           vector_c;
 }
 
 bool TensorDescriptor::IsPossibleLayout(const std::string& labels, const std::string& layout) const
@@ -138,6 +157,8 @@ std::size_t TensorDescriptor::GetNumBytes() const
     case miopenInt8x4:
     case miopenInt8: typesize = 1; break;
     case miopenBFloat16:
+    case miopenHalfx4:
+    case miopenHalfx8:
     case miopenHalf: typesize = 2; break;
     case miopenInt32:
     case miopenFloat: typesize = 4; break;

@@ -52,6 +52,8 @@ static const char* DTypeName(miopenDataType_t ty)
     switch(ty)
     {
     case miopenHalf: return "fp16";
+    case miopenHalfx4: return "fp16x4";
+    case miopenHalfx8: return "fp16x8";
     case miopenFloat: return "fp32";
     case miopenDouble: return "fp64";
     case miopenBFloat16: return "bf16";

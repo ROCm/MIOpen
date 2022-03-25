@@ -1578,6 +1578,7 @@ struct conv_driver : test_driver
     std::size_t batch_size{};
     std::size_t input_channels{};
     std::size_t output_channels{};
+    std::size_t vector_c;
     std::string in_layout;
     std::string fil_layout; // keep same as MIOpenDriver argument name
     std::string out_layout;
@@ -1789,8 +1790,19 @@ struct conv_driver : test_driver
                           .generate(tensor_elem_gen_integer{17});
         }
 
-        if(input.desc.GetSize() != in_layout.size() ||
-           weights.desc.GetSize() != fil_layout.size() || input.desc.GetSize() != out_layout.size())
+        if(in_layout.find("_VECT_")!=std::string::npos && 
+           fil_layout.find("_VECT_")!=std::string::npos && out_layout.find("_VECT_")!=std::string::npos )
+        {
+            if(input.desc.GetSize() != in_layout.find_first_of('_') ||
+               weights.desc.GetSize() != fil_layout.find_first_of('_') ||
+               input.desc.GetSize() != out_layout.find_first_of('_') )
+               {
+                   std::cerr << "FAILED: layout not match dimension size!" << std::endl;
+                   return;
+               }
+        }
+        else if(input.desc.GetSize() != in_layout.size() ||
+                weights.desc.GetSize() != fil_layout.size() || input.desc.GetSize() != out_layout.size())
         {
             std::cerr << "FAILED: layout not match dimension size!" << std::endl;
             return;

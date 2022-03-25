@@ -45,6 +45,8 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
     {
     case miopenFloat: return "FP32";
     case miopenHalf: return "FP16";
+    case miopenHalfx4: return "FP16x4";
+    case miopenHalfx8: return "FP16x8";
     case miopenInt8: return "INT8";
     case miopenInt8x4: return "INT8x4";
     case miopenInt32: return "INT32";

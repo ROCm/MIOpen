@@ -337,7 +337,22 @@ typedef enum
     miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
                            (Partially supported) */
     miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
+    miopenHalfx4 = 7, /*!<Pack of 4 16-bit floating points in NCHW_VECT_C format*/
+    miopenHalfx8 = 8, /*!<Pack of 8 16-bit floating points in NCHW_VECT_C format*/
 } miopenDataType_t;
+
+/*! @ingroup tensor
+ * @enum miopenTensorLayout_t
+ * MIOpen tensor layouts. NCHW, NHWC, CHWN and NCHW_VECT_C with certain vector length(vect_c=4, vect_c=8) are supported in MIOpen.
+ */
+typedef enum
+{
+    miopenTensorNCHW = 0, /*!< NCHW memory layout (Fully supported) */
+    miopenTensorNHWC = 1, /*!< NHWC memory layout (Fully supported) */
+    miopenTensorCHWN = 2, /*!< CHWN memory layout (Not supported) */
+    miopenTensorNCHW_VECT_C = 3, /*!< NCHW_VECT_C memory layout (Partially supported) */
+    miopenTensorCHWN_VECT_C = 4, /*!< CHWC_VECT_C memory layout (Partially supported) */
+} miopenTensorLayout_t;
 
 /*! @ingroup pooling
  * @enum miopenIndexType_t
@@ -578,6 +593,23 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
  */
 MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
     miopenTensorDescriptor_t tensorDesc, miopenDataType_t dataType, int n, int c, int h, int w);
+
+/*! @brief Set shape of 4D tensor with specific layout
+ *
+ * Second Interface for setting 4-D tensor shape. This interface support NHWC, NCHW_VECT_C, CHWN_VECT_C layout
+ * The supported VECT_C type layout, user input like:
+ * convfp16x8 -n 8 -c 64 -h 5 -w 5 ... initialized to tensor with lengths of (8, 8, 5, 5) and strides of (1600, 200, 40, 8) 
+ * @param tensorDesc   Tensor descriptor type (output)
+ * @param dataType     MIOpen datatype (input)
+ * @param tensorLayout Tensor layout (input)
+ * @param n            Mini-batch size (input)
+ * @param c            Number of channels (input)
+ * @param h            Data height dimension size (input)
+ * @param w            Data width dimension size (input)
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptorWithLayout(
+    miopenTensorDescriptor_t tensorDesc, miopenDataType_t dataType, miopenTensorLayout_t tensorLayout, int n, int c, int h, int w);
 
 /*! @brief Get the details of the tensor descriptor
  *

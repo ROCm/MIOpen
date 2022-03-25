@@ -537,7 +537,11 @@ miopenStatus_t CallGemm(const Handle& handle,
         }
         break;
         case miopenInt32: break;
+        case miopenHalfx4:
+        case miopenHalfx8:
         case miopenHalf: {
+            assert(gemm_desc.k % 4 == 0);
+
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -845,7 +849,12 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
         break;
         case miopenInt32: break;
+        
+        case miopenHalfx4:
+        case miopenHalfx8:
         case miopenHalf: {
+            assert(gemm_desc.k % 4 == 0);
+            
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1092,7 +1101,11 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
         break;
         case miopenInt32: break;
+        case miopenHalfx4:
+        case miopenHalfx8:
         case miopenHalf: {
+            assert(gemm_desc.k % 4 == 0);
+            
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 

@@ -117,6 +117,8 @@ struct ProblemDescription
 
     bool IsLayoutNHWC() const;
 
+    bool IsLayoutNCHWC() const;
+
     template <class Self>
     static void Visit(Self&& self, std::function<void(int, std::string)> f)
     {
@@ -199,6 +201,16 @@ struct ProblemDescription
     {
         return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
                out_data_type == miopenBFloat16;
+    }
+    bool IsHalfx4() const
+    {
+        return in_data_type == miopenHalfx4 && weights_data_type == miopenHalfx4 &&
+               out_data_type == miopenHalfx4;
+    }
+    bool IsHalfx8() const
+    {
+        return in_data_type == miopenHalfx8 && weights_data_type == miopenHalfx4 &&
+               out_data_type == miopenHalfx8;
     }
 
     ProblemDescription() = default;

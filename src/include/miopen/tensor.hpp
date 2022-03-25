@@ -96,6 +96,8 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenInt32:
     case miopenFloat: return 4;
     case miopenHalf:
+    case miopenHalfx4:
+    case miopenHalfx8:
     case miopenBFloat16: return 2;
     case miopenInt8x4:
     case miopenInt8: return 1;
@@ -127,6 +129,7 @@ struct TensorDescriptor : miopenTensorDescriptor
                      std::initializer_list<std::size_t> pstrides);
     TensorDescriptor(miopenDataType_t t, const int* plens, int size);
     TensorDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
+    TensorDescriptor(miopenDataType_t t, miopenTensorLayout_t playout, const int* plens, int size);
 
     TensorDescriptor(miopenDataType_t t,
                      std::vector<std::size_t> lens_in,
@@ -213,8 +216,11 @@ private:
     std::vector<std::size_t> strides;
 
     bool packed;
+    // Consider is this member redundant 
+    int vector_c = 1;
 
     miopenDataType_t type = miopenFloat;
+    miopenTensorLayout_t tensorLayout = miopenTensorNCHW;
 };
 
 } // namespace miopen
