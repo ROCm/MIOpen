@@ -50,7 +50,7 @@ project ( MIOpen C CXX )
 
 enable_testing()
 
-find_package(ROCM REQUIRED PATHS /opt/rocm)
+find_package(ROCM 0.7.3 REQUIRED PATHS /opt/rocm)
 
 include(ROCMInstallTargets)
 include(ROCMPackageConfigHelpers)
