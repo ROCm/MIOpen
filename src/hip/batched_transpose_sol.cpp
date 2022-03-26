@@ -351,7 +351,8 @@ std::vector<OpKernelArg> BatchedTransposeSolution::GetKernelArg() const
     opArgs.emplace_back(0); // placeholder
     opArgs.emplace_back(height);
     opArgs.emplace_back(width);
-    if(grid_size != static_cast<uint32_t>(grid_size)) MIOPEN_THROW("Variable grid size can't be casted to uint32_t safely");
+    if(grid_size != static_cast<uint32_t>(grid_size))
+        MIOPEN_THROW("Variable grid size can't be casted to uint32_t safely");
     opArgs.emplace_back(static_cast<uint32_t>(grid_size));
     opArgs.emplace_back(dim_total);
     opArgs.emplace_back(magic_h.magic);

@@ -41,35 +41,29 @@ struct TensorReorderAttributesBase
     virtual solver::KernelInfo GetKernelInfo() const      = 0;
     virtual std::vector<OpKernelArg> GetKernelArg() const = 0;
     virtual std::string GetKernelName() const             = 0;
-    // used in HOST side to check the special cases that either tensor height or width equal = 1. 
-    // In such cases, we don't need to conduct batched transpose operation, 
+    // used in HOST side to check the special cases that either tensor height or width equal = 1.
+    // In such cases, we don't need to conduct batched transpose operation,
     // since the transposed tensor layout has exactly same memory layout as before.
-    virtual bool IsSkippable() const                      = 0;
+    virtual bool IsSkippable() const = 0;
     // workspace (buffer) to hold output tensor of transform Pre/Post convolution
-    virtual size_t GetOutputTensorSize() const            = 0;
+    virtual size_t GetOutputTensorSize() const = 0;
 };
 
 struct BatchedTransposeSolution_0132 : TensorReorderAttributesBase
 {
     BatchedTransposeSolution impl;
     BatchedTransposeSolution_0132(const ExecutionContext& ctx_,
-                                         miopenDataType_t data_type_,
-                                         uint32_t dim_0_,
-                                         uint32_t dim_1_,
-                                         uint32_t dim_2_,
-                                         uint32_t dim_3_)
+                                  miopenDataType_t data_type_,
+                                  uint32_t dim_0_,
+                                  uint32_t dim_1_,
+                                  uint32_t dim_2_,
+                                  uint32_t dim_3_)
         : impl(ctx_, data_type_, dim_0_ * dim_1_, dim_2_, dim_3_)
     {
     }
     solver::KernelInfo GetKernelInfo() const override { return impl.GetKernelInfo(); }
-    std::vector<OpKernelArg> GetKernelArg() const override
-    {
-        return impl.GetKernelArg();
-    }
-    std::string GetKernelName() const override
-    {
-        return impl.GetKernelName();
-    }
+    std::vector<OpKernelArg> GetKernelArg() const override { return impl.GetKernelArg(); }
+    std::string GetKernelName() const override { return impl.GetKernelName(); }
     bool IsSkippable() const override { return impl.IsSkippable(); }
     size_t GetOutputTensorSize() const override { return impl.GetOutputTensorSize(); }
 };
@@ -78,23 +72,17 @@ struct BatchedTransposeSolution_0231 : TensorReorderAttributesBase
 {
     BatchedTransposeSolution impl;
     BatchedTransposeSolution_0231(const ExecutionContext& ctx_,
-                                         miopenDataType_t data_type_,
-                                         uint32_t dim_0_,
-                                         uint32_t dim_1_,
-                                         uint32_t dim_2_,
-                                         uint32_t dim_3_)
+                                  miopenDataType_t data_type_,
+                                  uint32_t dim_0_,
+                                  uint32_t dim_1_,
+                                  uint32_t dim_2_,
+                                  uint32_t dim_3_)
         : impl(ctx_, data_type_, dim_0_, dim_1_, dim_2_ * dim_3_)
     {
     }
     solver::KernelInfo GetKernelInfo() const override { return impl.GetKernelInfo(); }
-    std::vector<OpKernelArg> GetKernelArg() const override
-    {
-        return impl.GetKernelArg();
-    }
-    std::string GetKernelName() const override
-    {
-        return impl.GetKernelName();
-    }
+    std::vector<OpKernelArg> GetKernelArg() const override { return impl.GetKernelArg(); }
+    std::string GetKernelName() const override { return impl.GetKernelName(); }
     bool IsSkippable() const override { return impl.IsSkippable(); }
     size_t GetOutputTensorSize() const override { return impl.GetOutputTensorSize(); }
 };
@@ -103,23 +91,17 @@ struct BatchedTransposeSolution_0312 : TensorReorderAttributesBase
 {
     BatchedTransposeSolution impl;
     BatchedTransposeSolution_0312(const ExecutionContext& ctx_,
-                                         miopenDataType_t data_type_,
-                                         uint32_t dim_0_,
-                                         uint32_t dim_1_,
-                                         uint32_t dim_2_,
-                                         uint32_t dim_3_)
+                                  miopenDataType_t data_type_,
+                                  uint32_t dim_0_,
+                                  uint32_t dim_1_,
+                                  uint32_t dim_2_,
+                                  uint32_t dim_3_)
         : impl(ctx_, data_type_, dim_0_, dim_1_ * dim_2_, dim_3_)
     {
     }
     solver::KernelInfo GetKernelInfo() const override { return impl.GetKernelInfo(); }
-    std::vector<OpKernelArg> GetKernelArg() const override
-    {
-        return impl.GetKernelArg();
-    }
-    std::string GetKernelName() const override
-    {
-        return impl.GetKernelName();
-    }
+    std::vector<OpKernelArg> GetKernelArg() const override { return impl.GetKernelArg(); }
+    std::string GetKernelName() const override { return impl.GetKernelName(); }
     bool IsSkippable() const override { return impl.IsSkippable(); }
     size_t GetOutputTensorSize() const override { return impl.GetOutputTensorSize(); }
 };
@@ -128,23 +110,17 @@ struct BatchedTransposeSolution_2301 : TensorReorderAttributesBase
 {
     BatchedTransposeSolution impl;
     BatchedTransposeSolution_2301(const ExecutionContext& ctx_,
-                                         miopenDataType_t data_type_,
-                                         uint32_t dim_0_,
-                                         uint32_t dim_1_,
-                                         uint32_t dim_2_,
-                                         uint32_t dim_3_)
+                                  miopenDataType_t data_type_,
+                                  uint32_t dim_0_,
+                                  uint32_t dim_1_,
+                                  uint32_t dim_2_,
+                                  uint32_t dim_3_)
         : impl(ctx_, data_type_, 1, dim_0_ * dim_1_, dim_2_ * dim_3_)
     {
     }
     solver::KernelInfo GetKernelInfo() const override { return impl.GetKernelInfo(); }
-    std::vector<OpKernelArg> GetKernelArg() const override
-    {
-        return impl.GetKernelArg();
-    }
-    std::string GetKernelName() const override
-    {
-        return impl.GetKernelName();
-    }
+    std::vector<OpKernelArg> GetKernelArg() const override { return impl.GetKernelArg(); }
+    std::string GetKernelName() const override { return impl.GetKernelName(); }
     bool IsSkippable() const override { return impl.IsSkippable(); }
     size_t GetOutputTensorSize() const override { return impl.GetOutputTensorSize(); }
 };
@@ -153,23 +129,17 @@ struct BatchedTransposeSolution_3012 : TensorReorderAttributesBase
 {
     BatchedTransposeSolution impl;
     BatchedTransposeSolution_3012(const ExecutionContext& ctx_,
-                                         miopenDataType_t data_type_,
-                                         uint32_t dim_0_,
-                                         uint32_t dim_1_,
-                                         uint32_t dim_2_,
-                                         uint32_t dim_3_)
+                                  miopenDataType_t data_type_,
+                                  uint32_t dim_0_,
+                                  uint32_t dim_1_,
+                                  uint32_t dim_2_,
+                                  uint32_t dim_3_)
         : impl(ctx_, data_type_, 1, dim_0_ * dim_1_ * dim_2_, dim_3_)
     {
     }
     solver::KernelInfo GetKernelInfo() const override { return impl.GetKernelInfo(); }
-    std::vector<OpKernelArg> GetKernelArg() const override
-    {
-        return impl.GetKernelArg();
-    }
-    std::string GetKernelName() const override
-    {
-        return impl.GetKernelName();
-    }
+    std::vector<OpKernelArg> GetKernelArg() const override { return impl.GetKernelArg(); }
+    std::string GetKernelName() const override { return impl.GetKernelName(); }
     bool IsSkippable() const override { return impl.IsSkippable(); }
     size_t GetOutputTensorSize() const override { return impl.GetOutputTensorSize(); }
 };
@@ -186,22 +156,11 @@ struct GenericReorderSolution : TensorReorderAttributesBase
                            uint32_t order_1_,
                            uint32_t order_2_,
                            uint32_t order_3_)
-        : impl( data_type_,
-                dim_0_,
-                dim_1_,
-                dim_2_,
-                dim_3_,
-                order_0_,
-                order_1_,
-                order_2_,
-                order_3_)
+        : impl(data_type_, dim_0_, dim_1_, dim_2_, dim_3_, order_0_, order_1_, order_2_, order_3_)
     {
     }
     solver::KernelInfo GetKernelInfo() const override { return impl.GetKernelInfo(); }
-    std::vector<OpKernelArg> GetKernelArg() const override
-    {
-        return impl.GetKernelArg();
-    }
+    std::vector<OpKernelArg> GetKernelArg() const override { return impl.GetKernelArg(); }
     std::string GetKernelName() const override { return impl.GetKernelName(); }
     bool IsSkippable() const override { return impl.IsSkippable(); }
     size_t GetOutputTensorSize() const override { return impl.GetOutputTensorSize(); }
@@ -220,20 +179,23 @@ MakeTensorReorderAttributes(const ExecutionContext& ctx_,
                             uint32_t order_3_)
 {
     std::unique_ptr<TensorReorderAttributesBase> default_ptr;
-    if(ctx_.use_hip_kernels == false){
+    if(ctx_.use_hip_kernels == false)
+    {
         return default_ptr;
     }
     // Default using general reorder
-    if(data_type_ == miopenBFloat16){
+    if(data_type_ == miopenBFloat16)
+    {
         MIOPEN_THROW("Unsupported reorder data type");
     }
     int which = 0;
-    if(data_type_ != miopenDouble){
+    if(data_type_ != miopenDouble)
+    {
         if((order_0_ == 0) && (order_1_ == 1) && (order_2_ == 3) && (order_3_ == 2))
             which = 1;
         else if((order_0_ == 0) && (order_1_ == 2) && (order_2_ == 3) && (order_3_ == 1))
             which = 2;
-        else if((order_0_ == 0) && (order_1_ == 3) && (order_2_ == 1) && (order_3_ == 2)) 
+        else if((order_0_ == 0) && (order_1_ == 3) && (order_2_ == 1) && (order_3_ == 2))
             which = 3;
         else if((order_0_ == 2) && (order_1_ == 3) && (order_2_ == 0) && (order_3_ == 1))
             which = 4;
@@ -256,15 +218,8 @@ MakeTensorReorderAttributes(const ExecutionContext& ctx_,
     switch(which)
     {
     case 0:
-        return std::make_unique<GenericReorderSolution>(data_type_,
-                                                        dim_0_,
-                                                        dim_1_,
-                                                        dim_2_,
-                                                        dim_3_,
-                                                        order_0_,
-                                                        order_1_,
-                                                        order_2_,
-                                                        order_3_);
+        return std::make_unique<GenericReorderSolution>(
+            data_type_, dim_0_, dim_1_, dim_2_, dim_3_, order_0_, order_1_, order_2_, order_3_);
     case 1:
         return std::make_unique<BatchedTransposeSolution_0132>(
             ctx_, data_type_, dim_0_, dim_1_, dim_2_, dim_3_);
@@ -280,9 +235,7 @@ MakeTensorReorderAttributes(const ExecutionContext& ctx_,
     case 5:
         return std::make_unique<BatchedTransposeSolution_3012>(
             ctx_, data_type_, dim_0_, dim_1_, dim_2_, dim_3_);
-    default: 
-        MIOPEN_THROW("Unsupported reorder sequence");
-        break;
+    default: MIOPEN_THROW("Unsupported reorder sequence"); break;
     }
 }
 

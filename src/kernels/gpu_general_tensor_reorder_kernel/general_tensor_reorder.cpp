@@ -25,7 +25,7 @@
  *******************************************************************************/
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_runtime.h>
-#endif 
+#endif
 #include <hip/hip_fp16.h>
 #include "order.hpp"
 

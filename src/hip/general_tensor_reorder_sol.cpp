@@ -59,7 +59,8 @@ static inline std::string GetKernelName(std::size_t data_size,
                                         uint32_t order_3,
                                         const GeneralReorderParam* kparam)
 {
-    if(kparam == nullptr) MIOPEN_THROW("Memory access fault, kparam is a nullptr");
+    if(kparam == nullptr)
+        MIOPEN_THROW("Memory access fault, kparam is a nullptr");
     std::ostringstream kernel_name;
     kernel_name << "general_4d_reorder_" << kparam->tile_x << "x" << kparam->tile_y << "_";
     if(!(kparam->pack_x == 1 && kparam->pack_y == 1 && kparam->ediv_x == 1 && kparam->ediv_y == 1))
@@ -176,7 +177,8 @@ std::vector<OpKernelArg> GenericReorderSolutionImpl::GetKernelArg() const
     opArgs.emplace_back(dim_1);
     opArgs.emplace_back(dim_2);
     opArgs.emplace_back(dim_3);
-    if(grid_size != static_cast<uint32_t>(grid_size)) MIOPEN_THROW("Variable grid size can't be casted to uint32_t safely");
+    if(grid_size != static_cast<uint32_t>(grid_size))
+        MIOPEN_THROW("Variable grid size can't be casted to uint32_t safely");
     opArgs.emplace_back(static_cast<uint32_t>(grid_size));
     opArgs.emplace_back(dim_total);
     opArgs.emplace_back(magic_stride0.magic);
@@ -191,8 +193,12 @@ std::vector<OpKernelArg> GenericReorderSolutionImpl::GetKernelArg() const
 
 std::string GenericReorderSolutionImpl::GetKernelName() const
 {
-    return tensor_reorder::GetKernelName(
-        miopen::GetTypeSize(data_type), order_0, order_1, order_2, order_3, &kernel_param_heuristic);
+    return tensor_reorder::GetKernelName(miopen::GetTypeSize(data_type),
+                                         order_0,
+                                         order_1,
+                                         order_2,
+                                         order_3,
+                                         &kernel_param_heuristic);
 }
 
 bool GenericReorderSolutionImpl::IsSkippable() const

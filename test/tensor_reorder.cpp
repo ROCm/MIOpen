@@ -49,8 +49,6 @@ struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHa
 {
 };
 
-
-
 template <typename T>
 void cpu_tensor_reorder(T* dst,
                         T* src,
@@ -442,17 +440,18 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
                                                            order_3);
             EXPECT(reorder_sol != nullptr);
             size_t workspace = reorder_sol->GetOutputTensorSize();
-            if(!reorder_sol->IsSkippable()){
+            if(!reorder_sol->IsSkippable())
+            {
 #if MIOPEN_BACKEND_OPENCL
                 cl_mem dst_dev =
-                clCreateBuffer(cl_ctx, CL_MEM_READ_WRITE, workspace, nullptr, nullptr);
+                    clCreateBuffer(cl_ctx, CL_MEM_READ_WRITE, workspace, nullptr, nullptr);
 #elif MIOPEN_BACKEND_HIP
                 void* dst_dev;
                 EXPECT(hipMalloc(&dst_dev, workspace) == hipSuccess);
 #endif
                 const auto invoke_param = reorder_invoke_param{
                     DataCast(static_cast<const void*>(src_dev)), DataCast(dst_dev)};
-    
+
                 std::vector<OpKernelArg> opArgs = reorder_sol->GetKernelArg();
                 boost::optional<miopen::InvokerFactory> invoker_factory(
                     [=](const std::vector<miopen::Kernel>& kernels) mutable {
@@ -460,37 +459,30 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
                                    const miopen::AnyInvokeParams& primitive_param) mutable {
                             decltype(auto) invoke_params =
                                 primitive_param.CastTo<reorder_invoke_param>();
-    
+
                             const auto k = handle.Run(kernels[0]);
-    
+
                             opArgs[0] = OpKernelArg(invoke_params.dst);
                             opArgs[1] = OpKernelArg(invoke_params.src);
-    
+
                             k(opArgs);
                         };
                     });
-                std::vector<miopen::solver::KernelInfo> construction_params{reorder_sol->GetKernelInfo()};
-                const auto invoker =
-                    miopen::deref(this->handle).PrepareInvoker(*invoker_factory, construction_params);
+                std::vector<miopen::solver::KernelInfo> construction_params{
+                    reorder_sol->GetKernelInfo()};
+                const auto invoker = miopen::deref(this->handle)
+                                         .PrepareInvoker(*invoker_factory, construction_params);
                 // run gpu
                 invoker(miopen::deref(this->handle), invoke_param);
 #if MIOPEN_BACKEND_OPENCL
-                status = clEnqueueReadBuffer(q,
-                                             dst_dev,
-                                             CL_TRUE,
-                                             0,
-                                             workspace,
-                                             t_dst_gpu.data.data(),
-                                             0,
-                                             nullptr,
-                                             nullptr);
+                status = clEnqueueReadBuffer(
+                    q, dst_dev, CL_TRUE, 0, workspace, t_dst_gpu.data.data(), 0, nullptr, nullptr);
                 EXPECT(status == CL_SUCCESS);
                 clReleaseMemObject(dst_dev);
-#elif MIOPEN_BACKEND_HIP 
-                EXPECT(hipMemcpy(t_dst_gpu.data.data(),
-                                 dst_dev,
-                                 workspace,
-                                 hipMemcpyDeviceToHost) == hipSuccess);
+#elif MIOPEN_BACKEND_HIP
+                EXPECT(
+                    hipMemcpy(t_dst_gpu.data.data(), dst_dev, workspace, hipMemcpyDeviceToHost) ==
+                    hipSuccess);
                 hipFree(dst_dev);
 #endif
             }
@@ -507,26 +499,28 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
                                 order_3);
 
 #if MIOPEN_BACKEND_OPENCL
-            if(reorder_sol->IsSkippable()){
-            status = clEnqueueReadBuffer(q,
-                                         dst_dev,
-                                         CL_TRUE,
-                                         0,
-                                         sizeof(T) * tensor_sz,
-                                         t_dst_gpu.data.data(),
-                                         0,
-                                         nullptr,
-                                         nullptr);
-            EXPECT(status == CL_SUCCESS);
-            clReleaseMemObject(src_dev);
+            if(reorder_sol->IsSkippable())
+            {
+                status = clEnqueueReadBuffer(q,
+                                             src_dev,
+                                             CL_TRUE,
+                                             0,
+                                             sizeof(T) * tensor_sz,
+                                             t_dst_gpu.data.data(),
+                                             0,
+                                             nullptr,
+                                             nullptr);
+                EXPECT(status == CL_SUCCESS);
+                clReleaseMemObject(src_dev);
             }
 #elif MIOPEN_BACKEND_HIP
-            if(reorder_sol->IsSkippable()){
-            EXPECT(hipMemcpy(t_dst_gpu.data.data(),
-                             src_dev,
-                             sizeof(T) * tensor_sz,
-                             hipMemcpyDeviceToHost) == hipSuccess);
-            hipFree(src_dev);
+            if(reorder_sol->IsSkippable())
+            {
+                EXPECT(hipMemcpy(t_dst_gpu.data.data(),
+                                 src_dev,
+                                 sizeof(T) * tensor_sz,
+                                 hipMemcpyDeviceToHost) == hipSuccess);
+                hipFree(src_dev);
             }
 #endif
 
@@ -543,6 +537,4 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
     }
 };
 
-
-
-int main(int argc, const char* argv[]){test_drive<tensor_reorder_driver>(argc, argv);}
+int main(int argc, const char* argv[]) { test_drive<tensor_reorder_driver>(argc, argv); }
