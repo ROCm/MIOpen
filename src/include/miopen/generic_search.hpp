@@ -340,13 +340,13 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
 
     if(!miopen::IsCacheDisabled()) // Otherwise precompilation is useless.
     {
-        std::vector<KernelInfo> kernels;
+        std::vector<KernelBuildDefinition> kernels;
         for(const auto& current_config : all_configs)
         {
             ConvSolution current_solution = s.GetSolution(context, current_config, true);
             for(auto&& kernel : current_solution.construction_params)
             {
-                if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
+                if(profile_h.HasProgram(kernel.kernel_file, kernel.stringifier(kernel.build_parameters)))
                     continue;
                 kernels.push_back(kernel);
             }
@@ -444,7 +444,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
             // Now we can delete Program objects that belong to OCL/HIP
             // runtime and free the associated resources (memory, file handles...)
             for(const auto& kernelInfo : current_solution.construction_params)
-                profile_h.ClearProgram(kernelInfo.kernel_file, kernelInfo.comp_options);
+                profile_h.ClearProgram(kernelInfo.kernel_file, kernelInfo.stringifier(kernelInfo.build_parameters));
 
             if(ret != 0)
             {

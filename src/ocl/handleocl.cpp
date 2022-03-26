@@ -32,6 +32,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/handle_lock.hpp>
 #include <miopen/invoker.hpp>
+#include <miopen/kernel_build_definition.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/load_file.hpp>
 #include <miopen/logger.hpp>
@@ -325,22 +326,24 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
     return this->Run(obj);
 }
 
+KernelInvoke Handle::AddKernel(const std::string& algorithm,
+                               const std::string& network_config,
+                               const solver::KernelBuildDefinition& build_definition,
+                               std::size_t cache_index) const
+{
+    auto kernel =
+        impl->cache.AddKernel(*this, algorithm, network_config, build_definition, cache_index);
+    return Run(kernel);
+}
+
 Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
-                               const std::vector<solver::KernelInfo>& kernels) const
+                               const std::vector<solver::KernelBuildDefinition>& kernels) const
 {
     std::vector<Kernel> built;
     for(auto& k : kernels)
     {
         MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
-        const auto kernel = this->impl->cache.AddKernel(*this,
-                                                        "",
-                                                        "",
-                                                        k.kernel_file,
-                                                        k.kernel_name,
-                                                        k.l_wk,
-                                                        k.g_wk,
-                                                        k.comp_options,
-                                                        kernels.size());
+        const auto kernel = impl->cache.AddKernel(*this, "", "", k, kernels.size());
         built.push_back(kernel);
     }
     return factory(built);
@@ -379,56 +382,10 @@ KernelInvoke Handle::Run(Kernel k) const
     }
 }
 
-Program Handle::LoadProgram(const std::string& program_name,
-                            std::string params,
-                            bool is_kernel_str,
-                            const std::string& kernel_src) const
+solver::BuildProgramResult
+Handle::LoadProgram(const solver::KernelBuildDefinition& definition) const
 {
-    auto hsaco = miopen::LoadBinary(this->GetTargetProperties(),
-                                    this->GetMaxComputeUnits(),
-                                    program_name,
-                                    params,
-                                    is_kernel_str);
-    if(hsaco.empty())
-    {
-        CompileTimer ct;
-        auto p = miopen::LoadProgram(miopen::GetContext(this->GetStream()),
-                                     miopen::GetDevice(this->GetStream()),
-                                     this->GetTargetProperties(),
-                                     program_name,
-                                     params,
-                                     is_kernel_str,
-                                     kernel_src);
-        ct.Log("Kernel", is_kernel_str ? std::string() : program_name);
-
-// Save to cache
-#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-        std::string binary;
-        miopen::GetProgramBinary(p, binary);
-        miopen::SaveBinary(binary,
-                           this->GetTargetProperties(),
-                           this->GetMaxComputeUnits(),
-                           program_name,
-                           params,
-                           is_kernel_str);
-#else
-        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
-        miopen::SaveProgramBinary(p, path.string());
-        miopen::SaveBinary(
-            path.string(), this->GetTargetProperties(), program_name, params, is_kernel_str);
-#endif
-        return std::move(p);
-    }
-    else
-    {
-        return LoadBinaryProgram(miopen::GetContext(this->GetStream()),
-                                 miopen::GetDevice(this->GetStream()),
-#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-                                 hsaco);
-#else
-                                 miopen::LoadFile(hsaco));
-#endif
-    }
+    return definition(*this);
 }
 
 void Handle::ClearProgram(const std::string& program_name, const std::string& params) const

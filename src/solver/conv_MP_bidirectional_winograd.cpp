@@ -881,7 +881,8 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
     // GCNHW -> GNCHW
     std::ostringstream additional_options_wei;
     GenerateClangDefsym(additional_options_wei, "swap_filter_layout_KC", 1);
-    wino_transform.construction_params[1].comp_options += additional_options_wei.str();
+    boost::any_cast<KernelInfo&>(wino_transform.construction_params[1].build_parameters)
+        .comp_options += additional_options_wei.str();
 
     result.construction_params.push_back(wino_transform.construction_params[0]);
     result.construction_params.push_back(wino_transform.construction_params[1]);

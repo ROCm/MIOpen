@@ -39,9 +39,10 @@ ConvForwardOpDescriptor::GetCompileParms(std::string& compile_config,
     {
         return solution.status;
     }
-    kernel_info           = solution.construction_params[0];
+    kernel_info = boost::any_cast<const solver::KernelInfo&>(
+        solution.construction_params[0].build_parameters);
     kernel_info_valid     = true;
-    conv_compiler_options = solution.construction_params[0].comp_options;
+    conv_compiler_options = kernel_info.comp_options;
     compile_config += conv_compiler_options;
 
     if(source == AsmText && !fusion::IsWinograd(solvers))

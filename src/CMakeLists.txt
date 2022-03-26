@@ -114,6 +114,7 @@ set( MIOpen_Source
     handle_api.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
+    kernel_build_definition.cpp
     kernel_warnings.cpp
     load_file.cpp
     lock_file.cpp

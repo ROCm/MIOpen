@@ -28,7 +28,7 @@
 #define MIOPEN_GUARD_MLOPEN_CONV_SOLUTION_HPP
 
 #include <miopen/miopen.h>
-#include <miopen/kernel_info.hpp>
+#include <miopen/kernel_build_definition.hpp>
 #include <miopen/invoker.hpp>
 
 #include <boost/optional.hpp>
@@ -50,7 +50,7 @@ namespace solver {
 struct ConvSolution
 {
     /// \todo Use better name than construction_params.
-    std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
+    std::vector<KernelBuildDefinition> construction_params; // impl may consist of multiple kernels.
     miopenStatus_t status;
     std::string solver_id;
     boost::optional<InvokerFactory> invoker_factory;

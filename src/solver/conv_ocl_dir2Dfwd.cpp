@@ -342,10 +342,9 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     {
         float proc_data_ratio = static_cast<float>(result.in_tile1 * result.in_tile0) /
                                 static_cast<float>(result.grp_tile1 * result.grp_tile0);
-        n_read_procs = (proc_data_ratio <= 0.25)
-                           ? (result.grp_tile1 * result.grp_tile0) / 4
-                           : (proc_data_ratio <= 0.5) ? (result.grp_tile1 * result.grp_tile0) / 2
-                                                      : (result.grp_tile1 * result.grp_tile0);
+        n_read_procs = (proc_data_ratio <= 0.25)  ? (result.grp_tile1 * result.grp_tile0) / 4
+                       : (proc_data_ratio <= 0.5) ? (result.grp_tile1 * result.grp_tile0) / 2
+                                                  : (result.grp_tile1 * result.grp_tile0);
     }
 
     int n_out_tile_blocks0 = (params.out_width + result.in_tile0 - 1) / (result.in_tile0);
@@ -478,7 +477,7 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
 
     if(result.Succeeded())
     {
-        result.construction_params[0].comp_options +=
+        boost::any_cast<KernelInfo&>(result.construction_params[0].build_parameters).comp_options +=
             std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(params.bias));
     }
 

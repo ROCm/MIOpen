@@ -55,12 +55,12 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
 {
     //
     LegacyPerformanceConfig result{};
-    result.in_tile0 = (params.in_width <= 8)
-                          ? 8
-                          : (params.in_width <= 16) ? 16 : 32; // size of input data per ALU plane
-    result.in_tile1 = (params.in_height <= 8)
-                          ? 8
-                          : (params.in_height <= 16) ? 16 : 32; // size of input data per ALU plane
+    result.in_tile0 = (params.in_width <= 8)    ? 8
+                      : (params.in_width <= 16) ? 16
+                                                : 32; // size of input data per ALU plane
+    result.in_tile1 = (params.in_height <= 8)    ? 8
+                      : (params.in_height <= 16) ? 16
+                                                 : 32; // size of input data per ALU plane
 
     result.out_pix_tile0 =
         std::max(params.kernel_stride_w,
@@ -168,7 +168,8 @@ static int MeasurePerfConfig(const Handle& handle,
 #endif
 
     MIOPEN_LOG_I2("Trying " << result);
-    const auto kernel_params     = kernel_search_result.construction_params[0];
+    const auto& kernel_params = boost::any_cast<const KernelInfo&>(
+        kernel_search_result.construction_params[0].build_parameters);
     std::string compiler_options = kernel_params.comp_options;
 
     try
@@ -399,8 +400,9 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             out_pix_tile_sz[2] = 4;
 
             n_out_tiles_rg[0] = 2;
-            n_out_tiles_rg[1] =
-                (params.n_outputs % 64 == 0) ? 6 : (params.n_outputs % 32 == 0) ? 5 : 4;
+            n_out_tiles_rg[1] = (params.n_outputs % 64 == 0)   ? 6
+                                : (params.n_outputs % 32 == 0) ? 5
+                                                               : 4;
 
             n_in_tiles_rg[0] = 2;
             n_in_tiles_rg[1] = (params.n_inputs % 8 == 0) ? 3 : 2;

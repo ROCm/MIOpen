@@ -57,6 +57,11 @@
 
 namespace miopen {
 
+namespace solver {
+struct BuildProgramResult;
+class KernelBuildDefinition;
+} // namespace solver
+
 struct HandleImpl;
 #if MIOPEN_USE_MIOPENGEMM
 struct GemmGeometry;
@@ -91,6 +96,7 @@ struct Handle : miopenHandle
     float GetKernelTime() const;
     bool IsProfilingEnabled() const;
 
+    /// Deprecated
     KernelInvoke AddKernel(const std::string& algorithm,
                            const std::string& network_config,
                            const std::string& program_name,
@@ -101,6 +107,11 @@ struct Handle : miopenHandle
                            std::size_t cache_index       = 0,
                            bool is_kernel_str            = false,
                            const std::string& kernel_src = "") const;
+
+    KernelInvoke AddKernel(const std::string& algorithm,
+                           const std::string& network_config,
+                           const solver::KernelBuildDefinition& build_definition,
+                           std::size_t cache_index = 0) const;
 
     bool HasKernel(const std::string& algorithm, const std::string& network_config) const;
 
@@ -126,10 +137,7 @@ struct Handle : miopenHandle
     const std::vector<Kernel>& GetKernelsImpl(const std::string& algorithm,
                                               const std::string& network_config) const;
 
-    Program LoadProgram(const std::string& program_name,
-                        std::string params,
-                        bool is_kernel_str,
-                        const std::string& kernel_src) const;
+    solver::BuildProgramResult LoadProgram(const solver::KernelBuildDefinition& definition) const;
 
     bool HasProgram(const std::string& program_name, const std::string& params) const;
     void ClearProgram(const std::string& program_name, const std::string& params) const;
@@ -221,7 +229,7 @@ public:
 #endif
 
     Invoker PrepareInvoker(const InvokerFactory& factory,
-                           const std::vector<solver::KernelInfo>& kernels) const;
+                           const std::vector<solver::KernelBuildDefinition>& kernels) const;
 
     void RegisterInvoker(const Invoker& invoker,
                          const NetworkConfig& config,

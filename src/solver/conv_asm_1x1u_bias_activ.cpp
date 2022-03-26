@@ -126,7 +126,9 @@ ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ConvolutionContext& params,
         GenerateClangDefsym(cba_options, "bias_mode", 1);
         GenerateClangDefsym(cba_options, "fusion_mode", 1);
         GenerateClangDefsym(cba_options, "enable_activ", 1);
-        kernel_info.comp_options += cba_options.str();
+
+        auto& ki = boost::any_cast<KernelInfo&>(kernel_info.build_parameters);
+        ki.comp_options += cba_options.str();
     }
 
     const auto out_data_type = params.conv_problem.GetOutDataType();

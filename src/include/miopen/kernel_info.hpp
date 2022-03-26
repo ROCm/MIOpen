@@ -38,6 +38,8 @@ struct Handle;
 
 namespace solver {
 
+class KernelBuildDefinition;
+
 /// Describes a kernel source and whatever information required in order
 /// to build and run it (the former is unused for binary kernels).
 struct KernelInfo
@@ -50,7 +52,8 @@ struct KernelInfo
     friend std::ostream& operator<<(std::ostream& os, const KernelInfo& k);
 };
 
-std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<KernelInfo>& kernels);
+std::vector<Program> PrecompileKernels(const Handle& h,
+                                       const std::vector<KernelBuildDefinition>& kernels);
 
 } // namespace solver
 } // namespace miopen

@@ -112,6 +112,48 @@ void KernelCache::AddProgram(Program prog, const std::string& program_name, std:
 Kernel KernelCache::AddKernel(const Handle& h,
                               const std::string& algorithm,
                               const std::string& network_config,
+                              const solver::KernelBuildDefinition& build_definition,
+                              std::size_t cache_index)
+{
+    const std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
+    if(!network_config.empty() || !algorithm.empty()) // Don't log only _empty_ keys.
+        MIOPEN_LOG_I2("Key: " << key.first << " \"" << key.second << '\"');
+
+    auto built      = solver::BuildProgramResult{};
+    auto params     = build_definition.stringifier(build_definition.build_parameters);
+    auto program_it = program_map.find(std::make_pair(build_definition.kernel_file, params));
+
+    if(program_it != program_map.end())
+    {
+        built = build_definition(program_it->second);
+    }
+    else
+    {
+        built = h.LoadProgram(build_definition);
+        program_map[std::make_pair(build_definition.kernel_file, params)] = built.program;
+    }
+
+    Kernel kernel{};
+    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
+    if(arch != nullptr && strlen(arch) > 0)
+    {
+        kernel = Kernel{built.program, build_definition.kernel_name};
+    }
+    else
+    {
+        kernel = Kernel{built.program, build_definition.kernel_name, built.l_wk, built.g_wk};
+    }
+
+    if(!network_config.empty() && !algorithm.empty())
+    {
+        this->AddKernel(key, kernel, cache_index);
+    }
+    return kernel;
+}
+
+Kernel KernelCache::AddKernel(const Handle& h,
+                              const std::string& algorithm,
+                              const std::string& network_config,
                               const std::string& program_name,
                               const std::string& kernel_name,
                               const std::vector<size_t>& vld,
@@ -121,42 +163,29 @@ Kernel KernelCache::AddKernel(const Handle& h,
                               bool is_kernel_miopengemm_str,
                               const std::string& kernel_src)
 {
-    const std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
-    if(!network_config.empty() || !algorithm.empty()) // Don't log only _empty_ keys.
-        MIOPEN_LOG_I2("Key: " << key.first << " \"" << key.second << '\"');
+    const auto build_definition = [&]() {
+        auto kernel_info = solver::KernelInfo{};
 
-    Program program;
+        kernel_info.kernel_file  = program_name;
+        kernel_info.kernel_name  = kernel_name;
+        kernel_info.l_wk         = vld;
+        kernel_info.g_wk         = vgd;
+        kernel_info.comp_options = params;
 
-    auto program_it = program_map.find(std::make_pair(program_name, params));
-    if(program_it != program_map.end())
-    {
-        program = program_it->second;
-    }
-    else
-    {
-        if(!is_kernel_miopengemm_str) // default value
+        auto result = solver::KernelBuildDefinition{kernel_info};
+
+        // default value
+        if(!is_kernel_miopengemm_str)
             is_kernel_miopengemm_str = algorithm.find("ImplicitGEMM") == std::string::npos &&
                                        algorithm.find("GEMM") != std::string::npos;
-        program = h.LoadProgram(program_name, params, is_kernel_miopengemm_str, kernel_src);
-        program_map[std::make_pair(program_name, params)] = program;
-    }
 
-    Kernel kernel{};
-    const char* const arch = miopen::GetStringEnv(MIOPEN_DEVICE_ARCH{});
-    if(arch != nullptr && strlen(arch) > 0)
-    {
-        kernel = Kernel{program, kernel_name};
-    }
-    else
-    {
-        kernel = Kernel{program, kernel_name, vld, vgd};
-    }
+        if(is_kernel_miopengemm_str)
+            result.kernel_src = kernel_src;
 
-    if(!network_config.empty() && !algorithm.empty())
-    {
-        this->AddKernel(key, kernel, cache_index);
-    }
-    return kernel;
+        return result;
+    }();
+
+    return AddKernel(h, algorithm, network_config, build_definition, cache_index);
 }
 
 void KernelCache::AddKernel(Key key, Kernel k, std::size_t cache_index)

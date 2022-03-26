@@ -44,6 +44,7 @@
 
 #include <miopen/handle.hpp>
 #include <miopen/kernel.hpp>
+#include <miopen/kernel_build_definition.hpp>
 #include <miopen/simple_hash.hpp>
 #include <miopen/miopen.h>
 #include <string>
@@ -64,6 +65,13 @@ public:
     using KernelMap  = std::unordered_map<Key, std::vector<Kernel>, SimpleHash>;
     using ProgramMap = std::unordered_map<Key, Program, SimpleHash>;
 
+    Kernel AddKernel(const Handle& h,
+                     const std::string& algorithm,
+                     const std::string& network_config,
+                     const solver::KernelBuildDefinition& build_definition,
+                     std::size_t cache_index = 0);
+
+    /// Deprecated
     Kernel AddKernel(const Handle& h,
                      const std::string& algorithm,
                      const std::string& network_config,

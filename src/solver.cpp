@@ -56,7 +56,8 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
     return os << "} '" << k.comp_options << '\'';
 }
 
-std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<KernelInfo>& kernels)
+std::vector<Program> PrecompileKernels(const Handle& h,
+                                       const std::vector<KernelBuildDefinition>& kernels)
 {
     CompileTimer ct;
     std::vector<Program> programs(kernels.size());
@@ -65,10 +66,11 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
     par_for_strided(kernels.size(),
                     max_threads{Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, 20)},
                     [&](auto i) {
-                        const KernelInfo& k = kernels[i];
-                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, false, "");
+                        const auto& k = kernels[i];
+                        programs[i]   = h.LoadProgram(k).program;
                     });
     // clang-format on
+
     ct.Log("PrecompileKernels");
     return programs;
 }
@@ -76,14 +78,14 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
 void PrecompileSolutions(const Handle& h, const std::vector<const ConvSolution*>& sols)
 {
     // Find all kernels that need to be compiled from the solutions
-    std::vector<KernelInfo> kernels;
+    auto kernels = std::vector<KernelBuildDefinition>{};
     for(auto&& sol : sols)
     {
         if(!sol->Succeeded())
             continue;
         for(auto&& kernel : sol->construction_params)
         {
-            if(h.HasProgram(kernel.kernel_file, kernel.comp_options))
+            if(h.HasProgram(kernel.kernel_file, kernel.stringifier(kernel.build_parameters)))
                 continue;
             kernels.push_back(kernel);
         }
@@ -95,8 +97,8 @@ void PrecompileSolutions(const Handle& h, const std::vector<const ConvSolution*>
     // Add programs to the cache
     for(std::size_t i = 0; i < programs.size(); i++)
     {
-        const KernelInfo& k = kernels[i];
-        h.AddProgram(programs[i], k.kernel_file, k.comp_options);
+        const auto& k = kernels[i];
+        h.AddProgram(programs[i], k.kernel_file, k.stringifier(k.build_parameters));
     }
 }
 

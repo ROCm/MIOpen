@@ -89,14 +89,7 @@ static inline void AddKernels(const Handle& handle,
     for(auto& k : s.construction_params)
     {
         MIOPEN_LOG_I2(k.kernel_name);
-        auto kernel = handle.AddKernel(algorithm_name,
-                                       network_config,
-                                       k.kernel_file,
-                                       k.kernel_name,
-                                       k.l_wk,
-                                       k.g_wk,
-                                       k.comp_options,
-                                       i);
+        auto kernel = handle.AddKernel(algorithm_name, network_config, k, i);
         if(kernels != nullptr)
         {
             kernels->push_back(kernel);
@@ -743,8 +736,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
 
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
-    const auto& inDesc = problem.direction.IsForward() ? problem.conv_problem.GetIn()
-                                                       : problem.conv_problem.GetOut();
+    const auto& inDesc      = problem.direction.IsForward() ? problem.conv_problem.GetIn()
+                                                            : problem.conv_problem.GetOut();
     const auto& weightsDesc = problem.conv_problem.GetWeights();
     // This check is needed on fallback path only.
     // On regular path (find-db hit) this was checked during Find().
@@ -1499,15 +1492,15 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                           this->attribute.gfx90aFp16alt.GetWrW()};
 
             // Find solutions
-            const auto gemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
-                                  ? FindAllGemmSolutions(ctx, invoke_ctx)
-                                  : std::vector<miopen::solver::ConvSolution>{};
-            const auto direct = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
-                                    ? FindAllBwdWrW2DSolutions(ctx, invoke_ctx)
-                                    : std::vector<miopen::solver::ConvSolution>{};
-            const auto winograd = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
-                                      ? FindWinogradWrWAllSolutions(ctx, invoke_ctx)
-                                      : std::vector<miopen::solver::ConvSolution>{};
+            const auto gemm        = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
+                                         ? FindAllGemmSolutions(ctx, invoke_ctx)
+                                         : std::vector<miopen::solver::ConvSolution>{};
+            const auto direct      = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
+                                         ? FindAllBwdWrW2DSolutions(ctx, invoke_ctx)
+                                         : std::vector<miopen::solver::ConvSolution>{};
+            const auto winograd    = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
+                                         ? FindWinogradWrWAllSolutions(ctx, invoke_ctx)
+                                         : std::vector<miopen::solver::ConvSolution>{};
             const auto implictgemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{})
                                          ? FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx)
                                          : std::vector<miopen::solver::ConvSolution>{};

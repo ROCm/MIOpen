@@ -1015,7 +1015,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     std::ostringstream opts_0(options.str(), std::ios_base::ate); // Options for normal kernel.
     if(isGfx90aFp16altSupport)
         GenerateClangDefsym(opts_0, "igemm_wrw_fp16_alt_impl", 0);
-    result.construction_params[0].comp_options = opts_0.str();
+    boost::any_cast<KernelInfo&>(result.construction_params[0].build_parameters).comp_options = opts_0.str();
     std::ostringstream msg;
 
     if(isGfx90aFp16altSupport)
@@ -1023,7 +1023,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         result.construction_params.push_back(kernel);
         std::ostringstream opts_1(options.str(), std::ios_base::ate); // Options for alt kernel.
         GenerateClangDefsym(opts_1, "igemm_wrw_fp16_alt_impl", 1);
-        result.construction_params[1].comp_options = opts_1.str();
+        boost::any_cast<KernelInfo&>(result.construction_params[1].build_parameters).comp_options = opts_1.str();
         if(miopen::IsLogging(LoggingLevel::Info2))
             msg << ", fp16_alt:" <<ctx.conv_problem.GetConv().attribute.gfx90aFp16alt.GetWrW();
     }
