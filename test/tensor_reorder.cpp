@@ -401,7 +401,7 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
             tensor<T> t_dst(tensor_len, tensor_strides);
             tensor<T> t_dst_gpu(tensor_len, tensor_strides);
             rand_tensor_integer(t_src);
-            
+
             miopen::ExecutionContext ctx;
             ctx.SetStream(&miopen::deref(this->handle));
             ctx.DetectRocm();
