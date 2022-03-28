@@ -38,6 +38,18 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS)
 namespace miopen {
 namespace solver {
 
+inline static bool Next_1_4_8(int& v)
+{
+    assert(v == 1 || v == 4 || v == 8);
+    if(v == 1)
+        v = 4;
+    else if(v == 4)
+        v = 8;
+    else // if(v == 8)
+        v = 1;
+    return v == 1; // overflow
+}
+
 const PerformanceConvMlirIgemmXdlops& PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest()
 {
     static const PerformanceConvMlirIgemmXdlops p =
@@ -165,20 +177,9 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& conf
         }
         else if(config.IsFp16())
         {
-            if(!NextTwoPower<1, 8>(GemmKPACKSize))
-            {
-                if(GemmKPACKSize == 2)
-                {
-                    GemmKPACKSize = 4;
-                }
+            if(!Next_1_4_8(GemmKPACKSize))
                 break;
-            }
-        }
-        else
-        {
-            if(!NextTwoPower<1, 1>(GemmKPACKSize))
-                break;
-        }
+        }; // Nop. Leave GemmKPACKSize equal to 1.
 
         return false;
     } while(false);
