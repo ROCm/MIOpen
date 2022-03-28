@@ -179,7 +179,7 @@ MakeTensorReorderAttributes(const ExecutionContext& ctx_,
                             uint32_t order_3_)
 {
     std::unique_ptr<TensorReorderAttributesBase> default_ptr;
-    if(ctx_.use_hip_kernels == false)
+    if(!ctx_.use_hip_kernels)
     {
         return default_ptr;
     }
