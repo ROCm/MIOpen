@@ -37,12 +37,16 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD)
 namespace miopen {
 namespace solver {
 
-const PerformanceConvMlirIgemm& PerformanceConvMlirIgemm::MlirHeuristicInitRequest()
+void PerformanceConvMlirIgemm::SetMlirHeuristicInitRequest()
 {
-    // These values are equivalent to when tuning config is heuristically initialized
-    static const PerformanceConvMlirIgemm p =
-        PerformanceConvMlirIgemm(-2, -2, -2, -2, -2, -2, true);
-    return p;
+    // These values are equivalent to when tuning config is heuristically initialized.
+    // We leave all config fields to be -2/false and use_spare_set untouched.
+    BlockSize      = -2;
+    GemmMPerBlock  = -2;
+    GemmNPerBlock  = -2;
+    GemmKPerBlock  = -2;
+    GemmMPerThread = -2;
+    GemmNPerThread = -2;
 }
 
 PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(int BlockSize_,
@@ -66,7 +70,7 @@ PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(bool spare)
     : PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(64, 32, 32, 4, 2, 2, spare)
 {
     if(spare)
-        *this = MlirHeuristicInitRequest();
+        SetMlirHeuristicInitRequest();
 }
 
 bool PerformanceConvMlirIgemm::operator==(const PerformanceConvMlirIgemm& other) const

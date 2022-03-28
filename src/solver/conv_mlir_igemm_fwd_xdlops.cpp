@@ -38,12 +38,18 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS)
 namespace miopen {
 namespace solver {
 
-const PerformanceConvMlirIgemmXdlops& PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest()
+void PerformanceConvMlirIgemmXdlops::SetMlirHeuristicInitRequest()
 {
-    // These values are equivalent to when tuning config is heuristically initialized
-    static const PerformanceConvMlirIgemmXdlops p =
-        PerformanceConvMlirIgemmXdlops(-2, -2, -2, -2, -2, -2, false, false, true);
-    return p;
+    // These values are equivalent to when tuning config is heuristically initialized.
+    // We leave all config fields to be -2/false and use_spare_set untouched.
+    GemmMPerBlock                = -2;
+    GemmNPerBlock                = -2;
+    GemmKPerBlock                = -2;
+    GemmMPerWave                 = -2;
+    GemmNPerWave                 = -2;
+    GemmKPACKSize                = -2;
+    GemmAThreadCopyMoreGemmK     = false;
+    GemmBThreadCopyMoreGemmKPack = false;
 }
 
 bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
@@ -92,7 +98,7 @@ PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(bool spare)
           4, 16, 1, 4, 16, 4, false, false, spare)
 {
     if(spare)
-        *this = MlirHeuristicInitRequest();
+        SetMlirHeuristicInitRequest();
 }
 
 PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops()
