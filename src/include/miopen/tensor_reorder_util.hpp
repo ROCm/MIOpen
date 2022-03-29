@@ -237,6 +237,7 @@ MakeTensorReorderAttributes(const ExecutionContext& ctx_,
             ctx_, data_type_, dim_0_, dim_1_, dim_2_, dim_3_);
     default: MIOPEN_THROW("Unsupported reorder sequence"); break;
     }
+    return default_ptr;
 }
 
 } // namespace miopen
