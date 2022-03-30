@@ -670,16 +670,29 @@ __kernel void Op2dTensorSquash(const global MIOPEN_TYPE* a,
             }
         }
 
-        for(int bid = 0; bid < b_c; bid++)
+        if(use_apl1 == 1)
         {
-            if(use_apl1 == 1)
+            __attribute__((opencl_unroll_hint(16))) for(int bid = 0; bid < b_c; bid++)
             {
+
                 int b_index          = bid * b_nstride + gid * RD_BLCK;
                 *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
+
+                __attribute__((opencl_unroll_hint(16))) for(int i = 0; i < RD_BLCK; ++i)
+                {
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat[i] * alpha1);
+                }
             }
-            for(int i = 0; i < RD_BLCK; ++i)
+        }
+        else
+        {
+            __attribute__((opencl_unroll_hint(16))) for(int bid = 0; bid < b_c; bid++)
             {
-                c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat[i] * alpha1);
+
+                __attribute__((opencl_unroll_hint(16))) for(int i = 0; i < RD_BLCK; ++i)
+                {
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                }
             }
         }
         *((global READ_TYPE*)(c + Coffset + io_index)) = *((READ_TYPE*)c_dat);
