@@ -27,6 +27,7 @@
 #define GCN_ASM_UTILS_H
 
 #include <miopen/config.h>
+#include <miopen/kernel.hpp>
 #include <miopen/target_properties.hpp>
 #include <sstream>
 #include <string>

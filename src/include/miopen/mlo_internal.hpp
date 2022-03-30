@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <miopen/config.h>
+#include <miopen/kernel.hpp>
 
 #if MIOPEN_BACKEND_OPENCL
 #include <miopen/oclkernel.hpp>

@@ -27,6 +27,7 @@
 #define MIOPEN_GUARD_MLIR_BUILD_HPP
 
 #include <miopen/config.h>
+#include <miopen/kernel.hpp>
 #if MIOPEN_USE_MLIR
 
 #include <miopen/target_properties.hpp>

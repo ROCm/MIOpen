@@ -27,6 +27,7 @@
 #define MIOPEN_GUARD_MLOPEN_HIP_BUILD_UTILS_HPP
 
 #include <miopen/config.h>
+#include <miopen/kernel.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/tmp_dir.hpp>

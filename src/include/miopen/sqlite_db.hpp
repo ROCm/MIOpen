@@ -26,6 +26,7 @@
 #pragma once
 
 #include <miopen/config.h>
+#include <miopen/kernel.hpp>
 
 #if MIOPEN_ENABLE_SQLITE
 

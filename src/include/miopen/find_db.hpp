@@ -27,6 +27,7 @@
 #ifndef GUARD_MIOPEN_FIND_DB_HPP_
 #define GUARD_MIOPEN_FIND_DB_HPP_
 
+#include <miopen/kernel.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_path.hpp>
 #include <miopen/db_record.hpp>

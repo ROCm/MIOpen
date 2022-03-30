@@ -27,6 +27,7 @@
 #define GUARD_COMGR_HPP
 
 #include <miopen/config.h>
+#include <miopen/kernel.hpp>
 #if MIOPEN_USE_COMGR
 
 #include <miopen/target_properties.hpp>
