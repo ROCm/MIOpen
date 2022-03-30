@@ -29,7 +29,7 @@
 #include <miopen/kernel_info.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/execution_context.hpp>
-#include <cstdlib>
+#include <cstdint>
 #include <vector>
 
 namespace miopen {
