@@ -1728,7 +1728,7 @@ struct conv_driver : test_driver
         {
             add(enable_fdb, "enable-fdb", generate_data({false, true}));
         }
-        // Only valid for int8 input and weights 
+        // Only valid for int8 input and weights
         add(output_type, "output_type", generate_data({"", "float", "int32", "int8"}));
         add(int8_vectorize, "int8_vectorize", generate_data({true, false}));
     }
@@ -1748,7 +1748,7 @@ struct conv_driver : test_driver
             return;
         // int8 vectorize is only applicable when input is int8
         if(!is_int8 && int8_vectorize)
-            return; 
+            return;
 
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
@@ -1866,7 +1866,6 @@ struct conv_driver : test_driver
                                                 input.desc.GetLengths().end());
         std::vector<std::size_t> wei_spatial_len(weights.desc.GetLengths().begin() + 2,
                                                  weights.desc.GetLengths().end());
-
 
         // lack of transposeConv or groupConv for int8 type
         if(is_int8 && (filter.mode == miopenTranspose || filter.group_count > 1))
@@ -1997,7 +1996,7 @@ struct conv_driver : test_driver
                                                       miopen::conv::Direction::Forward);
                 ctx.SetStream(&get_handle());
 
-                // TODO: Check if this is still valid 
+                // TODO: Check if this is still valid
                 bool skip_forward = is_int8 && !IsGemmAplicable(ctx);
                 if(skip_forward)
                 {

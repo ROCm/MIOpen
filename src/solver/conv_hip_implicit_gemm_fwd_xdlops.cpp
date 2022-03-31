@@ -163,31 +163,31 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     std::vector<DeviceConvFwdPtr_t> conv_ptrs;
     add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
     assert(!conv_ptrs.empty());
-    auto& conv_ptr = conv_ptrs.at(config.index);
-    result.invoker_factory = [&] (const std::vector<Kernel>& kernels)
-        {
-            std::ignore = kernels;
-            return [&](const Handle& handle, const AnyInvokeParams& primitive_parameters){
-                const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-                const auto& tensors  = data_ctx.tensors;
-                auto argument_ptr = conv_ptr.MakeArgumentPointer(const_cast<void*>(static_cast<const void*>(tensors.in)),
-                                                                const_cast<void*>(static_cast<const void*>(tensors.w)),
-                                                                static_cast<void*>(tensors.out),
-                                                                N,
-                                                                K,
-                                                                C,
-                                                                {Hi, Wi},
-                                                                {Y, X},
-                                                                {Ho, Wo},
-                                                                {Sx, Sy},
-                                                                {Dy, Dx},
-                                                                {lPy, lPx},
-                                                                {rPy, rPx});
-                auto invoker_ptr = conv_ptr.MakeInvokerPointer();
+    auto& conv_ptr         = conv_ptrs.at(config.index);
+    result.invoker_factory = [&](const std::vector<Kernel>& kernels) {
+        std::ignore = kernels;
+        return [&](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors  = data_ctx.tensors;
+            auto argument_ptr    = conv_ptr.MakeArgumentPointer(
+                const_cast<void*>(static_cast<const void*>(tensors.in)),
+                const_cast<void*>(static_cast<const void*>(tensors.w)),
+                static_cast<void*>(tensors.out),
+                N,
+                K,
+                C,
+                {Hi, Wi},
+                {Y, X},
+                {Ho, Wo},
+                {Sx, Sy},
+                {Dy, Dx},
+                {lPy, lPx},
+                {rPy, rPx});
+            auto invoker_ptr = conv_ptr.MakeInvokerPointer();
 
-                invoker_ptr->Run(argument_ptr.get(), 1, handle.GetStream());
-            };
+            invoker_ptr->Run(argument_ptr.get(), 1, handle.GetStream());
         };
+    };
     return result;
 }
 
