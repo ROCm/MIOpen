@@ -546,6 +546,7 @@ enable_clang_tidy(
         -bugprone-easily-swappable-parameters
         -bugprone-implicit-widening-of-multiplication-result
         -cert-err33-c
+        -google-readability-casting
         -hicpp-use-emplace
         -modernize-use-emplace
         -performance-unnecessary-copy-initialization

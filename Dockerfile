@@ -15,8 +15,9 @@ RUN dpkg --add-architecture i386
 # unless MLIR library is incompatible with current ROCm.
 
 RUN if [ "$USE_MLIR" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_5.0.2;\
-    else export ROCM_APT_VER=.apt_5.0.2;  \
+        then export ROCM_APT_VER=.apt_5.1;\
+    else \
+        export ROCM_APT_VER=.apt_5.1;  \
     fi && \
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ ubuntu main > /etc/apt/sources.list.d/rocm.list'
@@ -24,16 +25,18 @@ RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu bionic main universe | tee 
 
 #Add gpg keys
 # Install dependencies
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+RUN apt-get update && \
+DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     wget \
     ca-certificates \
     curl \
     libnuma-dev \
-    gnupg && \
-wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - && \
+    gnupg \
+    apt-utils && \
 apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 9386B48A1A693C5C && \
-apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    apt-utils \
+wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - && \
+apt-get update && \
+DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     build-essential \
     cmake \
     comgr \
