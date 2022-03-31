@@ -94,8 +94,10 @@ void BatchNormForwardTraining(Handle& handle,
     if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsInput(handle, xDesc, x);
-        miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
-        miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
+        if(bnScale != nullptr)
+            miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
+        if(bnBias != nullptr)
+            miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
     }
 
     const auto resultsave    = resultSaveMean != nullptr && resultSaveInvVariance != nullptr;
@@ -139,10 +141,14 @@ void BatchNormForwardTraining(Handle& handle,
     if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, yDesc, y);
-        miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningMean);
-        miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningVariance);
-        miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultSaveMean);
-        miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultSaveInvVariance);
+        if(resultRunningMean != nullptr)
+            miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningMean);
+        if(resultRunningVariance != nullptr)
+            miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningVariance);
+        if(resultSaveMean != nullptr)
+            miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultSaveMean);
+        if(resultSaveInvVariance != nullptr)
+            miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultSaveInvVariance);
     }
 }
 //================== END FWD TRAIN ===================
@@ -280,8 +286,10 @@ void BatchNormBackward(Handle& handle,
         miopen::checkNumericsInput(handle, dyDesc, dy);
         miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, bnScale);
 
-        miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, savedMean);
-        miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, savedInvVariance);
+        if(savedMean != nullptr)
+            miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, savedMean);
+        if(savedInvVariance != nullptr)
+            miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, savedInvVariance);
     }
 
     if(x == nullptr || dy == nullptr || bnScale == nullptr || dx == nullptr)
