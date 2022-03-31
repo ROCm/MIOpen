@@ -1234,6 +1234,8 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIO
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  8  16 5 5 --weights 8  16  2 2 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+# ho=wo=1 stride=2
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_bwd_group SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
@@ -1356,6 +1358,8 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> 
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 19 19 --weights 510  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 # tensor larger than 4GB
 COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 2048  1 512 1024 --weights 1  1 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+# ho=wo=1 stride=2
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_bwd_nchw SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
