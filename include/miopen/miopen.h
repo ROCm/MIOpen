@@ -4666,6 +4666,116 @@ miopenReduceTensor(miopenHandle_t handle,
 /** @} */
 // CLOSEOUT TensorReduce DOXYGEN GROUP
 
+/**
+ * An miopenProblem will describe a problem for different miopen operations.
+ * For now, this is only used for convolution, but could be used for other
+ * operators in the future(such as GEMM, Pooling, etc)
+ */
+MIOPEN_DECLARE_OBJECT(miopenProblem);
+
+typedef enum
+{
+    miopenProblemDirectionForward        = 0,
+    miopenProblemDirectionBackward       = 1,
+    miopenProblemDirectionBackwardWeight = 2,
+} miopenProblemDirection_t;
+
+// Enums with no meaningful default value should probably have invalid default for fool-proofing.
+typedef enum
+{
+    miopenTensorIdInvalid    = 0,
+    miopenTensorConvolutionX = 1,
+    miopenTensorConvolutionW = 2,
+    miopenTensorConvolutionY = 3,
+} miopenProblemTensorId_t;
+
+typedef enum
+{
+    miopenSearchResultsOrderByTime   = 0,
+    miopenSearchResultsOrderByMemory = 1,
+} miopenSearchResultsOrder_t;
+
+typedef struct
+{
+    miopenProblemTensorId_t id;
+    miopenTensorDescriptor_t descriptor;
+    void* buffer;
+} miopenRunInput_t;
+
+miopenStatus_t miopenCreateProblem(miopenProblem_t* problem);
+miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
+
+// Universal problem should have named tensor fields rather than ordered.
+// Previously, different directions had different input orders, which may lead to confusion.
+// Implicitly ordered fields would also lead to a whole lot of magical ids all over the internals.
+miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
+                                                miopenProblemTensorId_t id,
+                                                const miopenTensorDescriptor_t descriptor);
+
+// This should mark problem as convolution.
+// Maybe direction should even be a part of the conv descriptor.
+miopenStatus_t miopenSetProblemConvolutionDescriptor(miopenProblem_t problem,
+                                                     const miopenConvolutionDescriptor_t convDesc,
+                                                     miopenProblemDirection_t direction);
+
+/**
+ * The miopenSearchOptions will allow the user to configure how search will be
+ * used. This can include things like exhaustiveSearch, and ordering. In the
+ * future, this can support setting different find mode options.
+ */
+MIOPEN_DECLARE_OBJECT(miopenSearchOptions);
+
+miopenStatus_t miopenCreateSearchOptions(miopenSearchOptions_t* options);
+miopenStatus_t miopenDestroySearchOptions(miopenSearchOptions_t options);
+
+// It should be possible to set an option to explicit value.
+miopenStatus_t miopenSetExhaustiveSearchOption(miopenSearchOptions_t options, int value);
+miopenStatus_t miopenSetResultsOrderSearchOption(miopenSearchOptions_t options,
+                                                 miopenSearchResultsOrder_t value);
+// We should add a search option to limit solutions by workspace. Especially with automated memory
+// allocation.
+miopenStatus_t miopenWorkspaceLimitSearchOption(miopenSearchOptions_t options, size_t value);
+
+MIOPEN_DECLARE_OBJECT(miopenSolution);
+
+/**
+ * Finds solutions to a problem by running different applicable solutions. Memory is automatically
+ * allocated.
+ */
+miopenStatus_t miopenFindSolutions(
+    miopenHandle_t handle,
+    miopenProblem_t problem,
+    miopenSearchOptions_t options,
+    miopenSolution_t* solutions,
+    size_t* numSolutions,
+    size_t maxSolutions); // max solutions is required here to limit amount of solutions found to
+                          // the size of allocated array. A lot of usecases would have that as 1.
+
+/**
+ * Runs the solution using the passed in buffers. Corresponding tensor
+ * descriptors are passed in so if a user would like to dynamically change
+ * the sizes, they can do so. If dynamic changes are not supported(or are
+ * invalid), we should return an error to the user.
+ */
+miopenStatus_t
+miopenRunSolution(miopenSolution_t solution,
+                  size_t nInputs,
+                  const miopenRunInput_t*
+                      inputs, // this inputs should be named rather than implicitly ordered as well
+                  void* workspace,
+                  size_t workspaceSize);
+
+miopenStatus_t miopenLoadSolution(miopenSolution_t solution, const char* data, size_t size);
+
+miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
+
+miopenStatus_t miopenSolutionSize(miopenSolution_t solution, size_t* size);
+
+miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t* size);
+
+/* optional */
+miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, size_t* ms);
+
 #ifdef __cplusplus
 }
 #endif

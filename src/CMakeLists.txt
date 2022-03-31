@@ -83,6 +83,7 @@ endfunction()
 set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
+    api/find2_0_commons.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
