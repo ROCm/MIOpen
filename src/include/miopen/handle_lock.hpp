@@ -59,7 +59,7 @@ inline boost::filesystem::path get_handle_lock_path(const char* name)
     if(!boost::filesystem::exists(p))
     {
         auto tmp = boost::filesystem::current_path() / boost::filesystem::unique_path();
-        boost::filesystem::ofstream{tmp};
+        boost::filesystem::ofstream{tmp}; //NOLINT
         boost::filesystem::rename(tmp, p);
     }
     return p;

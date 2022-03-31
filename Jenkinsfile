@@ -272,7 +272,11 @@ pipeline {
             defaultValue: false,
             description: "")
         booleanParam(
-            name: "BUILD_FULL_TESTS",
+            name: "BUILD_FULL_TESTS1",
+            defaultValue: true,
+            description: "")
+        booleanParam(
+            name: "BUILD_FULL_TESTS2",
             defaultValue: true,
             description: "")
         booleanParam(
@@ -759,7 +763,7 @@ pipeline {
         }
         stage("Full Tests I") {
             when {
-                expression { params.BUILD_FULL_TESTS }
+                expression { params.BUILD_FULL_TESTS1 }
             }
             parallel{
                 stage('Int8 HIP All Vega20 /opt/rocm') {
@@ -838,7 +842,7 @@ pipeline {
 
         stage("Full Tests II") {
             when {
-                expression { params.BUILD_FULL_TESTS }
+                expression { params.BUILD_FULL_TESTS2 }
             }
             environment{
                 WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"

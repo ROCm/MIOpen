@@ -224,8 +224,8 @@ PerformanceImplicitGemmBwdDataV4R1::CalculateGemmABlockCopyPerformanceParameters
         DstDataPerWrite_GemmM = gcd(DstDataPerWrite_GemmM, a_data_per_thread_copy_gemmm);
 
         // calculate blockwise copy thread cluster lengths
-        ClusterLengths_GemmK = GemmKPerBlock / a_data_per_thread_copy_gemmk;
-        ClusterLengths_GemmM = GemmMPerBlock / a_data_per_thread_copy_gemmm;
+        ClusterLengths_GemmK = GemmKPerBlock / a_data_per_thread_copy_gemmk; //NOLINT
+        ClusterLengths_GemmM = GemmMPerBlock / a_data_per_thread_copy_gemmm; //NOLINT
 
         if(!(ClusterLengths_GemmK > 0 && ClusterLengths_GemmM > 0))
             MIOPEN_THROW("invalid performance parameter");
@@ -316,8 +316,8 @@ PerformanceImplicitGemmBwdDataV4R1::CalculateGemmBBlockCopyPerformanceParameters
         DstDataPerWrite_GemmN = gcd(DstDataPerWrite_GemmN, b_data_per_thread_copy_gemmn);
 
         // calculate blockwise copy thread cluster lengths
-        ClusterLengths_GemmK = GemmKPerBlock / b_data_per_thread_copy_gemmk;
-        ClusterLengths_GemmN = GemmNPerBlock / b_data_per_thread_copy_gemmn;
+        ClusterLengths_GemmK = GemmKPerBlock / b_data_per_thread_copy_gemmk; //NOLINT
+        ClusterLengths_GemmN = GemmNPerBlock / b_data_per_thread_copy_gemmn; //NOLINT
 
         if(!(ClusterLengths_GemmK > 0 && ClusterLengths_GemmN > 0))
             MIOPEN_THROW("invalid performance parameter");
