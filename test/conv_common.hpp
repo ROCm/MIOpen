@@ -192,9 +192,9 @@ tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
         input.desc,
         weights.desc,
         yLayout,
-        weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4
+        weights.desc.GetType() == miopenInt8x4
             ? (std::is_same<Tout, int>{} ? miopenInt32 : miopenFloat)
-            : weights.desc.GetType())};
+            : miopen_type<Tout>{})};
 }
 
 // Convolution test base class
@@ -1352,7 +1352,7 @@ struct verify_backward_weights_conv : conv_base<T>
         this->conv_base<T>::fail();
     }
 };
-
+#if 0
 template <class T>
 struct verify_forward_conv_int8 : conv_base<T>
 {
@@ -1562,8 +1562,8 @@ struct verify_forward_conv_int8 : conv_base<T>
         this->conv_base<T>::fail();
     }
 };
-
-template <class T, bool immed_mode = false>
+#endif
+template <class T, bool immed_mode = false, class Tout = T>
 struct conv_driver : test_driver
 {
     tensor<T> input;
@@ -1591,6 +1591,8 @@ struct conv_driver : test_driver
     bool gen_float           = false;
     bool immed               = immed_mode;
     bool enable_fdb          = true;
+    std::string output_type;
+    bool int8_vectorize;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution},
@@ -1726,6 +1728,9 @@ struct conv_driver : test_driver
         {
             add(enable_fdb, "enable-fdb", generate_data({false, true}));
         }
+        // Only valid for int8 input and weights 
+        add(output_type, "output_type", generate_data({"", "float", "int32", "int8"}));
+        add(int8_vectorize, "int8_vectorize", generate_data({true, false}));
     }
 
     void run()
@@ -1735,6 +1740,15 @@ struct conv_driver : test_driver
             filter.spatialDim = get_spatial_dim();
         else
             filter.spatialDim = filter_dims.size();
+        bool is_int8 = (input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4);
+        // Output type is only relevant for int8
+        if(!is_int8 && !output_type.empty())
+            return;
+        if(is_int8 && output_type.empty())
+            return;
+        // int8 vectorize is only applicable when input is int8
+        if(!is_int8 && int8_vectorize)
+            return; 
 
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
@@ -1853,7 +1867,6 @@ struct conv_driver : test_driver
         std::vector<std::size_t> wei_spatial_len(weights.desc.GetLengths().begin() + 2,
                                                  weights.desc.GetLengths().end());
 
-        bool is_int8 = (input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4);
 
         // lack of transposeConv or groupConv for int8 type
         if(is_int8 && (filter.mode == miopenTranspose || filter.group_count > 1))
@@ -1958,7 +1971,7 @@ struct conv_driver : test_driver
                  (filter.group_count > 1 &&
                   (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)))))
             {
-                auto output = get_output_tensor(filter, input, weights, out_layout);
+                auto output = get_output_tensor<T, Tout>(filter, input, weights, out_layout);
 
                 auto gen_positive_value = [=](auto...) {
                     auto data_type    = input.desc.GetType();
@@ -1984,6 +1997,7 @@ struct conv_driver : test_driver
                                                       miopen::conv::Direction::Forward);
                 ctx.SetStream(&get_handle());
 
+                // TODO: Check if this is still valid 
                 bool skip_forward = is_int8 && !IsGemmAplicable(ctx);
                 if(skip_forward)
                 {
@@ -2043,8 +2057,9 @@ struct conv_driver : test_driver
                 size_t total_mem;
                 if(is_int8)
                 {
+                    // TODO: Tout here was float which should have been int32
                     auto output_int8 =
-                        get_output_tensor<T, float>(filter, input, weights, out_layout);
+                        get_output_tensor<T, Tout>(filter, input, weights, out_layout);
                     size_t workspace_size = filter.ForwardGetWorkSpaceSize(
                         handle, weights.desc, input.desc, output_int8.desc);
 
@@ -2107,46 +2122,45 @@ struct conv_driver : test_driver
                 {
                     if(is_int8)
                     {
-                        verify(verify_forward_conv<T, float>{
-                            input,
-                            weights,
-                            get_output_tensor<T, float>(filter, input, weights, out_layout),
-                            filter,
-                            stats,
-                            0,
-                            search,
-                            false,
-                            immed});
-                        verify(verify_forward_conv<T, float>{
-                            input,
-                            weights,
-                            get_output_tensor<T, float>(filter, input, weights, out_layout),
-                            filter,
-                            stats,
-                            0,
-                            search,
-                            true,
-                            immed});
-                        verify(verify_forward_conv<T, int>{
-                            input,
-                            weights,
-                            get_output_tensor<T, int>(filter, input, weights, out_layout),
-                            filter,
-                            stats,
-                            0,
-                            search,
-                            false,
-                            immed});
-                        verify(verify_forward_conv<T, int>{
-                            input,
-                            weights,
-                            get_output_tensor<T, int>(filter, input, weights, out_layout),
-                            filter,
-                            stats,
-                            0,
-                            search,
-                            true,
-                            immed});
+                        if(output_type == "float")
+                        {
+                            verify(verify_forward_conv<T, float>{
+                                input,
+                                weights,
+                                get_output_tensor<T, float>(filter, input, weights, out_layout),
+                                filter,
+                                stats,
+                                0,
+                                search,
+                                int8_vectorize,
+                                immed});
+                        }
+                        else if(output_type == "int32")
+                        {
+                            verify(verify_forward_conv<T, int>{
+                                input,
+                                weights,
+                                get_output_tensor<T, int>(filter, input, weights, out_layout),
+                                filter,
+                                stats,
+                                0,
+                                search,
+                                int8_vectorize,
+                                immed});
+                        }
+                        else if(output_type == "int8")
+                        {
+                            verify(verify_forward_conv<T, int8_t>{
+                                input,
+                                weights,
+                                get_output_tensor<T, int8_t>(filter, input, weights, out_layout),
+                                filter,
+                                stats,
+                                0,
+                                search,
+                                int8_vectorize,
+                                immed});
+                        }
                     }
                     else
                     {

@@ -596,7 +596,7 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> out_len = GetOutputTensorLengths();
 
     miopenDataType_t y_type =
-        (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenFloat : data_type;
+        (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenInt32 : data_type;
     SetTensorNd(outputTensor, out_len, inflags.GetValueStr("out_layout"), y_type);
 
     if(inflags.GetValueInt("bias") != 0)

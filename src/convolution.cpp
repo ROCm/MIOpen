@@ -259,8 +259,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
     tensor_layout_to_strides(out_lens, default_layout, yLayout, out_strides);
 
     return {(xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
-                 ? (yType == miopenInt32 ? yType : miopenFloat)
-                 : xDesc.GetType()),
+                 ? (yType == miopenInt32 ? yType : miopenFloat) : xDesc.GetType()), //TODO: This function overrides the output type with essentially the input which is incorrect.
             out_lens,
             out_strides};
 }

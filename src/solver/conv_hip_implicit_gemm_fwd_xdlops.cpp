@@ -4,6 +4,7 @@
 
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/convolution_context_interpreter.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
@@ -138,9 +139,56 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
 ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     const ConvolutionContext& ctx, const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {
-    std::ignore = ctx;
-    std::ignore = config;
-    return {};
+    ConvSolution result;
+    // TODO: Move to convolution_context_interpreter.hpp
+    // side-effect:: need to include ck's host_interface.hpp there
+
+    const auto N   = ConvolutionContextInterpreter::GetBatchN(ctx);
+    const auto K   = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+    const auto C   = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+    const auto Hi  = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
+    const auto Wi  = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
+    const auto Ho  = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
+    const auto Wo  = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    const auto Y   = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    const auto X   = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    const auto Sy  = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
+    const auto Sx  = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+    const auto Dy  = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
+    const auto Dx  = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
+    const auto lPy = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
+    const auto lPx = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+    const auto rPy = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
+    const auto rPx = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+    std::vector<DeviceConvFwdPtr_t> conv_ptrs;
+    add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
+    assert(!conv_ptrs.empty());
+    auto& conv_ptr = conv_ptrs.at(config.index);
+    result.invoker_factory = [&] (const std::vector<Kernel>& kernels)
+        {
+            std::ignore = kernels;
+            return [&](const Handle& handle, const AnyInvokeParams& primitive_parameters){
+                const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+                const auto& tensors  = data_ctx.tensors;
+                auto argument_ptr = conv_ptr.MakeArgumentPointer(const_cast<void*>(static_cast<const void*>(tensors.in)),
+                                                                const_cast<void*>(static_cast<const void*>(tensors.w)),
+                                                                static_cast<void*>(tensors.out),
+                                                                N,
+                                                                K,
+                                                                C,
+                                                                {Hi, Wi},
+                                                                {Y, X},
+                                                                {Ho, Wo},
+                                                                {Sx, Sy},
+                                                                {Dy, Dx},
+                                                                {lPy, lPx},
+                                                                {rPy, rPx});
+                auto invoker_ptr = conv_ptr.MakeInvokerPointer();
+
+                invoker_ptr->Run(argument_ptr.get(), 1, handle.GetStream());
+            };
+        };
+    return result;
 }
 
 } // namespace solver

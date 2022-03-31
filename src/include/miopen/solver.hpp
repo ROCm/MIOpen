@@ -3767,6 +3767,11 @@ struct PerformanceConfigHipImplicitGemmFwdXdlops
     bool SetNextValue(const ConvolutionContext& ctx);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
+    template<typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
 };
 
 struct ConvHipImplicitGemmFwdXdlops : ConvSolver
