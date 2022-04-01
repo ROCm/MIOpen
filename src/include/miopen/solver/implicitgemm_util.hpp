@@ -622,7 +622,7 @@ T gcd(T x, T y)
     }
     else if(x > y)
     {
-        return gcd(x % y, y); //NOLINT
+        return gcd(x % y, y); // NOLINT
     }
     else
     {
