@@ -384,6 +384,7 @@ static void DirConvFindCore(Handle& handle,
             ? conv.FindDataImplicitGemmSolutions(
                   handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx)
             : std::vector<miopen::solver::ConvSolution>{};
+            for(auto convdesc:igemm) std::cout<<"igemm solver:"<<convdesc.solver_id<<std::endl;
     const auto fft = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx)
                                         : std::vector<miopen::solver::ConvSolution>{};
 

@@ -124,6 +124,7 @@ struct TensorDescriptor : miopenTensorDescriptor
 {
     TensorDescriptor();
     TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens);
+    TensorDescriptor(miopenDataType_t t, miopenTensorLayout_t playout, std::initializer_list<std::size_t> plens);
     TensorDescriptor(miopenDataType_t t,
                      std::initializer_list<std::size_t> plens,
                      std::initializer_list<std::size_t> pstrides);
@@ -156,6 +157,8 @@ struct TensorDescriptor : miopenTensorDescriptor
     int GetSize() const;
 
     miopenDataType_t GetType() const;
+
+    int GetVectorLength() const;
 
     std::size_t GetElementSize() const;
 

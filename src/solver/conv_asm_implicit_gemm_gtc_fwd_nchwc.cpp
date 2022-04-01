@@ -563,29 +563,32 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionC
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC{}))
         return false;
+    std::cout<<"-----------"<<std::endl;
+    std::cout<<"-    0    -"<<std::endl;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name != "gfx908") && (device_name != "gfx90a") && (device_name != "gfx1030"))
+    if((device_name != "gfx1030"))
         return false;
-
+    std::cout<<"-    1    -"<<std::endl;
     if(!ctx.use_asm_kernels)
         return false;
-
+    std::cout<<"-    2    -"<<std::endl;
     if(!ctx.direction.IsForward())
         return false;
-
+    std::cout<<"-    3    -"<<std::endl;
     if(!ctx.Is2d())
         return false;
-
+    std::cout<<"-    4    -"<<std::endl;
     if(!ctx.IsHalfx4() && !ctx.IsHalfx8())
         return false;
-
+    std::cout<<"-    5    -"<<std::endl;
     if(!ctx.rmv.IsV3())
         return false;
-
+    std::cout<<"-    6    -"<<std::endl;
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
+    std::cout<<"-    7    -"<<std::endl;
 
     if(0 == igemm_split_batch_size(ctx.in_height,
                                    ctx.in_width,
@@ -596,7 +599,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionC
                                    ctx.n_inputs,
                                    miopen::GetTypeSize(ctx.in_data_type)))
         return false;
-
+    std::cout<<"-    8    -"<<std::endl;
     return true;
 }
 ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(

@@ -42,6 +42,12 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<std
     this->CalculateStrides();
 }
 
+TensorDescriptor::TensorDescriptor(miopenDataType_t t, miopenTensorLayout_t playout, std::initializer_list<std::size_t> plens)
+    : lens(plens), packed(true), type(t), tensorLayout(playout)
+{
+    this->CalculateStrides();
+}
+
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    std::initializer_list<std::size_t> plens,
                                    std::initializer_list<std::size_t> pstrides)
@@ -119,9 +125,10 @@ std::size_t TensorDescriptor::GetElementSize() const
 {
     assert(lens.size() == strides.size());
     return std::accumulate(
-        lens.begin(), lens.end(), std::size_t{1}, std::multiplies<std::size_t>());
+        lens.begin(), lens.end(), vector_c, std::multiplies<std::size_t>());
 }
 miopenDataType_t TensorDescriptor::GetType() const { return this->type; }
+int TensorDescriptor::GetVectorLength() const { return this->vector_c; }
 
 std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
 {

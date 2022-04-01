@@ -56,6 +56,9 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptorWithLayout(
     return miopen::try_([&] {
         std::initializer_list<int> lens = {n, c, h, w};
         miopen::deref(tensorDesc)       = miopen::TensorDescriptor(dataType, tensorLayout, lens.begin(), 4);
+    });
+}
+
 extern "C" miopenStatus_t miopenSet4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
                                                         miopenDataType_t dataType,
                                                         int n,

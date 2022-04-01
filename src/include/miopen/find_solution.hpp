@@ -157,13 +157,19 @@ struct SolverContainer
                 }
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
-                else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic()){
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
-                else if(!solver.IsApplicable(search_params))
+                }
+                else if(!solver.IsApplicable(search_params)){
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
+                }
                 else
                 {
+                    std::cout<<"|------------------|"<<std::endl;
+                    std::cout<<"|Start FindSolution|"<<std::endl;
+                    std::cout<<"|------------------|"<<std::endl;
                     const Solution s = FindSolution(solver, search_params, db, invoke_ctx);
+                    std::cout<<'\n'<<"After FindSolution, The solver ID is :"<<'\n'<<s.solver_id<<std::endl;
                     if(s.Succeeded())
                     {
                         ++count;

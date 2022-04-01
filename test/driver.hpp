@@ -1211,14 +1211,6 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
     {
         d.type = miopenHalf;
     }
-    if(arg_map.count("--halfx4") > 0)
-    {
-        d.type = miopenHalfx4;
-    }
-    if(arg_map.count("--halfx8") > 0)
-    {
-        d.type = miopenHalfx8;
-    }
     else if(arg_map.count("--int8") > 0)
     {
         d.type = miopenInt8;

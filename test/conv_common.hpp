@@ -1713,6 +1713,30 @@ struct conv_driver : test_driver
         exit(-1); // NOLINT (concurrency-mt-unsafe)
     }
 
+    ///\brief We only support fp16x4 and fp16x8 vector type
+    void find_vector_c_from_conv_mode()
+    {
+        if(conv_mode.compare(0, 4, "conv") == 0){
+            auto found_vec = conv_mode.find("fp16x");       
+            if(found_vec != std::string::npos){
+                std::string vec_str = conv_mode.substr(found_vec + 5);
+        ///\todo try catch()
+                vector_c = std::stoi( vec_str );
+                if(vector_c == 4){
+                    this->type = miopenHalfx4;
+                }
+                else if(vector_c == 8){
+                    this->type = miopenHalfx8;
+                }
+                else{
+                    MIOPEN_THROW("Unsupported vector length");
+                }    
+            }else{
+                vector_c = 1;
+            }
+        }
+    }
+
     conv_driver()
     {
         add(conv_mode, "cmode", generate_data({"conv"}));
@@ -1737,6 +1761,11 @@ struct conv_driver : test_driver
         else
             filter.spatialDim = filter_dims.size();
 
+        //VECT_C found from cmode argument
+        find_vector_c_from_conv_mode();
+        auto vec_found = conv_mode.find("fp16x");
+        conv_mode = conv_mode.substr(0, vec_found);
+
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
         std::size_t spatial_dim = filter.GetSpatialDimension();
@@ -1751,11 +1780,23 @@ struct conv_driver : test_driver
         }
         else if(spatial_dim == 2)
         {
-            input = tensor<T>{batch_size,
+            if(in_layout == "NCHW_VECT_C"){
+                input = tensor<T>{
+                              type,
+                              miopenTensorNCHW_VECT_C,
+                              batch_size,
                               input_channels,
                               spatial_dim_elements.at(0),
                               spatial_dim_elements.at(1)}
                         .generate(tensor_elem_gen_integer{17});
+            }
+            else{
+                input = tensor<T>{batch_size,
+                              input_channels,
+                              spatial_dim_elements.at(0),
+                              spatial_dim_elements.at(1)}
+                        .generate(tensor_elem_gen_integer{17});
+            }
         }
         else if(spatial_dim == 3)
         {
@@ -1771,14 +1812,36 @@ struct conv_driver : test_driver
         {
             weights         = tensor<T>{weight_tensor_dims}.generate(tensor_elem_gen_integer{17});
             output_channels = weight_tensor_dims.at(0);
+            std::copy(weight_tensor_dims.begin() + 2, weight_tensor_dims.end(), filter_dims.begin());
         }
         else if(spatial_dim == 2)
         {
-            weights = tensor<T>{output_channels,
+            if(fil_layout == "NCHW_VECT_C"){
+            weights = tensor<T>{type,
+                                miopenTensorNCHW_VECT_C,
+                                output_channels,
                                 input_channels / filter.group_count,
                                 filter_dims.at(0),
                                 filter_dims.at(1)}
                           .generate(tensor_elem_gen_integer{17});
+            }
+            else if(fil_layout == "CHWN_VECT_C"){
+                weights = tensor<T>{type,
+                                miopenTensorCHWN_VECT_C,
+                                output_channels,
+                                input_channels / filter.group_count,
+                                filter_dims.at(0),
+                                filter_dims.at(1)}
+                          .generate(tensor_elem_gen_integer{17});
+            }
+            else{
+                weights = tensor<T>{
+                                output_channels,
+                                input_channels / filter.group_count,
+                                filter_dims.at(0),
+                                filter_dims.at(1)}
+                          .generate(tensor_elem_gen_integer{17});
+            }
         }
         else if(spatial_dim == 3)
         {
@@ -1812,26 +1875,46 @@ struct conv_driver : test_driver
         // by default, this member is constructed when conv2d/3d is constructed (see
         // test_driver::add())
         // but this requires the dimensions come from commandline, which is hard for non-NCHW layout
-        if(in_layout != "NCHW" && in_layout != "NCDHW")
+        if(in_layout != "NCHW" && in_layout != "NCDHW" && in_layout != "NCHW_VECT_C")
         {
             const std::vector<std::size_t> dim_lens = input.desc.GetLengths();
             std::vector<std::size_t> dim_strides;
-            miopen::tensor_layout_to_strides(
+            if(in_layout.find("_VECT_")!=std::string::npos){
+                miopen::tensor_layout_to_strides_vect(
                 dim_lens,
-                miopen::tensor_layout_get_default(input.desc.GetSize()),
+                miopen::tensor_layout_get_default(weights.desc.GetSize()),
                 in_layout,
+                vector_c,
                 dim_strides);
+            }
+            else{
+                miopen::tensor_layout_to_strides(
+                    dim_lens,
+                    miopen::tensor_layout_get_default(weights.desc.GetSize()),
+                    in_layout,
+                    dim_strides);
+            }
             input.desc = miopen::TensorDescriptor(miopen_type<T>{}, dim_lens, dim_strides);
         }
-        if(fil_layout != "NCHW" && fil_layout != "NCDHW")
+        if(fil_layout != "NCHW" && fil_layout != "NCDHW" && fil_layout != "NCHW_VECT_C")
         {
             const std::vector<std::size_t> dim_lens = weights.desc.GetLengths();
             std::vector<std::size_t> dim_strides;
-            miopen::tensor_layout_to_strides(
+            if(fil_layout.find("_VECT_")!=std::string::npos){
+                miopen::tensor_layout_to_strides_vect(
                 dim_lens,
                 miopen::tensor_layout_get_default(weights.desc.GetSize()),
                 fil_layout,
+                vector_c,
                 dim_strides);
+            }
+            else{
+                miopen::tensor_layout_to_strides(
+                    dim_lens,
+                    miopen::tensor_layout_get_default(weights.desc.GetSize()),
+                    fil_layout,
+                    dim_strides);
+            }
             weights.desc = miopen::TensorDescriptor(miopen_type<T>{}, dim_lens, dim_strides);
         }
 
@@ -1882,7 +1965,7 @@ struct conv_driver : test_driver
         // bfloat16 is not supported for conv3d
         if(is_bfloat16 && !(filter.spatialDim == 2))
             return;
-
+        
         if(((filter.mode == miopenTranspose) &&
             ((filter.group_count == 1 && in_c_len == wei_k_len) ||
              (filter.group_count > 1 && wei_k_len % filter.group_count == 0))) ||
@@ -2162,6 +2245,7 @@ struct conv_driver : test_driver
                     }
                     else
                     {
+                        std::cout<<"go here"<<std::endl;
                         verify(verify_forward_conv<T>{
                             input, weights, output, filter, stats, 0, search, false, immed});
                     }

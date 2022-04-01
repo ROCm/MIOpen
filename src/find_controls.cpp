@@ -104,6 +104,7 @@ boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
 {
     static_assert(miopen::solver::Id::invalid_value == 0, "miopen::solver::Id::invalid_value == 0");
     const char* const p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_FIND_ONLY_SOLVER{});
+    std::cout<<p_asciz<<std::endl;
     std::vector<solver::Id> res;
     if(p_asciz != nullptr && strlen(p_asciz) > 0)
     {
@@ -126,8 +127,10 @@ boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
                 MIOPEN_THROW(miopenStatusBadParm,
                              "Invalid value of MIOPEN_DEBUG_FIND_ONLY_SOLVER: " + kinder);
             const auto id = solver::Id{numeric_id};
-            if(id.IsValid())
+            if(id.IsValid()){
+                std::cout<<"valid solver id"<<std::endl;
                 res.push_back(id);
+            }
             else
             {
                 MIOPEN_THROW(miopenStatusBadParm,

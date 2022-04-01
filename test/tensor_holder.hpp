@@ -128,6 +128,11 @@ struct tensor
     {
     }
 
+    tensor(miopenDataType_t t, miopenTensorLayout_t layout, std::size_t n, std::size_t c, std::size_t h, std::size_t w)
+        : desc(t, layout, {n, c, h, w}), data(desc.GetElementSpace())
+    {
+    }
+
     tensor(std::size_t n, std::size_t c, std::size_t d, std::size_t h, std::size_t w)
         : desc(miopen_type<T>{}, {n, c, d, h, w}), data(n * c * d * h * w)
     {
