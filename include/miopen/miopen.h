@@ -4683,11 +4683,11 @@ typedef enum
 // Enums with no meaningful default value should probably have invalid default for fool-proofing.
 typedef enum
 {
-    miopenTensorIdInvalid    = 0,
+    miopenTensorNameInvalid  = 0,
     miopenTensorConvolutionX = 1,
     miopenTensorConvolutionW = 2,
     miopenTensorConvolutionY = 3,
-} miopenProblemTensorId_t;
+} miopenProblemTensorName_t;
 
 typedef enum
 {
@@ -4695,9 +4695,24 @@ typedef enum
     miopenSearchResultsOrderByMemory = 1,
 } miopenSearchResultsOrder_t;
 
+typedef enum
+{
+    miopenSearchOptionInvalid          = 0,
+    miopenSearchOptionExhaustiveSearch = 1, // int
+    miopenSearchOptionResultsOrder     = 2, // miopenSearchResultsOrder_t
+    miopenSearchOptionWorkspaceLimit   = 3, // size_t
+} miopenSearchOptionName_t;
+
+typedef enum
+{
+    miopenSolutionAttributeInvalid       = 0,
+    miopenSolutionAttributeWorkspaceSize = 1, // size_t
+    miopenSolutionAttributeTime          = 2, // size_t
+} miopenSolutionAttribute_t;
+
 typedef struct
 {
-    miopenProblemTensorId_t id;
+    miopenProblemTensorName_t name;
     miopenTensorDescriptor_t descriptor;
     void* buffer;
 } miopenRunInput_t;
@@ -4709,14 +4724,12 @@ miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
 // Previously, different directions had different input orders, which may lead to confusion.
 // Implicitly ordered fields would also lead to a whole lot of magical ids all over the internals.
 miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
-                                                miopenProblemTensorId_t id,
+                                                miopenProblemTensorName_t name,
                                                 const miopenTensorDescriptor_t descriptor);
 
-// This should mark problem as convolution.
-// Maybe direction should even be a part of the conv descriptor.
-miopenStatus_t miopenSetProblemConvolutionDescriptor(miopenProblem_t problem,
-                                                     const miopenConvolutionDescriptor_t convDesc,
-                                                     miopenProblemDirection_t direction);
+miopenStatus_t miopenSetProblemOperatorDescriptor(miopenProblem_t problem,
+                                                  const void* operatorDesc,
+                                                  miopenProblemDirection_t direction);
 
 /**
  * The miopenSearchOptions will allow the user to configure how search will be
@@ -4727,14 +4740,10 @@ MIOPEN_DECLARE_OBJECT(miopenSearchOptions);
 
 miopenStatus_t miopenCreateSearchOptions(miopenSearchOptions_t* options);
 miopenStatus_t miopenDestroySearchOptions(miopenSearchOptions_t options);
-
-// It should be possible to set an option to explicit value.
-miopenStatus_t miopenSetExhaustiveSearchOption(miopenSearchOptions_t options, int value);
-miopenStatus_t miopenSetResultsOrderSearchOption(miopenSearchOptions_t options,
-                                                 miopenSearchResultsOrder_t value);
-// We should add a search option to limit solutions by workspace. Especially with automated memory
-// allocation.
-miopenStatus_t miopenWorkspaceLimitSearchOption(miopenSearchOptions_t options, size_t value);
+miopenStatus_t miopenSetSearchOption(miopenSearchOptions_t options,
+                                     miopenSearchOptionName_t optionName,
+                                     size_t valueSize,
+                                     void* value);
 
 MIOPEN_DECLARE_OBJECT(miopenSolution);
 
@@ -4748,8 +4757,7 @@ miopenStatus_t miopenFindSolutions(
     miopenSearchOptions_t options,
     miopenSolution_t* solutions,
     size_t* numSolutions,
-    size_t maxSolutions); // max solutions is required here to limit amount of solutions found to
-                          // the size of allocated array. A lot of usecases would have that as 1.
+    size_t maxSolutions);
 
 /**
  * Runs the solution using the passed in buffers. Corresponding tensor
@@ -4757,13 +4765,12 @@ miopenStatus_t miopenFindSolutions(
  * the sizes, they can do so. If dynamic changes are not supported(or are
  * invalid), we should return an error to the user.
  */
-miopenStatus_t
-miopenRunSolution(miopenSolution_t solution,
-                  size_t nInputs,
-                  const miopenRunInput_t*
-                      inputs, // this inputs should be named rather than implicitly ordered as well
-                  void* workspace,
-                  size_t workspaceSize);
+miopenStatus_t miopenRunSolution(miopenHandle_t handle,
+                                 miopenSolution_t solution,
+                                 size_t nInputs,
+                                 const miopenRunInput_t* inputs,
+                                 void* workspace,
+                                 size_t workspaceSize);
 
 miopenStatus_t miopenLoadSolution(miopenSolution_t solution, const char* data, size_t size);
 
@@ -4771,10 +4778,11 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
 
 miopenStatus_t miopenSolutionSize(miopenSolution_t solution, size_t* size);
 
-miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t* size);
-
-/* optional */
-miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, size_t* ms);
+miopenStatus_t miopenGetSolutionAttribute(miopenSolution_t solution,
+                                          miopenSolutionAttribute_t solutionAttribute,
+                                          size_t valueSize,
+                                          void* value,
+                                          size_t* valueSizeRet);
 
 #ifdef __cplusplus
 }

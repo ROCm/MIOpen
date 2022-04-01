@@ -44,24 +44,27 @@ miopenStatus_t miopenDestroyProblem(miopenProblem_t problem)
 }
 
 miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
-                                                miopenProblemTensorId_t id,
+                                                miopenProblemTensorName_t name,
                                                 const miopenTensorDescriptor_t descriptor)
 {
-    MIOPEN_LOG_FUNCTION(problem, id, descriptor);
+    MIOPEN_LOG_FUNCTION(problem, name, descriptor);
 
     return miopen::try_(
-        [&] { miopen::deref(problem).RegisterTensorDescriptor(id, miopen::deref(descriptor)); });
+        [&] { miopen::deref(problem).RegisterTensorDescriptor(name, miopen::deref(descriptor)); });
 }
 
-miopenStatus_t miopenSetProblemConvolutionDescriptor(miopenProblem_t problem,
-                                                     const miopenConvolutionDescriptor_t convDesc,
-                                                     miopenProblemDirection_t direction)
+miopenStatus_t miopenSetProblemOperatorDescriptor(miopenProblem_t problem,
+                                                  const void* operatorDesc,
+                                                  miopenProblemDirection_t direction)
 {
-    std::ignore = problem;
-    std::ignore = convDesc;
-    std::ignore = direction;
+    MIOPEN_LOG_FUNCTION(problem, operatorDesc, direction);
 
-    return miopenStatusNotImplemented;
+    return miopen::try_([&] {
+        miopen::deref(problem).SetDirection(direction);
+
+        std::ignore = operatorDesc;
+        MIOPEN_THROW(miopenStatusNotImplemented);
+    });
 }
 
 miopenStatus_t miopenCreateSearchOptions(miopenSearchOptions_t* options)
@@ -75,24 +78,40 @@ miopenStatus_t miopenDestroySearchOptions(miopenSearchOptions_t options)
     MIOPEN_LOG_FUNCTION(options);
     return miopen::try_([&] { miopen_destroy_object(options); });
 }
-
-miopenStatus_t miopenSetExhaustiveSearchOption(miopenSearchOptions_t options, int value)
+miopenStatus_t miopenSetSearchOption(miopenSearchOptions_t options,
+                                     miopenSearchOptionName_t optionName,
+                                     size_t valueSize,
+                                     void* value)
 {
-    MIOPEN_LOG_FUNCTION(options, value);
-    return miopen::try_([&] { miopen::deref(options).exhaustive_search = value != 0; });
-}
+    MIOPEN_LOG_FUNCTION(options, optionName, valueSize, value);
 
-miopenStatus_t miopenSetResultsOrderSearchOption(miopenSearchOptions_t options,
-                                                 miopenSearchResultsOrder_t value)
-{
-    MIOPEN_LOG_FUNCTION(options, value);
-    return miopen::try_([&] { miopen::deref(options).results_order = value; });
-}
-
-miopenStatus_t miopenWorkspaceLimitSearchOption(miopenSearchOptions_t options, size_t value)
-{
-    MIOPEN_LOG_FUNCTION(options, value);
-    return miopen::try_([&] { miopen::deref(options).workspace_limit = value; });
+    return miopen::try_([&] {
+        switch(optionName)
+        {
+        case miopenSearchOptionName_t::miopenSearchOptionExhaustiveSearch:
+            if(valueSize != sizeof(int))
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Exhaustive search option only accepts values of type int.");
+            miopen::deref(options).exhaustive_search = *reinterpret_cast<int*>(value) != 0;
+            break;
+        case miopenSearchOptionName_t::miopenSearchOptionResultsOrder:
+            if(valueSize != sizeof(miopenSearchResultsOrder_t))
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Search results order option only accepts values of type "
+                             "miopenSearchResultsOrder_t.");
+            miopen::deref(options).results_order =
+                *reinterpret_cast<miopenSearchResultsOrder_t*>(value);
+            break;
+        case miopenSearchOptionName_t::miopenSearchOptionWorkspaceLimit:
+            if(valueSize != sizeof(size_t))
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Exhaustive search option only accepts values of type size_t.");
+            miopen::deref(options).workspace_limit = *reinterpret_cast<size_t*>(value);
+            break;
+        case miopenSearchOptionName_t::miopenSearchOptionInvalid:
+        default: MIOPEN_THROW(miopenStatusBadParm, "Invalid value of optionName.");
+        }
+    });
 }
 
 miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
@@ -102,29 +121,43 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                    size_t* numSolutions,
                                    size_t maxSolutions)
 {
-    std::ignore = handle;
-    std::ignore = problem;
-    std::ignore = options;
-    std::ignore = solutions;
-    std::ignore = numSolutions;
-    std::ignore = maxSolutions;
+    MIOPEN_LOG_FUNCTION(handle, problem, options, solutions, numSolutions, maxSolutions);
 
-    return miopenStatusNotImplemented;
+    return miopen::try_([&] {
+        const auto& handle_deref  = miopen::deref(handle);
+        const auto& problem_deref = miopen::deref(problem);
+
+        std::ignore = handle_deref;
+        std::ignore = problem_deref;
+        std::ignore = options;
+        std::ignore = solutions;
+        std::ignore = numSolutions;
+        std::ignore = maxSolutions;
+
+        MIOPEN_THROW(miopenStatusNotImplemented);
+    });
 }
 
-miopenStatus_t miopenRunSolution(miopenSolution_t solution,
+miopenStatus_t miopenRunSolution(miopenHandle_t handle,
+                                 miopenSolution_t solution,
                                  size_t nInputs,
                                  const miopenRunInput_t* inputs,
                                  void* workspace,
                                  size_t workspaceSize)
 {
-    std::ignore = solution;
-    std::ignore = nInputs;
-    std::ignore = inputs;
-    std::ignore = workspace;
-    std::ignore = workspaceSize;
 
-    return miopenStatusNotImplemented;
+    MIOPEN_LOG_FUNCTION(handle, solution, nInputs, inputs, workspace, workspaceSize);
+
+    return miopen::try_([&] {
+        std::ignore = handle;
+        std::ignore = solution;
+        std::ignore = nInputs;
+        std::ignore = inputs;
+        std::ignore = workspace;
+        std::ignore = workspaceSize;
+
+        MIOPEN_THROW(miopenStatusNotImplemented);
+    });
 }
 
 miopenStatus_t miopenLoadSolution(miopenSolution_t solution, const char* data, size_t size)
@@ -152,18 +185,17 @@ miopenStatus_t miopenSolutionSize(miopenSolution_t solution, size_t* size)
     return miopenStatusNotImplemented;
 }
 
-miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t* size)
+miopenStatus_t miopenGetSolutionAttribute(miopenSolution_t solution,
+                                          miopenSolutionAttribute_t solutionAttribute,
+                                          size_t valueSize,
+                                          void* value,
+                                          size_t* valueSizeRet)
 {
     std::ignore = solution;
-    std::ignore = size;
-
-    return miopenStatusNotImplemented;
-}
-
-miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, size_t* ms)
-{
-    std::ignore = solution;
-    std::ignore = ms;
+    std::ignore = solutionAttribute;
+    std::ignore = valueSize;
+    std::ignore = value;
+    std::ignore = valueSizeRet;
 
     return miopenStatusNotImplemented;
 }

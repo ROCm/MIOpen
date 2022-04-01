@@ -37,23 +37,23 @@ namespace miopen {
 
 struct Problem : miopenProblem
 {
-    bool RegisterTensorDescriptor(miopenProblemTensorId_t id, TensorDescriptor descriptor)
+    const TensorDescriptor& GetTensorDescriptor(miopenProblemTensorName_t name) const
     {
-        return tensor_descriptors.emplace(std::make_pair(id, std::move(descriptor))).second;
+        return tensor_descriptors.at(name);
     }
 
-    const TensorDescriptor& GetTensorDescriptor(miopenProblemTensorId_t id) const
+    miopenProblemDirection_t GetDirection() const { return direction; }
+
+    bool RegisterTensorDescriptor(miopenProblemTensorName_t name, TensorDescriptor descriptor)
     {
-        return tensor_descriptors.at(id);
+        return tensor_descriptors.emplace(std::make_pair(name, std::move(descriptor))).second;
     }
 
-    TensorDescriptor& GetTensorDescriptor(miopenProblemTensorId_t id)
-    {
-        return tensor_descriptors.at(id);
-    }
+    void SetDirection(miopenProblemDirection_t value) { direction = value; }
 
 private:
-    std::unordered_map<miopenProblemTensorId_t, TensorDescriptor> tensor_descriptors;
+    miopenProblemDirection_t direction;
+    std::unordered_map<miopenProblemTensorName_t, TensorDescriptor> tensor_descriptors;
 };
 
 } // namespace miopen
