@@ -881,16 +881,16 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx90a:xnack+", enforce_xnack_on: true)
                     }
                 }
-                stage('Fp16 Hip Install All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true")
-                    }
-                }
+                // stage('Fp16 Hip Install All Vega20') {
+                //     when {
+                //         beforeAgent true
+                //         expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
+                //     }
+                //     agent{ label rocmnode("vega20") }
+                //     steps{
+                //         buildHipClangJobAndReboot( setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true")
+                //     }
+                // }
                 stage('Fp32 Hip All Vega20') {
                     when {
                         beforeAgent true
