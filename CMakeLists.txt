@@ -541,7 +541,7 @@ enable_clang_tidy(
         -readability-qualified-auto
         -readability-redundant-string-init
         -readability-uppercase-literal-suffix
-        #TODO Code Quality WORKAROUND ROCm 5.0.2 update
+        #TODO Code Quality WORKAROUND ROCm 5.1 update
         -altera-id-dependent-backward-branch
         -bugprone-easily-swappable-parameters
         -bugprone-implicit-widening-of-multiplication-result
