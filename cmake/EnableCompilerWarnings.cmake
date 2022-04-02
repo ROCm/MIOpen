@@ -83,6 +83,7 @@ else()
                 -Wno-gnu-zero-variadic-macro-arguments
                 -Wno-missing-prototypes
                 -Wno-nested-anon-types
+                -Wno-option-ignored
                 -Wno-padded
                 -Wno-return-std-move-in-c++11
                 -Wno-shorten-64-to-32
