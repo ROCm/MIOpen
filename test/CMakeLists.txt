@@ -196,7 +196,7 @@ if(NOT MIOPEN_TEST_MIOTENSILE)
         # replaced by smaller tests with suffix _codecov
     endif()
     #TODO Code Quality WORKAROUND ROCm 5.1 update
-    if(MIOPEN_BACKEND_OPENCL AND MIOPEN_TEST_GFX1030 AND MIOPEN_TEST_FLOAT) 
+    if(MIOPEN_BACKEND_OPENCL AND MIOPEN_TEST_GFX1030) 
         list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d)
     endif()
 else()
