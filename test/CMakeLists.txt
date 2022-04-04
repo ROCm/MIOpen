@@ -230,7 +230,7 @@ endif()
 #TODO Code Quality WORKAROUND ROCm 5.1 update
 if(MIOPEN_TEST_GFX906)
     if(MIOPEN_TEST_ALL)
-        list(APPEND SKIP_TESTS test_bn_3d_spatial_test)
+        list(APPEND SKIP_TESTS test_bn_3d_spatial_test test_conv3d test_immed_conv3d test_immed_conv2d)
     endif()
 endif()
 
