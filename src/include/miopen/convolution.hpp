@@ -33,6 +33,7 @@
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/problem.hpp>
 #include <miopen/names.hpp>
 #include <miopen/invoke_params.hpp>
 
@@ -101,7 +102,9 @@ struct ConvolutionAttribute
     int Get(miopenConvolutionAttrib_t attr) const;
 };
 
-struct ConvolutionDescriptor : miopenConvolutionDescriptor
+struct ConvolutionDescriptor
+    : miopenConvolutionDescriptor,
+      OperatorDescriptorImpl<ConvolutionDescriptor, solver::Primitive::Convolution>
 {
     ConvolutionDescriptor(std::size_t spatial_dim,
                           miopenConvolutionMode_t c_mode,

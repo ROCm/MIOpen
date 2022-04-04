@@ -60,10 +60,12 @@ miopenStatus_t miopenSetProblemOperatorDescriptor(miopenProblem_t problem,
     MIOPEN_LOG_FUNCTION(problem, operatorDesc, direction);
 
     return miopen::try_([&] {
-        miopen::deref(problem).SetDirection(direction);
+        decltype(auto) problem_deref = miopen::deref(problem);
+        const auto operator_deref =
+            reinterpret_cast<const miopen::OperatorDescriptor*>(operatorDesc);
 
-        std::ignore = operatorDesc;
-        MIOPEN_THROW(miopenStatusNotImplemented);
+        problem_deref.SetOperatorDescriptor(operator_deref);
+        problem_deref.SetDirection(direction);
     });
 }
 
@@ -126,10 +128,11 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
     return miopen::try_([&] {
         const auto& handle_deref  = miopen::deref(handle);
         const auto& problem_deref = miopen::deref(problem);
+        const auto options_deref  = options != nullptr ? &miopen::deref(options) : nullptr;
 
         std::ignore = handle_deref;
         std::ignore = problem_deref;
-        std::ignore = options;
+        std::ignore = options_deref;
         std::ignore = solutions;
         std::ignore = numSolutions;
         std::ignore = maxSolutions;
@@ -141,18 +144,25 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
 miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  miopenSolution_t solution,
                                  size_t nInputs,
-                                 const miopenRunInput_t* inputs,
+                                 miopenProblemTensorName_t* names,
+                                 miopenTensorDescriptor_t* descriptors,
+                                 void** buffers,
                                  void* workspace,
                                  size_t workspaceSize)
 {
 
-    MIOPEN_LOG_FUNCTION(handle, solution, nInputs, inputs, workspace, workspaceSize);
+    MIOPEN_LOG_FUNCTION(
+        handle, solution, nInputs, names, descriptors, buffers, workspace, workspaceSize);
 
     return miopen::try_([&] {
-        std::ignore = handle;
+        const auto& handle_deref = miopen::deref(handle);
+
+        std::ignore = handle_deref;
         std::ignore = solution;
         std::ignore = nInputs;
-        std::ignore = inputs;
+        std::ignore = names;
+        std::ignore = descriptors;
+        std::ignore = buffers;
         std::ignore = workspace;
         std::ignore = workspaceSize;
 
@@ -177,7 +187,7 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data)
     return miopenStatusNotImplemented;
 }
 
-miopenStatus_t miopenSolutionSize(miopenSolution_t solution, size_t* size)
+miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
 {
     std::ignore = solution;
     std::ignore = size;

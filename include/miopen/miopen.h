@@ -4710,13 +4710,6 @@ typedef enum
     miopenSolutionAttributeTime          = 2, // size_t
 } miopenSolutionAttribute_t;
 
-typedef struct
-{
-    miopenProblemTensorName_t name;
-    miopenTensorDescriptor_t descriptor;
-    void* buffer;
-} miopenRunInput_t;
-
 miopenStatus_t miopenCreateProblem(miopenProblem_t* problem);
 miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
 
@@ -4751,13 +4744,12 @@ MIOPEN_DECLARE_OBJECT(miopenSolution);
  * Finds solutions to a problem by running different applicable solutions. Memory is automatically
  * allocated.
  */
-miopenStatus_t miopenFindSolutions(
-    miopenHandle_t handle,
-    miopenProblem_t problem,
-    miopenSearchOptions_t options,
-    miopenSolution_t* solutions,
-    size_t* numSolutions,
-    size_t maxSolutions);
+miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
+                                   miopenProblem_t problem,
+                                   miopenSearchOptions_t options,
+                                   miopenSolution_t* solutions,
+                                   size_t* numSolutions,
+                                   size_t maxSolutions);
 
 /**
  * Runs the solution using the passed in buffers. Corresponding tensor
@@ -4768,7 +4760,9 @@ miopenStatus_t miopenFindSolutions(
 miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  miopenSolution_t solution,
                                  size_t nInputs,
-                                 const miopenRunInput_t* inputs,
+                                 miopenProblemTensorName_t* names,
+                                 miopenTensorDescriptor_t* descriptors,
+                                 void** buffers,
                                  void* workspace,
                                  size_t workspaceSize);
 
@@ -4776,7 +4770,7 @@ miopenStatus_t miopenLoadSolution(miopenSolution_t solution, const char* data, s
 
 miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
 
-miopenStatus_t miopenSolutionSize(miopenSolution_t solution, size_t* size);
+miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size);
 
 miopenStatus_t miopenGetSolutionAttribute(miopenSolution_t solution,
                                           miopenSolutionAttribute_t solutionAttribute,

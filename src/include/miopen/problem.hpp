@@ -29,11 +29,30 @@
 #include <miopen/miopen.h>
 
 #include <miopen/object.hpp>
+#include <miopen/solver.hpp>
 #include <miopen/tensor.hpp>
 
 #include <unordered_map>
 
 namespace miopen {
+
+struct OperatorDescriptor
+{
+    virtual ~OperatorDescriptor()                  = default;
+    virtual solver::Primitive GetPrimitive() const = 0;
+    virtual OperatorDescriptor* Clone() const      = 0;
+};
+
+template <class Derived, solver::Primitive primitive>
+struct OperatorDescriptorImpl : OperatorDescriptor
+{
+    solver::Primitive GetPrimitive() const final { return primitive; }
+
+    OperatorDescriptor* Clone() const final
+    {
+        return new Derived{reinterpret_cast<const Derived&>(*this)};
+    }
+};
 
 struct Problem : miopenProblem
 {
@@ -50,10 +69,15 @@ struct Problem : miopenProblem
     }
 
     void SetDirection(miopenProblemDirection_t value) { direction = value; }
+    void SetOperatorDescriptor(const OperatorDescriptor* descriptor)
+    {
+        operator_descriptor = std::shared_ptr<OperatorDescriptor>(descriptor->Clone());
+    }
 
 private:
     miopenProblemDirection_t direction;
     std::unordered_map<miopenProblemTensorName_t, TensorDescriptor> tensor_descriptors;
+    std::shared_ptr<OperatorDescriptor> operator_descriptor;
 };
 
 } // namespace miopen
