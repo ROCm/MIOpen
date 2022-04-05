@@ -27,15 +27,19 @@
 #include <miopen/miopen.h>
 
 #include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/problem.hpp>
 #include <miopen/search_options.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/type_name.hpp>
 
+#include <boost/range/adaptor/transformed.hpp>
+
 extern "C" {
 miopenStatus_t miopenCreateProblem(miopenProblem_t* problem)
 {
+    MIOPEN_LOG_FUNCTION(problem);
     return miopen::try_([&] { miopen::deref(problem) = new miopen::Problem(); });
 }
 
@@ -113,7 +117,7 @@ miopenStatus_t miopenSetSearchOption(miopenSearchOptions_t options,
             miopen::deref(options).workspace_limit = *reinterpret_cast<size_t*>(value);
             break;
         case miopenSearchOptionInvalid:
-        default: MIOPEN_THROW(miopenStatusBadParm, "Invalid value of optionName.");
+        default: MIOPEN_THROW(miopenStatusBadParm, "Invalid value of optionName."); break;
         }
     });
 }
@@ -159,11 +163,22 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
         const auto& handle_deref   = miopen::deref(handle);
         const auto& solution_deref = miopen::deref(solution);
 
+        const auto descriptors_deref = [&]() {
+            auto ret = std::vector<miopen::TensorDescriptor>{};
+            if(descriptors == nullptr)
+                return ret;
+
+            ret.reserve(nInputs);
+            for(auto i = 0; i < nInputs; ++i)
+                ret.push_back(miopen::deref(descriptors[i]));
+            return ret;
+        }();
+
         std::ignore = handle_deref;
         std::ignore = solution_deref;
         std::ignore = nInputs;
         std::ignore = names;
-        std::ignore = descriptors;
+        std::ignore = descriptors_deref;
         std::ignore = buffers;
         std::ignore = workspace;
         std::ignore = workspaceSize;
@@ -241,13 +256,13 @@ miopenStatus_t miopenGetSolutionAttribute(miopenSolution_t solution,
         {
         case miopenSolutionAttributeTime:
             impl(solution_deref.time, "Execution time solution attribute");
-            return;
+            break;
         case miopenSolutionAttributeWorkspaceSize:
             impl(solution_deref.workspace_size, "Workspace size solution attribute");
-            return;
+            break;
+        case miopenSolutionAttributeInvalid:
+        default: MIOPEN_THROW(miopenStatusNotImplemented); break;
         }
-
-        MIOPEN_THROW(miopenStatusNotImplemented);
     });
 }
 }
