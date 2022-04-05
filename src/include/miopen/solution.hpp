@@ -35,9 +35,6 @@ namespace miopen {
 
 struct Solution : miopenSolution
 {
-    std::size_t time;
-    std::size_t workspace_size;
-
     std::size_t GetSize() const
     {
         MIOPEN_THROW(miopenStatusNotImplemented);
@@ -58,6 +55,13 @@ struct Solution : miopenSolution
 
         MIOPEN_THROW(miopenStatusNotImplemented);
     }
+
+    std::size_t GetTime() const { return time; }
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+
+private:
+    std::size_t time;
+    std::size_t workspace_size;
 };
 
 } // namespace miopen

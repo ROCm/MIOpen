@@ -255,10 +255,10 @@ miopenStatus_t miopenGetSolutionAttribute(miopenSolution_t solution,
         switch(solutionAttribute)
         {
         case miopenSolutionAttributeTime:
-            impl(solution_deref.time, "Execution time solution attribute");
+            impl(solution_deref.GetTime(), "Execution time solution attribute");
             break;
         case miopenSolutionAttributeWorkspaceSize:
-            impl(solution_deref.workspace_size, "Workspace size solution attribute");
+            impl(solution_deref.GetWorkspaceSize(), "Workspace size solution attribute");
             break;
         case miopenSolutionAttributeInvalid:
         default: MIOPEN_THROW(miopenStatusNotImplemented); break;
