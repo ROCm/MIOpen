@@ -44,7 +44,7 @@ struct SearchOptions : miopenSearchOptions
 
 } // namespace miopen
 
-std::ostream& operator<<(std::ostream& stream, const miopen::SearchOptions& options)
+inline std::ostream& operator<<(std::ostream& stream, const miopen::SearchOptions& options)
 {
     // Todo: sane printing
     stream << &options;

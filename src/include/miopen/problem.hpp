@@ -82,7 +82,7 @@ private:
 
 } // namespace miopen
 
-std::ostream& operator<<(std::ostream& stream, const miopen::Problem& problem)
+inline std::ostream& operator<<(std::ostream& stream, const miopen::Problem& problem)
 {
     // Todo: sane printing
     stream << &problem;

@@ -62,7 +62,7 @@ struct Solution : miopenSolution
 
 } // namespace miopen
 
-std::ostream& operator<<(std::ostream& stream, const miopen::Solution& solution)
+inline std::ostream& operator<<(std::ostream& stream, const miopen::Solution& solution)
 {
     // Todo: sane printing
     stream << &solution;
