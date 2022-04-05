@@ -28,6 +28,7 @@
 
 #include <miopen/miopen.h>
 
+#include <miopen/errors.hpp>
 #include <miopen/object.hpp>
 
 namespace miopen {
@@ -36,6 +37,22 @@ struct Solution : miopenSolution
 {
     std::size_t time;
     std::size_t workspace_size;
+
+    std::size_t GetSize() const
+    {
+        MIOPEN_THROW(miopenStatusNotImplemented);
+        return 0;
+    }
+
+    void Save(char* data) const
+    {
+        MIOPEN_THROW(miopenStatusNotImplemented);
+    }
+
+    void Load(const char* data, std::size_t size)
+    {
+        MIOPEN_THROW(miopenStatusNotImplemented);
+    }
 };
 
 } // namespace miopen

@@ -156,10 +156,11 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
         handle, solution, nInputs, names, descriptors, buffers, workspace, workspaceSize);
 
     return miopen::try_([&] {
-        const auto& handle_deref = miopen::deref(handle);
+        const auto& handle_deref   = miopen::deref(handle);
+        const auto& solution_deref = miopen::deref(solution);
 
         std::ignore = handle_deref;
-        std::ignore = solution;
+        std::ignore = solution_deref;
         std::ignore = nInputs;
         std::ignore = names;
         std::ignore = descriptors;
@@ -179,27 +180,35 @@ miopenStatus_t miopenDestroySolution(miopenSolution_t solution)
 
 miopenStatus_t miopenLoadSolution(miopenSolution_t solution, const char* data, size_t size)
 {
-    std::ignore = solution;
-    std::ignore = data;
-    std::ignore = size;
+    MIOPEN_LOG_FUNCTION(solution, data, size);
 
-    return miopenStatusNotImplemented;
+    return miopen::try_([&] {
+        if(data == nullptr)
+            MIOPEN_THROW(miopenStatusBadParm, "data parameter should not be a nullptr.");
+        miopen::deref(solution).Load(data, size);
+    });
 }
 
 miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data)
 {
-    std::ignore = solution;
-    std::ignore = data;
+    MIOPEN_LOG_FUNCTION(solution, data);
 
-    return miopenStatusNotImplemented;
+    return miopen::try_([&] {
+        if(data == nullptr)
+            MIOPEN_THROW(miopenStatusBadParm, "data parameter should not be a nullptr.");
+        miopen::deref(solution).Save(data);
+    });
 }
 
 miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
 {
-    std::ignore = solution;
-    std::ignore = size;
+    MIOPEN_LOG_FUNCTION(solution, size);
 
-    return miopenStatusNotImplemented;
+    return miopen::try_([&] {
+        if(size == nullptr)
+            MIOPEN_THROW(miopenStatusBadParm, "size parameter should not be a nullptr.");
+        *size = miopen::deref(solution).GetSize();
+    });
 }
 
 miopenStatus_t miopenGetSolutionAttribute(miopenSolution_t solution,
