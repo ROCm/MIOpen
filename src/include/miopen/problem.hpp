@@ -29,7 +29,7 @@
 #include <miopen/miopen.h>
 
 #include <miopen/object.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/solver_id.hpp>
 #include <miopen/tensor.hpp>
 
 #include <unordered_map>
