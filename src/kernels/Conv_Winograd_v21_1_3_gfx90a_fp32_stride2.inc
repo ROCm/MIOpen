@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 v_mov_b32_e32 v0, v0
 s_mov_b32 s0, 0
 s_mov_b32 s1, 0
@@ -243,54 +244,54 @@ v_bfe_u32 v97, v7, 0, 5
 v_mad_u32_u24 v97, v4, 32, v97
 v_ffbh_u32_e32 v10, s43
 v_lshlrev_b32_e64 v11, v10, s43
-v_and_b32_e32 v12, 0xffffff00, v11
+v_and_b32_e32 v9, 0xffffff00, v11
 v_cmp_eq_u32_e32 vcc, 0x80000000, v11
-v_cvt_f32_u32_e32 v12, v12
-v_rcp_f32_e32 v98, v12
-v_subb_co_u32_e32 v9, vcc, 32, v10, vcc
+v_cvt_f32_u32_e32 v9, v9
+v_rcp_f32_e32 v98, v9
+v_subb_co_u32_e32 v8, vcc, 32, v10, vcc
 v_cvt_f32_ubyte0_e32 v10, v11
-v_fma_f32 v12, v12, v98, -1.0
-v_fma_f32 v12, v10, v98, v12
-v_madak_f32 v12, v12, v98, 0x9f000000
-v_mul_f32_e32 v12, 0x5f800000, v12
+v_fma_f32 v9, v9, v98, -1.0
+v_fma_f32 v9, v10, v98, v9
+v_madak_f32 v9, v9, v98, 0x9f000000
+v_mul_f32_e32 v9, 0x5f800000, v9
 v_mov_b32_e32 v10, 0
-v_cvt_flr_i32_f32_e64 v12, -v12
-v_lshl_add_u32 v98, v98, 9, v12
+v_cvt_flr_i32_f32_e64 v9, -v9
+v_lshl_add_u32 v98, v98, 9, v9
 v_mad_u64_u32 v[10:11], vcc, v11, v98, v[10:11]
 v_subb_co_u32_e64 v98, vcc, v98, -1, vcc
 v_mul_hi_u32 v10, v97, v98
 v_add_co_u32_e32 v98, vcc, v10, v97
 v_addc_co_u32_e64 v10, vcc, 0, 0, vcc
-v_cmp_eq_u32_e32 vcc, 32, v9
+v_cmp_eq_u32_e32 vcc, 32, v8
 v_cndmask_b32_e32 v98, v98, v10, vcc
-v_alignbit_b32 v98, v10, v98, v9
+v_alignbit_b32 v98, v10, v98, v8
 v_mad_i32_i24 v96, v98, s75, v97
 v_lshrrev_b32_e32 v97, 5, v7
 v_mad_u32_u24 v97, v98, 1, v97
 v_cndmask_b32_e64 v97, v97, 1, s[46:47]
 v_ffbh_u32_e32 v10, s42
 v_lshlrev_b32_e64 v11, v10, s42
-v_and_b32_e32 v12, 0xffffff00, v11
+v_and_b32_e32 v9, 0xffffff00, v11
 v_cmp_eq_u32_e32 vcc, 0x80000000, v11
-v_cvt_f32_u32_e32 v12, v12
-v_rcp_f32_e32 v98, v12
-v_subb_co_u32_e32 v9, vcc, 32, v10, vcc
+v_cvt_f32_u32_e32 v9, v9
+v_rcp_f32_e32 v98, v9
+v_subb_co_u32_e32 v8, vcc, 32, v10, vcc
 v_cvt_f32_ubyte0_e32 v10, v11
-v_fma_f32 v12, v12, v98, -1.0
-v_fma_f32 v12, v10, v98, v12
-v_madak_f32 v12, v12, v98, 0x9f000000
-v_mul_f32_e32 v12, 0x5f800000, v12
+v_fma_f32 v9, v9, v98, -1.0
+v_fma_f32 v9, v10, v98, v9
+v_madak_f32 v9, v9, v98, 0x9f000000
+v_mul_f32_e32 v9, 0x5f800000, v9
 v_mov_b32_e32 v10, 0
-v_cvt_flr_i32_f32_e64 v12, -v12
-v_lshl_add_u32 v98, v98, 9, v12
+v_cvt_flr_i32_f32_e64 v9, -v9
+v_lshl_add_u32 v98, v98, 9, v9
 v_mad_u64_u32 v[10:11], vcc, v11, v98, v[10:11]
 v_subb_co_u32_e64 v98, vcc, v98, -1, vcc
 v_mul_hi_u32 v10, v97, v98
 v_add_co_u32_e32 v98, vcc, v10, v97
 v_addc_co_u32_e64 v10, vcc, 0, 0, vcc
-v_cmp_eq_u32_e32 vcc, 32, v9
+v_cmp_eq_u32_e32 vcc, 32, v8
 v_cndmask_b32_e32 v98, v98, v10, vcc
-v_alignbit_b32 v98, v10, v98, v9
+v_alignbit_b32 v98, v10, v98, v8
 v_mad_i32_i24 v97, v98, s74, v97
 v_readlane_b32 s76, v96, 2
 v_readlane_b32 s77, v97, 2
@@ -299,29 +300,29 @@ v_readlane_b32 s79, v97, 3
 v_readlane_b32 s80, v98, 3
 v_add_co_u32_e64 v96, vcc, v96, s75
 v_add_co_u32_e64 v97, vcc, v97, s74
-v_mov_b32_dpp v98, v98  quad_perm:[1,1,0,0] row_mask:0xf bank_mask:0xf
-v_mov_b32_dpp v96, v96  quad_perm:[1,1,0,0] row_mask:0xf bank_mask:0xf
-v_mov_b32_dpp v97, v97  quad_perm:[1,1,0,0] row_mask:0xf bank_mask:0xf
+v_mov_b32_dpp v98, v98 quad_perm:[1,1,0,0] row_mask:0xf bank_mask:0xf
+v_mov_b32_dpp v96, v96 quad_perm:[1,1,0,0] row_mask:0xf bank_mask:0xf
+v_mov_b32_dpp v97, v97 quad_perm:[1,1,0,0] row_mask:0xf bank_mask:0xf
 s_mov_b32 s42, 0x80000000
 s_mov_b32 s43, 0x20000
 s_mov_b32 s46, 0x80000000
 s_mov_b32 s47, 0x20000
 v_cmp_le_u32_e32 vcc, 0x100, v0
 s_cbranch_vccnz 5
-v_xor_b32_dpp v100, v0, v0  quad_perm:[1,3,2,2] row_mask:0xf bank_mask:0xf
+v_xor_b32_dpp v100, v0, v0 quad_perm:[1,3,2,2] row_mask:0xf bank_mask:0xf
 v_subrev_co_u32_e32 v100, vcc, 1, v100
 v_cvt_f32_i32_e32 v100, v100
 s_branch 4
-v_xor_b32_dpp v100, v0, v0  quad_perm:[2,1,0,1] row_mask:0xf bank_mask:0xf
+v_xor_b32_dpp v100, v0, v0 quad_perm:[2,1,0,1] row_mask:0xf bank_mask:0xf
 v_sub_co_u32_e32 v100, vcc, 1, v100
 v_cvt_f32_i32_e32 v100, v100
 v_mov_b32_e32 v101, 1
-v_xor_b32_dpp v101, v0, v0  quad_perm:[2,3,2,3] row_mask:0xf bank_mask:0x4
-v_xor_b32_dpp v101, v0, v0  quad_perm:[0,1,0,1] row_mask:0xf bank_mask:0x8
+v_xor_b32_dpp v101, v0, v0 quad_perm:[2,3,2,3] row_mask:0xf bank_mask:0x4
+v_xor_b32_dpp v101, v0, v0 quad_perm:[0,1,0,1] row_mask:0xf bank_mask:0x8
 v_subrev_co_u32_e32 v101, vcc, 1, v101
 v_mov_b32_e32 v102, 1
-v_xor_b32_dpp v102, v0, v0  quad_perm:[0,3,2,1] row_mask:0xf bank_mask:0x2
-v_xor_b32_dpp v102, v0, v0  quad_perm:[2,1,0,3] row_mask:0xf bank_mask:0x4
+v_xor_b32_dpp v102, v0, v0 quad_perm:[0,3,2,1] row_mask:0xf bank_mask:0x2
+v_xor_b32_dpp v102, v0, v0 quad_perm:[2,1,0,3] row_mask:0xf bank_mask:0x4
 v_subrev_co_u32_e32 v102, vcc, 1, v102
 v_cvt_f32_i32_e32 v101, v101
 v_cvt_f32_i32_e32 v102, v102
@@ -537,10 +538,10 @@ v_mac_f32_e32 v28, v36, v48
 v_mac_f32_e32 v29, v37, v48
 v_mac_f32_e32 v30, v34, v49
 v_mac_f32_e32 v31, v35, v49
-v_cndmask_b32_dpp v66, v66, v66, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v67, v67, v67, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v68, v68, v68, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v69, v69, v69, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v66, v66, v66, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v67, v67, v67, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v68, v68, v68, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v69, v69, v69, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_subrev_f32_e64 v66, v68, v66 div:2
 v_subrev_f32_e64 v69, v67, v69 div:2
 s_setprio 0
@@ -603,10 +604,10 @@ v_mac_f32_e32 v30, v38, v57
 v_mac_f32_e32 v31, v39, v57
 v_add_f32_e64 v67, v68, v67 div:2
 v_mad_f32 v68, v68, 1.0, -v67
-v_mac_f32_dpp v66, v66, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v67, v67, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v68, v68, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v69, v69, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v66, v66, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v67, v67, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v68, v68, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v69, v69, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
 s_setprio 0
 s_nop 0
 v_mac_f32_e32 v32, v40, v57
@@ -661,10 +662,10 @@ v_mac_f32_e32 v28, v36, v48
 v_mac_f32_e32 v29, v37, v48
 v_mac_f32_e32 v30, v34, v49
 v_mac_f32_e32 v31, v35, v49
-v_cndmask_b32_dpp v70, v70, v70, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v71, v71, v71, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v72, v72, v72, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v73, v73, v73, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v70, v70, v70, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v71, v71, v71, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v72, v72, v72, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v73, v73, v73, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_subrev_f32_e64 v70, v72, v70 div:2
 v_subrev_f32_e64 v73, v71, v73 div:2
 s_setprio 0
@@ -728,10 +729,10 @@ v_mac_f32_e32 v31, v39, v57
 v_mac_f32_e32 v32, v40, v57
 v_add_f32_e64 v71, v72, v71 div:2
 v_mad_f32 v72, v72, 1.0, -v71
-v_mac_f32_dpp v70, v70, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v71, v71, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v72, v72, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v73, v73, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v70, v70, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v71, v71, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v72, v72, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v73, v73, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
 s_setprio 0
 s_nop 0
 v_mac_f32_e32 v33, v41, v57
@@ -786,10 +787,10 @@ v_mac_f32_e32 v28, v36, v48
 v_mac_f32_e32 v29, v37, v48
 v_mac_f32_e32 v30, v34, v49
 v_mac_f32_e32 v31, v35, v49
-v_cndmask_b32_dpp v74, v74, v74, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v75, v75, v75, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v76, v76, v76, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v77, v77, v77, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v74, v74, v74, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v75, v75, v75, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v76, v76, v76, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v77, v77, v77, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_subrev_f32_e64 v74, v76, v74 div:2
 v_subrev_f32_e64 v77, v75, v77 div:2
 s_setprio 0
@@ -853,10 +854,10 @@ v_mac_f32_e32 v30, v38, v57
 v_mac_f32_e32 v31, v39, v57
 v_add_f32_e64 v75, v76, v75 div:2
 v_mad_f32 v76, v76, 1.0, -v75
-v_mac_f32_dpp v74, v74, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v75, v75, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v76, v76, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v77, v77, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v74, v74, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v75, v75, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v76, v76, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v77, v77, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
 s_setprio 0
 s_nop 0
 v_mac_f32_e32 v32, v40, v57
@@ -911,10 +912,10 @@ v_mac_f32_e32 v28, v36, v48
 v_mac_f32_e32 v29, v37, v48
 v_mac_f32_e32 v30, v34, v49
 v_mac_f32_e32 v31, v35, v49
-v_cndmask_b32_dpp v78, v78, v78, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v79, v79, v79, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v80, v80, v80, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v81, v81, v81, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v78, v78, v78, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v79, v79, v79, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v80, v80, v80, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v81, v81, v81, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_subrev_f32_e64 v78, v80, v78 div:2
 v_subrev_f32_e64 v81, v79, v81 div:2
 s_setprio 0
@@ -978,10 +979,10 @@ v_mac_f32_e32 v31, v39, v57
 v_mac_f32_e32 v32, v40, v57
 v_add_f32_e64 v79, v80, v79 div:2
 v_mad_f32 v80, v80, 1.0, -v79
-v_mac_f32_dpp v78, v78, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v79, v79, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v80, v80, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v81, v81, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v78, v78, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v79, v79, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v80, v80, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v81, v81, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
 s_setprio 0
 s_nop 0
 v_mac_f32_e32 v33, v41, v57
@@ -1036,10 +1037,10 @@ v_mac_f32_e32 v28, v36, v48
 v_mac_f32_e32 v29, v37, v48
 v_mac_f32_e32 v30, v34, v49
 v_mac_f32_e32 v31, v35, v49
-v_cndmask_b32_dpp v58, v58, v58, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v59, v59, v59, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v60, v60, v60, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v61, v61, v61, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v58, v58, v58, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v59, v59, v59, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v60, v60, v60, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v61, v61, v61, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_subrev_f32_e64 v58, v60, v58 div:2
 v_subrev_f32_e64 v61, v59, v61 div:2
 s_setprio 0
@@ -1103,10 +1104,10 @@ v_mac_f32_e32 v30, v38, v57
 v_mac_f32_e32 v31, v39, v57
 v_add_f32_e64 v59, v60, v59 div:2
 v_mad_f32 v60, v60, 1.0, -v59
-v_mac_f32_dpp v58, v58, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v59, v59, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v60, v60, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v61, v61, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v58, v58, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v59, v59, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v60, v60, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v61, v61, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
 s_setprio 0
 s_nop 0
 v_mac_f32_e32 v32, v40, v57
@@ -1161,10 +1162,10 @@ v_mac_f32_e32 v28, v36, v48
 v_mac_f32_e32 v29, v37, v48
 v_mac_f32_e32 v30, v34, v49
 v_mac_f32_e32 v31, v35, v49
-v_cndmask_b32_dpp v62, v62, v62, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v63, v63, v63, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v64, v64, v64, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v65, v65, v65, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v62, v62, v62, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v63, v63, v63, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v64, v64, v64, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v65, v65, v65, vcc row_half_mirror row_mask:0xf bank_mask:0xf
 v_subrev_f32_e64 v62, v64, v62 div:2
 v_subrev_f32_e64 v65, v63, v65 div:2
 s_setprio 0
@@ -1228,10 +1229,10 @@ v_mac_f32_e32 v31, v39, v57
 v_mac_f32_e32 v32, v40, v57
 v_add_f32_e64 v63, v64, v63 div:2
 v_mad_f32 v64, v64, 1.0, -v63
-v_mac_f32_dpp v62, v62, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v63, v63, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v64, v64, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v65, v65, v100  quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v62, v62, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v63, v63, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v64, v64, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v65, v65, v100 quad_perm:[2,2,1,1] row_mask:0xf bank_mask:0xf
 s_setprio 0
 s_nop 0
 v_mac_f32_e32 v33, v41, v57
@@ -1288,12 +1289,12 @@ v_mac_f32_e32 v28, v36, v48
 v_mac_f32_e32 v29, v37, v48
 v_mac_f32_e32 v30, v34, v49
 v_mac_f32_e32 v31, v35, v49
-v_cndmask_b32_dpp v66, v66, v66, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v67, v67, v67, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v68, v68, v68, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v69, v69, v69, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v66, v67, v67  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v66, v67, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v66, v66, v66, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v67, v67, v67, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v68, v68, v68, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v69, v69, v69, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v66, v67, v67 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v66, v67, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_mac_f32_e32 v32, v36, v49
 v_mac_f32_e32 v33, v37, v49
 s_nop 0
@@ -1353,10 +1354,10 @@ v_mac_f32_e32 v28, v40, v56
 v_mac_f32_e32 v29, v41, v56
 v_mac_f32_e32 v30, v38, v57
 v_mac_f32_e32 v31, v39, v57
-v_add_f32_dpp v103, v69, v69  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v103, v69, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v69, v68, v68  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v69, v68, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v103, v69, v69 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v103, v69, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v69, v68, v68 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v69, v68, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_e32 v68, v66, v69
 v_add_f32_e64 v67, v103, v68 div:2
 v_add_f32_e64 v68, -v103, v68 div:2
@@ -1413,12 +1414,12 @@ v_mac_f32_e32 v28, v36, v48
 v_mac_f32_e32 v29, v37, v48
 v_mac_f32_e32 v30, v34, v49
 v_mac_f32_e32 v31, v35, v49
-v_cndmask_b32_dpp v70, v70, v70, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v71, v71, v71, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v72, v72, v72, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v73, v73, v73, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v70, v71, v71  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v70, v71, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v70, v70, v70, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v71, v71, v71, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v72, v72, v72, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v73, v73, v73, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v70, v71, v71 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v70, v71, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_mac_f32_e32 v32, v36, v49
 v_mac_f32_e32 v33, v37, v49
 s_nop 0
@@ -1479,10 +1480,10 @@ v_mac_f32_e32 v29, v41, v56
 v_mac_f32_e32 v30, v38, v57
 v_mac_f32_e32 v31, v39, v57
 v_mac_f32_e32 v32, v40, v57
-v_add_f32_dpp v103, v73, v73  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v103, v73, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v73, v72, v72  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v73, v72, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v103, v73, v73 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v103, v73, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v73, v72, v72 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v73, v72, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_e32 v72, v70, v73
 v_add_f32_e64 v71, v103, v72 div:2
 v_add_f32_e64 v72, -v103, v72 div:2
@@ -1539,12 +1540,12 @@ v_mac_f32_e32 v28, v36, v48
 v_mac_f32_e32 v29, v37, v48
 v_mac_f32_e32 v30, v34, v49
 v_mac_f32_e32 v31, v35, v49
-v_cndmask_b32_dpp v74, v74, v74, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v75, v75, v75, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v76, v76, v76, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v77, v77, v77, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v74, v75, v75  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v74, v75, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v74, v74, v74, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v75, v75, v75, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v76, v76, v76, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v77, v77, v77, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v74, v75, v75 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v74, v75, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_mac_f32_e32 v32, v36, v49
 v_mac_f32_e32 v33, v37, v49
 s_nop 0
@@ -1597,10 +1598,10 @@ v_mac_f32_e32 v28, v40, v56
 v_mac_f32_e32 v29, v41, v56
 v_mac_f32_e32 v30, v38, v57
 v_mac_f32_e32 v31, v39, v57
-v_add_f32_dpp v103, v77, v77  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v103, v77, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v77, v76, v76  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v77, v76, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v103, v77, v77 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v103, v77, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v77, v76, v76 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v77, v76, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_e32 v76, v74, v77
 v_add_f32_e64 v75, v103, v76 div:2
 v_add_f32_e64 v76, -v103, v76 div:2
@@ -1657,12 +1658,12 @@ v_mac_f32_e32 v28, v36, v48
 v_mac_f32_e32 v29, v37, v48
 v_mac_f32_e32 v30, v34, v49
 v_mac_f32_e32 v31, v35, v49
-v_cndmask_b32_dpp v78, v78, v78, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v79, v79, v79, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v80, v80, v80, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v81, v81, v81, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v78, v79, v79  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v78, v79, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v78, v78, v78, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v79, v79, v79, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v80, v80, v80, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v81, v81, v81, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v78, v79, v79 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v78, v79, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_mac_f32_e32 v32, v36, v49
 v_mac_f32_e32 v33, v37, v49
 s_nop 0
@@ -1723,10 +1724,10 @@ v_mac_f32_e32 v29, v41, v56
 v_mac_f32_e32 v30, v38, v57
 v_mac_f32_e32 v31, v39, v57
 v_mac_f32_e32 v32, v40, v57
-v_add_f32_dpp v103, v81, v81  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v103, v81, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v81, v80, v80  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v81, v80, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v103, v81, v81 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v103, v81, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v81, v80, v80 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v81, v80, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_e32 v80, v78, v81
 v_add_f32_e64 v79, v103, v80 div:2
 v_add_f32_e64 v80, -v103, v80 div:2
@@ -1783,12 +1784,12 @@ v_mac_f32_e32 v28, v36, v48
 v_mac_f32_e32 v29, v37, v48
 v_mac_f32_e32 v30, v34, v49
 v_mac_f32_e32 v31, v35, v49
-v_cndmask_b32_dpp v58, v58, v58, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v59, v59, v59, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v60, v60, v60, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v61, v61, v61, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v58, v59, v59  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v58, v59, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v58, v58, v58, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v59, v59, v59, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v60, v60, v60, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v61, v61, v61, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v58, v59, v59 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v58, v59, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_mac_f32_e32 v32, v36, v49
 v_mac_f32_e32 v33, v37, v49
 s_nop 0
@@ -1841,10 +1842,10 @@ v_mac_f32_e32 v28, v40, v56
 v_mac_f32_e32 v29, v41, v56
 v_mac_f32_e32 v30, v38, v57
 v_mac_f32_e32 v31, v39, v57
-v_add_f32_dpp v103, v61, v61  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v103, v61, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v61, v60, v60  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v61, v60, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v103, v61, v61 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v103, v61, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v61, v60, v60 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v61, v60, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_e32 v60, v58, v61
 v_add_f32_e64 v59, v103, v60 div:2
 v_add_f32_e64 v60, -v103, v60 div:2
@@ -1901,12 +1902,12 @@ v_mac_f32_e32 v28, v36, v48
 v_mac_f32_e32 v29, v37, v48
 v_mac_f32_e32 v30, v34, v49
 v_mac_f32_e32 v31, v35, v49
-v_cndmask_b32_dpp v62, v62, v62, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v63, v63, v63, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v64, v64, v64, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_cndmask_b32_dpp v65, v65, v65, vcc  row_half_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v62, v63, v63  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v62, v63, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v62, v62, v62, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v63, v63, v63, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v64, v64, v64, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_cndmask_b32_dpp v65, v65, v65, vcc row_half_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v62, v63, v63 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v62, v63, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_mac_f32_e32 v32, v36, v49
 v_mac_f32_e32 v33, v37, v49
 s_nop 0
@@ -1967,10 +1968,10 @@ v_mac_f32_e32 v29, v41, v56
 v_mac_f32_e32 v30, v38, v57
 v_mac_f32_e32 v31, v39, v57
 v_mac_f32_e32 v32, v40, v57
-v_add_f32_dpp v103, v65, v65  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v103, v65, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v65, v64, v64  quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v65, v64, v100  quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v103, v65, v65 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v103, v65, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v65, v64, v64 quad_perm:[0,0,0,2] row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v65, v64, v100 quad_perm:[0,2,1,3] row_mask:0xf bank_mask:0xf
 v_add_f32_e32 v64, v62, v65
 v_add_f32_e64 v63, v103, v64 div:2
 v_add_f32_e64 v64, -v103, v64 div:2
@@ -2095,52 +2096,52 @@ s_sub_u32 s59, 0, s74
 v_mul_u32_u24_e64 v111, v107, 32
 v_ffbh_u32_e32 v114, s58
 v_lshlrev_b32_e64 v115, v114, s58
-v_and_b32_e32 v116, 0xffffff00, v115
+v_and_b32_e32 v113, 0xffffff00, v115
 v_cmp_eq_u32_e32 vcc, 0x80000000, v115
-v_cvt_f32_u32_e32 v116, v116
-v_rcp_f32_e32 v109, v116
-v_subb_co_u32_e32 v113, vcc, 32, v114, vcc
+v_cvt_f32_u32_e32 v113, v113
+v_rcp_f32_e32 v109, v113
+v_subb_co_u32_e32 v112, vcc, 32, v114, vcc
 v_cvt_f32_ubyte0_e32 v114, v115
-v_fma_f32 v116, v116, v109, -1.0
-v_fma_f32 v116, v114, v109, v116
-v_madak_f32 v116, v116, v109, 0x9f000000
-v_mul_f32_e32 v116, 0x5f800000, v116
+v_fma_f32 v113, v113, v109, -1.0
+v_fma_f32 v113, v114, v109, v113
+v_madak_f32 v113, v113, v109, 0x9f000000
+v_mul_f32_e32 v113, 0x5f800000, v113
 v_mov_b32_e32 v114, 0
-v_cvt_flr_i32_f32_e64 v116, -v116
-v_lshl_add_u32 v109, v109, 9, v116
+v_cvt_flr_i32_f32_e64 v113, -v113
+v_lshl_add_u32 v109, v109, 9, v113
 v_mad_u64_u32 v[114:115], vcc, v115, v109, v[114:115]
 v_subb_co_u32_e64 v109, vcc, v109, -1, vcc
 v_mul_hi_u32 v114, v111, v109
 v_add_co_u32_e32 v109, vcc, v114, v111
 v_addc_co_u32_e64 v114, vcc, 0, 0, vcc
-v_cmp_eq_u32_e32 vcc, 32, v113
+v_cmp_eq_u32_e32 vcc, 32, v112
 v_cndmask_b32_e32 v109, v109, v114, vcc
-v_alignbit_b32 v109, v114, v109, v113
+v_alignbit_b32 v109, v114, v109, v112
 v_mad_i32_i24 v110, v109, s75, v111
 v_mul_u32_u24_e64 v111, v109, 1
 v_ffbh_u32_e32 v114, s59
 v_lshlrev_b32_e64 v115, v114, s59
-v_and_b32_e32 v116, 0xffffff00, v115
+v_and_b32_e32 v113, 0xffffff00, v115
 v_cmp_eq_u32_e32 vcc, 0x80000000, v115
-v_cvt_f32_u32_e32 v116, v116
-v_rcp_f32_e32 v109, v116
-v_subb_co_u32_e32 v113, vcc, 32, v114, vcc
+v_cvt_f32_u32_e32 v113, v113
+v_rcp_f32_e32 v109, v113
+v_subb_co_u32_e32 v112, vcc, 32, v114, vcc
 v_cvt_f32_ubyte0_e32 v114, v115
-v_fma_f32 v116, v116, v109, -1.0
-v_fma_f32 v116, v114, v109, v116
-v_madak_f32 v116, v116, v109, 0x9f000000
-v_mul_f32_e32 v116, 0x5f800000, v116
+v_fma_f32 v113, v113, v109, -1.0
+v_fma_f32 v113, v114, v109, v113
+v_madak_f32 v113, v113, v109, 0x9f000000
+v_mul_f32_e32 v113, 0x5f800000, v113
 v_mov_b32_e32 v114, 0
-v_cvt_flr_i32_f32_e64 v116, -v116
-v_lshl_add_u32 v109, v109, 9, v116
+v_cvt_flr_i32_f32_e64 v113, -v113
+v_lshl_add_u32 v109, v109, 9, v113
 v_mad_u64_u32 v[114:115], vcc, v115, v109, v[114:115]
 v_subb_co_u32_e64 v109, vcc, v109, -1, vcc
 v_mul_hi_u32 v114, v111, v109
 v_add_co_u32_e32 v109, vcc, v114, v111
 v_addc_co_u32_e64 v114, vcc, 0, 0, vcc
-v_cmp_eq_u32_e32 vcc, 32, v113
+v_cmp_eq_u32_e32 vcc, 32, v112
 v_cndmask_b32_e32 v109, v109, v114, vcc
-v_alignbit_b32 v109, v114, v109, v113
+v_alignbit_b32 v109, v114, v109, v112
 v_mad_i32_i24 v111, v109, s74, v111
 v_readfirstlane_b32 s76, v110
 v_readfirstlane_b32 s77, v111
@@ -2257,9 +2258,9 @@ ds_write_b32 v110, v112 offset:256
 s_add_u32 s96, s96, 0x18c
 s_cmp_eq_u32 s96, 0xffc0
 s_cselect_b32 s96, 0xc1e0, s96
-v_mov_b32_dpp v108, v98  quad_perm:[0,0,0,0] row_mask:0xf bank_mask:0xf
-v_mov_b32_dpp v106, v106  quad_perm:[0,0,0,0] row_mask:0xf bank_mask:0xf
-v_mov_b32_dpp v107, v107  quad_perm:[0,0,0,0] row_mask:0xf bank_mask:0xf
+v_mov_b32_dpp v108, v98 quad_perm:[0,0,0,0] row_mask:0xf bank_mask:0xf
+v_mov_b32_dpp v106, v106 quad_perm:[0,0,0,0] row_mask:0xf bank_mask:0xf
+v_mov_b32_dpp v107, v107 quad_perm:[0,0,0,0] row_mask:0xf bank_mask:0xf
 v_readfirstlane_b32 s81, v108
 v_sub_co_u32_e64 v109, vcc, v108, s81
 v_mul_lo_u32 v109, v109, s65
@@ -2455,94 +2456,94 @@ s_nop 0
 s_nop 0
 s_nop 0
 s_nop 0
-v_mac_f32_dpp v4, v4, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v5, v5, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v2, v2, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v3, v3, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_add_f32_dpp v3, v4, v3  row_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v2, v5, v2  row_mirror row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v4, v4, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v5, v5, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v2, v2, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v3, v3, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_add_f32_dpp v3, v4, v3 row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v2, v5, v2 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v3, v3, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v2, v2, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v3, v3, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v2, v2, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
-v_add_f32_dpp v2, v3, v2  row_half_mirror row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v8, v8, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v9, v9, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v6, v6, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v7, v7, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_add_f32_dpp v7, v8, v7  row_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v6, v9, v6  row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v2, v3, v2 row_half_mirror row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v8, v8, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v9, v9, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v6, v6, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v7, v7, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_add_f32_dpp v7, v8, v7 row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v6, v9, v6 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v7, v7, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v6, v6, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v7, v7, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v6, v6, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
-v_add_f32_dpp v3, v7, v6  row_half_mirror row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v12, v12, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v13, v13, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v10, v10, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v11, v11, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_add_f32_dpp v11, v12, v11  row_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v10, v13, v10  row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v3, v7, v6 row_half_mirror row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v12, v12, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v13, v13, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v10, v10, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v11, v11, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_add_f32_dpp v11, v12, v11 row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v10, v13, v10 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v11, v11, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v10, v10, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v11, v11, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v10, v10, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
-v_add_f32_dpp v4, v11, v10  row_half_mirror row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v16, v16, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v17, v17, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v14, v14, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v15, v15, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_add_f32_dpp v15, v16, v15  row_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v14, v17, v14  row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v4, v11, v10 row_half_mirror row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v16, v16, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v17, v17, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v14, v14, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v15, v15, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_add_f32_dpp v15, v16, v15 row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v14, v17, v14 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v15, v15, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v14, v14, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v15, v15, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v14, v14, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
-v_add_f32_dpp v5, v15, v14  row_half_mirror row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v20, v20, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v21, v21, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v18, v18, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v19, v19, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_add_f32_dpp v19, v20, v19  row_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v18, v21, v18  row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v5, v15, v14 row_half_mirror row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v20, v20, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v21, v21, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v18, v18, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v19, v19, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_add_f32_dpp v19, v20, v19 row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v18, v21, v18 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v19, v19, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v18, v18, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v19, v19, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v18, v18, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
-v_add_f32_dpp v6, v19, v18  row_half_mirror row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v24, v24, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v25, v25, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v22, v22, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v23, v23, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_add_f32_dpp v23, v24, v23  row_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v22, v25, v22  row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v6, v19, v18 row_half_mirror row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v24, v24, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v25, v25, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v22, v22, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v23, v23, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_add_f32_dpp v23, v24, v23 row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v22, v25, v22 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v23, v23, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v22, v22, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v23, v23, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v22, v22, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
-v_add_f32_dpp v7, v23, v22  row_half_mirror row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v28, v28, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v29, v29, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v26, v26, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v27, v27, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_add_f32_dpp v27, v28, v27  row_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v26, v29, v26  row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v7, v23, v22 row_half_mirror row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v28, v28, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v29, v29, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v26, v26, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v27, v27, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_add_f32_dpp v27, v28, v27 row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v26, v29, v26 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v27, v27, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v26, v26, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v27, v27, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v26, v26, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
-v_add_f32_dpp v8, v27, v26  row_half_mirror row_mask:0xf bank_mask:0xf
-v_mac_f32_dpp v32, v32, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v33, v33, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v30, v30, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_mac_f32_dpp v31, v31, v101  quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
-v_add_f32_dpp v31, v32, v31  row_mirror row_mask:0xf bank_mask:0xf
-v_add_f32_dpp v30, v33, v30  row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v8, v27, v26 row_half_mirror row_mask:0xf bank_mask:0xf
+v_mac_f32_dpp v32, v32, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v33, v33, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v30, v30, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_mac_f32_dpp v31, v31, v101 quad_perm:[2,3,0,1] row_mask:0xf bank_mask:0xc
+v_add_f32_dpp v31, v32, v31 row_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v30, v33, v30 row_mirror row_mask:0xf bank_mask:0xf
 s_nop 0
-v_mac_f32_dpp v31, v31, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
-v_mac_f32_dpp v30, v30, v102  quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v31, v31, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
+v_mac_f32_dpp v30, v30, v102 quad_perm:[1,0,3,2] row_mask:0xf bank_mask:0x6
 s_nop 0
-v_add_f32_dpp v9, v31, v30  row_half_mirror row_mask:0xf bank_mask:0xf
+v_add_f32_dpp v9, v31, v30 row_half_mirror row_mask:0xf bank_mask:0xf
 s_waitcnt vmcnt(0)
 v_readlane_b32 s55, v104, 0
 v_add_f32_e64 v2, v2, s55
@@ -2736,11 +2737,11 @@ v_sub_co_u32_e32 v109, vcc, 7, v108
 v_min_u32_e32 v108, v108, v109
 v_bfe_u32 v109, v108, 1, 1
 v_bfe_u32 v108, v108, 0, 1
-v_mov_b32_dpp v106, v106  quad_perm:[1,1,1,1] row_mask:0xf bank_mask:0xf
-v_mov_b32_dpp v107, v107  quad_perm:[1,1,1,1] row_mask:0xf bank_mask:0xf
+v_mov_b32_dpp v106, v106 quad_perm:[1,1,1,1] row_mask:0xf bank_mask:0xf
+v_mov_b32_dpp v107, v107 quad_perm:[1,1,1,1] row_mask:0xf bank_mask:0xf
 v_add_co_u32_e32 v106, vcc, v106, v109
 v_add_co_u32_e32 v107, vcc, v107, v108
-v_mov_b32_dpp v108, v86  quad_perm:[0,0,0,0] row_mask:0xf bank_mask:0xf
+v_mov_b32_dpp v108, v86 quad_perm:[0,0,0,0] row_mask:0xf bank_mask:0xf
 v_cmp_ge_u32_e64 s[52:53], v108, s12
 v_sub_co_u32_e64 v108, vcc, v108, s95
 v_mul_lo_u32 v108, v108, s66
