@@ -31,6 +31,7 @@
 #include <miopen/problem.hpp>
 #include <miopen/search_options.hpp>
 #include <miopen/solution.hpp>
+#include <miopen/type_name.hpp>
 
 extern "C" {
 miopenStatus_t miopenCreateProblem(miopenProblem_t* problem)
@@ -208,12 +209,37 @@ miopenStatus_t miopenGetSolutionAttribute(miopenSolution_t solution,
                                           void* value,
                                           size_t* valueSizeRet)
 {
-    std::ignore = solution;
-    std::ignore = solutionAttribute;
-    std::ignore = valueSize;
-    std::ignore = value;
-    std::ignore = valueSizeRet;
+    MIOPEN_LOG_FUNCTION(solution, solutionAttribute, valueSize, value, valueSizeRet);
 
-    return miopenStatusNotImplemented;
+    return miopen::try_([&] {
+        const auto& solution_deref = miopen::deref(solution);
+
+        const auto impl = [&](auto attr, const std::string& name) {
+            using Type = decltype(attr);
+
+            if(valueSizeRet != nullptr)
+                *valueSizeRet = sizeof(Type);
+
+            if(valueSize != 0 && value != nullptr)
+            {
+                if(valueSize != sizeof(Type))
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 name + " is of type " + miopen::get_type_name<Type>() + ".");
+                *reinterpret_cast<Type*>(value) = attr;
+            }
+        };
+
+        switch(solutionAttribute)
+        {
+        case miopenSolutionAttributeTime:
+            impl(solution_deref.time, "Execution time solution attribute");
+            return;
+        case miopenSolutionAttributeWorkspaceSize:
+            impl(solution_deref.workspace_size, "Workspace size solution attribute");
+            return;
+        }
+
+        MIOPEN_THROW(miopenStatusNotImplemented);
+    });
 }
 }
