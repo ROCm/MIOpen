@@ -28,8 +28,9 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/search_options.hpp>
 #include <miopen/problem.hpp>
+#include <miopen/search_options.hpp>
+#include <miopen/solution.hpp>
 
 extern "C" {
 miopenStatus_t miopenCreateProblem(miopenProblem_t* problem)
@@ -168,6 +169,12 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
 
         MIOPEN_THROW(miopenStatusNotImplemented);
     });
+}
+
+miopenStatus_t miopenDestroySolution(miopenSolution_t solution)
+{
+    MIOPEN_LOG_FUNCTION(solution);
+    return miopen::try_([&] { miopen_destroy_object(solution); });
 }
 
 miopenStatus_t miopenLoadSolution(miopenSolution_t solution, const char* data, size_t size)
