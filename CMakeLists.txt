@@ -253,7 +253,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "OpenCL compiler: ${HIP_OC_COMPILER}")
         set(HIP_OC_COMPILER "${HIP_OC_COMPILER}")
     else()
-        message(FATAL_ERROR "OpenCL compiler not found")
+        message(STATUS "OpenCL compiler not found")
     endif()
 
         # Hcc's clang always defines __HCC__ even when not using hcc driver
@@ -410,8 +410,8 @@ else()
 endif()
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
+set(MIOPEN_PACKAGE_REQS "hip-rocclr")
 
-set(MIOPEN_PACKAGE_REQS "rocm-clang-ocl, hip-rocclr")
 if(MIOPEN_USE_MIOPENGEMM)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
 endif()
@@ -420,14 +420,24 @@ if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
 endif()
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
-set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
-
-# Make backends explicitly conflict
 if(MIOPEN_BACKEND STREQUAL "HIP")
+    # In HIP backend, there is a posibility of HIPRTC disabled.
+    # In this case add the clang-ocl as dependency for runtime kernel compilation
+    if(NOT MIOPEN_USE_HIPRTC )
+        set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-clang-ocl")
+    endif()
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}")
+    set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}")
+
+    # Make backends explicitly conflict
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-opencl)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-opencl)
+
 elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
+    set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
+
+    # Make backends explicitly conflict
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
