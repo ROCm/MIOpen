@@ -36,18 +36,25 @@ namespace miopen {
 
 struct SearchOptions : miopenSearchOptions
 {
-    bool exhaustive_search = false;
-    miopenSearchResultsOrder_t results_order =
-        miopenSearchResultsOrder_t::miopenSearchResultsOrderByTime;
-    std::size_t workspace_limit = std::numeric_limits<std::size_t>::max();
+    bool exhaustive_search                   = false;
+    miopenSearchResultsOrder_t results_order = miopenSearchResultsOrderByTime;
+    std::size_t workspace_limit              = std::numeric_limits<std::size_t>::max();
 };
 
 } // namespace miopen
 
 inline std::ostream& operator<<(std::ostream& stream, const miopen::SearchOptions& options)
 {
-    // Todo: sane printing
-    stream << &options;
+    stream << "options(";
+    stream << "exhaustive search: " << (options.exhaustive_search ? " true" : "false");
+    stream << ", results order: ";
+    switch(options.results_order)
+    {
+    case miopenSearchResultsOrderByTime: stream << "by time"; break;
+    case miopenSearchResultsOrderByMemory: stream << "by memory"; break;
+    }
+    stream << ", workspace limit: " << options.workspace_limit;
+    stream << ")";
     return stream;
 }
 
