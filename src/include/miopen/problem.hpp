@@ -82,4 +82,11 @@ private:
 
 } // namespace miopen
 
+std::ostream& operator<<(std::ostream& stream, const miopen::Problem& problem)
+{
+    // Todo: sane printing
+    stream << &problem;
+    return stream;
+}
+
 MIOPEN_DEFINE_OBJECT(miopenProblem, miopen::Problem);

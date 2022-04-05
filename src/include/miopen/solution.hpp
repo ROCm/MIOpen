@@ -62,4 +62,11 @@ struct Solution : miopenSolution
 
 } // namespace miopen
 
+std::ostream& operator<<(std::ostream& stream, const miopen::Solution& solution)
+{
+    // Todo: sane printing
+    stream << &solution;
+    return stream;
+}
+
 MIOPEN_DEFINE_OBJECT(miopenSolution, miopen::Solution);
