@@ -34,6 +34,8 @@ namespace miopen {
 
 struct Solution : miopenSolution
 {
+    std::size_t time;
+    std::size_t workspace_size;
 };
 
 } // namespace miopen
