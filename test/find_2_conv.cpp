@@ -82,9 +82,8 @@ struct Find2Test : test_driver
                                                     const TensorDescriptor& desc) {
             miopenTensorDescriptor_t api_desc;
             miopen::deref(&api_desc) = new TensorDescriptor{desc};
-            EXPECT_EQUAL(
-                miopenSetProblemTensorDescriptor(problem, miopenTensorConvolutionX, api_desc),
-                miopenStatusSuccess);
+            EXPECT_EQUAL(miopenSetProblemTensorDescriptor(problem, name, api_desc),
+                         miopenStatusSuccess);
             EXPECT_EQUAL(miopenDestroyTensorDescriptor(api_desc), miopenStatusSuccess);
         };
 
