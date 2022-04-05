@@ -24,52 +24,42 @@
  *
  *******************************************************************************/
 
-#pragma once
-
-#include <miopen/miopen.h>
-
-#include <miopen/errors.hpp>
-#include <miopen/object.hpp>
-#include <miopen/tensor.hpp>
-
-#include <boost/optional.hpp>
+#include <miopen/solution.hpp>
 
 namespace miopen {
 
-struct Handle;
-
-struct Solution : miopenSolution
+std::size_t Solution::GetSize() const
 {
-    struct RunInput
-    {
-        miopenProblemTensorName_t name;
-        boost::optional<TensorDescriptor> descriptor;
-        void* buffer;
-    };
-
-    std::size_t GetSize() const;
-    void Save(char* data) const;
-    void Load(const char* data, std::size_t size);
-    std::size_t GetTime() const { return time; }
-    std::size_t GetWorkspaceSize() const { return workspace_size; }
-
-    void Run(const Handle& handle,
-             const std::vector<RunInput>& inputs,
-             void* workspace,
-             size_t workspaceSize);
-
-private:
-    std::size_t time;
-    std::size_t workspace_size;
-};
-
-} // namespace miopen
-
-inline std::ostream& operator<<(std::ostream& stream, const miopen::Solution& solution)
-{
-    // Todo: sane printing
-    stream << &solution;
-    return stream;
+    MIOPEN_THROW(miopenStatusNotImplemented);
+    return 0;
 }
 
-MIOPEN_DEFINE_OBJECT(miopenSolution, miopen::Solution);
+void Solution::Save(char* data) const
+{
+    std::ignore = data;
+
+    MIOPEN_THROW(miopenStatusNotImplemented);
+}
+
+void Solution::Load(const char* data, std::size_t size)
+{
+    std::ignore = data;
+    std::ignore = size;
+
+    MIOPEN_THROW(miopenStatusNotImplemented);
+}
+
+void Solution::Run(const Handle& handle,
+                   const std::vector<RunInput>& inputs,
+                   void* workspace,
+                   size_t workspaceSize)
+{
+    std::ignore = handle;
+    std::ignore = inputs;
+    std::ignore = workspace;
+    std::ignore = workspaceSize;
+
+    MIOPEN_THROW(miopenStatusNotImplemented);
+}
+
+} // namespace miopen

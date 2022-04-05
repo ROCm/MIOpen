@@ -127,6 +127,7 @@ set( MIOpen_Source
     pooling/problem_description.cpp
     pooling_api.cpp
     problem_description.cpp
+    problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
     reducetensor.cpp
@@ -134,6 +135,7 @@ set( MIOpen_Source
     rnn.cpp
     rnn_api.cpp
     softmax_api.cpp
+    solution.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp

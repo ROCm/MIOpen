@@ -34,8 +34,6 @@
 #include <miopen/solution.hpp>
 #include <miopen/type_name.hpp>
 
-#include <boost/range/adaptor/transformed.hpp>
-
 extern "C" {
 miopenStatus_t miopenCreateProblem(miopenProblem_t* problem)
 {
@@ -132,18 +130,20 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, problem, options, solutions, numSolutions, maxSolutions);
 
     return miopen::try_([&] {
-        const auto& handle_deref  = miopen::deref(handle);
+        auto& handle_deref        = miopen::deref(handle);
         const auto& problem_deref = miopen::deref(problem);
-        const auto options_deref  = options != nullptr ? &miopen::deref(options) : nullptr;
+        const auto& options_deref =
+            options == nullptr ? miopen::SearchOptions{} : miopen::deref(options);
 
-        std::ignore = handle_deref;
-        std::ignore = problem_deref;
-        std::ignore = options_deref;
-        std::ignore = solutions;
-        std::ignore = numSolutions;
-        std::ignore = maxSolutions;
+        auto solutions_deref = problem_deref.FindSolutions(handle_deref, options_deref);
+        if(solutions_deref.size() > maxSolutions)
+            solutions_deref.resize(maxSolutions);
 
-        MIOPEN_THROW(miopenStatusNotImplemented);
+        for(auto i = 0; i < solutions_deref.size(); ++i)
+            miopen::deref(solutions + i) = new miopen::Solution{solutions_deref[i]};
+
+        if(numSolutions != nullptr)
+            *numSolutions = solutions_deref.size();
     });
 }
 
@@ -160,30 +160,29 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
         handle, solution, nInputs, names, descriptors, buffers, workspace, workspaceSize);
 
     return miopen::try_([&] {
-        const auto& handle_deref   = miopen::deref(handle);
-        const auto& solution_deref = miopen::deref(solution);
+        const auto& handle_deref = miopen::deref(handle);
+        auto& solution_deref     = miopen::deref(solution);
 
-        const auto descriptors_deref = [&]() {
-            auto ret = std::vector<miopen::TensorDescriptor>{};
-            if(descriptors == nullptr)
-                return ret;
+        const auto inputs_deref = [&]() {
+            auto ret = std::vector<miopen::Solution::RunInput>{};
 
             ret.reserve(nInputs);
             for(auto i = 0; i < nInputs; ++i)
-                ret.push_back(miopen::deref(descriptors[i]));
+            {
+                auto input = miopen::Solution::RunInput{};
+
+                input.name   = names[i];
+                input.buffer = buffers[i];
+                if(descriptors != nullptr)
+                    input.descriptor = miopen::deref(descriptors[i]);
+
+                ret.emplace_back(std::move(input));
+            }
+
             return ret;
         }();
 
-        std::ignore = handle_deref;
-        std::ignore = solution_deref;
-        std::ignore = nInputs;
-        std::ignore = names;
-        std::ignore = descriptors_deref;
-        std::ignore = buffers;
-        std::ignore = workspace;
-        std::ignore = workspaceSize;
-
-        MIOPEN_THROW(miopenStatusNotImplemented);
+        solution_deref.Run(handle_deref, inputs_deref, workspace, workspaceSize);
     });
 }
 

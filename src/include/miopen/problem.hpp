@@ -36,6 +36,10 @@
 
 namespace miopen {
 
+struct Handle;
+struct Solution;
+struct SearchOptions;
+
 struct OperatorDescriptor
 {
     virtual ~OperatorDescriptor()                  = default;
@@ -73,6 +77,8 @@ struct Problem : miopenProblem
     {
         operator_descriptor = std::shared_ptr<OperatorDescriptor>(descriptor->Clone());
     }
+
+    std::vector<Solution> FindSolutions(Handle& handle, const SearchOptions& options) const;
 
 private:
     miopenProblemDirection_t direction;
