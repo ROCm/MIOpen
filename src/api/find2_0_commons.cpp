@@ -92,13 +92,13 @@ miopenStatus_t miopenSetSearchOption(miopenSearchOptions_t options,
     return miopen::try_([&] {
         switch(optionName)
         {
-        case miopenSearchOptionName_t::miopenSearchOptionExhaustiveSearch:
+        case miopenSearchOptionExhaustiveSearch:
             if(valueSize != sizeof(int))
                 MIOPEN_THROW(miopenStatusBadParm,
                              "Exhaustive search option only accepts values of type int.");
             miopen::deref(options).exhaustive_search = *reinterpret_cast<int*>(value) != 0;
             break;
-        case miopenSearchOptionName_t::miopenSearchOptionResultsOrder:
+        case miopenSearchOptionResultsOrder:
             if(valueSize != sizeof(miopenSearchResultsOrder_t))
                 MIOPEN_THROW(miopenStatusBadParm,
                              "Search results order option only accepts values of type "
@@ -106,13 +106,13 @@ miopenStatus_t miopenSetSearchOption(miopenSearchOptions_t options,
             miopen::deref(options).results_order =
                 *reinterpret_cast<miopenSearchResultsOrder_t*>(value);
             break;
-        case miopenSearchOptionName_t::miopenSearchOptionWorkspaceLimit:
+        case miopenSearchOptionWorkspaceLimit:
             if(valueSize != sizeof(size_t))
                 MIOPEN_THROW(miopenStatusBadParm,
                              "Exhaustive search option only accepts values of type size_t.");
             miopen::deref(options).workspace_limit = *reinterpret_cast<size_t*>(value);
             break;
-        case miopenSearchOptionName_t::miopenSearchOptionInvalid:
+        case miopenSearchOptionInvalid:
         default: MIOPEN_THROW(miopenStatusBadParm, "Invalid value of optionName.");
         }
     });
@@ -152,7 +152,6 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  void* workspace,
                                  size_t workspaceSize)
 {
-
     MIOPEN_LOG_FUNCTION(
         handle, solution, nInputs, names, descriptors, buffers, workspace, workspaceSize);
 
