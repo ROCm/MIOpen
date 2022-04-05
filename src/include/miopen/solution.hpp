@@ -46,11 +46,16 @@ struct Solution : miopenSolution
 
     void Save(char* data) const
     {
+        std::ignore = data;
+
         MIOPEN_THROW(miopenStatusNotImplemented);
     }
 
     void Load(const char* data, std::size_t size)
     {
+        std::ignore = data;
+        std::ignore = size;
+
         MIOPEN_THROW(miopenStatusNotImplemented);
     }
 };
