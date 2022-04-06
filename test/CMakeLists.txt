@@ -45,7 +45,6 @@ option( MIOPEN_TEST_DRIVER_ITER_MODE Off)
 option( MIOPEN_TEST_MIOTENSILE "Test MIOpenTensile path" OFF )
 option( MIOPEN_TEST_MLIR "Test for MLIR compilation backend" ${MIOPEN_USE_MLIR} )
 
-option( WORKAROUND_ISSUE_898 "" ON)
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" ON)
 
@@ -271,10 +270,6 @@ function(add_test_command NAME EXE)
         else()
             add_test(NAME ${NAME} COMMAND ${EXE} ${ARGN})
         endif()
-    endif()
-
-    if(WORKAROUND_ISSUE_898 AND MIOPEN_USE_COMGR)
-        set_property(TEST ${TEST_NAME} PROPERTY ENVIRONMENT MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE=0)
     endif()
 endfunction()
 
@@ -566,10 +561,6 @@ function(add_custom_test NAME)
 
     add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
     add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
-
-    if(WORKAROUND_ISSUE_898 AND MIOPEN_USE_COMGR)
-        set_property(TEST ${NAME} PROPERTY ENVIRONMENT MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE=0)
-    endif()
 
     if(WORKAROUND_ISSUE_1148
         AND (${NAME} MATCHES "test_conv_3d"
