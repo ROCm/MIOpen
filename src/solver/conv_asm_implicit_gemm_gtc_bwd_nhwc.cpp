@@ -397,8 +397,8 @@ GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     const auto c          = ctx.n_outputs;
     const auto ho         = ctx.in_height;
     const auto wo         = ctx.in_width;
-    const auto stride_h   = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
-    const auto stride_w   = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
+    const auto stride_h   = ctx.out_height > 1 ? ctx.kernel_stride_h : 1;
+    const auto stride_w   = ctx.out_width > 1 ? ctx.kernel_stride_w : 1;
     const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
     const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
     const auto pad_h      = ctx.pad_h;
@@ -583,8 +583,8 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
     const auto c          = ctx.n_outputs;
     const auto ho         = ctx.in_height;
     const auto wo         = ctx.in_width;
-    const auto stride_h   = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
-    const auto stride_w   = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
+    const auto stride_h   = ctx.out_height > 1 ? ctx.kernel_stride_h : 1;
+    const auto stride_w   = ctx.out_width > 1 ? ctx.kernel_stride_w : 1;
     const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
     const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
     const auto pad_h      = ctx.pad_h;
@@ -782,18 +782,11 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const Convolution
         if(ctx.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
 
-    // An internal rule when we create the kernel_param_list. There always will be a config with
-    // gemm_k_global_split=0 in front of a almost the same config, with only gemm_k_global_split=1,
-    // so it will never choose the *=1 one. And indeed in the HeuristicInit() we never wish to find
-    // a config with gemm_k_global_split=1. So it is safe here to disable *=1 case
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}) && gemm_k_global_split != 0)
-        return false;
-
     const auto group      = ctx.group_counts;
     const auto k          = ctx.n_inputs;
     const auto c          = ctx.n_outputs;
-    const auto stride_h   = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
-    const auto stride_w   = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
+    const auto stride_h   = ctx.out_height > 1 ? ctx.kernel_stride_h : 1;
+    const auto stride_w   = ctx.out_width > 1 ? ctx.kernel_stride_w : 1;
     const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
     const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
     const auto pad_h      = ctx.pad_h;
@@ -891,6 +884,9 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::Search(const ConvolutionContext& ctx
 bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC{}))
+        return false;
+
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();

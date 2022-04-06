@@ -477,8 +477,8 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
     const auto& k         = ctx.n_outputs;
     const auto& ho        = ctx.out_height;
     const auto& wo        = ctx.out_width;
-    const auto stride_h   = ctx.out_height > 1 ? ctx.kernel_stride_h : 1;
-    const auto stride_w   = ctx.out_width > 1 ? ctx.kernel_stride_w : 1;
+    const auto stride_h   = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
+    const auto stride_w   = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
     const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
     const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
     const auto& pad_h     = ctx.pad_h;
@@ -655,14 +655,11 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
         if(ctx.IsFp16() && gemm_k_global_split != 0 && vector_store != 1)
             return false;
 
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}) && gemm_k_global_split != 0)
-        return false;
-
     const auto& c         = ctx.n_inputs;
     const auto& k         = ctx.n_outputs;
     const auto& group     = ctx.group_counts;
-    const auto stride_h   = ctx.out_height > 1 ? ctx.kernel_stride_h : 1;
-    const auto stride_w   = ctx.out_width > 1 ? ctx.kernel_stride_w : 1;
+    const auto stride_h   = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
+    const auto stride_w   = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
     const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
     const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
     const auto& pad_h     = ctx.pad_h;
@@ -824,6 +821,9 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS_NHWC{}))
+        return false;
+
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
