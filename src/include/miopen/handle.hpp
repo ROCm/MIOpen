@@ -226,10 +226,11 @@ public:
     void RegisterInvoker(const Invoker& invoker,
                          const NetworkConfig& config,
                          const std::string& solver,
-                         const AlgorithmName& algo)
+                         const boost::optional<AlgorithmName>& algo = boost::none)
     {
         invokers.Register({config, solver}, invoker);
-        invokers.SetAsFound1_0(config, algo, solver);
+        if(algo.has_value())
+            invokers.SetAsFound1_0(config, *algo, solver);
     }
 
     boost::optional<const Invoker&>
@@ -248,6 +249,12 @@ public:
         MIOPEN_LOG_I2("Returning an invoker for problem " << config.ToString() << " and algorithm "
                                                           << algo->ToString());
         return invokers.GetFound1_0(config, *algo);
+    }
+
+    boost::optional<const std::string&> GetFound1_0Id(const NetworkConfig& config,
+                                                      const AlgorithmName& algo) const
+    {
+        return invokers.GetFound1_0Id(config, algo);
     }
 
 #if MIOPEN_USE_ROCBLAS

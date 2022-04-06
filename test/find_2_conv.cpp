@@ -78,7 +78,7 @@ struct Find2Test : test_driver
             EXPECT_EQUAL(miopenDestroyConvolutionDescriptor(conv), miopenStatusSuccess);
         }
 
-        auto test_set_tensor_descriptor = [problem](miopenProblemTensorName_t name,
+        auto test_set_tensor_descriptor = [problem](miopenTensorName_t name,
                                                     const TensorDescriptor& desc) {
             miopenTensorDescriptor_t api_desc;
             miopen::deref(&api_desc) = new TensorDescriptor{desc};
@@ -112,7 +112,8 @@ struct Find2Test : test_driver
         EXPECT_EQUAL(miopenCreateSearchOptions(&options), miopenStatusSuccess);
         checked_set_options(miopenSearchOptionExhaustiveSearch, static_cast<int>(0));
         checked_set_options(miopenSearchOptionResultsOrder, miopenSearchResultsOrderByTime);
-        checked_set_options(miopenSearchOptionWorkspaceLimit, static_cast<std::size_t>(0));
+        checked_set_options(miopenSearchOptionWorkspaceLimit,
+                            std::numeric_limits<std::size_t>::max());
 
         EXPECT_EQUAL(miopenFindSolutions(
                          handle, problem, options, solutions.data(), &found, solutions.size()),
@@ -123,7 +124,7 @@ struct Find2Test : test_driver
 
         solutions.resize(found);
 
-        miopenProblemTensorName_t names[3] = {
+        miopenTensorName_t names[3] = {
             miopenTensorConvolutionX, miopenTensorConvolutionW, miopenTensorConvolutionY};
         void* buffers[3] = {x_dev.get(), w_dev.get(), y_dev.get()};
 
@@ -156,7 +157,8 @@ struct Find2Test : test_driver
                         miopenStatusSuccess);
                 };
 
-                std::size_t time, workspace_size;
+                float time;
+                std::size_t workspace_size;
                 checked_get_attr(miopenSolutionAttributeTime, time);
                 checked_get_attr(miopenSolutionAttributeWorkspaceSize, workspace_size);
 

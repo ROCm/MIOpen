@@ -26,65 +26,187 @@
 
 #include <miopen/problem.hpp>
 
+#include <miopen/conv/problem_description.hpp>
 #include <miopen/convolution.hpp>
+#include <miopen/conv_algo_name.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/search_options.hpp>
 
 namespace miopen {
 
-std::vector<Solution> Problem::FindSolutions(Handle& handle, const SearchOptions& options) const
+std::vector<Solution> Problem::FindSolutions(Handle& handle,
+                                             const SearchOptions& options,
+                                             std::size_t max_solutions) const
 {
     if(!operator_descriptor)
         MIOPEN_THROW(miopenStatusInvalidValue, "Problem operator descriptor has not been set.");
 
+    auto ret = std::vector<Solution>{};
+
     switch(operator_descriptor->GetPrimitive())
     {
-    case solver::Primitive::Convolution: {
-
-        const auto& conv_desc = *static_cast<ConvolutionDescriptor*>(operator_descriptor.get());
-
-        if(tensor_descriptors.size() != 3)
-            MIOPEN_THROW(miopenStatusInvalidValue,
-                         "Convolution problem should have exactly three tensor descriptors.");
-
-        const auto checked_get_tensor_descriptor = [&](auto name, const std::string& name_str) {
-            const auto found = tensor_descriptors.find(name);
-            if(found == tensor_descriptors.end())
-                MIOPEN_THROW(miopenStatusInvalidValue,
-                             "Convolution problem is missing " + name_str + " tensor descriptor.");
-            return found->second;
-        };
-
-        const auto& x_desc =
-            checked_get_tensor_descriptor(miopenTensorConvolutionX, "miopenTensorConvolutionX");
-        const auto& w_desc =
-            checked_get_tensor_descriptor(miopenTensorConvolutionW, "miopenTensorConvolutionW");
-        const auto& y_desc =
-            checked_get_tensor_descriptor(miopenTensorConvolutionY, "miopenTensorConvolutionY");
-
-        auto x = handle.Create(x_desc.GetElementSpace());
-        auto w = handle.Create(w_desc.GetElementSpace());
-        auto y = handle.Create(y_desc.GetElementSpace());
-
-        std::ignore = conv_desc;
-        std::ignore = x_desc;
-        std::ignore = w_desc;
-        std::ignore = y_desc;
-        std::ignore = x;
-        std::ignore = w;
-        std::ignore = y;
-        std::ignore = options;
-
-        MIOPEN_THROW(miopenStatusNotImplemented);
-    }
-    break;
+    case solver::Primitive::Convolution:
+        ret = FindConvSolutions(handle, options, max_solutions);
+        break;
     case solver::Primitive::Activation:
     case solver::Primitive::Batchnorm:
     case solver::Primitive::Pooling:
     case solver::Primitive::Invalid:
     default: MIOPEN_THROW(miopenStatusNotImplemented); break;
     }
+
+    const auto sorter = [&]() -> std::function<bool(const Solution&, const Solution&)> {
+        switch(options.results_order)
+        {
+        case miopenSearchResultsOrderByTime:
+            return [](auto&& l, auto&& r) { return l.GetTime() < r.GetTime(); };
+        case miopenSearchResultsOrderByMemory:
+            return [](auto&& l, auto&& r) { return l.GetWorkspaceSize() < r.GetWorkspaceSize(); };
+        }
+    }();
+    std::sort(ret.begin(), ret.end(), sorter);
+
+    return ret;
+}
+
+const TensorDescriptor& Problem::GetTensorDescriptorChecked(miopenTensorName_t name,
+                                                            const std::string& name_str) const
+{
+    const auto found = tensor_descriptors.find(name);
+    if(found == tensor_descriptors.end())
+        MIOPEN_THROW(miopenStatusInvalidValue,
+                     "Problem is missing " + name_str + " tensor descriptor.");
+    return found->second;
+}
+
+conv::ProblemDescription Problem::AsConvolution() const
+{
+    const auto& conv_desc = *static_cast<ConvolutionDescriptor*>(operator_descriptor.get());
+
+    const auto& x_desc =
+        GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
+    const auto& w_desc =
+        GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
+    const auto& y_desc =
+        GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
+
+    const auto conv_dir = static_cast<conv::Direction>(direction);
+    return conv_dir == conv::Direction::Forward
+               ? conv::ProblemDescription(x_desc, w_desc, y_desc, conv_desc, conv_dir)
+               : conv::ProblemDescription(y_desc, w_desc, x_desc, conv_desc, conv_dir);
+}
+
+std::vector<Solution> Problem::FindConvSolutions(Handle& handle,
+                                                 const SearchOptions& options,
+                                                 std::size_t max_solutions) const
+{
+    auto ret = std::vector<Solution>{};
+
+    const auto& conv_desc = *static_cast<ConvolutionDescriptor*>(operator_descriptor.get());
+
+    if(tensor_descriptors.size() != 3)
+        MIOPEN_THROW(miopenStatusInvalidValue,
+                     "Convolution problem should have exactly three tensor descriptors.");
+
+    const auto& x_desc =
+        GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
+    const auto& w_desc =
+        GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
+    const auto& y_desc =
+        GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
+
+    auto x = handle.Create(x_desc.GetElementSpace());
+    auto w = handle.Create(w_desc.GetElementSpace());
+    auto y = handle.Create(y_desc.GetElementSpace());
+
+    const auto workspace_max = [&]() {
+        switch(direction)
+        {
+        case miopenProblemDirectionForward:
+            return conv_desc.ForwardGetWorkSpaceSize(handle, w_desc, x_desc, y_desc);
+        case miopenProblemDirectionBackward:
+            return conv_desc.BackwardDataGetWorkSpaceSize(handle, w_desc, y_desc, x_desc);
+        case miopenProblemDirectionBackwardWeight:
+            return conv_desc.BackwardWeightsGetWorkSpaceSize(handle, y_desc, x_desc, w_desc);
+        }
+    }();
+
+    const auto workspace_size = std::min(options.workspace_limit, workspace_max);
+    auto workspace            = handle.Create(workspace_size);
+
+    auto find1_solutions = std::vector<miopenConvAlgoPerf_t>{};
+    find1_solutions.resize(max_solutions);
+    int found;
+
+    switch(direction)
+    {
+    case miopenProblemDirectionForward:
+        conv_desc.FindConvFwdAlgorithm(handle,
+                                       x_desc,
+                                       x.get(),
+                                       w_desc,
+                                       w.get(),
+                                       y_desc,
+                                       y.get(),
+                                       max_solutions,
+                                       &found,
+                                       find1_solutions.data(),
+                                       workspace.get(),
+                                       workspace_size,
+                                       options.exhaustive_search);
+        break;
+    case miopenProblemDirectionBackward:
+        conv_desc.FindConvBwdDataAlgorithm(handle,
+                                           y_desc,
+                                           y.get(),
+                                           w_desc,
+                                           w.get(),
+                                           x_desc,
+                                           x.get(),
+                                           max_solutions,
+                                           &found,
+                                           find1_solutions.data(),
+                                           workspace.get(),
+                                           workspace_size,
+                                           options.exhaustive_search);
+        break;
+    case miopenProblemDirectionBackwardWeight:
+        conv_desc.FindConvBwdWeightsAlgorithm(handle,
+                                              y_desc,
+                                              y.get(),
+                                              x_desc,
+                                              x.get(),
+                                              w_desc,
+                                              w.get(),
+                                              max_solutions,
+                                              &found,
+                                              find1_solutions.data(),
+                                              workspace.get(),
+                                              workspace_size,
+                                              options.exhaustive_search);
+        break;
+    }
+
+    ret.reserve(found);
+
+    const auto conv_dir = static_cast<conv::Direction>(direction);
+    const auto netcfg   = AsConvolution().BuildConfKey();
+
+    for(auto i = 0; i < found; ++i)
+    {
+        const auto algo = ConvolutionAlgoToDirectionalString(
+            static_cast<miopenConvAlgorithm_t>(find1_solutions[i].fwd_algo), conv_dir);
+
+        auto solution = Solution{};
+        solution.SetTime(find1_solutions[i].time);
+        solution.SetWorkspaceSize(find1_solutions[i].memory);
+        solution.SetSolver(handle.GetFound1_0Id(netcfg, AlgorithmName{algo}).value());
+        solution.SetProblem(*this);
+        ret.emplace_back(std::move(solution));
+    }
+
+    return ret;
 }
 
 } // namespace miopen

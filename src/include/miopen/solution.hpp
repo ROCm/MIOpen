@@ -30,9 +30,13 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/object.hpp>
+#include <miopen/problem.hpp>
+#include <miopen/solver_id.hpp>
 #include <miopen/tensor.hpp>
 
 #include <boost/optional.hpp>
+
+#include <unordered_map>
 
 namespace miopen {
 
@@ -42,25 +46,32 @@ struct Solution : miopenSolution
 {
     struct RunInput
     {
-        miopenProblemTensorName_t name;
         boost::optional<TensorDescriptor> descriptor;
-        void* buffer;
+        Data_t buffer;
     };
 
     std::size_t GetSize() const;
     void Save(char* data) const;
     void Load(const char* data, std::size_t size);
-    std::size_t GetTime() const { return time; }
-    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    float GetTime() const { return time; }
+    void SetTime(float value) { time = value; }
+    std::size_t GetWorkspaceSize() const { return workspace_required; }
+    void SetWorkspaceSize(std::size_t value) { workspace_required = value; }
+    solver::Id GetSolver() const { return solver; }
+    void SetSolver(solver::Id value) { solver = value; }
+    Problem GetProblem() const { return problem; }
+    void SetProblem(Problem value) { problem = std::move(value); }
 
-    void Run(const Handle& handle,
-             const std::vector<RunInput>& inputs,
-             void* workspace,
-             size_t workspaceSize);
+    void Run(Handle& handle,
+             const std::unordered_map<miopenTensorName_t, RunInput>& inputs,
+             Data_t workspace,
+             size_t workspace_size);
 
 private:
-    std::size_t time;
-    std::size_t workspace_size;
+    float time;
+    std::size_t workspace_required;
+    solver::Id solver;
+    Problem problem;
 };
 
 } // namespace miopen

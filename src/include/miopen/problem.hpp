@@ -40,6 +40,10 @@ struct Handle;
 struct Solution;
 struct SearchOptions;
 
+namespace conv {
+struct ProblemDescription;
+} // namespace conv
+
 struct OperatorDescriptor
 {
     virtual ~OperatorDescriptor()                  = default;
@@ -60,14 +64,14 @@ struct OperatorDescriptorImpl : OperatorDescriptor
 
 struct Problem : miopenProblem
 {
-    const TensorDescriptor& GetTensorDescriptor(miopenProblemTensorName_t name) const
+    const TensorDescriptor& GetTensorDescriptor(miopenTensorName_t name) const
     {
         return tensor_descriptors.at(name);
     }
 
     miopenProblemDirection_t GetDirection() const { return direction; }
 
-    bool RegisterTensorDescriptor(miopenProblemTensorName_t name, TensorDescriptor descriptor)
+    bool RegisterTensorDescriptor(miopenTensorName_t name, TensorDescriptor descriptor)
     {
         return tensor_descriptors.emplace(std::make_pair(name, std::move(descriptor))).second;
     }
@@ -78,12 +82,22 @@ struct Problem : miopenProblem
         operator_descriptor = std::shared_ptr<OperatorDescriptor>(descriptor->Clone());
     }
 
-    std::vector<Solution> FindSolutions(Handle& handle, const SearchOptions& options) const;
+    std::vector<Solution>
+    FindSolutions(Handle& handle, const SearchOptions& options, std::size_t max_solutions) const;
+
+    conv::ProblemDescription AsConvolution() const;
+
+    const TensorDescriptor& GetTensorDescriptorChecked(miopenTensorName_t name,
+                                                       const std::string& name_str) const;
 
 private:
     miopenProblemDirection_t direction;
-    std::unordered_map<miopenProblemTensorName_t, TensorDescriptor> tensor_descriptors;
+    std::unordered_map<miopenTensorName_t, TensorDescriptor> tensor_descriptors;
     std::shared_ptr<OperatorDescriptor> operator_descriptor;
+
+    std::vector<Solution> FindConvSolutions(Handle& handle,
+                                            const SearchOptions& options,
+                                            std::size_t max_solutions) const;
 };
 
 } // namespace miopen

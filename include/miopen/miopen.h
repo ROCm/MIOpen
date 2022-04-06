@@ -4687,7 +4687,7 @@ typedef enum
     miopenTensorConvolutionX = 1,
     miopenTensorConvolutionW = 2,
     miopenTensorConvolutionY = 3,
-} miopenProblemTensorName_t;
+} miopenTensorName_t;
 
 typedef enum
 {
@@ -4707,7 +4707,7 @@ typedef enum
 {
     miopenSolutionAttributeInvalid       = 0,
     miopenSolutionAttributeWorkspaceSize = 1, // size_t
-    miopenSolutionAttributeTime          = 2, // size_t
+    miopenSolutionAttributeTime          = 2, // float
 } miopenSolutionAttribute_t;
 
 miopenStatus_t miopenCreateProblem(miopenProblem_t* problem);
@@ -4717,7 +4717,7 @@ miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
 // Previously, different directions had different input orders, which may lead to confusion.
 // Implicitly ordered fields would also lead to a whole lot of magical ids all over the internals.
 miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
-                                                miopenProblemTensorName_t name,
+                                                miopenTensorName_t name,
                                                 const miopenTensorDescriptor_t descriptor);
 
 miopenStatus_t miopenSetProblemOperatorDescriptor(miopenProblem_t problem,
@@ -4760,7 +4760,7 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
 miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  miopenSolution_t solution,
                                  size_t nInputs,
-                                 miopenProblemTensorName_t* names,
+                                 miopenTensorName_t* names,
                                  miopenTensorDescriptor_t* descriptors,
                                  void** buffers,
                                  void* workspace,

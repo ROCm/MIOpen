@@ -110,6 +110,10 @@ struct ConvolutionContext : ProblemDescription, ExecutionContext
     {
     }
     ConvolutionContext(const ProblemDescription& problem) : ProblemDescription(problem) {}
+    ConvolutionContext(conv::ProblemDescription problem, ExecutionContext ctx)
+        : ProblemDescription(std::move(problem)), ExecutionContext(std::move(ctx))
+    {
+    }
 
     void SetupFloats();
 
