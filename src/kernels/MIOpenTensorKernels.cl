@@ -722,7 +722,7 @@ __kernel void Op2dTensorSquash(const global MIOPEN_TYPE* a,
                 int b_index13          = ((bid + 12) * b_nstride) + g_RD_BLCK;
                 int b_index14          = ((bid + 13) * b_nstride) + g_RD_BLCK;
                 int b_index15          = ((bid + 14) * b_nstride) + g_RD_BLCK;
-                int b_index16          = ((bid + 14) * b_nstride) + g_RD_BLCK;
+                int b_index16          = ((bid + 15) * b_nstride) + g_RD_BLCK;
                 *((READ_TYPE*)b_dat1)  = *((const global READ_TYPE*)(b + Boffset + b_index1));
                 *((READ_TYPE*)b_dat2)  = *((const global READ_TYPE*)(b + Boffset + b_index2));
                 *((READ_TYPE*)b_dat3)  = *((const global READ_TYPE*)(b + Boffset + b_index3));
