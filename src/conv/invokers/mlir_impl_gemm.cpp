@@ -283,35 +283,11 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
     MlirConvArgs args = MakeMlirConvArgs(
         in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides, 0);
 
-    const auto& conv  = ctx.conv_problem.GetConv();
-    const auto& wDesc = ctx.conv_problem.GetWeights();
-
-    bool every_pixel_is_written = true;
-    for(int i = 0; i < conv.GetSpatialDimension(); ++i)
-    {
-        const auto conv_stride   = conv.GetConvStrides()[i];
-        const auto conv_dilation = conv.GetConvDilations()[i];
-        const auto filter_size   = wDesc.GetLengths()[2 + i];
-
-        // TODO: This can be relaxed.
-        if(!(conv_dilation == 1 && conv_stride <= filter_size))
-            every_pixel_is_written = false;
-    }
-
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             float elapsed        = 0.f;
             const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
-
-            if(!every_pixel_is_written)
-            {
-                float zero = 0.f;
-                SetTensor(handle, tensors.outDesc, tensors.out, &zero);
-
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
-            }
 
 #if MIOPEN_BACKEND_OPENCL
             for(const auto& k : kernels)
