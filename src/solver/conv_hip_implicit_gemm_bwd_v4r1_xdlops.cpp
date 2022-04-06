@@ -34,6 +34,8 @@
 /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1206.
 #define WORKAROUND_ISSUE_1206 1
 
+#define WORKAROUND_SWDEV_329642 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_VALS)
 
@@ -815,15 +817,16 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
             return false;
     }
-    else
+#endif
+#if WORKAROUND_SWDEV_329642
+    if(ctx.IsBfp16() && ctx.GetStream().GetDeviceName() == "gfx90a")
     {
-        if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
             return false;
     }
-#else
+#endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
         return false;
-#endif
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
