@@ -43,20 +43,33 @@ struct Find2Test : test_driver
     Allocator::ManageDataPtr x_dev;
     Allocator::ManageDataPtr w_dev;
     Allocator::ManageDataPtr y_dev;
+
+    miopenProblemDirection_t direction;
     // --input 16,192,28,28 --weights 32,192,5,5 --filter 2,2,1,1,1,1,
     miopen::ConvolutionDescriptor filter = {
         2, miopenConvolution, miopenPaddingDefault, {1, 1}, {1, 1}, {1, 1}};
 
     Find2Test()
     {
-        x = {16, 192, 28, 28};
-        w = {32, 192, 5, 5};
-        y = tensor<float>{filter.GetForwardOutputTensor(x.desc, w.desc)};
+        add(direction,
+            "direction",
+            generate_data({
+                miopenProblemDirectionForward,
+                miopenProblemDirectionBackward,
+                miopenProblemDirectionBackwardWeight,
+            }));
     }
 
-    void run()
+    void run() { TestConv(); }
+
+private:
+    void TestConv()
     {
         auto& handle_deref = get_handle();
+
+        x = tensor<float>{16, 192, 28, 28}.generate(tensor_elem_gen_integer{17});
+        w = tensor<float>{32, 192, 5, 5}.generate(tensor_elem_gen_integer{17});
+        y = tensor<float>{filter.GetForwardOutputTensor(x.desc, w.desc)};
 
         x_dev = handle_deref.Write(x.data);
         w_dev = handle_deref.Write(w.data);
@@ -64,20 +77,33 @@ struct Find2Test : test_driver
 
         miopenHandle_t handle;
         miopenProblem_t problem;
-        miopenSearchOptions_t options;
 
         deref(&handle) = &handle_deref;
         EXPECT_EQUAL(miopenCreateProblem(&problem), miopenStatusSuccess);
 
-        {
-            miopenConvolutionDescriptor_t conv;
-            miopen::deref(&conv) = new ConvolutionDescriptor{filter};
-            EXPECT_EQUAL(
-                miopenSetProblemOperatorDescriptor(problem, conv, miopenProblemDirectionForward),
-                miopenStatusSuccess);
-            EXPECT_EQUAL(miopenDestroyConvolutionDescriptor(conv), miopenStatusSuccess);
-        }
+        AddConvDescriptor(problem);
+        AddConvTensorDescriptors(problem);
 
+        std::ignore    = TestFindSolutions(handle, problem);
+        auto solutions = TestFindSolutionsWithOptions(handle, problem);
+
+        TestSolutionAttributes(solutions);
+        TestRunSolutions(handle, solutions);
+
+        EXPECT_EQUAL(miopenDestroyProblem(problem), miopenStatusSuccess);
+    }
+
+    void AddConvDescriptor(miopenProblem_t problem)
+    {
+        miopenConvolutionDescriptor_t conv;
+        miopen::deref(&conv) = new ConvolutionDescriptor{filter};
+        EXPECT_EQUAL(miopenSetProblemOperatorDescriptor(problem, conv, direction),
+                     miopenStatusSuccess);
+        EXPECT_EQUAL(miopenDestroyConvolutionDescriptor(conv), miopenStatusSuccess);
+    }
+
+    void AddConvTensorDescriptors(miopenProblem_t problem)
+    {
         auto test_set_tensor_descriptor = [problem](miopenTensorName_t name,
                                                     const TensorDescriptor& desc) {
             miopenTensorDescriptor_t api_desc;
@@ -90,115 +116,159 @@ struct Find2Test : test_driver
         test_set_tensor_descriptor(miopenTensorConvolutionX, x.desc);
         test_set_tensor_descriptor(miopenTensorConvolutionW, w.desc);
         test_set_tensor_descriptor(miopenTensorConvolutionY, y.desc);
+    }
 
+    std::vector<miopenSolution_t> TestFindSolutions(miopenHandle_t handle, miopenProblem_t problem)
+    {
         auto solutions = std::vector<miopenSolution_t>{};
         std::size_t found;
 
         solutions.resize(100);
 
-        // Without options
         EXPECT_EQUAL(miopenFindSolutions(
                          handle, problem, nullptr, solutions.data(), &found, solutions.size()),
                      miopenStatusSuccess);
         EXPECT_OP(found, >=, 0);
 
-        // With options
-        const auto checked_set_options = [&](auto option, auto value) {
-            using Type = decltype(value);
-            EXPECT_EQUAL(miopenSetSearchOption(options, option, sizeof(Type), &value),
-                         miopenStatusSuccess);
-        };
-
-        EXPECT_EQUAL(miopenCreateSearchOptions(&options), miopenStatusSuccess);
-        checked_set_options(miopenSearchOptionExhaustiveSearch, static_cast<int>(0));
-        checked_set_options(miopenSearchOptionResultsOrder, miopenSearchResultsOrderByTime);
-        checked_set_options(miopenSearchOptionWorkspaceLimit,
-                            std::numeric_limits<std::size_t>::max());
-
-        EXPECT_EQUAL(miopenFindSolutions(
-                         handle, problem, options, solutions.data(), &found, solutions.size()),
-                     miopenStatusSuccess);
-        EXPECT_OP(found, >=, 0);
-
-        EXPECT_EQUAL(miopenDestroySearchOptions(options), miopenStatusSuccess);
-
         solutions.resize(found);
+        return solutions;
+    }
 
+    std::vector<miopenSolution_t> TestFindSolutionsWithOptions(miopenHandle_t handle,
+                                                               miopenProblem_t problem)
+    {
+        auto solutions    = std::vector<miopenSolution_t>{};
+        std::size_t found = 0;
+
+        solutions.resize(100);
+
+        const auto search_values = std::vector<int>({0, 1});
+        const auto workspace_limit_values =
+            std::vector<std::size_t>({std::numeric_limits<std::size_t>::max(), 0});
+
+        for(const auto search : search_values)
+            for(const auto workspace_limit : workspace_limit_values)
+            {
+                miopenSearchOptions_t options;
+
+                const auto checked_set_options = [&](auto option, auto value) {
+                    using Type = decltype(value);
+                    EXPECT_EQUAL(miopenSetSearchOption(options, option, sizeof(Type), &value),
+                                 miopenStatusSuccess);
+                };
+
+                EXPECT_EQUAL(miopenCreateSearchOptions(&options), miopenStatusSuccess);
+                checked_set_options(miopenSearchOptionExhaustiveSearch, search);
+                checked_set_options(miopenSearchOptionResultsOrder, miopenSearchResultsOrderByTime);
+                checked_set_options(miopenSearchOptionWorkspaceLimit, workspace_limit);
+
+                EXPECT_EQUAL(
+                    miopenFindSolutions(
+                        handle, problem, options, solutions.data(), &found, solutions.size()),
+                    miopenStatusSuccess);
+
+                EXPECT_EQUAL(miopenDestroySearchOptions(options), miopenStatusSuccess);
+            }
+
+        EXPECT_OP(found, >=, 0);
+        solutions.resize(found);
+        return solutions;
+    }
+
+    void TestSolutionAttributes(const std::vector<miopenSolution_t>& solutions)
+    {
+        for(const auto& solution : solutions)
+        {
+            const auto checked_get_attr = [&](auto name, auto& value) {
+                using Type = std::remove_reference_t<decltype(value)>;
+                EXPECT_EQUAL(
+                    miopenGetSolutionAttribute(solution, name, sizeof(Type), &value, nullptr),
+                    miopenStatusSuccess);
+            };
+
+            float time;
+            std::size_t workspace_size;
+            checked_get_attr(miopenSolutionAttributeTime, time);
+            checked_get_attr(miopenSolutionAttributeWorkspaceSize, workspace_size);
+        }
+    }
+
+    void TestRunSolutions(miopenHandle_t handle, std::vector<miopenSolution_t>& solutions)
+    {
         miopenTensorName_t names[3] = {
             miopenTensorConvolutionX, miopenTensorConvolutionW, miopenTensorConvolutionY};
         void* buffers[3] = {x_dev.get(), w_dev.get(), y_dev.get()};
 
+        miopenTensorDescriptor_t x_desc, w_desc, y_desc;
+        miopen::deref(&x_desc)                  = new TensorDescriptor{x.desc};
+        miopen::deref(&w_desc)                  = new TensorDescriptor{w.desc};
+        miopen::deref(&y_desc)                  = new TensorDescriptor{y.desc};
+        miopenTensorDescriptor_t descriptors[3] = {x_desc, w_desc, y_desc};
+
+        for(const auto& solution : solutions)
         {
-            miopenTensorDescriptor_t x_desc, w_desc, y_desc;
-            miopen::deref(&x_desc)                  = new TensorDescriptor{x.desc};
-            miopen::deref(&w_desc)                  = new TensorDescriptor{w.desc};
-            miopen::deref(&y_desc)                  = new TensorDescriptor{y.desc};
-            miopenTensorDescriptor_t descriptors[3] = {x_desc, w_desc, y_desc};
+            TestRunSolution(handle, solution, names, descriptors, buffers);
 
-            const auto checked_run_solution =
-                [&](auto&& solution, auto&& descriptors_, auto&& workspace, auto&& workspace_size) {
-                    EXPECT_EQUAL(miopenRunSolution(handle,
-                                                   solution,
-                                                   3,
-                                                   names,
-                                                   descriptors_,
-                                                   buffers,
-                                                   workspace.get(),
-                                                   workspace_size),
-                                 miopenStatusSuccess);
-                };
+            // Save-load cycle
+            std::size_t solution_size;
+            EXPECT_EQUAL(miopenGetSolutionSize(solution, &solution_size), miopenStatusSuccess);
 
-            for(const auto& solution : solutions)
-            {
-                const auto checked_get_attr = [&](auto name, auto& value) {
-                    using Type = std::remove_reference_t<decltype(value)>;
-                    EXPECT_EQUAL(
-                        miopenGetSolutionAttribute(solution, name, sizeof(Type), &value, nullptr),
-                        miopenStatusSuccess);
-                };
+            auto solution_binary = std::vector<char>{};
+            solution_binary.resize(solution_size);
 
-                float time;
-                std::size_t workspace_size;
-                checked_get_attr(miopenSolutionAttributeTime, time);
-                checked_get_attr(miopenSolutionAttributeWorkspaceSize, workspace_size);
+            EXPECT_EQUAL(miopenSaveSolution(solution, solution_binary.data()), miopenStatusSuccess);
+            EXPECT_EQUAL(miopenDestroySolution(solution), miopenStatusSuccess);
 
-                auto workspace     = std::vector<char>(workspace_size);
-                auto workspace_dev = workspace_size != 0 ? handle_deref.Write(workspace) : nullptr;
+            miopenSolution_t read_solution;
+            EXPECT_EQUAL(
+                miopenLoadSolution(&read_solution, solution_binary.data(), solution_binary.size()),
+                miopenStatusSuccess);
 
-                // Without descriptors
-                checked_run_solution(solution, nullptr, workspace_dev, workspace_size);
-                // With descriptors
-                checked_run_solution(solution, descriptors, workspace_dev, workspace_size);
-
-                // Save-load cycle
-                std::size_t solution_size;
-                EXPECT_EQUAL(miopenGetSolutionSize(solution, &solution_size), miopenStatusSuccess);
-
-                auto solution_binary = std::vector<char>{};
-                solution_binary.resize(solution_size);
-
-                EXPECT_EQUAL(miopenSaveSolution(solution, solution_binary.data()),
-                             miopenStatusSuccess);
-                EXPECT_EQUAL(miopenDestroySolution(solution), miopenStatusSuccess);
-
-                miopenSolution_t read_solution;
-                EXPECT_EQUAL(miopenLoadSolution(
-                                 &read_solution, solution_binary.data(), solution_binary.size()),
-                             miopenStatusSuccess);
-
-                // Without descriptors
-                checked_run_solution(read_solution, nullptr, workspace_dev, workspace_size);
-                // With descriptors
-                checked_run_solution(read_solution, descriptors, workspace_dev, workspace_size);
-                EXPECT_EQUAL(miopenDestroySolution(read_solution), miopenStatusSuccess);
-            }
-
-            EXPECT_EQUAL(miopenDestroyTensorDescriptor(x_desc), miopenStatusSuccess);
-            EXPECT_EQUAL(miopenDestroyTensorDescriptor(w_desc), miopenStatusSuccess);
-            EXPECT_EQUAL(miopenDestroyTensorDescriptor(y_desc), miopenStatusSuccess);
+            TestRunSolution(handle, read_solution, names, descriptors, buffers);
+            EXPECT_EQUAL(miopenDestroySolution(read_solution), miopenStatusSuccess);
         }
 
-        EXPECT_EQUAL(miopenDestroyProblem(problem), miopenStatusSuccess);
+        EXPECT_EQUAL(miopenDestroyTensorDescriptor(x_desc), miopenStatusSuccess);
+        EXPECT_EQUAL(miopenDestroyTensorDescriptor(w_desc), miopenStatusSuccess);
+        EXPECT_EQUAL(miopenDestroyTensorDescriptor(y_desc), miopenStatusSuccess);
+    }
+
+    void TestRunSolution(miopenHandle_t handle,
+                         miopenSolution_t solution,
+                         miopenTensorName_t* names,
+                         miopenTensorDescriptor_t* descriptors,
+                         void** buffers)
+    {
+        auto& handle_deref = get_handle();
+
+        const auto checked_get_attr = [&](auto name, auto& value) {
+            using Type = std::remove_reference_t<decltype(value)>;
+            EXPECT_EQUAL(miopenGetSolutionAttribute(solution, name, sizeof(Type), &value, nullptr),
+                         miopenStatusSuccess);
+        };
+
+        std::size_t workspace_size;
+        checked_get_attr(miopenSolutionAttributeWorkspaceSize, workspace_size);
+
+        auto workspace     = std::vector<char>(workspace_size);
+        auto workspace_dev = workspace_size != 0 ? handle_deref.Write(workspace) : nullptr;
+
+        const auto checked_run_solution = [&](auto&& descriptors_) {
+            EXPECT_EQUAL(miopenRunSolution(handle,
+                                           solution,
+                                           3,
+                                           names,
+                                           descriptors_,
+                                           buffers,
+                                           workspace_dev.get(),
+                                           workspace_size),
+                         miopenStatusSuccess);
+        };
+
+        // Without descriptors
+        checked_run_solution(nullptr);
+        // With descriptors
+        checked_run_solution(descriptors);
     }
 };
 } // namespace miopen
