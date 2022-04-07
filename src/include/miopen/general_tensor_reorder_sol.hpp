@@ -26,10 +26,10 @@
 #ifndef GUARD_GENERAL_MIOPEN_TENSOR_REORDER_SOL_HPP
 #define GUARD_GENERAL_MIOPEN_TENSOR_REORDER_SOL_HPP
 
-#include <miopen/miopen.h>
 #include <miopen/kernel_info.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/execution_context.hpp>
+#include <cstdint>
 #include <vector>
 
 namespace miopen {
@@ -44,24 +44,23 @@ struct GeneralReorderParam
     int ediv_y{0};
 };
 
-struct GeneralReorderSolution
+struct GenericReorderSolutionImpl
 {
-    GeneralReorderSolution(const ExecutionContext& ctx_,
-                           miopenDataType_t data_type_,
-                           uint32_t dim_0_,
-                           uint32_t dim_1_,
-                           uint32_t dim_2_,
-                           uint32_t dim_3_,
-                           uint32_t order_0_,
-                           uint32_t order_1_,
-                           uint32_t order_2_,
-                           uint32_t order_3_);
+    GenericReorderSolutionImpl(miopenDataType_t data_type_,
+                               uint32_t dim_0_,
+                               uint32_t dim_1_,
+                               uint32_t dim_2_,
+                               uint32_t dim_3_,
+                               uint32_t order_0_,
+                               uint32_t order_1_,
+                               uint32_t order_2_,
+                               uint32_t order_3_);
     // TODO batched transpose API
-    solver::KernelInfo GetKernel() const;
+    solver::KernelInfo GetKernelInfo() const;
     std::vector<OpKernelArg> GetKernelArg() const;
     std::string GetKernelName() const;
     bool IsSkippable() const;
-    size_t GetSize() const;
+    size_t GetOutputTensorSize() const;
 
     miopenDataType_t data_type;
     uint32_t dim_0;
@@ -72,7 +71,6 @@ struct GeneralReorderSolution
     uint32_t order_1;
     uint32_t order_2;
     uint32_t order_3;
-    int num_cu;
 
     GeneralReorderParam kernel_param_heuristic;
 };

@@ -51,11 +51,11 @@ struct BatchedTransposeSolution
                              uint32_t batch_,
                              uint32_t height_,
                              uint32_t width_);
-    solver::KernelInfo GetKernel() const;
+    solver::KernelInfo GetKernelInfo() const;
     std::vector<OpKernelArg> GetKernelArg() const;
     std::string GetKernelName() const;
     bool IsSkippable() const;
-    size_t GetSize() const;
+    size_t GetOutputTensorSize() const;
 
     miopenDataType_t data_type;
     uint32_t batch;

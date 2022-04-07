@@ -370,7 +370,8 @@ struct transpose_test : transpose_base
                     };
                 });
 
-            std::vector<miopen::solver::KernelInfo> construction_params{transpose_sol.GetKernel()};
+            std::vector<miopen::solver::KernelInfo> construction_params{
+                transpose_sol.GetKernelInfo()};
 
             const auto invoker =
                 miopen::deref(this->handle).PrepareInvoker(*invoker_factory, construction_params);

@@ -225,15 +225,21 @@ struct to_miopen_data_type<float>
 };
 
 template <>
-struct to_miopen_data_type<uint16_t>
+struct to_miopen_data_type<half_float::half>
 {
     static miopenDataType_t get() { return miopenHalf; } // we actually didn't calculate 16bit float
 };
 
 template <>
-struct to_miopen_data_type<uint8_t>
+struct to_miopen_data_type<int8_t>
 {
     static miopenDataType_t get() { return miopenInt8; }
+};
+
+template <>
+struct to_miopen_data_type<bfloat16>
+{
+    static miopenDataType_t get() { return miopenBFloat16; }
 };
 
 #define RAND_INTEGER_MAX 120
@@ -280,11 +286,7 @@ bool compare_equal<float>(float r1, float r2)
 template <typename T>
 bool verify_tensor(tensor<T>& t_gpu, tensor<T>& t_cpu)
 {
-    if(t_gpu.data.size() != t_cpu.data.size())
-    {
-        MIOPEN_LOG_E("size not equal, should not happen");
-        return false;
-    }
+    EXPECT(t_gpu.data.size() == t_cpu.data.size());
     auto idx          = miopen::mismatch_idx(t_gpu.data, t_cpu.data, compare_equal<T>);
     bool valid_result = idx >= miopen::range_distance(t_cpu);
 
@@ -296,21 +298,21 @@ bool verify_tensor(tensor<T>& t_gpu, tensor<T>& t_cpu)
     return valid_result;
 }
 
-struct reorder_base
+struct tensor_reorder_base_driver : test_driver
 {
     miopenHandle_t handle{};
 #if MIOPEN_BACKEND_OPENCL
     cl_command_queue q{};
 #endif
 
-    reorder_base()
+    tensor_reorder_base_driver()
     {
         miopenCreate(&handle);
 #if MIOPEN_BACKEND_OPENCL
         miopenGetStream(handle, &q);
 #endif
     }
-    ~reorder_base() { miopenDestroy(handle); }
+    ~tensor_reorder_base_driver() { miopenDestroy(handle); }
 
     static std::vector<uint32_t> get_dim_3_size() { return {1, 9, 14}; }
     static std::vector<uint32_t> get_dim_2_size() { return {1, 9, 14}; }
@@ -366,8 +368,8 @@ struct reorder_invoke_param : public miopen::InvokeParams
     {
     }
 };
-template <typename T, typename REORDER_SOL>
-struct reorder_test : reorder_base
+template <typename T>
+struct tensor_reorder_driver : tensor_reorder_base_driver
 {
     void run()
     {
@@ -399,14 +401,31 @@ struct reorder_test : reorder_base
             tensor<T> t_dst(tensor_len, tensor_strides);
             tensor<T> t_dst_gpu(tensor_len, tensor_strides);
             rand_tensor_integer(t_src);
+
+            miopen::ExecutionContext ctx;
+            ctx.SetStream(&miopen::deref(this->handle));
+            ctx.DetectRocm();
+            // ctx.SetupFloats();
+            auto reorder_sol = MakeTensorReorderAttributes(ctx,
+                                                           to_miopen_data_type<T>::get(),
+                                                           dim_0,
+                                                           dim_1,
+                                                           dim_2,
+                                                           dim_3,
+                                                           order_0,
+                                                           order_1,
+                                                           order_2,
+                                                           order_3);
+            EXPECT(reorder_sol != nullptr);
+            size_t workspace = reorder_sol->IsSkippable() ? sizeof(T) * tensor_sz
+                                                          : reorder_sol->GetOutputTensorSize();
 #if MIOPEN_BACKEND_OPENCL
             cl_context cl_ctx;
             clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &cl_ctx, nullptr);
             cl_int status = CL_SUCCESS;
             cl_mem src_dev =
                 clCreateBuffer(cl_ctx, CL_MEM_READ_WRITE, sizeof(T) * tensor_sz, nullptr, &status);
-            cl_mem dst_dev =
-                clCreateBuffer(cl_ctx, CL_MEM_READ_WRITE, sizeof(T) * tensor_sz, nullptr, nullptr);
+            cl_mem dst_dev = clCreateBuffer(cl_ctx, CL_MEM_READ_WRITE, workspace, nullptr, nullptr);
             status |= clEnqueueWriteBuffer(q,
                                            src_dev,
                                            CL_TRUE,
@@ -421,29 +440,13 @@ struct reorder_test : reorder_base
             void* src_dev;
             void* dst_dev;
             EXPECT(hipMalloc(&src_dev, sizeof(T) * tensor_sz) == hipSuccess);
-            EXPECT(hipMalloc(&dst_dev, sizeof(T) * tensor_sz) == hipSuccess);
+            EXPECT(hipMalloc(&dst_dev, workspace) == hipSuccess);
             EXPECT(hipMemcpy(
                        src_dev, t_src.data.data(), sizeof(T) * tensor_sz, hipMemcpyHostToDevice) ==
                    hipSuccess);
 #endif
-
             const auto invoke_param = reorder_invoke_param{
                 DataCast(static_cast<const void*>(src_dev)), DataCast(dst_dev)};
-
-            miopen::ExecutionContext ctx;
-            ctx.SetStream(&miopen::deref(this->handle));
-            ctx.DetectRocm();
-            // ctx.SetupFloats();
-            auto reorder_sol                = TensorReorderSolutionConstructor(ctx,
-                                                                to_miopen_data_type<T>::get(),
-                                                                dim_0,
-                                                                dim_1,
-                                                                dim_2,
-                                                                dim_3,
-                                                                order_0,
-                                                                order_1,
-                                                                order_2,
-                                                                order_3);
             std::vector<OpKernelArg> opArgs = reorder_sol->GetKernelArg();
             boost::optional<miopen::InvokerFactory> invoker_factory(
                 [=](const std::vector<miopen::Kernel>& kernels) mutable {
@@ -451,16 +454,14 @@ struct reorder_test : reorder_base
                                const miopen::AnyInvokeParams& primitive_param) mutable {
                         decltype(auto) invoke_params =
                             primitive_param.CastTo<reorder_invoke_param>();
-
                         const auto k = handle.Run(kernels[0]);
-
-                        opArgs[0] = OpKernelArg(invoke_params.dst);
-                        opArgs[1] = OpKernelArg(invoke_params.src);
-
+                        opArgs[0]    = OpKernelArg(invoke_params.dst);
+                        opArgs[1]    = OpKernelArg(invoke_params.src);
                         k(opArgs);
                     };
                 });
-            std::vector<miopen::solver::KernelInfo> construction_params{reorder_sol->GetKernel()};
+            std::vector<miopen::solver::KernelInfo> construction_params{
+                reorder_sol->GetKernelInfo()};
             const auto invoker =
                 miopen::deref(this->handle).PrepareInvoker(*invoker_factory, construction_params);
             // run gpu
@@ -478,21 +479,16 @@ struct reorder_test : reorder_base
                                 order_3);
 
 #if MIOPEN_BACKEND_OPENCL
-            status = clEnqueueReadBuffer(q,
-                                         dst_dev,
-                                         CL_TRUE,
-                                         0,
-                                         sizeof(T) * tensor_sz,
-                                         t_dst_gpu.data.data(),
-                                         0,
-                                         nullptr,
-                                         nullptr);
+            status = clEnqueueReadBuffer(
+                q, dst_dev, CL_TRUE, 0, workspace, t_dst_gpu.data.data(), 0, nullptr, nullptr);
             EXPECT(status == CL_SUCCESS);
+            clReleaseMemObject(dst_dev);
+            clReleaseMemObject(src_dev);
 #elif MIOPEN_BACKEND_HIP
-            EXPECT(hipMemcpy(t_dst_gpu.data.data(),
-                             dst_dev,
-                             sizeof(T) * tensor_sz,
-                             hipMemcpyDeviceToHost) == hipSuccess);
+            EXPECT(hipMemcpy(t_dst_gpu.data.data(), dst_dev, workspace, hipMemcpyDeviceToHost) ==
+                   hipSuccess);
+            hipFree(dst_dev);
+            hipFree(src_dev);
 #endif
 
             // we expect excact match, since use integer
@@ -502,26 +498,10 @@ struct reorder_test : reorder_base
                       << "dim_0:" << dim_0 << ", dim_1:" << dim_1 << ", dim_2:" << dim_2
                       << ", dim_3:" << dim_3 << ", valid:" << valid_result << std::endl;
             EXPECT(valid_result == true);
-
-#if MIOPEN_BACKEND_OPENCL
-            clReleaseMemObject(src_dev);
-            clReleaseMemObject(dst_dev);
-#elif MIOPEN_BACKEND_HIP
-            hipFree(src_dev);
-            hipFree(dst_dev);
-#endif
         };
 
         iterate_reorder(run_reorder);
     }
 };
 
-int main()
-{
-    run_test<reorder_test<double, miopen::TensorReorderSolution>>(); // DOUBLE only support general
-                                                                     // reorder solution, do not
-                                                                     // support batched transpose.
-    run_test<reorder_test<float, miopen::TensorReorderSolution>>();
-    run_test<reorder_test<uint16_t, miopen::TensorReorderSolution>>();
-    run_test<reorder_test<uint8_t, miopen::TensorReorderSolution>>();
-}
+int main(int argc, const char* argv[]) { test_drive<tensor_reorder_driver>(argc, argv); }
