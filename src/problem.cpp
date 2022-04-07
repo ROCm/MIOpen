@@ -63,6 +63,7 @@ std::vector<Solution> Problem::FindSolutions(Handle& handle,
             return [](auto&& l, auto&& r) { return l.GetTime() < r.GetTime(); };
         case miopenSearchResultsOrderByMemory:
             return [](auto&& l, auto&& r) { return l.GetWorkspaceSize() < r.GetWorkspaceSize(); };
+        default: MIOPEN_THROW(miopenStatusNotImplemented);
         }
     }();
     std::sort(ret.begin(), ret.end(), sorter);
@@ -129,6 +130,7 @@ std::vector<Solution> Problem::FindConvSolutions(Handle& handle,
             return conv_desc.BackwardDataGetWorkSpaceSize(handle, w_desc, y_desc, x_desc);
         case miopenProblemDirectionBackwardWeight:
             return conv_desc.BackwardWeightsGetWorkSpaceSize(handle, y_desc, x_desc, w_desc);
+        default: MIOPEN_THROW(miopenStatusNotImplemented);
         }
     }();
 

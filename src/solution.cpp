@@ -84,6 +84,7 @@ void Solution::Run(Handle& handle,
                 workspace,
                 workspace_size,
                 conv_problem.GetConv().attribute.gfx90aFp16alt.GetWrW()};
+        default: MIOPEN_THROW(miopenStatusNotImplemented);
         }
     }();
 

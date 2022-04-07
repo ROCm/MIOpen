@@ -44,7 +44,7 @@ struct OperatorDescriptorImpl : OperatorDescriptor
 
     OperatorDescriptor* Clone() const final
     {
-        return new Derived{reinterpret_cast<const Derived&>(*this)};
+        return static_cast<OperatorDescriptor*>(new Derived{reinterpret_cast<const Derived&>(*this)});
     }
 };
 

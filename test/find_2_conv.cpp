@@ -84,8 +84,8 @@ private:
         AddConvDescriptor(problem);
         AddConvTensorDescriptors(problem);
 
-        std::ignore    = TestFindSolutions(handle, problem);
-        auto solutions = TestFindSolutionsWithOptions(handle, problem);
+        std::ignore          = TestFindSolutions(handle, problem);
+        const auto solutions = TestFindSolutionsWithOptions(handle, problem);
 
         TestSolutionAttributes(solutions);
         TestRunSolutions(handle, solutions);
@@ -193,20 +193,20 @@ private:
         }
     }
 
-    void TestRunSolutions(miopenHandle_t handle, std::vector<miopenSolution_t>& solutions)
+    void TestRunSolutions(miopenHandle_t handle, const std::vector<miopenSolution_t>& solutions)
     {
-        miopenTensorName_t names[3] = {
-            miopenTensorConvolutionX, miopenTensorConvolutionW, miopenTensorConvolutionY};
-        void* buffers[3] = {x_dev.get(), w_dev.get(), y_dev.get()};
-
         miopenTensorDescriptor_t x_desc, w_desc, y_desc;
-        miopen::deref(&x_desc)                  = new TensorDescriptor{x.desc};
-        miopen::deref(&w_desc)                  = new TensorDescriptor{w.desc};
-        miopen::deref(&y_desc)                  = new TensorDescriptor{y.desc};
-        miopenTensorDescriptor_t descriptors[3] = {x_desc, w_desc, y_desc};
+        miopen::deref(&x_desc) = new TensorDescriptor{x.desc};
+        miopen::deref(&w_desc) = new TensorDescriptor{w.desc};
+        miopen::deref(&y_desc) = new TensorDescriptor{y.desc};
 
         for(const auto& solution : solutions)
         {
+            miopenTensorName_t names[3] = {
+                miopenTensorConvolutionX, miopenTensorConvolutionW, miopenTensorConvolutionY};
+            void* buffers[3]                        = {x_dev.get(), w_dev.get(), y_dev.get()};
+            miopenTensorDescriptor_t descriptors[3] = {x_desc, w_desc, y_desc};
+
             TestRunSolution(handle, solution, names, descriptors, buffers);
 
             // Save-load cycle

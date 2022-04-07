@@ -55,6 +55,8 @@ protected:
 class BinarySerializationSizeStream final : detail::BinarySerializationRelatedStream
 {
 public:
+    BinarySerializationSizeStream() = default;
+
     bool IsSerializing() const { return false; }
     bool IsDeserializing() const { return false; }
 
@@ -68,7 +70,7 @@ public:
     std::size_t GetSize() const { return size; }
 
 private:
-    std::size_t size;
+    std::size_t size = 0;
 };
 
 class BinarySerializationStream final : detail::BinarySerializationRelatedStream

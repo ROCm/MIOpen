@@ -93,6 +93,14 @@ struct ConvolutionAttribute
         inline bool GetFwd() const { return Get() == 1; } // false is the default.
         inline bool GetBwd() const { return Get() != 0; } // true is the default.
         inline bool GetWrW() const { return Get() != 0; } // true is the default.
+
+        template <class Stream,
+                  std::enable_if_t<IsBinarySerializationRelated<Stream>{}, bool> = true>
+        friend Stream& operator<<(Stream& stream, Gfx90aFp16alt& attr)
+        {
+            stream << attr.value;
+            return stream;
+        }
     } gfx90aFp16alt;
 
     /// Tri-state attribute values:
@@ -105,8 +113,7 @@ struct ConvolutionAttribute
     template <class Stream, std::enable_if_t<IsBinarySerializationRelated<Stream>{}, bool> = true>
     friend Stream& operator<<(Stream& stream, ConvolutionAttribute& conv)
     {
-        stream << conv.gfx90aFp16alt.value;
-
+        stream << conv.gfx90aFp16alt;
         return stream;
     }
 };

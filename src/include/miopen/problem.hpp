@@ -50,6 +50,8 @@ struct ProblemDescription;
 
 struct Problem : miopenProblem
 {
+    Problem() = default;
+
     const TensorDescriptor& GetTensorDescriptor(miopenTensorName_t name) const
     {
         return tensor_descriptors.at(name);
@@ -107,7 +109,7 @@ struct Problem : miopenProblem
     }
 
 private:
-    miopenProblemDirection_t direction;
+    miopenProblemDirection_t direction = miopenProblemDirectionForward;
     std::unordered_map<miopenTensorName_t, TensorDescriptor> tensor_descriptors;
     std::shared_ptr<OperatorDescriptor> operator_descriptor;
 

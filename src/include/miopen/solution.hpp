@@ -44,6 +44,8 @@ struct Handle;
 
 struct Solution : miopenSolution
 {
+    Solution() = default;
+
     struct SerializationMetadata final
     {
         unsigned long validation_number;
@@ -105,8 +107,8 @@ struct Solution : miopenSolution
     }
 
 private:
-    float time;
-    std::size_t workspace_required;
+    float time = 0;
+    std::size_t workspace_required = 0;
     solver::Id solver;
     Problem problem;
 };

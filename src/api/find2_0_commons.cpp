@@ -27,6 +27,7 @@
 #include <miopen/miopen.h>
 
 #include <miopen/binary_serialization.hpp>
+#include <miopen/common.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
@@ -201,8 +202,9 @@ miopenStatus_t miopenLoadSolution(miopenSolution_t* solution, const char* data, 
 
         auto ss = miopen::BinaryDeserializationStream{data, data + size};
 
-        miopen::deref(solution) = new miopen::Solution{};
-        ss << miopen::deref(*solution);
+        auto& solution_deref = miopen::deref(solution);
+        solution_deref = new miopen::Solution{};
+        ss << *solution_deref;
 
         if(!ss.HasFinished())
             MIOPEN_THROW(miopenStatusInvalidValue, "Data buffer end has not been reached.");
