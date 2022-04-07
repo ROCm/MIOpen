@@ -26,6 +26,7 @@
 #ifndef GUARD_MIOPEN_TENSOR_HPP_
 #define GUARD_MIOPEN_TENSOR_HPP_
 
+#include <miopen/binary_serialization.hpp>
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
@@ -207,6 +208,17 @@ struct TensorDescriptor : miopenTensorDescriptor
     }
 
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
+
+    template <class Stream, std::enable_if_t<IsBinarySerializationRelated<Stream>{}, bool> = true>
+    friend Stream& operator<<(Stream& stream, TensorDescriptor& problem)
+    {
+        stream << problem.lens;
+        stream << problem.strides;
+        stream << problem.packed;
+        stream << problem.type;
+
+        return stream;
+    }
 
 private:
     std::vector<std::size_t> lens;

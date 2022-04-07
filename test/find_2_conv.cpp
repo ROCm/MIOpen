@@ -179,14 +179,18 @@ struct Find2Test : test_driver
 
                 EXPECT_EQUAL(miopenSaveSolution(solution, solution_binary.data()),
                              miopenStatusSuccess);
-                EXPECT_EQUAL(
-                    miopenLoadSolution(solution, solution_binary.data(), solution_binary.size()),
-                    miopenStatusSuccess);
+                EXPECT_EQUAL(miopenDestroySolution(solution), miopenStatusSuccess);
+
+                miopenSolution_t read_solution;
+                EXPECT_EQUAL(miopenLoadSolution(
+                                 &read_solution, solution_binary.data(), solution_binary.size()),
+                             miopenStatusSuccess);
 
                 // Without descriptors
-                checked_run_solution(solution, nullptr, workspace_dev, workspace_size);
+                checked_run_solution(read_solution, nullptr, workspace_dev, workspace_size);
                 // With descriptors
-                checked_run_solution(solution, descriptors, workspace_dev, workspace_size);
+                checked_run_solution(read_solution, descriptors, workspace_dev, workspace_size);
+                EXPECT_EQUAL(miopenDestroySolution(read_solution), miopenStatusSuccess);
             }
 
             EXPECT_EQUAL(miopenDestroyTensorDescriptor(x_desc), miopenStatusSuccess);

@@ -36,6 +36,7 @@
 #include <miopen/invoke_params.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/timer.hpp>
+#include <miopen/type_traits.hpp>
 
 #include <vector>
 #include <cstdlib>
@@ -261,30 +262,6 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
 /// ------------------------------------------------
 /// clang-format-on
 
-// This is to detect new solvers attempting to use obsolete functionality
-namespace detail {
-template <typename...>
-using void_t = void;
-
-template <class Default, class AlwaysVoid, template <class...> class Op, class... Args>
-struct detector
-{
-    using value_t = std::false_type;
-    using type    = Default;
-};
-
-template <class Default, template <class...> class Op, class... Args>
-struct detector<Default, void_t<Op<Args...>>, Op, Args...>
-{
-    using value_t = std::true_type;
-    using type    = Op<Args...>;
-};
-
-} // namespace detail
-
-template <template <class...> class Op, class... Args>
-using is_detected = typename detail::detector<void, void, Op, Args...>::value_t;
-
 template <class Solver, class Top, class Bottom>
 using RunAndMeasure_t =
     decltype(std::declval<Solver>().RunAndMeasureSolution(std::declval<miopen::Handle&>(),
@@ -301,8 +278,8 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     -> decltype(s.GetPerformanceConfig(context_))
 {
     static_assert(
-        !(is_detected<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
-          is_detected<RunAndMeasure_t, Solver, Data_t, ConstData_t>{}),
+        !(HasMember<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
+          HasMember<RunAndMeasure_t, Solver, Data_t, ConstData_t>{}),
         "RunAndMeasure is obsolete. Solvers should implement auto-tune evaluation in invoker");
 
     auto context                  = context_;

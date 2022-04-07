@@ -26,6 +26,7 @@
 
 #include <miopen/miopen.h>
 
+#include <miopen/binary_serialization.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
@@ -190,14 +191,21 @@ miopenStatus_t miopenDestroySolution(miopenSolution_t solution)
     return miopen::try_([&] { miopen_destroy_object(solution); });
 }
 
-miopenStatus_t miopenLoadSolution(miopenSolution_t solution, const char* data, size_t size)
+miopenStatus_t miopenLoadSolution(miopenSolution_t* solution, const char* data, size_t size)
 {
     MIOPEN_LOG_FUNCTION(solution, data, size);
 
     return miopen::try_([&] {
         if(data == nullptr)
-            MIOPEN_THROW(miopenStatusBadParm, "data parameter should not be a nullptr.");
-        miopen::deref(solution).Load(data, size);
+            MIOPEN_THROW(miopenStatusBadParm, "Data parameter should not be a nullptr.");
+
+        auto ss = miopen::BinaryDeserializationStream{data, data + size};
+
+        miopen::deref(solution) = new miopen::Solution{};
+        ss << miopen::deref(*solution);
+
+        if(!ss.HasFinished())
+            MIOPEN_THROW(miopenStatusInvalidValue, "Data buffer end has not been reached.");
     });
 }
 
@@ -207,8 +215,9 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data)
 
     return miopen::try_([&] {
         if(data == nullptr)
-            MIOPEN_THROW(miopenStatusBadParm, "data parameter should not be a nullptr.");
-        miopen::deref(solution).Save(data);
+            MIOPEN_THROW(miopenStatusBadParm, "Data parameter should not be a nullptr.");
+        auto ss = miopen::BinarySerializationStream{data};
+        ss << miopen::deref(solution);
     });
 }
 
@@ -218,8 +227,10 @@ miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
 
     return miopen::try_([&] {
         if(size == nullptr)
-            MIOPEN_THROW(miopenStatusBadParm, "size parameter should not be a nullptr.");
-        *size = miopen::deref(solution).GetSize();
+            MIOPEN_THROW(miopenStatusBadParm, "Size parameter should not be a nullptr.");
+        auto ss = miopen::BinarySerializationSizeStream{};
+        ss << miopen::deref(solution);
+        *size = ss.GetSize();
     });
 }
 

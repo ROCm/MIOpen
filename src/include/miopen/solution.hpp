@@ -44,15 +44,20 @@ struct Handle;
 
 struct Solution : miopenSolution
 {
+    struct SerializationMetadata final
+    {
+        unsigned long validation_number;
+        unsigned long version;
+
+        static constexpr SerializationMetadata Current() { return {0x123456789ABCDEF0, 1}; }
+    };
+
     struct RunInput
     {
         boost::optional<TensorDescriptor> descriptor;
         Data_t buffer;
     };
 
-    std::size_t GetSize() const;
-    void Save(char* data) const;
-    void Load(const char* data, std::size_t size);
     float GetTime() const { return time; }
     void SetTime(float value) { time = value; }
     std::size_t GetWorkspaceSize() const { return workspace_required; }
@@ -66,6 +71,38 @@ struct Solution : miopenSolution
              const std::unordered_map<miopenTensorName_t, RunInput>& inputs,
              Data_t workspace,
              size_t workspace_size);
+
+    template <class Stream, std::enable_if_t<IsBinarySerializationRelated<Stream>{}, bool> = true>
+    friend Stream& operator<<(Stream& stream, Solution& solution)
+    {
+        // Header
+        auto header =
+            stream.IsSerializing() ? SerializationMetadata::Current() : SerializationMetadata{};
+        stream << header;
+
+        if(stream.IsDeserializing())
+        {
+            constexpr const auto check_header = SerializationMetadata::Current();
+            if(header.validation_number != check_header.validation_number)
+                MIOPEN_THROW(miopenStatusInvalidValue,
+                             "Invalid buffer has been passed to the solution deserialization.");
+            if(header.version != check_header.version)
+                MIOPEN_THROW(
+                    miopenStatusInvalidValue,
+                    "Data from wrong version has been passed to the solution deserialization.");
+        }
+
+        // Solution
+        stream << solution.time;
+        stream << solution.workspace_required;
+
+        auto solver_id = solution.solver.ToString();
+        stream << solver_id;
+        solution.solver = solver_id;
+
+        stream << solution.problem;
+        return stream;
+    }
 
 private:
     float time;

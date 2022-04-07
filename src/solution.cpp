@@ -32,43 +32,19 @@
 
 namespace miopen {
 
-struct SolutionSerializationMetadata final
-{
-    static constexpr unsigned long validation_number = 0xABCDABCDABCDABCD;
-    static constexpr unsigned long current_version   = 1;
-};
-
-std::size_t Solution::GetSize() const
-{
-    MIOPEN_THROW(miopenStatusNotImplemented);
-    return 0;
-}
-
-void Solution::Save(char* data) const
-{
-    std::ignore = data;
-
-    MIOPEN_THROW(miopenStatusNotImplemented);
-}
-
-void Solution::Load(const char* data, std::size_t size)
-{
-    std::ignore = data;
-    std::ignore = size;
-
-    MIOPEN_THROW(miopenStatusNotImplemented);
-}
-
 void Solution::Run(Handle& handle,
                    const std::unordered_map<miopenTensorName_t, RunInput>& inputs,
                    Data_t workspace,
-                   size_t workspace_size)
+                   std::size_t workspace_size)
 {
     if(workspace_size < workspace_required)
         MIOPEN_THROW(miopenStatusBadParm,
                      GetSolver().ToString() + " requires at least " +
                          std::to_string(workspace_required) + " workspace, while " +
                          std::to_string(workspace_size) + " was provided");
+
+    if(problem.GetOperatorDescriptor().GetPrimitive() != solver::Primitive::Convolution)
+        MIOPEN_THROW(miopenStatusNotImplemented);
 
     const auto conv_problem = problem.AsConvolution();
 

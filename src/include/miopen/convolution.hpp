@@ -26,14 +26,15 @@
 #ifndef GUARD_MIOPEN_CONVOLUTION_HPP_
 #define GUARD_MIOPEN_CONVOLUTION_HPP_
 
+#include <miopen/binary_serialization.hpp>
 #include <miopen/common.hpp>
 #include <miopen/env.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
+#include <miopen/operator_descriptor.hpp>
 #include <miopen/solver_id.hpp>
-#include <miopen/problem.hpp>
 #include <miopen/names.hpp>
 #include <miopen/invoke_params.hpp>
 
@@ -100,6 +101,14 @@ struct ConvolutionAttribute
     /// * 1: Enabled/No.
     void Set(miopenConvolutionAttrib_t attr, int value);
     int Get(miopenConvolutionAttrib_t attr) const;
+
+    template <class Stream, std::enable_if_t<IsBinarySerializationRelated<Stream>{}, bool> = true>
+    friend Stream& operator<<(Stream& stream, ConvolutionAttribute& conv)
+    {
+        stream << conv.gfx90aFp16alt.value;
+
+        return stream;
+    }
 };
 
 struct ConvolutionDescriptor
@@ -440,6 +449,23 @@ struct ConvolutionDescriptor
                               miopenConvSolution_t* solutions) const;
 
     std::size_t GetSolutionCountFallback(Handle& handle, const ProblemDescription& problem) const;
+
+    template <class Stream, std::enable_if_t<IsBinarySerializationRelated<Stream>{}, bool> = true>
+    friend Stream& operator<<(Stream& stream, ConvolutionDescriptor& conv)
+    {
+        stream << conv.spatialDim;
+        stream << conv.mode;
+        stream << conv.paddingMode;
+        stream << conv.pads;
+        stream << conv.strides;
+        stream << conv.dilations;
+        stream << conv.trans_output_pads;
+        stream << conv.group_count;
+        stream << conv.lowp_quant;
+        stream << conv.attribute;
+
+        return stream;
+    }
 };
 
 void ConvolutionBackwardBias(const Handle& handle,

@@ -4768,7 +4768,7 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
 
 miopenStatus_t miopenDestroySolution(miopenSolution_t solution);
 
-miopenStatus_t miopenLoadSolution(miopenSolution_t solution, const char* data, size_t size);
+miopenStatus_t miopenLoadSolution(miopenSolution_t* solution, const char* data, size_t size);
 
 miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
 
