@@ -25,8 +25,8 @@
  *******************************************************************************/
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_runtime.h>
-#endif
 #include <hip/hip_fp16.h>
+#endif
 #include "order.hpp"
 
 #ifndef TENSOR_REORDER_OCCUPANCY
