@@ -362,8 +362,7 @@ void CopyDataToBuffer(const Handle& handle, const std::vector<T> data, void* buf
 #else
     std::ignore = handle;
     std::ignore = data;
-    std::ignore = name;
-    return nullptr;
+    std::ignore = buf_ptr;
 #endif
 }
 
