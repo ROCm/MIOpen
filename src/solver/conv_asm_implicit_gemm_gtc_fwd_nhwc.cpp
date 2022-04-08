@@ -798,11 +798,11 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
         TransposeSolutionNhwc2Default trans_output(ctx, ctx.out_data_type, n, k, ho, wo);
 
         if(!trans_input.IsSkippable())
-            size_trans_input = trans_input.GetSize();
+            size_trans_input = trans_input.GetOutputTensorSize();
         if(!trans_weight.IsSkippable())
-            size_trans_weight = trans_weight.GetSize();
+            size_trans_weight = trans_weight.GetOutputTensorSize();
         if(!trans_output.IsSkippable())
-            size_trans_output = trans_output.GetSize();
+            size_trans_output = trans_output.GetOutputTensorSize();
     }
 
     if(!ctx.IsFp32())
@@ -943,19 +943,19 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
 
         if(!trans_input.IsSkippable())
         {
-            result.construction_params.push_back(trans_input.GetKernel());
+            result.construction_params.push_back(trans_input.GetKernelInfo());
             if(miopen::IsLogging(LoggingLevel::Info2))
                 msg << ", inp trans:" << trans_input.GetKernelName();
         }
         if(!trans_weight.IsSkippable())
         {
-            result.construction_params.push_back(trans_weight.GetKernel());
+            result.construction_params.push_back(trans_weight.GetKernelInfo());
             if(miopen::IsLogging(LoggingLevel::Info2))
                 msg << ", wei trans:" << trans_weight.GetKernelName();
         }
         if(!trans_output.IsSkippable())
         {
-            result.construction_params.push_back(trans_output.GetKernel());
+            result.construction_params.push_back(trans_output.GetKernelInfo());
             if(miopen::IsLogging(LoggingLevel::Info2))
                 msg << ", out trans:" << trans_output.GetKernelName();
         }
