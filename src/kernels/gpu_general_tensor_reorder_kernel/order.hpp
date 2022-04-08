@@ -23,7 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstdint>
+#ifdef __HIPCC_RTC__
+#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
+/// Definitions from <cstdint>, <cmath> conflict with
+/// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h.
+
+typedef signed char int8_t;
+typedef signed short int16_t;
+
+#else
+#include <cstdint> // int8_t, int16_t
+#endif
+#endif // __HIPCC_RTC__
 #ifndef ORDER_HPP
 #define ORDER_HPP
 
