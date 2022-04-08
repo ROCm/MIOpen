@@ -373,6 +373,9 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
 #endif
 
+    if(name == "gfx90a" && params.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+
     // clang-format off
     bool ok = params.pad_w == 1           // -q  pad_w
         && params.pad_h == 1              // -p  pad_h
@@ -514,7 +517,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     kernel.kernel_name = "miopenGcnAsmConv3x3WrW";
 
     result.construction_params.push_back(kernel);
-    result.workspce_sz = 0;
+    result.workspace_sz = 0;
 
     int N, C, H, W, K, n_groups;
     GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);

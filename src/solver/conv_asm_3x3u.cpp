@@ -195,9 +195,6 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
     const std::string name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
-#if WORKAROUND_ISSUE_1146
-    if(name == "gfx90a")
-        return false;
 #endif
     if(!params.IsLayoutDefault())
     {

@@ -98,7 +98,7 @@ boost::filesystem::path GetCachePath(bool is_system)
     }
 }
 
-static bool IsCacheDisabled()
+bool IsCacheDisabled()
 {
 #ifdef MIOPEN_CACHE_DIR
     if(MIOPEN_DISABLE_USERDB && MIOPEN_DISABLE_SYSDB)

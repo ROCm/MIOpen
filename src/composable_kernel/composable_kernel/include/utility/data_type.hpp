@@ -3,6 +3,22 @@
 
 #include "statically_indexed_array.hpp"
 
+#ifdef __HIPCC_RTC__
+#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
+/// Definitions from <cstdint>, <cmath> conflict with
+/// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h.
+
+typedef signed char int8_t;
+typedef signed short int16_t;
+typedef float float_t;
+#include <limits> // std::numeric_limits
+
+#else
+#include <cstdint> // int8_t, int16_t
+#include <cmath>   // float_t
+#endif
+#endif // __HIPCC_RTC__
+
 namespace ck {
 
 using half_t = _Float16;
@@ -1008,20 +1024,27 @@ struct inner_product_with_conversion
 };
 
 template <typename T>
-struct NumericLimits;
+struct NumericLimits
+{
+    __host__ __device__ static constexpr T Min() { return std::numeric_limits<T>::min(); }
+
+    __host__ __device__ static constexpr T Max() { return std::numeric_limits<T>::max(); }
+
+    __host__ __device__ static constexpr T Lowest() { return std::numeric_limits<T>::lowest(); }
+};
 
 template <>
-struct NumericLimits<int32_t>
+struct NumericLimits<half_t>
 {
-    __host__ __device__ static constexpr int32_t Min()
-    {
-        return std::numeric_limits<int32_t>::min();
-    }
+    static constexpr unsigned short binary_min    = 0x0400;
+    static constexpr unsigned short binary_max    = 0x7BFF;
+    static constexpr unsigned short binary_lowest = 0xFBFF;
 
-    __host__ __device__ static constexpr int32_t Max()
-    {
-        return std::numeric_limits<int32_t>::max();
-    }
+    __host__ __device__ static constexpr half_t Min() { return as_type<half_t>(binary_min); }
+
+    __host__ __device__ static constexpr half_t Max() { return as_type<half_t>(binary_max); }
+
+    __host__ __device__ static constexpr half_t Lowest() { return as_type<half_t>(binary_lowest); }
 };
 
 } // namespace ck

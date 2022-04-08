@@ -616,7 +616,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     }
 
     const auto ws_sz       = GetWorkspaceSize(params);
-    result.workspce_sz     = ws_sz;
+    result.workspace_sz    = ws_sz;
     result.invoker_factory = conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
 
     return result;

@@ -25,6 +25,9 @@
  *******************************************************************************/
 #ifndef CK_ASM_IMPLICITGEMM_HPP_
 #define CK_ASM_IMPLICITGEMM_HPP_
+
+#include <miopen/config.h>
+
 #include <string>
 #include <ostream>
 #include <tuple>
@@ -220,6 +223,43 @@ HeuristicInitMacroTileNoPadGemmK(size_t gemm_m,
         return std::make_tuple(m_per_block, n_per_block, k_per_block);
     else
         return std::make_tuple(0, 0, 0);
+}
+
+// This is to support big tensor > 4G. Need to decide how many splits needed.
+// Return the number of splits.
+static inline int igemm_split_batch_size(const int hi,
+                                         const int wi,
+                                         const int ho,
+                                         const int wo,
+                                         const int n,
+                                         const int k,
+                                         const int c,
+                                         const int data_byte)
+{
+    size_t image_size_input          = static_cast<size_t>(c) * hi * wi * data_byte;
+    size_t image_size_output         = static_cast<size_t>(k) * ho * wo * data_byte;
+    constexpr size_t max_tensor_size = 0xffffffffUL;
+
+    size_t image_size = std::max(image_size_input, image_size_output);
+
+    // When image size is larger than max tensor size, max batch applicable is 0, so 0 is returned.
+    if(image_size >= max_tensor_size)
+        return 0;
+
+    size_t max_n = max_tensor_size / image_size;
+
+    // Round up splits, we must match
+    // 1. max_n * image_size < max_tensor_size
+    // 2. n % max_n == 0
+    // if(max_n >= n)
+    //     return 1;
+    while(max_n > 1)
+    {
+        if(n % max_n == 0)
+            break;
+        max_n--;
+    }
+    return n / max_n;
 }
 
 template <int L, int H>

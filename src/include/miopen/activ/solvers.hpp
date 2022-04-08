@@ -43,9 +43,16 @@ namespace activ {
 using OldStyleProblemDescription =
     std::tuple<const ExecutionContext*, const miopen::activ::ProblemDescription*>;
 
-struct ActivFwdSolver0 : public SolverBase<OldStyleProblemDescription>
+using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
+
+struct ActivFwdSolver0 : OldStyleSolver
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    // To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver0>(); }
+
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -61,9 +68,14 @@ struct ActivFwdSolver0 : public SolverBase<OldStyleProblemDescription>
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
-struct ActivFwdSolver1 : public SolverBase<OldStyleProblemDescription>
+struct ActivFwdSolver1 : OldStyleSolver
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    // To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver1>(); }
+
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -79,9 +91,14 @@ struct ActivFwdSolver1 : public SolverBase<OldStyleProblemDescription>
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
-struct ActivBwdSolver0 : public SolverBase<OldStyleProblemDescription>
+struct ActivBwdSolver0 : OldStyleSolver
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    // To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver0>(); }
+
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -97,9 +114,14 @@ struct ActivBwdSolver0 : public SolverBase<OldStyleProblemDescription>
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
-struct ActivBwdSolver1 : public SolverBase<OldStyleProblemDescription>
+struct ActivBwdSolver1 : OldStyleSolver
 {
-    inline bool IsApplicable(const OldStyleProblemDescription& problem) const
+    // To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver1>(); }
+
+    bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }

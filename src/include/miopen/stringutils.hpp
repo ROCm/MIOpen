@@ -105,6 +105,24 @@ inline std::vector<std::string> SplitSpaceSeparated(const std::string& in)
     return {begin, end};
 }
 
+inline std::vector<std::string> SplitSpaceSeparated(const std::vector<std::string>& in)
+{
+    std::vector<std::string> rv;
+    for(const auto& item : in)
+    {
+        if(item.find(' ') != std::string::npos)
+        {
+            const auto splitted = SplitSpaceSeparated(item);
+            std::copy(splitted.begin(), splitted.end(), std::back_inserter(rv));
+        }
+        else
+        {
+            rv.emplace_back(item);
+        }
+    }
+    return rv;
+}
+
 inline std::vector<std::string> SplitSpaceSeparated(const std::string& in,
                                                     const std::vector<std::string>& dontSplitAfter)
 {
@@ -125,6 +143,19 @@ inline std::vector<std::string> SplitSpaceSeparated(const std::string& in,
             MIOPEN_THROW("Error parsing string: '" + in + '\'');
         }
         rv.push_back(s);
+    }
+    return rv;
+}
+
+inline std::vector<std::string> SplitDelim(const std::string& in, const char delim)
+{
+    std::vector<std::string> rv;
+    std::string token;
+    std::istringstream ss(in);
+
+    while(std::getline(ss, token, delim))
+    {
+        rv.push_back(token);
     }
     return rv;
 }

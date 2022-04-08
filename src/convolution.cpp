@@ -287,7 +287,7 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(miopen::ConvolutionCon
 
     // Disable this performance optimization when we want to run some specific Solver.
     // Other Solvers will be skipped anyway.
-    if(GetEnvFindOnlySolver().IsValid())
+    if(GetEnvFindOnlySolver())
         return false;
 
     // Filter out configs where 3x3 Winograd does not have high WTI.
@@ -358,8 +358,6 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         GetForwardSolutions(handle, wDesc, xDesc, yDesc, 1, &count, &sol, &fallback);
         if(count < 1 || (findMode.IsHybrid(ctx) && fallback))
         {
-            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
@@ -438,8 +436,6 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &sol, &fallback);
         if(count < 1 || (findMode.IsHybrid(ctx) && fallback))
         {
-            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
@@ -561,8 +557,8 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
         {
             if(sz < pr.second)
             {
-                MIOPEN_LOG_I2(sz << " < " << pr.second); // solution.workspce_sz);
-                sz = pr.second;                          // solution.workspce_sz;
+                MIOPEN_LOG_I2(sz << " < " << pr.second); // solution.workspace_sz);
+                sz = pr.second;                          // solution.workspace_sz;
             }
         }
         return sz;
@@ -730,8 +726,6 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
         GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &sol, &fallback);
         if(count < 1 || (findMode.IsHybrid(ctx) && fallback))
         {
-            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
@@ -777,4 +771,33 @@ std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)
 
     return stream;
 }
+
+void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
+{
+    if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
+    {
+        if(value < -1 || value > 1)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "[Set conv attribute] Error: Attempt to set invalid value of "
+                         "MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL: " +
+                             std::to_string(value));
+        gfx90aFp16alt.value = value;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "[Set conv attribute] Error: Attribute [" +
+                         std::to_string(static_cast<int>(attr)) + "] does not exist.");
+    }
+}
+
+int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
+{
+    if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
+        return gfx90aFp16alt.value;
+    MIOPEN_THROW(miopenStatusBadParm,
+                 "[Get conv attribute] Error: Attribute [" +
+                     std::to_string(static_cast<int>(attr)) + "] does not exist.");
+}
+
 } // namespace miopen

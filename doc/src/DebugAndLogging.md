@@ -227,10 +227,6 @@ Different ROCm versions use Code Object files of different versions (or, in othe
   * `2` - Always build to CO v2.
   * `3` - Always build to CO v3.
   * `4` - Always build to CO v4.
-* `MIOPEN_DEBUG_HIP_ENFORCE_COV3` - Enforces Code Object format for HIP kernels.
-  * Unset - Automatically detect the required CO version. This is the default.
-  * `0` - Always build to CO v2.
-  * `1` - Always build to CO v3.
 
 ### Winograd Multi-pass Maximum Workspace throttling
 

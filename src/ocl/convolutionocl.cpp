@@ -181,8 +181,6 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
 
     const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
     auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
-    ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-        findMode.IsFastHybrid(ctx);
     ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
     ctx.do_search                  = exhaustiveSearch;
     ctx.save_srch_req              = true;
@@ -220,8 +218,6 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
     auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
 
-    ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-        findMode.IsFastHybrid(ctx);
     ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
     ctx.do_search                  = exhaustiveSearch;
     ctx.save_srch_req              = true;
@@ -281,20 +277,20 @@ static void EvaluateInvokers(Handle& handle,
 
     for(const auto& sol : solutions)
     {
-        if(sol.workspce_sz > 0)
+        if(sol.workspace_sz > 0)
         {
             if(invoke_ctx.workSpace == nullptr)
             {
                 MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
                                                           << "> due to no workspace provided ("
-                                                          << sol.workspce_sz << " required)");
+                                                          << sol.workspace_sz << " required)");
                 continue;
             }
-            if(invoke_ctx.workSpaceSize < sol.workspce_sz)
+            if(invoke_ctx.workSpaceSize < sol.workspace_sz)
             {
                 MIOPEN_LOG_I("Warning: skipping solver <"
                              << sol.solver_id << "> due to insufficient workspace ("
-                             << invoke_ctx.workSpaceSize << " < " << sol.workspce_sz << ")");
+                             << invoke_ctx.workSpaceSize << " < " << sol.workspace_sz << ")");
                 continue;
             }
         }
@@ -326,11 +322,11 @@ static void EvaluateInvokers(Handle& handle,
     {
         handle.RegisterInvoker(best_invoker, network_config, selected.solver_id, algorithm_name);
         MIOPEN_LOG_I("Selected: " << selected << ": " << best
-                                  << ", workspce_sz = " << selected.workspce_sz);
+                                  << ", workspace_sz = " << selected.workspace_sz);
         record.SetValues(algorithm_name,
                          FindDbData{selected.solver_id,
                                     best,
-                                    selected.workspce_sz,
+                                    selected.workspace_sz,
                                     FindDbKCacheKey::MakeUnused(algorithm_name)});
     }
 }
@@ -363,8 +359,11 @@ static void DirConvFindCore(Handle& handle,
     ValidateGroupCount(xDesc, wDesc, conv);
 
     const auto network_config = ctx.BuildConfKey();
-    const auto invoke_ctx     = conv::DataInvokeParams{
-        InvokeType::Evaluate, {xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize};
+    const auto invoke_ctx     = conv::DataInvokeParams{InvokeType::Evaluate,
+                                                   {xDesc, x, wDesc, w, yDesc, y},
+                                                   workSpace,
+                                                   workSpaceSize,
+                                                   conv.attribute.gfx90aFp16alt.GetFwd()};
 
     // Find solutions
     const auto winograd = !use_winograd_only ? conv.FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
@@ -491,8 +490,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
         bufs.SetFwd(x, w, y);
         ctx.SetBufs(bufs);
-        ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-            findMode.IsFastHybrid(ctx);
         ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             DirConvFindCore(handle,
@@ -629,7 +626,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
         if(invoker)
         {
-            const auto& invoke_ctx = conv::DataInvokeParams{tensors, workSpace, workSpaceSize};
+            const auto& invoke_ctx = conv::DataInvokeParams{
+                tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetFwd()};
             (*invoker)(handle, invoke_ctx);
             return;
         }
@@ -909,6 +907,8 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
     auto sol = solver_id.GetSolver();
+    if(!sol.MayNeedWorkspace())
+        return 0;
     auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
@@ -1053,7 +1053,8 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
         }
 
         const auto invoker = LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::Forward);
-        const auto invoke_ctx = conv::DataInvokeParams{tensors, workSpace, workSpaceSize};
+        const auto invoke_ctx = conv::DataInvokeParams{
+            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetFwd()};
         invoker(handle, invoke_ctx);
     });
 }
@@ -1123,12 +1124,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         }();
 
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
-            const auto network_config = problem.BuildConfKey();
-            const auto invoke_ctx     = conv::DataInvokeParams{
-                InvokeType::Evaluate, {dyDesc, dy, wDesc, w, dxDesc, dx}, workSpace, workSpaceSize};
-
-            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                findMode.IsFastHybrid(ctx);
+            const auto network_config      = problem.BuildConfKey();
+            const auto invoke_ctx          = conv::DataInvokeParams{InvokeType::Evaluate,
+                                                           {dyDesc, dy, wDesc, w, dxDesc, dx},
+                                                           workSpace,
+                                                           workSpaceSize,
+                                                           this->attribute.gfx90aFp16alt.GetBwd()};
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
 
             // Find solutions
@@ -1289,7 +1290,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         if(!invoker)
             MIOPEN_THROW("No invoker was registered for convolution backward. Was find executed?");
 
-        const auto& invoke_ctx = conv::DataInvokeParams{tensors, workSpace, workSpaceSize};
+        const auto& invoke_ctx = conv::DataInvokeParams{
+            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetBwd()};
         (*invoker)(handle, invoke_ctx);
     });
 }
@@ -1364,6 +1366,8 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
 
     auto sol = solver_id.GetSolver();
+    if(!sol.MayNeedWorkspace())
+        return 0;
     auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
     ctx.SetStream(&handle);
     ctx.DetectRocm();
@@ -1413,7 +1417,8 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
 
         const auto invoker =
             LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardData);
-        const auto invoke_ctx = conv::DataInvokeParams{tensors, workSpace, workSpaceSize};
+        const auto invoke_ctx = conv::DataInvokeParams{
+            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetBwd()};
         invoker(handle, invoke_ctx);
     });
 }
@@ -1480,8 +1485,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
             bufs.SetWrW(x, dw, dy);
-            ctx.skip_solutions_that_take_long_time_to_build_and_have_narrow_coverage =
-                findMode.IsFastHybrid(ctx);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             ctx.do_search                  = exhaustiveSearch;
             ctx.SetStream(&handle);
@@ -1489,8 +1492,11 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             ctx.SetupFloats();
             ctx.DetectRocm();
             const auto network_config = ctx.BuildConfKey();
-            const auto invoke_ctx     = conv::WrWInvokeParams{
-                InvokeType::Evaluate, {dyDesc, dy, xDesc, x, dwDesc, dw}, workSpace, workSpaceSize};
+            const auto invoke_ctx     = conv::WrWInvokeParams{InvokeType::Evaluate,
+                                                          {dyDesc, dy, xDesc, x, dwDesc, dw},
+                                                          workSpace,
+                                                          workSpaceSize,
+                                                          this->attribute.gfx90aFp16alt.GetWrW()};
 
             // Find solutions
             const auto gemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
@@ -1627,7 +1633,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
         if(!invoker)
             MIOPEN_THROW("No invoker was registered for convolution weights. Was find executed?");
 
-        const auto invoke_ctx = conv::WrWInvokeParams{tensors, workSpace, workSpaceSize};
+        const auto invoke_ctx = conv::WrWInvokeParams{
+            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetWrW()};
         (*invoker)(handle, invoke_ctx);
     });
 }
@@ -1708,6 +1715,8 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "invalid solution id = " + solver_id.ToString());
 
     auto sol = solver_id.GetSolver();
+    if(!sol.MayNeedWorkspace())
+        return 0;
     auto problem =
         ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
     auto ctx = ConvolutionContext{problem};
@@ -1755,7 +1764,8 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
 
         const auto invoker =
             LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardWeights);
-        const auto invoke_ctx = conv::WrWInvokeParams{tensors, workSpace, workSpaceSize};
+        const auto invoke_ctx = conv::WrWInvokeParams{
+            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetWrW()};
         invoker(handle, invoke_ctx);
     });
 }

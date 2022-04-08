@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#define CONV_MP_BIDIRECTIONAL_WINOGRAD_CPP
+
 #include <limits>
 #include <cassert>
 #include <miopen/solver.hpp>
@@ -515,8 +517,8 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
                     // xdlops_conv use tensors.in, tensors.w, tensors.out
                     ConvDataTensors xdlops_tensor = ConvDataTensors(ConvFwdTensors{
                         zeroDesc, wino_in_ptr, zeroDesc, wino_w_ptr, zeroDesc, wino_out_ptr});
-                    const auto invoke_params =
-                        conv::DataInvokeParams{xdlops_tensor, workSpace, workSpaceSize};
+                    const auto invoke_params      = conv::DataInvokeParams{
+                        xdlops_tensor, workSpace, workSpaceSize, data_ctx.gfx90aFp16alt};
 
                     gemm_conv_invoker(handle, invoke_params);
                     kernel_name = gemm_conv_kernel_name;
@@ -635,7 +637,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
     const ConvolutionContext& params) const
 {
     ConvSolution result;
-    result.workspce_sz = GetWorkspaceSize(params);
+    result.workspace_sz = GetWorkspaceSize(params);
 #if MIOPEN_BACKEND_HIP
 
     const int n_groups = params.GetStream().GetMaxComputeUnits();
@@ -818,7 +820,8 @@ conv::DataInvokeParams GetTransformedInvokeContext(const ConvolutionContext& ctx
     const auto zeroDesc           = TensorDescriptor();
     ConvDataTensors xdlops_tensor = ConvDataTensors(
         ConvFwdTensors{zeroDesc, wino_in_ptr, zeroDesc, wino_w_ptr, zeroDesc, wino_out_ptr});
-    return conv::DataInvokeParams{xdlops_tensor, gemm_workSpace, gemm_workSpaceSize};
+    return conv::DataInvokeParams{
+        xdlops_tensor, gemm_workSpace, gemm_workSpaceSize, data_ctx.gfx90aFp16alt};
 #else
     (void)invoke_ctx;
     (void)ctx;
@@ -870,7 +873,7 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
         ConvHipImplicitGemmForwardV4R4Xdlops{}.GetSolution(xdlops_conv_ctx, config);
 
     ConvSolution result;
-    result.workspce_sz = wino_transform.workspce_sz + xdlops_conv.workspce_sz;
+    result.workspace_sz = wino_transform.workspace_sz + xdlops_conv.workspace_sz;
 
     assert(xdlops_conv.construction_params.size() == 1);
 

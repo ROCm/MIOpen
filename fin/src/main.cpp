@@ -60,8 +60,6 @@ using json = nlohmann::json;
 int main(int argc, char* argv[], char* envp[])
 {
     std::vector<std::string> args(argv, argv + argc);
-    std::string ifile;
-    std::string ofile;
     std::map<char, std::string> MapInputs = {};
 
     for(auto& arg : args)
@@ -91,7 +89,6 @@ int main(int argc, char* argv[], char* envp[])
         }
         if(args[i] == "-o")
         {
-            ofile                     = args[i + 1];
             MapInputs[args[i].back()] = args[i + 1];
         }
     }
@@ -151,6 +148,10 @@ int main(int argc, char* argv[], char* envp[])
                 FIN_THROW("Invalid operation: " + command["config"]["cmd"].get<std::string>());
                 exit(-1);
             }
+        }
+        else if(command.contains("pdb_verif") and command["pdb_verif"] == true)
+        {
+            f = std::make_unique<fin::ConvFin<float, float>>(command);
         }
         else
         {

@@ -35,7 +35,7 @@
 #include <miopen/mlir_build.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/target_properties.hpp>
-#include <miopen/tmp_dir.hpp>
+#include <miopen/temp_file.hpp>
 #include <miopen/write_file.hpp>
 #include <miopen/env.hpp>
 #include <miopen/comgr.hpp>
@@ -58,6 +58,11 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_USE_HIPRTC)
+
+#define MIOPEN_WORKAROUND_ISSUE_1359 1
+
 #if MIOPEN_USE_COMGR
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27 1
 #endif
@@ -78,10 +83,11 @@ int DetectCodeObjectOptionSyntax()
 
     if(syntax == 0)
     {
-        if(HipCompilerVersion() >= external_tool_version_t{4, 1, 0})
-            return 4;
-        else
-            return 1;
+#if HIP_PACKAGE_VERSION_FLAT >= 4001000000ULL
+        return 4;
+#else
+        return 1;
+#endif
     }
     MIOPEN_LOG_I("MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_OPTION=" << syntax);
     return syntax;
@@ -99,12 +105,11 @@ int DetectCodeObjectVersion()
 
     if(co_version == 0)
     {
-        if(HipCompilerVersion() >= external_tool_version_t{4, 1, 0})
-            return 4;
-        else if(HipCompilerVersion() >= external_tool_version_t{3, 0, -1})
-            return 3;
-        else
-            return 2;
+#if HIP_PACKAGE_VERSION_FLAT >= 4001000000ULL
+        return 4;
+#else
+        return 3;
+#endif
     }
     MIOPEN_LOG_I("MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION=" << co_version);
     return co_version;
@@ -162,12 +167,18 @@ static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
 template <typename T> /// intended for std::string and std::vector<char>
 hipModulePtr CreateModuleInMem(const T& blob)
 {
+#if !MIOPEN_WORKAROUND_ISSUE_1359
     hipModule_t raw_m;
     auto status = hipModuleLoadData(&raw_m, reinterpret_cast<const void*>(blob.data()));
     hipModulePtr m{raw_m};
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Failed loading module");
     return m;
+#else
+    TempFile f("interim-hsaco");
+    WriteFile(blob, f.Path());
+    return CreateModule(f.Path());
+#endif
 }
 
 HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
@@ -231,10 +242,6 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
         hsaco_file = HipBuild(dir, filename, src, params, target);
     }
 #if MIOPEN_USE_MLIR
-    else if(miopen::EndsWith(filename, ".mlir-cpp"))
-    {
-        hsaco_file = MiirBuildViaHip(dir, filename, src, params, target);
-    }
     else if(miopen::EndsWith(filename, ".mlir"))
     {
         std::vector<char> buffer;
@@ -245,6 +252,8 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
     else
     {
         params += " " + GetCodeObjectVersionOption();
+        if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
+            params += " -mwavefrontsize64 -mcumode";
         WriteFile(src, dir->path / filename);
         dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
     }
@@ -270,11 +279,20 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
         std::lock_guard<std::mutex> lock(mutex);
 #endif
         if(miopen::EndsWith(filename, ".cpp"))
-            comgr::BuildHip(filename, src, params, target, binary);
+        {
+#if MIOPEN_USE_HIPRTC
+            if(!miopen::IsDisabled(MIOPEN_DEBUG_USE_HIPRTC{}))
+                hiprtc::BuildHip(filename, src, params, target, binary);
+            else
+#endif // MIOPEN_USE_HIPRTC
+                comgr::BuildHip(filename, src, params, target, binary);
+        }
         else if(miopen::EndsWith(filename, ".s"))
             comgr::BuildAsm(filename, src, params, target, binary);
-        else if(miopen::EndsWith(filename, ".mlir-cpp"))
-            MIOPEN_THROW(miopenStatusNotImplemented, "MLIR builds are not supported with COMgr");
+#if MIOPEN_USE_MLIR
+        else if(miopen::EndsWith(filename, ".mlir"))
+            MiirGenBin(params, binary);
+#endif
         else
             comgr::BuildOcl(filename, src, params, target, binary);
     }
@@ -291,8 +309,6 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
                                          : program;
     const auto src = [&]() -> std::string {
         if(miopen::EndsWith(filename, ".mlir"))
-            return {}; // MLIR solutions do not use source code.
-        if(miopen::EndsWith(filename, ".mlir-cpp"))
             return {}; // MLIR solutions do not use source code.
         if(!kernel_src.empty())
             return kernel_src;

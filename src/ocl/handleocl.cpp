@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  *
  * MIT License
  *
@@ -431,6 +431,11 @@ Program Handle::LoadProgram(const std::string& program_name,
     }
 }
 
+void Handle::ClearProgram(const std::string& program_name, const std::string& params) const
+{
+    this->impl->cache.ClearProgram(program_name, params);
+}
+
 bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
 {
     return this->impl->cache.HasProgram(program_name, params);
@@ -543,7 +548,7 @@ void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size) const
     }
 }
 
-shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size)
+shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size) const
 {
     MIOPEN_HANDLE_LOCK
     struct region
@@ -554,6 +559,25 @@ shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::siz
     cl_int error = 0;
     auto r       = region{offset, size};
     auto mem = clCreateSubBuffer(data, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &r, &error);
+
+    if(error != CL_SUCCESS)
+    {
+        auto ss = std::ostringstream{};
+        ss << "Failed to allocate a subbuffer from 0x" << std::hex
+           << reinterpret_cast<std::ptrdiff_t>(data) << " with an offset 0x" << r.origin
+           << " and size 0x" << r.size << ". ";
+
+        if(error == CL_MISALIGNED_SUB_BUFFER_OFFSET)
+        {
+            ss << "CL_DEVICE_MEM_BASE_ADDR_ALIGN: 0x" << std::hex
+               << GetDeviceInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>(GetDevice(this->GetStream()))
+               << " bits. ";
+        }
+
+        ss << "OpenCL error:";
+        MIOPEN_THROW_CL_STATUS(error, ss.str());
+    }
+
     return {mem, manage_deleter<decltype(&clReleaseMemObject), &clReleaseMemObject>{}};
 }
 

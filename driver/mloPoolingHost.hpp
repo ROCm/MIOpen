@@ -75,8 +75,17 @@ double CalcErr( _T c_val, _T g_val)
 #define MLO_POOLING_OP_AVE_INCLUSIVE 3
 #endif
 
-template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
-          typename _Tcheck /* the data type used in CPU checkings (usually double) */,
+template <class TElement>
+constexpr auto GetNCDHW(int spatial_dims, const std::vector<TElement>& data)
+{
+    if(spatial_dims == 3)
+        return miopen::tien<5>(data, 1);
+    else
+        return std::make_tuple(data[0], data[1], static_cast<TElement>(1), data[2], data[3]);
+}
+
+template <typename Tgpu_ /* the data type used in GPU computations (usually half) */,
+          typename Tcheck_ /* the data type used in CPU checkings (usually double) */,
           typename Index>
 bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                        int pad_d,
@@ -88,38 +97,49 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                        int pad_w,
                                        int pool_stride_w,
                                        int filter_size_w,
-                                       int n_batchs,
-                                       int n_outputs,
-                                       int bot_depth,
-                                       int bot_height,
-                                       int bot_width,
-                                       int bot_stride,
-                                       int bot_depth_stride,
-                                       int bot_channel_stride,
-                                       int bot_batch_stride,
-                                       int top_depth,
-                                       int top_height,
-                                       int top_width,
-                                       int top_stride,
-                                       int top_depth_stride,
-                                       int top_channel_stride,
-                                       int top_batch_stride,
-                                       const _Tgpu* bot_ptr,
-                                       const _Tgpu* top_ptr,
+                                       const miopenTensorDescriptor_t& bot_,
+                                       const miopenTensorDescriptor_t& top_,
+                                       const Tgpu_* bot_ptr,
+                                       const Tgpu_* top_ptr,
                                        bool do_backward,
                                        size_t* mask_ptr,
                                        Index* mask_gpu,
-                                       _Tcheck allowedEps,
+                                       Tcheck_ allowedEps,
                                        int index_position = 1)
 {
+    const miopen::TensorDescriptor& bot = miopen::deref(bot_);
+    const miopen::TensorDescriptor& top = miopen::deref(top_);
+
+    int n_batchs, n_outputs, bot_depth, bot_height, bot_width;
+    int bot_w_stride, bot_h_stride, bot_d_stride, bot_c_stride, bot_n_stride;
+
+    int top_depth, top_height, top_width;
+    int top_w_stride, top_h_stride, top_d_stride, top_c_stride, top_n_stride;
+
+    std::tie(n_batchs, n_outputs, bot_depth, bot_height, bot_width) =
+        GetNCDHW(bot.GetSize(), bot.GetLengths());
+    std::tie(bot_n_stride, bot_c_stride, bot_d_stride, bot_h_stride, bot_w_stride) =
+        GetNCDHW(bot.GetSize(), bot.GetStrides());
+
+    std::tie(std::ignore, std::ignore, top_depth, top_height, top_width) =
+        GetNCDHW(top.GetSize(), top.GetLengths());
+    std::tie(top_n_stride, top_c_stride, top_d_stride, top_h_stride, top_w_stride) =
+        GetNCDHW(top.GetSize(), top.GetStrides());
+
+    // Mask data is always NCDHW
+    constexpr const int mask_w_stride = 1;
+    const int mask_h_stride           = mask_w_stride * top_width;
+    const int mask_d_stride           = mask_h_stride * top_height;
+    const int mask_c_stride           = mask_d_stride * top_depth;
+    const int mask_n_stride           = mask_c_stride * n_outputs;
 
     bool match = true;
-    _Tcheck MAX_VAL(3.402823466e+38);
-    _Tgpu G_MAX_VAL = (sizeof(_Tgpu) == 4 || sizeof(_Tgpu) == 8)
-                          ? static_cast<_Tgpu>(3.402823466e+38)
-                          : static_cast<_Tgpu>(65504);
+    Tcheck_ MAX_VAL(3.402823466e+38);
+    Tgpu_ G_MAX_VAL = (sizeof(Tgpu_) == 4 || sizeof(Tgpu_) == 8)
+                          ? static_cast<Tgpu_>(3.402823466e+38)
+                          : static_cast<Tgpu_>(65504);
     // c-emulator
-    _Tcheck res = static_cast<_Tcheck>(0);
+    Tcheck_ res = static_cast<Tcheck_>(0);
 
     for(int b = 0; b < n_batchs && match; b++)
     {
@@ -139,7 +159,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                         else if(pooling_method == MLO_POOLING_OP_AVE ||
                                 pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
                         {
-                            res = static_cast<_Tcheck>(0);
+                            res = static_cast<Tcheck_>(0);
                         }
 
                         int dstart = k * pool_stride_d - pad_d;
@@ -167,14 +187,14 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                             {
                                 for(int w = wstart; w < wend; ++w)
                                 {
-                                    size_t bot_index = b * bot_batch_stride +
-                                                       o * bot_channel_stride +
-                                                       d * bot_depth_stride + h * bot_stride + w;
+                                    size_t bot_index = b * bot_n_stride + o * bot_c_stride +
+                                                       d * bot_d_stride + h * bot_h_stride +
+                                                       w * bot_w_stride;
                                     if(pooling_method == MLO_POOLING_OP_MAX)
                                     {
-                                        if(static_cast<_Tcheck>(bot_ptr[bot_index]) > res)
+                                        if(static_cast<Tcheck_>(bot_ptr[bot_index]) > res)
                                         {
-                                            res       = static_cast<_Tcheck>(bot_ptr[bot_index]);
+                                            res       = static_cast<Tcheck_>(bot_ptr[bot_index]);
                                             res_index = bot_index;
                                             res_index_gpu =
                                                 index_position == 1
@@ -192,7 +212,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                             pooling_method == MLO_POOLING_OP_AVE_INCLUSIVE)
                                     {
 
-                                        res += static_cast<_Tcheck>(bot_ptr[bot_index]);
+                                        res += static_cast<Tcheck_>(bot_ptr[bot_index]);
                                     }
                                     else
                                     {
@@ -213,8 +233,11 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                             res_index_gpu = std::numeric_limits<uint8_t>::max();
                         }
 
-                        size_t top_index = b * top_batch_stride + o * top_channel_stride +
-                                           k * top_depth_stride + j * top_stride + i;
+                        size_t top_index = b * top_n_stride + o * top_c_stride + k * top_d_stride +
+                                           j * top_h_stride + i * top_w_stride;
+                        size_t mask_gpu_index = b * mask_n_stride + o * mask_c_stride +
+                                                k * mask_d_stride + j * mask_h_stride +
+                                                i * mask_w_stride;
                         if(pooling_method == MLO_POOLING_OP_MAX)
                         {
                             // the case with the odd input, the even kernel size and 2*pad == kernel
@@ -222,7 +245,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                             mask_ptr[top_index] = res_index;
                             if(do_backward)
                             {
-                                size_t mg = mask_gpu[top_index];
+                                size_t mg = mask_gpu[mask_gpu_index];
                                 if(mg != res_index_gpu)
                                 {
                                     std::cout << "Mask mismatch, gpu " << mg << " cpu "
@@ -237,15 +260,15 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                         {
                             res /= pool_size;
                         }
-                        _Tcheck c_val = res;
+                        Tcheck_ c_val = res;
 
-                        _Tgpu gg_val = (top_ptr[top_index]);
+                        Tgpu_ gg_val = (top_ptr[top_index]);
 
-                        gg_val = (_Tgpu(gg_val) == _Tgpu(-G_MAX_VAL)) ? _Tgpu(0) : _Tgpu(gg_val);
+                        gg_val = (Tgpu_(gg_val) == Tgpu_(-G_MAX_VAL)) ? Tgpu_(0) : Tgpu_(gg_val);
 
                         c_val = (c_val == -MAX_VAL) ? 0 : c_val;
 
-                        _Tcheck g_val(gg_val);
+                        Tcheck_ g_val(gg_val);
 
                         double err = std::abs(c_val - g_val);
 
@@ -266,8 +289,8 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
     return (match);
 }
 
-template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
-          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
+template <typename Tgpu_ /* the data type used in GPU computations (usually half) */,
+          typename Tcheck_ /* the data type used in CPU checkings (usually double) */>
 int mloPoolingBackwardRunHost(
     int pooling_method,
     int filter_size_d,
@@ -280,8 +303,8 @@ int mloPoolingBackwardRunHost(
     int pad_w,
     int pool_stride_w,
 
-    _Tcheck* bot_df_v_ptr, // the code assumes that bot_df_v_ptr was zeroed
-    const _Tgpu* top_df_ptr,
+    Tcheck_* bot_df_v_ptr, // the code assumes that bot_df_v_ptr was zeroed
+    const Tgpu_* top_df_ptr,
     const size_t* mask_ptr,
 
     int bot_df_v_batch_stride,
@@ -326,7 +349,7 @@ int mloPoolingBackwardRunHost(
                             // skip top points that don't have associated bottom points
                             if(bot_idx == std::numeric_limits<size_t>::max())
                                 continue;
-                            bot_df_v_ptr[bot_idx] += static_cast<_Tcheck>(top_df_ptr[top_idx]);
+                            bot_df_v_ptr[bot_idx] += static_cast<Tcheck_>(top_df_ptr[top_idx]);
                         }
                     }
                 }
@@ -343,7 +366,7 @@ int mloPoolingBackwardRunHost(
                         {
                             // c-emulator
                             bot_df_v_ptr[bot_df_v_off + k * bot_df_v_depth_stride +
-                                         j * bot_df_v_stride + i] = static_cast<_Tcheck>(0);
+                                         j * bot_df_v_stride + i] = static_cast<Tcheck_>(0);
                             int d                                 = k + pad_d;
                             int h                                 = j + pad_h;
                             int w                                 = i + pad_w;
@@ -356,7 +379,7 @@ int mloPoolingBackwardRunHost(
                             int pwstart =
                                 (w < filter_size_w) ? 0 : (w - filter_size_w) / pool_stride_w + 1;
                             int pwend        = std::min(w / pool_stride_w + 1, top_width);
-                            _Tcheck gradient = static_cast<_Tcheck>(0);
+                            Tcheck_ gradient = static_cast<Tcheck_>(0);
                             for(int pd = pdstart; pd < pdend; ++pd)
                             {
                                 for(int ph = phstart; ph < phend; ++ph)
@@ -388,10 +411,10 @@ int mloPoolingBackwardRunHost(
                                                     ? 1
                                                     : filter_size_w * filter_size_h * filter_size_d;
                                         gradient +=
-                                            static_cast<_Tcheck>(
+                                            static_cast<Tcheck_>(
                                                 top_df_ptr[top_df_off + pd * top_df_depth_stride +
                                                            ph * top_df_stride + pw]) /
-                                            static_cast<_Tcheck>(pool_size);
+                                            static_cast<Tcheck_>(pool_size);
                                     }
                                 }
                             }

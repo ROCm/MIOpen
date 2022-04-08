@@ -65,6 +65,21 @@ gid_z = 4
 .set unused_ptr_off, 0x38
 .set KERNEL_ARGUMENTS_SIZE, unused_ptr_off + 8
 
+// gfx90a requires 64bit aligned vgpr tuples
+// Tuples are used only in buffer_load_dwordx/buffer_store_dwordx instructions
+//
+// To meet this requirement, the following approach is used ('buffer_load_dwordx4 v[x:y]' as an example):
+//    if 'x' 64bit aligned:
+//       buffer_load_dwordx4 v[x:y], ...
+//    if 'x' not 64bit aligned:
+//       buffer_load_dword   v[x], ...
+//       buffer_load_dwordx3 v[x+1:y], ...
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 0 && .amdgcn.gfx_generation_stepping == 10)
+   tuple_alignment = 1
+.else
+   tuple_alignment = 0
+.endif
+
 .ifnotdef do_not_use_default_perf_params
     default n_per_gpr, 4 // 1..4, 2^n
     default c_per_gpr, 4 // 1..16, 2^n
@@ -323,9 +338,6 @@ accums_cnt = wei_w * wei_h * k_per_gpr * c_mult * k_mult
 .VGPR_ALLOC accums, accums_cnt
 single_lane_vgpr_offset = read_size
 
-.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
-.VGPR_ALLOC valign_unused, (.VGPR_NEXT_FREE % 2) // lines_in/out must be 64 bit aligned
-.endif
 inbuf_prefetch_vgpr_offset = single_lane_vgpr_offset * c_mult
 inbuf_bit_convert_vgpr_offset = inbuf_prefetch_vgpr_offset * (data_prefetch + 1)
 lines_in_cnt = inbuf_bit_convert_vgpr_offset + (bit_convert_mult * inbuf_prefetch_vgpr_offset)
@@ -725,7 +737,13 @@ miopenGcnAsmConv1x1WrW:
                 .if(_sequential_output_channels_it != 0)
                     increase_ioffset_or_soffset _sequential_ck_offset, soff, _seq_ck_offset_in_soffset, ck_stride
                 .endif
-                m_buffer_load_dwordx \dwords1, dst,            \voff1, desc, soff, _sequential_ck_offset
+                .if tuple_alignment && (\dwords1 > 1) && (dst % 2)
+                    m_buffer_load_dwordx 1,          dst,              \voff1, desc, soff,  _sequential_ck_offset
+                    m_buffer_load_dwordx \dwords1-1, dst+1,            \voff1, desc, soff, (_sequential_ck_offset + dword_size)
+                    \w_cnt = \w_cnt + 1
+                .else
+                    m_buffer_load_dwordx \dwords1, dst,            \voff1, desc, soff, _sequential_ck_offset
+                .endif
                 .if(\dwords1>0)
                     \w_cnt = \w_cnt + 1
                 .endif
@@ -741,7 +759,13 @@ miopenGcnAsmConv1x1WrW:
                         bound_dwords_cnt = bound_elements_cnt / elements_in_dword
                         bound_shorts_cnt = bound_elements_cnt % elements_in_dword
 
-                        m_buffer_load_dwordx bound_dwords_cnt, dst, \voff2, desc, soff, _sequential_ck_offset
+                        .if tuple_alignment && (bound_dwords_cnt > 1) && (dst % 2)
+                            m_buffer_load_dwordx 1,                  dst,   \voff2, desc, soff,  _sequential_ck_offset
+                            m_buffer_load_dwordx bound_dwords_cnt-1, dst+1, \voff2, desc, soff, (_sequential_ck_offset + dword_size)
+                            \w_cnt = \w_cnt + 1
+                        .else
+                            m_buffer_load_dwordx bound_dwords_cnt, dst, \voff2, desc, soff, _sequential_ck_offset
+                        .endif
                         short_offset = bound_dwords_cnt * dword_size
                         m_buffer_load_ushort bound_shorts_cnt, dst + bound_dwords_cnt, \voff2, desc, soff, (_sequential_ck_offset + short_offset)
 
@@ -754,7 +778,13 @@ miopenGcnAsmConv1x1WrW:
 
                         s_mov_b64 exec, -1
                     .else
-                        m_buffer_load_dwordx \dwords2, dst + \dwords1, \voff2, desc, soff, (_sequential_ck_offset + part2_offset)
+                        .if tuple_alignment && (\dwords2 > 1) && (dst % 2)
+                            m_buffer_load_dwordx 1,          dst + \dwords1,     \voff2, desc, soff, (_sequential_ck_offset + part2_offset)
+                            m_buffer_load_dwordx \dwords2-1, dst + \dwords1 + 1, \voff2, desc, soff, (_sequential_ck_offset + part2_offset + dword_size)
+                            \w_cnt = \w_cnt + 1
+                        .else
+                            m_buffer_load_dwordx \dwords2, dst + \dwords1, \voff2, desc, soff, (_sequential_ck_offset + part2_offset)
+                        .endif
                         .if(\dwords2 > 0)
                             \w_cnt = \w_cnt + 1
                         .endif

@@ -40,6 +40,10 @@
 
 #include <amd_comgr.h>
 #include <hip/hip_runtime_api.h>
+#if MIOPEN_USE_HIPRTC
+#include <miopen/manage_ptr.hpp>
+#include <hip/hiprtc.h>
+#endif
 
 #include <algorithm>
 #include <exception>
@@ -47,6 +51,11 @@
 #include <cstring>
 #include <tuple> // std::ignore
 #include <vector>
+
+/// Correctness problems on MI200 with base driver 5.11.14 (~ROCm 4.3.1).
+/// With base driver 5.11.32 the errors disappear.
+/// More info at https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1257.
+#define WORKAROUND_ISSUE_1257 (HIP_PACKAGE_VERSION_FLAT >= 4003021331ULL)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_CALLS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
@@ -67,6 +76,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
 
 /// \todo see issue #1222, PR #1316
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 
 #ifndef MIOPEN_AMD_COMGR_VERSION_MAJOR
 #define MIOPEN_AMD_COMGR_VERSION_MAJOR 0
@@ -100,12 +111,22 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
 #endif
 
 #if WORKAROUND_SWDEV_257056_PCH_INCORRECTLY_REPORTED
-#if(HIP_PACKAGE_VERSION_FLAT <= 3009999999)
+#if HIP_SUPPORTS_PCH && (HIP_PACKAGE_VERSION_FLAT <= 3009999999ULL)
 #undef HIP_SUPPORTS_PCH
 #define HIP_SUPPORTS_PCH 0
 #endif
 #endif
+
+// '__hipGetPCH' is not available in [4.4, 5.0). See SWDEV-308265.
+#if HIP_SUPPORTS_PCH && (HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL) && \
+    (HIP_PACKAGE_VERSION_FLAT < 5000000000ULL)
+#undef HIP_SUPPORTS_PCH
+#define HIP_SUPPORTS_PCH 0
+#endif
+
 #endif // COMGR_SUPPORTS_PCH
+
+#define PCH_IS_SUPPORTED (COMGR_SUPPORTS_PCH && HIP_SUPPORTS_PCH)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
 
@@ -125,12 +146,14 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
             MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info));    \
     } while(false)
 
-// Regarding EC*THROW* macros:
-// Q: Whats the point in logging if it is going to throw?
-// A: This prints build log (that presumably contains warning
-// and error messages from compiler/linker etc) onto console,
-// thus informing the *user*. MIOPEN_THROW informs the *library*
-// that compilation has failed.
+/// \anchor comgr_throw_macros
+///
+/// Regarding EC*THROW* macros:
+/// Q: Whats the point in logging if it is going to throw?
+/// A: This prints build log (that presumably contains warning
+/// and error messages from compiler/linker etc) onto console,
+/// thus informing the *user*. MIOPEN_THROW informs the *library*
+/// that compilation has failed.
 
 #define EC(comgrcall) EC_BASE(comgrcall, NoInfo, (void)0)
 #define EC_THROW(comgrcall) EC_BASE(comgrcall, NoInfo, Throw(status))
@@ -195,8 +218,11 @@ static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties&
 #endif
     list.push_back("-mllvm");
     list.push_back("-amdgpu-prelink");
-    list.push_back("-mwavefrontsize64"); // gfx1000+ WAVE32 mode: always disabled.
-    list.push_back("-mcumode");          // gfx1000+ WGP mode: always disabled.
+    if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
+    {
+        list.push_back("-mwavefrontsize64");
+        list.push_back("-mcumode");
+    }
     list.push_back("-O3");
 
 #if ROCM_FEATURE_TARGETID_OFF
@@ -232,23 +258,15 @@ static void RemoveOptionsUnwanted(OptionList& list)
 
 namespace hip {
 
-#if COMGR_SUPPORTS_PCH
-static bool IsPchEnabled()
-{
-    if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
-        return true;
-    if(miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
-        return false;
-    return HIP_SUPPORTS_PCH;
-}
+#if PCH_IS_SUPPORTED
+static bool IsPchEnabled() { return !miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}); }
 #endif
 
 static std::string GetPchEnableStatus()
 {
-#if COMGR_SUPPORTS_PCH
+#if PCH_IS_SUPPORTED
     auto rv = std::string{IsPchEnabled() ? "1" : "0"};
-    if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}) ||
-       miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE{}))
         return rv += " (enforced)";
     return rv;
 #else
@@ -264,19 +282,29 @@ static bool IsLinkerOption(const std::string& option)
 
 static void RemoveCommonOptionsUnwanted(OptionList& list)
 {
-    list.erase(remove_if(list.begin(),
-                         list.end(),
-                         [&](const auto& option) { // clang-format off
+    list.erase(
+        remove_if(
+            list.begin(),
+            list.end(),
+            [&](const auto& option) { // clang-format off
                              return miopen::StartsWith(option, "-mcpu=")
                                 || (option == "-hc")
                                 || (option == "-x hip") || (option == "-xhip")
                                 || (option == "--hip-link")
-                                || (option == "-lclang_rt.builtins-x86_64")
-                                || miopen::StartsWith(option, "-mllvm -amdgpu-early-inline-all")
-                                || miopen::StartsWith(option, "-mllvm -amdgpu-function-calls")
+                                // The following matches current "-lclang_rt.builtins-x86_64" (4.5) as weel as
+                                // upcoming ".../libclang_rt.builtins-x86_64.a" and even future things like
+                                // "...x86_64.../libclang_rt.builtins.a" etc.
+                                || ((option.find("clang_rt.builtins") != std::string::npos)
+                                 && (option.find("x86_64") != std::string::npos))
                                 || miopen::StartsWith(option, "--hip-device-lib-path="); // clang-format on
-                         }),
-               list.end());
+            }),
+        list.end());
+}
+
+static void AddCompilerOptions(const OptionList& list) // `const` is for clang-tidy.
+{
+    // Nothing to do here yet, but let's keep the placeholder for now.
+    std::ignore = list;
 }
 
 static void RemoveCompilerOptionsUnwanted(OptionList& list)
@@ -306,13 +334,18 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 } // namespace hip
 
 /// \todo Get list of supported isa names from comgr and select.
-static std::string GetIsaName(const miopen::TargetProperties& target)
+static std::string GetIsaName(const miopen::TargetProperties& target, const bool isHlcBuild)
 {
 #if ROCM_FEATURE_TARGETID_OFF
+    std::ignore                  = isHlcBuild;
     const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? "+sram-ecc" : "";
     return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
 #else
     const LcOptionTargetStrings lots(target);
+#if WORKAROUND_ISSUE_1257
+    if(isHlcBuild)
+        return {"amdgcn-amd-amdhsa--" + lots.device + lots.xnack};
+#endif
     return {"amdgcn-amd-amdhsa--" + lots.targetId};
 #endif
 }
@@ -455,27 +488,29 @@ static void LogOptions(const char* options[], size_t count)
 class Dataset;
 static std::string GetLog(const Dataset& dataset, bool comgr_error_handling = false);
 
-// Q: Why arent we using MIOPEN_THROW? Using MIOPEN_THROW can report back the
-// source line numbers where the exception was thrown. Usually we write
-// a function to convert the error enum into a message and then pass that
-// MIOPEN_THROW.
-//
-// A: These exceptions are not intended to report "normal" miopen errors.
-// The main purpose is to prevent resource leakage (comgr handles)
-// when compilation of the device code fails. The side functionality is to
-// hold status codes and diagnostic messages received from comgr
-// when build failure happens.
-//
-// The diagnostic messages are expected to be like the ones that
-// offline compiler prints after build errors. Usually these
-// contain the file/line information of the problematic device code,
-// so file/line of the host code is not needed here
-// (and even considered harmful).
-//
-// These exceptions are not allowed to escape comgr module.
-//
-// The comgr module can be considered as a "library within a library"
-// that provides HIP backend with functionality similar to clBuildProgram().
+/// \anchor comgr_throw_errors
+///
+/// Q: Why arent we using MIOPEN_THROW? Using MIOPEN_THROW can report back the
+/// source line numbers where the exception was thrown. Usually we write
+/// a function to convert the error enum into a message and then pass that
+/// MIOPEN_THROW.
+///
+/// A: These exceptions are not intended to report "normal" miopen errors.
+/// The main purpose is to prevent resource leakage (comgr handles)
+/// when compilation of the device code fails. The side functionality is to
+/// hold status codes and diagnostic messages received from comgr
+/// when build failure happens.
+///
+/// The diagnostic messages are expected to be like the ones that
+/// offline compiler prints after build errors. Usually these
+/// contain the file/line information of the problematic device code,
+/// so file/line of the host code is not needed here
+/// (and even considered harmful).
+///
+/// These exceptions are not allowed to escape comgr module.
+///
+/// The comgr module can be considered as a "library within a library"
+/// that provides HIP backend with functionality similar to clBuildProgram().
 
 struct ComgrError : std::exception
 {
@@ -521,7 +556,7 @@ class Data : ComgrOwner
     {
         ECI_THROW(amd_comgr_set_data(handle, bytes.size(), bytes.data()), bytes.size());
     }
-#if COMGR_SUPPORTS_PCH
+#if PCH_IS_SUPPORTED
     void SetFromBuffer(const char* const buffer, const size_t size) const
     {
         ECI_THROW(amd_comgr_set_data(handle, size, buffer), size);
@@ -582,7 +617,7 @@ class Dataset : ComgrOwner
             MIOPEN_LOG_I(text);
         }
     }
-#if COMGR_SUPPORTS_PCH
+#if PCH_IS_SUPPORTED
     void AddDataHipPch(const char* const content, const size_t size) const
     {
         const char name[] = "hip.pch";
@@ -628,8 +663,10 @@ class ActionInfo : ComgrOwner
     {
         ECI_THROW(amd_comgr_action_info_set_logging(handle, state), state);
     }
-    void SetOptionList(const std::vector<std::string>& options) const
+    void SetOptionList(const std::vector<std::string>& options_) const
     {
+        // Split remaining pairs, e.g. "-mllvm -amdgpu-early-inline-all=true".
+        const auto options = miopen::SplitSpaceSeparated(options_);
         std::vector<const char*> vp;
         vp.reserve(options.size());
         std::transform(options.begin(), options.end(), std::back_inserter(vp), [&](auto& opt) {
@@ -677,29 +714,32 @@ static std::string GetLog(const Dataset& dataset, const bool comgr_error_handlin
             return {"comgr error: failed to get error log"};
         // deepcode ignore EmptyThrowOutsideCatch: false positive
         throw;
-        // Q: What the point in catching the error if you are just going to rethrow it?
-        //
-        // A: In the context of handling of build error, the function is invoked to get build log
-        // from comgr. If it fails, it doesn't rethrow because this would overwrite the
-        // original comgr status.
-        //
-        // The use case is when some build error happens (e.g. linking error) but we unable to
-        // obtain log data from the dataset due to comgr error. We keep original error information
-        // (albeit only status code). The user will see error message with original status code
-        // plus comgr error: "failed to get error log."
-        //
-        // Rethrowing happens when/if this function is invoked during normal flow, i.e. when
-        // there is no build errors. In such a case, the catch block does nothing and allows
-        // all exceptions to escape. This would effectively stop the build.
+        /// \anchor catch_and_rethrow_in_getlog
+        /// Q: What the point in catching the error if you are just going to rethrow it?
+        ///
+        /// A: In the context of handling of build error, the function is invoked to get build log
+        /// from comgr. If it fails, it doesn't rethrow because this would overwrite the
+        /// original comgr status.
+        ///
+        /// The use case is when some build error happens (e.g. linking error) but we unable to
+        /// obtain log data from the dataset due to comgr error. We keep original error information
+        /// (albeit only status code). The user will see error message with original status code
+        /// plus comgr error: "failed to get error log."
+        ///
+        /// Rethrowing happens when/if this function is invoked during normal flow, i.e. when
+        /// there is no build errors. In such a case, the catch block does nothing and allows
+        /// all exceptions to escape. This would effectively stop the build.
     }
     return text;
 }
 
-static void SetIsaName(const ActionInfo& action, const miopen::TargetProperties& target)
+static void SetIsaName(const ActionInfo& action,
+                       const miopen::TargetProperties& target,
+                       const bool isHlcBuild = false)
 {
     // This can't be implemented in ActionInfo because
     // comgr wrappers should not depend on compiler implementation.
-    const auto isaName = compiler::lc::GetIsaName(target);
+    const auto isaName = compiler::lc::GetIsaName(target, isHlcBuild);
     MIOPEN_LOG_I2(isaName);
     action.SetIsaName(isaName);
 }
@@ -733,7 +773,7 @@ void BuildHip(const std::string& name,
         for(const auto& inc : incNames)
             inputs.AddData(inc, miopen::GetKernelInc(inc), AMD_COMGR_DATA_KIND_INCLUDE);
 
-#if COMGR_SUPPORTS_PCH
+#if PCH_IS_SUPPORTED
         if(compiler::lc::hip::IsPchEnabled())
         {
             const char* pch       = nullptr;
@@ -745,7 +785,7 @@ void BuildHip(const std::string& name,
 
         const ActionInfo action;
         action.SetLanguage(AMD_COMGR_LANGUAGE_HIP);
-        SetIsaName(action, target);
+        SetIsaName(action, target, true);
         action.SetLogging(true);
 
         const Dataset exe;
@@ -775,7 +815,7 @@ void BuildHip(const std::string& name,
             if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
                 raw += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #endif
-#if COMGR_SUPPORTS_PCH
+#if PCH_IS_SUPPORTED
             if(compiler::lc::hip::IsPchEnabled())
             {
                 raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1";
@@ -784,7 +824,7 @@ void BuildHip(const std::string& name,
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             auto optLink    = optCompile;
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
-            compiler::lc::hip::RemoveLinkOptionsUnwanted(optLink);
+            compiler::lc::hip::AddCompilerOptions(optCompile);
 
             action.SetOptionList(optCompile);
             const Dataset compiledBc;
@@ -799,6 +839,7 @@ void BuildHip(const std::string& name,
             const Dataset withDevLibs;
             action.Do(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, compiledBc, withDevLibs);
 
+            compiler::lc::hip::RemoveLinkOptionsUnwanted(optLink);
             action.SetOptionList(optLink);
             const Dataset linkedBc;
             action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, withDevLibs, linkedBc);
@@ -822,6 +863,7 @@ void BuildHip(const std::string& name,
     }
     catch(ComgrError& ex)
     {
+        binary.resize(0); // Necessary when "get binary" fails.
         MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
@@ -845,7 +887,7 @@ void BuildOcl(const std::string& name,
 #else
         action.SetLanguage(AMD_COMGR_LANGUAGE_OPENCL_1_2);
 #endif
-        SetIsaName(action, target);
+        SetIsaName(action, target, true);
         action.SetLogging(true);
 
         auto optCompile = miopen::SplitSpaceSeparated(options);
@@ -902,6 +944,7 @@ void BuildOcl(const std::string& name,
     }
     catch(ComgrError& ex)
     {
+        binary.resize(0);
         MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
@@ -924,10 +967,9 @@ void BuildAsm(const std::string& name,
         SetIsaName(action, target);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
-#if WORKAROUND_SWDEV_255735
-        if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-            if(target.Xnack() && !*target.Xnack())
-                optAsm.push_back("-mno-xnack");
+#if ROCM_FEATURE_ASM_REQUIRES_NO_XNACK_OPTION
+        if(target.Xnack() && !*target.Xnack())
+            optAsm.emplace_back("-mno-xnack");
 #endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);
@@ -948,6 +990,7 @@ void BuildAsm(const std::string& name,
     }
     catch(ComgrError& ex)
     {
+        binary.resize(0);
         MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
@@ -955,4 +998,290 @@ void BuildAsm(const std::string& name,
 }
 
 } // namespace comgr
+
+#if MIOPEN_USE_HIPRTC
+
+#define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838
+
+namespace hiprtc {
+
+using OptionList = std::vector<std::string>;
+
+/// Compiler implementation-specific functionality
+namespace compiler {
+
+#if COMPILER_LC
+namespace lc {
+
+static inline void RemoveOptionsUnwanted(OptionList& list)
+{
+    list.erase(remove_if(list.begin(),
+                         list.end(),
+                         [&](const auto& option) { return miopen::StartsWith(option, "-mcpu="); }),
+               list.end());
+}
+
+} // namespace lc
+#endif // COMPILER_LC
+
+} // namespace compiler
+
+/// \ref comgr_throw_errors
+struct Error : std::exception
+{
+    hiprtcResult status;
+    std::string text;
+
+    Error(const hiprtcResult s) : status(s) {}
+    Error(const hiprtcResult s, const std::string& t) : status(s), text(t) {}
+    const char* what() const noexcept override { return text.c_str(); }
+};
+
+[[noreturn]] static void Throw(const hiprtcResult s) { throw Error{s}; }
+[[noreturn]] static void Throw(const hiprtcResult s, const std::string& text)
+{
+    throw Error{s, text};
+}
+
+static inline std::string to_string(const std::string& v) { return {v}; }
+static inline std::string to_string(const char* v) { return {v}; }
+static inline auto to_string(const std::size_t& v) { return std::to_string(v); }
+
+static std::string GetStatusText(const hiprtcResult status)
+{
+    const char* reason = hiprtcGetErrorString(status);
+    return std::string(reason) + " (" + std::to_string(static_cast<int>(status)) + ')';
+}
+
+#define HIPRTC_CALL_BASE(call, info, action, statusdef)                                         \
+    do                                                                                          \
+    {                                                                                           \
+        statusdef status = (call);                                                              \
+        if(status != HIPRTC_SUCCESS)                                                            \
+        {                                                                                       \
+            MIOPEN_LOG_E("\'" #call "\' " << to_string(info) << ": " << GetStatusText(status)); \
+            (action);                                                                           \
+        }                                                                                       \
+        else if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_CALLS{}))                              \
+            MIOPEN_LOG_I("Ok \'" #call "\' " << to_string(info));                               \
+    } while(false)
+
+/// \ref comgr_throw_macros
+#define NOARG
+#define HIPRTC_CALL_INFO_THROW(call, info) \
+    HIPRTC_CALL_BASE(call, info, Throw(status), const hiprtcResult)
+#define HIPRTC_CALL_INFO_THROW_MSG(call, info, msg) \
+    HIPRTC_CALL_BASE(call, info, Throw(status, (msg)), const hiprtcResult)
+#define HIPRTC_CALL_INFO_NOSTATUSDEF(call, info) HIPRTC_CALL_BASE(call, info, (void)0, NOARG)
+
+static void PrintVersion()
+{
+    static const hiprtcResult once = []() {
+        int major = 0;
+        int minor = 0;
+        auto rv   = hiprtcVersion(&major, &minor);
+        MIOPEN_LOG_NQI("HIPRTC v." << major << '.' << minor);
+        return rv;
+    }();
+    std::ignore = once;
+}
+
+/// \ref
+/// https://github.com/ROCmSoftwarePlatform/AMDMIGraphX/blob/21193e875fe2133b38872decb7b2d0f985f48496/src/targets/gpu/compile_hip.cpp#L44
+/// Workaround hiprtc's broken API
+static void hiprtc_program_destroy(hiprtcProgram prog) { hiprtcDestroyProgram(&prog); }
+using hiprtc_program_ptr = MIOPEN_MANAGE_PTR(hiprtcProgram, hiprtc_program_destroy);
+
+static hiprtc_program_ptr CreateProgram(const char* src,
+                                        const char* name,
+                                        int numHeaders,
+                                        const char** headers,
+                                        const char** includeNames)
+{
+    hiprtcProgram prog = nullptr;
+    hiprtcResult status;
+    HIPRTC_CALL_INFO_NOSTATUSDEF(
+        hiprtcCreateProgram(&prog, src, name, numHeaders, headers, includeNames), name);
+    hiprtc_program_ptr p{prog}; // To destroy prog even if hiprtcCreateProgram() failed.
+    if(status != HIPRTC_SUCCESS)
+    {
+        Throw(status, "Create program failed");
+    }
+    return p;
+}
+
+class HiprtcProgram
+{
+    struct string_ptr_array
+    {
+        std::vector<const char*> c_strs{};
+        string_ptr_array() {}
+        string_ptr_array(const string_ptr_array&) = delete;
+        std::size_t size() const { return c_strs.size(); }
+        const char** data() { return c_strs.data(); }
+        void push_back(const std::string* s) { c_strs.push_back(s->c_str()); }
+    };
+
+    struct string_array
+    {
+        std::vector<std::string> strings{};
+        std::vector<const char*> c_strs{};
+        string_array() {}
+        string_array(const string_array&) = delete;
+        std::size_t size() const { return strings.size(); }
+        const char** data() { return c_strs.data(); }
+        void push_back(std::string s)
+        {
+            strings.push_back(std::move(s));
+            c_strs.push_back(strings.back().c_str());
+        }
+        // Use to avoid invalidation of pointers to existing strings
+        // stored in 'c_strs' when new items added to 'strings'.
+        void reserve(size_t new_cap) { strings.reserve(new_cap); }
+    };
+
+    hiprtc_program_ptr prog = nullptr;
+    string_ptr_array include_texts{}; // Copying of text is not necessary.
+    string_array include_names{};
+
+    const std::string& src_name;
+    const std::string& src_text;
+
+    public:
+    HiprtcProgram(const std::string& src_name_, const std::string& src_text_)
+        : src_name(src_name_), src_text(src_text_)
+    {
+        LogInputFile(src_name, src_text);
+        const auto inc_names = miopen::GetHipKernelIncList();
+        include_names.reserve(inc_names.size());
+        for(const auto& inc_name : inc_names)
+        {
+            const auto inc_text = miopen::GetKernelIncPtr(inc_name);
+            LogInputFile(inc_name, *inc_text);
+            include_names.push_back(inc_name);
+            include_texts.push_back(inc_text);
+        }
+        prog = CreateProgram(src_text.c_str(),
+                             src_name.c_str(),
+                             include_texts.size(),
+                             include_texts.data(),
+                             include_names.data());
+    }
+
+    void Compile(const std::vector<std::string>& options)
+    {
+        std::vector<const char*> c_options;
+        std::transform(options.begin(),
+                       options.end(),
+                       std::back_inserter(c_options),
+                       [](const std::string& s) { return s.c_str(); });
+        comgr::LogOptions(c_options.data(), c_options.size());
+
+        HIPRTC_CALL_INFO_THROW_MSG(
+            hiprtcCompileProgram(prog.get(), c_options.size(), c_options.data()),
+            src_name,
+            GetLog(true));
+        const auto log = GetLog(false);
+        if(!log.empty())
+            MIOPEN_LOG_I(log);
+    }
+
+    void GetCode(std::vector<char>& bytes) const
+    {
+        std::size_t sz = 0;
+        HIPRTC_CALL_INFO_THROW(hiprtcGetCodeSize(prog.get(), &sz), src_name);
+        bytes.resize(sz);
+        HIPRTC_CALL_INFO_THROW(hiprtcGetCode(prog.get(), &bytes[0]), src_name);
+    }
+
+    private:
+    void LogInputFile(const std::string& name, const std::string& content)
+    {
+        if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
+            MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
+        if(miopen::IsLogging(miopen::LoggingLevel::Info))
+        {
+            const auto show_first = miopen::Value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT{}, 0);
+            if(show_first > 0)
+            {
+                const auto text_length =
+                    (content.size() > show_first) ? show_first : content.size();
+                const std::string text(content, 0, text_length);
+                MIOPEN_LOG_I(text);
+            }
+        }
+    }
+
+    std::string GetLog(const bool error_handling)
+    {
+        std::string text;
+        try
+        {
+            std::size_t n = 0;
+            HIPRTC_CALL_INFO_THROW(hiprtcGetProgramLogSize(prog.get(), &n), n);
+            if(n < 2)
+                return {error_handling ? "warning: HIPRTC error log empty" : ""};
+            std::vector<char> buffer(n);
+            HIPRTC_CALL_INFO_THROW(hiprtcGetProgramLog(prog.get(), buffer.data()), n);
+            assert(buffer.back() == 0);
+            return {buffer.begin(), buffer.end() - 1};
+        }
+        catch(Error&)
+        {
+            if(error_handling)
+                return {"HIPRTC error: failed to get error log"};
+            throw;
+            /// \ref catch_and_rethrow_in_getlog
+        }
+    }
+};
+
+void BuildHip(const std::string& name,
+              const std::string& text,
+              const std::string& options,
+              const miopen::TargetProperties& target,
+              std::vector<char>& binary)
+{
+    PrintVersion();
+    try
+    {
+        auto opts =
+            miopen::SplitSpaceSeparated(options, miopen::comgr::compiler::lc::GetOptionsNoSplit());
+        compiler::lc::RemoveOptionsUnwanted(opts);
+        opts.push_back("-DWORKAROUND_ISSUE_HIPRTC_TRUE_TYPE"); // Workaround for SWDEV-308073
+        opts.push_back("-D__HIP_PLATFORM_HCC__=1");            // Workaround?
+        opts.push_back("-D__HIP_PLATFORM_AMD__=1");            // Workaround?
+#if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+        if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
+            opts.push_back("-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1");
+#endif
+        opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
+        opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1");
+#if WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H
+        opts.push_back("-Wno-newline-eof");
+#endif
+        opts.push_back("-Wno-cuda-compat");
+        opts.push_back("-fno-gpu-rdc");
+        opts.push_back("-O3");
+        if(std::none_of(opts.begin(), opts.end(), [](const std::string& s) {
+               return StartsWith(s, "--std=") || StartsWith(s, "-std=");
+           }))
+            opts.push_back("-std=c++17");
+
+        HiprtcProgram prog(name, text);
+        prog.Compile(opts);
+        prog.GetCode(binary);
+    }
+    catch(Error& ex)
+    {
+        binary.resize(0);
+        MIOPEN_LOG_E("HIPRTC status = " << GetStatusText(ex.status) << ", source file: " << name);
+        if(!ex.text.empty())
+            MIOPEN_LOG_W(ex.text);
+    }
+}
+
+} // namespace hiprtc
+#endif // MIOPEN_USE_HIPRTC
+
 } // namespace miopen

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,13 @@
 #ifndef MIOPEN_INPUT_FLAGS_HPP_
 #define MIOPEN_INPUT_FLAGS_HPP_
 
+#include <miopen/miopen.h>
+
+#include <boost/optional.hpp>
+
 #include <map>
 #include <string>
+#include <vector>
 
 struct Input
 {
@@ -36,6 +41,26 @@ struct Input
     std::string value;
     std::string help_text;
     std::string type;
+    bool convert2uppercase;
+};
+
+struct TensorParameters
+{
+    std::vector<int> lengths = {};
+    std::vector<int> strides = {};
+    std::string layout       = "";
+
+    TensorParameters FillMissing(const TensorParameters& other)
+    {
+        return {
+            (lengths.empty() ? other.lengths : lengths),
+            (strides.empty() ? other.strides : strides),
+            (layout.empty() ? other.layout : layout),
+        };
+    }
+
+    int SetTensordDescriptor(miopenTensorDescriptor_t result, miopenDataType_t data_type);
+    void CalculateStrides();
 };
 
 class InputFlags
@@ -48,7 +73,14 @@ class InputFlags
                       char _short_name,
                       const std::string& _value,
                       const std::string& _help_text,
-                      const std::string& type);
+                      const std::string& type,
+                      const bool _convert2uppercase = false);
+
+    void AddTensorFlag(const std::string& name,
+                       char short_name,
+                       const std::string& default_value,
+                       const std::string& default_desc = "");
+
     void Parse(int argc, char* argv[]);
     char FindShortName(const std::string& _long_name) const;
     void Print() const;
@@ -57,7 +89,9 @@ class InputFlags
     int GetValueInt(const std::string& _long_name) const;
     uint64_t GetValueUint64(const std::string& _long_name) const;
     double GetValueDouble(const std::string& _long_name) const;
+    TensorParameters GetValueTensor(const std::string& long_name) const;
     void SetValue(const std::string& long_name, const std::string& new_value);
+    void StoreOptionalFlagValue(char short_name, const std::string input_value);
 
     virtual ~InputFlags() {}
 };

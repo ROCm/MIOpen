@@ -26,13 +26,67 @@
 #ifndef MIOPEN_POOLING_HPP_
 #define MIOPEN_POOLING_HPP_
 
-#include "miopen/common.hpp"
+#include <miopen/common.hpp>
+#include <miopen/errors.hpp>
 #include <miopen/object.hpp>
 #include <miopen/miopen.h>
 
 #include <vector>
 
 namespace miopen {
+
+// get the previous (less or equal to v) power of 2
+inline int prePow2(int v)
+{
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    return (v + 1) >> 1;
+}
+
+inline std::string get_pooling_index_type_name(miopenIndexType_t index_type)
+{
+    switch(index_type)
+    {
+    case miopenIndexUint8: {
+        return "uchar";
+    }
+    case miopenIndexUint16: {
+        return "ushort";
+    }
+    case miopenIndexUint32: {
+        return "uint";
+    }
+    case miopenIndexUint64: {
+        return "ulong";
+    }
+    }
+
+    MIOPEN_THROW("not belong to any case");
+}
+
+inline std::string get_pooling_index_type_max_name(miopenIndexType_t index_type)
+{
+    switch(index_type)
+    {
+    case miopenIndexUint8: {
+        return "UCHAR_MAX";
+    }
+    case miopenIndexUint16: {
+        return "USHRT_MAX";
+    }
+    case miopenIndexUint32: {
+        return "UINT_MAX";
+    }
+    case miopenIndexUint64: {
+        return "ULONG_MAX";
+    }
+    }
+
+    MIOPEN_THROW("not belong to any case");
+}
 
 struct Handle;
 struct TensorDescriptor;
