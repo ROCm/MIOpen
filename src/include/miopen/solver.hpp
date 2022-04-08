@@ -1773,6 +1773,20 @@ struct ConvBinWinogradRxS : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
+struct ConvBinWinogradUltraRxSf2x3 : ConvSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvBinWinogradUltraRxSf2x3>();
+    }
+
+    bool IsApplicable(const ConvolutionContext& params) const override;
+    bool IsDynamic() const override { return true; }
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
+    bool MayNeedWorkspace() const override { return true; }
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
+};
+
 struct PerformanceConfigConvBinWinogradRxSf3x2
     : Serializable<PerformanceConfigConvBinWinogradRxSf3x2>
 {
