@@ -501,6 +501,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Pooling, pooling::TransposedPoolingFwd2d{}.SolverDbId());
     Register(registry, ++id, Primitive::Pooling, pooling::TransposedPoolingFwdNd{}.SolverDbId());
 
+    RegisterWithSolver(
+        registry, ++id, ConvBinWinogradUltraRxSf2x3{}, miopenConvolutionAlgoWinograd);
+
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
