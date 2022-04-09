@@ -513,9 +513,9 @@ void test_tensor_reorder(int argc, const char* argv[])
     {
         if(arg == "--all")
         {
-            test_drive_impl<Driver<double>>(argv[0], std::move(as));
-            test_drive_impl<Driver<float>>(argv[0], std::move(as));
-            test_drive_impl<Driver<half_float::half>>(argv[0], std::move(as));
+            test_drive_impl<Driver<double>>(argv[0], as);
+            test_drive_impl<Driver<float>>(argv[0], as);
+            test_drive_impl<Driver<half_float::half>>(argv[0], as);
             test_drive_impl<Driver<int8_t>>(argv[0], std::move(as));
             break;
         }
