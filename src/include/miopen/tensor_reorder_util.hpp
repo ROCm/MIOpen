@@ -178,10 +178,9 @@ MakeTensorReorderAttributes(const ExecutionContext& ctx_,
                             uint32_t order_2_,
                             uint32_t order_3_)
 {
-    std::unique_ptr<TensorReorderAttributesBase> default_ptr;
     if(!ctx_.use_hip_kernels)
     {
-        return default_ptr;
+        return nullptr;
     }
     // Default using general reorder
     if(data_type_ == miopenBFloat16)
@@ -235,9 +234,8 @@ MakeTensorReorderAttributes(const ExecutionContext& ctx_,
     case 5:
         return std::make_unique<BatchedTransposeSolution_3012>(
             ctx_, data_type_, dim_0_, dim_1_, dim_2_, dim_3_);
-    default: MIOPEN_THROW("Unsupported reorder sequence"); break;
+    default: MIOPEN_THROW("Unsupported reorder sequence"); return nullptr;
     }
-    return default_ptr;
 }
 
 } // namespace miopen
