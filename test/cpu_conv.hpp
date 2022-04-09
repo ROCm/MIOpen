@@ -78,6 +78,7 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
     // f(x0, x1, xs...)
     // f1(xs...) = f(x0, x1, xs...)
     // f2(xs_array) = f1(xs...)
+    // out (n k y x )
     auto par_ford_out_nk_spatial =
         miopen::unpacker(miopen::prepender(par_ford, out_n_len, wei_k_len))(out_spatial_len);
 

@@ -3823,7 +3823,7 @@ struct PerformanceConfigAsmImplicitGemmGTCvector : Serializable<PerformanceConfi
 
     PerformanceConfigAsmImplicitGemmGTCvector()
         : PerformanceConfigAsmImplicitGemmGTCvector("fwd",
-                                                    "nchwc",
+                                                    "nchwc_kcyxc",
                                                     "Halfx4",
                                                     1,
                                                     1,
@@ -3846,7 +3846,7 @@ struct PerformanceConfigAsmImplicitGemmGTCvector : Serializable<PerformanceConfi
     }
     PerformanceConfigAsmImplicitGemmGTCvector(bool spare)
         : PerformanceConfigAsmImplicitGemmGTCvector("fwd",
-                                                    "nchwc",
+                                                    "nchwc_kcyxc",
                                                     "Halfx4",
                                                     1,
                                                     1,
@@ -4015,7 +4015,7 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC : PerformanceConfigAsmIm
     
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC()
         : PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC("fwd",
-                                                           "nchwc",
+                                                           "nchwc_kcyxc",
                                                            "Halfx4",
                                                            1,
                                                            1,
@@ -4038,7 +4038,7 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC : PerformanceConfigAsmIm
     }
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC(bool spare)
         : PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC("fwd",
-                                                           "nchwc",
+                                                           "nchwc_kcyxc",
                                                            "Halfx4",
                                                            1,
                                                            1,
@@ -4083,7 +4083,7 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC : ConvSolver
                                   const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC&) const;
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
-    bool MayNeedWorkspace() const override { return true; }
+    bool MayNeedWorkspace() const override { return false; }
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,

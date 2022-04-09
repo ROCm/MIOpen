@@ -196,6 +196,8 @@ public:
     }
 
     int AddCmdLineArgs() override;
+    ///\brief We only support fp16x4 and fp16x8 vector type
+    void SetDataTypefromBaseArg(std::string baseArg);
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
 
@@ -436,10 +438,35 @@ bool ConvDriver<Tgpu, Tref>::IsInputTensorTransform() const
 }
 
 template <typename Tgpu, typename Tref>
+void ConvDriver<Tgpu, Tref>::SetDataTypefromBaseArg(std::string baseArg)
+{
+    ///\todo Can we modify this to a lambda expression
+    if(baseArg.compare(0, 4, "conv") == 0){
+        auto found_vec = baseArg.find("fp16x");       
+        if(found_vec != std::string::npos){
+            std::string vec_str = baseArg.substr(found_vec + 5);
+            int vector_c = std::stoi( vec_str );
+            if(vector_c == 4){
+                data_type = miopenHalfx4;
+            }
+            else if(vector_c == 8){
+                data_type = miopenHalfx8;
+            }
+            else{
+                MIOPEN_THROW("Unsupported vector length");
+            }    
+        }
+    }
+}
+
+template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
 
     inflags.Parse(argc, argv);
+
+    std::string base_arg = ParseBaseArg(argc, argv);
+    SetDataTypefromBaseArg(base_arg);
 
     // try to set a default layout value for 3d conv if not specified from cmd line
     int spatial_dim = inflags.GetValueInt("spatial_dim");
@@ -538,6 +565,7 @@ void ConvDriver<Tgpu, Tref>::ValidateLayoutInputParameters(std::string layout_va
     else
     {
         if((layout_value.compare("NCHW") == 0) || (layout_value.compare("NHWC") == 0) ||
+           (layout_value.compare("NCHW_VECT_C") == 0) || (layout_value.compare("CHWN_VECT_C") == 0) ||
            (layout_value.compare("NCDHW") == 0) || (layout_value.compare("NDHWC") == 0))
         {
             // do nothing,Values are matching as defined in Lib.

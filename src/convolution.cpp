@@ -234,7 +234,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
         }
         else
         {
-            out_c = wei_k;
+            out_c = wei_k/wDesc.GetVectorLength();
 
             for(int i = 0; i < spatial_dim; ++i)
             {
@@ -265,6 +265,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
     return {(xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
                  ? (yType == miopenInt32 ? yType : miopenFloat)
                  : xDesc.GetType()),
+            (yLayout == "NCHW_VECT_C" ? miopenTensorNCHW_VECT_C : miopenTensorNCHW),
             out_lens,
             out_strides};
 }

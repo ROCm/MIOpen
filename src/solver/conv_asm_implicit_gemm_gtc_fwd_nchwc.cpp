@@ -349,7 +349,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == "Halfx4" || config.precision == "Halfx4")
+            if(config.precision == "Halfx8")
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp &&
@@ -367,14 +367,14 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
         }
     }
 
-    for(const auto& tile : tile_list_Halfx8)
+    for(const auto& tile : tile_list_Halfx4)
     {
         int mp, np, kp;
         std::tie(mp, np, kp) = tile;
         bool found           = false;
         for(const auto& config : c_list)
         {
-            if(config.precision == "Halfx8" || config.precision == "Halfx8")
+            if(config.precision == "Halfx8")
                 continue;
             if(config.gemm_m_per_block == mp && config.gemm_n_per_block == np &&
                config.gemm_k_per_block == kp &&
@@ -424,6 +424,11 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
             if(!((ctx.IsHalfx4() && config.precision == "Halfx4") ||
                  (ctx.IsHalfx8() && config.precision == "Halfx8")))
                 continue;
+            
+            if(!((ctx.IsNCHWc_NCHWc() && config.tensor_layout == "nchwc_kcyxc") ||
+                 (ctx.IsNCHWc_CHWNc() && config.tensor_layout == "nchwc_cyxkc")))
+                continue;
+                
             if(!(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
                 continue;
             // If we go here, then this is our last hope.
@@ -444,12 +449,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
         CopyParameters(config_list[selected_index]);
     };
     
-    // TODO: delete this if-else
-    if((m_per_block == 0 && n_per_block == 0 && k_per_block == 0))
-    {
-        // not found, let's try  gemm_k pad now.
-        find_with_gemm_k_pad();
-    }
+    find_with_gemm_k_pad();
 }
 
 bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::SetNextValue(
@@ -563,32 +563,30 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionC
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC{}))
         return false;
-    std::cout<<"-----------"<<std::endl;
-    std::cout<<"-    0    -"<<std::endl;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx1030"))
         return false;
-    std::cout<<"-    1    -"<<std::endl;
+    
     if(!ctx.use_asm_kernels)
         return false;
-    std::cout<<"-    2    -"<<std::endl;
+    
     if(!ctx.direction.IsForward())
         return false;
-    std::cout<<"-    3    -"<<std::endl;
+    
     if(!ctx.Is2d())
         return false;
-    std::cout<<"-    4    -"<<std::endl;
+    
     if(!ctx.IsHalfx4() && !ctx.IsHalfx8())
         return false;
-    std::cout<<"-    5    -"<<std::endl;
+    
     if(!ctx.rmv.IsV3())
         return false;
-    std::cout<<"-    6    -"<<std::endl;
+    
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
-    std::cout<<"-    7    -"<<std::endl;
+    
 
     if(0 == igemm_split_batch_size(ctx.in_height,
                                    ctx.in_width,
@@ -599,9 +597,10 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionC
                                    ctx.n_inputs,
                                    miopen::GetTypeSize(ctx.in_data_type)))
         return false;
-    std::cout<<"-    8    -"<<std::endl;
+    
     return true;
 }
+
 ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     const ConvolutionContext& ctx,
     const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config,
@@ -631,8 +630,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    const auto is_nchwc = ctx.IsLayoutNCHWC();
-    if(!is_nchwc) MIOPEN_THROW("Tensor layout is not in NCHW_VECT_C format");
+    if(!ctx.IsLayoutNCHWC()) MIOPEN_THROW("Tensor layout is not in VECT_C format");
 
     result.construction_params.push_back(kernel);
     std::ostringstream options;

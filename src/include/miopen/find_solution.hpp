@@ -165,11 +165,7 @@ struct SolverContainer
                 }
                 else
                 {
-                    std::cout<<"|------------------|"<<std::endl;
-                    std::cout<<"|Start FindSolution|"<<std::endl;
-                    std::cout<<"|------------------|"<<std::endl;
                     const Solution s = FindSolution(solver, search_params, db, invoke_ctx);
-                    std::cout<<'\n'<<"After FindSolution, The solver ID is :"<<'\n'<<s.solver_id<<std::endl;
                     if(s.Succeeded())
                     {
                         ++count;

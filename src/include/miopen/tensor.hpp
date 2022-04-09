@@ -135,6 +135,11 @@ struct TensorDescriptor : miopenTensorDescriptor
     TensorDescriptor(miopenDataType_t t,
                      std::vector<std::size_t> lens_in,
                      std::vector<std::size_t> strides_in);
+    
+    TensorDescriptor(miopenDataType_t t,
+                     miopenTensorLayout_t layout_in,
+                     std::vector<std::size_t> lens_in,
+                     std::vector<std::size_t> strides_in);
 
     template <class Range>
     TensorDescriptor(miopenDataType_t t, const Range& plens)
@@ -151,6 +156,7 @@ struct TensorDescriptor : miopenTensorDescriptor
     }
 
     void CalculateStrides();
+    void CalculateVectorC();
 
     const std::vector<std::size_t>& GetLengths() const;
     const std::vector<std::size_t>& GetStrides() const;
@@ -168,10 +174,17 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::size_t GetIndex(std::initializer_list<int> l) const;
 
+    std::size_t GetIndexVect(int ivect, std::initializer_list<int> l) const;
+
     template <class... Ts>
     std::size_t GetIndex(Ts... is) const
     {
         return this->GetIndex({static_cast<int>(is)...});
+    }
+    template <class Tvec, class... Ts>
+    std::size_t GetIndexVect(Tvec ivec, Ts... is) const
+    {
+        return this->GetIndexVect(static_cast<int>(ivec),{static_cast<int>(is)...});
     }
 
     bool IsPacked() const;
@@ -195,21 +208,43 @@ struct TensorDescriptor : miopenTensorDescriptor
                          }));
         return result;
     }
+    std::string GetTensorLayout() const{
+        if(tensorLayout == miopenTensorNCHW_VECT_C) 
+            return "NCHW_VECT_C";
+        else if(tensorLayout == miopenTensorCHWN_VECT_C) 
+            return "CHWN_VECT_C";
+        else
+            return "NCHW";
+    }
 
     std::string GetLayout(std::string labels) const
     {
-        if(labels.size() != strides.size())
-        {
-            MIOPEN_THROW(
-                "Invalid labels size. Layout labels size must be equavalent to stride size");
+        if(labels.find("_VECT_") == std::string::npos){
+            if(labels.size() != strides.size())
+            {
+                MIOPEN_THROW(
+                    "Invalid labels size. Layout labels size must be equavalent to stride size");
+            }
+    
+            // Copy construct the result string from labels. This allocates the space at one go
+            // and is faster than calling push_back in transform.
+            auto result = labels;
+            auto p      = find_permutation(lens, strides);
+            std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
+            return result;
         }
-
-        // Copy construct the result string from labels. This allocates the space at one go
-        // and is faster than calling push_back in transform.
-        auto result = labels;
-        auto p      = find_permutation(lens, strides);
-        std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
-        return result;
+        else{
+            std::string base_label = labels.substr(0, labels.find("_VECT_"));
+            if(base_label.size() != strides.size())
+            {
+                MIOPEN_THROW(
+                    "Invalid labels size. Layout labels size must be equavalent to stride size");
+            }
+            auto result = base_label;
+            auto p      = find_permutation(lens, strides);
+            std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
+            return result+labels.substr(labels.find("_VECT_"));
+        }
     }
 
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);

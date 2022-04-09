@@ -479,7 +479,7 @@ void PerformanceConfigAsmImplicitGemmGTCvector::CopyParameters(
 std::string PerformanceConfigAsmImplicitGemmGTCvector::ToString() const
 {
     std::ostringstream ss;
-    // ss << ToKernelName();
+    //ss << ToKernelName();
     Serialize(ss);
     return ss.str();
 }

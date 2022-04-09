@@ -602,7 +602,6 @@ struct verify_forward_conv : conv_base<T, Tout>
                                                   handle, weights.desc, input.desc, rout.desc)
                                             : filter.ForwardGetWorkSpaceSize(
                                                   handle, weights.desc, input.desc, rout.desc);
-
                 std::vector<char> workspace(workspace_size);
                 auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
@@ -1723,10 +1722,10 @@ struct conv_driver : test_driver
         ///\todo try catch()
                 vector_c = std::stoi( vec_str );
                 if(vector_c == 4){
-                    this->type = miopenHalfx4;
+                    type = miopenHalfx4;
                 }
                 else if(vector_c == 8){
-                    this->type = miopenHalfx8;
+                    type = miopenHalfx8;
                 }
                 else{
                     MIOPEN_THROW("Unsupported vector length");
@@ -1771,7 +1770,7 @@ struct conv_driver : test_driver
         std::size_t spatial_dim = filter.GetSpatialDimension();
         filter.group_count      = std::max(static_cast<int>(groupCount), 1);
 
-        if(!input_dims.empty())
+        if(!input_dims.empty() && in_layout.find("_VECT_") == std::string::npos)
         {
             input          = tensor<T>{input_dims}.generate(tensor_elem_gen_integer{17});
             batch_size     = input_dims.at(0);
@@ -1808,7 +1807,7 @@ struct conv_driver : test_driver
                         .generate(tensor_elem_gen_integer{17});
         }
 
-        if(!weight_tensor_dims.empty())
+        if(!weight_tensor_dims.empty() && fil_layout.find("_VECT_") == std::string::npos)
         {
             weights         = tensor<T>{weight_tensor_dims}.generate(tensor_elem_gen_integer{17});
             output_channels = weight_tensor_dims.at(0);
@@ -2163,13 +2162,13 @@ struct conv_driver : test_driver
                                   handle, weights.desc, input.desc, output.desc)
                             : filter.ForwardGetWorkSpaceSize(
                                   handle, weights.desc, input.desc, output.desc);
-
+                    
                     size_t workspace_size_3 = filter.BackwardWeightsGetWorkSpaceSize(
                         handle,
                         filter.mode == miopenTranspose ? input.desc : output.desc,
                         filter.mode == miopenTranspose ? output.desc : input.desc,
                         weights.desc);
-
+                    
                     std::vector<size_t> workspace_sizes = {
                         workspace_size_1, workspace_size_2, workspace_size_3};
                     size_t workspace_size =
@@ -2245,7 +2244,6 @@ struct conv_driver : test_driver
                     }
                     else
                     {
-                        std::cout<<"go here"<<std::endl;
                         verify(verify_forward_conv<T>{
                             input, weights, output, filter, stats, 0, search, false, immed});
                     }

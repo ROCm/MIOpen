@@ -180,7 +180,7 @@ struct ProblemDescription
     {
         if(GetSpatialDims() == 2)
         {
-            return in.GetLayout("NCHW");
+            return in.GetLayout(in.GetTensorLayout());
         }
         else
         {
@@ -214,7 +214,7 @@ struct ProblemDescription
     {
         if(GetSpatialDims() == 2)
         {
-            return out.GetLayout("NCHW");
+            return out.GetLayout(out.GetTensorLayout());
         }
         else
         {
@@ -247,7 +247,7 @@ struct ProblemDescription
     {
         if(GetSpatialDims() == 2)
         {
-            return weights.GetLayout("NCHW");
+            return weights.GetLayout(weights.GetTensorLayout());
         }
         else
         {

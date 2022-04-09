@@ -37,6 +37,25 @@
 #include <numeric>
 #include <vector>
 
+inline int GetTensorVectorLength(miopenTensorDescriptor_t& tensor)
+{
+    int vectorLength;
+
+    int size = 0;
+    miopenGetTensorDescriptorSize(tensor, &size);
+
+    if(size == 4)
+    {
+        miopenGet4dTensorDescriptorVectorLength(tensor, &vectorLength);
+        return vectorLength;
+    }
+    else
+    {
+        MIOPEN_THROW("We only support 4D layout in vector format");
+    }
+    return 0;
+}
+
 inline std::vector<int> GetTensorLengths(miopenTensorDescriptor_t& tensor)
 {
     int n;
@@ -104,6 +123,21 @@ inline int SetTensor4d(miopenTensorDescriptor_t t,
     return miopenSet4dTensorDescriptor(t, data_type, UNPACK_VEC4(len));
 }
 
+inline int SetTensor4dVector(miopenTensorDescriptor_t t,
+                             std::vector<int>& len,
+                             const std::string& layout,
+                             miopenDataType_t data_type = miopenFloat)
+{
+    if(layout == "NCHW_VECT_C")
+        return miopenSet4dTensorDescriptorWithLayout(t, data_type, miopenTensorNCHW_VECT_C, len[0], len[1], len[2], len[3]);
+    else if(layout == "CHWN_VECT_C")
+        return miopenSet4dTensorDescriptorWithLayout(t, data_type, miopenTensorCHWN_VECT_C, len[0], len[1], len[2], len[3]);
+    else{
+        MIOPEN_THROW("We only supported NCHW_VECT_C & CHWN_VECT_C layout");
+        return -1;
+    }
+}
+
 inline int SetTensorNd(miopenTensorDescriptor_t t,
                        std::vector<int>& len,
                        miopenDataType_t data_type = miopenFloat)
@@ -129,10 +163,16 @@ inline int SetTensorNd(miopenTensorDescriptor_t t,
         return SetTensorNd(t, len, data_type);
     }
 
-    if(layout.size() != len.size())
+    if(layout.size() != len.size() && layout.find("_VECT_") == std::string::npos)
     {
         MIOPEN_THROW("unmatched layout and dimension size");
     }
+
+    if(layout.compare(0, 3, "NCHW") && layout.find("_VECT_"))
+    {
+        return SetTensor4dVector(t, len, layout, data_type);
+    }
+    ///\todo CHWN_VECT_C type 
 
     // Dimension lengths vector 'len' comes with a default layout.
     std::string len_layout = miopen::tensor_layout_get_default(layout.size());
@@ -156,7 +196,8 @@ inline size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
     assert(miopen::deref(tensor).IsPacked() &&
            "GetTensorSize should not be used on an unpacked tensor.");
     const auto len = GetTensorLengths(tensor);
-    size_t sz      = std::accumulate(len.begin(), len.end(), size_t{1}, std::multiplies<size_t>());
+    const auto vectorLength = GetTensorVectorLength(tensor);
+    size_t sz      = std::accumulate(len.begin(), len.end(), vectorLength, std::multiplies<size_t>());
 
     return sz;
 }
@@ -167,5 +208,10 @@ inline size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
 inline size_t GetTensorSpace(miopenTensorDescriptor_t& tensor)
 {
     return miopen::deref(tensor).GetElementSpace();
+}
+
+inline std::string GetTensorLayout(miopenTensorDescriptor_t& tensor)
+{
+    return miopen::deref(tensor).GetTensorLayout();
 }
 #endif // GUARD_MIOPEN_TENSOR_DRIVER_HPP
