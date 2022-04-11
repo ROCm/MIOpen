@@ -40,7 +40,7 @@
 
 #if MIOPEN_USE_ROCBLAS
 #include <half.hpp>
-#include <rocblas.h>
+#include <rocblas/rocblas.h>
 #include <miopen/perf_field.hpp>
 #endif
 
