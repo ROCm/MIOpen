@@ -91,7 +91,15 @@ bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx) const
     if(*this == MlirHeuristicInitRequest())
         return true;
 
-    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, *this, false));
+    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, false));
+    bool isValid     = false;
+    for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
+    {
+        isValid = MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, *this, false, kernel_id));
+        if(!isValid)
+            return false;
+    }
+    return isValid;
 #else
     std::ignore = ctx;
     return false;
