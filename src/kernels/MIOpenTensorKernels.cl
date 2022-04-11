@@ -635,12 +635,43 @@ __kernel void Op2dTensorSquash(const global MIOPEN_TYPE* a,
                                const int use_bet)
 {
     MIOPEN_TYPE a_dat[RD_BLCK];
-    MIOPEN_TYPE b_dat[RD_BLCK];
+    MIOPEN_TYPE b_dat1[RD_BLCK];
+    MIOPEN_TYPE b_dat2[RD_BLCK];
+    MIOPEN_TYPE b_dat3[RD_BLCK];
+    MIOPEN_TYPE b_dat4[RD_BLCK];
+    MIOPEN_TYPE b_dat5[RD_BLCK];
+    MIOPEN_TYPE b_dat6[RD_BLCK];
+    MIOPEN_TYPE b_dat7[RD_BLCK];
+    MIOPEN_TYPE b_dat8[RD_BLCK];
+    MIOPEN_TYPE b_dat9[RD_BLCK];
+    MIOPEN_TYPE b_dat10[RD_BLCK];
+    MIOPEN_TYPE b_dat11[RD_BLCK];
+    MIOPEN_TYPE b_dat12[RD_BLCK];
+    MIOPEN_TYPE b_dat13[RD_BLCK];
+    MIOPEN_TYPE b_dat14[RD_BLCK];
+    MIOPEN_TYPE b_dat15[RD_BLCK];
+    MIOPEN_TYPE b_dat16[RD_BLCK];
     MIOPEN_TYPE c_dat[RD_BLCK];
+    int g_RD_BLCK;
 
     for(int i = 0; i < RD_BLCK; ++i)
     {
-        b_dat[i] = (MIOPEN_TYPE)0;
+        b_dat1[i]  = (MIOPEN_TYPE)0;
+        b_dat2[i]  = (MIOPEN_TYPE)0;
+        b_dat3[i]  = (MIOPEN_TYPE)0;
+        b_dat4[i]  = (MIOPEN_TYPE)0;
+        b_dat5[i]  = (MIOPEN_TYPE)0;
+        b_dat6[i]  = (MIOPEN_TYPE)0;
+        b_dat7[i]  = (MIOPEN_TYPE)0;
+        b_dat8[i]  = (MIOPEN_TYPE)0;
+        b_dat9[i]  = (MIOPEN_TYPE)0;
+        b_dat10[i] = (MIOPEN_TYPE)0;
+        b_dat11[i] = (MIOPEN_TYPE)0;
+        b_dat12[i] = (MIOPEN_TYPE)0;
+        b_dat13[i] = (MIOPEN_TYPE)0;
+        b_dat14[i] = (MIOPEN_TYPE)0;
+        b_dat15[i] = (MIOPEN_TYPE)0;
+        b_dat16[i] = (MIOPEN_TYPE)0;
     }
 
     for(int gid = get_global_id(0); gid < total_work; gid += get_global_size(0))
@@ -670,16 +701,108 @@ __kernel void Op2dTensorSquash(const global MIOPEN_TYPE* a,
             }
         }
 
-        for(int bid = 0; bid < b_c; bid++)
+        g_RD_BLCK = gid * RD_BLCK;
+        if(use_apl1 == 1)
         {
-            if(use_apl1 == 1)
+            for(int bid = 0; bid < ((b_c / 16) * 16); bid += 16)
             {
-                int b_index          = bid * b_nstride + gid * RD_BLCK;
-                *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
+
+                int b_index1           = (bid * b_nstride) + g_RD_BLCK;
+                int b_index2           = ((bid + 1) * b_nstride) + g_RD_BLCK;
+                int b_index3           = ((bid + 2) * b_nstride) + g_RD_BLCK;
+                int b_index4           = ((bid + 3) * b_nstride) + g_RD_BLCK;
+                int b_index5           = ((bid + 4) * b_nstride) + g_RD_BLCK;
+                int b_index6           = ((bid + 5) * b_nstride) + g_RD_BLCK;
+                int b_index7           = ((bid + 6) * b_nstride) + g_RD_BLCK;
+                int b_index8           = ((bid + 7) * b_nstride) + g_RD_BLCK;
+                int b_index9           = ((bid + 8) * b_nstride) + g_RD_BLCK;
+                int b_index10          = ((bid + 9) * b_nstride) + g_RD_BLCK;
+                int b_index11          = ((bid + 10) * b_nstride) + g_RD_BLCK;
+                int b_index12          = ((bid + 11) * b_nstride) + g_RD_BLCK;
+                int b_index13          = ((bid + 12) * b_nstride) + g_RD_BLCK;
+                int b_index14          = ((bid + 13) * b_nstride) + g_RD_BLCK;
+                int b_index15          = ((bid + 14) * b_nstride) + g_RD_BLCK;
+                int b_index16          = ((bid + 15) * b_nstride) + g_RD_BLCK;
+                *((READ_TYPE*)b_dat1)  = *((const global READ_TYPE*)(b + Boffset + b_index1));
+                *((READ_TYPE*)b_dat2)  = *((const global READ_TYPE*)(b + Boffset + b_index2));
+                *((READ_TYPE*)b_dat3)  = *((const global READ_TYPE*)(b + Boffset + b_index3));
+                *((READ_TYPE*)b_dat4)  = *((const global READ_TYPE*)(b + Boffset + b_index4));
+                *((READ_TYPE*)b_dat5)  = *((const global READ_TYPE*)(b + Boffset + b_index5));
+                *((READ_TYPE*)b_dat6)  = *((const global READ_TYPE*)(b + Boffset + b_index6));
+                *((READ_TYPE*)b_dat7)  = *((const global READ_TYPE*)(b + Boffset + b_index7));
+                *((READ_TYPE*)b_dat8)  = *((const global READ_TYPE*)(b + Boffset + b_index8));
+                *((READ_TYPE*)b_dat9)  = *((const global READ_TYPE*)(b + Boffset + b_index9));
+                *((READ_TYPE*)b_dat10) = *((const global READ_TYPE*)(b + Boffset + b_index10));
+                *((READ_TYPE*)b_dat11) = *((const global READ_TYPE*)(b + Boffset + b_index11));
+                *((READ_TYPE*)b_dat12) = *((const global READ_TYPE*)(b + Boffset + b_index12));
+                *((READ_TYPE*)b_dat13) = *((const global READ_TYPE*)(b + Boffset + b_index13));
+                *((READ_TYPE*)b_dat14) = *((const global READ_TYPE*)(b + Boffset + b_index14));
+                *((READ_TYPE*)b_dat15) = *((const global READ_TYPE*)(b + Boffset + b_index15));
+                *((READ_TYPE*)b_dat16) = *((const global READ_TYPE*)(b + Boffset + b_index16));
+
+                for(int i = 0; i < RD_BLCK; ++i)
+                {
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat1[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat2[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat3[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat4[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat5[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat6[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat7[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat8[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat9[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat10[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat11[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat12[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat13[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat14[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat15[i] * alpha1);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat16[i] * alpha1);
+                }
             }
-            for(int i = 0; i < RD_BLCK; ++i)
+            for(int bid = ((b_c / 16) * 16); bid < b_c; bid++)
             {
-                c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat[i] * alpha1);
+                int b_index           = bid * b_nstride + g_RD_BLCK;
+                *((READ_TYPE*)b_dat1) = *((const global READ_TYPE*)(b + Boffset + b_index));
+
+                for(int i = 0; i < RD_BLCK; ++i)
+                {
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], b_dat1[i] * alpha1);
+                }
+            }
+        }
+        else
+        {
+            for(int bid = 0; bid < ((b_c / 16) * 16); bid += 16)
+            {
+
+                for(int i = 0; i < RD_BLCK; ++i)
+                {
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                }
+            }
+            for(int bid = ((b_c / 16) * 16); bid < b_c; bid++)
+            {
+
+                for(int i = 0; i < RD_BLCK; ++i)
+                {
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i], 0);
+                }
             }
         }
         *((global READ_TYPE*)(c + Coffset + io_index)) = *((READ_TYPE*)c_dat);
