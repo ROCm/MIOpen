@@ -169,10 +169,10 @@ struct GenericReorderSolution : TensorReorderAttributesBase
 inline std::unique_ptr<TensorReorderAttributesBase>
 MakeTensorReorderAttributes(const ExecutionContext& ctx_,
                             miopenDataType_t data_type_,
-                            uint32_t dim_0_,
-                            uint32_t dim_1_,
-                            uint32_t dim_2_,
-                            uint32_t dim_3_,
+                            uint64_t dim_0_,
+                            uint64_t dim_1_,
+                            uint64_t dim_2_,
+                            uint64_t dim_3_,
                             uint32_t order_0_,
                             uint32_t order_1_,
                             uint32_t order_2_,
@@ -182,12 +182,36 @@ MakeTensorReorderAttributes(const ExecutionContext& ctx_,
     {
         return nullptr;
     }
+    ///\todo 64-bit tensor dimension
+    // Currentlly we have tensor dimension limited to 2^32 - 1
+    if((dim_0_ > UINT32_MAX) || (dim_1_ > UINT32_MAX) || (dim_2_ > UINT32_MAX) ||
+       (dim_3_ > UINT32_MAX))
+    {
+        MIOPEN_THROW("Currentlly we have tensor dimension limitation of 2^32 - 1");
+    }
     // Default using general reorder
     if(data_type_ == miopenBFloat16)
     {
         MIOPEN_THROW("Unsupported reorder data type");
     }
+    // Check required reorder is legal or not
+    std::vector<std::vector<uint32_t>> all_possible_order{
+        {0, 1, 3, 2}, {0, 2, 1, 3}, {0, 2, 3, 1}, {0, 3, 1, 2}, {0, 3, 2, 1}, {1, 0, 2, 3},
+        {1, 0, 3, 2}, {1, 2, 0, 3}, {1, 2, 3, 0}, {1, 3, 0, 2}, {1, 3, 2, 0}, {2, 0, 1, 3},
+        {2, 0, 3, 1}, {2, 1, 0, 3}, {2, 1, 3, 0}, {2, 3, 0, 1}, {2, 3, 1, 0}, {3, 0, 1, 2},
+        {3, 0, 2, 1}, {3, 1, 0, 2}, {3, 1, 2, 0}, {3, 2, 0, 1}, {3, 2, 1, 0}};
+    auto found = std::find_if(
+        all_possible_order.begin(),
+        all_possible_order.end(),
+        [order_0_, order_1_, order_2_, order_3_](std::vector<uint32_t> possible_order) {
+            return (possible_order[0] == order_0_) && (possible_order[1] == order_1_) &&
+                   (possible_order[2] == order_2_) && (possible_order[3] == order_3_);
+        });
+    if(found == all_possible_order.end())
+        MIOPEN_THROW("Unsupported Reorder");
+
     int which = 0;
+    // Special cases that utilize batched transpose kernel
     if(data_type_ != miopenDouble)
     {
         if((order_0_ == 0) && (order_1_ == 1) && (order_2_ == 3) && (order_3_ == 2))
@@ -234,7 +258,7 @@ MakeTensorReorderAttributes(const ExecutionContext& ctx_,
     case 5:
         return std::make_unique<BatchedTransposeSolution_3012>(
             ctx_, data_type_, dim_0_, dim_1_, dim_2_, dim_3_);
-    default: MIOPEN_THROW("Unsupported reorder sequence"); return nullptr;
+    default: MIOPEN_THROW("Failed to call tensor reorder solver");
     }
 }
 
