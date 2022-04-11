@@ -52,7 +52,7 @@
 
 #if MIOPEN_USE_ROCBLAS
 #include <miopen/manage_ptr.hpp>
-#include <rocblas/rocblas.h>
+#include <rocblas.h>
 #endif
 
 namespace miopen {
