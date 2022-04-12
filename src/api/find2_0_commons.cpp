@@ -220,8 +220,9 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data)
     return miopen::try_([&] {
         if(data == nullptr)
             MIOPEN_THROW(miopenStatusBadParm, "Data parameter should not be a nullptr.");
-        auto ss = miopen::BinarySerializationStream{data};
-        ss << miopen::deref(solution);
+        auto ss             = miopen::BinarySerializationStream{data};
+        auto& solution_derf = miopen::deref(solution);
+        ss << solution_derf;
     });
 }
 
