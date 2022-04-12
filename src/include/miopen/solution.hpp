@@ -107,7 +107,7 @@ struct Solution : miopenSolution
     }
 
 private:
-    float time = 0;
+    float time                     = 0;
     std::size_t workspace_required = 0;
     solver::Id solver;
     Problem problem;
