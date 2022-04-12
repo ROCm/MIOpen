@@ -97,6 +97,9 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
         return false;
     if(ctx.group_counts != 1)
         return false;
+    if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
+       ctx.conv_problem.IsGfx90aFp16altRequired())
+        return false;
 
     {
         // this kernel use int32_t for memory offset, which covers 2GB of memory maximum
@@ -189,7 +192,7 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
     sol.construction_params.push_back(kernel1_info);
 
     // workspace is used to save transformed tensor descriptors
-    sol.workspce_sz = GetWorkspaceSize(ctx);
+    sol.workspace_sz = GetWorkspaceSize(ctx);
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {

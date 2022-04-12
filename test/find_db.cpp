@@ -39,6 +39,20 @@
 #include <functional>
 
 namespace miopen {
+
+struct TestRordbEmbedFsOverrideLock
+{
+    TestRordbEmbedFsOverrideLock() : cached(debug::rordb_embed_fs_override())
+    {
+        debug::rordb_embed_fs_override() = true;
+    }
+
+    ~TestRordbEmbedFsOverrideLock() { debug::rordb_embed_fs_override() = cached; }
+
+    private:
+    bool cached;
+};
+
 static auto Duration(const std::function<void()>& func)
 {
     const auto start = std::chrono::steady_clock::now();
@@ -75,6 +89,7 @@ struct FindDbTest : test_driver
 
         const TempFile temp_file{"miopen.test.find_db"};
         testing_find_db_path_override() = temp_file;
+        TestRordbEmbedFsOverrideLock rordb_embed_fs_override;
 
         TestForward();
         TestBwdData();
@@ -198,12 +213,6 @@ struct FindDbTest : test_driver
         MIOPEN_LOG_I("Speedup: " << find_db_speedup);
 #if !MIOPEN_DISABLE_USERDB
         double limit = 3.0;
-#ifndef NDEBUG
-        // hcc debug builds are so slow at run time that the test may fail.
-        // We need to lower the threshold in this case:
-        if(miopen::IsHccCompiler())
-            limit = 1.5;
-#endif
         EXPECT_OP(find_db_speedup, >=, limit);
 #endif
     }

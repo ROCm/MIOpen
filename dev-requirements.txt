@@ -1,5 +1,5 @@
-pfultz2/rocm-recipes
-ROCm-Developer-Tools/HIP@roc-3.0.0
+ROCmSoftwarePlatform/rocm-recipes
+RadeonOpenCompute/rocm-cmake@cdd0f632b3a65bd4411593bb827eb664e25c80bc --build
 -f requirements.txt
 # 1.90+
 danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742882f

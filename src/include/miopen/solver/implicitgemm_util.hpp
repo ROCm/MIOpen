@@ -40,7 +40,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM)
 
-#define WORKAROUND_SWDEV_200782 1
 #define WORKAROUND_SWDEV_229277_227616_229195 1
 // workaround for unnecessary VGPA <--> AGRP data movement when using mfma LLVM intrinsic
 #define WORKAROUND_SWDEV_229564 1
@@ -214,15 +213,7 @@ static inline bool IsXdlopsSupport(const ConvolutionContext& c)
     // 2) llvm intrin may has incorrect results
     bool is_xdlops_supported = StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
                                StartsWith(c.GetStream().GetDeviceName(), "gfx90a");
-    return is_xdlops_supported &&
-#if WORKAROUND_SWDEV_200782
-           /// \todo Remove workaround when we drop suport of HCC older than 2.10.19392.
-           ((miopen::HipCompilerVersion() >= external_tool_version_t{2, 10, 19392})
-                ? !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{})
-                : miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{}));
-#else
-           !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{});
-#endif
+    return is_xdlops_supported && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS{});
 }
 
 ///\todo remove

@@ -38,8 +38,6 @@
 
 #include <boost/any.hpp>
 
-#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS)
 
@@ -327,14 +325,12 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
     const auto name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10")))
         return false;
-#if WORKAROUND_ISSUE_1146
-    if(name == "gfx90a")
-        return false;
-#endif
-
     if(params.IsFp16() &&
-       !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx1011") ||
-         StartsWith(name, "gfx1012") || StartsWith(name, "gfx103")))
+       !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
+         StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") || StartsWith(name, "gfx103")))
+        return false;
+
+    if(name == "gfx90a" && params.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     // clang-format off
@@ -430,8 +426,8 @@ ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params,
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
-    std::string kernel_name    = "miopenSp3AsmConv_v21_1_2";
-    std::string kernel_file    = "Conv_Winograd_v21_1_2";
+    std::string kernel_name    = "miopenSp3AsmConv_v21_1_3";
+    std::string kernel_file    = "Conv_Winograd_v21_1_3";
     std::string kernel_postfix = params.IsFp32() ? "_f3x2_fp32" : "_f3x2_fp16_dot2_edc";
 
     if(is_gfx9)

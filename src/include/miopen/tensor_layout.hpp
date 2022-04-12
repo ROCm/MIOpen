@@ -58,8 +58,7 @@ void tensor_layout_to_strides(const std::vector<T>& len,
                        auto pos = layout.find(cur_layout_char);
                        if(pos == std::string::npos)
                        {
-                           MIOPEN_THROW(std::string("mismatched layout string, unexpect char: ")
-                                            .append(1, cur_layout_char));
+                           MIOPEN_THROW(std::string("mismatched layout string - ").append(layout));
                        }
                        return std::accumulate(layout.begin() + pos + 1,
                                               layout.end(),

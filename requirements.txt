@@ -1,6 +1,4 @@
--f min-requirements.txt
-RadeonOpenCompute/rocm-cmake@cdd0f632b3a65bd4411593bb827eb664e25c80bc --build
-RadeonOpenCompute/clang-ocl@930015924b012c332d373535ff31a663b6ad2c64
-ROCmSoftwarePlatform/MIOpenGEMM@0eb1257cfaef83ea155aabd67af4437c0028db48
-ROCmSoftwarePlatform/rocBLAS@9790a8658341bc665c11c311129ad0dfc533d5c4
-# ROCmSoftwarePlatform/MIOpenTensile@master
+sqlite3@3.17 -DCMAKE_POSITION_INDEPENDENT_CODE=On
+boost@1.72 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build
+half,https://github.com/pfultz2/half/archive/1.12.0.tar.gz -X header -H sha256:0a08660b68abb176ebc2a0cdf8de46e3182a7f46c66443bb80dbfaaec98cf969 --build
+ROCmSoftwarePlatform/llvm-project-mlir@release/rocm-5.1 -DBUILD_FAT_LIBMLIRMIOPEN=1

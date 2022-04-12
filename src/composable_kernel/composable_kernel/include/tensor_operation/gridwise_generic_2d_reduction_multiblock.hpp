@@ -86,7 +86,7 @@ struct GridwiseReduction_xy_to_x_multiblock
         (void)alpha; // unused
         (void)beta;  // unused
 
-        auto zeroVal = opReduce::GetZeroVal();
+        const auto zeroVal = opReduce::GetReductionZeroVal();
 
         // LDS
         __shared__ compType p_in_block_buffer[BlockBufferSize];
@@ -216,7 +216,7 @@ struct GridwiseReduction_xy_to_x_multiblock
         (void)alpha; // unused
         (void)beta;  // unused
 
-        auto zeroVal = opReduce::GetZeroVal();
+        const auto zeroVal = opReduce::GetReductionZeroVal();
 
         // LDS
         __shared__ compType p_in_block_values_buffer[BlockBufferSize];

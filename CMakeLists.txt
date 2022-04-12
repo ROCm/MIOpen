@@ -25,6 +25,14 @@
 ################################################################################
 cmake_minimum_required( VERSION 3.5 )
 
+macro(set_var_to_condition var)
+    if(${ARGN})
+        set(${var} TRUE)
+    else()
+        set(${name} FALSE)
+    endif()
+endmacro()
+
 # This has to be initialized before the project() command appears
 # Set the default of CMAKE_BUILD_TYPE to be release, unless user specifies with -D.  MSVC_IDE does not use CMAKE_BUILD_TYPE
 if( NOT MSVC_IDE AND NOT CMAKE_BUILD_TYPE )
@@ -76,7 +84,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.14.0)
+rocm_setup_version(VERSION 2.16.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -97,7 +105,7 @@ add_compile_options(-std=c++14)
 # - OpenCL
 # - HIP
 check_cxx_compiler_flag("--cuda-host-only -x hip" HAS_HIP)
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*hipcc" OR HAS_HIP)
+if(HAS_HIP)
     set(MIOPEN_DEFAULT_BACKEND "HIP")
 else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
@@ -109,7 +117,7 @@ else()
     set(WINE_CMD)
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip /opt/rocm/hcc)
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
 set(MIOPEN_INSTALL_CXX_HEADERS Off CACHE BOOL "Install MIOpen's C++ header interface")
@@ -124,8 +132,6 @@ else()
 endif()
 set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
-option(MIOPEN_USE_MLIR "Use MLIR -- EXPERIMENTAL" Off)
-option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_EMBED_BUILD})
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
 
@@ -150,26 +156,17 @@ set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set(MIOPEN_BACKEND_OPENCL 1)
     find_package( OpenCL REQUIRED )
-    find_program(MIOPEN_HIP_COMPILER hcc
+    set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
+    find_program(MIOPEN_HIP_COMPILER clang++
         PATH_SUFFIXES bin
         PATHS
-            /opt/rocm
+            /opt/rocm/llvm
+            ${CMAKE_INSTALL_PREFIX}/llvm
     )
-    set(MIOPEN_USE_MIOPENGEMM ON CACHE BOOL "")
     if(MIOPEN_HIP_COMPILER)
         message("hip compiler: ${MIOPEN_HIP_COMPILER}")
     else()
-        find_program(MIOPEN_HIP_COMPILER clang++
-            PATH_SUFFIXES bin
-            PATHS
-                /opt/rocm/llvm
-                ${CMAKE_INSTALL_PREFIX}/llvm
-        )
-        if(MIOPEN_HIP_COMPILER)
-            message("hip compiler: ${MIOPEN_HIP_COMPILER}")
-        else()
-            message(FATAL_ERROR "hip compiler not found")
-        endif()
+        message(FATAL_ERROR "hip compiler not found")
     endif()
 
     # MIOpenTensile does not support opencl backend yet.
@@ -216,6 +213,18 @@ if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
     message(STATUS "MIOPEN_hip_VERSION_PATCH overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
 endif()
 
+set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
+option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
+
+# TODO: Unify MIOPEN_HIP_VERSION_FLAT in config.h with this.
+# in config.h we reserve 6 digits for patch, but here only 5 digits reserved to avoid overflow.
+# Actually 5 digits should be Ok everywhere.
+math(EXPR MIOPEN_hip_VERSION_FLAT "(${MIOPEN_hip_VERSION_MAJOR} * 1000 + ${MIOPEN_hip_VERSION_MINOR}) * 100000 + ${MIOPEN_hip_VERSION_PATCH}")
+
+# Do not enable HIPRTC by default for older ROCm versions in order to avoid
+# build time errors, because HIPRTC is a relatively new component.
+set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 900000000))
+option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
@@ -239,35 +248,16 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
             ${CMAKE_INSTALL_PREFIX}
     )
     if(HIP_OC_COMPILER)
-        message(STATUS "hip compiler: ${HIP_OC_COMPILER}")
+        message(STATUS "OpenCL compiler: ${HIP_OC_COMPILER}")
         set(HIP_OC_COMPILER "${HIP_OC_COMPILER}")
     else()
-        message(FATAL_ERROR "clang-ocl not found")
+        message(FATAL_ERROR "OpenCL compiler not found")
     endif()
 
-    if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
-        link_libraries(stdc++)
-
-        # A hack to make this work without the device enumerator
-        link_libraries(-amdgpu-target=gfx803 -amdgpu-target=gfx900 -Wno-unused-command-line-argument)
-        CHECK_CXX_COMPILER_FLAG("-amdgpu-target=gfx906 -Werror" GFX_906_FLAG_VALID)
-        if(GFX_906_FLAG_VALID)
-            link_libraries(-amdgpu-target=gfx906)
-        endif()
-
-        CHECK_CXX_COMPILER_FLAG(-amdgpu-target=gfx908 -Werror, GFX_908_FLAG_VALID)
-        if(GFX_908_FLAG_VALID)
-            link_libraries(-amdgpu-target=gfx908)
-        endif()
-        # end hack
-    else()
         # Hcc's clang always defines __HCC__ even when not using hcc driver
         add_definitions(-U__HCC__)
-    endif()
-    # end hack
 
     set(MIOPEN_HIP_COMPILER ${CMAKE_CXX_COMPILER} CACHE PATH "")
-
 
     # rocblas
     set(MIOPEN_USE_ROCBLAS ON CACHE BOOL "")
@@ -276,6 +266,10 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "Build with rocblas")
     else()
         message(STATUS "Build without rocblas")
+    endif()
+else()
+    if(MIOPEN_USE_HIPRTC)
+        message(FATAL_ERROR "HIPRTC cannot be used without HIP backend")
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
@@ -300,10 +294,8 @@ else()
         PATH_SUFFIXES bin
         PATHS
             /opt/rocm/hip
-            /opt/rocm/hcc
             /opt/rocm
             ${CMAKE_INSTALL_PREFIX}/hip
-            ${CMAKE_INSTALL_PREFIX}/hcc
             ${CMAKE_INSTALL_PREFIX}
     )
     if(EXTRACTKERNEL_BIN)
@@ -314,12 +306,19 @@ else()
     endif()
 endif()
 
+set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
+option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
 if(MIOPEN_USE_MLIR)
-    find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
     # REQUIRED is not supported before cmake 3.18
+    find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
+    if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
+        message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
+    endif()
+
     if(NOT LIBMLIRMIOPEN)
-        message(FATAL_ERROR "libMLIRMIOpen not found")
+        message(FATAL_ERROR "libMLIRMIOpen not found, please reinstall dependencies. \
+        Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
     else()
         message(STATUS "Build with libMLIRMIOpen: " ${LIBMLIRMIOPEN})
     endif()
@@ -333,10 +332,8 @@ find_program(MIOPEN_AMDGCN_ASSEMBLER
         ${MIOPEN_AMDGCN_ASSEMBLER_PATH}
         /opt/rocm
         /opt/rocm/llvm
-        /opt/rocm/hcc
         ${CMAKE_INSTALL_PREFIX}
         ${CMAKE_INSTALL_PREFIX}/llvm
-        ${CMAKE_INSTALL_PREFIX}/hcc
     PATH_SUFFIXES
         /opencl/bin/x86_64
         /opencl/bin
@@ -372,13 +369,21 @@ if(MIOPEN_USE_COMGR)
     message(STATUS "Build with comgr ${amd_comgr_VERSION}")
 endif()
 
+if(MIOPEN_USE_HIPRTC)
+    if(NOT MIOPEN_USE_COMGR)
+        message(FATAL_ERROR "HIPRTC can be used only together with COMGR")
+    else()
+        message(STATUS "Build with HIPRTC")
+    endif()
+endif()
+
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
 set(BOOST_COMPONENTS filesystem)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 find_path(HALF_INCLUDE_DIR half.hpp)
-message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
+message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
@@ -394,7 +399,6 @@ if(BUILD_DEV)
     set(MIOPEN_CACHE_DIR "" CACHE STRING "")
 else()
     set(MIOPEN_BUILD_DEV 0)
-    set(MIOPEN_SYSTEM_DB_PATH "${CMAKE_INSTALL_PREFIX}/${DATA_INSTALL_DIR}/db" CACHE PATH "Default path of system db files")
     set(MIOPEN_USER_DB_PATH "~/.config/miopen/" CACHE STRING "Default path of user db files")
     set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
     set(MIOPEN_USER_DB_SUFFIX "${MIOPEN_BACKEND}.${MIOpen_VERSION_MAJOR}_${MIOpen_VERSION_MINOR}_${MIOpen_VERSION_PATCH}_${MIOpen_VERSION_TWEAK}" CACHE PATH "Filename suffix for the user find-db files")
@@ -433,7 +437,7 @@ rocm_create_package(
 
 include(EnableCompilerWarnings)
 set(MIOPEN_TIDY_ERRORS ERRORS * -readability-inconsistent-declaration-parameter-name)
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
+if(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
     set(MIOPEN_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
 # Enable tidy on hip
 elseif(MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
@@ -446,17 +450,21 @@ enable_clang_tidy(
     CHECKS
         *
         -abseil-*
+        -altera-struct-pack-align
+        -altera-unroll-loops
         -android-cloexec-fopen
-        # Yea we shouldn't be using rand()
-        -cert-msc30-c
         -bugprone-exception-escape
         -bugprone-macro-parentheses
+        # too many narrowing conversions in our code
+        -bugprone-narrowing-conversions
+        -cert-dcl37-c
+        -cert-dcl51-cpp
         -cert-env33-c
+        # Yea we shouldn't be using rand()
+        -cert-msc30-c
         -cert-msc32-c
         -cert-msc50-cpp
         -cert-msc51-cpp
-        -cert-dcl37-c
-        -cert-dcl51-cpp
         -clang-analyzer-alpha.core.CastToStruct
         -clang-analyzer-optin.performance.Padding
         -clang-diagnostic-deprecated-declarations
@@ -467,7 +475,9 @@ enable_clang_tidy(
         -cppcoreguidelines-explicit-virtual-functions
         -cppcoreguidelines-init-variables
         -cppcoreguidelines-macro-usage
+        -cppcoreguidelines-narrowing-conversions
         -cppcoreguidelines-non-private-member-variables-in-classes
+        -cppcoreguidelines-prefer-member-initializer
         -cppcoreguidelines-pro-bounds-array-to-pointer-decay
         -cppcoreguidelines-pro-bounds-constant-array-index
         -cppcoreguidelines-pro-bounds-pointer-arithmetic
@@ -482,27 +492,26 @@ enable_clang_tidy(
         -google-readability-todo
         -google-runtime-int
         -google-runtime-references
-        -hicpp-vararg
+        # We really shouldn't use bitwise operators with signed integers, but
+        # opencl leaves us no choice
+        -hicpp-avoid-c-arrays
         -hicpp-braces-around-statements
         -hicpp-explicit-conversions
         -hicpp-named-parameter
         -hicpp-no-array-decay
-        # We really shouldn't use bitwise operators with signed integers, but
-        # opencl leaves us no choice
-        -hicpp-avoid-c-arrays
         -hicpp-signed-bitwise
         -hicpp-special-member-functions
         -hicpp-uppercase-literal-suffix
         -hicpp-use-auto
         -hicpp-use-equals-default
         -hicpp-use-override
+        -hicpp-vararg
+        -llvm-else-after-return
         -llvm-header-guard
         -llvm-include-order
-        #-llvmlibc-*
-        -llvmlibc-restrict-system-libc-headers
         -llvmlibc-callee-namespace
         -llvmlibc-implementation-in-namespace
-        -llvm-else-after-return
+        -llvmlibc-restrict-system-libc-headers
         -llvm-qualified-auto
         -misc-misplaced-const
         -misc-non-private-member-variables-in-classes
@@ -517,21 +526,16 @@ enable_clang_tidy(
         -modernize-use-transparent-functors
         -performance-unnecessary-value-param
         -readability-braces-around-statements
+        -readability-convert-member-functions-to-static
         -readability-else-after-return
         # we are not ready to use it, but very useful
         -readability-function-cognitive-complexity
         -readability-isolate-declaration
         -readability-magic-numbers
         -readability-named-parameter
-        -readability-uppercase-literal-suffix
-        -readability-convert-member-functions-to-static
         -readability-qualified-auto
         -readability-redundant-string-init
-        # too many narrowing conversions in our code
-        -bugprone-narrowing-conversions
-        -cppcoreguidelines-narrowing-conversions
-        -altera-struct-pack-align
-        -cppcoreguidelines-prefer-member-initializer
+        -readability-uppercase-literal-suffix
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}

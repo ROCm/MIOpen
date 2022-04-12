@@ -43,9 +43,7 @@ bool ValidateGcnAssembler() { return true; }
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/exec_utils.hpp>
-#if WORKAROUND_SWDEV_255735
-#include <miopen/hip_build_utils.hpp>
-#endif
+#include <miopen/rocm_features.hpp>
 #include <sstream>
 
 #ifdef __linux__
@@ -58,8 +56,6 @@ bool ValidateGcnAssembler() { return true; }
 #include <unistd.h>
 #endif // __linux__
 
-/// SWDEV-220166: hcc reports unknown target instead of amdgpu but reports "HCC" at least.
-#define WORKAROUND_SWDEV_220166 1
 /// SWDEV-233338: hip-clang reports unknown target instead of amdgpu.
 /// \todo Try to assemble AMD GCN source?
 #define WORKAROUND_SWDEV_233338 1
@@ -121,11 +117,6 @@ bool ValidateGcnAssemblerImpl()
     std::getline(clang_stdout, clang_result_line);
     MIOPEN_LOG_NQI2(clang_result_line);
 
-#if WORKAROUND_SWDEV_220166
-    if(clang_result_line.find("HCC") != std::string::npos)
-        return true;
-#endif
-
     if(clang_result_line.find("clang") != std::string::npos)
     {
         while(!clang_stdout.eof())
@@ -184,14 +175,13 @@ std::string AmdgcnAssemble(const std::string& source,
                            const miopen::TargetProperties& target)
 {
 #ifdef __linux__
-    miopen::TempFile outfile("amdgcn-asm-out-XXXXXX");
+    miopen::TempFile outfile("assembly");
 
     std::ostringstream options;
     options << " -x assembler -target amdgcn--amdhsa";
-#if WORKAROUND_SWDEV_255735
-    if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-        if(target.Xnack() && !*target.Xnack())
-            options << " -mno-xnack";
+#if ROCM_FEATURE_ASM_REQUIRES_NO_XNACK_OPTION
+    if(target.Xnack() && !*target.Xnack())
+        options << " -mno-xnack";
 #endif
     /// \todo Hacky way to find out which CO version we need to assemble for.
     if(params.find("ROCM_METADATA_VERSION=5", 0) == std::string::npos) // Assume that !COv3 == COv2.

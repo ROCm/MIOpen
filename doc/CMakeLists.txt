@@ -41,81 +41,88 @@ add_doxygen_doc(
     GENERATE_XML YES
     GENERATE_LATEX YES
     USE_PDFLATEX YES
-
 )
-add_sphinx_doc(src 
-    BUILDER html 
-    OUTPUT_DIR html 
-    VARS 
+
+# Build HTML documentation with Sphinx #
+# Sphinx pre-build steps
+add_custom_target(prebuild_sphinx
+    DEPENDS copyover_installreadme copyover_driverreadme
+)
+# Copy README.md as install.md
+add_custom_target(copyover_installreadme
+    COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/../README.md ${CMAKE_CURRENT_SOURCE_DIR}/src/install.md
+    # Replace section title
+    COMMAND sed -e '0,/MIOpen/ s/MIOpen/Build and Install Instructions/' -i ${CMAKE_CURRENT_SOURCE_DIR}/src/install.md
+    COMMENT "Copying over README.md to docs folder as install.md."
+)
+clean_doc_output(${CMAKE_CURRENT_SOURCE_DIR}/src/install.md)
+# Copy driver/README.md as driver.md
+add_custom_target(copyover_driverreadme
+    COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/../driver/README.md ${CMAKE_CURRENT_SOURCE_DIR}/src/driver.md
+    COMMENT "Copying over MIOpenDriver README.md to docs folder as driver.md."
+)
+clean_doc_output(${CMAKE_CURRENT_SOURCE_DIR}/src/driver.md)
+
+# Build
+add_sphinx_doc(src
+    BUILDER html
+    OUTPUT_DIR html
+    VARS
         breathe_projects.proj=${DOXYGEN_OUTPUT}/xml
         breathe_default_project=proj
-    DEPENDS doxygen
+    DEPENDS doxygen prebuild_sphinx
 )
 
-
-    add_custom_target(copyover_installreadme
-        COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/../README.md ${CMAKE_CURRENT_SOURCE_DIR}/src/install.md
-        COMMENT "Copying over README.md to docs folder as install.md."
-    )
-    add_dependencies(copyover_installreadme doxygen)
-    mark_as_doc(copyover_installreadme)
-
-    add_custom_target(change_section_title_install
-        COMMAND sed -e '0,/MIOpen/ s/MIOpen/Build and Install Instructions/' -i ${CMAKE_CURRENT_SOURCE_DIR}/src/install.md
-        COMMENT "Replacing section title."
-    )
-    add_dependencies(change_section_title_install copyover_installreadme)
-    mark_as_doc(change_section_title_install)
-
-    add_custom_target(copyover_driverreadme
-        COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/../driver/README.md ${CMAKE_CURRENT_SOURCE_DIR}/src/driver.md
-        COMMENT "Copying over MIOpenDriver README.md to docs folder as driver.md."
-    )
-    add_dependencies(copyover_driverreadme copyover_installreadme)
-    mark_as_doc(copyover_driverreadme)
-
-
-
+# Sphinx post-build steps
+add_custom_target(postbuild_sphinx_html
+    DEPENDS delete_miopenexporthtml
+)
 add_custom_target(delete_miopenexporthtml
     COMMAND sed -e s/MIOPEN_EXPORT// -i ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html
     COMMENT "Removing MIOPEN_EXPORT from html document. ${CMAKE_CURRENT_SOURCE_DIR}/html/*.html"
+    DEPENDS sphinx-HTML
 )
-add_dependencies(delete_miopenexporthtml sphinx-HTML copyover_driverreadme)
-mark_as_doc(delete_miopenexporthtml)
 
+# Target for HTML documentation
+mark_as_doc(postbuild_sphinx_html)
 
+# Build PDF documentation with Sphinx #
 find_package(LATEX)
 if(LATEX_FOUND)
-    add_sphinx_doc(src 
+    # Build
+    add_sphinx_doc(src
         BUILDER latex
         OUTPUT_DIR pdf
-        VARS 
+        VARS
             breathe_projects.proj=${DOXYGEN_OUTPUT}/xml
             breathe_default_project=proj
-        DEPENDS doxygen
+        DEPENDS doxygen prebuild_sphinx
+    )
+
+    # Sphinx post-build steps
+    add_custom_target(postbuild_sphinx_latex
+        DEPENDS delete_export delete_slashmiopen
     )
 
     add_custom_target(delete_export
         COMMAND sed -e s/_EXPORT// -i ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex
         COMMENT "Removing MIOPEN_EXPORT from latex document. ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex"
+        DEPENDS sphinx-LATEX
     )
-    add_dependencies(delete_export sphinx-LATEX copyover_driverreadme)
-    mark_as_doc(delete_export)
-
 
     add_custom_target(delete_slashmiopen
         COMMAND sed -e s/sret{MIOPEN\\/sret{/ -i ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex
         COMMENT "Removing MIOPEN_EXPORT from latex document. ${CMAKE_CURRENT_SOURCE_DIR}/pdf/miopen.tex"
+        DEPENDS sphinx-LATEX delete_export
     )
-    add_dependencies(delete_slashmiopen delete_export)
-    mark_as_doc(delete_slashmiopen)
 
+    # Target for PDF documentation
     add_custom_target(build_pdf
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pdf
         COMMAND make
         COMMENT "Building pdf documentation"
+        DEPENDS postbuild_sphinx_latex
     )
-    add_dependencies(build_pdf delete_slashmiopen)
     mark_as_doc(build_pdf)
 
 else()

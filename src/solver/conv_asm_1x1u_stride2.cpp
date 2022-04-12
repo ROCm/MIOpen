@@ -503,6 +503,9 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
+    if(name == "gfx90a" && params.conv_problem.IsGfx90aFp16altRequired())
+        return false;
+
     const auto elements_in_dword = 4 / GetTypeSize(params.in_data_type);
     // clang-format off
     const auto img_hw = params.out_height * params.out_width;
@@ -586,7 +589,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     ConvSolution result;
     std::ostringstream options;
 
-    result.workspce_sz = 0;
+    result.workspace_sz = 0;
 
     int data_len                               = GetTypeSize(params.out_data_type);
     const PerformanceConfigConvAsm1x1UV2* pcfg = &config;

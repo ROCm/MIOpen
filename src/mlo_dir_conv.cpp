@@ -88,7 +88,7 @@ mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::An
         solution = solver.FindSolution(_search_params, db, invoke_ctx);
         if(solution.Succeeded() && solver.IsApplicable(_search_params))
         {
-            solver_id = miopen::solver::SolverDbId(solver);
+            solver_id = solver.GetSolverDbId();
             break;
         }
     }
@@ -141,10 +141,8 @@ static auto GetImplicitGemmSolvers()
         miopen::solver::ConvHipImplicitGemmBwdDataV1R1Xdlops,
         miopen::solver::ConvHipImplicitGemmV4R1Fwd,
         miopen::solver::ConvHipImplicitGemmV4R4Fwd,
-        miopen::solver::ConvHipImplicitGemmMlirCppFwd,
         miopen::solver::ConvMlirIgemmFwdXdlops,
         miopen::solver::ConvMlirIgemmFwd,
-        miopen::solver::ConvHipImplicitGemmMlirCppBwd,
         miopen::solver::ConvMlirIgemmBwdXdlops,
         miopen::solver::ConvMlirIgemmBwd,
         miopen::solver::ConvHipImplicitGemmBwdDataV1R1,
@@ -185,7 +183,6 @@ static auto GetImplicitGemmWrWSolvers()
         miopen::solver::ConvHipImplicitGemmV4R1WrW,
         miopen::solver::ConvHipImplicitGemmV4R4WrW,
         miopen::solver::ConvAsmImplicitGemmV4R1DynamicWrw,
-        miopen::solver::ConvHipImplicitGemmMlirCppWrW,
         miopen::solver::ConvMlirIgemmWrWXdlops,
         miopen::solver::ConvMlirIgemmWrW,
         miopen::solver::ConvAsmImplicitGemmGTCDynamicWrwXdlops,
@@ -247,7 +244,7 @@ FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
 std::vector<std::pair<std::string, size_t>>
 AllGemmWorkspaceSize(const miopen::ConvolutionContext& ctx)
 {
-    return GetGemmSolvers().GetWorkspaceSize(ctx);
+    return GetGemmSolvers().GetWorkspaceSizes(ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -260,19 +257,19 @@ FindAllDirectSolutions(const miopen::ConvolutionContext& ctx,
 std::vector<std::pair<std::string, size_t>>
 AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
 {
-    return GetDirectSolvers().GetWorkspaceSize(ctx);
+    return GetDirectSolvers().GetWorkspaceSizes(ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
 FindAllWinogradWorkspaceSizes(const miopen::ConvolutionContext& ctx)
 {
-    return GetWindogradSolvers().GetWorkspaceSize(ctx);
+    return GetWindogradSolvers().GetWorkspaceSizes(ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
 FindWinogradWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx)
 {
-    return GetWindogradWrWSolvers().GetWorkspaceSize(ctx);
+    return GetWindogradWrWSolvers().GetWorkspaceSizes(ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
@@ -280,11 +277,11 @@ FindAllImplicitGemmWorkspaceSizes(const miopen::ConvolutionContext& ctx)
 {
 #if WORKAROUND_SWDEV_227826
     if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
-        return GetImplicitGemmSolvers().GetWorkspaceSize(ctx);
+        return GetImplicitGemmSolvers().GetWorkspaceSizes(ctx);
     else
-        return GetImplicitGemmSolvers().GetWorkspaceSize(ctx, 1);
+        return GetImplicitGemmSolvers().GetWorkspaceSizes(ctx, 1);
 #else
-    return GetImplicitGemmSolvers().GetWorkspaceSize(ctx);
+    return GetImplicitGemmSolvers().GetWorkspaceSizes(ctx);
 #endif
 }
 
@@ -319,7 +316,7 @@ FindWinogradWrWAllSolutions(const miopen::ConvolutionContext& ctx,
 std::vector<std::pair<std::string, size_t>>
 AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx)
 {
-    return GetBwdWrW2DSolvers().GetWorkspaceSize(ctx);
+    return GetBwdWrW2DSolvers().GetWorkspaceSizes(ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
@@ -327,11 +324,11 @@ FindImplicitGemmWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx)
 {
 #if WORKAROUND_SWDEV_227826
     if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
-        return GetImplicitGemmWrWSolvers().GetWorkspaceSize(ctx);
+        return GetImplicitGemmWrWSolvers().GetWorkspaceSizes(ctx);
     else
-        return GetImplicitGemmWrWSolvers().GetWorkspaceSize(ctx, 1);
+        return GetImplicitGemmWrWSolvers().GetWorkspaceSizes(ctx, 1);
 #else
-    return GetImplicitGemmWrWSolvers().GetWorkspaceSize(ctx);
+    return GetImplicitGemmWrWSolvers().GetWorkspaceSizes(ctx);
 #endif
 }
 
@@ -366,7 +363,7 @@ FindAllFFTSolutions(const miopen::ConvolutionContext& ctx,
 std::vector<std::pair<std::string, size_t>>
 AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
 {
-    return GetFFTSolvers().GetWorkspaceSize(ctx);
+    return GetFFTSolvers().GetWorkspaceSizes(ctx);
 }
 
 void miopen::ConvolutionContext::SetupFloats()

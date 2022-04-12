@@ -72,6 +72,7 @@ MDGraph_vertex_ptr FusionMDGraph::GetCurVertex(const Handle& handle)
     int weight             = -1;
     MDGraph_vertex_ptr ptr = nullptr;
     auto cur_arch          = handle.GetDeviceName();
+    const auto& target     = handle.GetTargetProperties();
 
     for(auto& cur : cur_vertex)
     {
@@ -80,7 +81,10 @@ MDGraph_vertex_ptr FusionMDGraph::GetCurVertex(const Handle& handle)
         // Empty inidicates any arch is supported (say OpenCL kernels)
         bool arch_sup =
             cur.first->supported_arch.empty() || (it != cur.first->supported_arch.end());
-        if((boost::any_cast<int>(cur.second["weight"]) > weight) && arch_sup)
+
+        auto xnack_sup = !(cur.first->supported_xnack && target.Xnack() &&
+                           *cur.first->supported_xnack != *target.Xnack());
+        if((boost::any_cast<int>(cur.second["weight"]) > weight) && arch_sup && xnack_sup)
         {
             weight = boost::any_cast<int>(cur.second["weight"]);
             ptr    = cur.first;
@@ -535,65 +539,63 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
         auto add_relu = [&](const std::string& program,
                             const std::string& kernel,
-                            MDGraph_vertex_ptr vc,
+                            MDGraph_vertex_ptr conv_v,
                             std::function<std::vector<DefaultKernelArg>(void)> nodeArgs,
-                            const std::vector<std::string> supported_arch) {
-            /// C>B>A| (4)
-            auto bias =
-                std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward, program, kernel, algo);
-            bias->default_args                = nodeArgs();
-            bias->default_args[6].default_val = OpKernelArg(1 << 7);
-            // set the bias parameters
-            bias->default_args[18].type   = OpArg;
-            bias->default_args[18].op_idx = 1;
-            bias->supported_arch          = supported_arch;
-            g.AddEdge(vc, bias, empty_map);
-
-            auto vba_leaf = std::make_shared<MDGraph_vertex>(
-                miopenFusionOpActivForward, program, kernel, algo, true);
-            vba_leaf->default_args                = nodeArgs();
-            vba_leaf->default_args[6].default_val = OpKernelArg((1 << 7) + (1 << 8));
-            // set the bias parameters
-            vba_leaf->default_args[18].type   = OpArg;
-            vba_leaf->default_args[18].op_idx = 1;
-
-            vba_leaf->default_args[19].type   = OpArg;
-            vba_leaf->default_args[19].op_idx = 2;
-            vba_leaf->supported_arch          = supported_arch;
-
+                            const std::vector<std::string> supported_arch,
+                            const boost::optional<bool> supported_xnack) {
             FusionMDGraph_Edge_Map edg_activ_relu;
             edg_activ_relu["constraints"] = {"activ_mode == miopenActivationRELU", "weight === 0"};
-            g.AddEdge(bias, vba_leaf, edg_activ_relu);
-
             FusionMDGraph_Edge_Map edg_activ_leaky_relu;
             edg_activ_leaky_relu["constraints"] = {"activ_mode == miopenActivationLEAKYRELU",
                                                    "weight === 0"};
 
-            g.AddEdge(bias, vba_leaf, edg_activ_leaky_relu);
+            // Conv -> Bias (6) // Conv -> Bias -> Activ (4)
+            {
+                auto bias_v = std::make_shared<MDGraph_vertex>(
+                    miopenFusionOpBiasForward, program, kernel, algo);
+                bias_v->default_args                = nodeArgs();
+                bias_v->default_args[6].default_val = OpKernelArg(1 << 7);
+                // set the bias parameters
+                bias_v->default_args[18].type   = OpArg;
+                bias_v->default_args[18].op_idx = 1;
+                bias_v->supported_arch          = supported_arch;
+                bias_v->supported_xnack         = supported_xnack;
 
-            /// C>A| (5)
-            auto va_leaf = std::make_shared<MDGraph_vertex>(
-                miopenFusionOpActivForward, program, kernel, algo, true);
-            va_leaf->default_args                = nodeArgs();
-            va_leaf->default_args[6].default_val = OpKernelArg((1 << 8));
-            va_leaf->default_args[19].type       = OpArg;
-            va_leaf->default_args[19].op_idx     = 1;
-            va_leaf->supported_arch              = supported_arch;
+                g.AddEdge(conv_v, bias_v, empty_map);
 
-            g.AddEdge(vc, va_leaf, edg_activ_relu);
-            g.AddEdge(vc, va_leaf, edg_activ_leaky_relu);
+                // Conv -> Bias -> Activ (4)
+                {
+                    auto activ_v = std::make_shared<MDGraph_vertex>(
+                        miopenFusionOpActivForward, program, kernel, algo, true);
+                    activ_v->default_args                = nodeArgs();
+                    activ_v->default_args[6].default_val = OpKernelArg((1 << 7) + (1 << 8));
+                    // set the bias parameters
+                    activ_v->default_args[18].type   = OpArg;
+                    activ_v->default_args[18].op_idx = 1;
+                    activ_v->default_args[19].type   = OpArg;
+                    activ_v->default_args[19].op_idx = 2;
+                    activ_v->supported_arch          = supported_arch;
+                    activ_v->supported_xnack         = supported_xnack;
 
-            /// \FIXME Bug: In spite of C>B| topology is disabled below, it is selected anyway for
-            /// Winograd. Possible reason is presence of C>B>A| configuration, which is somehow
-            /// matches
-            /// C>B| fused configuration. Fortunately, it is supported.
-            ///
-            /// C>B| (6)
-            /// \todo Shader supports this config, but it is not required for now.
-            /// auto vb_leaf = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,  program,
-            /// kernel, algo, true);
-            /// g.AddEdge(vc, vb_leaf, edg_activ_relu);
-            /// g.AddEdge(vc, vb_leaf, edg_activ_leaky_relu);
+                    g.AddEdge(bias_v, activ_v, edg_activ_relu);
+                    g.AddEdge(bias_v, activ_v, edg_activ_leaky_relu);
+                }
+            }
+
+            // Conv -> Activ (5)
+            {
+                auto activ_v = std::make_shared<MDGraph_vertex>(
+                    miopenFusionOpActivForward, program, kernel, algo, true);
+                activ_v->default_args                = nodeArgs();
+                activ_v->default_args[6].default_val = OpKernelArg((1 << 8));
+                activ_v->default_args[19].type       = OpArg;
+                activ_v->default_args[19].op_idx     = 1;
+                activ_v->supported_arch              = supported_arch;
+                activ_v->supported_xnack             = supported_xnack;
+
+                g.AddEdge(conv_v, activ_v, edg_activ_relu);
+                g.AddEdge(conv_v, activ_v, edg_activ_leaky_relu);
+            }
         };
 
         // Fused Winograd v9_2_7
@@ -608,12 +610,14 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             static const std::string program("conv_3x3_wheel_alpha_v9_2_7.s");
             static const std::string kernel("miopenSp3AsmConvRxSU_CBA");
             static const std::vector<std::string> supported_arch = {"gfx803"};
+            static const auto supported_xnack                    = false;
 
             auto vc_s1 =
                 std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward, program, kernel, algo);
-            vc_s1->solver         = solver::ConvBinWinogradRxSFused{};
-            vc_s1->default_args   = WinogradNodeArgs();
-            vc_s1->supported_arch = supported_arch;
+            vc_s1->solver          = solver::ConvBinWinogradRxSFused{};
+            vc_s1->default_args    = WinogradNodeArgs();
+            vc_s1->supported_arch  = supported_arch;
+            vc_s1->supported_xnack = supported_xnack;
 
             FusionMDGraph_Edge_Map map_wino_conv_s1;
             map_wino_conv_s1["constraints"] = {"stride_h == 1",
@@ -641,7 +645,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             g.AddEdge(nullptr, vc_s1, map_wino_conv_xe3);
 
             /// C>B>A| (4)
-            add_relu(program, kernel, vc_s1, WinogradNodeArgs, supported_arch);
+            add_relu(program, kernel, vc_s1, WinogradNodeArgs, supported_arch, supported_xnack);
 
             // Stride 2
             {
@@ -649,9 +653,10 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
                 auto vc_s2 = std::make_shared<MDGraph_vertex>(
                     miopenFusionOpConvForward, program_s2, kernel, algo);
-                vc_s2->solver         = solver::ConvBinWinogradRxSFused{};
-                vc_s2->default_args   = WinogradNodeArgs();
-                vc_s2->supported_arch = supported_arch;
+                vc_s2->solver          = solver::ConvBinWinogradRxSFused{};
+                vc_s2->default_args    = WinogradNodeArgs();
+                vc_s2->supported_arch  = supported_arch;
+                vc_s2->supported_xnack = supported_xnack;
 
                 FusionMDGraph_Edge_Map map_wino_conv_s2;
                 map_wino_conv_s2["constraints"] = {"stride_h == 2",
@@ -679,11 +684,12 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 add_meta_wino(map_wino_conv_s2_modd_xe3, 100);
                 g.AddEdge(nullptr, vc_s2, map_wino_conv_s2_modd_xe3);
 
-                add_relu(program_s2, kernel, vc_s2, WinogradNodeArgs, supported_arch);
+                add_relu(
+                    program_s2, kernel, vc_s2, WinogradNodeArgs, supported_arch, supported_xnack);
             }
         }
 
-        // Fused Winograd v21_1_2
+        // Fused Winograd v21_1_3
         {
             auto add_meta_wino = [&](FusionMDGraph_Edge_Map& m, int weight) {
                 m["constraints"].emplace_back("weight === " + std::to_string(weight));
@@ -695,34 +701,43 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             auto add_v21_wino = [&](const std::string family,
                                     const std::vector<std::string> supported_arch,
                                     const int stride) {
-                const auto kernel_postfix = "_fp32_stride" + std::to_string(stride);
-                const auto kernel_file    = "Conv_Winograd_v21_1_2" + kernel_postfix + ".s";
-                const auto kernel_name    = "miopenSp3AsmConv_v21_1_2_" + family + kernel_postfix;
+                const auto kernel_postfix  = "_fp32_stride" + std::to_string(stride);
+                const auto kernel_file     = "Conv_Winograd_v21_1_3" + kernel_postfix + ".s";
+                const auto kernel_name     = "miopenSp3AsmConv_v21_1_3_" + family + kernel_postfix;
+                const auto supported_xnack = false;
 
-                auto vc = std::make_shared<MDGraph_vertex>(
+                auto conv_v = std::make_shared<MDGraph_vertex>(
                     miopenFusionOpConvForward, kernel_file, kernel_name, algo);
-                vc->solver         = solver::ConvBinWinogradRxSf2x3g1Fused{};
-                vc->default_args   = WinogradV21NodeArgs();
-                vc->supported_arch = supported_arch;
+                conv_v->solver          = solver::ConvBinWinogradRxSf2x3g1Fused{};
+                conv_v->default_args    = WinogradV21NodeArgs();
+                conv_v->supported_arch  = supported_arch;
+                conv_v->supported_xnack = supported_xnack;
 
                 const auto stride_constr = "stride_h == " + std::to_string(stride);
 
                 FusionMDGraph_Edge_Map map_wino_conv;
                 map_wino_conv["constraints"] = {stride_constr};
                 add_meta_wino(map_wino_conv, 5);
-                g.AddEdge(nullptr, vc, map_wino_conv);
 
                 // add 3x3 with higher priority since its the fastest case
                 FusionMDGraph_Edge_Map map_wino_conv_xe3;
                 map_wino_conv_xe3["constraints"] = {stride_constr, "(y == 3) & (x == 3)"};
                 add_meta_wino(map_wino_conv_xe3, 100);
-                g.AddEdge(nullptr, vc, map_wino_conv_xe3);
 
-                add_relu(kernel_file, kernel_name, vc, WinogradV21NodeArgs, supported_arch);
+                g.AddEdge(nullptr, conv_v, map_wino_conv);
+                g.AddEdge(nullptr, conv_v, map_wino_conv_xe3);
+
+                // Conv -> Bias // Conv -> Bias -> Activ // Conv -> Activ
+                add_relu(kernel_file,
+                         kernel_name,
+                         conv_v,
+                         WinogradV21NodeArgs,
+                         supported_arch,
+                         supported_xnack);
             };
 
-            add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908"}, 1);
-            add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908"}, 2);
+            add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908", "gfx90a"}, 1);
+            add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908", "gfx90a"}, 2);
             add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030"}, 1);
             add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030"}, 2);
         }
@@ -734,26 +749,30 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         // single precision
         {
             const std::vector<std::string> supported_arch = {
-                "gfx803", "gfx900", "gfx906", "gfx908"};
-            auto conv_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
+                "gfx803", "gfx900", "gfx906", "gfx908", "gfx90a"};
+            const auto supported_xnack = false;
+            auto conv_v                = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
                                                            "conv1x1u_bias_activ.s",
                                                            "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
-            conv_v->solver         = solver::ConvBiasActivAsm1x1U{};
-            conv_v->supported_arch = supported_arch;
+            conv_v->solver             = solver::ConvBiasActivAsm1x1U{};
+            conv_v->supported_arch     = supported_arch;
+            conv_v->supported_xnack    = supported_xnack;
 
-            auto bias_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
+            auto bias_v             = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
                                                            "conv1x1u_bias_activ.s",
                                                            "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
-            bias_v->supported_arch = supported_arch;
+            bias_v->supported_arch  = supported_arch;
+            bias_v->supported_xnack = supported_xnack;
 
-            auto activ_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+            auto activ_v             = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
                                                             "conv1x1u_bias_activ.s",
                                                             "miopenGcnAsmConv1x1U",
                                                             "miopenConvolutionDirectBiasActivAsm",
                                                             true);
-            activ_v->supported_arch = supported_arch;
+            activ_v->supported_arch  = supported_arch;
+            activ_v->supported_xnack = supported_xnack;
             FusionMDGraph_Edge_Map map_asm_conv;
 
             map_asm_conv["constraints"] = {"group_count == 1",
@@ -785,26 +804,31 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         }
         // half precision
         {
-            const std::vector<std::string> supported_arch = {"gfx900", "gfx906", "gfx908"};
-            auto conv_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
+            const std::vector<std::string> supported_arch = {
+                "gfx900", "gfx906", "gfx908", "gfx90a"};
+            const auto supported_xnack = false;
+            auto conv_v                = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
                                                            "conv1x1u_bias_activ.s",
                                                            "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
-            conv_v->solver         = solver::ConvBiasActivAsm1x1U{};
-            conv_v->supported_arch = supported_arch;
+            conv_v->solver             = solver::ConvBiasActivAsm1x1U{};
+            conv_v->supported_arch     = supported_arch;
+            conv_v->supported_xnack    = supported_xnack;
 
-            auto bias_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
+            auto bias_v             = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
                                                            "conv1x1u_bias_activ.s",
                                                            "miopenGcnAsmConv1x1U",
                                                            "miopenConvolutionDirectBiasActivAsm");
-            bias_v->supported_arch = supported_arch;
+            bias_v->supported_arch  = supported_arch;
+            bias_v->supported_xnack = supported_xnack;
 
-            auto activ_v            = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+            auto activ_v             = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
                                                             "conv1x1u_bias_activ.s",
                                                             "miopenGcnAsmConv1x1U",
                                                             "miopenConvolutionDirectBiasActivAsm",
                                                             true);
-            activ_v->supported_arch = supported_arch;
+            activ_v->supported_arch  = supported_arch;
+            activ_v->supported_xnack = supported_xnack;
             FusionMDGraph_Edge_Map map_asm_conv;
 
             map_asm_conv["constraints"] = {

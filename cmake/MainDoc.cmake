@@ -33,5 +33,5 @@ function(mark_as_doc)
 endfunction()
 
 function(clean_doc_output DIR)
-    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${DIR})
+    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES ${DIR})
 endfunction()

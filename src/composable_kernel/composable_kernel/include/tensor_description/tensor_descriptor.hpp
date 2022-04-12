@@ -278,7 +278,7 @@ struct TensorCoordinateStep
     MultiIndex<NTransform> do_transforms_;
 
     // HACK: control UpdateLowerIndex()
-    static constexpr UpdateLowerIndexHack update_lower_index_hack_;
+    typedef UpdateLowerIndexHack update_lower_index_hack_t;
 };
 
 // TODO: How to fix this? It uses an struct instead of lambda because lambda
@@ -526,7 +526,7 @@ __host__ __device__ constexpr void move_tensor_coordinate(const TensorDesc& tens
             MultiIndex<dims_low.Size()> idx_diff_low;
 
             // HACK: control UpdateLowerIndex for Merge using hack
-            constexpr index_t Hack = decltype(coord_step.update_lower_index_hack_)::At(itran);
+            constexpr index_t Hack = TensorCoordStep::update_lower_index_hack_t::At(itran);
 
             tran.UpdateLowerIndex(idx_diff_low, idx_diff_up, idx_low, idx_up_new, Number<Hack>{});
 

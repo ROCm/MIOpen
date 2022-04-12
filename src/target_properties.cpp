@@ -30,6 +30,8 @@
 #include <map>
 #include <string>
 
+#define WORKAROUND_ISSUE_1204 1 // ROCm may incorrectly report "sramecc-" for gfx900.
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENFORCE_DEVICE)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
@@ -85,6 +87,10 @@ void TargetProperties::Init(const Handle* const handle)
     // However we need to store the reported state, even if it is incorrect,
     // to use together with COMGR.
     sramecc_reported = [&]() -> boost::optional<bool> {
+#if WORKAROUND_ISSUE_1204
+        if(name == "gfx900")
+            return {};
+#endif
         if(rawName.find(":sramecc+") != std::string::npos)
             return true;
         if(rawName.find(":sramecc-") != std::string::npos)

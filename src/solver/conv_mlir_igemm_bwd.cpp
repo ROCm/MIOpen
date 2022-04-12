@@ -27,6 +27,7 @@
 #include <miopen/conv/invokers/mlir_impl_gemm.hpp>
 #include <miopen/config.h>
 #include <miopen/env.hpp>
+#include <miopen/generic_search.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
@@ -36,52 +37,69 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD)
 namespace miopen {
 namespace solver {
 
-namespace {
-#if MIOPEN_USE_MLIR
-std::string GetKernelName()
-{
-    std::string version   = "_v4r1";
-    std::string direction = "_bwd";
-    return "mlir_gen_igemm_conv2d" + version + direction;
-}
-
-std::string GetOperation() { return "conv2d_bwd_data"; }
-#endif
-} // Anonymous namespace
-
 bool ConvMlirIgemmBwd::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD{}))
         return false;
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+        return false;
     if(!ctx.direction.IsBackwardData())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
+    // Note: ConvMlirIgemmBwd can run on a machine with xdlops support, however, it is
+    // guaranteed to be slower than its xdlops alternative, therefore disabling it to
+    // save compilation overhead
+    if(IsXdlopsSupport(ctx))
+        return false;
+    // Refer to https://github.com/ROCmSoftwarePlatform/llvm-project-private/issues/389
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if(StartsWith(device_name, "gfx900"))
+        return false;
 
-    return MiirIsConfigApplicable(
-        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false));
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, false));
 #else
     std::ignore = ctx;
     return false;
 #endif
 }
 
-ConvSolution ConvMlirIgemmBwd::GetSolution(const ConvolutionContext& ctx) const
+PerformanceConvMlirIgemm ConvMlirIgemmBwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
+{
+    std::ignore = ctx;
+    return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
+}
+
+bool ConvMlirIgemmBwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                                const PerformanceConvMlirIgemm& config) const
+{
+    MIOPEN_LOG_I("");
+    return config.IsValid(ctx);
+}
+
+PerformanceConvMlirIgemm ConvMlirIgemmBwd::Search(const ConvolutionContext& ctx,
+                                                  const AnyInvokeParams& invoke_ctx) const
+{
+    return GenericSearch(*this, ctx, invoke_ctx);
+}
+
+ConvSolution ConvMlirIgemmBwd::GetSolution(const ConvolutionContext& ctx,
+                                           const PerformanceConvMlirIgemm& config,
+                                           bool) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
-    int kernel_count = MiirGetKernelCount(
-        mlir::ConstructBuildOptions(ctx, GetOperation(), GetKernelName(), false));
+    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, false));
 
     for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
     {
         KernelInfo construction_parameters;
 
-        construction_parameters.kernel_name  = GetKernelName() + std::to_string(kernel_id);
-        construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
-        construction_parameters.comp_options = mlir::ConstructBuildOptions(
-            ctx, GetOperation(), construction_parameters.kernel_name, false, kernel_id);
+        construction_parameters.kernel_name = mlir::GetKernelName(ctx, false, kernel_id);
+        construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
+        construction_parameters.comp_options =
+            mlir::ConstructBuildOptions(ctx, config, false, kernel_id);
 
         size_t local_size  = 0;
         size_t global_size = 0;
@@ -100,6 +118,7 @@ ConvSolution ConvMlirIgemmBwd::GetSolution(const ConvolutionContext& ctx) const
     return result;
 #else
     std::ignore = ctx;
+    std::ignore = config;
     return {};
 #endif
 }

@@ -70,6 +70,21 @@ gid_n = gid_z
 .set unused_dbg_ptr_off, 0x38
 .set KERNEL_ARGUMENTS_SIZE, unused_dbg_ptr_off + 8
 
+// gfx90a requires 64bit aligned vgpr tuples
+// Tuples are used only in buffer_load_dwordx/buffer_store_dwordx instructions
+//
+// To meet this requirement, the following approach is used ('buffer_load_dwordx4 v[x:y]' as an example):
+//    if 'x' 64bit aligned:
+//       buffer_load_dwordx4 v[x:y], ...
+//    if 'x' not 64bit aligned:
+//       buffer_load_dword   v[x], ...
+//       buffer_load_dwordx3 v[x+1:y], ...
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 0 && .amdgcn.gfx_generation_stepping == 10)
+   tuple_alignment = 1
+.else
+   tuple_alignment = 0
+.endif
+
 maxU24 = 1 << 24
 maxU31 = 1 << 31
 invalid_addr_lit = 0x7FFFFFFF
@@ -226,9 +241,6 @@ static_assert (output_n_stride * (batch_size + n_per_wave) < maxU31)
     .VGPR_ALLOC voffset_out
     .VGPR_ALLOC input_storage, in_gprs
     .if(idilation_h > 1 )
-        .if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
-            .VGPR_ALLOC valign_unused, ((input_storage + 1) % 2) // expand acc_dil_buff if its pointer shifted for 64 bit alignment
-        .endif
         store_buffer_size = 4
         .if(dwords_per_ld == 1)
             store_buffer_size = 2
@@ -238,9 +250,6 @@ static_assert (output_n_stride * (batch_size + n_per_wave) < maxU31)
         .endif
     .elseif (gid_hw_size >= 0x10000 && in_gprs < 2)
         .VGPR_ALLOC input_storage_ex
-    .endif
-    .if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
-        .VGPR_ALLOC valign_unused2, (.VGPR_NEXT_FREE % 2)
     .endif
     .VGPR_ALLOC accums, accums_cnt
     .VGPR_ALLOC vtmp
@@ -600,7 +609,7 @@ miopenGcnAsmConv1x1U_stride2:
         \surpl = \surpl + \i_val
     .endm
 
-    .macro load_input prefetch_id
+    .macro load_input prefetch_id, mbufs_inflight
         ibase\@ = 0
         nb\@ = 0
         .rept n_mult
@@ -620,7 +629,13 @@ miopenGcnAsmConv1x1U_stride2:
                         .if( (imm_off\@ - s_offset_surplus\@) >= 4096)
                             ioffset_as_soffset_conv_2pow12 (imm_off\@ - s_offset_surplus\@), stmp_offset, s_offset_surplus\@
                         .endif
-                        m_buffer_load_dwordx dwords_per_ld, ibase\@, voffset_in, desc_in, stmp_offset, (imm_off\@ - s_offset_surplus\@)
+                        .if tuple_alignment && (dwords_per_ld > 1) && (ibase\@ % 2)
+                            m_buffer_load_dwordx 1,               ibase\@,   voffset_in, desc_in, stmp_offset, (imm_off\@ - s_offset_surplus\@)
+                            m_buffer_load_dwordx dwords_per_ld-1, ibase\@+1, voffset_in, desc_in, stmp_offset, (imm_off\@ - s_offset_surplus\@ + 4)
+                            \mbufs_inflight = \mbufs_inflight + 1
+                        .else
+                            m_buffer_load_dwordx dwords_per_ld, ibase\@, voffset_in, desc_in, stmp_offset, (imm_off\@ - s_offset_surplus\@)
+                        .endif
                         imm_off\@ = imm_off\@ + w_mult_ld_stride_byte
                         ld_w_it\@ = ld_w_it\@ + dwords_per_ld
                     .endr
@@ -701,7 +716,8 @@ miopenGcnAsmConv1x1U_stride2:
     s_cmpk_eq_u32 s[wave_c_id], 0 + waves_c_in_group - 1
     s_cmov_b32 s[loop_cnt], 0 + c_per_last_wave
 
-    load_input 0
+    mbufs_cnt_0 = 0
+    load_input 0, mbufs_cnt_0
 
     load_filters  0
 
@@ -756,16 +772,18 @@ miopenGcnAsmConv1x1U_stride2:
     wave_sync_mainLoop 1
 
 loop_begin:
-    load_input 1
+    mbufs_cnt_1 = 0
+    load_input 1, mbufs_cnt_1
     wave_sync_mainLoop 2
-    s_wait mbufs_cnt, 0
+    s_wait (mbufs_cnt+mbufs_cnt_1), 0
     load_filters  1
 
     conv 0
 
-    load_input 0
+    mbufs_cnt_0 = 0
+    load_input 0, mbufs_cnt_0
     wave_sync_mainLoop 2
-    s_wait mbufs_cnt, 0
+    s_wait (mbufs_cnt+mbufs_cnt_0), 0
     load_filters  0
 
     conv 1
@@ -774,9 +792,10 @@ loop_end:
     s_cmpk_gt_i32 s[loop_cnt], 1 * c_mult
     s_cbranch_scc1 loop_begin
 
-    load_input 1
+    mbufs_cnt_1 = 0
+    load_input 1, mbufs_cnt_1
     wave_sync_mainLoop 2
-    s_wait mbufs_cnt, 0
+    s_wait (mbufs_cnt+mbufs_cnt_1), 0
     load_filters  1
 
     conv 0
@@ -916,7 +935,12 @@ loop_end:
                     ioffset_as_soffset_conv_2pow12 (\val_offset - \s_offset_surplus), \s_offset, \s_offset_surplus
                     i_off\@ = \val_offset + it_acc\@ * 4 - \s_offset_surplus
                 .endif
-                m_buffer_store_dwordx acc_cnt_\@, acc_ptr_\@, \v_offset, \s_desc, \s_offset, i_off\@
+                .if tuple_alignment && (acc_ptr_\@ % 2)
+                    m_buffer_store_dwordx 1,            acc_ptr_\@,   \v_offset, \s_desc, \s_offset, i_off\@
+                    m_buffer_store_dwordx acc_cnt_\@-1, acc_ptr_\@+1, \v_offset, \s_desc, \s_offset, i_off\@ + 4
+                .else
+                    m_buffer_store_dwordx acc_cnt_\@, acc_ptr_\@, \v_offset, \s_desc, \s_offset, i_off\@
+                .endif
                 it_acc\@ = it_acc\@ + acc_cnt_\@
             .endr
         .endif
@@ -933,9 +957,6 @@ loop_end:
     .GPR_REUSE voffset_in, v_offset_part
     .if(idilation_w > 1)
         acc_dil_buff = input_storage + 1
-        .if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
-            acc_dil_buff = acc_dil_buff + (acc_dil_buff % 2) // acc_ptr used by buffer_store_dwordx must be 64 bit aligned
-        .endif
         reset_dil_buffer store_buffer_size
     .endif
     .GPR_REUSE input_storage, v_offset_single

@@ -64,7 +64,7 @@ endfunction()
 
 virtualenv_install(cget)
 
-# Set compiler to hcc if not set
+# Set compiler to hip-clang if not set
 if(NOT DEFINED ENV{CXX} AND NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     find_program(CLANGXX clang++
         PATHS
@@ -113,8 +113,4 @@ cget(init ${TOOLCHAIN_FLAG} -DCMAKE_INSTALL_RPATH=${PREFIX}/lib ${PARSE_UNPARSED
 
 # Install dependencies
 cget(install -U pfultz2/rocm-recipes)
-if(PARSE_--minimum)
-    cget(install -U -f min-requirements.txt)
-else()
-    cget(install -U -f requirements.txt)
-endif()
+cget(install -U -f requirements.txt)
