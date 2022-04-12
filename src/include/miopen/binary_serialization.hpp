@@ -46,7 +46,8 @@ protected:
     template <class Type>
     struct SerializationCriteria<
         Type,
-        std::enable_if_t<std::is_pod<Type>{} && !std::is_pointer<Type>{}, void>> : std::true_type
+        std::enable_if_t<std::is_pod<Type>{} && !std::is_pointer<Type>{} && !std::is_empty<Type>{},
+                         void>> : std::true_type
     {
     };
 };
