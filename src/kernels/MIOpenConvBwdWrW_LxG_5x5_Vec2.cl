@@ -264,7 +264,7 @@ void spanReadingOutput(int spn,
             top_dat[pvt_off + i] =
                 (_FLOAT2)(top_df_pX[i], (IsLast) ? (_FLOAT)0 : top_df_pY[i]) * (_FLOAT2)(mask);
 #else
-            top_dat[pvt_off + i]  = (_FLOAT2)(top_df_pX[i], top_df_pY[i]) * (_FLOAT2)(mask);
+            top_dat[pvt_off + i] = (_FLOAT2)(top_df_pX[i], top_df_pY[i]) * (_FLOAT2)(mask);
 #endif
         }
         for(; i < MLO_IN_TILE0; ++i)
@@ -360,10 +360,10 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
     __private _FLOAT2 top_dat[MLO_TOP_DAT_SZ] = {MLO_TOP_DAT_SZ * ((_FLOAT2)(0))};
 
-//	for (uint i = 0; i < MLO_TOP_DAT_SZ; ++i)
-//	{
-//		top_dat[i] = (_FLOAT2)(0);
-//	}
+    //	for (uint i = 0; i < MLO_TOP_DAT_SZ; ++i)
+    //	{
+    //		top_dat[i] = (_FLOAT2)(0);
+    //	}
 
 #define MLO_ACCUM_SZ (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0)
 

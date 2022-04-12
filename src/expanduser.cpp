@@ -7,7 +7,7 @@ MIOPEN_DECLARE_ENV_VAR(HOME)
 
 namespace miopen {
 
-std::string ExpandUser(std::string p)
+std::string ExpandUser(const std::string& p)
 {
     const char* home_dir = GetStringEnv(HOME{});
     if(home_dir == nullptr || home_dir == std::string("/") || home_dir == std::string(""))

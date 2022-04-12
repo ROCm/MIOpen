@@ -268,9 +268,9 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         if(params.pad_w > 0 || params.pad_h > 0 ||
            (n_passes == 1 && (params.kernel_stride_w > 1 || params.kernel_stride_h > 1)))
         {
-            read_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
-                                                           ? 3
-                                                           : (out_pad_width % 2 == 0) ? 2 : 1;
+            read_unit = (out_pad_width % 4 == 0)
+                            ? 4
+                            : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2 == 0) ? 2 : 1;
             // read_unit = (out_pad_width % 7 == 0) ? 7 : (out_pad_width % 5 == 0) ? 5 :
             // (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2
             // == 0) ? 2 : 1;
@@ -295,9 +295,9 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         int n_lcl_in_map_once   = 8;
         int accum_sz            = n_lcl_out_map_once * n_lcl_in_map_once;
 
-        int write_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
-                                                            ? 3
-                                                            : (out_pad_width % 2 == 0) ? 2 : 1;
+        int write_unit = (out_pad_width % 4 == 0)
+                             ? 4
+                             : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2 == 0) ? 2 : 1;
         int n_grp0_size0 = 256;
         // real input strides
         int in0_stride         = params.out_stride;

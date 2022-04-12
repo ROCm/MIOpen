@@ -129,7 +129,7 @@ struct is_output_streamable : decltype(detail::is_output_streamable(
 #endif
 
 #define ARGS_REQUIRES(...)                                                                    \
-    bool RequiresBool##__LINE__ = true,                                                       \
+    bool RequiresBool##__LINE__             = true,                                           \
          typename std::enable_if<ARGS_REQUIRES_BOOL(RequiresBool##__LINE__ && (__VA_ARGS__)), \
                                  int>::type = 0
 
@@ -224,43 +224,35 @@ struct write_value
     {
         switch(params.size())
         {
-        case 0:
-        {
+        case 0: {
             result = any_construct<T, 0>(params);
             break;
         }
-        case 1:
-        {
+        case 1: {
             result = any_construct<T, 1>(params);
             break;
         }
-        case 2:
-        {
+        case 2: {
             result = any_construct<T, 2>(params);
             break;
         }
-        case 3:
-        {
+        case 3: {
             result = any_construct<T, 3>(params);
             break;
         }
-        case 4:
-        {
+        case 4: {
             result = any_construct<T, 4>(params);
             break;
         }
-        case 5:
-        {
+        case 5: {
             result = any_construct<T, 5>(params);
             break;
         }
-        case 6:
-        {
+        case 6: {
             result = any_construct<T, 6>(params);
             break;
         }
-        case 7:
-        {
+        case 7: {
             result = any_construct<T, 7>(params);
             break;
         }

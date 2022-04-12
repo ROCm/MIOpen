@@ -329,7 +329,7 @@ MIOpenLRNAcrossChannelsBwd1(const __global _FLOAT* top,
 
         top_df_in[c_i] = top_df[MLO_LRN_TOPDF_BATCH_STRIDE * b +
                                 MLO_LRN_TOPDF_CHANNEL_STRIDE * c_i + MLO_LRN_TOPDF_STRIDE * y + x];
-        scale_in[c_i] = scale[MLO_LRN_SCALE_BATCH_STRIDE * b + MLO_LRN_SCALE_CHANNEL_STRIDE * c_i +
+        scale_in[c_i]  = scale[MLO_LRN_SCALE_BATCH_STRIDE * b + MLO_LRN_SCALE_CHANNEL_STRIDE * c_i +
                               MLO_LRN_SCALE_STRIDE * y + x];
         _FLOAT top_dta = top[MLO_LRN_TOP_BATCH_STRIDE * b + MLO_LRN_TOP_CHANNEL_STRIDE * c_i +
                              MLO_LRN_TOP_STRIDE * y + x];
@@ -347,7 +347,7 @@ MIOpenLRNAcrossChannelsBwd1(const __global _FLOAT* top,
     {
         top_df_in[c_i] = top_df[MLO_LRN_TOPDF_BATCH_STRIDE * b +
                                 MLO_LRN_TOPDF_CHANNEL_STRIDE * c_i + MLO_LRN_TOPDF_STRIDE * y + x];
-        scale_in[c_i] = scale[MLO_LRN_SCALE_BATCH_STRIDE * b + MLO_LRN_SCALE_CHANNEL_STRIDE * c_i +
+        scale_in[c_i]  = scale[MLO_LRN_SCALE_BATCH_STRIDE * b + MLO_LRN_SCALE_CHANNEL_STRIDE * c_i +
                               MLO_LRN_SCALE_STRIDE * y + x];
         _FLOAT top_dta = top[MLO_LRN_TOP_BATCH_STRIDE * b + MLO_LRN_TOP_CHANNEL_STRIDE * c_i +
                              MLO_LRN_TOP_STRIDE * y + x];
@@ -389,7 +389,7 @@ MIOpenLRNAcrossChannelsBwd1(const __global _FLOAT* top,
         _FLOAT prv_scale_in =
             scale[MLO_LRN_SCALE_BATCH_STRIDE * b + MLO_LRN_SCALE_CHANNEL_STRIDE * c_i +
                   MLO_LRN_SCALE_STRIDE * y + x];
-        _FLOAT top_dta = top[MLO_LRN_TOP_BATCH_STRIDE * b + MLO_LRN_TOP_CHANNEL_STRIDE * c_i +
+        _FLOAT top_dta       = top[MLO_LRN_TOP_BATCH_STRIDE * b + MLO_LRN_TOP_CHANNEL_STRIDE * c_i +
                              MLO_LRN_TOP_STRIDE * y + x];
         _FLOAT prv_ratio_dta = prv_top_df_in * top_dta / prv_scale_in;
 #if MLO_LOW_CHNL_COUNT == 1

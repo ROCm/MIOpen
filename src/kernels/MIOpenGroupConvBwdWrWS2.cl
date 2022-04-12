@@ -244,8 +244,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             uint c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS);
             uint c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
 #else
-            uint c_scan         = p4 / MLO_N_IN_HORIZ_READS;
-            uint c_pix4         = p4 & (MLO_N_IN_HORIZ_READS - 1);
+            uint c_scan = p4 / MLO_N_IN_HORIZ_READS;
+            uint c_pix4 = p4 & (MLO_N_IN_HORIZ_READS - 1);
 #endif
 
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
@@ -312,8 +312,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 uint c_scan = iDiv(p4, MLO_N_IN_HORIZ_READS);
                 uint c_pix4 = iMod(p4, c_scan, MLO_N_IN_HORIZ_READS);
 #else
-                uint c_scan     = p4 / MLO_N_IN_HORIZ_READS;
-                uint c_pix4     = p4 & (MLO_N_IN_HORIZ_READS - 1);
+                uint c_scan = p4 / MLO_N_IN_HORIZ_READS;
+                uint c_pix4 = p4 & (MLO_N_IN_HORIZ_READS - 1);
 #endif
 
                 // this effectively set upper and right boundary padding to 0 in LDS
@@ -388,8 +388,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                     uint o_pX4 =
                         iMod(oo_p4, o, (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS));
 #else
-                    uint o      = oo_p4 / (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS);
-                    uint o_pX4  = oo_p4 & ((MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS) - 1);
+                    uint o     = oo_p4 / (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS);
+                    uint o_pX4 = oo_p4 & ((MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_N_OUT_HORIZ_READS) - 1);
 #endif
 #if MLO_N_OUT_HORIZ_READS & (MLO_N_OUT_HORIZ_READS - 1)
                     uint o_scan = iDiv(o_pX4, MLO_N_OUT_HORIZ_READS);
@@ -589,15 +589,15 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             uint oo    = iDiv(l, MLO_WEI_CHANNEL_STRIDE);
             uint wei_i = iMod(l, oo, MLO_WEI_CHANNEL_STRIDE);
 #else
-            uint oo             = l / MLO_WEI_CHANNEL_STRIDE;
-            uint wei_i          = l & MLO_WEI_CHANNEL_STRIDE - 1;
+            uint oo      = l / MLO_WEI_CHANNEL_STRIDE;
+            uint wei_i   = l & MLO_WEI_CHANNEL_STRIDE - 1;
 #endif
 #if(MLO_FILTER_SIZE0) & ((MLO_FILTER_SIZE0)-1)
             uint wei_i_y = iDiv(wei_i, (MLO_FILTER_SIZE0));
             uint wei_i_x = iMod(wei_i, wei_i_y, (MLO_FILTER_SIZE0));
 #else
-            uint wei_i_y        = wei_i / (MLO_FILTER_SIZE0);
-            uint wei_i_x        = wei_i & ((MLO_FILTER_SIZE0)-1);
+            uint wei_i_y = wei_i / (MLO_FILTER_SIZE0);
+            uint wei_i_x = wei_i & ((MLO_FILTER_SIZE0)-1);
 #endif
             // send it out
             // inputs are outputs
@@ -636,8 +636,8 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
     uint wei_blk_idx = iDiv(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
     uint wei_idx     = iMod(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
 #else
-    uint wei_blk_idx            = wei_idx0 / MLO_WEI_CHANNEL_STRIDE;
-    uint wei_idx                = wei_idx0 & (MLO_WEI_CHANNEL_STRIDE - 1);
+    uint wei_blk_idx = wei_idx0 / MLO_WEI_CHANNEL_STRIDE;
+    uint wei_idx     = wei_idx0 & (MLO_WEI_CHANNEL_STRIDE - 1);
 #endif
 
     _FLOAT_ACCUM pvt_accum_wei[MLO_UT_READ_UNIT];

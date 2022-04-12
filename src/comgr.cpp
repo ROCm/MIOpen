@@ -202,6 +202,7 @@ static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties&
 #if ROCM_FEATURE_TARGETID_OFF
     // It seems like these options are used only in codegen.
     // However it seems ok to pass these to compiler.
+<<<<<<< HEAD
     if(target.Sramecc())
         list.push_back("-msram-ecc");
     else
@@ -209,6 +210,23 @@ static void AddCompilerOptions(OptionList& list, const miopen::TargetProperties&
 #else
     std::ignore = target;
 #endif
+||||||| merged common ancestors
+    if(IsEnabledFeatureSramEcc(target.Name()))
+        list.push_back("-msram-ecc");
+    else
+        list.push_back("-mno-sram-ecc");
+=======
+    if(target.Sramecc())
+    {
+        if(*target.Sramecc())
+            list.push_back("-msram-ecc");
+        else
+            list.push_back("-mno-sram-ecc");
+    }
+#else
+    std::ignore = target;
+#endif
+>>>>>>> release/rocm-rel-4.3
     list.push_back("-mllvm");
     list.push_back("-amdgpu-internalize-symbols");
 }
@@ -305,6 +323,7 @@ static void RemoveLinkOptionsUnwanted(OptionList& list)
 /// \todo Get list of supported isa names from comgr and select.
 static std::string GetIsaName(const miopen::TargetProperties& target)
 {
+<<<<<<< HEAD
 #if ROCM_FEATURE_TARGETID_OFF
     const char* const ecc_suffix = target.Sramecc() ? "+sram-ecc" : "";
     return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
@@ -312,6 +331,18 @@ static std::string GetIsaName(const miopen::TargetProperties& target)
     const LcOptionTargetStrings lots(target);
     return {"amdgcn-amd-amdhsa--" + lots.targetId};
 #endif
+||||||| merged common ancestors
+    const char* const ecc_suffix = IsEnabledFeatureSramEcc(device) ? "+sram-ecc" : "";
+    return {"amdgcn-amd-amdhsa--" + device + ecc_suffix};
+=======
+#if ROCM_FEATURE_TARGETID_OFF
+    const char* const ecc_suffix = (target.Sramecc() && *target.Sramecc()) ? "+sram-ecc" : "";
+    return {"amdgcn-amd-amdhsa--" + target.Name() + ecc_suffix};
+#else
+    const LcOptionTargetStrings lots(target);
+    return {"amdgcn-amd-amdhsa--" + lots.targetId};
+#endif
+>>>>>>> release/rocm-rel-4.3
 }
 
 } // namespace lc
@@ -412,8 +443,7 @@ static bool PrintVersionImpl()
     std::size_t minor = 0;
     (void)amd_comgr_get_version(&major, &minor);
     MIOPEN_LOG_NQI("COMgr v." << major << '.' << minor << '.' << MIOPEN_AMD_COMGR_VERSION_PATCH
-                              << ", USE_HIP_PCH: "
-                              << compiler::lc::hip::GetPchEnableStatus());
+                              << ", USE_HIP_PCH: " << compiler::lc::hip::GetPchEnableStatus());
     return true;
 }
 
@@ -545,6 +575,8 @@ class Data : ComgrOwner
     std::string GetString() const
     {
         std::vector<char> bytes;
+        if(GetSize() == 0)
+            return {};
         const auto sz = GetBytes(bytes);
         return {&bytes[0], sz};
     }
@@ -584,8 +616,8 @@ class Dataset : ComgrOwner
         const char name[] = "hip.pch";
         const Data d(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
         if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
-            MIOPEN_LOG_I(
-                name << ' ' << size << " bytes,  ptr = " << static_cast<const void*>(content));
+            MIOPEN_LOG_I(name << ' ' << size
+                              << " bytes,  ptr = " << static_cast<const void*>(content));
         d.SetName(name);
         d.SetFromBuffer(content, size);
         AddData(d);
@@ -751,10 +783,18 @@ void BuildHip(const std::string& name,
                        + " " + GetDebugCompilerOptionsInsert() //
                        + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
                        (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
+<<<<<<< HEAD
 #if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
             if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
                 raw += "-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #endif
+||||||| merged common ancestors
+=======
+#if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+            if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
+                raw += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#endif
+>>>>>>> release/rocm-rel-4.3
             auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
             action.SetOptionList(optCompile);
@@ -767,10 +807,18 @@ void BuildHip(const std::string& name,
                        + " " + GetDebugCompilerOptionsInsert() //
                        + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
                        (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
+<<<<<<< HEAD
 #if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
             if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
                 raw += "-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
 #endif
+||||||| merged common ancestors
+=======
+#if ROCM_FEATURE_LLVM_AMDGCN_BUFFER_ATOMIC_FADD_F32_RETURNS_FLOAT
+            if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
+                raw += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+#endif
+>>>>>>> release/rocm-rel-4.3
 #if COMGR_SUPPORTS_PCH
             if(compiler::lc::hip::IsPchEnabled())
             {
@@ -922,7 +970,8 @@ void BuildAsm(const std::string& name,
         auto optAsm = miopen::SplitSpaceSeparated(options);
 #if WORKAROUND_SWDEV_255735
         if(miopen::HipCompilerVersion() >= miopen::external_tool_version_t{3, 8, 20403})
-            optAsm.push_back("-mno-xnack");
+            if(target.Xnack() && !*target.Xnack())
+                optAsm.push_back("-mno-xnack");
 #endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
         action.SetOptionList(optAsm);

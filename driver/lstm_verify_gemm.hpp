@@ -9,35 +9,34 @@
 #include "dropout_gpu_emulator.hpp"
 
 template <typename Tgpu, typename Tref>
-void RunLSTMForwardGEMMCPUVerify(
-    miopenHandle_t handle,
-    std::vector<Tgpu>& in,
-    std::vector<Tgpu>& wei,     // [ input_state_weight_trans
-                                // hidden_state_weight0_trans input1_trans
-                                // hidden1_trans ... output_weight;
-                                // bidirectional reversed weights ]
-    std::vector<Tref>& hy_host, // current/final hidden state
-    std::vector<Tgpu>& hx,      // initial hidden state
-    std::vector<Tref>& cy_host, // current/final cell state
-    std::vector<Tgpu>& cx,      // initial cell state
-    std::vector<Tref>& out_host,
-    std::vector<int>& in_n, // input batch size
-    int in_h,               // input data length
-    int seqLength,          // Number of iterations to unroll over
-    bool bidirection,       // whether using bidirectional net
-    bool biased,            // whether using bias
-    int hy_d,               // 1 by numlayer (number of stacks of hidden layers) for
-                            // unidirection, 2 by numlayer for bidirection
-    int hy_n,               // equal to input batch size in_n[0]
-    int hy_h,               // hidden state number
-    int out_h,              // 1 by hy_h related function for unidirection, 2 by hy_h
-                            // related function for bidirection
-    int inputMode,
-    std::vector<Tref>& rsvspace_host,
-    bool use_dropout,
-    miopenDropoutDescriptor_t dropoutDesc,
-    bool hx_is_null = false,
-    bool cx_is_null = false)
+void RunLSTMForwardGEMMCPUVerify(miopenHandle_t handle,
+                                 std::vector<Tgpu>& in,
+                                 std::vector<Tgpu>& wei, // [ input_state_weight_trans
+                                                         // hidden_state_weight0_trans input1_trans
+                                                         // hidden1_trans ... output_weight;
+                                                         // bidirectional reversed weights ]
+                                 std::vector<Tref>& hy_host, // current/final hidden state
+                                 std::vector<Tgpu>& hx,      // initial hidden state
+                                 std::vector<Tref>& cy_host, // current/final cell state
+                                 std::vector<Tgpu>& cx,      // initial cell state
+                                 std::vector<Tref>& out_host,
+                                 std::vector<int>& in_n, // input batch size
+                                 int in_h,               // input data length
+                                 int seqLength,          // Number of iterations to unroll over
+                                 bool bidirection,       // whether using bidirectional net
+                                 bool biased,            // whether using bias
+                                 int hy_d,  // 1 by numlayer (number of stacks of hidden layers) for
+                                            // unidirection, 2 by numlayer for bidirection
+                                 int hy_n,  // equal to input batch size in_n[0]
+                                 int hy_h,  // hidden state number
+                                 int out_h, // 1 by hy_h related function for unidirection, 2 by
+                                            // hy_h related function for bidirection
+                                 int inputMode,
+                                 std::vector<Tref>& rsvspace_host,
+                                 bool use_dropout,
+                                 miopenDropoutDescriptor_t dropoutDesc,
+                                 bool hx_is_null = false,
+                                 bool cx_is_null = false)
 {
     int batch_n = sumvc(in_n);
 

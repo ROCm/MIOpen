@@ -34,7 +34,7 @@
 namespace miopen {
 
 namespace debug {
-
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 bool AlwaysEnableConvDirectNaive = false;
 
 } // namespace debug
@@ -54,12 +54,19 @@ std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
     else
         MIOPEN_THROW("unsupported convolution direction");
 
-    if(ctx.in_layout == "NCHW" || ctx.in_layout == "NCDHW")
+    if(ctx.IsLayoutDefault())
     {
         if(ctx.Is2d())
             kernel_name << "nchw_";
         else
             kernel_name << "ncdhw_";
+    }
+    else if(ctx.IsLayoutNHWC())
+    {
+        if(ctx.Is2d())
+            kernel_name << "nhwc_";
+        else
+            kernel_name << "ndhwc_";
     }
     else
         MIOPEN_THROW("unsupported tensor layout");
@@ -81,7 +88,7 @@ std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx)
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(device_name == "gfx906" || device_name == "gfx908")
     {
-        if(ctx.rmv.IsV3())
+        if(ctx.rmv.IsV3() && ctx.IsLayoutDefault())
             return "naive_conv_gcn.s";
     }
     return "naive_conv.cpp";

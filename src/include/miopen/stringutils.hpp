@@ -41,9 +41,10 @@
 namespace miopen {
 
 inline std::string
-ReplaceString(std::string subject, const std::string& search, const std::string& replace)
+ReplaceString(const std::string& in, const std::string& search, const std::string& replace)
 {
     size_t pos = 0;
+    std::string subject(in);
     while((pos = subject.find(search, pos)) != std::string::npos)
     {
         subject.replace(pos, search.length(), replace);

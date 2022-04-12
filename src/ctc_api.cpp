@@ -151,7 +151,7 @@ extern "C" miopenStatus_t miopenCTCLoss(miopenHandle_t handle,
             auto batch_sz = miopen::deref(probsDesc).GetLengths()[1];
             std::vector<std::string> inputs(batch_sz);
             for(std::size_t idx = 0; idx < batch_sz; ++idx)
-                inputs[idx]     = std::to_string(lens[idx]);
+                inputs[idx] = std::to_string(lens[idx]);
             return inputs;
         };
         if(labelLengths != nullptr)

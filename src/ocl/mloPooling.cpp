@@ -68,13 +68,17 @@ static std::string get_pooling_index_type_name(miopenIndexType_t index_type)
 {
     switch(index_type)
     {
-    case miopenIndexUint8: { return "uchar";
+    case miopenIndexUint8: {
+        return "uchar";
     }
-    case miopenIndexUint16: { return "ushort";
+    case miopenIndexUint16: {
+        return "ushort";
     }
-    case miopenIndexUint32: { return "uint";
+    case miopenIndexUint32: {
+        return "uint";
     }
-    case miopenIndexUint64: { return "ulong";
+    case miopenIndexUint64: {
+        return "ulong";
     }
     }
 
@@ -85,13 +89,17 @@ static std::string get_pooling_index_type_max_name(miopenIndexType_t index_type)
 {
     switch(index_type)
     {
-    case miopenIndexUint8: { return "UCHAR_MAX";
+    case miopenIndexUint8: {
+        return "UCHAR_MAX";
     }
-    case miopenIndexUint16: { return "USHRT_MAX";
+    case miopenIndexUint16: {
+        return "USHRT_MAX";
     }
-    case miopenIndexUint32: { return "UINT_MAX";
+    case miopenIndexUint32: {
+        return "UINT_MAX";
     }
-    case miopenIndexUint64: { return "ULONG_MAX";
+    case miopenIndexUint64: {
+        return "ULONG_MAX";
     }
     }
 
@@ -127,12 +135,13 @@ int mlo_construct_pooling2D::mloConstructFwd()
 
     _grp_tile0 =
         _search_params.out_width <= 8 ? 8 : (_search_params.out_width % 32 <= 16 ? 16 : 32);
-    _grp_tile1 =
-        _search_params.out_height <= 8 ? 8 : _search_params.out_height < 16
-                                                 ? 16
-                                                 : _search_params.out_height <= 32
-                                                       ? 32
-                                                       : _search_params.out_height <= 64 ? 64 : 128;
+    _grp_tile1 = _search_params.out_height <= 8
+                     ? 8
+                     : _search_params.out_height < 16
+                           ? 16
+                           : _search_params.out_height <= 32
+                                 ? 32
+                                 : _search_params.out_height <= 64 ? 64 : 128;
     _grp_tile1 /= _out_pix_tile1;
     while(_grp_tile0 * _grp_tile1 > 256 && _grp_tile0 > 1)
         _grp_tile0 >>= 1;
@@ -165,7 +174,7 @@ int mlo_construct_pooling2D::mloConstructFwd()
                         : "") +
         getGeneralCompOptions();
 
-    int g_wk_width = ((_search_params.out_width + _grp_tile0 * _out_pix_tile0 - 1) /
+    int g_wk_width  = ((_search_params.out_width + _grp_tile0 * _out_pix_tile0 - 1) /
                       (_grp_tile0 * _out_pix_tile0));
     int g_wk_height = ((_search_params.out_height + _grp_tile1 * _out_pix_tile1 - 1) /
                        (_grp_tile1 * _out_pix_tile1));
@@ -261,7 +270,7 @@ int mlo_construct_pooling2D::mloConstructBwd()
                                                                    : " -DUSE_IMG_INDEX=0") +
         getGeneralCompOptions();
 
-    int g_wk_width = ((_search_params.in_width + _grp_tile0 * _out_pix_tile0 - 1) /
+    int g_wk_width  = ((_search_params.in_width + _grp_tile0 * _out_pix_tile0 - 1) /
                       (_grp_tile0 * _out_pix_tile0));
     int g_wk_height = ((_search_params.in_height + _grp_tile1 * _out_pix_tile1 - 1) /
                        (_grp_tile1 * _out_pix_tile1));

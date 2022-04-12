@@ -75,9 +75,8 @@ auto FindSolutionImpl(
                 {
                     return s.GetSolution(context, config);
                 }
-                MIOPEN_LOG_IE(
-                    "Invalid config loaded from Perf Db: " << SolverDbId(s) << ": " << config
-                                                           << ". Performance may degrade.");
+                MIOPEN_LOG_IE("Invalid config loaded from Perf Db: "
+                              << SolverDbId(s) << ": " << config << ". Performance may degrade.");
             }
             else
             {
@@ -181,6 +180,50 @@ struct SolverContainer
             Solvers{}...);
         return ss;
     }
+
+    // Search for all applicable solutions among many solvers
+    template <class Problem, class Solution = miopen::solver::ConvSolution>
+    std::vector<Solution>
+    SearchForSolutions(const ExecutionContext& ctx,
+                       const Problem& problem,
+                       std::size_t limit = std::numeric_limits<std::size_t>::max()) const
+    {
+        std::vector<Solution> ss;
+        std::size_t count    = 0;
+        const auto find_only = GetEnvFindOnlySolver();
+        miopen::each_args(
+            [&](auto solver) {
+                if(count >= limit)
+                    return;
+                if(find_only.IsValid() && find_only != Id{SolverDbId(solver)})
+                { // Do nothing (and keep silence for the sake of Tuna), just skip.
+                }
+                // For better performance, check IsDynamic() first, because
+                // it is much faster than IsApplicable().
+                // else if(problem.use_dynamic_solutions_only && !solver.IsDynamic())
+                //    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                else if(!solver.IsApplicable(ctx, problem))
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+                else
+                {
+                    auto s      = solver.GetSolution(ctx, problem);
+                    s.solver_id = SolverDbId(solver);
+                    if(s.Succeeded())
+                    {
+                        ++count;
+                        ss.push_back(s);
+                        MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
+                    }
+                    else
+                    {
+                        MIOPEN_LOG_E(SolverDbId(solver) << ": Applicable Solver not succeeded.");
+                    }
+                }
+            },
+            Solvers{}...);
+        return ss;
+    }
+
     template <class Context>
     std::vector<std::pair<std::string, size_t>>
     GetWorkspaceSize(const Context& search_params,
@@ -206,10 +249,44 @@ struct SolverContainer
                     ++count;
                     auto sz = solver.GetWorkspaceSize(search_params);
                     res.push_back(std::make_pair(SolverDbId(solver), sz));
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": " << sz);
                 }
             },
             Solvers{}...);
         return res;
+    }
+
+    // Search for all applicable solutions among many solvers
+    template <class Context>
+    bool IsAnySolverApplicable(const Context& search_params) const
+    {
+        const auto find_only = GetEnvFindOnlySolver();
+        auto found           = false;
+
+        miopen::each_args(
+            [&](auto solver) {
+                if(found || (find_only.IsValid() && find_only != Id{SolverDbId(solver)}))
+                    return;
+
+                // For better performance, check IsDynamic() first, because
+                // it is much faster than IsApplicable().
+                if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                {
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Skipped (non-dynamic)");
+                    return;
+                }
+
+                if(solver.IsApplicable(search_params))
+                {
+                    found = true;
+                    return;
+                }
+
+                MIOPEN_LOG_I2(SolverDbId(solver) << ": Not applicable");
+            },
+            Solvers{}...);
+
+        return found;
     }
 };
 

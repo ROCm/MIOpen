@@ -1,50 +1,58 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Dropout Layer &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Reduction Layer" href="reduction.html" />
     <link rel="prev" title="Loss Function Layer" href="loss.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +66,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -75,6 +83,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +91,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -166,12 +177,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
@@ -454,6 +459,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,11 +494,13 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="apireference.html">API Reference</a> &raquo;</li>
         
@@ -501,7 +509,7 @@
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/dropout.rst.txt" rel="nofollow"> View page source</a>
           
         
@@ -520,14 +528,14 @@
 <p>The dropout layer API documentation</p>
 <div class="section" id="miopenrngtype-t">
 <h2>miopenRNGType_t<a class="headerlink" href="#miopenrngtype-t" title="Permalink to this headline">¶</a></h2>
-<dl class="type">
-<dt id="_CPPv215miopenRNGType_t">
-<span id="miopenRNGType_t"></span><span class="target" id="group__dropout_1ga283a437b36e9ed35ce7b80490de4d15d"></span><em class="property">enum </em><code class="descclassname"></code><code class="descname">miopenRNGType_t</code><a class="headerlink" href="#_CPPv215miopenRNGType_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv415miopenRNGType_t">
+<span id="_CPPv315miopenRNGType_t"></span><span id="_CPPv215miopenRNGType_t"></span><span class="target" id="group__dropout_1ga283a437b36e9ed35ce7b80490de4d15d"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenRNGType_t</span></span></span><a class="headerlink" href="#_CPPv415miopenRNGType_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>random number generator type </p>
 <p><em>Values:</em></p>
-<dl class="enumerator">
-<dt id="_CPPv224MIOPEN_RNG_PSEUDO_XORWOW">
-<span class="target" id="group__dropout_1gga283a437b36e9ed35ce7b80490de4d15daeda0fbe383a397b303a6ab43efa5967e"></span><code class="descname">MIOPEN_RNG_PSEUDO_XORWOW</code> = 0<a class="headerlink" href="#_CPPv224MIOPEN_RNG_PSEUDO_XORWOW" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N15miopenRNGType_t24MIOPEN_RNG_PSEUDO_XORWOWE">
+<span id="_CPPv3N15miopenRNGType_t24MIOPEN_RNG_PSEUDO_XORWOWE"></span><span id="_CPPv2N15miopenRNGType_t24MIOPEN_RNG_PSEUDO_XORWOWE"></span><span class="target" id="group__dropout_1gga283a437b36e9ed35ce7b80490de4d15daeda0fbe383a397b303a6ab43efa5967e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_RNG_PSEUDO_XORWOW</span></span></span><a class="headerlink" href="#_CPPv4N15miopenRNGType_t24MIOPEN_RNG_PSEUDO_XORWOWE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>XORWOW pseudorandom generator </p>
 </dd></dl>
 
@@ -536,239 +544,244 @@
 </div>
 <div class="section" id="miopencreatedropoutdescriptor">
 <h2>miopenCreateDropoutDescriptor<a class="headerlink" href="#miopencreatedropoutdescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv229miopenCreateDropoutDescriptorP25miopenDropoutDescriptor_t">
-<span id="miopenCreateDropoutDescriptor__miopenDropoutDescriptor_tP"></span><span class="target" id="group__dropout_1ga0bef63021731125ff7beadd5c117acb8"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateDropoutDescriptor</code><span class="sig-paren">(</span>miopenDropoutDescriptor_t *<em>dropoutDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv229miopenCreateDropoutDescriptorP25miopenDropoutDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv429miopenCreateDropoutDescriptorP25miopenDropoutDescriptor_t">
+<span id="_CPPv329miopenCreateDropoutDescriptorP25miopenDropoutDescriptor_t"></span><span id="_CPPv229miopenCreateDropoutDescriptorP25miopenDropoutDescriptor_t"></span><span id="miopenCreateDropoutDescriptor__miopenDropoutDescriptor_tP"></span><span class="target" id="group__dropout_1ga0bef63021731125ff7beadd5c117acb8"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenCreateDropoutDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenDropoutDescriptor_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dropoutDesc</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv429miopenCreateDropoutDescriptorP25miopenDropoutDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Creates the dropout descriptor object. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">dropoutDesc</span></code>: Pointer to a dropout descriptor type </li>
-</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dropoutDesc</strong> – Pointer to a dropout descriptor type </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
 </dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopengetdropoutdescriptor">
 <h2>miopenGetDropoutDescriptor<a class="headerlink" href="#miopengetdropoutdescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv226miopenGetDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tPfPPvPyPbPbP15miopenRNGType_t">
-<span id="miopenGetDropoutDescriptor__miopenDropoutDescriptor_t.miopenHandle_t.floatP.voidPP.unsigned-l-lP.bP.bP.miopenRNGType_tP"></span><span class="target" id="group__dropout_1gac869779473fb0a861ca40940a5172be6"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetDropoutDescriptor</code><span class="sig-paren">(</span>miopenDropoutDescriptor_t <em>dropoutDesc</em>, miopenHandle_t <em>handle</em>, float *<em>dropout</em>, void **<em>states</em>, unsigned long long *<em>seed</em>, bool *<em>use_mask</em>, bool *<em>state_evo</em>, <a class="reference internal" href="#_CPPv215miopenRNGType_t" title="miopenRNGType_t">miopenRNGType_t</a> *<em>rng_mode</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv226miopenGetDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tPfPPvPyPbPbP15miopenRNGType_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv426miopenGetDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tPfPPvPyPbPbP15miopenRNGType_t">
+<span id="_CPPv326miopenGetDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tPfPPvPyPbPbP15miopenRNGType_t"></span><span id="_CPPv226miopenGetDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tPfPPvPyPbPbP15miopenRNGType_t"></span><span id="miopenGetDropoutDescriptor__miopenDropoutDescriptor_t.miopenHandle_t.floatP.voidPP.unsigned-l-lP.bP.bP.miopenRNGType_tP"></span><span class="target" id="group__dropout_1gac869779473fb0a861ca40940a5172be6"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenGetDropoutDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenDropoutDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dropoutDesc</span></span>, <span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dropout</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">states</span></span>, <span class="kt"><span class="pre">unsigned</span> <span class="pre">long</span> <span class="pre">long</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">seed</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">use_mask</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">state_evo</span></span>, <a class="reference internal" href="#_CPPv415miopenRNGType_t" title="miopenRNGType_t"><span class="n"><span class="pre">miopenRNGType_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">rng_mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv426miopenGetDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tPfPPvPyPbPbP15miopenRNGType_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get the details of the dropout descriptor. </p>
-<p>Interface for querying the dropout descriptor <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">dropoutDesc</span></code>: Dropout layer descriptor (input) </li>
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">dropout</span></code>: The probability by which the input is set to 0 in the dropout layer (Output) </li>
-<li><code class="docutils literal"><span class="pre">states</span></code>: Pointer to memory that holds random number generator states (Output) </li>
-<li><code class="docutils literal"><span class="pre">seed</span></code>: Seed used to initialize random number generator states (Output) </li>
-<li><code class="docutils literal"><span class="pre">use_mask</span></code>: Boolean flag indicating whether to use a saved mask (an existing or user-defined dropout layout) in reserveSpace (Output) </li>
-<li><code class="docutils literal"><span class="pre">state_evo</span></code>: Boolean flag indicating whether to adopt state evolution strategy to update the PRNG states by the end of each implementation (Output placeholder, currently not enabled) </li>
-<li><code class="docutils literal"><span class="pre">rng_mode</span></code>: Random number generator used to generate parallel random number sequences (Output) </li>
+<p>Interface for querying the dropout descriptor </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dropoutDesc</strong> – Dropout layer descriptor (input) </p></li>
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>dropout</strong> – The probability by which the input is set to 0 in the dropout layer (Output) </p></li>
+<li><p><strong>states</strong> – Pointer to memory that holds random number generator states (Output) </p></li>
+<li><p><strong>seed</strong> – Seed used to initialize random number generator states (Output) </p></li>
+<li><p><strong>use_mask</strong> – Boolean flag indicating whether to use a saved mask (an existing or user-defined dropout layout) in reserveSpace (Output) </p></li>
+<li><p><strong>state_evo</strong> – Boolean flag indicating whether to adopt state evolution strategy to update the PRNG states by the end of each implementation (Output placeholder, currently not enabled) </p></li>
+<li><p><strong>rng_mode</strong> – Random number generator used to generate parallel random number sequences (Output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenrestoredropoutdescriptor">
 <h2>miopenRestoreDropoutDescriptor<a class="headerlink" href="#miopenrestoredropoutdescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv230miopenRestoreDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tfPv6size_tybb15miopenRNGType_t">
-<span id="miopenRestoreDropoutDescriptor__miopenDropoutDescriptor_t.miopenHandle_t.float.voidP.s.unsigned-l-l.b.b.miopenRNGType_t"></span><span class="target" id="group__dropout_1gaf38a69c8d53e521458dedca4bb4687dc"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenRestoreDropoutDescriptor</code><span class="sig-paren">(</span>miopenDropoutDescriptor_t <em>dropoutDesc</em>, miopenHandle_t <em>handle</em>, float <em>dropout</em>, void *<em>states</em>, size_t <em>stateSizeInBytes</em>, unsigned long long <em>seed</em>, bool <em>use_mask</em>, bool <em>state_evo</em>, <a class="reference internal" href="#_CPPv215miopenRNGType_t" title="miopenRNGType_t">miopenRNGType_t</a> <em>rng_mode</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv230miopenRestoreDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tfPv6size_tybb15miopenRNGType_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv430miopenRestoreDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tfPv6size_tybb15miopenRNGType_t">
+<span id="_CPPv330miopenRestoreDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tfPv6size_tybb15miopenRNGType_t"></span><span id="_CPPv230miopenRestoreDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tfPv6size_tybb15miopenRNGType_t"></span><span id="miopenRestoreDropoutDescriptor__miopenDropoutDescriptor_t.miopenHandle_t.float.voidP.s.unsigned-l-l.b.b.miopenRNGType_t"></span><span class="target" id="group__dropout_1gaf38a69c8d53e521458dedca4bb4687dc"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenRestoreDropoutDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenDropoutDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dropoutDesc</span></span>, <span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dropout</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">states</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stateSizeInBytes</span></span>, <span class="kt"><span class="pre">unsigned</span> <span class="pre">long</span> <span class="pre">long</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">seed</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">use_mask</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">state_evo</span></span>, <a class="reference internal" href="#_CPPv415miopenRNGType_t" title="miopenRNGType_t"><span class="n"><span class="pre">miopenRNGType_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">rng_mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv430miopenRestoreDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tfPv6size_tybb15miopenRNGType_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Restore the dropout descriptor to a saved state. </p>
 <p>This function restores the state of dropout descriptor using the address of a state buffer with previously saved PRNG state pattern, without launching the expensive PRNG initialization process.</p>
-<p>Interface for restoring the dropout descriptor <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">dropoutDesc</span></code>: Dropout layer descriptor (input/Output) </li>
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">dropout</span></code>: The probability by which the input is set to 0 in the dropout layer (input) </li>
-<li><code class="docutils literal"><span class="pre">states</span></code>: Pointer to memory that holds random number generator states (input) </li>
-<li><code class="docutils literal"><span class="pre">stateSizeInBytes</span></code>: Number of bytes holding random generator states (input) </li>
-<li><code class="docutils literal"><span class="pre">seed</span></code>: Seed used to initialize random number generator states (input) </li>
-<li><code class="docutils literal"><span class="pre">use_mask</span></code>: Boolean flag indicating whether to use a saved mask (an existing or user-defined dropout layout) in reserveSpace (input) </li>
-<li><code class="docutils literal"><span class="pre">state_evo</span></code>: Boolean flag indicating whether to adopt state evolution strategy to update the PRNG states by the end of each implementation (input placeholder, currently not enabled) </li>
-<li><code class="docutils literal"><span class="pre">rng_mode</span></code>: Random number generator used to generate parallel random number sequences (input) </li>
+<p>Interface for restoring the dropout descriptor </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dropoutDesc</strong> – Dropout layer descriptor (input/Output) </p></li>
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>dropout</strong> – The probability by which the input is set to 0 in the dropout layer (input) </p></li>
+<li><p><strong>states</strong> – Pointer to memory that holds random number generator states (input) </p></li>
+<li><p><strong>stateSizeInBytes</strong> – Number of bytes holding random generator states (input) </p></li>
+<li><p><strong>seed</strong> – Seed used to initialize random number generator states (input) </p></li>
+<li><p><strong>use_mask</strong> – Boolean flag indicating whether to use a saved mask (an existing or user-defined dropout layout) in reserveSpace (input) </p></li>
+<li><p><strong>state_evo</strong> – Boolean flag indicating whether to adopt state evolution strategy to update the PRNG states by the end of each implementation (input placeholder, currently not enabled) </p></li>
+<li><p><strong>rng_mode</strong> – Random number generator used to generate parallel random number sequences (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopendestroydropoutdescriptor">
 <h2>miopenDestroyDropoutDescriptor<a class="headerlink" href="#miopendestroydropoutdescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv230miopenDestroyDropoutDescriptor25miopenDropoutDescriptor_t">
-<span id="miopenDestroyDropoutDescriptor__miopenDropoutDescriptor_t"></span><span class="target" id="group__dropout_1gad524696e06740d779b3a3b4aec3f97ec"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDestroyDropoutDescriptor</code><span class="sig-paren">(</span>miopenDropoutDescriptor_t <em>dropoutDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv230miopenDestroyDropoutDescriptor25miopenDropoutDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv430miopenDestroyDropoutDescriptor25miopenDropoutDescriptor_t">
+<span id="_CPPv330miopenDestroyDropoutDescriptor25miopenDropoutDescriptor_t"></span><span id="_CPPv230miopenDestroyDropoutDescriptor25miopenDropoutDescriptor_t"></span><span id="miopenDestroyDropoutDescriptor__miopenDropoutDescriptor_t"></span><span class="target" id="group__dropout_1gad524696e06740d779b3a3b4aec3f97ec"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenDestroyDropoutDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenDropoutDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dropoutDesc</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv430miopenDestroyDropoutDescriptor25miopenDropoutDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Destroys the dropout descriptor object. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">dropoutDesc</span></code>: Dropout descriptor type (input) </li>
-</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dropoutDesc</strong> – Dropout descriptor type (input) </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
 </dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopensetdropoutdescriptor">
 <h2>miopenSetDropoutDescriptor<a class="headerlink" href="#miopensetdropoutdescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv226miopenSetDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tfPv6size_tybb15miopenRNGType_t">
-<span id="miopenSetDropoutDescriptor__miopenDropoutDescriptor_t.miopenHandle_t.float.voidP.s.unsigned-l-l.b.b.miopenRNGType_t"></span><span class="target" id="group__dropout_1gabcc585f57b6c22d95caff817caa0cf2f"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetDropoutDescriptor</code><span class="sig-paren">(</span>miopenDropoutDescriptor_t <em>dropoutDesc</em>, miopenHandle_t <em>handle</em>, float <em>dropout</em>, void *<em>states</em>, size_t <em>stateSizeInBytes</em>, unsigned long long <em>seed</em>, bool <em>use_mask</em>, bool <em>state_evo</em>, <a class="reference internal" href="#_CPPv215miopenRNGType_t" title="miopenRNGType_t">miopenRNGType_t</a> <em>rng_mode</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv226miopenSetDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tfPv6size_tybb15miopenRNGType_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv426miopenSetDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tfPv6size_tybb15miopenRNGType_t">
+<span id="_CPPv326miopenSetDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tfPv6size_tybb15miopenRNGType_t"></span><span id="_CPPv226miopenSetDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tfPv6size_tybb15miopenRNGType_t"></span><span id="miopenSetDropoutDescriptor__miopenDropoutDescriptor_t.miopenHandle_t.float.voidP.s.unsigned-l-l.b.b.miopenRNGType_t"></span><span class="target" id="group__dropout_1gabcc585f57b6c22d95caff817caa0cf2f"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSetDropoutDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenDropoutDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dropoutDesc</span></span>, <span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dropout</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">states</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stateSizeInBytes</span></span>, <span class="kt"><span class="pre">unsigned</span> <span class="pre">long</span> <span class="pre">long</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">seed</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">use_mask</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">state_evo</span></span>, <a class="reference internal" href="#_CPPv415miopenRNGType_t" title="miopenRNGType_t"><span class="n"><span class="pre">miopenRNGType_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">rng_mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv426miopenSetDropoutDescriptor25miopenDropoutDescriptor_t14miopenHandle_tfPv6size_tybb15miopenRNGType_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Initialize the dropout descriptor. </p>
-<p>Interface for setting up the dropout descriptor <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">dropoutDesc</span></code>: Dropout layer descriptor (input/Output) </li>
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">dropout</span></code>: The probability by which the input is set to 0 in the dropout layer (input) </li>
-<li><code class="docutils literal"><span class="pre">states</span></code>: Pointer to memory that holds random number generator states (input) </li>
-<li><code class="docutils literal"><span class="pre">stateSizeInBytes</span></code>: Number of bytes provided for random generator states (input) </li>
-<li><code class="docutils literal"><span class="pre">seed</span></code>: Seed used to initialize random number generator states (input) </li>
-<li><code class="docutils literal"><span class="pre">use_mask</span></code>: Boolean flag indicating whether to use a saved mask (an existing or user-defined dropout layout) in reserveSpace (input) </li>
-<li><code class="docutils literal"><span class="pre">state_evo</span></code>: Boolean flag indicating whether to adopt state evolution strategy to update the PRNG states by the end of each implementation (input placeholder, currently not enabled) </li>
-<li><code class="docutils literal"><span class="pre">rng_mode</span></code>: Random number generator used to generate parallel random number sequences (input) </li>
+<p>Interface for setting up the dropout descriptor </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dropoutDesc</strong> – Dropout layer descriptor (input/Output) </p></li>
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>dropout</strong> – The probability by which the input is set to 0 in the dropout layer (input) </p></li>
+<li><p><strong>states</strong> – Pointer to memory that holds random number generator states (input) </p></li>
+<li><p><strong>stateSizeInBytes</strong> – Number of bytes provided for random generator states (input) </p></li>
+<li><p><strong>seed</strong> – Seed used to initialize random number generator states (input) </p></li>
+<li><p><strong>use_mask</strong> – Boolean flag indicating whether to use a saved mask (an existing or user-defined dropout layout) in reserveSpace (input) </p></li>
+<li><p><strong>state_evo</strong> – Boolean flag indicating whether to adopt state evolution strategy to update the PRNG states by the end of each implementation (input placeholder, currently not enabled) </p></li>
+<li><p><strong>rng_mode</strong> – Random number generator used to generate parallel random number sequences (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopendropoutgetreservespacesize">
 <h2>miopenDropoutGetReserveSpaceSize<a class="headerlink" href="#miopendropoutgetreservespacesize" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv232miopenDropoutGetReserveSpaceSizeK24miopenTensorDescriptor_tP6size_t">
-<span id="miopenDropoutGetReserveSpaceSize__miopenTensorDescriptor_tC.sP"></span><span class="target" id="group__dropout_1ga7346d7deb7ba7be6369e0f10201f3ee5"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDropoutGetReserveSpaceSize</code><span class="sig-paren">(</span><em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, size_t *<em>reserveSpaceSizeInBytes</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv232miopenDropoutGetReserveSpaceSizeK24miopenTensorDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv432miopenDropoutGetReserveSpaceSizeK24miopenTensorDescriptor_tP6size_t">
+<span id="_CPPv332miopenDropoutGetReserveSpaceSizeK24miopenTensorDescriptor_tP6size_t"></span><span id="_CPPv232miopenDropoutGetReserveSpaceSizeK24miopenTensorDescriptor_tP6size_t"></span><span id="miopenDropoutGetReserveSpaceSize__miopenTensorDescriptor_tC.sP"></span><span class="target" id="group__dropout_1ga7346d7deb7ba7be6369e0f10201f3ee5"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenDropoutGetReserveSpaceSize</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDesc</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">reserveSpaceSizeInBytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv432miopenDropoutGetReserveSpaceSizeK24miopenTensorDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Query the amount of memory required to run dropout. </p>
-<p>This function calculates the amount of memory required to run dropout. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">xDesc</span></code>: Tensor descriptor for data tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">reserveSpaceSizeInBytes</span></code>: Number of bytes of reservespace required for executing dropout (Output) </li>
+<p>This function calculates the amount of memory required to run dropout. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xDesc</strong> – Tensor descriptor for data tensor x (input) </p></li>
+<li><p><strong>reserveSpaceSizeInBytes</strong> – Number of bytes of reservespace required for executing dropout (Output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopendropoutgetstatessize">
 <h2>miopenDropoutGetStatesSize<a class="headerlink" href="#miopendropoutgetstatessize" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv226miopenDropoutGetStatesSize14miopenHandle_tP6size_t">
-<span id="miopenDropoutGetStatesSize__miopenHandle_t.sP"></span><span class="target" id="group__dropout_1ga34d6a047a1e40206bac16331fd607f96"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDropoutGetStatesSize</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, size_t *<em>stateSizeInBytes</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv226miopenDropoutGetStatesSize14miopenHandle_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv426miopenDropoutGetStatesSize14miopenHandle_tP6size_t">
+<span id="_CPPv326miopenDropoutGetStatesSize14miopenHandle_tP6size_t"></span><span id="_CPPv226miopenDropoutGetStatesSize14miopenHandle_tP6size_t"></span><span id="miopenDropoutGetStatesSize__miopenHandle_t.sP"></span><span class="target" id="group__dropout_1ga34d6a047a1e40206bac16331fd607f96"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenDropoutGetStatesSize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">stateSizeInBytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv426miopenDropoutGetStatesSize14miopenHandle_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Query the amount of memory required to store the states of the random number generators. </p>
-<p>This function calculates the amount of memory required to store the states of the random number generators used by miopenDropoutForward. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">stateSizeInBytes</span></code>: Number of bytes required to store random generator states (Output) </li>
+<p>This function calculates the amount of memory required to store the states of the random number generators used by miopenDropoutForward. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>stateSizeInBytes</strong> – Number of bytes required to store random generator states (Output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopendropoutforward">
 <h2>miopenDropoutForward<a class="headerlink" href="#miopendropoutforward" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv220miopenDropoutForward14miopenHandle_tK25miopenDropoutDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvPv6size_t">
-<span id="miopenDropoutForward__miopenHandle_t.miopenDropoutDescriptor_tC.miopenTensorDescriptor_tC.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidP.voidP.s"></span><span class="target" id="group__dropout_1gaf27a063efad9f905cfd661670fa5f7ec"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDropoutForward</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenDropoutDescriptor_t <em>dropoutDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>noise_shape</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, <em class="property">const</em> void *<em>x</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, void *<em>y</em>, void *<em>reserveSpace</em>, size_t <em>reserveSpaceSizeInBytes</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv220miopenDropoutForward14miopenHandle_tK25miopenDropoutDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvPv6size_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv420miopenDropoutForward14miopenHandle_tK25miopenDropoutDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvPv6size_t">
+<span id="_CPPv320miopenDropoutForward14miopenHandle_tK25miopenDropoutDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvPv6size_t"></span><span id="_CPPv220miopenDropoutForward14miopenHandle_tK25miopenDropoutDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvPv6size_t"></span><span id="miopenDropoutForward__miopenHandle_t.miopenDropoutDescriptor_tC.miopenTensorDescriptor_tC.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidP.voidP.s"></span><span class="target" id="group__dropout_1gaf27a063efad9f905cfd661670fa5f7ec"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenDropoutForward</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenDropoutDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dropoutDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">noise_shape</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">yDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">reserveSpace</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reserveSpaceSizeInBytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv420miopenDropoutForward14miopenHandle_tK25miopenDropoutDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvPv6size_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute forward dropout operation. </p>
-<p>Interface for executing the forward pass on a Dropout. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">dropoutDesc</span></code>: Dropout layer descriptor (input) </li>
-<li><code class="docutils literal"><span class="pre">noise_shape</span></code>: Tensor descriptor for noise shape (input placeholder, currently not enabled) </li>
-<li><code class="docutils literal"><span class="pre">xDesc</span></code>: Tensor descriptor for data tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">x</span></code>: Data tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">yDesc</span></code>: Tensor descriptor for data tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">y</span></code>: Data tensor y (Output) </li>
-<li><code class="docutils literal"><span class="pre">reserveSpace</span></code>: Pointer to memory allocated for executing forward dropout, expecting reserveSpace unchanged before next call of miopenDropoutBackward (Output) </li>
-<li><code class="docutils literal"><span class="pre">reserveSpaceSizeInBytes</span></code>: Number of bytes of reservespace required for executing forward dropout (input) </li>
+<p>Interface for executing the forward pass on a Dropout. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>dropoutDesc</strong> – Dropout layer descriptor (input) </p></li>
+<li><p><strong>noise_shape</strong> – Tensor descriptor for noise shape (input placeholder, currently not enabled) </p></li>
+<li><p><strong>xDesc</strong> – Tensor descriptor for data tensor x (input) </p></li>
+<li><p><strong>x</strong> – Data tensor x (input) </p></li>
+<li><p><strong>yDesc</strong> – Tensor descriptor for data tensor y (input) </p></li>
+<li><p><strong>y</strong> – Data tensor y (Output) </p></li>
+<li><p><strong>reserveSpace</strong> – Pointer to memory allocated for executing forward dropout, expecting reserveSpace unchanged before next call of miopenDropoutBackward (Output) </p></li>
+<li><p><strong>reserveSpaceSizeInBytes</strong> – Number of bytes of reservespace required for executing forward dropout (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 <p><strong>Return value description:</strong></p>
 <ul class="simple">
-<li><cite>miopenStatusSuccess</cite> - No errors.</li>
-<li><cite>miopenStatusBadParm</cite> - Incorrect parameter detected. Check if the following conditions are met:<ul>
-<li>Input/Output dimension/element size/datatype does not match.</li>
-<li>Tensor dimension is not in the range of 1D to 5D.</li>
-<li>Noise shape is unsupported.</li>
-<li>Dropout rate  is not in the range of (0, 1].</li>
-<li>Insufficient state size for parallel PRNG.</li>
-<li>Insufficient reservespace size.</li>
-<li>Memory required by dropout forward configs exceeds GPU memory range.</li>
+<li><p><cite>miopenStatusSuccess</cite> - No errors.</p></li>
+<li><p><cite>miopenStatusBadParm</cite> - Incorrect parameter detected. Check if the following conditions are met:</p>
+<ul>
+<li><p>Input/Output dimension/element size/datatype does not match.</p></li>
+<li><p>Tensor dimension is not in the range of 1D to 5D.</p></li>
+<li><p>Noise shape is unsupported.</p></li>
+<li><p>Dropout rate  is not in the range of (0, 1].</p></li>
+<li><p>Insufficient state size for parallel PRNG.</p></li>
+<li><p>Insufficient reservespace size.</p></li>
+<li><p>Memory required by dropout forward configs exceeds GPU memory range.</p></li>
 </ul>
 </li>
 </ul>
 </div>
 <div class="section" id="miopendropoutbackward">
 <h2>miopenDropoutBackward<a class="headerlink" href="#miopendropoutbackward" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv221miopenDropoutBackward14miopenHandle_tK25miopenDropoutDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvPv6size_t">
-<span id="miopenDropoutBackward__miopenHandle_t.miopenDropoutDescriptor_tC.miopenTensorDescriptor_tC.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidP.voidP.s"></span><span class="target" id="group__dropout_1gadf78217e08eeb6507fac49daabf2a9c2"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDropoutBackward</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenDropoutDescriptor_t <em>dropoutDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>noise_shape</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dyDesc</em>, <em class="property">const</em> void *<em>dy</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dxDesc</em>, void *<em>dx</em>, void *<em>reserveSpace</em>, size_t <em>reserveSpaceSizeInBytes</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv221miopenDropoutBackward14miopenHandle_tK25miopenDropoutDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvPv6size_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421miopenDropoutBackward14miopenHandle_tK25miopenDropoutDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvPv6size_t">
+<span id="_CPPv321miopenDropoutBackward14miopenHandle_tK25miopenDropoutDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvPv6size_t"></span><span id="_CPPv221miopenDropoutBackward14miopenHandle_tK25miopenDropoutDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvPv6size_t"></span><span id="miopenDropoutBackward__miopenHandle_t.miopenDropoutDescriptor_tC.miopenTensorDescriptor_tC.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidP.voidP.s"></span><span class="target" id="group__dropout_1gadf78217e08eeb6507fac49daabf2a9c2"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenDropoutBackward</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenDropoutDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dropoutDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">noise_shape</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dyDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dy</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dxDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dx</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">reserveSpace</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reserveSpaceSizeInBytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421miopenDropoutBackward14miopenHandle_tK25miopenDropoutDescriptor_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvPv6size_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute backward dropout operation. </p>
-<p>Interface for executing the backward pass on a Dropout. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">dropoutDesc</span></code>: Dropout layer descriptor (input) </li>
-<li><code class="docutils literal"><span class="pre">noise_shape</span></code>: Tensor descriptor for noise shape (input placeholder, currently not enabled) </li>
-<li><code class="docutils literal"><span class="pre">dyDesc</span></code>: Tensor descriptor for data delta tensor dy (input) </li>
-<li><code class="docutils literal"><span class="pre">dy</span></code>: Data delta tensor dy (input) </li>
-<li><code class="docutils literal"><span class="pre">dxDesc</span></code>: Tensor descriptor for data delta tensor dx (input) </li>
-<li><code class="docutils literal"><span class="pre">dx</span></code>: Data delta tensor dx (Output) </li>
-<li><code class="docutils literal"><span class="pre">reserveSpace</span></code>: Pointer to memory allocated for executing backward dropout, expecting reserveSpace unchanged after previous call of miopenDropoutForward (input) </li>
-<li><code class="docutils literal"><span class="pre">reserveSpaceSizeInBytes</span></code>: Number of bytes of reservespace required for executing backward dropout (input) </li>
+<p>Interface for executing the backward pass on a Dropout. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>dropoutDesc</strong> – Dropout layer descriptor (input) </p></li>
+<li><p><strong>noise_shape</strong> – Tensor descriptor for noise shape (input placeholder, currently not enabled) </p></li>
+<li><p><strong>dyDesc</strong> – Tensor descriptor for data delta tensor dy (input) </p></li>
+<li><p><strong>dy</strong> – Data delta tensor dy (input) </p></li>
+<li><p><strong>dxDesc</strong> – Tensor descriptor for data delta tensor dx (input) </p></li>
+<li><p><strong>dx</strong> – Data delta tensor dx (Output) </p></li>
+<li><p><strong>reserveSpace</strong> – Pointer to memory allocated for executing backward dropout, expecting reserveSpace unchanged after previous call of miopenDropoutForward (input) </p></li>
+<li><p><strong>reserveSpaceSizeInBytes</strong> – Number of bytes of reservespace required for executing backward dropout (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 <p><strong>Return value description:</strong></p>
 <ul class="simple">
-<li><cite>miopenStatusSuccess</cite> - No errors.</li>
-<li><cite>miopenStatusBadParm</cite> - Incorrect parameter detected. Check if the following conditions are met:<ul>
-<li>Input/Output dimension/element size/datatype does not match.</li>
-<li>Tensor dimension is not in the range of 1D to 5D.</li>
-<li>Dropout rate  is not in the range of (0, 1].</li>
-<li>Insufficient reservespace size.</li>
-<li>Memory required by dropout backward configs exceeds GPU memory range.</li>
+<li><p><cite>miopenStatusSuccess</cite> - No errors.</p></li>
+<li><p><cite>miopenStatusBadParm</cite> - Incorrect parameter detected. Check if the following conditions are met:</p>
+<ul>
+<li><p>Input/Output dimension/element size/datatype does not match.</p></li>
+<li><p>Tensor dimension is not in the range of 1D to 5D.</p></li>
+<li><p>Dropout rate  is not in the range of (0, 1].</p></li>
+<li><p>Insufficient reservespace size.</p></li>
+<li><p>Memory required by dropout backward configs exceeds GPU memory range.</p></li>
 </ul>
 </li>
 </ul>
@@ -780,29 +793,29 @@
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="reduction.html" class="btn btn-neutral float-right" title="Reduction Layer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="loss.html" class="btn btn-neutral" title="Loss Function Layer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="reduction.html" class="btn btn-neutral float-right" title="Reduction Layer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="loss.html" class="btn btn-neutral float-left" title="Loss Function Layer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -811,34 +824,16 @@
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

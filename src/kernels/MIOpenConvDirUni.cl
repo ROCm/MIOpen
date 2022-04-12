@@ -180,7 +180,7 @@ static inline void Conv(uint o_map_base,
         uint wei_stg_base_off = mad24(o_map_base,
                                       (uint)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ),
                                       mul24(i_c, (uint)MLO_FILTER_SZ));
-        uint in_stg_off2 = in_stg_off1;
+        uint in_stg_off2      = in_stg_off1;
         for(uint j = 0; j < MLO_PVT_IN_HEIGHT - 1; ++j,
 #if MLO_DIR_FORWARD == 1
                  in_stg_off2 += MLO_IN_LCL_WIDTH
@@ -189,7 +189,7 @@ static inline void Conv(uint o_map_base,
                                      ? 0
                                      : MLO_IN_LCL_WIDTH)
 #endif
-            )
+        )
         {
             for(uint i = 0; i < MLO_PVT_IN_WIDTH; ++i)
             {
@@ -349,10 +349,10 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint stack            = iDiv(lcl_id, MLO_ALUTILES_STACK_SZ);        // stack
     uint alu_stack_id     = iMod(lcl_id, stack, MLO_ALUTILES_STACK_SZ); // alu index in stack
 #else
-    uint stack = lcl_id / MLO_ALUTILES_STACK_SZ; // stack
+    uint stack        = lcl_id / MLO_ALUTILES_STACK_SZ;       // stack
     uint alu_stack_id = lcl_id & (MLO_ALUTILES_STACK_SZ - 1); // alu index in stack
 #if MLO_ALUTILES_STACK_SZ >= 64
-    stack = uniform(stack);
+    stack             = uniform(stack);
 #endif
 #endif
 // ALU plane inside stack
@@ -362,15 +362,15 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
         alu_stack_id, alu_out_plane_id, MLO_ALU_TILE_SZ); // alu index inside an ALU output plane
 #else
     uint alu_out_plane_id = alu_stack_id / MLO_ALU_TILE_SZ;             // alu output plane index
-    uint alu_out_id       = alu_stack_id & (MLO_ALU_TILE_SZ - 1);       // alu index inside an ALU output plane
+    uint alu_out_id = alu_stack_id & (MLO_ALU_TILE_SZ - 1); // alu index inside an ALU output plane
 #endif
 // pos inside ALU tile
 #if MLO_ALU_VTILE0 & (MLO_ALU_VTILE0 - 1)
     uint alu_tl1 = iDiv(alu_out_id, MLO_ALU_VTILE0);
     uint alu_tl0 = iMod(alu_out_id, alu_tl1, MLO_ALU_VTILE0);
 #else
-    uint alu_tl1          = alu_out_id / MLO_ALU_VTILE0;
-    uint alu_tl0          = alu_out_id & (MLO_ALU_VTILE0 - 1);
+    uint alu_tl1    = alu_out_id / MLO_ALU_VTILE0;
+    uint alu_tl0    = alu_out_id & (MLO_ALU_VTILE0 - 1);
 #endif
 
 #ifdef GRP_MOD_ENABLE
@@ -457,8 +457,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
              in_off0 += MLO_IN_CHANNEL_STRIDE * MLO_N_IN_TILES_PERSTACK,
              wei_off0 += MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ
 #if MLO_DIR_FORWARD == 0
-                         *
-                         MLO_GRPWISE_N_OUTPUTS
+                         * MLO_GRPWISE_N_OUTPUTS
 #endif
 #else
     uint in_off   = b_index * MLO_IN_BATCH_STRIDE;
@@ -473,17 +472,16 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
              in_off += MLO_IN_CHANNEL_STRIDE * MLO_N_IN_TILES_PERSTACK,
              wei_off += MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ
 #if MLO_DIR_FORWARD == 0
-                                        *
-                                        MLO_N_OUTPUTS
+                                        * MLO_N_OUTPUTS
 #endif
 #endif
-        )
+    )
     {
         barrier(CLK_LOCAL_MEM_FENCE);
 
-// small map has been read in full continiously into the lDS buffer within padded rect,
-// padding has been done on initilization.
-// large map calculates padding on the fly and fills it with 0.
+        // small map has been read in full continiously into the lDS buffer within padded rect,
+        // padding has been done on initilization.
+        // large map calculates padding on the fly and fills it with 0.
 
 #if 1 // all inputs
 
@@ -609,8 +607,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
         }
 #endif
 
-// read inputs and weights
-// put weights into LDS
+        // read inputs and weights
+        // put weights into LDS
 
 #if 1 // only weights
 
@@ -661,7 +659,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
             uint lcl_we_off = mad24(
                 mad24(lcl_c, (uint)MLO_N_IN_TILES_PERSTACK, lcl_o), (uint)MLO_FILTER_SZ, lcl_i);
 #ifdef GRP_MOD_ENABLE
-            uint gbl_we_off = mad24(mad24(lcl_o, (uint)MLO_GRPWISE_N_OUTPUTS, lcl_c),
+            uint gbl_we_off   = mad24(mad24(lcl_o, (uint)MLO_GRPWISE_N_OUTPUTS, lcl_c),
                                     (uint)MLO_FILTER_SZ,
                                     wei_off0 + lcl_i);
             bool within_range = gbl_we_off < (MLO_GRPWISE_N_OUTPUTS * MLO_GRPWISE_N_INPUTS *
@@ -684,7 +682,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 
 #endif
 
-// over all batch stacks
+        // over all batch stacks
 
 #endif // all input
 

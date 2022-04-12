@@ -2,7 +2,7 @@
 # 
 # MIT License
 # 
-# Copyright (c) 2017 Advanced Micro Devices, Inc.
+# Copyright (c) 2021 Advanced Micro Devices, Inc.
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -44,11 +44,8 @@
 import os
 import sys
 import re
-import itertools
 sys.path.insert(0, os.path.abspath('.'))
-import recommonmark
-from recommonmark.parser import CommonMarkParser
-from recommonmark.transform import AutoStructify
+import sphinx_rtd_theme
 
 
 # -- General configuration ------------------------------------------------
@@ -60,7 +57,13 @@ from recommonmark.transform import AutoStructify
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['breathe','sphinx.ext.mathjax','sphinx.ext.viewcode']
+extensions = [
+    'breathe',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.viewcode',
+    'myst_parser',
+    'sphinx_rtd_theme',
+]
 
 # doxygen_xml_output = ""
 # breathe_projects = { "miopen": doxygen_xml_output }
@@ -69,28 +72,18 @@ extensions = ['breathe','sphinx.ext.mathjax','sphinx.ext.viewcode']
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
-# -- Source parser for markdown -------------------------------------------
-
-source_parsers = {
-    '.md': CommonMarkParser
-}
-
-#source_parsers = {
-#   '.md': 'recommonmark.parser.CommonMarkParser',
-#}
-
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
 source_suffix = ['.rst', '.md']
-#source_suffix = '.rst'
 
-# The master toctree document.
-master_doc = 'index'
+# The document name of the “root” document, that is, the document that
+# contains the root toctree directive. Default is 'index'.
+root_doc = 'index'
 
 # General information about the project.
 project = u'MIOpen'
-copyright = u'2017, Advanced Micro Devices, Inc'
+copyright = u'2021, Advanced Micro Devices, Inc'
 author = u'Advanced Micro Devices, Inc'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -98,8 +91,11 @@ author = u'Advanced Micro Devices, Inc'
 # built documents.
 #
 # The short X.Y version.
-version_line = next(itertools.ifilter(lambda x:'rocm_setup_version' in x, open('../../CMakeLists.txt').readlines()))
-version = re.findall('[0-9.]+', version_line)[0]
+with open('../../CMakeLists.txt') as file:
+    for line in file:
+        if 'rocm_setup_version' in line:
+            version = re.findall('[0-9.]+', line)[0]
+            break
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -113,7 +109,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = []
+exclude_patterns = ['_build']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -127,24 +123,21 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-
-import sphinx_rtd_theme
 html_theme = "sphinx_rtd_theme"
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+
+# Theme options are theme-specific and customize the look and feel of a theme
+# further.  For a list of options available for each theme, see the
+# documentation.
 html_theme_options = {
     'collapse_navigation': False,
     'display_version': True,
 }
 
+# The “title” for HTML documentation generated with Sphinx’s own templates.
+# This is appended to the <title> tag of individual pages, and used in the
+# navigation bar as the “topmost” element. It defaults
+# to '<project> v<revision> documentation'.
 html_title = "MIOpen: AMD's deep learning library"
-
-
-
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-#
-# html_theme_options = {}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -182,7 +175,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'miopen.tex', u'MIOpen ',
+    (root_doc, 'miopen.tex', u'MIOpen ',
      u'Advanced Micro Devices, Inc', 'manual'),
 ]
 
@@ -191,7 +184,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'miopen', u'miopen Documentation',
+    (root_doc, 'miopen', u'miopen Documentation',
      [author], 1)
 ]
 
@@ -202,20 +195,19 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'miopen', u'miopen Documentation',
+    (root_doc, 'miopen', u'miopen Documentation',
      author, 'miopen', 'One line description of project.',
      'Miscellaneous'),
 ]
 
+
+# The name of the default domain. Can also be None to disable a default
+# domain. The default is 'py'.
 primary_domain = 'cpp'
+
+# -- Options for the C++ domain ------------------------------------------
+
+# A list of strings that the parser additionally should accept as
+# attributes. This can for example be used when attributes have been
+# #define d for portability.
 cpp_id_attributes = ['MIOPEN_EXPORT']
-
-
-# At top on conf.py (with other import statements)
-# At the bottom of conf.py
-def setup(app):
-    app.add_config_value('recommonmark_config', {
-            'url_resolver': lambda url: github_doc_root + url,
-            'auto_toc_tree_section': 'Contents',
-            }, True)
-    app.add_transform(AutoStructify)

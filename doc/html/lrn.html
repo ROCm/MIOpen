@@ -1,50 +1,58 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Local Response Normalization Layer &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Pooling Layer" href="pooling.html" />
     <link rel="prev" title="Batch Normalization Layer" href="batchnorm.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +66,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -75,6 +83,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +91,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -166,12 +177,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
@@ -454,6 +459,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,11 +494,13 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="apireference.html">API Reference</a> &raquo;</li>
         
@@ -501,7 +509,7 @@
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/lrn.rst.txt" rel="nofollow"> View page source</a>
           
         
@@ -520,20 +528,20 @@
 <p>Local Response Normalization types and functions.</p>
 <div class="section" id="miopenlrnmode-t">
 <h2>miopenLRNMode_t<a class="headerlink" href="#miopenlrnmode-t" title="Permalink to this headline">¶</a></h2>
-<dl class="type">
-<dt id="_CPPv215miopenLRNMode_t">
-<span id="miopenLRNMode_t"></span><span class="target" id="group__LRN_1gae8c4f5513e59a0c2870013504f9b5c4d"></span><em class="property">enum </em><code class="descclassname"></code><code class="descname">miopenLRNMode_t</code><a class="headerlink" href="#_CPPv215miopenLRNMode_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv415miopenLRNMode_t">
+<span id="_CPPv315miopenLRNMode_t"></span><span id="_CPPv215miopenLRNMode_t"></span><span class="target" id="group__LRN_1gae8c4f5513e59a0c2870013504f9b5c4d"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenLRNMode_t</span></span></span><a class="headerlink" href="#_CPPv415miopenLRNMode_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Local Response Normalization layer mode </p>
 <p><em>Values:</em></p>
-<dl class="enumerator">
-<dt id="_CPPv222miopenLRNWithinChannel">
-<span class="target" id="miopen_8h_1gae8c4f5513e59a0c2870013504f9b5c4da0062534dacca2acfb07e261fd5c0b77c"></span><code class="descname">miopenLRNWithinChannel</code> = 0<a class="headerlink" href="#_CPPv222miopenLRNWithinChannel" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N15miopenLRNMode_t22miopenLRNWithinChannelE">
+<span id="_CPPv3N15miopenLRNMode_t22miopenLRNWithinChannelE"></span><span id="_CPPv2N15miopenLRNMode_t22miopenLRNWithinChannelE"></span><span class="target" id="miopen_8h_1gae8c4f5513e59a0c2870013504f9b5c4da0062534dacca2acfb07e261fd5c0b77c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenLRNWithinChannel</span></span></span><a class="headerlink" href="#_CPPv4N15miopenLRNMode_t22miopenLRNWithinChannelE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Channel independent </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv221miopenLRNCrossChannel">
-<span class="target" id="miopen_8h_1gae8c4f5513e59a0c2870013504f9b5c4da5c1611ee75b7929a3a59e414974a18a7"></span><code class="descname">miopenLRNCrossChannel</code> = 1<a class="headerlink" href="#_CPPv221miopenLRNCrossChannel" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N15miopenLRNMode_t21miopenLRNCrossChannelE">
+<span id="_CPPv3N15miopenLRNMode_t21miopenLRNCrossChannelE"></span><span id="_CPPv2N15miopenLRNMode_t21miopenLRNCrossChannelE"></span><span class="target" id="miopen_8h_1gae8c4f5513e59a0c2870013504f9b5c4da5c1611ee75b7929a3a59e414974a18a7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenLRNCrossChannel</span></span></span><a class="headerlink" href="#_CPPv4N15miopenLRNMode_t21miopenLRNCrossChannelE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Cross Channel </p>
 </dd></dl>
 
@@ -542,170 +550,166 @@
 </div>
 <div class="section" id="miopencreatelrndescriptor">
 <h2>miopenCreateLRNDescriptor<a class="headerlink" href="#miopencreatelrndescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv225miopenCreateLRNDescriptorP21miopenLRNDescriptor_t">
-<span id="miopenCreateLRNDescriptor__miopenLRNDescriptor_tP"></span><span class="target" id="group__LRN_1gafa21f8a679c2b9b5a95cca3d4222e45e"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateLRNDescriptor</code><span class="sig-paren">(</span>miopenLRNDescriptor_t *<em>lrnDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenCreateLRNDescriptorP21miopenLRNDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv425miopenCreateLRNDescriptorP21miopenLRNDescriptor_t">
+<span id="_CPPv325miopenCreateLRNDescriptorP21miopenLRNDescriptor_t"></span><span id="_CPPv225miopenCreateLRNDescriptorP21miopenLRNDescriptor_t"></span><span id="miopenCreateLRNDescriptor__miopenLRNDescriptor_tP"></span><span class="target" id="group__LRN_1gafa21f8a679c2b9b5a95cca3d4222e45e"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenCreateLRNDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenLRNDescriptor_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">lrnDesc</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv425miopenCreateLRNDescriptorP21miopenLRNDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Creates a local response normalization (LRN) layer descriptor. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">lrnDesc</span></code>: Pointer to a local response normalization layer descriptor type </li>
-</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>lrnDesc</strong> – Pointer to a local response normalization layer descriptor type </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
 </dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopensetlrndescriptor">
 <h2>miopenSetLRNDescriptor<a class="headerlink" href="#miopensetlrndescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv222miopenSetLRNDescriptorK21miopenLRNDescriptor_t15miopenLRNMode_tjddd">
-<span id="miopenSetLRNDescriptor__miopenLRNDescriptor_tC.miopenLRNMode_t.unsigned-i.double.double.double"></span><span class="target" id="group__LRN_1gad2f166dcd77732f8774d3e90a886bae4"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetLRNDescriptor</code><span class="sig-paren">(</span><em class="property">const</em> miopenLRNDescriptor_t <em>lrnDesc</em>, <a class="reference internal" href="#_CPPv215miopenLRNMode_t" title="miopenLRNMode_t">miopenLRNMode_t</a> <em>mode</em>, unsigned int <em>lrnN</em>, double <em>lrnAlpha</em>, double <em>lrnBeta</em>, double <em>lrnK</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv222miopenSetLRNDescriptorK21miopenLRNDescriptor_t15miopenLRNMode_tjddd" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv422miopenSetLRNDescriptorK21miopenLRNDescriptor_t15miopenLRNMode_tjddd">
+<span id="_CPPv322miopenSetLRNDescriptorK21miopenLRNDescriptor_t15miopenLRNMode_tjddd"></span><span id="_CPPv222miopenSetLRNDescriptorK21miopenLRNDescriptor_t15miopenLRNMode_tjddd"></span><span id="miopenSetLRNDescriptor__miopenLRNDescriptor_tC.miopenLRNMode_t.unsigned-i.double.double.double"></span><span class="target" id="group__LRN_1gad2f166dcd77732f8774d3e90a886bae4"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSetLRNDescriptor</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenLRNDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lrnDesc</span></span>, <a class="reference internal" href="#_CPPv415miopenLRNMode_t" title="miopenLRNMode_t"><span class="n"><span class="pre">miopenLRNMode_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span>, <span class="kt"><span class="pre">unsigned</span> <span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lrnN</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lrnAlpha</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lrnBeta</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lrnK</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv422miopenSetLRNDescriptorK21miopenLRNDescriptor_t15miopenLRNMode_tjddd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Sets a LRN layer descriptor details. </p>
 <p>Sets all of the descriptor details for the LRN layer. The number of window elements lrnN is a diameter and always odd.</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">lrnDesc</span></code>: Pointer to a LRN layer descriptor (output) </li>
-<li><code class="docutils literal"><span class="pre">mode</span></code>: LRN mode enum (input) </li>
-<li><code class="docutils literal"><span class="pre">lrnN</span></code>: Number of normalization window elements (input) </li>
-<li><code class="docutils literal"><span class="pre">lrnAlpha</span></code>: Scaling factor (input) </li>
-<li><code class="docutils literal"><span class="pre">lrnBeta</span></code>: Shift factor (input) </li>
-<li><code class="docutils literal"><span class="pre">lrnK</span></code>: K factor (input) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lrnDesc</strong> – Pointer to a LRN layer descriptor (output) </p></li>
+<li><p><strong>mode</strong> – LRN mode enum (input) </p></li>
+<li><p><strong>lrnN</strong> – Number of normalization window elements (input) </p></li>
+<li><p><strong>lrnAlpha</strong> – Scaling factor (input) </p></li>
+<li><p><strong>lrnBeta</strong> – Shift factor (input) </p></li>
+<li><p><strong>lrnK</strong> – K factor (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopengetlrndescriptor">
 <h2>miopenGetLRNDescriptor<a class="headerlink" href="#miopengetlrndescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv222miopenGetLRNDescriptorK21miopenLRNDescriptor_tP15miopenLRNMode_tPjPdPdPd">
-<span id="miopenGetLRNDescriptor__miopenLRNDescriptor_tC.miopenLRNMode_tP.unsigned-iP.doubleP.doubleP.doubleP"></span><span class="target" id="group__LRN_1gadab4756adddac0f7e1e4999c72c6c3e6"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetLRNDescriptor</code><span class="sig-paren">(</span><em class="property">const</em> miopenLRNDescriptor_t <em>lrnDesc</em>, <a class="reference internal" href="#_CPPv215miopenLRNMode_t" title="miopenLRNMode_t">miopenLRNMode_t</a> *<em>mode</em>, unsigned int *<em>lrnN</em>, double *<em>lrnAlpha</em>, double *<em>lrnBeta</em>, double *<em>lrnK</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv222miopenGetLRNDescriptorK21miopenLRNDescriptor_tP15miopenLRNMode_tPjPdPdPd" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv422miopenGetLRNDescriptorK21miopenLRNDescriptor_tP15miopenLRNMode_tPjPdPdPd">
+<span id="_CPPv322miopenGetLRNDescriptorK21miopenLRNDescriptor_tP15miopenLRNMode_tPjPdPdPd"></span><span id="_CPPv222miopenGetLRNDescriptorK21miopenLRNDescriptor_tP15miopenLRNMode_tPjPdPdPd"></span><span id="miopenGetLRNDescriptor__miopenLRNDescriptor_tC.miopenLRNMode_tP.unsigned-iP.doubleP.doubleP.doubleP"></span><span class="target" id="group__LRN_1gadab4756adddac0f7e1e4999c72c6c3e6"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenGetLRNDescriptor</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenLRNDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lrnDesc</span></span>, <a class="reference internal" href="#_CPPv415miopenLRNMode_t" title="miopenLRNMode_t"><span class="n"><span class="pre">miopenLRNMode_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">mode</span></span>, <span class="kt"><span class="pre">unsigned</span> <span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">lrnN</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">lrnAlpha</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">lrnBeta</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">lrnK</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv422miopenGetLRNDescriptorK21miopenLRNDescriptor_tP15miopenLRNMode_tPjPdPdPd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Gets a LRN layer descriptor details. </p>
 <p>Retrieve the LRN descriptor details.</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">lrnDesc</span></code>: Pointer to a LRN layer descriptor (input) </li>
-<li><code class="docutils literal"><span class="pre">mode</span></code>: LRN mode enum (output) </li>
-<li><code class="docutils literal"><span class="pre">lrnN</span></code>: Number of normalization window elements (output) </li>
-<li><code class="docutils literal"><span class="pre">lrnAlpha</span></code>: Scaling factor (output) </li>
-<li><code class="docutils literal"><span class="pre">lrnBeta</span></code>: Shift factor (output) </li>
-<li><code class="docutils literal"><span class="pre">lrnK</span></code>: K factor (output) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lrnDesc</strong> – Pointer to a LRN layer descriptor (input) </p></li>
+<li><p><strong>mode</strong> – LRN mode enum (output) </p></li>
+<li><p><strong>lrnN</strong> – Number of normalization window elements (output) </p></li>
+<li><p><strong>lrnAlpha</strong> – Scaling factor (output) </p></li>
+<li><p><strong>lrnBeta</strong> – Shift factor (output) </p></li>
+<li><p><strong>lrnK</strong> – K factor (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenlrngetworkspacesize">
 <h2>miopenLRNGetWorkSpaceSize<a class="headerlink" href="#miopenlrngetworkspacesize" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv225miopenLRNGetWorkSpaceSizeK24miopenTensorDescriptor_tP6size_t">
-<span id="miopenLRNGetWorkSpaceSize__miopenTensorDescriptor_tC.sP"></span><span class="target" id="group__LRN_1gac3433e8dd05e4f4a38b7a61b7fdbce21"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenLRNGetWorkSpaceSize</code><span class="sig-paren">(</span><em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, size_t *<em>workSpaceSize</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv225miopenLRNGetWorkSpaceSizeK24miopenTensorDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv425miopenLRNGetWorkSpaceSizeK24miopenTensorDescriptor_tP6size_t">
+<span id="_CPPv325miopenLRNGetWorkSpaceSizeK24miopenTensorDescriptor_tP6size_t"></span><span id="_CPPv225miopenLRNGetWorkSpaceSizeK24miopenTensorDescriptor_tP6size_t"></span><span id="miopenLRNGetWorkSpaceSize__miopenTensorDescriptor_tC.sP"></span><span class="target" id="group__LRN_1gac3433e8dd05e4f4a38b7a61b7fdbce21"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenLRNGetWorkSpaceSize</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">yDesc</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">workSpaceSize</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv425miopenLRNGetWorkSpaceSizeK24miopenTensorDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Determine the workspace requirements. </p>
 <p>This function determines the GPU memory allocation required to execute the LRN layer based on the LRN descriptor.</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">yDesc</span></code>: Pointer to a LRN layer descriptor (input) </li>
-<li><code class="docutils literal"><span class="pre">workSpaceSize</span></code>: Output variable for workspace size (output) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>yDesc</strong> – Pointer to a LRN layer descriptor (input) </p></li>
+<li><p><strong>workSpaceSize</strong> – Output variable for workspace size (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenlrnforward">
 <h2>miopenLRNForward<a class="headerlink" href="#miopenlrnforward" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv216miopenLRNForward14miopenHandle_tK21miopenLRNDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvbPv">
-<span id="miopenLRNForward__miopenHandle_t.miopenLRNDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP.b.voidP"></span><span class="target" id="group__LRN_1ga9d798677869f6d30ab4131ab679c5c88"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenLRNForward</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenLRNDescriptor_t <em>lrnDesc</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, <em class="property">const</em> void *<em>x</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, void *<em>y</em>, bool <em>do_backward</em>, void *<em>workSpace</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv216miopenLRNForward14miopenHandle_tK21miopenLRNDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvbPv" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv416miopenLRNForward14miopenHandle_tK21miopenLRNDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvbPv">
+<span id="_CPPv316miopenLRNForward14miopenHandle_tK21miopenLRNDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvbPv"></span><span id="_CPPv216miopenLRNForward14miopenHandle_tK21miopenLRNDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvbPv"></span><span id="miopenLRNForward__miopenHandle_t.miopenLRNDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP.b.voidP"></span><span class="target" id="group__LRN_1ga9d798677869f6d30ab4131ab679c5c88"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenLRNForward</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenLRNDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lrnDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">beta</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">yDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">do_backward</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">workSpace</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv416miopenLRNForward14miopenHandle_tK21miopenLRNDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvbPv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute a LRN forward layer. </p>
 <p>Runs the forward layer normalization in the forward direction. If do_backward == 0, then set workSpace = nullptr and workSpaceSize = 0. However, if the user wishes to execute backwards, then they must set do_backwards = 1 in <a class="reference internal" href="#group__LRN_1ga9d798677869f6d30ab4131ab679c5c88"><span class="std std-ref">miopenLRNForward()</span></a>.</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">lrnDesc</span></code>: Descriptor for LRN layer (input) </li>
-<li><code class="docutils literal"><span class="pre">alpha</span></code>: Floating point scaling factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">xDesc</span></code>: Tensor descriptor for data input tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">x</span></code>: Data tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">beta</span></code>: Floating point shift factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">yDesc</span></code>: Tensor descriptor for output data tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">y</span></code>: Data tensor y (output) </li>
-<li><code class="docutils literal"><span class="pre">do_backward</span></code>: Boolean to toggle save data in workspace for backwards pass (input) </li>
-<li><code class="docutils literal"><span class="pre">workSpace</span></code>: Pointer user allocated memory (input) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>lrnDesc</strong> – Descriptor for LRN layer (input) </p></li>
+<li><p><strong>alpha</strong> – Floating point scaling factor, allocated on the host (input) </p></li>
+<li><p><strong>xDesc</strong> – Tensor descriptor for data input tensor x (input) </p></li>
+<li><p><strong>x</strong> – Data tensor x (input) </p></li>
+<li><p><strong>beta</strong> – Floating point shift factor, allocated on the host (input) </p></li>
+<li><p><strong>yDesc</strong> – Tensor descriptor for output data tensor y (input) </p></li>
+<li><p><strong>y</strong> – Data tensor y (output) </p></li>
+<li><p><strong>do_backward</strong> – Boolean to toggle save data in workspace for backwards pass (input) </p></li>
+<li><p><strong>workSpace</strong> – Pointer user allocated memory (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenlrnbackward">
 <h2>miopenLRNBackward<a class="headerlink" href="#miopenlrnbackward" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv217miopenLRNBackward14miopenHandle_tK21miopenLRNDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvPKv">
-<span id="miopenLRNBackward__miopenHandle_t.miopenLRNDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP.voidCP"></span><span class="target" id="group__LRN_1ga0bca657b7c7b4effe10a838447b21dcb"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenLRNBackward</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenLRNDescriptor_t <em>lrnDesc</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, <em class="property">const</em> void *<em>y</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dyDesc</em>, <em class="property">const</em> void *<em>dy</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, <em class="property">const</em> void *<em>x</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dxDesc</em>, void *<em>dx</em>, <em class="property">const</em> void *<em>workSpace</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv217miopenLRNBackward14miopenHandle_tK21miopenLRNDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvPKv" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv417miopenLRNBackward14miopenHandle_tK21miopenLRNDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvPKv">
+<span id="_CPPv317miopenLRNBackward14miopenHandle_tK21miopenLRNDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvPKv"></span><span id="_CPPv217miopenLRNBackward14miopenHandle_tK21miopenLRNDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvPKv"></span><span id="miopenLRNBackward__miopenHandle_t.miopenLRNDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP.voidCP"></span><span class="target" id="group__LRN_1ga0bca657b7c7b4effe10a838447b21dcb"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenLRNBackward</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenLRNDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lrnDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">yDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dyDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dy</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">beta</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dxDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dx</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">workSpace</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv417miopenLRNBackward14miopenHandle_tK21miopenLRNDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPvPKv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute a LRN backward layer. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">lrnDesc</span></code>: Descriptor for LRN layer (input) </li>
-<li><code class="docutils literal"><span class="pre">alpha</span></code>: Floating point scaling factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">yDesc</span></code>: Tensor descriptor for data input tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">y</span></code>: Data tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">dyDesc</span></code>: Tensor descriptor for data input tensor dy (input) </li>
-<li><code class="docutils literal"><span class="pre">dy</span></code>: Data delta tensor dy (input) </li>
-<li><code class="docutils literal"><span class="pre">xDesc</span></code>: Tensor descriptor for input data tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">x</span></code>: Data tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">beta</span></code>: Floating point shift factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">dxDesc</span></code>: Tensor descriptor for output data tensor dx(input) </li>
-<li><code class="docutils literal"><span class="pre">dx</span></code>: Data delta tensor x (output) </li>
-<li><code class="docutils literal"><span class="pre">workSpace</span></code>: Pointer user allocated memory (input) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>lrnDesc</strong> – Descriptor for LRN layer (input) </p></li>
+<li><p><strong>alpha</strong> – Floating point scaling factor, allocated on the host (input) </p></li>
+<li><p><strong>yDesc</strong> – Tensor descriptor for data input tensor y (input) </p></li>
+<li><p><strong>y</strong> – Data tensor y (input) </p></li>
+<li><p><strong>dyDesc</strong> – Tensor descriptor for data input tensor dy (input) </p></li>
+<li><p><strong>dy</strong> – Data delta tensor dy (input) </p></li>
+<li><p><strong>xDesc</strong> – Tensor descriptor for input data tensor x (input) </p></li>
+<li><p><strong>x</strong> – Data tensor x (input) </p></li>
+<li><p><strong>beta</strong> – Floating point shift factor, allocated on the host (input) </p></li>
+<li><p><strong>dxDesc</strong> – Tensor descriptor for output data tensor dx(input) </p></li>
+<li><p><strong>dx</strong> – Data delta tensor x (output) </p></li>
+<li><p><strong>workSpace</strong> – Pointer user allocated memory (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopendestroylrndescriptor">
 <h2>miopenDestroyLRNDescriptor<a class="headerlink" href="#miopendestroylrndescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv226miopenDestroyLRNDescriptor21miopenLRNDescriptor_t">
-<span id="miopenDestroyLRNDescriptor__miopenLRNDescriptor_t"></span><span class="target" id="group__LRN_1ga19ff20d7756c12c1c67c992b100e05fb"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDestroyLRNDescriptor</code><span class="sig-paren">(</span>miopenLRNDescriptor_t <em>lrnDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv226miopenDestroyLRNDescriptor21miopenLRNDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv426miopenDestroyLRNDescriptor21miopenLRNDescriptor_t">
+<span id="_CPPv326miopenDestroyLRNDescriptor21miopenLRNDescriptor_t"></span><span id="_CPPv226miopenDestroyLRNDescriptor21miopenLRNDescriptor_t"></span><span id="miopenDestroyLRNDescriptor__miopenLRNDescriptor_t"></span><span class="target" id="group__LRN_1ga19ff20d7756c12c1c67c992b100e05fb"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenDestroyLRNDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenLRNDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lrnDesc</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv426miopenDestroyLRNDescriptor21miopenLRNDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Destroys the LRN descriptor object. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">lrnDesc</span></code>: LRN tensor descriptor type (input) </li>
-</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>lrnDesc</strong> – LRN tensor descriptor type (input) </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
 </dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
@@ -716,29 +720,29 @@
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="pooling.html" class="btn btn-neutral float-right" title="Pooling Layer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="batchnorm.html" class="btn btn-neutral" title="Batch Normalization Layer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="pooling.html" class="btn btn-neutral float-right" title="Pooling Layer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="batchnorm.html" class="btn btn-neutral float-left" title="Batch Normalization Layer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -747,34 +751,16 @@
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

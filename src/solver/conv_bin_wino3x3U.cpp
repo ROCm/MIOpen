@@ -35,6 +35,8 @@
 
 #include <boost/any.hpp>
 
+#define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 
 namespace miopen {
@@ -51,9 +53,17 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     if(!(params.rmv.IsV2orV3() && params.use_asm_kernels))
         return false;
 
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const auto name = params.GetStream().GetDeviceName();
     if(!(name == "gfx803" || name == "gfx900" || name == "gfx906" || name == "gfx908"))
         return false;
+#if WORKAROUND_ISSUE_1146
+    if(name == "gfx90a")
+        return false;
+#endif
 
     // Check if kernel is suitable for the problem description
     // and able to correctly run with given parameters.
@@ -151,22 +161,9 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
         GetCompiledInParameters(
             params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
         MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                            << " n_groups="
-                            << n_groups_
-                            << " flags="
-                            << flags
-                            << " R="
-                            << R
-                            << " S="
-                            << S
-                            << " pad_H="
-                            << pad_H
-                            << " pad_W="
-                            << pad_W
-                            << " out_H="
-                            << out_H
-                            << " out_W="
-                            << out_W);
+                            << " n_groups=" << n_groups_ << " flags=" << flags << " R=" << R
+                            << " S=" << S << " pad_H=" << pad_H << " pad_W=" << pad_W
+                            << " out_H=" << out_H << " out_W=" << out_W);
 
         return [=](const Handle& handle, const AnyInvokeParams& ctx) {
             const auto k        = handle.Run(kernels[0]);

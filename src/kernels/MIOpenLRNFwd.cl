@@ -170,7 +170,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
     int jj = 0;
     int ii = 0;
 
-// first to get vertica partial sums
+    // first to get vertica partial sums
 
 #if MLO_LRN_N_VERT_OUT_PIX > 1
     for(; jj < (int)(MLO_LRN_N_VERT_OUT_PIX - 1); ++jj)
@@ -211,10 +211,9 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
                 partial_sum_xy[jj][ii - MLO_LRN_KERNEL_SZ0] +
                 (accum_tmp
 #if MLO_LRN_N_HORIZ_OUT_PIX > 1
-                 -
-                 partial_sum_x[ii - MLO_LRN_KERNEL_SZ0]
+                 - partial_sum_x[ii - MLO_LRN_KERNEL_SZ0]
 #endif
-                 );
+                );
         }
 
         // put into accumulator[0][i]
@@ -261,10 +260,9 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
             // running horizontal window
             mov_accum += (accum_tmp
 #if MLO_LRN_N_HORIZ_OUT_PIX > 1
-                          -
-                          partial_sum_x[ii - MLO_LRN_KERNEL_SZ0]
+                          - partial_sum_x[ii - MLO_LRN_KERNEL_SZ0]
 #endif
-                          );
+            );
             accum[0][ii - MLO_LRN_KERNEL_SZ0 + 1] += mov_accum;
         }
     }
@@ -365,16 +363,14 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
 
     for(int k = 0; k < MLO_LRN_N_VERT_OUT_PIX
 #if MLO_OUT_VERT_ALIGNED == 0
-                   &&
-                   (top_y + k < MLO_LRN_TOP_HEIGHT)
+                   && (top_y + k < MLO_LRN_TOP_HEIGHT)
 #endif
             ;
         k++)
     {
         for(int l = 0; l < MLO_LRN_N_HORIZ_OUT_PIX
 #if MLO_OUT_HORIZ_ALIGNED == 0
-                       &&
-                       (top_x + l < MLO_LRN_TOP_WIDTH)
+                       && (top_x + l < MLO_LRN_TOP_WIDTH)
 #endif
                 ;
             l++)

@@ -61,9 +61,8 @@ boost::optional<const Invoker&> InvokerCache::GetFound1_0(const std::string& net
     const auto found_1_0_id   = found_1_0_ids.find(algorithm);
     if(found_1_0_id == found_1_0_ids.end())
     {
-        MIOPEN_LOG_I2("Invokers found for " << network_config
-                                            << " but there is no one with an algorithm "
-                                            << algorithm);
+        MIOPEN_LOG_I2("Invokers found for "
+                      << network_config << " but there is no one with an algorithm " << algorithm);
         return boost::none;
     }
     const auto invoker = item_invokers.find(found_1_0_id->second);
@@ -102,8 +101,7 @@ void InvokerCache::SetAsFound1_0(const std::string& network_config,
 
     item->second.found_1_0[algorithm] = solver_id;
     MIOPEN_LOG_I2("Solver " << solver_id << " registered as find 1.0 best for " << algorithm
-                            << " in "
-                            << network_config);
+                            << " in " << network_config);
 }
 
 } // namespace miopen

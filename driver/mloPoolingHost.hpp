@@ -156,7 +156,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                         if(pooling_method == MLO_POOLING_OP_AVE)
                             pool_size = (dend - dstart) * (hend - hstart) * (wend - wstart);
                         else
-                            pool_size        = filter_size_w * filter_size_h * filter_size_d;
+                            pool_size = filter_size_w * filter_size_h * filter_size_d;
                         pool_size            = (pool_size == 0) ? 1 : pool_size;
                         size_t res_index     = 0;
                         size_t res_index_gpu = 0;

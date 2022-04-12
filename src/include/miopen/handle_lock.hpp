@@ -100,6 +100,7 @@ struct handle_mutex
 template <class T>
 inline std::unique_lock<handle_mutex> get_handle_lock(T, int timeout = 120)
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static handle_mutex m{get_handle_lock_path(T::value()).c_str()};
     return {m, std::chrono::seconds{timeout}};
 }

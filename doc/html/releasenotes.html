@@ -1,50 +1,58 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>MIOpen Release notes &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Citing MIOpen" href="citation.html" />
     <link rel="prev" title="Welcome to MIOpen" href="index.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +66,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -75,6 +83,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +91,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -166,12 +177,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
@@ -454,6 +459,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,18 +494,20 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
       <li>MIOpen Release notes</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/releasenotes.md.txt" rel="nofollow"> View page source</a>
           
         
@@ -514,576 +522,600 @@
            <div itemprop="articleBody">
             
   <div class="section" id="miopen-release-notes">
-<span id="miopen-release-notes"></span><h1>MIOpen Release notes<a class="headerlink" href="#miopen-release-notes" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="">
-<span id="id1"></span><h2>05/17/2021 [2.11.0]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<h1>MIOpen Release notes<a class="headerlink" href="#miopen-release-notes" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id1">
+<h2>11/02/2021 [2.14.0]<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains various bug fixes and performance improvements.</li>
-<li>Updates for Target ID features in ROCm stack</li>
-<li>Correctness fix in Batchnorm kernels</li>
-<li>Various bug fixes for MIOpenGEMM on the OpenCL backend</li>
-<li>Various bug fixes in 3x3 assembly kernels</li>
+<li><p>This release consists of various bug fixes and performance improvements</p></li>
+<li><p>Improved support for Navi21</p></li>
+<li><p>Performance improvements via performance database updates</p></li>
+<li><p>Fix various issues in convolution kernels specific to certain ASICs</p></li>
+<li><p>Fix an accuracy issue in reduction kernels</p></li>
+<li><p>Fix an accuracy issue in Batchnormalization kernels</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id2"></span><h2>03/25/2021 [2.10.0]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id2">
+<h2>08/03/2021 [2.12.0]<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains new reduction operations, Winograd algorithm performance improvements as well as bug fixes. Various host side performance improvements have been added as well.</li>
-<li>Added a GPU reference kernel implementation for faster testing.</li>
-<li>Add TargetID support for new AMD GPU architectures.</li>
-<li>Implementation of four additional generic tensor reduction operations (AVG, AMAX, NORM1, NORM2).</li>
-<li>Fixed a bug where Batchnorm would give incorrect results when the product of image height and image width is not a factor of four.</li>
-<li>Various host side improvements for better find and tuning performance.</li>
-<li>Added support for AMD Code Object V4.</li>
+<li><p>This release includes support for Navi21 and various other bug fixes and performance improvements</p></li>
+<li><p>MIOpen now supports Navi21!! (via MIOpen PRs 973, 780, 764, 740, 739, 677, 660, 653, 493, 498)</p></li>
+<li><p>Fixed a correctness issue with ImplicitGemm algorithm</p></li>
+<li><p>Updated the performance data for new kernel versions</p></li>
+<li><p>Improved MIOpen build time by splitting large kernel header files</p></li>
+<li><p>Fixed an issue in reduction kernels for padded tensors</p></li>
+<li><p>Various other bug fixes and performance improvements</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id3"></span><h2>12/01/2020 [ 2.9.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id3">
+<h2>05/17/2021 [2.11.0]<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains implicit GEMM algorithm performance updates and bug fixes. Additional performance improvements have been implemented for batch normalization.</li>
-<li>Added new assembly implicit GEMM kernels</li>
-<li>Added batch normalization optimizations</li>
-<li>Added missing tunings from 2.8.0 release cycle</li>
-<li>Fixed issue where miopen-hip backend install would not search for rocBLAS dependency</li>
-<li>Removed deprecated implicit GEMM xDLOPs solvers</li>
-<li>Removed incorrect error messages from implicit GEMM solvers</li>
-<li>Disabled ConvAsmBwdWrW3x3 solver for stride &gt; 1 cases</li>
-<li>Disabled bidirectional multi-pass Winograd kernels due to stability issues</li>
+<li><p>This release contains various bug fixes and performance improvements.</p></li>
+<li><p>Updates for Target ID features in ROCm stack</p></li>
+<li><p>Correctness fix in Batchnorm kernels</p></li>
+<li><p>Various bug fixes for MIOpenGEMM on the OpenCL backend</p></li>
+<li><p>Various bug fixes in 3x3 assembly kernels</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id4"></span><h2>10/28/2020 [ 2.8.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id4">
+<h2>03/25/2021 [2.10.0]<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>This release contains new reduction operations, Winograd algorithm performance improvements as well as bug fixes. Various host side performance improvements have been added as well.</p></li>
+<li><p>Added a GPU reference kernel implementation for faster testing.</p></li>
+<li><p>Add TargetID support for new AMD GPU architectures.</p></li>
+<li><p>Implementation of four additional generic tensor reduction operations (AVG, AMAX, NORM1, NORM2).</p></li>
+<li><p>Fixed a bug where Batchnorm would give incorrect results when the product of image height and image width is not a factor of four.</p></li>
+<li><p>Various host side improvements for better find and tuning performance.</p></li>
+<li><p>Added support for AMD Code Object V4.</p></li>
+</ul>
+</div>
+<div class="section" id="id5">
+<h2>12/01/2020 [ 2.9.0 ]<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>This release contains implicit GEMM algorithm performance updates and bug fixes. Additional performance improvements have been implemented for batch normalization.</p></li>
+<li><p>Added new assembly implicit GEMM kernels</p></li>
+<li><p>Added batch normalization optimizations</p></li>
+<li><p>Added missing tunings from 2.8.0 release cycle</p></li>
+<li><p>Fixed issue where miopen-hip backend install would not search for rocBLAS dependency</p></li>
+<li><p>Removed deprecated implicit GEMM xDLOPs solvers</p></li>
+<li><p>Removed incorrect error messages from implicit GEMM solvers</p></li>
+<li><p>Disabled ConvAsmBwdWrW3x3 solver for stride &gt; 1 cases</p></li>
+<li><p>Disabled bidirectional multi-pass Winograd kernels due to stability issues</p></li>
+</ul>
+</div>
+<div class="section" id="id6">
+<h2>10/28/2020 [ 2.8.0 ]<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
 <p>This release provides additional bug fixes and support for embedded build using MIOpen as a static library.</p>
 <ul class="simple">
-<li>Fixed workspace size calculation for GEMM group convolutions</li>
-<li>Fixed performance regression for M/N</li>
-<li>Fixed issue with faulty compiler option</li>
-<li>Fixed typo in components dependency variable in CMakeLists.txt</li>
-<li>Fixed issues with COMgr backed online compilation for HIP kernels</li>
-<li>Added cmake flag for embedding system databases when building a static library</li>
-<li>Added a way to disable building MIOpenDriver when building a static library</li>
-<li>Added CC compiler detection in ROCm environment</li>
-<li>Known issue: This release may show warnings for &quot;obsolete configs&quot; in the performance database. This can be fixed by rerunning tuning on a specfic network; <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#miopen-find-enforce">see tuning documentation</a></li>
+<li><p>Fixed workspace size calculation for GEMM group convolutions</p></li>
+<li><p>Fixed performance regression for M/N</p></li>
+<li><p>Fixed issue with faulty compiler option</p></li>
+<li><p>Fixed typo in components dependency variable in CMakeLists.txt</p></li>
+<li><p>Fixed issues with COMgr backed online compilation for HIP kernels</p></li>
+<li><p>Added cmake flag for embedding system databases when building a static library</p></li>
+<li><p>Added a way to disable building MIOpenDriver when building a static library</p></li>
+<li><p>Added CC compiler detection in ROCm environment</p></li>
+<li><p>Known issue: This release may show warnings for “obsolete configs” in the performance database. This can be fixed by rerunning tuning on a specfic network; <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#miopen-find-enforce">see tuning documentation</a></p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id5"></span><h2>09/18/2020 [ 2.7.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id7">
+<h2>09/18/2020 [ 2.7.0 ]<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains a new reduction API; see <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/apireference.html">API documentation</a> for more information. Additional features for embedded builds have been added, and further support for 3D convolutional networks.</li>
-<li>Added additional tunings into performance database</li>
-<li>Added general reduction API</li>
-<li>Added cmake flag for embedding binary database into a static MIOpen build</li>
-<li>Added cmake flag for embedding system find-db text files into static MIOpen build</li>
-<li>Fixed issue with GEMM workspace size calculation for backwards data convolutions <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/381">#381</a></li>
-<li>Fixed issue with 3D pooling indexing <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/365">#365</a></li>
+<li><p>This release contains a new reduction API; see <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/apireference.html">API documentation</a> for more information. Additional features for embedded builds have been added, and further support for 3D convolutional networks.</p></li>
+<li><p>Added additional tunings into performance database</p></li>
+<li><p>Added general reduction API</p></li>
+<li><p>Added cmake flag for embedding binary database into a static MIOpen build</p></li>
+<li><p>Added cmake flag for embedding system find-db text files into static MIOpen build</p></li>
+<li><p>Fixed issue with GEMM workspace size calculation for backwards data convolutions <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/381">#381</a></p></li>
+<li><p>Fixed issue with 3D pooling indexing <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/365">#365</a></p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id6"></span><h2>08/20/2020 [ 2.6.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id8">
+<h2>08/20/2020 [ 2.6.0 ]<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains convolution performance improvements, improved multi-threading behavior, and improved stability for half precision convolutions. Initial iteration time has been reduced with the introduction of hybrid find mode. Builds for a static library have been refined for this release.</li>
-<li>Added MIOPEN_FIND_MODE=3 as the new default convolution Find mode; see documentation <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/find_and_immediate.html#find-modes">here</a> for details</li>
-<li>Added a more runtime-parameterized version of pooling to reduce the number of online compilations</li>
-<li>Improved the performance of backwards spatial batch normalization for small images</li>
-<li>Fixed issue with std::logic_error in SQLite deleter <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/306">#306</a></li>
-<li>Fixed issues with half precision stability for convolutions</li>
-<li>Fixed issues with multi-threaded SQLite database accesses</li>
-<li>Fixed issues with 3-D convolutions and incorrect parameters</li>
-<li>Fixed various issues with implicit GEMM static assert failures</li>
-<li>Removed inactive implicit GEMM convolution solvers</li>
-<li>Removed SCGEMM convolutional algorithm from MIOpen</li>
+<li><p>This release contains convolution performance improvements, improved multi-threading behavior, and improved stability for half precision convolutions. Initial iteration time has been reduced with the introduction of hybrid find mode. Builds for a static library have been refined for this release.</p></li>
+<li><p>Added MIOPEN_FIND_MODE=3 as the new default convolution Find mode; see documentation <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/find_and_immediate.html#find-modes">here</a> for details</p></li>
+<li><p>Added a more runtime-parameterized version of pooling to reduce the number of online compilations</p></li>
+<li><p>Improved the performance of backwards spatial batch normalization for small images</p></li>
+<li><p>Fixed issue with std::logic_error in SQLite deleter <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/306">#306</a></p></li>
+<li><p>Fixed issues with half precision stability for convolutions</p></li>
+<li><p>Fixed issues with multi-threaded SQLite database accesses</p></li>
+<li><p>Fixed issues with 3-D convolutions and incorrect parameters</p></li>
+<li><p>Fixed various issues with implicit GEMM static assert failures</p></li>
+<li><p>Removed inactive implicit GEMM convolution solvers</p></li>
+<li><p>Removed SCGEMM convolutional algorithm from MIOpen</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id7"></span><h2>07/10/2020 [ 2.5.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id9">
+<h2>07/10/2020 [ 2.5.0 ]<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains convolution performance improvements, various minor fixes and documentation updates.</li>
-<li>Added a script to detect and install appropriate precompiled kernels</li>
-<li>Added 3D convolution backwards weights implicit GEMM implementation</li>
-<li>Improve performance of convolution implicit GEMM algorithm</li>
-<li>Improved database coverage for batch size 1</li>
-<li>Improved logging and error reporting</li>
-<li>Improved documentation for debugging with numeric checks</li>
-<li>Fixed issue with potential infinities and NaNs appearing during low precision training on CNNs</li>
+<li><p>This release contains convolution performance improvements, various minor fixes and documentation updates.</p></li>
+<li><p>Added a script to detect and install appropriate precompiled kernels</p></li>
+<li><p>Added 3D convolution backwards weights implicit GEMM implementation</p></li>
+<li><p>Improve performance of convolution implicit GEMM algorithm</p></li>
+<li><p>Improved database coverage for batch size 1</p></li>
+<li><p>Improved logging and error reporting</p></li>
+<li><p>Improved documentation for debugging with numeric checks</p></li>
+<li><p>Fixed issue with potential infinities and NaNs appearing during low precision training on CNNs</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id8"></span><h2>06/02/2020 [ 2.4.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id10">
+<h2>06/02/2020 [ 2.4.0 ]<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains new implementations of 3D convolutions using implicitGEMM, general performance improvements for convolutions, bug fixes, better versioning in directories, integration with the new rocclr, and dropout support in RNNs.</li>
-<li>Added 3D convolutions for the implicitGEMM algorithm in the forward and backward-data passes</li>
-<li>Added dropout support for RNN layer; e.g., RNN-vanilla, GRU, and LSTM</li>
-<li>Added support for AMD's rocclr runtime and compiler</li>
-<li>Improved performance for implicitGEMM and Winograd algorithms</li>
-<li>Improved database locking</li>
-<li>Fixed issue with GPU memory segmentation fault on asymmetric padding <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/142">#142</a></li>
+<li><p>This release contains new implementations of 3D convolutions using implicitGEMM, general performance improvements for convolutions, bug fixes, better versioning in directories, integration with the new rocclr, and dropout support in RNNs.</p></li>
+<li><p>Added 3D convolutions for the implicitGEMM algorithm in the forward and backward-data passes</p></li>
+<li><p>Added dropout support for RNN layer; e.g., RNN-vanilla, GRU, and LSTM</p></li>
+<li><p>Added support for AMD’s rocclr runtime and compiler</p></li>
+<li><p>Improved performance for implicitGEMM and Winograd algorithms</p></li>
+<li><p>Improved database locking</p></li>
+<li><p>Fixed issue with GPU memory segmentation fault on asymmetric padding <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/142">#142</a></p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id9"></span><h2>03/01/2020 [ 2.3.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id11">
+<h2>03/01/2020 [ 2.3.0 ]<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains new implementations of the implicitGEMM and Winograd algorithms, performance improvements for convolutions, further support for 3D convolutional networks, and various bug fixes.</li>
-<li>Added 3D Pooling layers</li>
-<li>Added backwards data algorithm for implicitGEMM</li>
-<li>Added GEMM performance improvements via relaxed constraints in rocBLAS-Tensile</li>
-<li>Added full CO v3 support for all kernels in MIOpen</li>
-<li>Added new Winograd group convolution kernels</li>
-<li>Added an API to query MIOpen's version</li>
-<li>Added parallel compilation in initial convolutional algorithm search; partial solution to <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/130">#130</a></li>
-<li>Added SQLite binary program cache</li>
-<li>Improved logging across all layers</li>
-<li>Improved MIOpen's internal design for calling convolutional solvers</li>
-<li>Fixed various bugs for the implicitGEMM algorithm</li>
+<li><p>This release contains new implementations of the implicitGEMM and Winograd algorithms, performance improvements for convolutions, further support for 3D convolutional networks, and various bug fixes.</p></li>
+<li><p>Added 3D Pooling layers</p></li>
+<li><p>Added backwards data algorithm for implicitGEMM</p></li>
+<li><p>Added GEMM performance improvements via relaxed constraints in rocBLAS-Tensile</p></li>
+<li><p>Added full CO v3 support for all kernels in MIOpen</p></li>
+<li><p>Added new Winograd group convolution kernels</p></li>
+<li><p>Added an API to query MIOpen’s version</p></li>
+<li><p>Added parallel compilation in initial convolutional algorithm search; partial solution to <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/130">#130</a></p></li>
+<li><p>Added SQLite binary program cache</p></li>
+<li><p>Improved logging across all layers</p></li>
+<li><p>Improved MIOpen’s internal design for calling convolutional solvers</p></li>
+<li><p>Fixed various bugs for the implicitGEMM algorithm</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id10"></span><h2>01/24/2020 [ 2.2.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id12">
+<h2>01/24/2020 [ 2.2.1 ]<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains bug fixes, documentation updates, and further code object version 3 support</li>
+<li><p>This release contains bug fixes, documentation updates, and further code object version 3 support</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Added support for multiple ROCm installations</li>
-<li>Added additional support for code object v3</li>
-<li>Fixed issue with incorrect LRN calculation <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/127">#127</a></li>
-<li>Fixed incorrect performance database documentation</li>
-<li>Fixed issue with incorrect workspace calculation in group convolutions</li>
-<li>Fixed issue with unsupported hardware instructions used with inline assembly</li>
+<li><p>Added support for multiple ROCm installations</p></li>
+<li><p>Added additional support for code object v3</p></li>
+<li><p>Fixed issue with incorrect LRN calculation <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/127">#127</a></p></li>
+<li><p>Fixed incorrect performance database documentation</p></li>
+<li><p>Fixed issue with incorrect workspace calculation in group convolutions</p></li>
+<li><p>Fixed issue with unsupported hardware instructions used with inline assembly</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id11"></span><h2>12/19/2019 [ 2.2.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id13">
+<h2>12/19/2019 [ 2.2.0 ]<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains bug fixes, performance improvements, and expanded applicability for specific convolutional algorithms.</li>
-<li>MIOpen has posted a citable paper on ArXiv <a class="reference external" href="https://arxiv.org/abs/1910.00078">here</a>.</li>
-<li>An SQLite database has been added to replace the text-based performance database. While the text file still exists, by default SQLite is used over the text-based performance database; see <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html">documentation</a> from more details.</li>
+<li><p>This release contains bug fixes, performance improvements, and expanded applicability for specific convolutional algorithms.</p></li>
+<li><p>MIOpen has posted a citable paper on ArXiv <a class="reference external" href="https://arxiv.org/abs/1910.00078">here</a>.</p></li>
+<li><p>An SQLite database has been added to replace the text-based performance database. While the text file still exists, by default SQLite is used over the text-based performance database; see <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html">documentation</a> from more details.</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Added per solution algorithm filtering environmental variable for debugging</li>
-<li>Added SQLite3 database and build dependency. The text-based performance database support is deprecated and will be removed in the next release.</li>
-<li>Added citation page to documentation pointing to <a class="reference external" href="https://arxiv.org/abs/1910.00078">MIOpen's paper</a></li>
-<li>Added to the overall documentation</li>
-<li>Fixed fusion compilation check issue</li>
-<li>Fixed fusion group convolution warning</li>
-<li>Improved performance of forward pooling</li>
-<li>Improved performance of convolutions</li>
-<li>Improved performance of spatial training batch normalization for some large batch size input configurations</li>
-<li>Improved applicability of implicit GEMM convolution algorithm</li>
-<li>Improved performance of calls to miopenConvolutionXXXGetWorkSpaceSize() functions</li>
-<li>Improved conformance to code object version 3</li>
-<li>Removed SCGEMM convolution algorithm by default; this algorithm is deprecated and will be removed in future releases</li>
-<li>Changed &quot;hip_hcc&quot; to &quot;hip-hcc&quot; for the MIOpen package requirements in CMakeLists.txt</li>
+<li><p>Added per solution algorithm filtering environmental variable for debugging</p></li>
+<li><p>Added SQLite3 database and build dependency. The text-based performance database support is deprecated and will be removed in the next release.</p></li>
+<li><p>Added citation page to documentation pointing to <a class="reference external" href="https://arxiv.org/abs/1910.00078">MIOpen’s paper</a></p></li>
+<li><p>Added to the overall documentation</p></li>
+<li><p>Fixed fusion compilation check issue</p></li>
+<li><p>Fixed fusion group convolution warning</p></li>
+<li><p>Improved performance of forward pooling</p></li>
+<li><p>Improved performance of convolutions</p></li>
+<li><p>Improved performance of spatial training batch normalization for some large batch size input configurations</p></li>
+<li><p>Improved applicability of implicit GEMM convolution algorithm</p></li>
+<li><p>Improved performance of calls to miopenConvolutionXXXGetWorkSpaceSize() functions</p></li>
+<li><p>Improved conformance to code object version 3</p></li>
+<li><p>Removed SCGEMM convolution algorithm by default; this algorithm is deprecated and will be removed in future releases</p></li>
+<li><p>Changed “hip_hcc” to “hip-hcc” for the MIOpen package requirements in CMakeLists.txt</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id12"></span><h2>09/25/2019 [ 2.1.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id14">
+<h2>09/25/2019 [ 2.1.0 ]<a class="headerlink" href="#id14" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains new layers, bug fixes, and a new convolution algorithm.</li>
+<li><p>This release contains new layers, bug fixes, and a new convolution algorithm.</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Added a dropout layer API for training</li>
-<li>Added a new SCGEMM algorithm for convolutions</li>
-<li>Added further support for bfp16 in convolutions</li>
-<li>Added a <a class="reference external" href="https://hub.docker.com/r/rocm/miopen/tags">docker hub link</a> for MIOpen docker images.</li>
-<li>Fixed issue with NaN appearing on batch normalization backwards pass in fp16</li>
-<li>Fixed softmax kernel bug in log mode <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/112">#112</a></li>
-<li>Fixed ROCm gfx803 support issue <a class="reference external" href="https://github.com/RadeonOpenCompute/ROCm/issues/869">#869</a></li>
-<li>Improved performance of batch normalization fp16 forward training layers</li>
-<li>Improved performance of convolutions layers</li>
-<li>Removed MIOpenGEMM as a requirement for the HIP backend. It is now optional.</li>
+<li><p>Added a dropout layer API for training</p></li>
+<li><p>Added a new SCGEMM algorithm for convolutions</p></li>
+<li><p>Added further support for bfp16 in convolutions</p></li>
+<li><p>Added a <a class="reference external" href="https://hub.docker.com/r/rocm/miopen/tags">docker hub link</a> for MIOpen docker images.</p></li>
+<li><p>Fixed issue with NaN appearing on batch normalization backwards pass in fp16</p></li>
+<li><p>Fixed softmax kernel bug in log mode <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/112">#112</a></p></li>
+<li><p>Fixed ROCm gfx803 support issue <a class="reference external" href="https://github.com/RadeonOpenCompute/ROCm/issues/869">#869</a></p></li>
+<li><p>Improved performance of batch normalization fp16 forward training layers</p></li>
+<li><p>Improved performance of convolutions layers</p></li>
+<li><p>Removed MIOpenGEMM as a requirement for the HIP backend. It is now optional.</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id13"></span><h2>08/13/2019 [ 2.0.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id15">
+<h2>08/13/2019 [ 2.0.1 ]<a class="headerlink" href="#id15" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains bug fixes and performance improvements.</li>
-<li>Additionally, the convolution algorithm Implicit GEMM is now enabled by default</li>
-<li>Known issues:<ul>
-<li>Backward propagation for batch normalization in fp16 mode may trigger NaN in some cases</li>
-<li>Softmax Log mode may produce an incorrect result in back propagation</li>
+<li><p>This release contains bug fixes and performance improvements.</p></li>
+<li><p>Additionally, the convolution algorithm Implicit GEMM is now enabled by default</p></li>
+<li><p>Known issues:</p>
+<ul>
+<li><p>Backward propagation for batch normalization in fp16 mode may trigger NaN in some cases</p></li>
+<li><p>Softmax Log mode may produce an incorrect result in back propagation</p></li>
 </ul>
 </li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Added Winograd multi-pass convolution kernel</li>
-<li>Fixed issue with hip compiler paths</li>
-<li>Fixed immediate mode behavior with auto-tuning environment variable</li>
-<li>Fixed issue with system find-db in-memory cache, the fix enable the cache by default</li>
-<li>Improved logging</li>
-<li>Improved how symbols are hidden in the library</li>
-<li>Updated default behavior to enable implicit GEMM</li>
+<li><p>Added Winograd multi-pass convolution kernel</p></li>
+<li><p>Fixed issue with hip compiler paths</p></li>
+<li><p>Fixed immediate mode behavior with auto-tuning environment variable</p></li>
+<li><p>Fixed issue with system find-db in-memory cache, the fix enable the cache by default</p></li>
+<li><p>Improved logging</p></li>
+<li><p>Improved how symbols are hidden in the library</p></li>
+<li><p>Updated default behavior to enable implicit GEMM</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id14"></span><h2>07/08/2019 [ 2.0.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id16">
+<h2>07/08/2019 [ 2.0.0 ]<a class="headerlink" href="#id16" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains several new features including an immediate mode for selecting convolutions, bfloat16 support, new layers, modes, and algorithms.</li>
-<li>MIOpenDriver, a tool for benchmarking and developing kernels is now shipped with MIOpen.</li>
-<li>BFloat16 now supported in HIP requires an updated rocBLAS as a GEMM backend.</li>
-<li>Immediate mode API now provides the ability to quickly obtain a convolution kernel.</li>
-<li>MIOpen now contains HIP source kernels and implements the ImplicitGEMM kernels. This is a new feature and is currently disabled by default. Use the environmental variable &quot;MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=1&quot; to activation this feature. ImplicitGEMM requires an up to date HIP version of at least 1.5.9211.</li>
-<li>A new &quot;loss&quot; catagory of layers has been added, of which, CTC loss is the first. See the API reference for more details.</li>
-<li>2.0 is the last release of active support for gfx803 architectures. In future releases, MIOpen will not actively debug and develop new features specifically for gfx803.</li>
-<li>System Find-Db in memory cache is disabled by default. Please see build instructions to enable this feature.</li>
+<li><p>This release contains several new features including an immediate mode for selecting convolutions, bfloat16 support, new layers, modes, and algorithms.</p></li>
+<li><p>MIOpenDriver, a tool for benchmarking and developing kernels is now shipped with MIOpen.</p></li>
+<li><p>BFloat16 now supported in HIP requires an updated rocBLAS as a GEMM backend.</p></li>
+<li><p>Immediate mode API now provides the ability to quickly obtain a convolution kernel.</p></li>
+<li><p>MIOpen now contains HIP source kernels and implements the ImplicitGEMM kernels. This is a new feature and is currently disabled by default. Use the environmental variable “MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=1” to activation this feature. ImplicitGEMM requires an up to date HIP version of at least 1.5.9211.</p></li>
+<li><p>A new “loss” catagory of layers has been added, of which, CTC loss is the first. See the API reference for more details.</p></li>
+<li><p>2.0 is the last release of active support for gfx803 architectures. In future releases, MIOpen will not actively debug and develop new features specifically for gfx803.</p></li>
+<li><p>System Find-Db in memory cache is disabled by default. Please see build instructions to enable this feature.</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Added support for bfloat16 datatype in convolutions</li>
-<li>Added softmax channel mode and new softmax version 2 API</li>
-<li>Added fast / accurate / log softmax algorithms</li>
-<li>Added new implicit GEMM convolution algorithm for forward and backwards data passes, disabled by default</li>
-<li>Added int32 datatype support for output tensors in int8 convolutions</li>
-<li>Added immediate mode for finding the best convolution kernel for a given configuration</li>
-<li>Added a Find-Db infrastructure which stashes results of find on a user's system</li>
-<li>Added a shipped System Find-Db containing offline run Find() results</li>
-<li>Added an additional, faster batch norm assembly kernel for fp16</li>
-<li>Added CTC loss layer</li>
-<li>Added MIOpenDriver as a default component in MIOpen's build <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/34">#34</a></li>
-<li>Fixed C compatability for boolean types in C API <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/103">#103</a></li>
-<li>Fixed incorrect calculation in per-activation batch norm backwards pass <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/104">#104</a></li>
-<li>Fixed bug <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/95">#95</a> with asm batch norm ISA</li>
-<li>Fixed IsApplicable bug in Conv3x3Asm for group convolutions</li>
-<li>Improved performance of 1x1 stride 2 fp32 convolutions in the forward and backwards data passes</li>
-<li>Improved 3-D convolution stability</li>
-<li>Improved applicability of direct convolution backwards weights for 2x2, 5x10, and 5x20 filter sizes</li>
-<li>Improved maintainability in kernels and cpp code</li>
-<li>Updated rocBLAS minimum version to branch <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.6">master-rocm-2.6</a></li>
+<li><p>Added support for bfloat16 datatype in convolutions</p></li>
+<li><p>Added softmax channel mode and new softmax version 2 API</p></li>
+<li><p>Added fast / accurate / log softmax algorithms</p></li>
+<li><p>Added new implicit GEMM convolution algorithm for forward and backwards data passes, disabled by default</p></li>
+<li><p>Added int32 datatype support for output tensors in int8 convolutions</p></li>
+<li><p>Added immediate mode for finding the best convolution kernel for a given configuration</p></li>
+<li><p>Added a Find-Db infrastructure which stashes results of find on a user’s system</p></li>
+<li><p>Added a shipped System Find-Db containing offline run Find() results</p></li>
+<li><p>Added an additional, faster batch norm assembly kernel for fp16</p></li>
+<li><p>Added CTC loss layer</p></li>
+<li><p>Added MIOpenDriver as a default component in MIOpen’s build <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/34">#34</a></p></li>
+<li><p>Fixed C compatability for boolean types in C API <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/103">#103</a></p></li>
+<li><p>Fixed incorrect calculation in per-activation batch norm backwards pass <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/104">#104</a></p></li>
+<li><p>Fixed bug <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpen/issues/95">#95</a> with asm batch norm ISA</p></li>
+<li><p>Fixed IsApplicable bug in Conv3x3Asm for group convolutions</p></li>
+<li><p>Improved performance of 1x1 stride 2 fp32 convolutions in the forward and backwards data passes</p></li>
+<li><p>Improved 3-D convolution stability</p></li>
+<li><p>Improved applicability of direct convolution backwards weights for 2x2, 5x10, and 5x20 filter sizes</p></li>
+<li><p>Improved maintainability in kernels and cpp code</p></li>
+<li><p>Updated rocBLAS minimum version to branch <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.6">master-rocm-2.6</a></p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id15"></span><h2>05/03/2019 [ 1.8.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id17">
+<h2>05/03/2019 [ 1.8.1 ]<a class="headerlink" href="#id17" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains minor bug fixes and additional performance database improvements.</li>
+<li><p>This release contains minor bug fixes and additional performance database improvements.</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Fixed accuracy issue with backwards weights</li>
-<li>Fixed issue with name parsing for newer architectures</li>
-<li>Added narrow workaround for 5x10 and 5x20 filter performance regression</li>
-<li>Improved support in performance database for Radeon VII</li>
+<li><p>Fixed accuracy issue with backwards weights</p></li>
+<li><p>Fixed issue with name parsing for newer architectures</p></li>
+<li><p>Added narrow workaround for 5x10 and 5x20 filter performance regression</p></li>
+<li><p>Improved support in performance database for Radeon VII</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id16"></span><h2>04/11/2019 [ 1.8.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id18">
+<h2>04/11/2019 [ 1.8.0 ]<a class="headerlink" href="#id18" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contaings full 3-D convolution support and int8 support for interfence.</li>
-<li>Additionally, there are major updates in the performance database for major models including those found in Torchvision.</li>
-<li>This release contains full 3-D convolution support and int8 support for inference.</li>
-<li>Additionally, there are updates in the performance database for major models including those found in Torchvision.</li>
-<li>An assortment of bugs have been resolved in this release.</li>
+<li><p>This release contaings full 3-D convolution support and int8 support for interfence.</p></li>
+<li><p>Additionally, there are major updates in the performance database for major models including those found in Torchvision.</p></li>
+<li><p>This release contains full 3-D convolution support and int8 support for inference.</p></li>
+<li><p>Additionally, there are updates in the performance database for major models including those found in Torchvision.</p></li>
+<li><p>An assortment of bugs have been resolved in this release.</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Fixed various issues in assembly kernels</li>
-<li>Fixed issue #92 and #79 for miopenOpTensor</li>
-<li>Fixed issue #88 for bzip2</li>
-<li>Fixed issue #77 algorithm mismatch</li>
-<li>Added Winograd suport for fp32 backwards weights</li>
-<li>Added Winograd support for fp32 backwards weights</li>
-<li>Added pooling inclusive mode</li>
-<li>Added tuning for direct group convolution algorithms</li>
-<li>Added additional kernel supoort for group convolutions</li>
-<li>Added additional kernel support for group convolutions</li>
-<li>Added API for 3-D convolutions</li>
-<li>Added support for int8 inference convolutions</li>
-<li>Added integer selection for pooling indexing</li>
-<li>Added minimum dependencies support</li>
-<li>Added RNN fp16 support on the MIOpen-HIP backend</li>
-<li>Added 1x1 convolution + bias + activation fusions</li>
-<li>Added workaround for issue #84 GPU memory access fault</li>
-<li>Added performance tuning for direct backwards weights</li>
-<li>Improved performance database coverage</li>
-<li>Improved internal quality by reducing redunant code</li>
-<li>Improved build instructions in README.md</li>
-<li>Improved performance database coverage for fusions</li>
-<li>Updated Docker components and requirements</li>
+<li><p>Fixed various issues in assembly kernels</p></li>
+<li><p>Fixed issue #92 and #79 for miopenOpTensor</p></li>
+<li><p>Fixed issue #88 for bzip2</p></li>
+<li><p>Fixed issue #77 algorithm mismatch</p></li>
+<li><p>Added Winograd suport for fp32 backwards weights</p></li>
+<li><p>Added Winograd support for fp32 backwards weights</p></li>
+<li><p>Added pooling inclusive mode</p></li>
+<li><p>Added tuning for direct group convolution algorithms</p></li>
+<li><p>Added additional kernel supoort for group convolutions</p></li>
+<li><p>Added additional kernel support for group convolutions</p></li>
+<li><p>Added API for 3-D convolutions</p></li>
+<li><p>Added support for int8 inference convolutions</p></li>
+<li><p>Added integer selection for pooling indexing</p></li>
+<li><p>Added minimum dependencies support</p></li>
+<li><p>Added RNN fp16 support on the MIOpen-HIP backend</p></li>
+<li><p>Added 1x1 convolution + bias + activation fusions</p></li>
+<li><p>Added workaround for issue #84 GPU memory access fault</p></li>
+<li><p>Added performance tuning for direct backwards weights</p></li>
+<li><p>Improved performance database coverage</p></li>
+<li><p>Improved internal quality by reducing redunant code</p></li>
+<li><p>Improved build instructions in README.md</p></li>
+<li><p>Improved performance database coverage for fusions</p></li>
+<li><p>Updated Docker components and requirements</p></li>
 </ul>
 <p>Known Issues:</p>
 <ul class="simple">
-<li>RNNs do not support fp16 on the MIOpen-OpenCL backend</li>
-<li>OpenCL backend does not support GEMM convolutions in fp16</li>
+<li><p>RNNs do not support fp16 on the MIOpen-OpenCL backend</p></li>
+<li><p>OpenCL backend does not support GEMM convolutions in fp16</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id17"></span><h2>02/06/2019 [ 1.7.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id19">
+<h2>02/06/2019 [ 1.7.1 ]<a class="headerlink" href="#id19" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains minor bug fixes and performance improvements.</li>
+<li><p>This release contains minor bug fixes and performance improvements.</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Fixed corrupt and obsolete performance database entries</li>
-<li>Fixed issue #70, &quot;SIGFPE (DIV/0) in ConvOclBwdWrW2::GetSolution()&quot;</li>
-<li>Fixed issue #72, &quot;workSpaceSize check assertion fails in ConvolutionBackwardWeights() - DEBUG builds only&quot;</li>
-<li>Fixed issue #77, &quot;Results of ConvBwdWeightsAlgoDirect and ConvBwdWeightsAlgoGEMM mismatch for some specific parameters&quot;</li>
-<li>Removed default dependency of RNNs on rocBLAS</li>
-<li>Added a workaround for softmax fp16 correctness issue</li>
-<li>Added check to only make MIOpen with static boost libraries</li>
-<li>Improved performance database coverage</li>
+<li><p>Fixed corrupt and obsolete performance database entries</p></li>
+<li><p>Fixed issue #70, “SIGFPE (DIV/0) in ConvOclBwdWrW2::GetSolution()”</p></li>
+<li><p>Fixed issue #72, “workSpaceSize check assertion fails in ConvolutionBackwardWeights() - DEBUG builds only”</p></li>
+<li><p>Fixed issue #77, “Results of ConvBwdWeightsAlgoDirect and ConvBwdWeightsAlgoGEMM mismatch for some specific parameters”</p></li>
+<li><p>Removed default dependency of RNNs on rocBLAS</p></li>
+<li><p>Added a workaround for softmax fp16 correctness issue</p></li>
+<li><p>Added check to only make MIOpen with static boost libraries</p></li>
+<li><p>Improved performance database coverage</p></li>
 </ul>
 <p>Known Issues:</p>
 <ul class="simple">
-<li>RNNs do not support fp16</li>
-<li>OpenCL backend does not support GEMM convolutions in fp16</li>
-<li>Layer fusions for convolution 1x1 fp16 are not supported</li>
-<li>Layer fusions for large image 1x1 convolutions may cause an exception instead of a warning during compile phase if plan is not supported</li>
+<li><p>RNNs do not support fp16</p></li>
+<li><p>OpenCL backend does not support GEMM convolutions in fp16</p></li>
+<li><p>Layer fusions for convolution 1x1 fp16 are not supported</p></li>
+<li><p>Layer fusions for large image 1x1 convolutions may cause an exception instead of a warning during compile phase if plan is not supported</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id18"></span><h2>12/19/2018 [ 1.7.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id20">
+<h2>12/19/2018 [ 1.7.0 ]<a class="headerlink" href="#id20" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>This release contains general bug fixes and an updated performance database</li>
-<li>Group convolutions backwards weights performance has been improved</li>
-<li>Logging across the library has been improved</li>
-<li>Performance database has been updated</li>
+<li><p>This release contains general bug fixes and an updated performance database</p></li>
+<li><p>Group convolutions backwards weights performance has been improved</p></li>
+<li><p>Logging across the library has been improved</p></li>
+<li><p>Performance database has been updated</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Fixed logging issues with group convolution and pooling</li>
-<li>Fixed sphinx version issue in document generation</li>
-<li>Fixed issues with corrupt entries in performance database</li>
-<li>Removed external dependency on libSSL and libCrypto</li>
-<li>Added support for large image backwards weights in direct convolution</li>
-<li>Added fp16 support for RNNs on the HIP backend</li>
-<li>Improved performance database coverage</li>
+<li><p>Fixed logging issues with group convolution and pooling</p></li>
+<li><p>Fixed sphinx version issue in document generation</p></li>
+<li><p>Fixed issues with corrupt entries in performance database</p></li>
+<li><p>Removed external dependency on libSSL and libCrypto</p></li>
+<li><p>Added support for large image backwards weights in direct convolution</p></li>
+<li><p>Added fp16 support for RNNs on the HIP backend</p></li>
+<li><p>Improved performance database coverage</p></li>
 </ul>
 <p>Known Issues:</p>
 <ul class="simple">
-<li>RNNs do not support fp16</li>
-<li>OpenCL backend does not support GEMM convolutions in fp16</li>
-<li>Layer fusions for convolution 1x1 fp16 are not supported</li>
-<li>Layer fusions for large image 1x1 convolutions may cause an exception instead of a warning during compile phase if plan is not supported</li>
+<li><p>RNNs do not support fp16</p></li>
+<li><p>OpenCL backend does not support GEMM convolutions in fp16</p></li>
+<li><p>Layer fusions for convolution 1x1 fp16 are not supported</p></li>
+<li><p>Layer fusions for large image 1x1 convolutions may cause an exception instead of a warning during compile phase if plan is not supported</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id19"></span><h2>11/18/2018 [ 1.6.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id21">
+<h2>11/18/2018 [ 1.6.0 ]<a class="headerlink" href="#id21" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>Training in fp16 (half precision) including mixed-precision is now fully supported</li>
-<li>Batch Normalization in fp16 (half precision) including mixed-precision are now available</li>
-<li>Performance improvements for 3x3 and 1x1 single-precision convolutions</li>
-<li>Layer fusions for BatchNorm+Activation are now available</li>
-<li>Layer fusions with convolutions now support varying strides and padding configurations</li>
+<li><p>Training in fp16 (half precision) including mixed-precision is now fully supported</p></li>
+<li><p>Batch Normalization in fp16 (half precision) including mixed-precision are now available</p></li>
+<li><p>Performance improvements for 3x3 and 1x1 single-precision convolutions</p></li>
+<li><p>Layer fusions for BatchNorm+Activation are now available</p></li>
+<li><p>Layer fusions with convolutions now support varying strides and padding configurations</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>rocBLAS is now used as the default BLAS library for the HIP backend (minimum version 14.3.0)</li>
-<li>Fixed various bugs in convolution kernels</li>
-<li>Fixed issues with bad references in layer fusion</li>
-<li>Fixed gfx803 assembily issues</li>
-<li>Added support fp16 Winograd convolutions</li>
-<li>Added support for fp16 pooling</li>
-<li>Improved error reporting for convolutions and layer fusions</li>
-<li>Improved documentation</li>
+<li><p>rocBLAS is now used as the default BLAS library for the HIP backend (minimum version 14.3.0)</p></li>
+<li><p>Fixed various bugs in convolution kernels</p></li>
+<li><p>Fixed issues with bad references in layer fusion</p></li>
+<li><p>Fixed gfx803 assembily issues</p></li>
+<li><p>Added support fp16 Winograd convolutions</p></li>
+<li><p>Added support for fp16 pooling</p></li>
+<li><p>Improved error reporting for convolutions and layer fusions</p></li>
+<li><p>Improved documentation</p></li>
 </ul>
 <p>Known Issues:</p>
 <ul class="simple">
-<li>RNNs do not support fp16</li>
-<li>OpenCL backend does not have full fp16 support</li>
-<li>Layer fusions for convolution 1x1 fp16 are not supported</li>
+<li><p>RNNs do not support fp16</p></li>
+<li><p>OpenCL backend does not have full fp16 support</p></li>
+<li><p>Layer fusions for convolution 1x1 fp16 are not supported</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id20"></span><h2>09/14/2018 [ 1.5.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id22">
+<h2>09/14/2018 [ 1.5.0 ]<a class="headerlink" href="#id22" title="Permalink to this headline">¶</a></h2>
 <p>Notes:</p>
 <ul class="simple">
-<li>A new kernel fusion API is now available for inference for convolution, bias,
-batch normalization, and activations.</li>
-<li>This release includes new features and bug fixes</li>
-<li>Group and Depthwise convolutions are now available</li>
-<li>3D Batch Normalization has been implemented for fully packed tensors</li>
-<li>Dilation for convolutions have been implemented</li>
+<li><p>A new kernel fusion API is now available for inference for convolution, bias,
+batch normalization, and activations.</p></li>
+<li><p>This release includes new features and bug fixes</p></li>
+<li><p>Group and Depthwise convolutions are now available</p></li>
+<li><p>3D Batch Normalization has been implemented for fully packed tensors</p></li>
+<li><p>Dilation for convolutions have been implemented</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Fixed bugs in direct convolutions</li>
-<li>Fixed issue with paths when $HOME variable is not set</li>
-<li>Fixed padding issues with 1x1 convolutions</li>
-<li>Added incremental support for fp16</li>
-<li>Added fused kernels for Winograd and direct with bias and activations</li>
-<li>Added a getting started guide for kernel fusion.</li>
-<li>Added group and depthwise API for convolutions</li>
-<li>Added 3-D batch normalization support with 5-D tensors</li>
-<li>Improved max pooling performance</li>
-<li>Improved debug and error reporting information</li>
-<li>Improved documentation for convolutions</li>
+<li><p>Fixed bugs in direct convolutions</p></li>
+<li><p>Fixed issue with paths when $HOME variable is not set</p></li>
+<li><p>Fixed padding issues with 1x1 convolutions</p></li>
+<li><p>Added incremental support for fp16</p></li>
+<li><p>Added fused kernels for Winograd and direct with bias and activations</p></li>
+<li><p>Added a getting started guide for kernel fusion.</p></li>
+<li><p>Added group and depthwise API for convolutions</p></li>
+<li><p>Added 3-D batch normalization support with 5-D tensors</p></li>
+<li><p>Improved max pooling performance</p></li>
+<li><p>Improved debug and error reporting information</p></li>
+<li><p>Improved documentation for convolutions</p></li>
 </ul>
 <p>Known Issues:</p>
 <ul class="simple">
-<li>RNNs do not support fp16</li>
-<li>Training with CNNs does not support fp16</li>
+<li><p>RNNs do not support fp16</p></li>
+<li><p>Training with CNNs does not support fp16</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id21"></span><h2>07/30/2018 [ 1.4.2 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id23">
+<h2>07/30/2018 [ 1.4.2 ]<a class="headerlink" href="#id23" title="Permalink to this headline">¶</a></h2>
 <p>Notes:</p>
 <ul class="simple">
-<li>This release is a hot-fix to enable ICNet and PSPNet</li>
+<li><p>This release is a hot-fix to enable ICNet and PSPNet</p></li>
 </ul>
 <p>Known Issues:</p>
 <ul class="simple">
-<li>RNNs do not support fp16</li>
-<li>Training with CNNs does not support fp16</li>
-<li>Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: <code class="docutils literal"><span class="pre">MIOPEN_FIND_ENFORCE=search</span></code>
-For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#</li>
+<li><p>RNNs do not support fp16</p></li>
+<li><p>Training with CNNs does not support fp16</p></li>
+<li><p>Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: <code class="docutils literal notranslate"><span class="pre">MIOPEN_FIND_ENFORCE=search</span></code>
+For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id22"></span><h2>07/19/2018 [ 1.4.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id24">
+<h2>07/19/2018 [ 1.4.1 ]<a class="headerlink" href="#id24" title="Permalink to this headline">¶</a></h2>
 <p>Notes:</p>
 <ul class="simple">
-<li>This release includes a bug fix for 3x3 convolutions</li>
-<li>Updated README file configuration instructions</li>
+<li><p>This release includes a bug fix for 3x3 convolutions</p></li>
+<li><p>Updated README file configuration instructions</p></li>
 </ul>
 <p>Known Issues:</p>
 <ul class="simple">
-<li>RNNs do not support fp16</li>
-<li>Training with CNNs does not support fp16</li>
-<li>Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: <code class="docutils literal"><span class="pre">MIOPEN_FIND_ENFORCE=search</span></code>
-For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#</li>
+<li><p>RNNs do not support fp16</p></li>
+<li><p>Training with CNNs does not support fp16</p></li>
+<li><p>Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: <code class="docutils literal notranslate"><span class="pre">MIOPEN_FIND_ENFORCE=search</span></code>
+For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id23"></span><h2>07/06/2018 [ 1.4.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id25">
+<h2>07/06/2018 [ 1.4.0 ]<a class="headerlink" href="#id25" title="Permalink to this headline">¶</a></h2>
 <p>Notes:</p>
 <ul class="simple">
-<li>This release includes a number of performance improvements and bug fixes</li>
-<li>New features have been added to convolutions for auto-tuning kernels</li>
-<li>Activations now have new modes available</li>
-<li>Documentation has been updated and corrected</li>
+<li><p>This release includes a number of performance improvements and bug fixes</p></li>
+<li><p>New features have been added to convolutions for auto-tuning kernels</p></li>
+<li><p>Activations now have new modes available</p></li>
+<li><p>Documentation has been updated and corrected</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Fixed documentation errors</li>
-<li>Fixed bug in activations with pass-through mode</li>
-<li>Fixed performance database locking issues</li>
-<li>Fixed Winograd kernel behavior for stride 2 backwards data</li>
-<li>Fixed a bug in OpTensor layer</li>
-<li>Fixed a timing issue with batch normalization inline assembly</li>
-<li>Fixed issue with an unnecessary binary creation in assembly bug detection</li>
-<li>Fixed issue with disk program cache directory not being created</li>
-<li>Fixed a bug with convolution+bias</li>
-<li>Added to performance database functionality</li>
-<li>Added leaky-ReLU, clipped, and exponential-ReLU modes to activation</li>
-<li>Added documentation for performance database usage</li>
-<li>Added support for 1x1 convolutions with non-zero padding</li>
-<li>Added API for printing status codes as strings</li>
-<li>Added auto-tuning feature for convolutions</li>
-<li>Improved LSTM and GRU backwards pass performance</li>
-<li>Improved debug and error reporting information</li>
-<li>Improved performance of batch normalization spatial mode</li>
-<li>Improved find stage for convolutions</li>
-<li>Improved readability for user database file</li>
+<li><p>Fixed documentation errors</p></li>
+<li><p>Fixed bug in activations with pass-through mode</p></li>
+<li><p>Fixed performance database locking issues</p></li>
+<li><p>Fixed Winograd kernel behavior for stride 2 backwards data</p></li>
+<li><p>Fixed a bug in OpTensor layer</p></li>
+<li><p>Fixed a timing issue with batch normalization inline assembly</p></li>
+<li><p>Fixed issue with an unnecessary binary creation in assembly bug detection</p></li>
+<li><p>Fixed issue with disk program cache directory not being created</p></li>
+<li><p>Fixed a bug with convolution+bias</p></li>
+<li><p>Added to performance database functionality</p></li>
+<li><p>Added leaky-ReLU, clipped, and exponential-ReLU modes to activation</p></li>
+<li><p>Added documentation for performance database usage</p></li>
+<li><p>Added support for 1x1 convolutions with non-zero padding</p></li>
+<li><p>Added API for printing status codes as strings</p></li>
+<li><p>Added auto-tuning feature for convolutions</p></li>
+<li><p>Improved LSTM and GRU backwards pass performance</p></li>
+<li><p>Improved debug and error reporting information</p></li>
+<li><p>Improved performance of batch normalization spatial mode</p></li>
+<li><p>Improved find stage for convolutions</p></li>
+<li><p>Improved readability for user database file</p></li>
 </ul>
 <p>Known Issues:</p>
 <ul class="simple">
-<li>RNNs do not support fp16</li>
-<li>Training with CNNs does not support fp16</li>
+<li><p>RNNs do not support fp16</p></li>
+<li><p>Training with CNNs does not support fp16</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id24"></span><h2>03/30/2018 [ 1.3.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id26">
+<h2>03/30/2018 [ 1.3.0 ]<a class="headerlink" href="#id26" title="Permalink to this headline">¶</a></h2>
 <p>Notes:</p>
 <ul class="simple">
-<li>Performance improvements for RNNs</li>
-<li>Performance improvements for convolutions using 1x1 filters</li>
-<li>Performance improvement for Batch Normalization</li>
-<li>This release adds preliminary fp16 support for Inference using CNNs</li>
-<li>Bug fixes for various components of MIOpen</li>
+<li><p>Performance improvements for RNNs</p></li>
+<li><p>Performance improvements for convolutions using 1x1 filters</p></li>
+<li><p>Performance improvement for Batch Normalization</p></li>
+<li><p>This release adds preliminary fp16 support for Inference using CNNs</p></li>
+<li><p>Bug fixes for various components of MIOpen</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Added 2 new API for RNNs: miopenGetRNNLayerParamOffset and miopenGetRNNLayerBiasOffset</li>
-<li>Added support for uninitialized hidden states and nullptr outputs in RNNs</li>
-<li>Added support for Set and Scale operations for strided tensors with dimensions 1 to 5</li>
-<li>Added multi-thread and multi-process support for the performance database</li>
-<li>Improved performance for OpTensor</li>
-<li>Fixed bug in convolutions for backward bias</li>
-<li>Fixed logic issues in get and set layer functions and related w_supertensor test</li>
-<li>Fixed hang in batch norm with batch sizes greater than 256</li>
+<li><p>Added 2 new API for RNNs: miopenGetRNNLayerParamOffset and miopenGetRNNLayerBiasOffset</p></li>
+<li><p>Added support for uninitialized hidden states and nullptr outputs in RNNs</p></li>
+<li><p>Added support for Set and Scale operations for strided tensors with dimensions 1 to 5</p></li>
+<li><p>Added multi-thread and multi-process support for the performance database</p></li>
+<li><p>Improved performance for OpTensor</p></li>
+<li><p>Fixed bug in convolutions for backward bias</p></li>
+<li><p>Fixed logic issues in get and set layer functions and related w_supertensor test</p></li>
+<li><p>Fixed hang in batch norm with batch sizes greater than 256</p></li>
 </ul>
 <p>Known Issues:</p>
 <ul class="simple">
-<li>RNNs do not support fp16</li>
-<li>Training with CNNs does not support fp16</li>
+<li><p>RNNs do not support fp16</p></li>
+<li><p>Training with CNNs does not support fp16</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id25"></span><h2>03/08/2018 [ 1.2.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id27">
+<h2>03/08/2018 [ 1.2.1 ]<a class="headerlink" href="#id27" title="Permalink to this headline">¶</a></h2>
 <p>Notes:</p>
 <ul class="simple">
-<li>This release adds support for ROCm 1.7.1.</li>
+<li><p>This release adds support for ROCm 1.7.1.</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id26"></span><h2>12/15/2017 [ 1.2.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id28">
+<h2>12/15/2017 [ 1.2.0 ]<a class="headerlink" href="#id28" title="Permalink to this headline">¶</a></h2>
 <p>Notes:</p>
 <ul class="simple">
-<li>This release adds the support for recurrent neural networks (RNNs) for three flavors - Vanilla, LSTMs, and GRU</li>
-<li>Users can now themselves update the perf-db file, which hosts the tuning parameters for convolutions, by setting appropriate environment variables</li>
+<li><p>This release adds the support for recurrent neural networks (RNNs) for three flavors - Vanilla, LSTMs, and GRU</p></li>
+<li><p>Users can now themselves update the perf-db file, which hosts the tuning parameters for convolutions, by setting appropriate environment variables</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Over 50% improvement in ResNet performance since the last release</li>
-<li>Multiple padding modes like Same and Valid added</li>
-<li>Winograd convolution kernels added for strided bwd-data convolutions</li>
-<li>Tensor Ops allow for beta and alpha scaling values and support up to 5 dimensions with strides and offsets</li>
-<li>Tensor Copy supports up to 5 dimesnional copies with strides and offsets</li>
-<li>Unit-tests for LRN are added</li>
-<li>Several bug fixes for all the layers of the library</li>
+<li><p>Over 50% improvement in ResNet performance since the last release</p></li>
+<li><p>Multiple padding modes like Same and Valid added</p></li>
+<li><p>Winograd convolution kernels added for strided bwd-data convolutions</p></li>
+<li><p>Tensor Ops allow for beta and alpha scaling values and support up to 5 dimensions with strides and offsets</p></li>
+<li><p>Tensor Copy supports up to 5 dimesnional copies with strides and offsets</p></li>
+<li><p>Unit-tests for LRN are added</p></li>
+<li><p>Several bug fixes for all the layers of the library</p></li>
 </ul>
 <p>Known issues:</p>
 <ul class="simple">
-<li>RNNs may give incorrect result due to a known compiler bug; issue may particulary arise during some RNNs configs with GEMM of size power of 4</li>
-<li>Potential issue where OpenCL resources will be exhausted for large RNN</li>
+<li><p>RNNs may give incorrect result due to a known compiler bug; issue may particulary arise during some RNNs configs with GEMM of size power of 4</p></li>
+<li><p>Potential issue where OpenCL resources will be exhausted for large RNN</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id27"></span><h2>09/08/2017 [ 1.1.0 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id29">
+<h2>09/08/2017 [ 1.1.0 ]<a class="headerlink" href="#id29" title="Permalink to this headline">¶</a></h2>
 <p>Notes:</p>
 <ul class="simple">
-<li>The scaling parameter alpha and shift parameter beta for layers kernels are only supported for alpha = 1 and beta = 0.
-The exceptions to this are for miopenOptTensor, miopenConvolutionForwardBias, and miopenConvolutionBackwardBias.</li>
-<li>Currently, only 32-bit floats are supported in MIOpen.</li>
-<li>MIOpen only supports tensor layout NCHW.</li>
+<li><p>The scaling parameter alpha and shift parameter beta for layers kernels are only supported for alpha = 1 and beta = 0.
+The exceptions to this are for miopenOptTensor, miopenConvolutionForwardBias, and miopenConvolutionBackwardBias.</p></li>
+<li><p>Currently, only 32-bit floats are supported in MIOpen.</p></li>
+<li><p>MIOpen only supports tensor layout NCHW.</p></li>
 </ul>
 <p>Changes:</p>
 <ul class="simple">
-<li>Added persistent cache for compiled GPU kernels</li>
-<li>Performance improvements for batch normalization kernels</li>
-<li>Performance improvements for all types of convolutions for 1x1 filters</li>
-<li>Performance improvements for all types of convolutions with non-unit strides</li>
-<li>Performance improvements for backward-weights convolutions for 3x3 filters</li>
-<li>Performance improvements for the AddTensor operation</li>
-<li>Various bug fixes for Winograd convolutions</li>
+<li><p>Added persistent cache for compiled GPU kernels</p></li>
+<li><p>Performance improvements for batch normalization kernels</p></li>
+<li><p>Performance improvements for all types of convolutions for 1x1 filters</p></li>
+<li><p>Performance improvements for all types of convolutions with non-unit strides</p></li>
+<li><p>Performance improvements for backward-weights convolutions for 3x3 filters</p></li>
+<li><p>Performance improvements for the AddTensor operation</p></li>
+<li><p>Various bug fixes for Winograd convolutions</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id28"></span><h2>08/27/2017 [ 1.0.2 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id30">
+<h2>08/27/2017 [ 1.0.2 ]<a class="headerlink" href="#id30" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>Fixed 1x1 forward and backward convolutions for large input</li>
-<li>Fixed pooling MIOpendriver</li>
-<li>Disabled 1x1 Winograd convolution for HIP</li>
-<li>Disabled asm. backward-weights convolutions for input width == 175</li>
+<li><p>Fixed 1x1 forward and backward convolutions for large input</p></li>
+<li><p>Fixed pooling MIOpendriver</p></li>
+<li><p>Disabled 1x1 Winograd convolution for HIP</p></li>
+<li><p>Disabled asm. backward-weights convolutions for input width == 175</p></li>
 </ul>
 </div>
-<div class="section" id="">
-<span id="id29"></span><h2>07/26/2017 [ 1.0.1 ]<a class="headerlink" href="#" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id31">
+<h2>07/26/2017 [ 1.0.1 ]<a class="headerlink" href="#id31" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li>Added dilation support for convolutions</li>
-<li>Added unit-tests for Softmax</li>
-<li>Added miopengemm as a required dependency for MIOpen build</li>
-<li>Performance improvements for batch normalization via activation of data-parallel primitives (DPP) hardware instructions</li>
-<li>Fixed documentation to remove GEMM API interface</li>
-<li>Fixed Bwd-Weights Convolutions with 1x1 filters with stride=2</li>
-<li>Fixed Softmax grid-size selection</li>
-<li>Fixed debug prints of kernel launch parameters.</li>
-<li>Removed GEMM interface from the MIOpen API</li>
+<li><p>Added dilation support for convolutions</p></li>
+<li><p>Added unit-tests for Softmax</p></li>
+<li><p>Added miopengemm as a required dependency for MIOpen build</p></li>
+<li><p>Performance improvements for batch normalization via activation of data-parallel primitives (DPP) hardware instructions</p></li>
+<li><p>Fixed documentation to remove GEMM API interface</p></li>
+<li><p>Fixed Bwd-Weights Convolutions with 1x1 filters with stride=2</p></li>
+<li><p>Fixed Softmax grid-size selection</p></li>
+<li><p>Fixed debug prints of kernel launch parameters.</p></li>
+<li><p>Removed GEMM interface from the MIOpen API</p></li>
 </ul>
 </div>
 <div class="section" id="initial-release">
-<span id="initial-release"></span><h2>06/30/2017 [ 1.0.0 ] Initial release<a class="headerlink" href="#initial-release" title="Permalink to this headline">¶</a></h2>
+<h2>06/30/2017 [ 1.0.0 ] Initial release<a class="headerlink" href="#initial-release" title="Permalink to this headline">¶</a></h2>
 </div>
 </div>
 
@@ -1092,29 +1124,29 @@ The exceptions to this are for miopenOptTensor, miopenConvolutionForwardBias, an
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="citation.html" class="btn btn-neutral float-right" title="Citing MIOpen" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="index.html" class="btn btn-neutral" title="Welcome to MIOpen" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="citation.html" class="btn btn-neutral float-right" title="Citing MIOpen" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to MIOpen" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -1123,34 +1155,16 @@ The exceptions to this are for miopenOptTensor, miopenConvolutionForwardBias, an
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

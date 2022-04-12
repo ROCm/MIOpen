@@ -84,7 +84,7 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
              __global _FLOAT* __restrict top,
              _FLOAT padding_val
              //      int in_main_loop
-             )
+)
 {
     __local _FLOAT lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS];
     __local _FLOAT lcl_wei[MLO_LCL_WEI_SIZE];
@@ -106,13 +106,13 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
                                  -(int)lcl_id); // wk item id for the input to make a coalesed read
 #else
     uint lcl_in_proc_id = lcl_id & (MLO_N_PROCS0 * MLO_N_PROCS1 -
-                                    1);                                          // wk item id for the input to make a coalesed read
+                                    1); // wk item id for the input to make a coalesed read
 #endif
     uint lcl_proc_id1 = lcl_in_proc_id / MLO_N_PROCS0; //
 #if MLO_N_PROCS0 & (MLO_N_PROCS0 - 1)
     uint lcl_proc_id0 = -mad24((int)lcl_proc_id1, MLO_N_PROCS0, -(int)lcl_in_proc_id); //
 #else
-    uint lcl_proc_id0                     = lcl_in_proc_id & (MLO_N_PROCS0 - 1); //
+    uint lcl_proc_id0   = lcl_in_proc_id & (MLO_N_PROCS0 - 1); //
 #endif
     uint x_out_lcl = mul24(lcl_proc_id0, (uint)MLO_N_OUT_PIX_SZ0);
     uint y_out_lcl = mul24(lcl_proc_id1, (uint)MLO_N_OUT_PIX_SZ1);
@@ -127,7 +127,7 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
 #if MLO_N_STACKS & (MLO_N_STACKS - 1)
     uint b_id = -mad24((int)o_id, MLO_N_STACKS, -(int)ob); // block of batchs
 #else
-    uint b_id                             = ob & (MLO_N_STACKS - 1);             // block of batchs
+    uint b_id           = ob & (MLO_N_STACKS - 1);             // block of batchs
 #endif
     // my batch
     uint b = b_id * MLO_LCL_N_IN_CHNLS + lcl_proc;
@@ -161,8 +161,8 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
             uint lcl_o   = (uint)((float)i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1) + 0.00001f);
             uint lcl_o_i = i - lcl_o * (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
 #else
-            uint lcl_o                    = i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
-            uint lcl_o_i                  = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
+            uint lcl_o   = i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
+            uint lcl_o_i = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
 #endif
 
             lcl_wei[i] =
@@ -344,7 +344,7 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
               __global _FLOAT* __restrict top,
               _FLOAT padding_val
               //         int in_main_loop
-              )
+)
 {
     __local _FLOAT lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * MLO_IN_STACKS];
     __local _FLOAT lcl_wei[MLO_LCL_WEI_SIZE * MLO_OUT_STACKS];
@@ -404,8 +404,8 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
             uint lcl_o   = (uint)((float)i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1) + 0.00001f);
             uint lcl_o_i = i - lcl_o * (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
 #else
-            uint lcl_o                    = i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
-            uint lcl_o_i                  = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
+            uint lcl_o   = i / (MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
+            uint lcl_o_i = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
 #endif
 
             lcl_wei[i] =
@@ -605,13 +605,13 @@ aDNNConv_img2col(const __global _FLOAT* __restrict img,
 #else
     uint lcl_proc       = lcl_id / (MLO_N_PROCS0 * MLO_N_PROCS1); // input id from diff stack
     uint lcl_in_proc_id = lcl_id & (MLO_N_PROCS0 * MLO_N_PROCS1 -
-                                    1);                      // wk item id for the input to make a coalesed read
+                                    1); // wk item id for the input to make a coalesed read
 #endif
     uint lcl_proc_id1 = (uint)((float)lcl_in_proc_id / MLO_N_PROCS0); //
 #if MLO_N_PROCS0 & (MLO_N_PROCS0 - 1)
     uint lcl_proc_id0 = -mad24((int)lcl_proc_id1, MLO_N_PROCS0, -(int)lcl_in_proc_id); //
 #else
-    uint lcl_proc_id0 = lcl_in_proc_id & (MLO_N_PROCS0 - 1); //
+    uint lcl_proc_id0   = lcl_in_proc_id & (MLO_N_PROCS0 - 1); //
 #endif
     uint x_out_lcl = mul24(lcl_proc_id0, (uint)MLO_N_OUT_PIX_SZ0);
     uint y_out_lcl = mul24(lcl_proc_id1, (uint)MLO_N_OUT_PIX_SZ1);
@@ -621,8 +621,8 @@ aDNNConv_img2col(const __global _FLOAT* __restrict img,
     uint b_id = (uint)((float)cb / (float)MLO_N_IN_CHNLS);   // batch block
     uint c    = -mad24((int)b_id, MLO_N_IN_CHNLS, -(int)cb); // channel
 #else
-    uint b_id         = cb / MLO_N_IN_CHNLS;                 // batch block
-    uint c            = cb & (MLO_N_IN_CHNLS - 1);           // channel
+    uint b_id           = cb / MLO_N_IN_CHNLS;                 // batch block
+    uint c              = cb & (MLO_N_IN_CHNLS - 1);           // channel
 #endif
     // my batch
     uint b = b_id * MLO_LCL_N_IN_CHNLS + lcl_proc;
@@ -662,7 +662,7 @@ aDNNConv_img2col(const __global _FLOAT* __restrict img,
                  padding_val);
 
 #else
-    uint lcl_base     = MLO_LCL_IMG_WIDTH * MLO_FLTR_PAD_SZ1 + MLO_FLTR_PAD_SZ0;
+    uint lcl_base       = MLO_LCL_IMG_WIDTH * MLO_FLTR_PAD_SZ1 + MLO_FLTR_PAD_SZ0;
     readData(&lcl_img[lcl_proc * MLO_LCL_IMG_SIZE + lcl_base],
              img,
              lcl_in_proc_id,

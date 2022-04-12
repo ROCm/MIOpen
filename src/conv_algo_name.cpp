@@ -87,8 +87,7 @@ std::string ConvolutionAlgoToDirectionalString(const miopenConvAlgorithm_t algo,
 
     switch(dir)
     {
-    case conv::Direction::Forward:
-    {
+    case conv::Direction::Forward: {
         switch(algo)
         {
         case miopenConvolutionAlgoGEMM: return "miopenConvolutionFwdAlgoGEMM";
@@ -99,8 +98,7 @@ std::string ConvolutionAlgoToDirectionalString(const miopenConvAlgorithm_t algo,
         }
         break;
     }
-    case conv::Direction::BackwardData:
-    {
+    case conv::Direction::BackwardData: {
         switch(algo)
         {
         case miopenConvolutionAlgoGEMM: return "miopenConvolutionBwdDataAlgoGEMM";
@@ -111,8 +109,7 @@ std::string ConvolutionAlgoToDirectionalString(const miopenConvAlgorithm_t algo,
         }
         break;
     }
-    case conv::Direction::BackwardWeights:
-    {
+    case conv::Direction::BackwardWeights: {
         switch(algo)
         {
         case miopenConvolutionAlgoGEMM: return "miopenConvolutionBwdWeightsAlgoGEMM";

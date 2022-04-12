@@ -31,6 +31,7 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_extra.hpp>
+#include <miopen/tensor_layout.hpp>
 #include <numeric>
 #include <vector>
 
@@ -108,48 +109,6 @@ int SetTensorNd(miopenTensorDescriptor_t t,
     return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), nullptr);
 }
 
-void LayoutToStrides(const std::vector<int>& len,
-                     const std::string& len_layout,
-                     const std::string& layout,
-                     std::vector<int>& strides)
-{
-    // Bind the layout and the dimension lengths together into a map.
-    std::map<char, int> dim_to_len;
-    std::transform(len.begin(),
-                   len.end(),
-                   len_layout.begin(),
-                   std::inserter(dim_to_len, dim_to_len.end()),
-                   [](int l, char dim) { return std::make_pair(dim, l); });
-
-    // Now construct the strides according to layout by multiply the
-    // dimension lengths together.
-    std::transform(len_layout.begin(),
-                   len_layout.end(),
-                   std::back_inserter(strides),
-                   [&layout, &dim_to_len](char cur_layout_char) {
-                       auto pos = layout.find(cur_layout_char);
-                       if(pos == std::string::npos)
-                       {
-                           MIOPEN_THROW(std::string("mismatched layout string, unexpect char: ")
-                                            .append(1, cur_layout_char));
-                       }
-                       return std::accumulate(layout.begin() + pos + 1,
-                                              layout.end(),
-                                              1,
-                                              [&dim_to_len](int accumulator, char l) {
-                                                  return accumulator * dim_to_len[l];
-                                              });
-                   });
-}
-
-std::string GetDefaultTensorLayout(int size)
-{
-    if(size != 4)
-        return "";
-
-    return "NCHW";
-}
-
 int SetTensorNd(miopenTensorDescriptor_t t,
                 std::vector<int>& len,
                 const std::string& layout,
@@ -166,23 +125,37 @@ int SetTensorNd(miopenTensorDescriptor_t t,
     }
 
     // Dimension lengths vector 'len' comes with a default layout.
-    std::string len_layout = GetDefaultTensorLayout(layout.size());
+    std::string len_layout = miopen::tensor_layout_get_default(layout.size());
     if(len_layout.empty())
     {
         return SetTensorNd(t, len, data_type);
     }
 
     std::vector<int> strides;
-    LayoutToStrides(len, len_layout, layout, strides);
+    miopen::tensor_layout_to_strides(len, len_layout, layout, strides);
 
     return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), strides.data());
 }
 
+// This function ignores tensor strides completely and its result should not be interpreted as
+// memory required for an "unpacked" tensor. In such cases GetTensorSpace should be used instead.
+// For "packed" tensors result may be interpreted as an amount of memory required for the tensor.
+// The implementation is a copy-paste from miopen::TensorDescriptor.
 size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
 {
+    assert(miopen::deref(tensor).IsPacked() &&
+           "GetTensorSize should not be used on an unpacked tensor.");
     const auto len = GetTensorLengths(tensor);
     size_t sz      = std::accumulate(len.begin(), len.end(), size_t{1}, std::multiplies<size_t>());
 
     return sz;
+}
+
+// The result of this function may be interpreted as a correct amount of memory required for both
+// "packed" and "unpacked" tensors. In general it should be used for such purposes rather than
+// GetTensorSize. Unless, of course, there is absolutely zero chance to receive an unpacked tensor.
+size_t GetTensorSpace(miopenTensorDescriptor_t& tensor)
+{
+    return miopen::deref(tensor).GetElementSpace();
 }
 #endif // GUARD_MIOPEN_TENSOR_DRIVER_HPP

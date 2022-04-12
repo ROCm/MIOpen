@@ -249,16 +249,16 @@ int DropoutDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     reservespace_dev =
         std::unique_ptr<GPUMem>(new GPUMem(ctx, reserveSpaceSize, sizeof(unsigned char)));
 
-    in = tensor<Tgpu>(miopen::deref(inputTensor).GetLengths(),
+    in   = tensor<Tgpu>(miopen::deref(inputTensor).GetLengths(),
                       miopen::deref(inputTensor).GetStrides());
-    din = tensor<Tgpu>(miopen::deref(inputTensor).GetLengths(),
+    din  = tensor<Tgpu>(miopen::deref(inputTensor).GetLengths(),
                        miopen::deref(inputTensor).GetStrides());
-    out = tensor<Tgpu>(miopen::deref(outputTensor).GetLengths(),
+    out  = tensor<Tgpu>(miopen::deref(outputTensor).GetLengths(),
                        miopen::deref(outputTensor).GetStrides());
     dout = tensor<Tgpu>(miopen::deref(outputTensor).GetLengths(),
                         miopen::deref(outputTensor).GetStrides());
 
-    outhost = tensor<Tref>(miopen::deref(outputTensor).GetLengths(),
+    outhost  = tensor<Tref>(miopen::deref(outputTensor).GetLengths(),
                            miopen::deref(outputTensor).GetStrides());
     din_host = tensor<Tref>(miopen::deref(inputTensor).GetLengths(),
                             miopen::deref(inputTensor).GetStrides());

@@ -240,6 +240,10 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     if(!params.rmv.IsV2orV3())
         return false;
 
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+
     const auto name = params.GetStream().GetDeviceName();
     const bool fp16 = params.IsFp16();
     if(fp16)
@@ -457,22 +461,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& ctx) {
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                                    << " n_groups="
-                                    << n_groups_
-                                    << " flags="
-                                    << flags
-                                    << " R="
-                                    << R
-                                    << " S="
-                                    << S
-                                    << " pad_H="
-                                    << pad_H
-                                    << " pad_W="
-                                    << pad_W
-                                    << " out_H="
-                                    << out_H
-                                    << " out_W="
-                                    << out_W);
+                                    << " n_groups=" << n_groups_ << " flags=" << flags << " R=" << R
+                                    << " S=" << S << " pad_H=" << pad_H << " pad_W=" << pad_W
+                                    << " out_H=" << out_H << " out_W=" << out_W);
 
                 decltype(auto) k       = handle.Run(kernels[0]);
                 decltype(auto) fwd_ctx = ctx.CastTo<conv::DataInvokeParams>();

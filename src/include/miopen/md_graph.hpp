@@ -60,7 +60,7 @@ struct DefaultKernelArg
 
 struct MDGraph_vertex
 {
-    static int running_id;
+    static int running_id; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
     MDGraph_vertex(miopenFusionOp_t o,
                    std::string program_name = "",
                    std::string kernel_name  = "",

@@ -34,6 +34,7 @@ namespace miopen {
 template <class MIOpen_Private_TypeName_>
 const std::string& get_type_name()
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::string name;
 
     if(name.empty())

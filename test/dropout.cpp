@@ -30,9 +30,14 @@
 #include "tensor_holder.hpp"
 #include "test.hpp"
 #include "verify.hpp"
+#include "random.hpp"
 
 #define DROPOUT_DEBUG_CTEST 0
 #define DROPOUT_LARGE_CTEST 0
+
+// OpenCL error creating buffer: 0 Invalid Buffer Size
+#define WORKAROUND_MLOPEN_ISSUE_2335 \
+    ((HIP_PACKAGE_VERSION_FLAT < 3007000000ULL) && MIOPEN_BACKEND_OPENCL)
 
 template <class T>
 struct verify_forward_dropout
@@ -259,7 +264,7 @@ struct dropout_driver : test_driver
     {
 // Workaround for issue #2335.
 // OpenCL error creating buffer: 0 Invalid Buffer Size
-#if MIOPEN_BACKEND_OPENCL
+#if WORKAROUND_MLOPEN_ISSUE_2335
         std::cout << "Skip test for Issue #2335: " << std::endl;
         return;
 #endif
@@ -307,7 +312,7 @@ struct dropout_driver : test_driver
             srand(0);
             for(size_t i = 0; i < in.desc.GetElementSize(); i++)
                 reserveSpace[i] =
-                    static_cast<unsigned char>(float(rand()) / float(RAND_MAX) > dropout_rate);
+                    static_cast<unsigned char>(float(GET_RAND()) / float(RAND_MAX) > dropout_rate);
         }
 
         DropoutDesc.dropout          = dropout_rate;

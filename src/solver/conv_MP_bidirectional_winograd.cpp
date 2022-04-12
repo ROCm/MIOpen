@@ -42,6 +42,7 @@
 #if MIOPEN_BACKEND_HIP
 
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
+#define WORKAROUND_ISSUE_1146 1   // check asm solver applicability for gfx90a
 #endif
 
 #define WORKAROUND_SWDEV_257202 1 // For SSD convergence issue.
@@ -151,7 +152,7 @@ GetWinoBuffer(const ConvolutionContext& params,
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 inline bool IsApplicableGEMM(const ConvolutionContext& params)
 {
-#if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
+#if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
 
     const miopenDataType_t transform_data_type =
         miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
@@ -188,9 +189,17 @@ inline bool IsApplicableTransform(const ConvolutionContext& params)
     if(!(params.IsFp32() || params.IsFp16()))
         return false;
 
-    const std::string name = params.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx9")))
+    const auto target = params.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
         return false;
+
+    const std::string name = params.GetStream().GetDeviceName();
+    if(!StartsWith(name, "gfx9"))
+        return false;
+#if WORKAROUND_ISSUE_1146
+    if(name == "gfx90a")
+        return false;
+#endif
 
     {
         std::size_t limit = miopen::Value(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX{});
@@ -429,7 +438,7 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
     }
     else
     {
-#if MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE
         // GEMM
         gemm_conv_kernel_name = "WRW_WINO_GEMM: ";
 
@@ -451,9 +460,8 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
 #endif
 
         gemm_conv_factory = [=](const std::vector<Kernel>&) {
-
             return [=](const Handle& handle, const AnyInvokeParams& ctx) {
-#if MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE
                 const auto& data_ctx = ctx.CastTo<conv::DataInvokeParams>();
                 Data_t workSpace     = data_ctx.workSpace;
                 CallGemmStridedBatched(
@@ -473,12 +481,10 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
                 MIOPEN_THROW(miopenStatusBadParm, "ConvMPBidirectWinograd is not supported ");
 #endif
             };
-
         };
     }
 
     return [=](const std::vector<Kernel>& kernels) {
-
         const std::vector<Kernel> transform_kernels =
             std::vector<Kernel>{kernels[0], kernels[1], kernels[2]};
 

@@ -155,7 +155,7 @@ MIOpenBatchNormActivInferPerActEst(const _FLOAT alpha,
     _FLOAT data[MIOPEN_READ_UNIT];
     _FLOAT_PREC invVariance[MIOPEN_READ_UNIT];
 
-    for(int i          = 0; i < MIOPEN_READ_UNIT; i++)
+    for(int i = 0; i < MIOPEN_READ_UNIT; i++)
         invVariance[i] = rsqrt((_FLOAT_PREC)pvar[i] + epsilon);
 
     __attribute__((opencl_unroll_hint(2))) for(uint n_i = 0; n_i < MIO_BN_N; n_i++)

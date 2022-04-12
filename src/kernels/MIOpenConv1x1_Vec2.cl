@@ -134,7 +134,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
               __global _FLOAT* __restrict out_ptr,
               UNUSED _FLOAT dummy_val // nothing
-              )
+)
 {
     // KERNEL
     // private buffers
@@ -191,10 +191,9 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         bool IsLast = (wc + MLO_WEIGHTS_PER_LOOP >= MLO_IN_LOOP);
 #endif
         uint2 in_offv2 = (uint2)(in_off,
-                                 in_off +
-                                     MLO_WEIGHTS_PER_LOOP * MLO_IN_CHANNEL_STRIDE *
-                                         MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP);
-        uint2 wc_2 = (uint2)(wc, wc + MLO_WEIGHTS_PER_LOOP);
+                                 in_off + MLO_WEIGHTS_PER_LOOP * MLO_IN_CHANNEL_STRIDE *
+                                              MLO_N_LCL_IN_MAPS * MLO_N_MAPS_PERGROUP);
+        uint2 wc_2     = (uint2)(wc, wc + MLO_WEIGHTS_PER_LOOP);
 
         for(uint w = lcl_id0; w < MLO_WEIGHTS_LCL_SZ; w += MLO_GRP_SZ0)
         {
@@ -217,11 +216,12 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
 
             // out of range check
-            uint2 wei_off_r = (uint2)(wei_off) + wi + (uint2)(oi *
+            uint2 wei_off_r = (uint2)(wei_off) + wi +
+                              (uint2)(oi *
 #if MLO_DIR_FORWARD == 1
-                                                              MLO_WEI_BSTRIDE);
+                                      MLO_WEI_BSTRIDE);
 #else
-                                                              MLO_WEI_CHANNEL_STRIDE);
+                                      MLO_WEI_CHANNEL_STRIDE);
 #endif
 
             _FLOAT2 wei_val = (_FLOAT2)(
@@ -232,7 +232,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
     MLO_IN_LOOP % (2 * MLO_WEIGHTS_PER_LOOP) > 0
             lcl_wei_stage[w].y = (IsLast) ? (_FLOAT)0 : wei_val.y;
 #else
-            lcl_wei_stage[w].y                     = wei_val.y;
+            lcl_wei_stage[w].y = wei_val.y;
 #endif
         }
 
@@ -462,14 +462,12 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
                 if(true
 #if MLO_BATCH_ALIGNED == 0
-                   &&
-                   (batch_block * MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
+                   && (batch_block * MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
 #endif
 #if MLO_OUTPUTS_ALIGNED == 0
-                   &&
-                   out_block + olc < MLO_N_OUTPUTS
+                   && out_block + olc < MLO_N_OUTPUTS
 #endif
-                   )
+                )
                 {
 
                     uint out_off2 =
@@ -542,18 +540,16 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
             if(true
 #if MLO_BATCH_ALIGNED == 0
-               &&
-               (batch_block * MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
+               && (batch_block * MLO_N_LCL_BATCHS + ib < MLO_BATCH_SZ)
 #endif
 #if MLO_OUTPUTS_ALIGNED == 0
-               &&
-               (out_block + olc < MLO_N_OUTPUTS)
+               && (out_block + olc < MLO_N_OUTPUTS)
 #endif
-                   )
+            )
             {
 #if MLO_CONV_BIAS == 1
                 _FLOAT bias_val = (_FLOAT)0;
-                bias_val = bias[out_block * MLO_N_LCL_OUT_MAPS + olc];
+                bias_val        = bias[out_block * MLO_N_LCL_OUT_MAPS + olc];
 #endif
 #if MLO_C1x1_PIXLEFT > 0
 

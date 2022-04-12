@@ -130,8 +130,8 @@ void PadBufferSize(size_t& sz, int datatype_sz)
     printf(
         "Supported Base Arguments: conv[fp16|int8|bfp16], CBAInfer[fp16], pool[fp16], lrn[fp16], "
         "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm, ctc, dropout[fp16], "
-        "tensorop[fp16], reduce[fp16]\n");
-    exit(0);
+        "tensorop[fp16], reduce[fp16,fp64]\n");
+    exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
 std::string ParseBaseArg(int argc, char* argv[])
@@ -150,7 +150,7 @@ std::string ParseBaseArg(int argc, char* argv[])
        arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" &&
        arg != "rnn" && arg != "rnnfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" &&
        arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
-       arg != "reduce" && arg != "reducefp16" && arg != "--version")
+       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" && arg != "--version")
     {
         printf("Invalid Base Input Argument\n");
         Usage();
@@ -189,15 +189,15 @@ class Driver
     virtual ~Driver() { miopenDestroy(handle); }
 
     // TODO: add timing APIs
-    virtual int AddCmdLineArgs() = 0;
+    virtual int AddCmdLineArgs()                         = 0;
     virtual int ParseCmdLineArgs(int argc, char* argv[]) = 0;
-    virtual InputFlags& GetInputFlags()  = 0;
-    virtual int GetandSetData()          = 0;
-    virtual int AllocateBuffersAndCopy() = 0;
-    virtual int RunForwardGPU()          = 0;
-    virtual int VerifyForward()          = 0;
-    virtual int RunBackwardGPU()         = 0;
-    virtual int VerifyBackward()         = 0;
+    virtual InputFlags& GetInputFlags()                  = 0;
+    virtual int GetandSetData()                          = 0;
+    virtual int AllocateBuffersAndCopy()                 = 0;
+    virtual int RunForwardGPU()                          = 0;
+    virtual int VerifyForward()                          = 0;
+    virtual int RunBackwardGPU()                         = 0;
+    virtual int VerifyBackward()                         = 0;
 
     protected:
     template <typename Tgpu>

@@ -229,7 +229,6 @@ extern "C" miopenStatus_t miopenGetNdPoolingDescriptor(miopenPoolingDescriptor_t
                       miopen::deref(poolDesc).GetPads().begin() + nbDimsRequested,
                       padA);
         }
-
     });
 }
 

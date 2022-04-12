@@ -241,7 +241,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::SetPoolDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect Pooling Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     if((inflags.GetValueStr("pad_mode")) == "same")
@@ -259,7 +259,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::SetPoolDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect Padding Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     if((inflags.GetValueStr("index_type")) == "miopenIndexUint8")
@@ -281,7 +281,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::SetPoolDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect Index Data Type\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     std::initializer_list<int> lens    = {win_d, win_h, win_w};

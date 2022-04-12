@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+.macro _v_pk_fmac_f16_gfx10_quad_perm vdst:req, vsrc0:req, vsrc1:req, q0:req, q1:req, q2:req, q3:req
+    .long  0x780000FA + ((\vdst << 17) + (\vsrc1 << 9))
+    .long  0xFF000000 + (\vsrc0 + (\q0 << 8) + (\q1 << 10) + (\q2 << 12) + (\q3 << 14))
+.endm
+
 s_version 0x2004
 s_inst_prefetch 0x3
 v_mov_b32_e32 v1, v0
@@ -643,26 +649,22 @@ v_dot2_f32_f16 v42, v69, v90, v42
 v_dot2_f32_f16 v43, v70, v90, v43
 v_dot2_f32_f16 v44, v71, v90, v44
 v_dot2_f32_f16 v45, v72, v90, v45
-.long 0x78e3cefa
-.long 0xff005a71
+_v_pk_fmac_f16_gfx10_quad_perm 113, 113, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v46, v73, v90, v46
 v_dot2_f32_f16 v47, v74, v90, v47
 v_dot2_f32_f16 v48, v75, v90, v48
 v_dot2_f32_f16 v49, v76, v90, v49
-.long 0x78e5cefa
-.long 0xff005a72
+_v_pk_fmac_f16_gfx10_quad_perm 114, 114, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v50, v69, v91, v50
 v_dot2_f32_f16 v51, v70, v91, v51
 v_dot2_f32_f16 v52, v71, v91, v52
 v_dot2_f32_f16 v53, v72, v91, v53
-.long 0x78e7cefa
-.long 0xff005a73
+_v_pk_fmac_f16_gfx10_quad_perm 115, 115, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v54, v73, v91, v54
 v_dot2_f32_f16 v55, v74, v91, v55
 v_dot2_f32_f16 v56, v75, v91, v56
 v_dot2_f32_f16 v57, v76, v91, v57
-.long 0x78e9cefa
-.long 0xff005a74
+_v_pk_fmac_f16_gfx10_quad_perm 116, 116, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v58, v69, v92, v58
 v_dot2_f32_f16 v59, v70, v92, v59
 v_dot2_f32_f16 v60, v71, v92, v60
@@ -758,26 +760,22 @@ v_dot2_f32_f16 v42, v77, v98, v42
 v_dot2_f32_f16 v43, v78, v98, v43
 v_dot2_f32_f16 v44, v79, v98, v44
 v_dot2_f32_f16 v45, v80, v98, v45
-.long 0x78ebcefa
-.long 0xff005a75
+_v_pk_fmac_f16_gfx10_quad_perm 117, 117, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v46, v81, v98, v46
 v_dot2_f32_f16 v47, v82, v98, v47
 v_dot2_f32_f16 v48, v83, v98, v48
 v_dot2_f32_f16 v49, v84, v98, v49
-.long 0x78edcefa
-.long 0xff005a76
+_v_pk_fmac_f16_gfx10_quad_perm 118, 118, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v50, v77, v99, v50
 v_dot2_f32_f16 v51, v78, v99, v51
 v_dot2_f32_f16 v52, v79, v99, v52
 v_dot2_f32_f16 v53, v80, v99, v53
-.long 0x78efcefa
-.long 0xff005a77
+_v_pk_fmac_f16_gfx10_quad_perm 119, 119, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v54, v81, v99, v54
 v_dot2_f32_f16 v55, v82, v99, v55
 v_dot2_f32_f16 v56, v83, v99, v56
 v_dot2_f32_f16 v57, v84, v99, v57
-.long 0x78f1cefa
-.long 0xff005a78
+_v_pk_fmac_f16_gfx10_quad_perm 120, 120, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v58, v77, v100, v58
 v_dot2_f32_f16 v59, v78, v100, v59
 v_dot2_f32_f16 v60, v79, v100, v60
@@ -873,26 +871,22 @@ v_dot2_f32_f16 v42, v69, v90, v42
 v_dot2_f32_f16 v43, v70, v90, v43
 v_dot2_f32_f16 v44, v71, v90, v44
 v_dot2_f32_f16 v45, v72, v90, v45
-.long 0x78f3cefa
-.long 0xff005a79
+_v_pk_fmac_f16_gfx10_quad_perm 121, 121, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v46, v73, v90, v46
 v_dot2_f32_f16 v47, v74, v90, v47
 v_dot2_f32_f16 v48, v75, v90, v48
 v_dot2_f32_f16 v49, v76, v90, v49
-.long 0x78f5cefa
-.long 0xff005a7a
+_v_pk_fmac_f16_gfx10_quad_perm 122, 122, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v50, v69, v91, v50
 v_dot2_f32_f16 v51, v70, v91, v51
 v_dot2_f32_f16 v52, v71, v91, v52
 v_dot2_f32_f16 v53, v72, v91, v53
-.long 0x78f7cefa
-.long 0xff005a7b
+_v_pk_fmac_f16_gfx10_quad_perm 123, 123, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v54, v73, v91, v54
 v_dot2_f32_f16 v55, v74, v91, v55
 v_dot2_f32_f16 v56, v75, v91, v56
 v_dot2_f32_f16 v57, v76, v91, v57
-.long 0x78f9cefa
-.long 0xff005a7c
+_v_pk_fmac_f16_gfx10_quad_perm 124, 124, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v58, v69, v92, v58
 v_dot2_f32_f16 v59, v70, v92, v59
 v_dot2_f32_f16 v60, v71, v92, v60
@@ -988,26 +982,22 @@ v_dot2_f32_f16 v42, v77, v98, v42
 v_dot2_f32_f16 v43, v78, v98, v43
 v_dot2_f32_f16 v44, v79, v98, v44
 v_dot2_f32_f16 v45, v80, v98, v45
-.long 0x78fbcefa
-.long 0xff005a7d
+_v_pk_fmac_f16_gfx10_quad_perm 125, 125, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v46, v81, v98, v46
 v_dot2_f32_f16 v47, v82, v98, v47
 v_dot2_f32_f16 v48, v83, v98, v48
 v_dot2_f32_f16 v49, v84, v98, v49
-.long 0x78fdcefa
-.long 0xff005a7e
+_v_pk_fmac_f16_gfx10_quad_perm 126, 126, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v50, v77, v99, v50
 v_dot2_f32_f16 v51, v78, v99, v51
 v_dot2_f32_f16 v52, v79, v99, v52
 v_dot2_f32_f16 v53, v80, v99, v53
-.long 0x78ffcefa
-.long 0xff005a7f
+_v_pk_fmac_f16_gfx10_quad_perm 127, 127, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v54, v81, v99, v54
 v_dot2_f32_f16 v55, v82, v99, v55
 v_dot2_f32_f16 v56, v83, v99, v56
 v_dot2_f32_f16 v57, v84, v99, v57
-.long 0x7901cefa
-.long 0xff005a80
+_v_pk_fmac_f16_gfx10_quad_perm 128, 128, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v58, v77, v100, v58
 v_dot2_f32_f16 v59, v78, v100, v59
 v_dot2_f32_f16 v60, v79, v100, v60
@@ -1103,26 +1093,22 @@ v_dot2_f32_f16 v42, v69, v90, v42
 v_dot2_f32_f16 v43, v70, v90, v43
 v_dot2_f32_f16 v44, v71, v90, v44
 v_dot2_f32_f16 v45, v72, v90, v45
-.long 0x7903cefa
-.long 0xff005a81
+_v_pk_fmac_f16_gfx10_quad_perm 129, 129, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v46, v73, v90, v46
 v_dot2_f32_f16 v47, v74, v90, v47
 v_dot2_f32_f16 v48, v75, v90, v48
 v_dot2_f32_f16 v49, v76, v90, v49
-.long 0x7905cefa
-.long 0xff005a82
+_v_pk_fmac_f16_gfx10_quad_perm 130, 130, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v50, v69, v91, v50
 v_dot2_f32_f16 v51, v70, v91, v51
 v_dot2_f32_f16 v52, v71, v91, v52
 v_dot2_f32_f16 v53, v72, v91, v53
-.long 0x7907cefa
-.long 0xff005a83
+_v_pk_fmac_f16_gfx10_quad_perm 131, 131, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v54, v73, v91, v54
 v_dot2_f32_f16 v55, v74, v91, v55
 v_dot2_f32_f16 v56, v75, v91, v56
 v_dot2_f32_f16 v57, v76, v91, v57
-.long 0x7909cefa
-.long 0xff005a84
+_v_pk_fmac_f16_gfx10_quad_perm 132, 132, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v58, v69, v92, v58
 v_dot2_f32_f16 v59, v70, v92, v59
 v_dot2_f32_f16 v60, v71, v92, v60
@@ -1219,26 +1205,22 @@ v_dot2_f32_f16 v42, v77, v98, v42
 v_dot2_f32_f16 v43, v78, v98, v43
 v_dot2_f32_f16 v44, v79, v98, v44
 v_dot2_f32_f16 v45, v80, v98, v45
-.long 0x790bcefa
-.long 0xff005a85
+_v_pk_fmac_f16_gfx10_quad_perm 133, 133, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v46, v81, v98, v46
 v_dot2_f32_f16 v47, v82, v98, v47
 v_dot2_f32_f16 v48, v83, v98, v48
 v_dot2_f32_f16 v49, v84, v98, v49
-.long 0x790dcefa
-.long 0xff005a86
+_v_pk_fmac_f16_gfx10_quad_perm 134, 134, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v50, v77, v99, v50
 v_dot2_f32_f16 v51, v78, v99, v51
 v_dot2_f32_f16 v52, v79, v99, v52
 v_dot2_f32_f16 v53, v80, v99, v53
-.long 0x790fcefa
-.long 0xff005a87
+_v_pk_fmac_f16_gfx10_quad_perm 135, 135, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v54, v81, v99, v54
 v_dot2_f32_f16 v55, v82, v99, v55
 v_dot2_f32_f16 v56, v83, v99, v56
 v_dot2_f32_f16 v57, v84, v99, v57
-.long 0x7911cefa
-.long 0xff005a88
+_v_pk_fmac_f16_gfx10_quad_perm 136, 136, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v58, v77, v100, v58
 v_dot2_f32_f16 v59, v78, v100, v59
 v_dot2_f32_f16 v60, v79, v100, v60
@@ -1334,26 +1316,22 @@ v_dot2_f32_f16 v42, v69, v90, v42
 v_dot2_f32_f16 v43, v70, v90, v43
 v_dot2_f32_f16 v44, v71, v90, v44
 v_dot2_f32_f16 v45, v72, v90, v45
-.long 0x7913cefa
-.long 0xff005a89
+_v_pk_fmac_f16_gfx10_quad_perm 137, 137, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v46, v73, v90, v46
 v_dot2_f32_f16 v47, v74, v90, v47
 v_dot2_f32_f16 v48, v75, v90, v48
 v_dot2_f32_f16 v49, v76, v90, v49
-.long 0x7915cefa
-.long 0xff005a8a
+_v_pk_fmac_f16_gfx10_quad_perm 138, 138, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v50, v69, v91, v50
 v_dot2_f32_f16 v51, v70, v91, v51
 v_dot2_f32_f16 v52, v71, v91, v52
 v_dot2_f32_f16 v53, v72, v91, v53
-.long 0x7917cefa
-.long 0xff005a8b
+_v_pk_fmac_f16_gfx10_quad_perm 139, 139, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v54, v73, v91, v54
 v_dot2_f32_f16 v55, v74, v91, v55
 v_dot2_f32_f16 v56, v75, v91, v56
 v_dot2_f32_f16 v57, v76, v91, v57
-.long 0x7919cefa
-.long 0xff005a8c
+_v_pk_fmac_f16_gfx10_quad_perm 140, 140, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v58, v69, v92, v58
 v_dot2_f32_f16 v59, v70, v92, v59
 v_dot2_f32_f16 v60, v71, v92, v60
@@ -1449,26 +1427,22 @@ v_dot2_f32_f16 v42, v77, v98, v42
 v_dot2_f32_f16 v43, v78, v98, v43
 v_dot2_f32_f16 v44, v79, v98, v44
 v_dot2_f32_f16 v45, v80, v98, v45
-.long 0x791bcefa
-.long 0xff005a8d
+_v_pk_fmac_f16_gfx10_quad_perm 141, 141, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v46, v81, v98, v46
 v_dot2_f32_f16 v47, v82, v98, v47
 v_dot2_f32_f16 v48, v83, v98, v48
 v_dot2_f32_f16 v49, v84, v98, v49
-.long 0x791dcefa
-.long 0xff005a8e
+_v_pk_fmac_f16_gfx10_quad_perm 142, 142, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v50, v77, v99, v50
 v_dot2_f32_f16 v51, v78, v99, v51
 v_dot2_f32_f16 v52, v79, v99, v52
 v_dot2_f32_f16 v53, v80, v99, v53
-.long 0x791fcefa
-.long 0xff005a8f
+_v_pk_fmac_f16_gfx10_quad_perm 143, 143, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v54, v81, v99, v54
 v_dot2_f32_f16 v55, v82, v99, v55
 v_dot2_f32_f16 v56, v83, v99, v56
 v_dot2_f32_f16 v57, v84, v99, v57
-.long 0x7921cefa
-.long 0xff005a90
+_v_pk_fmac_f16_gfx10_quad_perm 144, 144, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v58, v77, v100, v58
 v_dot2_f32_f16 v59, v78, v100, v59
 v_dot2_f32_f16 v60, v79, v100, v60
@@ -1564,26 +1538,22 @@ v_dot2_f32_f16 v42, v69, v90, v42
 v_dot2_f32_f16 v43, v70, v90, v43
 v_dot2_f32_f16 v44, v71, v90, v44
 v_dot2_f32_f16 v45, v72, v90, v45
-.long 0x7923cefa
-.long 0xff005a91
+_v_pk_fmac_f16_gfx10_quad_perm 145, 145, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v46, v73, v90, v46
 v_dot2_f32_f16 v47, v74, v90, v47
 v_dot2_f32_f16 v48, v75, v90, v48
 v_dot2_f32_f16 v49, v76, v90, v49
-.long 0x7925cefa
-.long 0xff005a92
+_v_pk_fmac_f16_gfx10_quad_perm 146, 146, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v50, v69, v91, v50
 v_dot2_f32_f16 v51, v70, v91, v51
 v_dot2_f32_f16 v52, v71, v91, v52
 v_dot2_f32_f16 v53, v72, v91, v53
-.long 0x7927cefa
-.long 0xff005a93
+_v_pk_fmac_f16_gfx10_quad_perm 147, 147, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v54, v73, v91, v54
 v_dot2_f32_f16 v55, v74, v91, v55
 v_dot2_f32_f16 v56, v75, v91, v56
 v_dot2_f32_f16 v57, v76, v91, v57
-.long 0x7929cefa
-.long 0xff005a94
+_v_pk_fmac_f16_gfx10_quad_perm 148, 148, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v58, v69, v92, v58
 v_dot2_f32_f16 v59, v70, v92, v59
 v_dot2_f32_f16 v60, v71, v92, v60
@@ -1680,26 +1650,22 @@ v_dot2_f32_f16 v42, v77, v98, v42
 v_dot2_f32_f16 v43, v78, v98, v43
 v_dot2_f32_f16 v44, v79, v98, v44
 v_dot2_f32_f16 v45, v80, v98, v45
-.long 0x78cbcefa
-.long 0xff005a65
+_v_pk_fmac_f16_gfx10_quad_perm 101, 101, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v46, v81, v98, v46
 v_dot2_f32_f16 v47, v82, v98, v47
 v_dot2_f32_f16 v48, v83, v98, v48
 v_dot2_f32_f16 v49, v84, v98, v49
-.long 0x78cdcefa
-.long 0xff005a66
+_v_pk_fmac_f16_gfx10_quad_perm 102, 102, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v50, v77, v99, v50
 v_dot2_f32_f16 v51, v78, v99, v51
 v_dot2_f32_f16 v52, v79, v99, v52
 v_dot2_f32_f16 v53, v80, v99, v53
-.long 0x78cfcefa
-.long 0xff005a67
+_v_pk_fmac_f16_gfx10_quad_perm 103, 103, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v54, v81, v99, v54
 v_dot2_f32_f16 v55, v82, v99, v55
 v_dot2_f32_f16 v56, v83, v99, v56
 v_dot2_f32_f16 v57, v84, v99, v57
-.long 0x78d1cefa
-.long 0xff005a68
+_v_pk_fmac_f16_gfx10_quad_perm 104, 104, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v58, v77, v100, v58
 v_dot2_f32_f16 v59, v78, v100, v59
 v_dot2_f32_f16 v60, v79, v100, v60
@@ -1795,26 +1761,22 @@ v_dot2_f32_f16 v42, v69, v90, v42
 v_dot2_f32_f16 v43, v70, v90, v43
 v_dot2_f32_f16 v44, v71, v90, v44
 v_dot2_f32_f16 v45, v72, v90, v45
-.long 0x78d3cefa
-.long 0xff005a69
+_v_pk_fmac_f16_gfx10_quad_perm 105, 105, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v46, v73, v90, v46
 v_dot2_f32_f16 v47, v74, v90, v47
 v_dot2_f32_f16 v48, v75, v90, v48
 v_dot2_f32_f16 v49, v76, v90, v49
-.long 0x78d5cefa
-.long 0xff005a6a
+_v_pk_fmac_f16_gfx10_quad_perm 106, 106, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v50, v69, v91, v50
 v_dot2_f32_f16 v51, v70, v91, v51
 v_dot2_f32_f16 v52, v71, v91, v52
 v_dot2_f32_f16 v53, v72, v91, v53
-.long 0x78d7cefa
-.long 0xff005a6b
+_v_pk_fmac_f16_gfx10_quad_perm 107, 107, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v54, v73, v91, v54
 v_dot2_f32_f16 v55, v74, v91, v55
 v_dot2_f32_f16 v56, v75, v91, v56
 v_dot2_f32_f16 v57, v76, v91, v57
-.long 0x78d9cefa
-.long 0xff005a6c
+_v_pk_fmac_f16_gfx10_quad_perm 108, 108, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v58, v69, v92, v58
 v_dot2_f32_f16 v59, v70, v92, v59
 v_dot2_f32_f16 v60, v71, v92, v60
@@ -1910,26 +1872,22 @@ v_dot2_f32_f16 v42, v77, v98, v42
 v_dot2_f32_f16 v43, v78, v98, v43
 v_dot2_f32_f16 v44, v79, v98, v44
 v_dot2_f32_f16 v45, v80, v98, v45
-.long 0x78dbcefa
-.long 0xff005a6d
+_v_pk_fmac_f16_gfx10_quad_perm 109, 109, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v46, v81, v98, v46
 v_dot2_f32_f16 v47, v82, v98, v47
 v_dot2_f32_f16 v48, v83, v98, v48
 v_dot2_f32_f16 v49, v84, v98, v49
-.long 0x78ddcefa
-.long 0xff005a6e
+_v_pk_fmac_f16_gfx10_quad_perm 110, 110, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v50, v77, v99, v50
 v_dot2_f32_f16 v51, v78, v99, v51
 v_dot2_f32_f16 v52, v79, v99, v52
 v_dot2_f32_f16 v53, v80, v99, v53
-.long 0x78dfcefa
-.long 0xff005a6f
+_v_pk_fmac_f16_gfx10_quad_perm 111, 111, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v54, v81, v99, v54
 v_dot2_f32_f16 v55, v82, v99, v55
 v_dot2_f32_f16 v56, v83, v99, v56
 v_dot2_f32_f16 v57, v84, v99, v57
-.long 0x78e1cefa
-.long 0xff005a70
+_v_pk_fmac_f16_gfx10_quad_perm 112, 112, 231, 2, 2, 1, 1
 v_dot2_f32_f16 v58, v77, v100, v58
 v_dot2_f32_f16 v59, v78, v100, v59
 v_dot2_f32_f16 v60, v79, v100, v60
@@ -2021,8 +1979,7 @@ v_dot2_f32_f16 v38, v73, v89, v38
 v_dot2_f32_f16 v39, v74, v89, v39
 v_dot2_f32_f16 v40, v75, v89, v40
 v_dot2_f32_f16 v41, v76, v89, v41
-.long 0x78e3cefa
-.long 0xff00d872
+_v_pk_fmac_f16_gfx10_quad_perm 113, 114, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v42, v69, v90, v42
 v_dot2_f32_f16 v43, v70, v90, v43
 v_dot2_f32_f16 v44, v71, v90, v44
@@ -2037,8 +1994,7 @@ v_dot2_f32_f16 v50, v69, v91, v50
 v_dot2_f32_f16 v51, v70, v91, v51
 v_dot2_f32_f16 v52, v71, v91, v52
 v_dot2_f32_f16 v53, v72, v91, v53
-.long 0x78e5cefa
-.long 0xff00d874
+_v_pk_fmac_f16_gfx10_quad_perm 114, 116, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v54, v73, v91, v54
 v_dot2_f32_f16 v55, v74, v91, v55
 v_dot2_f32_f16 v56, v75, v91, v56
@@ -2053,8 +2009,7 @@ v_dot2_f32_f16 v62, v73, v92, v62
 v_dot2_f32_f16 v63, v74, v92, v63
 v_dot2_f32_f16 v64, v75, v92, v64
 v_dot2_f32_f16 v65, v76, v92, v65
-.long 0x78e9cefa
-.long 0xff00d873
+_v_pk_fmac_f16_gfx10_quad_perm 116, 115, 231, 0, 2, 1, 3
 v_pk_add_f16 v115, v113, v116
 v_pk_add_f16 v114, v114, v115
 v_pk_mul_f16 v114, v114, 0.5 op_sel_hi:[1,0]
@@ -2139,8 +2094,7 @@ v_dot2_f32_f16 v38, v81, v97, v38
 v_dot2_f32_f16 v39, v82, v97, v39
 v_dot2_f32_f16 v40, v83, v97, v40
 v_dot2_f32_f16 v41, v84, v97, v41
-.long 0x78ebcefa
-.long 0xff00d876
+_v_pk_fmac_f16_gfx10_quad_perm 117, 118, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v42, v77, v98, v42
 v_dot2_f32_f16 v43, v78, v98, v43
 v_dot2_f32_f16 v44, v79, v98, v44
@@ -2155,8 +2109,7 @@ v_dot2_f32_f16 v50, v77, v99, v50
 v_dot2_f32_f16 v51, v78, v99, v51
 v_dot2_f32_f16 v52, v79, v99, v52
 v_dot2_f32_f16 v53, v80, v99, v53
-.long 0x78edcefa
-.long 0xff00d878
+_v_pk_fmac_f16_gfx10_quad_perm 118, 120, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v54, v81, v99, v54
 v_dot2_f32_f16 v55, v82, v99, v55
 v_dot2_f32_f16 v56, v83, v99, v56
@@ -2171,8 +2124,7 @@ v_dot2_f32_f16 v62, v81, v100, v62
 v_dot2_f32_f16 v63, v82, v100, v63
 v_dot2_f32_f16 v64, v83, v100, v64
 v_dot2_f32_f16 v65, v84, v100, v65
-.long 0x78f1cefa
-.long 0xff00d877
+_v_pk_fmac_f16_gfx10_quad_perm 120, 119, 231, 0, 2, 1, 3
 v_pk_add_f16 v119, v117, v120
 v_pk_add_f16 v118, v118, v119
 v_pk_mul_f16 v118, v118, 0.5 op_sel_hi:[1,0]
@@ -2257,8 +2209,7 @@ v_dot2_f32_f16 v38, v73, v89, v38
 v_dot2_f32_f16 v39, v74, v89, v39
 v_dot2_f32_f16 v40, v75, v89, v40
 v_dot2_f32_f16 v41, v76, v89, v41
-.long 0x78f3cefa
-.long 0xff00d87a
+_v_pk_fmac_f16_gfx10_quad_perm 121, 122, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v42, v69, v90, v42
 v_dot2_f32_f16 v43, v70, v90, v43
 v_dot2_f32_f16 v44, v71, v90, v44
@@ -2273,8 +2224,7 @@ v_dot2_f32_f16 v50, v69, v91, v50
 v_dot2_f32_f16 v51, v70, v91, v51
 v_dot2_f32_f16 v52, v71, v91, v52
 v_dot2_f32_f16 v53, v72, v91, v53
-.long 0x78f5cefa
-.long 0xff00d87c
+_v_pk_fmac_f16_gfx10_quad_perm 122, 124, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v54, v73, v91, v54
 v_dot2_f32_f16 v55, v74, v91, v55
 v_dot2_f32_f16 v56, v75, v91, v56
@@ -2289,8 +2239,7 @@ v_dot2_f32_f16 v62, v73, v92, v62
 v_dot2_f32_f16 v63, v74, v92, v63
 v_dot2_f32_f16 v64, v75, v92, v64
 v_dot2_f32_f16 v65, v76, v92, v65
-.long 0x78f9cefa
-.long 0xff00d87b
+_v_pk_fmac_f16_gfx10_quad_perm 124, 123, 231, 0, 2, 1, 3
 v_pk_add_f16 v123, v121, v124
 v_pk_add_f16 v122, v122, v123
 v_pk_mul_f16 v122, v122, 0.5 op_sel_hi:[1,0]
@@ -2375,8 +2324,7 @@ v_dot2_f32_f16 v38, v81, v97, v38
 v_dot2_f32_f16 v39, v82, v97, v39
 v_dot2_f32_f16 v40, v83, v97, v40
 v_dot2_f32_f16 v41, v84, v97, v41
-.long 0x78fbcefa
-.long 0xff00d87e
+_v_pk_fmac_f16_gfx10_quad_perm 125, 126, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v42, v77, v98, v42
 v_dot2_f32_f16 v43, v78, v98, v43
 v_dot2_f32_f16 v44, v79, v98, v44
@@ -2391,8 +2339,7 @@ v_dot2_f32_f16 v50, v77, v99, v50
 v_dot2_f32_f16 v51, v78, v99, v51
 v_dot2_f32_f16 v52, v79, v99, v52
 v_dot2_f32_f16 v53, v80, v99, v53
-.long 0x78fdcefa
-.long 0xff00d880
+_v_pk_fmac_f16_gfx10_quad_perm 126, 128, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v54, v81, v99, v54
 v_dot2_f32_f16 v55, v82, v99, v55
 v_dot2_f32_f16 v56, v83, v99, v56
@@ -2407,8 +2354,7 @@ v_dot2_f32_f16 v62, v81, v100, v62
 v_dot2_f32_f16 v63, v82, v100, v63
 v_dot2_f32_f16 v64, v83, v100, v64
 v_dot2_f32_f16 v65, v84, v100, v65
-.long 0x7901cefa
-.long 0xff00d87f
+_v_pk_fmac_f16_gfx10_quad_perm 128, 127, 231, 0, 2, 1, 3
 v_pk_add_f16 v127, v125, v128
 v_pk_add_f16 v126, v126, v127
 v_pk_mul_f16 v126, v126, 0.5 op_sel_hi:[1,0]
@@ -2493,8 +2439,7 @@ v_dot2_f32_f16 v38, v73, v89, v38
 v_dot2_f32_f16 v39, v74, v89, v39
 v_dot2_f32_f16 v40, v75, v89, v40
 v_dot2_f32_f16 v41, v76, v89, v41
-.long 0x7903cefa
-.long 0xff00d882
+_v_pk_fmac_f16_gfx10_quad_perm 129, 130, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v42, v69, v90, v42
 v_dot2_f32_f16 v43, v70, v90, v43
 v_dot2_f32_f16 v44, v71, v90, v44
@@ -2509,8 +2454,7 @@ v_dot2_f32_f16 v50, v69, v91, v50
 v_dot2_f32_f16 v51, v70, v91, v51
 v_dot2_f32_f16 v52, v71, v91, v52
 v_dot2_f32_f16 v53, v72, v91, v53
-.long 0x7905cefa
-.long 0xff00d884
+_v_pk_fmac_f16_gfx10_quad_perm 130, 132, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v54, v73, v91, v54
 v_dot2_f32_f16 v55, v74, v91, v55
 v_dot2_f32_f16 v56, v75, v91, v56
@@ -2525,8 +2469,7 @@ v_dot2_f32_f16 v62, v73, v92, v62
 v_dot2_f32_f16 v63, v74, v92, v63
 v_dot2_f32_f16 v64, v75, v92, v64
 v_dot2_f32_f16 v65, v76, v92, v65
-.long 0x7909cefa
-.long 0xff00d883
+_v_pk_fmac_f16_gfx10_quad_perm 132, 131, 231, 0, 2, 1, 3
 v_pk_add_f16 v131, v129, v132
 v_pk_add_f16 v130, v130, v131
 v_pk_mul_f16 v130, v130, 0.5 op_sel_hi:[1,0]
@@ -2612,8 +2555,7 @@ v_dot2_f32_f16 v38, v81, v97, v38
 v_dot2_f32_f16 v39, v82, v97, v39
 v_dot2_f32_f16 v40, v83, v97, v40
 v_dot2_f32_f16 v41, v84, v97, v41
-.long 0x790bcefa
-.long 0xff00d886
+_v_pk_fmac_f16_gfx10_quad_perm 133, 134, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v42, v77, v98, v42
 v_dot2_f32_f16 v43, v78, v98, v43
 v_dot2_f32_f16 v44, v79, v98, v44
@@ -2628,8 +2570,7 @@ v_dot2_f32_f16 v50, v77, v99, v50
 v_dot2_f32_f16 v51, v78, v99, v51
 v_dot2_f32_f16 v52, v79, v99, v52
 v_dot2_f32_f16 v53, v80, v99, v53
-.long 0x790dcefa
-.long 0xff00d888
+_v_pk_fmac_f16_gfx10_quad_perm 134, 136, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v54, v81, v99, v54
 v_dot2_f32_f16 v55, v82, v99, v55
 v_dot2_f32_f16 v56, v83, v99, v56
@@ -2644,8 +2585,7 @@ v_dot2_f32_f16 v62, v81, v100, v62
 v_dot2_f32_f16 v63, v82, v100, v63
 v_dot2_f32_f16 v64, v83, v100, v64
 v_dot2_f32_f16 v65, v84, v100, v65
-.long 0x7911cefa
-.long 0xff00d887
+_v_pk_fmac_f16_gfx10_quad_perm 136, 135, 231, 0, 2, 1, 3
 v_pk_add_f16 v135, v133, v136
 v_pk_add_f16 v134, v134, v135
 v_pk_mul_f16 v134, v134, 0.5 op_sel_hi:[1,0]
@@ -2730,8 +2670,7 @@ v_dot2_f32_f16 v38, v73, v89, v38
 v_dot2_f32_f16 v39, v74, v89, v39
 v_dot2_f32_f16 v40, v75, v89, v40
 v_dot2_f32_f16 v41, v76, v89, v41
-.long 0x7913cefa
-.long 0xff00d88a
+_v_pk_fmac_f16_gfx10_quad_perm 137, 138, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v42, v69, v90, v42
 v_dot2_f32_f16 v43, v70, v90, v43
 v_dot2_f32_f16 v44, v71, v90, v44
@@ -2746,8 +2685,7 @@ v_dot2_f32_f16 v50, v69, v91, v50
 v_dot2_f32_f16 v51, v70, v91, v51
 v_dot2_f32_f16 v52, v71, v91, v52
 v_dot2_f32_f16 v53, v72, v91, v53
-.long 0x7915cefa
-.long 0xff00d88c
+_v_pk_fmac_f16_gfx10_quad_perm 138, 140, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v54, v73, v91, v54
 v_dot2_f32_f16 v55, v74, v91, v55
 v_dot2_f32_f16 v56, v75, v91, v56
@@ -2762,8 +2700,7 @@ v_dot2_f32_f16 v62, v73, v92, v62
 v_dot2_f32_f16 v63, v74, v92, v63
 v_dot2_f32_f16 v64, v75, v92, v64
 v_dot2_f32_f16 v65, v76, v92, v65
-.long 0x7919cefa
-.long 0xff00d88b
+_v_pk_fmac_f16_gfx10_quad_perm 140, 139, 231, 0, 2, 1, 3
 v_pk_add_f16 v139, v137, v140
 v_pk_add_f16 v138, v138, v139
 v_pk_mul_f16 v138, v138, 0.5 op_sel_hi:[1,0]
@@ -2848,8 +2785,7 @@ v_dot2_f32_f16 v38, v81, v97, v38
 v_dot2_f32_f16 v39, v82, v97, v39
 v_dot2_f32_f16 v40, v83, v97, v40
 v_dot2_f32_f16 v41, v84, v97, v41
-.long 0x791bcefa
-.long 0xff00d88e
+_v_pk_fmac_f16_gfx10_quad_perm 141, 142, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v42, v77, v98, v42
 v_dot2_f32_f16 v43, v78, v98, v43
 v_dot2_f32_f16 v44, v79, v98, v44
@@ -2864,8 +2800,7 @@ v_dot2_f32_f16 v50, v77, v99, v50
 v_dot2_f32_f16 v51, v78, v99, v51
 v_dot2_f32_f16 v52, v79, v99, v52
 v_dot2_f32_f16 v53, v80, v99, v53
-.long 0x791dcefa
-.long 0xff00d890
+_v_pk_fmac_f16_gfx10_quad_perm 142, 144, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v54, v81, v99, v54
 v_dot2_f32_f16 v55, v82, v99, v55
 v_dot2_f32_f16 v56, v83, v99, v56
@@ -2880,8 +2815,7 @@ v_dot2_f32_f16 v62, v81, v100, v62
 v_dot2_f32_f16 v63, v82, v100, v63
 v_dot2_f32_f16 v64, v83, v100, v64
 v_dot2_f32_f16 v65, v84, v100, v65
-.long 0x7921cefa
-.long 0xff00d88f
+_v_pk_fmac_f16_gfx10_quad_perm 144, 143, 231, 0, 2, 1, 3
 v_pk_add_f16 v143, v141, v144
 v_pk_add_f16 v142, v142, v143
 v_pk_mul_f16 v142, v142, 0.5 op_sel_hi:[1,0]
@@ -2966,8 +2900,7 @@ v_dot2_f32_f16 v38, v73, v89, v38
 v_dot2_f32_f16 v39, v74, v89, v39
 v_dot2_f32_f16 v40, v75, v89, v40
 v_dot2_f32_f16 v41, v76, v89, v41
-.long 0x7923cefa
-.long 0xff00d892
+_v_pk_fmac_f16_gfx10_quad_perm 145, 146, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v42, v69, v90, v42
 v_dot2_f32_f16 v43, v70, v90, v43
 v_dot2_f32_f16 v44, v71, v90, v44
@@ -2982,8 +2915,7 @@ v_dot2_f32_f16 v50, v69, v91, v50
 v_dot2_f32_f16 v51, v70, v91, v51
 v_dot2_f32_f16 v52, v71, v91, v52
 v_dot2_f32_f16 v53, v72, v91, v53
-.long 0x7925cefa
-.long 0xff00d894
+_v_pk_fmac_f16_gfx10_quad_perm 146, 148, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v54, v73, v91, v54
 v_dot2_f32_f16 v55, v74, v91, v55
 v_dot2_f32_f16 v56, v75, v91, v56
@@ -2998,8 +2930,7 @@ v_dot2_f32_f16 v62, v73, v92, v62
 v_dot2_f32_f16 v63, v74, v92, v63
 v_dot2_f32_f16 v64, v75, v92, v64
 v_dot2_f32_f16 v65, v76, v92, v65
-.long 0x7929cefa
-.long 0xff00d893
+_v_pk_fmac_f16_gfx10_quad_perm 148, 147, 231, 0, 2, 1, 3
 v_pk_add_f16 v147, v145, v148
 v_pk_add_f16 v146, v146, v147
 v_pk_mul_f16 v146, v146, 0.5 op_sel_hi:[1,0]
@@ -3085,8 +3016,7 @@ v_dot2_f32_f16 v38, v81, v97, v38
 v_dot2_f32_f16 v39, v82, v97, v39
 v_dot2_f32_f16 v40, v83, v97, v40
 v_dot2_f32_f16 v41, v84, v97, v41
-.long 0x78cbcefa
-.long 0xff00d866
+_v_pk_fmac_f16_gfx10_quad_perm 101, 102, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v42, v77, v98, v42
 v_dot2_f32_f16 v43, v78, v98, v43
 v_dot2_f32_f16 v44, v79, v98, v44
@@ -3101,8 +3031,7 @@ v_dot2_f32_f16 v50, v77, v99, v50
 v_dot2_f32_f16 v51, v78, v99, v51
 v_dot2_f32_f16 v52, v79, v99, v52
 v_dot2_f32_f16 v53, v80, v99, v53
-.long 0x78cdcefa
-.long 0xff00d868
+_v_pk_fmac_f16_gfx10_quad_perm 102, 104, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v54, v81, v99, v54
 v_dot2_f32_f16 v55, v82, v99, v55
 v_dot2_f32_f16 v56, v83, v99, v56
@@ -3117,8 +3046,7 @@ v_dot2_f32_f16 v62, v81, v100, v62
 v_dot2_f32_f16 v63, v82, v100, v63
 v_dot2_f32_f16 v64, v83, v100, v64
 v_dot2_f32_f16 v65, v84, v100, v65
-.long 0x78d1cefa
-.long 0xff00d867
+_v_pk_fmac_f16_gfx10_quad_perm 104, 103, 231, 0, 2, 1, 3
 v_pk_add_f16 v103, v101, v104
 v_pk_add_f16 v102, v102, v103
 v_pk_mul_f16 v102, v102, 0.5 op_sel_hi:[1,0]
@@ -3203,8 +3131,7 @@ v_dot2_f32_f16 v38, v73, v89, v38
 v_dot2_f32_f16 v39, v74, v89, v39
 v_dot2_f32_f16 v40, v75, v89, v40
 v_dot2_f32_f16 v41, v76, v89, v41
-.long 0x78d3cefa
-.long 0xff00d86a
+_v_pk_fmac_f16_gfx10_quad_perm 105, 106, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v42, v69, v90, v42
 v_dot2_f32_f16 v43, v70, v90, v43
 v_dot2_f32_f16 v44, v71, v90, v44
@@ -3219,8 +3146,7 @@ v_dot2_f32_f16 v50, v69, v91, v50
 v_dot2_f32_f16 v51, v70, v91, v51
 v_dot2_f32_f16 v52, v71, v91, v52
 v_dot2_f32_f16 v53, v72, v91, v53
-.long 0x78d5cefa
-.long 0xff00d86c
+_v_pk_fmac_f16_gfx10_quad_perm 106, 108, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v54, v73, v91, v54
 v_dot2_f32_f16 v55, v74, v91, v55
 v_dot2_f32_f16 v56, v75, v91, v56
@@ -3235,8 +3161,7 @@ v_dot2_f32_f16 v62, v73, v92, v62
 v_dot2_f32_f16 v63, v74, v92, v63
 v_dot2_f32_f16 v64, v75, v92, v64
 v_dot2_f32_f16 v65, v76, v92, v65
-.long 0x78d9cefa
-.long 0xff00d86b
+_v_pk_fmac_f16_gfx10_quad_perm 108, 107, 231, 0, 2, 1, 3
 v_pk_add_f16 v107, v105, v108
 v_pk_add_f16 v106, v106, v107
 v_pk_mul_f16 v106, v106, 0.5 op_sel_hi:[1,0]
@@ -3321,8 +3246,7 @@ v_dot2_f32_f16 v38, v81, v97, v38
 v_dot2_f32_f16 v39, v82, v97, v39
 v_dot2_f32_f16 v40, v83, v97, v40
 v_dot2_f32_f16 v41, v84, v97, v41
-.long 0x78dbcefa
-.long 0xff00d86e
+_v_pk_fmac_f16_gfx10_quad_perm 109, 110, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v42, v77, v98, v42
 v_dot2_f32_f16 v43, v78, v98, v43
 v_dot2_f32_f16 v44, v79, v98, v44
@@ -3337,8 +3261,7 @@ v_dot2_f32_f16 v50, v77, v99, v50
 v_dot2_f32_f16 v51, v78, v99, v51
 v_dot2_f32_f16 v52, v79, v99, v52
 v_dot2_f32_f16 v53, v80, v99, v53
-.long 0x78ddcefa
-.long 0xff00d870
+_v_pk_fmac_f16_gfx10_quad_perm 110, 112, 231, 0, 2, 1, 3
 v_dot2_f32_f16 v54, v81, v99, v54
 v_dot2_f32_f16 v55, v82, v99, v55
 v_dot2_f32_f16 v56, v83, v99, v56
@@ -3353,8 +3276,7 @@ v_dot2_f32_f16 v62, v81, v100, v62
 v_dot2_f32_f16 v63, v82, v100, v63
 v_dot2_f32_f16 v64, v83, v100, v64
 v_dot2_f32_f16 v65, v84, v100, v65
-.long 0x78e1cefa
-.long 0xff00d86f
+_v_pk_fmac_f16_gfx10_quad_perm 112, 111, 231, 0, 2, 1, 3
 v_pk_add_f16 v111, v109, v112
 v_pk_add_f16 v110, v110, v111
 v_pk_mul_f16 v110, v110, 0.5 op_sel_hi:[1,0]

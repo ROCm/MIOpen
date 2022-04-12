@@ -4,16 +4,16 @@ namespace miopen {
 
 MDGExprParser::MDGExprParser() : MDGExprParser::base_type(expression)
 {
-    using qi::_val;
-    using qi::char_;
-    using qi::lexeme;
-    using qi::hex;
-    using qi::int_;
-    using qi::double_;
-    using qi::alpha;
-    using qi::alnum;
     using qi::_1;
     using qi::_2;
+    using qi::_val;
+    using qi::alnum;
+    using qi::alpha;
+    using qi::char_;
+    using qi::double_;
+    using qi::hex;
+    using qi::int_;
+    using qi::lexeme;
     // clang-format off
     expression =
         additive_expr                        [ _val = _1]

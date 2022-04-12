@@ -39,7 +39,7 @@ struct manage_deleter
     {
         if(x != nullptr)
         {
-            f(x);
+            f(x); // NOLINT (cppcoreguidelines-owning-memory)
         }
     }
 };
@@ -62,9 +62,8 @@ struct element_type
 };
 
 template <class T>
-using remove_ptr = typename std::conditional<std::is_pointer<T>::value,
-                                             std::remove_pointer<T>,
-                                             element_type<T>>::type::type;
+using remove_ptr = typename std::
+    conditional<std::is_pointer<T>::value, std::remove_pointer<T>, element_type<T>>::type::type;
 
 template <class T>
 using shared = std::shared_ptr<remove_ptr<T>>;

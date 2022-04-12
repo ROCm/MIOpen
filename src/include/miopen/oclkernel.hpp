@@ -77,17 +77,17 @@ struct OCLSetKernelArg
         cl_int status = clSetKernelArg(kernel, i, lmem.GetSize(), NULL);
         if(status != CL_SUCCESS)
         {
-            MIOPEN_THROW("Error setting argument #" + std::to_string(i) + " to kernel: " +
-                         OpenCLErrorMessage(status));
+            MIOPEN_THROW("Error setting argument #" + std::to_string(i) +
+                         " to kernel: " + OpenCLErrorMessage(status));
         }
     }
 };
 
 struct OCLKernelInvoke
 {
-    cl_command_queue queue = nullptr;
-    SharedKernelPtr kernel = nullptr;
-    size_t work_dim        = 0;
+    cl_command_queue queue                   = nullptr;
+    SharedKernelPtr kernel                   = nullptr;
+    size_t work_dim                          = 0;
     std::array<size_t, 3> global_work_offset = {};
     // std::array<size_t, 3> global_work_dim    = {};
     // std::array<size_t, 3> local_work_dim     = {};
@@ -105,8 +105,8 @@ struct OCLKernelInvoke
             if(status != CL_SUCCESS)
             {
                 MIOPEN_THROW("Error setting argument #" + std::to_string(idx) +
-                             " to kernel (size = " + std::to_string(arg.size()) + "): " +
-                             OpenCLErrorMessage(status));
+                             " to kernel (size = " + std::to_string(arg.size()) +
+                             "): " + OpenCLErrorMessage(status));
             }
         }
         run();

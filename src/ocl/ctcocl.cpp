@@ -225,15 +225,19 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
 
         size_t lcl_mem_per_grp = MAX_LOCAL_MEM / 2 / (512 / work_per_grp);
 
-        params += " -DCLASS_SZ=" + std::to_string(class_sz) + " -DBATCH_SZ=" +
-                  std::to_string(batch_size) + " -DMAX_TSTEP=" + std::to_string(max_time_step) +
-                  " -DMAX_LB_LEN=" + std::to_string(max_label_len) + " -DTOTAL_LB_LEN=" +
-                  std::to_string(total_label_len) + " -DMAX_S_LEN=" + std::to_string(max_S_len) +
-                  " -DLB_PRIME_OFFSET=" + std::to_string(lb_prime_offset) + " -DPROBLOG_OFFSET=" +
-                  std::to_string(problog_offset) + " -DALPHA_OFFSET=" +
-                  std::to_string(alpha_offset) + " -DBETA_OFFSET=" + std::to_string(beta_offset) +
-                  " -DWORK_PER_GRP=" + std::to_string(work_per_grp) + " -DGRP_NUM=" +
-                  std::to_string(grp_num) + " -DBLANK_LB_ID=" + std::to_string(blank_label_id);
+        params += " -DCLASS_SZ=" + std::to_string(class_sz) +
+                  " -DBATCH_SZ=" + std::to_string(batch_size) +
+                  " -DMAX_TSTEP=" + std::to_string(max_time_step) +
+                  " -DMAX_LB_LEN=" + std::to_string(max_label_len) +
+                  " -DTOTAL_LB_LEN=" + std::to_string(total_label_len) +
+                  " -DMAX_S_LEN=" + std::to_string(max_S_len) +
+                  " -DLB_PRIME_OFFSET=" + std::to_string(lb_prime_offset) +
+                  " -DPROBLOG_OFFSET=" + std::to_string(problog_offset) +
+                  " -DALPHA_OFFSET=" + std::to_string(alpha_offset) +
+                  " -DBETA_OFFSET=" + std::to_string(beta_offset) +
+                  " -DWORK_PER_GRP=" + std::to_string(work_per_grp) +
+                  " -DGRP_NUM=" + std::to_string(grp_num) +
+                  " -DBLANK_LB_ID=" + std::to_string(blank_label_id);
 
         if(!probsDesc.IsPacked())
             params += " -DPROBS_STRIDE0=" + std::to_string(probsDesc.GetStrides()[0]) +
@@ -253,20 +257,16 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
 
         if(max_S_len * 2
 #if MIOPEN_BACKEND_OPENCL
-               +
-               class_sz
+               + class_sz
 #endif
-           <=
-           lcl_mem_per_grp)
+           <= lcl_mem_per_grp)
             params += " -DOPT_LCL_MEM_BETA";
 
         if(max_S_len * 3
 #if MIOPEN_BACKEND_OPENCL
-               +
-               class_sz
+               + class_sz
 #endif
-           <=
-           lcl_mem_per_grp)
+           <= lcl_mem_per_grp)
             params += " -DOPT_LCL_MEM_LB";
 
         if(probsDesc.GetType() == miopenHalf)

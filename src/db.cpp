@@ -54,16 +54,6 @@ struct RecordPositions
     std::streamoff begin = -1;
     std::streamoff end   = -1;
 };
-/// This makes the interface for the MultiFileDb uniform and
-/// allows reusing it for the SQLite perfdb and the kernel cache.
-PlainTextDb::PlainTextDb(const std::string& filename_,
-                         bool is_system,
-                         const std::string& /*arch*/,
-                         const std::size_t /*num_cu*/)
-    : PlainTextDb(filename_, is_system)
-{
-}
-
 PlainTextDb::PlainTextDb(const std::string& filename_, bool is_system)
     : filename(filename_),
       lock_file(LockFile::Get(LockFilePath(filename_).c_str())),
@@ -192,8 +182,7 @@ boost::optional<DbRecord> PlainTextDb::FindRecordUnsafe(const std::string& key,
         if(contents.empty())
         {
             MIOPEN_LOG_E("None contents under the key: " << current_key << " form file " << filename
-                                                         << "#"
-                                                         << n_line);
+                                                         << "#" << n_line);
             continue;
         }
         MIOPEN_LOG_I2("Contents found: " << contents);
@@ -204,9 +193,7 @@ boost::optional<DbRecord> PlainTextDb::FindRecordUnsafe(const std::string& key,
         if(!is_parse_ok)
         {
             MIOPEN_LOG_E("Error parsing payload under the key: " << current_key << " form file "
-                                                                 << filename
-                                                                 << "#"
-                                                                 << n_line);
+                                                                 << filename << "#" << n_line);
             MIOPEN_LOG_E("Contents: " << contents);
         }
         // A record with matching key have been found.

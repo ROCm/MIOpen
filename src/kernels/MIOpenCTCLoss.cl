@@ -256,7 +256,7 @@ static inline void CTCGradient(const global _FLOAT* probs_logits,
                                ,
                                local _FLOAT* gradtmp
 #endif
-                               )
+)
 {
     uint label_prime_len = 2 * label_length + 1;
 
@@ -393,7 +393,7 @@ static inline void CTCGradient(const global _FLOAT* probs_logits,
         if(lid == 0 || lid == 1)
             for(int k = 0; k < label_length; k++)
             {
-                int klid = 2 * k + lid;
+                int klid   = 2 * k + lid;
                 int lb_cur = lid == 0 ? BLANK_LB : *((const ADDRSPACE_LB int*)(label_prime + klid));
 #ifndef OPT_LCL_MEM_GRAD
                 size_t gidx      = j1 * GRADS_STRIDE0 + batch_id * GRADS_STRIDE1 + lb_cur;
@@ -559,7 +559,7 @@ kernel void CTCLossGPU(const global _FLOAT* probs,
             &losses[bid]);
 
 #ifdef OPT_LCL_MEM_GRAD
-        for(uint i                          = lid; i < CLASS_SZ; i += WORK_PER_GRP)
+        for(uint i = lid; i < CLASS_SZ; i += WORK_PER_GRP)
             *((local _FLOAT*)(gradtmp + i)) = NEGATIVE_CUTOFF_VAL;
 #endif
 
@@ -605,7 +605,7 @@ kernel void CTCLossGPU(const global _FLOAT* probs,
             ,
             &gradtmp[0]
 #endif
-            );
+        );
     }
 
     (void)probs;

@@ -889,7 +889,7 @@ amdhsa.kernels:
     .kernarg_segment_align: 8
     .wavefront_size: 64
     .reqd_workgroup_size: [ 64, 8, 1 ]
-    .max_flat_workgroup_size: 256
+    .max_flat_workgroup_size: 512
     .args:
     - { .size: 8, .offset:  0, .value_kind: global_buffer, .value_type: f32, .name: in,      .address_space: global, .is_const: true }
     - { .size: 8, .offset:  8, .value_kind: global_buffer, .value_type: f32, .name: weights, .address_space: global, .is_const: true }
@@ -915,7 +915,7 @@ METADATA %SGPR_COUNT, %VGPR_COUNT, %LDS_SIZE
         Attrs:
           { ReqdWorkGroupSize: [ 64, 8, 1 ] }
         CodeProps:
-          { KernargSegmentSize: 56, GroupSegmentFixedSize: 3072, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 256 }
+          { KernargSegmentSize: 56, GroupSegmentFixedSize: 3072, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
         Args:
         - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
         - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }

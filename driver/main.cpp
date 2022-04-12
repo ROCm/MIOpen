@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
         miopenGetVersion(&major, &minor, &patch);
         std::cout << "MIOpen (version: " << major << "." << minor << "." << patch << ")"
                   << std::endl;
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     // show command
@@ -174,10 +174,14 @@ int main(int argc, char* argv[])
     {
         drv = new ReduceDriver<float16, float>();
     }
+    else if(base_arg == "reducefp64")
+    {
+        drv = new ReduceDriver<double, double>();
+    }
     else
     {
         printf("Incorrect BaseArg\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     drv->AddCmdLineArgs();

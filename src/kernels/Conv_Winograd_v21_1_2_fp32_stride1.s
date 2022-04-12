@@ -28,7 +28,11 @@
 KERNEL_PROLOG fp32_stride1
 
 .if (.amdgcn.gfx_generation_number == 9)
-    .include "Conv_Winograd_v21_1_2_gfx9_fp32_stride1.inc"
+    .if (.amdgcn.gfx_generation_stepping == 10)
+        .include "Conv_Winograd_v21_1_2_gfx90a_fp32_stride1.inc"
+    .else
+        .include "Conv_Winograd_v21_1_2_gfx9_fp32_stride1.inc"
+    .endif
 .elseif (.amdgcn.gfx_generation_number == 10)
     .include "Conv_Winograd_v21_1_2_gfx10_fp32_stride1.inc"
 .endif

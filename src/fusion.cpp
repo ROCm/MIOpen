@@ -219,6 +219,14 @@ bool ConvForwardOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
 {
     int o, c, x, y;
     std::tie(o, c, x, y) = tien<4>(filter_desc.GetLengths());
+
+    auto f_strides     = filter_desc.GetStrides();
+    const int f_t_size = miopen::GetTypeSize(input_desc.GetType());
+    std::transform(f_strides.begin(),
+                   f_strides.end(),
+                   f_strides.begin(),
+                   [&f_t_size](const auto& s) { return s * f_t_size; });
+
     if(sym == "x")
     {
         val = x;
@@ -263,6 +271,22 @@ bool ConvForwardOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
     {
         val = base_desc.GetGroupCount();
     }
+    else if(sym == "f_byte_stride_nk")
+    {
+        val = f_strides[0];
+    }
+    else if(sym == "f_byte_stride_c")
+    {
+        val = f_strides[1];
+    }
+    else if(sym == "f_byte_stride_h")
+    {
+        val = f_strides[2];
+    }
+    else if(sym == "f_byte_stride_w")
+    {
+        val = f_strides[3];
+    }
     else
         return false;
 
@@ -274,7 +298,7 @@ OpKernelArg ConvForwardOpDescriptor::GetOpAttr(const std::string& k) const
     int v;
     if(GetOpAttr(k, v))
     {
-        return OpKernelArg(v);
+        return {v};
     }
     else
     {
@@ -354,7 +378,7 @@ OpKernelArg ActivFwdFusionOpDescriptor::GetOpAttr(const std::string& k) const
     int v;
     if(GetOpAttr(k, v))
     {
-        return OpKernelArg(v);
+        return {v};
     }
     MIOPEN_THROW(miopenStatusInternalError, "Unknown Activation Op Attribute");
 }
@@ -505,7 +529,7 @@ OpKernelArg BatchNormInferenceFusionOpDescriptor::GetOpAttr(const std::string& k
     int v;
     if(GetOpAttr(k, v))
     {
-        return OpKernelArg(v);
+        return {v};
     }
     else
     {
@@ -551,7 +575,7 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
     auto epsilon_any          = OpKernelArg(static_cast<double>(epsilon));
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
-    auto nhw = static_cast<float>(n * h * w);
+    auto nhw             = static_cast<float>(n * h * w);
 
     auto inhw_any = static_cast<float>(1.0f / nhw);
 
@@ -633,18 +657,18 @@ OpKernelArg BatchNormBwdTrainFusionOpDescriptor::GetOpAttr(const std::string& k)
     int v;
     if(GetOpAttr(k, v))
     {
-        return OpKernelArg(v);
+        return {v};
     }
     else if(k == "diff_scale")
     {
-        return OpKernelArg(static_cast<float>(0.0));
+        return {static_cast<float>(0.0)};
     }
     else if(k == "iNHW")
     {
         int n, h, w;
         std::tie(n, std::ignore, h, w) = tien<4>(input_desc.GetLengths());
-        auto nhw = static_cast<float>(n * h * w);
-        return OpKernelArg(static_cast<float>(1.0f / nhw));
+        auto nhw                       = static_cast<float>(n * h * w);
+        return {static_cast<float>(1.0f / nhw)};
     }
     else
         MIOPEN_THROW("BatchNormBwdTrainFusionOpDescriptor does not support attribute: " + k);
@@ -840,61 +864,100 @@ bool FusionPlanDescriptor::GetTensorAttr(const std::string& sym, int& val) const
     int N, C, H, W, oN, K, oH, oW;
     std::tie(N, C, H, W)    = miopen::tien<4>(input_desc.GetLengths(), 1);
     std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
+
+    const int d_t_size = miopen::GetTypeSize(input_desc.GetType());
+    const int o_t_size = miopen::GetTypeSize(output_desc.GetType());
+    auto d_strides     = input_desc.GetStrides();
+    auto o_strides     = output_desc.GetStrides();
+    std::transform(d_strides.begin(),
+                   d_strides.end(),
+                   d_strides.begin(),
+                   [&d_t_size](const auto& s) { return s * d_t_size; });
+    std::transform(o_strides.begin(),
+                   o_strides.end(),
+                   o_strides.begin(),
+                   [&o_t_size](const auto& s) { return s * o_t_size; });
+
     if(sym == "iN")
     {
         val = N;
-        return true;
     }
     else if(sym == "iC")
     {
         val = C;
-        return true;
     }
     else if(sym == "iH")
     {
         val = H;
-        return true;
     }
     else if(sym == "iW")
     {
         val = W;
-        return true;
     }
     else if(sym == "oN")
     {
         val = oN;
-        return true;
     }
     else if(sym == "oK")
     {
         val = K;
-        return true;
     }
     else if(sym == "oH")
     {
         val = oH;
-        return true;
     }
     else if(sym == "oW")
     {
         val = oW;
-        return true;
+    }
+    else if(sym == "d_byte_stride_nk")
+    {
+        val = d_strides[0];
+    }
+    else if(sym == "d_byte_stride_c")
+    {
+        val = d_strides[1];
+    }
+    else if(sym == "d_byte_stride_h")
+    {
+        val = d_strides[2];
+    }
+    else if(sym == "d_byte_stride_w")
+    {
+        val = d_strides[3];
+    }
+    else if(sym == "o_byte_stride_nk")
+    {
+        val = o_strides[0];
+    }
+    else if(sym == "o_byte_stride_c")
+    {
+        val = o_strides[1];
+    }
+    else if(sym == "o_byte_stride_h")
+    {
+        val = o_strides[2];
+    }
+    else if(sym == "o_byte_stride_w")
+    {
+        val = o_strides[3];
     }
     else if(sym == "precision")
     {
         assert(input_desc.GetType() == output_desc.GetType());
         val = input_desc.GetType();
-        return true;
     }
     else
         return false;
+
+    return true;
 }
 
 OpKernelArg FusionPlanDescriptor::GetTensorAttr(const std::string& sym) const
 {
     int val;
     if(FusionPlanDescriptor::GetTensorAttr(sym, val))
-        return OpKernelArg(val);
+        return {val};
     else
     {
         MIOPEN_THROW(miopenStatusInternalError, "Unknown Tensor Attribute: " + sym);
@@ -905,7 +968,7 @@ OpKernelArg FusionPlanDescriptor::GetDevAttribute(const std::string& k, const Ha
     if(k == "devCUs")
     {
         int num_cus = handle.GetMaxComputeUnits();
-        return OpKernelArg(num_cus);
+        return {num_cus};
     }
     else
     {
@@ -980,6 +1043,13 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             }
             program_name = kinder.first->vertex_data.at("program");
             auto d       = handle.GetDeviceName();
+
+            auto it = std::find(
+                kinder.first->supported_arch.begin(), kinder.first->supported_arch.end(), d);
+            // Empty inidicates any arch is supported (say OpenCL kernels)
+            if(!kinder.first->supported_arch.empty() && (it == kinder.first->supported_arch.end()))
+                continue;
+
             std::transform(d.begin(), d.end(), d.begin(), ::tolower);
             find_replace_first(program_name, "GFX*", d);
 
@@ -1212,8 +1282,7 @@ std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(const Handle& handle)
                 arg_keys.emplace_back(
                     "reserved_output_tensor_ptr", Output_Ptr, sizeof(ConstData_t));
                 break;
-            case DevAttribute:
-            {
+            case DevAttribute: {
                 auto dev_attr = GetDevAttribute(arg.key, handle);
                 arg_keys.emplace_back(arg.key, Default, dev_attr.size(), dev_attr);
             }
@@ -1274,8 +1343,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
         case Output_Ptr: args.emplace_back(OpKernelArg(output)); break;
         case Padding: args.emplace_back(OpKernelArg(0, arg.size)); break;
         case Scalar:
-        case Pointer:
-        {
+        case Pointer: {
             auto it = op_args.args_map.find(arg.key);
             if(it != op_args.args_map.end())
             {

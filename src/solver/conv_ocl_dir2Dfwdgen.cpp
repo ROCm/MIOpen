@@ -274,7 +274,8 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params) 
         std::string(" -DMLO_LG2N_PROC_TILE1=") +
         std::to_string(static_cast<long long>(lg2n_proc_supertile1)) + std::string(" -DMLO_BIG=") +
         std::to_string(static_cast<long long>(big)) //	resolution > 32 x 32
-        + std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(bias))
+        + std::string(" -DMLO_CONV_BIAS=") +
+        std::to_string(static_cast<long long>(bias))
 
         //		+ std::string(" -limit-vector-registers=64 ")
 

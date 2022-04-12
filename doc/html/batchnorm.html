@@ -1,50 +1,60 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Batch Normalization Layer &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Local Response Normalization Layer" href="lrn.html" />
     <link rel="prev" title="Recurrent Neural Networks" href="rnn.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +68,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -75,6 +85,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +93,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -166,12 +179,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
@@ -454,6 +461,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,11 +496,13 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="apireference.html">API Reference</a> &raquo;</li>
         
@@ -501,7 +511,7 @@
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/batchnorm.rst.txt" rel="nofollow"> View page source</a>
           
         
@@ -519,20 +529,20 @@
 <h1>Batch Normalization Layer<a class="headerlink" href="#batch-normalization-layer" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="miopenbatchnormmode-t">
 <h2>miopenBatchNormMode_t<a class="headerlink" href="#miopenbatchnormmode-t" title="Permalink to this headline">¶</a></h2>
-<dl class="type">
-<dt id="_CPPv221miopenBatchNormMode_t">
-<span id="miopenBatchNormMode_t"></span><span class="target" id="group__batchnorm_1gab21179fc753f8e0d1a6f23ac9b340a26"></span><em class="property">enum </em><code class="descclassname"></code><code class="descname">miopenBatchNormMode_t</code><a class="headerlink" href="#_CPPv221miopenBatchNormMode_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv421miopenBatchNormMode_t">
+<span id="_CPPv321miopenBatchNormMode_t"></span><span id="_CPPv221miopenBatchNormMode_t"></span><span class="target" id="group__batchnorm_1gab21179fc753f8e0d1a6f23ac9b340a26"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenBatchNormMode_t</span></span></span><a class="headerlink" href="#_CPPv421miopenBatchNormMode_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Batch Normalization layer mode </p>
 <p><em>Values:</em></p>
-<dl class="enumerator">
-<dt id="_CPPv221miopenBNPerActivation">
-<span class="target" id="miopen_8h_1gab21179fc753f8e0d1a6f23ac9b340a26a44ab9eadea90a770a3744a61b71d536f"></span><code class="descname">miopenBNPerActivation</code> = 0<a class="headerlink" href="#_CPPv221miopenBNPerActivation" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N21miopenBatchNormMode_t21miopenBNPerActivationE">
+<span id="_CPPv3N21miopenBatchNormMode_t21miopenBNPerActivationE"></span><span id="_CPPv2N21miopenBatchNormMode_t21miopenBNPerActivationE"></span><span class="target" id="miopen_8h_1gab21179fc753f8e0d1a6f23ac9b340a26a44ab9eadea90a770a3744a61b71d536f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenBNPerActivation</span></span></span><a class="headerlink" href="#_CPPv4N21miopenBatchNormMode_t21miopenBNPerActivationE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Element-wise normalization for fully connected layer </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv215miopenBNSpatial">
-<span class="target" id="miopen_8h_1gab21179fc753f8e0d1a6f23ac9b340a26a42ebad7a4f774e7dc3df2de80b31a3e0"></span><code class="descname">miopenBNSpatial</code> = 1<a class="headerlink" href="#_CPPv215miopenBNSpatial" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N21miopenBatchNormMode_t15miopenBNSpatialE">
+<span id="_CPPv3N21miopenBatchNormMode_t15miopenBNSpatialE"></span><span id="_CPPv2N21miopenBatchNormMode_t15miopenBNSpatialE"></span><span class="target" id="miopen_8h_1gab21179fc753f8e0d1a6f23ac9b340a26a42ebad7a4f774e7dc3df2de80b31a3e0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenBNSpatial</span></span></span><a class="headerlink" href="#_CPPv4N21miopenBatchNormMode_t15miopenBNSpatialE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Mini-batch spatial normalization for convolutional layers </p>
 </dd></dl>
 
@@ -541,141 +551,141 @@
 </div>
 <div class="section" id="miopenderivebntensordescriptor">
 <h2>miopenDeriveBNTensorDescriptor<a class="headerlink" href="#miopenderivebntensordescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv230miopenDeriveBNTensorDescriptor24miopenTensorDescriptor_tK24miopenTensorDescriptor_t21miopenBatchNormMode_t">
-<span id="miopenDeriveBNTensorDescriptor__miopenTensorDescriptor_t.miopenTensorDescriptor_tC.miopenBatchNormMode_t"></span><span class="target" id="group__batchnorm_1ga7cf0d3f5dbbab3ed6ac7f17b0aa77e33"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDeriveBNTensorDescriptor</code><span class="sig-paren">(</span>miopenTensorDescriptor_t <em>derivedBnDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, <a class="reference internal" href="#_CPPv221miopenBatchNormMode_t" title="miopenBatchNormMode_t">miopenBatchNormMode_t</a> <em>bn_mode</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv230miopenDeriveBNTensorDescriptor24miopenTensorDescriptor_tK24miopenTensorDescriptor_t21miopenBatchNormMode_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv430miopenDeriveBNTensorDescriptor24miopenTensorDescriptor_tK24miopenTensorDescriptor_t21miopenBatchNormMode_t">
+<span id="_CPPv330miopenDeriveBNTensorDescriptor24miopenTensorDescriptor_tK24miopenTensorDescriptor_t21miopenBatchNormMode_t"></span><span id="_CPPv230miopenDeriveBNTensorDescriptor24miopenTensorDescriptor_tK24miopenTensorDescriptor_t21miopenBatchNormMode_t"></span><span id="miopenDeriveBNTensorDescriptor__miopenTensorDescriptor_t.miopenTensorDescriptor_tC.miopenBatchNormMode_t"></span><span class="target" id="group__batchnorm_1ga7cf0d3f5dbbab3ed6ac7f17b0aa77e33"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenDeriveBNTensorDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">derivedBnDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDesc</span></span>, <a class="reference internal" href="#_CPPv421miopenBatchNormMode_t" title="miopenBatchNormMode_t"><span class="n"><span class="pre">miopenBatchNormMode_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">bn_mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv430miopenDeriveBNTensorDescriptor24miopenTensorDescriptor_tK24miopenTensorDescriptor_t21miopenBatchNormMode_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Derive tensor for gamma and beta from input tensor descriptor. </p>
 <p>This function takes the input tensor descriptor and outputs a derived tensor for the normalization scale (gamma) and shift (beta) tensors.</p>
 <p>For an input tensor NCHW and spatial mode, the output derived tensor is 1C11, while for per-activation the derived tensor is 1CHW.</p>
 <p>For an input tensor NCDHW and spatial mode, the output derived tensor is 1C111, while for per-activation the derived tensor is 1CDHW.</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">derivedBnDesc</span></code>: Output derived tensor descriptor (output) </li>
-<li><code class="docutils literal"><span class="pre">xDesc</span></code>: Input tensor descriptor (input) </li>
-<li><code class="docutils literal"><span class="pre">bn_mode</span></code>: Batch Normalization mode (input) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>derivedBnDesc</strong> – Output derived tensor descriptor (output) </p></li>
+<li><p><strong>xDesc</strong> – Input tensor descriptor (input) </p></li>
+<li><p><strong>bn_mode</strong> – Batch Normalization mode (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenbatchnormalizationforwardtraining">
 <h2>miopenBatchNormalizationForwardTraining<a class="headerlink" href="#miopenbatchnormalizationforwardtraining" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv239miopenBatchNormalizationForwardTraining14miopenHandle_t21miopenBatchNormMode_tPvPvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPvPvdPvPvdPvPv">
-<span id="miopenBatchNormalizationForwardTraining__miopenHandle_t.miopenBatchNormMode_t.voidP.voidP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidP.miopenTensorDescriptor_tC.voidP.voidP.double.voidP.voidP.double.voidP.voidP"></span><span class="target" id="group__batchnorm_1gaea994914a9da7aaebcf813df894263b1"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenBatchNormalizationForwardTraining</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <a class="reference internal" href="#_CPPv221miopenBatchNormMode_t" title="miopenBatchNormMode_t">miopenBatchNormMode_t</a> <em>bn_mode</em>, void *<em>alpha</em>, void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, <em class="property">const</em> void *<em>x</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, void *<em>y</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>bnScaleBiasMeanVarDesc</em>, void *<em>bnScale</em>, void *<em>bnBias</em>, double <em>expAvgFactor</em>, void *<em>resultRunningMean</em>, void *<em>resultRunningVariance</em>, double <em>epsilon</em>, void *<em>resultSaveMean</em>, void *<em>resultSaveInvVariance</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv239miopenBatchNormalizationForwardTraining14miopenHandle_t21miopenBatchNormMode_tPvPvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPvPvdPvPvdPvPv" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv439miopenBatchNormalizationForwardTraining14miopenHandle_t21miopenBatchNormMode_tPvPvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPvPvdPvPvdPvPv">
+<span id="_CPPv339miopenBatchNormalizationForwardTraining14miopenHandle_t21miopenBatchNormMode_tPvPvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPvPvdPvPvdPvPv"></span><span id="_CPPv239miopenBatchNormalizationForwardTraining14miopenHandle_t21miopenBatchNormMode_tPvPvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPvPvdPvPvdPvPv"></span><span id="miopenBatchNormalizationForwardTraining__miopenHandle_t.miopenBatchNormMode_t.voidP.voidP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidP.miopenTensorDescriptor_tC.voidP.voidP.double.voidP.voidP.double.voidP.voidP"></span><span class="target" id="group__batchnorm_1gaea994914a9da7aaebcf813df894263b1"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenBatchNormalizationForwardTraining</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <a class="reference internal" href="#_CPPv421miopenBatchNormMode_t" title="miopenBatchNormMode_t"><span class="n"><span class="pre">miopenBatchNormMode_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">bn_mode</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">beta</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">yDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bnScaleBiasMeanVarDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bnScale</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bnBias</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">expAvgFactor</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">resultRunningMean</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">resultRunningVariance</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">epsilon</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">resultSaveMean</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">resultSaveInvVariance</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv439miopenBatchNormalizationForwardTraining14miopenHandle_t21miopenBatchNormMode_tPvPvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPvPvdPvPvdPvPv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute forward training layer for batch normalization. </p>
 <p>Batch normalization pass for forward training pass. Takes in batch normalization mode bn_mode and input tensor x, output tensor y, bnBias and bnScale with their descriptor.</p>
 <p>If either resultSaveMean, or resultSaveInvVariance are null pointers then the values for the mean and inverse variance will not be used.</p>
-<p>Likewise, if either resultRunningMean, or resultRunningVariance are null pointers then the values for the running mean and variance will not be saved. Running averages and variances are scaled using an exponential averaging factor: <div class="math">
+<p>Likewise, if either resultRunningMean, or resultRunningVariance are null pointers then the values for the running mean and variance will not be saved. Running averages and variances are scaled using an exponential averaging factor: <div class="math notranslate nohighlight">
 \[ \mu_{old} = \mu_{new}*factor + \mu_{old}*(1-factor) \]</div>
- where <div class="math">
+ where <div class="math notranslate nohighlight">
 \[ factor=1/(1+iteration) \]</div>
 </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">bn_mode</span></code>: Batch normalization mode (input) </li>
-<li><code class="docutils literal"><span class="pre">alpha</span></code>: Floating point scaling factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">beta</span></code>: Floating point shift factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">xDesc</span></code>: Tensor descriptor for data input tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">x</span></code>: Data tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">yDesc</span></code>: Tensor descriptor for output data tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">y</span></code>: Data tensor y (output) </li>
-<li><code class="docutils literal"><span class="pre">bnScaleBiasMeanVarDesc</span></code>: Tensor descriptor for BN scaling, shifting, saved variance and mean (input) </li>
-<li><code class="docutils literal"><span class="pre">bnScale</span></code>: Batch norm scaling, gamma, tensor (input) </li>
-<li><code class="docutils literal"><span class="pre">bnBias</span></code>: Batch norm bias, beta, tensor (input) </li>
-<li><code class="docutils literal"><span class="pre">expAvgFactor</span></code>: Exponential averaging factor (input) </li>
-<li><code class="docutils literal"><span class="pre">resultRunningMean</span></code>: Running average saved for inference (output) </li>
-<li><code class="docutils literal"><span class="pre">resultRunningVariance</span></code>: Running variance saved for inference (output) </li>
-<li><code class="docutils literal"><span class="pre">epsilon</span></code>: Value to stablize inverse variance calculation (input) </li>
-<li><code class="docutils literal"><span class="pre">resultSaveMean</span></code>: Saved mini-batch mean for backwards pass (output) </li>
-<li><code class="docutils literal"><span class="pre">resultSaveInvVariance</span></code>: Saved mini-batch inverse variance for backwards pass (output) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>bn_mode</strong> – Batch normalization mode (input) </p></li>
+<li><p><strong>alpha</strong> – Floating point scaling factor, allocated on the host (input) </p></li>
+<li><p><strong>beta</strong> – Floating point shift factor, allocated on the host (input) </p></li>
+<li><p><strong>xDesc</strong> – Tensor descriptor for data input tensor x (input) </p></li>
+<li><p><strong>x</strong> – Data tensor x (input) </p></li>
+<li><p><strong>yDesc</strong> – Tensor descriptor for output data tensor y (input) </p></li>
+<li><p><strong>y</strong> – Data tensor y (output) </p></li>
+<li><p><strong>bnScaleBiasMeanVarDesc</strong> – Tensor descriptor for BN scaling, shifting, saved variance and mean (input) </p></li>
+<li><p><strong>bnScale</strong> – Batch norm scaling, gamma, tensor (input) </p></li>
+<li><p><strong>bnBias</strong> – Batch norm bias, beta, tensor (input) </p></li>
+<li><p><strong>expAvgFactor</strong> – Exponential averaging factor (input) </p></li>
+<li><p><strong>resultRunningMean</strong> – Running average saved for inference (output) </p></li>
+<li><p><strong>resultRunningVariance</strong> – Running variance saved for inference (output) </p></li>
+<li><p><strong>epsilon</strong> – Value to stablize inverse variance calculation (input) </p></li>
+<li><p><strong>resultSaveMean</strong> – Saved mini-batch mean for backwards pass (output) </p></li>
+<li><p><strong>resultSaveInvVariance</strong> – Saved mini-batch inverse variance for backwards pass (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenbatchnormalizationforwardinference">
 <h2>miopenBatchNormalizationForwardInference<a class="headerlink" href="#miopenbatchnormalizationforwardinference" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv240miopenBatchNormalizationForwardInference14miopenHandle_t21miopenBatchNormMode_tPvPvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPvPvPvPvd">
-<span id="miopenBatchNormalizationForwardInference__miopenHandle_t.miopenBatchNormMode_t.voidP.voidP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidP.miopenTensorDescriptor_tC.voidP.voidP.voidP.voidP.double"></span><span class="target" id="group__batchnorm_1ga0105f1e4b647d79cd8d665e8bc403763"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenBatchNormalizationForwardInference</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <a class="reference internal" href="#_CPPv221miopenBatchNormMode_t" title="miopenBatchNormMode_t">miopenBatchNormMode_t</a> <em>bn_mode</em>, void *<em>alpha</em>, void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, <em class="property">const</em> void *<em>x</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, void *<em>y</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>bnScaleBiasMeanVarDesc</em>, void *<em>bnScale</em>, void *<em>bnBias</em>, void *<em>estimatedMean</em>, void *<em>estimatedVariance</em>, double <em>epsilon</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv240miopenBatchNormalizationForwardInference14miopenHandle_t21miopenBatchNormMode_tPvPvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPvPvPvPvd" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv440miopenBatchNormalizationForwardInference14miopenHandle_t21miopenBatchNormMode_tPvPvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPvPvPvPvd">
+<span id="_CPPv340miopenBatchNormalizationForwardInference14miopenHandle_t21miopenBatchNormMode_tPvPvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPvPvPvPvd"></span><span id="_CPPv240miopenBatchNormalizationForwardInference14miopenHandle_t21miopenBatchNormMode_tPvPvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPvPvPvPvd"></span><span id="miopenBatchNormalizationForwardInference__miopenHandle_t.miopenBatchNormMode_t.voidP.voidP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidP.miopenTensorDescriptor_tC.voidP.voidP.voidP.voidP.double"></span><span class="target" id="group__batchnorm_1ga0105f1e4b647d79cd8d665e8bc403763"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenBatchNormalizationForwardInference</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <a class="reference internal" href="#_CPPv421miopenBatchNormMode_t" title="miopenBatchNormMode_t"><span class="n"><span class="pre">miopenBatchNormMode_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">bn_mode</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">beta</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">yDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bnScaleBiasMeanVarDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bnScale</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bnBias</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">estimatedMean</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">estimatedVariance</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">epsilon</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv440miopenBatchNormalizationForwardInference14miopenHandle_t21miopenBatchNormMode_tPvPvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPvPvPvPvd" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute forward inference layer for batch normalization. </p>
 <p>Batch normalization pass for forward inference pass. Takes in batch normalization mode bn_mode and input tensor x, output tensor y, bnBias and bnScale with their descriptor.</p>
 <p>If either estimatedMean, or estimatedVariance are null pointers then the values for the mean and variance will not be used.</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">bn_mode</span></code>: Batch normalization mode (input) </li>
-<li><code class="docutils literal"><span class="pre">alpha</span></code>: Floating point scaling factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">beta</span></code>: Floating point shift factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">xDesc</span></code>: Tensor descriptor for data input tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">x</span></code>: Data tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">yDesc</span></code>: Tensor descriptor for output data tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">y</span></code>: Data tensor y (output) </li>
-<li><code class="docutils literal"><span class="pre">bnScaleBiasMeanVarDesc</span></code>: Tensor descriptor for BN scaling, shifting, saved variance and mean (input) </li>
-<li><code class="docutils literal"><span class="pre">bnScale</span></code>: Batch norm scaling, gamma, tensor (input) </li>
-<li><code class="docutils literal"><span class="pre">bnBias</span></code>: Batch norm bias, beta, tensor (input) </li>
-<li><code class="docutils literal"><span class="pre">estimatedMean</span></code>: Running average saved during forward training (input) </li>
-<li><code class="docutils literal"><span class="pre">estimatedVariance</span></code>: Running variance saved during forward training (input) </li>
-<li><code class="docutils literal"><span class="pre">epsilon</span></code>: Value to stabilize inverse variance calculation (input) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>bn_mode</strong> – Batch normalization mode (input) </p></li>
+<li><p><strong>alpha</strong> – Floating point scaling factor, allocated on the host (input) </p></li>
+<li><p><strong>beta</strong> – Floating point shift factor, allocated on the host (input) </p></li>
+<li><p><strong>xDesc</strong> – Tensor descriptor for data input tensor x (input) </p></li>
+<li><p><strong>x</strong> – Data tensor x (input) </p></li>
+<li><p><strong>yDesc</strong> – Tensor descriptor for output data tensor y (input) </p></li>
+<li><p><strong>y</strong> – Data tensor y (output) </p></li>
+<li><p><strong>bnScaleBiasMeanVarDesc</strong> – Tensor descriptor for BN scaling, shifting, saved variance and mean (input) </p></li>
+<li><p><strong>bnScale</strong> – Batch norm scaling, gamma, tensor (input) </p></li>
+<li><p><strong>bnBias</strong> – Batch norm bias, beta, tensor (input) </p></li>
+<li><p><strong>estimatedMean</strong> – Running average saved during forward training (input) </p></li>
+<li><p><strong>estimatedVariance</strong> – Running variance saved during forward training (input) </p></li>
+<li><p><strong>epsilon</strong> – Value to stabilize inverse variance calculation (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenbatchnormalizationbackward">
 <h2>miopenBatchNormalizationBackward<a class="headerlink" href="#miopenbatchnormalizationbackward" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv232miopenBatchNormalizationBackward14miopenHandle_t21miopenBatchNormMode_tPKvPKvPKvPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPKvPvPvdPKvPKv">
-<span id="miopenBatchNormalizationBackward__miopenHandle_t.miopenBatchNormMode_t.voidCP.voidCP.voidCP.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidP.miopenTensorDescriptor_tC.voidCP.voidP.voidP.double.voidCP.voidCP"></span><span class="target" id="group__batchnorm_1ga76f0bf9bd5e80df21966d7c074779fbc"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenBatchNormalizationBackward</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <a class="reference internal" href="#_CPPv221miopenBatchNormMode_t" title="miopenBatchNormMode_t">miopenBatchNormMode_t</a> <em>bn_mode</em>, <em class="property">const</em> void *<em>alphaDataDiff</em>, <em class="property">const</em> void *<em>betaDataDiff</em>, <em class="property">const</em> void *<em>alphaParamDiff</em>, <em class="property">const</em> void *<em>betaParamDiff</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, <em class="property">const</em> void *<em>x</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dyDesc</em>, <em class="property">const</em> void *<em>dy</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dxDesc</em>, void *<em>dx</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>bnScaleBiasDiffDesc</em>, <em class="property">const</em> void *<em>bnScale</em>, void *<em>resultBnScaleDiff</em>, void *<em>resultBnBiasDiff</em>, double <em>epsilon</em>, <em class="property">const</em> void *<em>savedMean</em>, <em class="property">const</em> void *<em>savedInvVariance</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv232miopenBatchNormalizationBackward14miopenHandle_t21miopenBatchNormMode_tPKvPKvPKvPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPKvPvPvdPKvPKv" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv432miopenBatchNormalizationBackward14miopenHandle_t21miopenBatchNormMode_tPKvPKvPKvPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPKvPvPvdPKvPKv">
+<span id="_CPPv332miopenBatchNormalizationBackward14miopenHandle_t21miopenBatchNormMode_tPKvPKvPKvPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPKvPvPvdPKvPKv"></span><span id="_CPPv232miopenBatchNormalizationBackward14miopenHandle_t21miopenBatchNormMode_tPKvPKvPKvPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPKvPvPvdPKvPKv"></span><span id="miopenBatchNormalizationBackward__miopenHandle_t.miopenBatchNormMode_t.voidCP.voidCP.voidCP.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidP.miopenTensorDescriptor_tC.voidCP.voidP.voidP.double.voidCP.voidCP"></span><span class="target" id="group__batchnorm_1ga76f0bf9bd5e80df21966d7c074779fbc"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenBatchNormalizationBackward</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <a class="reference internal" href="#_CPPv421miopenBatchNormMode_t" title="miopenBatchNormMode_t"><span class="n"><span class="pre">miopenBatchNormMode_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">bn_mode</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alphaDataDiff</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">betaDataDiff</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alphaParamDiff</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">betaParamDiff</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dyDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dy</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dxDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dx</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bnScaleBiasDiffDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bnScale</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">resultBnScaleDiff</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">resultBnBiasDiff</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">epsilon</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">savedMean</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">savedInvVariance</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv432miopenBatchNormalizationBackward14miopenHandle_t21miopenBatchNormMode_tPKvPKvPKvPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPvK24miopenTensorDescriptor_tPKvPvPvdPKvPKv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute backwards propagation layer for batch normalization. </p>
 <p>Batch normalization pass for backwards propagation training pass. The method for backwards propagation batch normalization.</p>
 <p>Takes in batch normalization mode bn_mode and input tensor data x, input activation tensor dy, output tensor dx, the learned tensors resultBNBiasDiff and resultBNScaleDiff with their descriptor.</p>
 <p>If BOTH savedMean, and savedVariance are not null pointers then the method will use the saved mean and variance calculated by the forward training phase.</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">bn_mode</span></code>: Batch normalization mode (input) </li>
-<li><code class="docutils literal"><span class="pre">alphaDataDiff</span></code>: Floating point scaling factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">betaDataDiff</span></code>: Floating point shift factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">alphaParamDiff</span></code>: Floating point scaling factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">betaParamDiff</span></code>: Floating point shift factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">xDesc</span></code>: Tensor descriptor for data input tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">x</span></code>: Data tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">dyDesc</span></code>: Tensor descriptor for output data tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">dy</span></code>: Data tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">dxDesc</span></code>: Tensor descriptor for output data tensor dx (input) </li>
-<li><code class="docutils literal"><span class="pre">dx</span></code>: Data delta tensor dx (output) </li>
-<li><code class="docutils literal"><span class="pre">bnScaleBiasDiffDesc</span></code>: Tensor descriptor for BN scaling, shifting, saved variance and mean (input) </li>
-<li><code class="docutils literal"><span class="pre">bnScale</span></code>: Batch norm scaling, gamma, tensor (input) </li>
-<li><code class="docutils literal"><span class="pre">resultBnScaleDiff</span></code>: Tensor for dscale (output) </li>
-<li><code class="docutils literal"><span class="pre">resultBnBiasDiff</span></code>: Tensor for dbias (output) </li>
-<li><code class="docutils literal"><span class="pre">epsilon</span></code>: Value to stabilize inverse variance calculation (input) </li>
-<li><code class="docutils literal"><span class="pre">savedMean</span></code>: Saved mini-batch mean for backwards pass (input) </li>
-<li><code class="docutils literal"><span class="pre">savedInvVariance</span></code>: Saved mini-bathc inverse variance for backwards pass (input) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>bn_mode</strong> – Batch normalization mode (input) </p></li>
+<li><p><strong>alphaDataDiff</strong> – Floating point scaling factor, allocated on the host (input) </p></li>
+<li><p><strong>betaDataDiff</strong> – Floating point shift factor, allocated on the host (input) </p></li>
+<li><p><strong>alphaParamDiff</strong> – Floating point scaling factor, allocated on the host (input) </p></li>
+<li><p><strong>betaParamDiff</strong> – Floating point shift factor, allocated on the host (input) </p></li>
+<li><p><strong>xDesc</strong> – Tensor descriptor for data input tensor x (input) </p></li>
+<li><p><strong>x</strong> – Data tensor x (input) </p></li>
+<li><p><strong>dyDesc</strong> – Tensor descriptor for output data tensor y (input) </p></li>
+<li><p><strong>dy</strong> – Data tensor y (input) </p></li>
+<li><p><strong>dxDesc</strong> – Tensor descriptor for output data tensor dx (input) </p></li>
+<li><p><strong>dx</strong> – Data delta tensor dx (output) </p></li>
+<li><p><strong>bnScaleBiasDiffDesc</strong> – Tensor descriptor for BN scaling, shifting, saved variance and mean (input) </p></li>
+<li><p><strong>bnScale</strong> – Batch norm scaling, gamma, tensor (input) </p></li>
+<li><p><strong>resultBnScaleDiff</strong> – Tensor for dscale (output) </p></li>
+<li><p><strong>resultBnBiasDiff</strong> – Tensor for dbias (output) </p></li>
+<li><p><strong>epsilon</strong> – Value to stabilize inverse variance calculation (input) </p></li>
+<li><p><strong>savedMean</strong> – Saved mini-batch mean for backwards pass (input) </p></li>
+<li><p><strong>savedInvVariance</strong> – Saved mini-bathc inverse variance for backwards pass (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
@@ -686,29 +696,29 @@
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="lrn.html" class="btn btn-neutral float-right" title="Local Response Normalization Layer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="rnn.html" class="btn btn-neutral" title="Recurrent Neural Networks" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="lrn.html" class="btn btn-neutral float-right" title="Local Response Normalization Layer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="rnn.html" class="btn btn-neutral float-left" title="Recurrent Neural Networks" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -717,34 +727,16 @@
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

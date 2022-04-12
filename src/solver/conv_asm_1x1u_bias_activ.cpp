@@ -53,8 +53,8 @@ bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const ConvolutionContext& co
     return PerformanceConfigConvAsm1x1U::IsValid(config);
 }
 
-inline bool PerformanceConfigConvBiasActivAsm1x1U::
-operator==(const PerformanceConfigConvBiasActivAsm1x1U& other) const
+inline bool PerformanceConfigConvBiasActivAsm1x1U::operator==(
+    const PerformanceConfigConvBiasActivAsm1x1U& other) const
 {
     // clang-format off
             return read_size == other.read_size
@@ -72,7 +72,7 @@ PerformanceConfigConvBiasActivAsm1x1U
 ConvBiasActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvBiasActivAsm1x1U pp;
-    pp.EuristicInit(params);
+    pp.HeuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }

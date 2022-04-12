@@ -101,6 +101,10 @@ endfunction()
 function(embed_file OUTPUT_FILE OUTPUT_SYMBOL FILE)
     set(${OUTPUT_FILE} "${FILE}.o" PARENT_SCOPE)
     set(WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    get_filename_component(ABS_FILE "${FILE}" ABSOLUTE BASE_DIR  "${CMAKE_CURRENT_SOURCE_DIR}")
+    if(NOT EXISTS "${ABS_FILE}")
+        message(ERROR " Unable to locate file ${ABS_FILE} to embed")
+    endif()
     # Glob is used to compute the relative path
     get_filename_component(OUTPUT_FILE_DIR "${FILE}" DIRECTORY)
     file(MAKE_DIRECTORY "${WORKING_DIRECTORY}/${OUTPUT_FILE_DIR}")
@@ -108,6 +112,7 @@ function(embed_file OUTPUT_FILE OUTPUT_SYMBOL FILE)
     foreach(REL_FILE ${FILES})
         string(MAKE_C_IDENTIFIER "${REL_FILE}" SYMBOL)
         set(${OUTPUT_SYMBOL} ${SYMBOL} PARENT_SCOPE)
+        message(TRACE "Converting ${REL_FILE} to ${REL_FILE}.o")
         add_custom_command(
             OUTPUT "${FILE}.o"
             COMMAND ${EMBED_LD} -r -o "${FILE}.o" -z noexecstack --format=binary "${REL_FILE}" 

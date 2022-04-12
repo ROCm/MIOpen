@@ -175,6 +175,7 @@ struct test_driver
     std::string cache_path = compute_cache_path();
     miopenDataType_t type  = miopenFloat;
     bool full_set          = false;
+    int limit_set          = 2;
     bool verbose           = false;
     double tolerance       = 80;
     bool time              = false;
@@ -198,6 +199,7 @@ struct test_driver
     template <class Visitor>
     void parse(Visitor v)
     {
+        v(limit_set, {"--limit"}, "Limits the number of generated test elements.");
         v(full_set, {"--all"}, "Run all tests");
         v(verbose, {"--verbose", "-v"}, "Run verbose mode");
         v(tolerance, {"--tolerance", "-t"}, "Set test tolerance");
@@ -282,6 +284,7 @@ struct test_driver
         case miopenInt8: ss << "--int8 "; break;
         case miopenInt32: ss << "--int32 "; break;
         case miopenFloat: ss << "--float "; break;
+        case miopenDouble: ss << "--double "; break;
         }
         for(auto&& arg : this->arguments)
         {
@@ -308,6 +311,7 @@ struct test_driver
         case miopenInt8: ret.emplace_back("--int8"); break;
         case miopenInt32: ret.emplace_back("--int32"); break;
         case miopenFloat: ret.emplace_back("--float"); break;
+        case miopenDouble: ret.emplace_back("--double"); break;
         }
 
         for(auto&& arg : this->arguments)
@@ -476,6 +480,28 @@ struct test_driver
     }
 
     template <class T>
+    generate_data_t<std::vector<T>>
+    generate_data_limited(std::vector<T> dims, int limit_multiplier, T single)
+    {
+        return {[=]() -> std::vector<T> {
+            if(full_set)
+            {
+                if(limit_set > 0)
+                {
+                    auto endpoint =
+                        std::min(static_cast<int>(dims.size()), limit_set * limit_multiplier);
+                    std::vector<T> subvec(dims.cbegin(), dims.cbegin() + endpoint);
+                    return subvec;
+                }
+                else
+                    return dims;
+            }
+            else
+                return {single};
+        }};
+    }
+
+    template <class T>
     generate_data_t<std::vector<T>> generate_data(std::initializer_list<T> dims)
     {
         return generate_data(std::vector<T>(dims));
@@ -494,6 +520,27 @@ struct test_driver
         return {[=]() -> std::vector<T> {
             if(full_set)
                 return dims;
+            else
+                return {dims.front()};
+        }};
+    }
+
+    template <class T>
+    generate_data_t<std::vector<T>> generate_data_limited(std::vector<T> dims, int limit_multiplier)
+    {
+        return {[=]() -> std::vector<T> {
+            if(full_set)
+            {
+                if(limit_set > 0)
+                {
+                    auto endpoint =
+                        std::min(static_cast<int>(dims.size()), limit_set * limit_multiplier);
+                    std::vector<T> subvec(dims.cbegin(), dims.cbegin() + endpoint);
+                    return subvec;
+                }
+                else
+                    return dims;
+            }
             else
                 return {dims.front()};
         }};
@@ -1008,7 +1055,7 @@ void set_driver_datatype(Driver& d,
     }
     else if(arg_map.count("--double") > 0)
     {
-        throw std::runtime_error("Double is not supported");
+        d.type = miopenDouble;
     }
     else
     {
@@ -1114,6 +1161,7 @@ void test_drive_impl_2(std::string program_name, std::vector<std::string> as)
     }
 
     set_driver_datatype<Driver>(d, arg_map);
+
     std::vector<std::vector<std::string>> configs = build_configs<Driver>(d, arg_map, keywords);
     size_t config_count                           = configs.size();
     double running_average                        = 0;
@@ -1169,7 +1217,7 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
     }
     else if(arg_map.count("--double") > 0)
     {
-        throw std::runtime_error("Double is not supported");
+        d.type = miopenDouble;
     }
     else
     {
@@ -1243,6 +1291,7 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
 template <class Driver>
 void test_drive_impl(std::string program_name, std::vector<std::string> as)
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static bool called = false;
     if(called)
     {
@@ -1309,7 +1358,7 @@ void test_drive(int argc, const char* argv[])
         }
         if(arg == "--double")
         {
-            // test_drive_impl<Driver<double>>(argv[0], std::move(as));
+            test_drive_impl<Driver<double>>(argv[0], std::move(as));
             break;
         }
     }

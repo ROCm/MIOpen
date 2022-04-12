@@ -1,50 +1,58 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Fusion API: Getting Started &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="API Reference" href="apireference.html" />
     <link rel="prev" title="Find and Immediate Mode" href="find_and_immediate.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +66,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -75,6 +83,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +91,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -166,12 +177,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
@@ -454,6 +459,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,18 +494,20 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
       <li>Fusion API: Getting Started</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/Getting_Started_FusionAPI.md.txt" rel="nofollow"> View page source</a>
           
         
@@ -513,56 +521,56 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="fusion-api-getting-started">
-<span id="fusion-api-getting-started"></span><h1>Fusion API: Getting Started<a class="headerlink" href="#fusion-api-getting-started" title="Permalink to this headline">¶</a></h1>
+  <div class="tex2jax_ignore mathjax_ignore section" id="fusion-api-getting-started">
+<h1>Fusion API: Getting Started<a class="headerlink" href="#fusion-api-getting-started" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="introduction">
-<span id="introduction"></span><h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
 <p>Increasing depth of deep learning networks necessitate the need for novel mechanisms to improve performance on GPUs. One mechanism to achieve higher efficiency is to <em>fuse</em> separate kernels into a single kernel to reduce off-chip memory access and avoid kernel launch overhead. This document outlines the addition of a Fusion API to the MIOpen library. The fusion API would allow users to specify operators that they wants to fuse in a single kernel, compile it and then launch the kernel. While not all combinations might be supported by the library, the API is flexible enough to allow the specification of many operations in any order from a finite set of supported operations. The API provides a mechanism to report unsupported combinations.</p>
 <p>A complete example of the Fusion API in the context of MIOpen is given <a class="reference external" href="https://github.com/ROCmSoftwarePlatform/MIOpenExamples/tree/master/fusion">here</a>. We will use code from the example project as we go along. The example project creates a fusion plan to merge the convolution, bias and activation operations. For a list of supported fusion operations and associated constraints please refer to the <a class="reference external" href="#supported_fusions">Supported Fusions</a> section. The example depicts bare-bones code without any error checking or even populating the tensors with meaningful data in the interest of simplicity.</p>
 <p>The following list outlines the steps required</p>
 <ul class="simple">
-<li>Create a fusion plan</li>
-<li>Create and add the convolution, bias and activation operators</li>
-<li>Compile the Fusion Plan</li>
-<li>Set the runtime arguments for each operator</li>
-<li>Execute the fusion plan</li>
-<li>Cleanup</li>
+<li><p>Create a fusion plan</p></li>
+<li><p>Create and add the convolution, bias and activation operators</p></li>
+<li><p>Compile the Fusion Plan</p></li>
+<li><p>Set the runtime arguments for each operator</p></li>
+<li><p>Execute the fusion plan</p></li>
+<li><p>Cleanup</p></li>
 </ul>
 <p>The above steps assume that an MIOpen handle object has already been initialized. Moreover, the order in which operators are created is important, since it represents the order of operations on the data itself. Therefore a fusion plan with convolution created before activation is a different fusion plan as opposed to if activation was added before convolution.</p>
 <p>The following sections further elaborate the above steps as well as give code examples to make these ideas concrete.</p>
 <div class="section" id="intended-audience">
-<span id="intended-audience"></span><h3>Intended Audience<a class="headerlink" href="#intended-audience" title="Permalink to this headline">¶</a></h3>
+<h3>Intended Audience<a class="headerlink" href="#intended-audience" title="Permalink to this headline">¶</a></h3>
 <p>The primary consumers of the fusion API are high level frameworks such as TensorFlow/XLA or PyTorch etc.</p>
 </div>
 </div>
 <div class="section" id="create-a-fusion-plan">
-<span id="create-a-fusion-plan"></span><h2>Create a Fusion Plan<a class="headerlink" href="#create-a-fusion-plan" title="Permalink to this headline">¶</a></h2>
+<h2>Create a Fusion Plan<a class="headerlink" href="#create-a-fusion-plan" title="Permalink to this headline">¶</a></h2>
 <p>A <strong>Fusion Plan</strong> is the data structure which holds all the metadata about the users fusion intent as well as logic to <strong>Compile</strong> and <strong>Execute</strong> a fusion plan. As mentioned earlier, a fusion plan holds the order in which different opertions would be applied on the data, but it also specifies the <em>axis</em> of fusion as well. Currently only <strong>vertical</strong> (sequential) fusions are supported implying the flow of data between operations is sequential.</p>
-<p>A fusion plan is created using the API call <code class="docutils literal"><span class="pre">miopenCreateFusionPlan</span></code> with the signature:</p>
-<div class="highlight-cpp"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span>
+<p>A fusion plan is created using the API call <code class="docutils literal notranslate"><span class="pre">miopenCreateFusionPlan</span></code> with the signature:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span>
 <span class="nf">miopenCreateFusionPlan</span><span class="p">(</span><span class="n">miopenFusionPlanDescriptor_t</span><span class="o">*</span> <span class="n">fusePlanDesc</span><span class="p">,</span>
 <span class="k">const</span> <span class="n">miopenFusionDirection_t</span> <span class="n">fuseDirection</span><span class="p">,</span><span class="k">const</span> <span class="n">miopenTensorDescriptor_t</span> <span class="n">inputDesc</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>The <em>input tensor descriptor</em> specifies the geometry of the incoming data. Since the data geometry of the intermediate operations can be derived from the <em>input tensor descriptor</em>, therefore only the <em>input tensor descriptor</em> is required for the fusion plan and not for the individual operations. In our fusion example the following lines of code accomplish this:</p>
-<div class="highlight-cpp"><div class="highlight"><pre><span></span><span class="n">miopenCreateFusionPlan</span><span class="p">(</span><span class="o">&amp;</span><span class="n">fusePlanDesc</span><span class="p">,</span> <span class="n">miopenVerticalFusion</span><span class="p">,</span> <span class="n">input</span><span class="p">.</span><span class="n">desc</span><span class="p">);</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">miopenCreateFusionPlan</span><span class="p">(</span><span class="o">&amp;</span><span class="n">fusePlanDesc</span><span class="p">,</span> <span class="n">miopenVerticalFusion</span><span class="p">,</span> <span class="n">input</span><span class="p">.</span><span class="n">desc</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>Where <code class="docutils literal"><span class="pre">fusePlanDesc</span></code> is an object of type <code class="docutils literal"><span class="pre">miopenFusionPlanDescriptor_t</span></code> and <code class="docutils literal"><span class="pre">input.desc</span></code> is the <code class="docutils literal"><span class="pre">miopenTensorDescriptor_t</span></code> object.</p>
+<p>Where <code class="docutils literal notranslate"><span class="pre">fusePlanDesc</span></code> is an object of type <code class="docutils literal notranslate"><span class="pre">miopenFusionPlanDescriptor_t</span></code> and <code class="docutils literal notranslate"><span class="pre">input.desc</span></code> is the <code class="docutils literal notranslate"><span class="pre">miopenTensorDescriptor_t</span></code> object.</p>
 </div>
 <div class="section" id="create-and-add-operators">
-<span id="create-and-add-operators"></span><h2>Create and add Operators<a class="headerlink" href="#create-and-add-operators" title="Permalink to this headline">¶</a></h2>
+<h2>Create and add Operators<a class="headerlink" href="#create-and-add-operators" title="Permalink to this headline">¶</a></h2>
 <p>The fusion API introduces the notion of <strong>operators</strong> which represent different operations that are intended to be fused together by the API consumer. Currently, the API supports the following operators:</p>
 <ul class="simple">
-<li>Convolution Forward</li>
-<li>Activation Forward</li>
-<li>BatchNorm Inference</li>
-<li>Bias Forward</li>
+<li><p>Convolution Forward</p></li>
+<li><p>Activation Forward</p></li>
+<li><p>BatchNorm Inference</p></li>
+<li><p>Bias Forward</p></li>
 </ul>
 <p>Notice that <em>Bias</em> is a separate operator, although it is typically only used with convolution. This list is expected to grow as support for more operators is added to the API, moreover, operators for backward passes are in the works as well.</p>
 <p>The fusion API provides calls for the creation of the supported operators, here we would describe the process for the convolution operator, details for other operators may be found in the <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/fusion.html">miopen header file</a></p>
 <p>Once the fusion plan descriptor is created, two or more operators can be added to it by using the individual operator creation API calls. Creation of an operator might fail if the API does not support the fusion of the operations being added and report back immediately to the user. For our example we need to add the Convolution, Bias and Activation operations to our freshly minted fusion plan. This is done using the following calls for the Convolution, Bias and Activation operations respectively:</p>
-<div class="highlight-cpp"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span>
 <span class="nf">miopenCreateOpConvForward</span><span class="p">(</span><span class="n">miopenFusionPlanDescriptor_t</span> <span class="n">fusePlanDesc</span><span class="p">,</span>
                           <span class="n">miopenFusionOpDescriptor_t</span><span class="o">*</span> <span class="n">convOp</span><span class="p">,</span>
                           <span class="n">miopenConvolutionDescriptor_t</span> <span class="n">convDesc</span><span class="p">,</span>
@@ -579,48 +587,48 @@
 </pre></div>
 </div>
 <p>The following lines in the fusion example project use these API calls to create and insert the operators in the fusion plan:</p>
-<div class="highlight-cpp"><div class="highlight"><pre><span></span><span class="n">miopenCreateOpConvForward</span><span class="p">(</span><span class="n">fusePlanDesc</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">convoOp</span><span class="p">,</span> <span class="n">conv_desc</span><span class="p">,</span> <span class="n">weights</span><span class="p">.</span><span class="n">desc</span><span class="p">);</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">miopenCreateOpConvForward</span><span class="p">(</span><span class="n">fusePlanDesc</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">convoOp</span><span class="p">,</span> <span class="n">conv_desc</span><span class="p">,</span> <span class="n">weights</span><span class="p">.</span><span class="n">desc</span><span class="p">);</span>
 <span class="n">miopenCreateOpBiasForward</span><span class="p">(</span><span class="n">fusePlanDesc</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">biasOp</span><span class="p">,</span> <span class="n">bias</span><span class="p">.</span><span class="n">desc</span><span class="p">);</span>
 <span class="n">miopenCreateOpActivationForward</span><span class="p">(</span><span class="n">fusePlanDesc</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">activOp</span><span class="p">,</span> <span class="n">miopenActivationRELU</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>It may be noted that <code class="docutils literal"><span class="pre">conv_desc</span></code> is the regular MIOpen Convolution descriptor and is created in the standard way before it is referenced here. For more details on creating and setting the convolution descriptor please refer to the example code as well as the <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/convolution.html">MIOpen documentation</a>. In the above snippet <code class="docutils literal"><span class="pre">weights.desc</span></code> refers to the <code class="docutils literal"><span class="pre">miopenTensorDescriptor_t</span></code> for the convolution operations and <code class="docutils literal"><span class="pre">bias.desc</span></code> refers to the object of the same type for the bias operation. The order of insertion of operators indicates the order in which the operations would be performed on the data. Therefore, the above code implies that the convolution operation would be the first operation to execute on the incoming data, followed by the bias and activation operations.</p>
+<p>It may be noted that <code class="docutils literal notranslate"><span class="pre">conv_desc</span></code> is the regular MIOpen Convolution descriptor and is created in the standard way before it is referenced here. For more details on creating and setting the convolution descriptor please refer to the example code as well as the <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/convolution.html">MIOpen documentation</a>. In the above snippet <code class="docutils literal notranslate"><span class="pre">weights.desc</span></code> refers to the <code class="docutils literal notranslate"><span class="pre">miopenTensorDescriptor_t</span></code> for the convolution operations and <code class="docutils literal notranslate"><span class="pre">bias.desc</span></code> refers to the object of the same type for the bias operation. The order of insertion of operators indicates the order in which the operations would be performed on the data. Therefore, the above code implies that the convolution operation would be the first operation to execute on the incoming data, followed by the bias and activation operations.</p>
 <p>During this process, it is important that the returned codes be checked to make sure that the operations as well as their order is supported. The operator insertion might fail for a number of reasons such as unsupported sequence of operations, unsupported dimensions of the input or in case of convolution unsupported dimensions for the filters. In the above example, these aspects are ignored for the sake of simplicity.</p>
 </div>
 <div class="section" id="compile-the-fusion-plan">
-<span id="compile-the-fusion-plan"></span><h2>Compile the Fusion Plan<a class="headerlink" href="#compile-the-fusion-plan" title="Permalink to this headline">¶</a></h2>
+<h2>Compile the Fusion Plan<a class="headerlink" href="#compile-the-fusion-plan" title="Permalink to this headline">¶</a></h2>
 <p>Following the operator addition, the user would compile the fusion plan, to populate the MIOpen kernel cache with the fused kernel and make it ready for execution. The API call that accomplishes this is:</p>
-<div class="highlight-cpp"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span>
 <span class="nf">miopenCompileFusionPlan</span><span class="p">(</span><span class="n">miopenHandle_t</span> <span class="n">handle</span><span class="p">,</span> <span class="n">miopenFusionPlanDescriptor_t</span> <span class="n">fusePlanDesc</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>The corresponding code snippet in the example is as follows:</p>
-<div class="highlight-cpp"><div class="highlight"><pre><span></span><span class="k">auto</span> <span class="n">status</span> <span class="o">=</span> <span class="n">miopenCompileFusionPlan</span><span class="p">(</span><span class="n">mio</span><span class="o">::</span><span class="n">handle</span><span class="p">(),</span> <span class="n">fusePlanDesc</span><span class="p">);</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span> <span class="n">status</span> <span class="o">=</span> <span class="n">miopenCompileFusionPlan</span><span class="p">(</span><span class="n">mio</span><span class="o">::</span><span class="n">handle</span><span class="p">(),</span> <span class="n">fusePlanDesc</span><span class="p">);</span>
 <span class="k">if</span> <span class="p">(</span><span class="n">status</span> <span class="o">!=</span> <span class="n">miopenStatusSuccess</span><span class="p">)</span> <span class="p">{</span>
-<span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="k">return</span> <span class="mi">-1</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>In order to compile the fusion plan, the user is assumed to have acquired an MIOpen handle object, in the example code above this is accomplished using the <code class="docutils literal"><span class="pre">mio::handle()</span></code> helper function. While a fusion plan itself is not bound to a MIOpen handle object, it would however need to be recompiled for each handle separately. It may be noted that compilation of a fusion plan might fail for a number of reasons, moreover it is not assured that a fused version of the kernel would offer any performance improvement over the separately run kernels.</p>
+<p>In order to compile the fusion plan, the user is assumed to have acquired an MIOpen handle object, in the example code above this is accomplished using the <code class="docutils literal notranslate"><span class="pre">mio::handle()</span></code> helper function. While a fusion plan itself is not bound to a MIOpen handle object, it would however need to be recompiled for each handle separately. It may be noted that compilation of a fusion plan might fail for a number of reasons, moreover it is not assured that a fused version of the kernel would offer any performance improvement over the separately run kernels.</p>
 <p>Compiling a fusion plan is a costly operation in terms of run-time. Therefore, it is recommended that a fusion plan should only be compiled once and may be reused for execution with different runtime parameters as described in the next section.</p>
 </div>
 <div class="section" id="set-the-runtime-arguments">
-<span id="set-the-runtime-arguments"></span><h2>Set the runtime arguments<a class="headerlink" href="#set-the-runtime-arguments" title="Permalink to this headline">¶</a></h2>
-<p>While the underlying MIOpen descriptor of the fusion operator specifies the data geometry and parameters, the fusion plan still needs access to the data to execute a successfully compiled fusion plan. The arguments mechanism in the Fusion API provides such data before a fusion plan may be executed. For example the convolution operator requires <em>weights</em> to carry out the convolution computation, a bias operator requires the actual bias values etc. Therefore, before a fusion plan may be executed, arguments required by each fusion operator need to be specified. To begin, we create the <code class="docutils literal"><span class="pre">miopenOperatorArgs_t</span></code> object using:</p>
-<div class="highlight-cpp"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span> <span class="nf">miopenCreateOperatorArgs</span><span class="p">(</span><span class="n">miopenOperatorArgs_t</span><span class="o">*</span> <span class="n">args</span><span class="p">);</span>
+<h2>Set the runtime arguments<a class="headerlink" href="#set-the-runtime-arguments" title="Permalink to this headline">¶</a></h2>
+<p>While the underlying MIOpen descriptor of the fusion operator specifies the data geometry and parameters, the fusion plan still needs access to the data to execute a successfully compiled fusion plan. The arguments mechanism in the Fusion API provides such data before a fusion plan may be executed. For example the convolution operator requires <em>weights</em> to carry out the convolution computation, a bias operator requires the actual bias values etc. Therefore, before a fusion plan may be executed, arguments required by each fusion operator need to be specified. To begin, we create the <code class="docutils literal notranslate"><span class="pre">miopenOperatorArgs_t</span></code> object using:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span> <span class="nf">miopenCreateOperatorArgs</span><span class="p">(</span><span class="n">miopenOperatorArgs_t</span><span class="o">*</span> <span class="n">args</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>Once created, runtime arguments for each operation may be set. In our running example, the forward convolution operator requires the convolution weights argument which is supplied using the API call:</p>
-<div class="highlight-cpp"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span>
 <span class="nf">miopenSetOpArgsConvForward</span><span class="p">(</span><span class="n">miopenOperatorArgs_t</span> <span class="n">args</span><span class="p">,</span>
-                                <span class="k">const</span> <span class="n">miopenFusionOpDescriptor_t</span> <span class="n">convOp</span><span class="p">,</span>
+								<span class="k">const</span> <span class="n">miopenFusionOpDescriptor_t</span> <span class="n">convOp</span><span class="p">,</span>
                            <span class="k">const</span> <span class="kt">void</span><span class="o">*</span> <span class="n">alpha</span><span class="p">,</span>
                            <span class="k">const</span> <span class="kt">void</span><span class="o">*</span> <span class="n">beta</span><span class="p">,</span>
                            <span class="k">const</span> <span class="kt">void</span><span class="o">*</span> <span class="n">w</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>Similarly the parameters for bias and activation are given by:</p>
-<div class="highlight-cpp"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span> <span class="nf">miopenSetOpArgsBiasForward</span><span class="p">(</span><span class="n">miopenOperatorArgs_t</span> <span class="n">args</span><span class="p">,</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span> <span class="nf">miopenSetOpArgsBiasForward</span><span class="p">(</span><span class="n">miopenOperatorArgs_t</span> <span class="n">args</span><span class="p">,</span>
                                           <span class="k">const</span> <span class="n">miopenFusionOpDescriptor_t</span> <span class="n">biasOp</span><span class="p">,</span>
                                           <span class="k">const</span> <span class="kt">void</span><span class="o">*</span> <span class="n">alpha</span><span class="p">,</span>
                                           <span class="k">const</span> <span class="kt">void</span><span class="o">*</span> <span class="n">beta</span><span class="p">,</span>
@@ -636,19 +644,19 @@
 </pre></div>
 </div>
 <p>In our example code, we set the arguments for the operations as follows:</p>
-<div class="highlight-cpp"><div class="highlight"><pre><span></span><span class="n">miopenSetOpArgsConvForward</span><span class="p">(</span><span class="n">fusionArgs</span><span class="p">,</span> <span class="n">convoOp</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">alpha</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">beta</span><span class="p">,</span> <span class="n">weights</span><span class="p">.</span><span class="n">data</span><span class="p">);</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">miopenSetOpArgsConvForward</span><span class="p">(</span><span class="n">fusionArgs</span><span class="p">,</span> <span class="n">convoOp</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">alpha</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">beta</span><span class="p">,</span> <span class="n">weights</span><span class="p">.</span><span class="n">data</span><span class="p">);</span>
 <span class="n">miopenSetOpArgsActivForward</span><span class="p">(</span><span class="n">fusionArgs</span><span class="p">,</span> <span class="n">activOp</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">alpha</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">beta</span><span class="p">,</span> <span class="n">activ_alpha</span><span class="p">,</span>
                           <span class="n">activ_beta</span><span class="p">,</span> <span class="n">activ_gamma</span><span class="p">);</span>
 <span class="n">miopenSetOpArgsBiasForward</span><span class="p">(</span><span class="n">fusionArgs</span><span class="p">,</span> <span class="n">biasOp</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">alpha</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">beta</span><span class="p">,</span> <span class="n">bias</span><span class="p">.</span><span class="n">data</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>This separation between the fusion plan and the arguments required by each operator allows better reuse of the fusion plan with different argument as well as avoids the necessity of recompiling the fusion plan to run the same combination of operators with different arguments.</p>
-<p>As mentioned in the section <a class="reference external" href="#compile_fusion">Compile the Fusion Plan</a> earlier, the compilation step for a fusion plan might be costly, therefore a fusion plan should only be compiled once in its lifetime. A fusion plan needs not be recompiled if the input desciptor or any of the parameters to the <code class="docutils literal"><span class="pre">miopenCreateOp*</span></code> API calls are different, otherwise a compiled fusion plan may be reused again and again with a different set of arguments. In our example this is demonstrated in lines 77 - 85 of <code class="docutils literal"><span class="pre">main.cpp</span></code>.</p>
+<p>As mentioned in the section <a class="reference external" href="#compile_fusion">Compile the Fusion Plan</a> earlier, the compilation step for a fusion plan might be costly, therefore a fusion plan should only be compiled once in its lifetime. A fusion plan needs not be recompiled if the input desciptor or any of the parameters to the <code class="docutils literal notranslate"><span class="pre">miopenCreateOp*</span></code> API calls are different, otherwise a compiled fusion plan may be reused again and again with a different set of arguments. In our example this is demonstrated in lines 77 - 85 of <code class="docutils literal notranslate"><span class="pre">main.cpp</span></code>.</p>
 </div>
 <div class="section" id="execute-a-fusion-plan">
-<span id="execute-a-fusion-plan"></span><h2>Execute a Fusion Plan<a class="headerlink" href="#execute-a-fusion-plan" title="Permalink to this headline">¶</a></h2>
+<h2>Execute a Fusion Plan<a class="headerlink" href="#execute-a-fusion-plan" title="Permalink to this headline">¶</a></h2>
 <p>Once the fusion plan has been compiled and arguments set for each operator, it may be executed with the API call given below passing it the actual data to be processed.</p>
-<div class="highlight-cpp"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span>
 <span class="nf">miopenExecuteFusionPlan</span><span class="p">(</span><span class="k">const</span> <span class="n">miopenHandle_t</span> <span class="n">handle</span><span class="p">,</span>
                         <span class="k">const</span> <span class="n">miopenFusionPlanDescriptor_t</span> <span class="n">fusePlanDesc</span><span class="p">,</span>
                         <span class="k">const</span> <span class="n">miopenTensorDescriptor_t</span> <span class="n">inputDesc</span><span class="p">,</span>
@@ -659,29 +667,29 @@
 </pre></div>
 </div>
 <p>The following code snippet in the example accomplishes the fusion plan execution:</p>
-<div class="highlight-cpp"><div class="highlight"><pre><span></span><span class="n">miopenExecuteFusionPlan</span><span class="p">(</span><span class="n">mio</span><span class="o">::</span><span class="n">handle</span><span class="p">(),</span> <span class="n">fusePlanDesc</span><span class="p">,</span> <span class="n">input</span><span class="p">.</span><span class="n">desc</span><span class="p">,</span> <span class="n">input</span><span class="p">.</span><span class="n">data</span><span class="p">,</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">miopenExecuteFusionPlan</span><span class="p">(</span><span class="n">mio</span><span class="o">::</span><span class="n">handle</span><span class="p">(),</span> <span class="n">fusePlanDesc</span><span class="p">,</span> <span class="n">input</span><span class="p">.</span><span class="n">desc</span><span class="p">,</span> <span class="n">input</span><span class="p">.</span><span class="n">data</span><span class="p">,</span>
                         <span class="n">output</span><span class="p">.</span><span class="n">desc</span><span class="p">,</span> <span class="n">output</span><span class="p">.</span><span class="n">data</span><span class="p">,</span> <span class="n">fusionArgs</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>It may be noted that it is an error to attempt to execute a fusion plan that is either not compiled or has been invalidated by changing the input tensor descriptor or any of the operation parameters.</p>
 </div>
 <div class="section" id="cleanup">
-<span id="cleanup"></span><h2>Cleanup<a class="headerlink" href="#cleanup" title="Permalink to this headline">¶</a></h2>
+<h2>Cleanup<a class="headerlink" href="#cleanup" title="Permalink to this headline">¶</a></h2>
 <p>Once the application is done with the fusion plan, the fusion plan and the fusion args objects may be destroyed using the API calls:</p>
-<div class="highlight-cpp"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span> <span class="nf">miopenDestroyFusionPlan</span><span class="p">(</span><span class="n">miopenFusionPlanDescriptor_t</span> <span class="n">fusePlanDesc</span><span class="p">);</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">miopenStatus_t</span> <span class="nf">miopenDestroyFusionPlan</span><span class="p">(</span><span class="n">miopenFusionPlanDescriptor_t</span> <span class="n">fusePlanDesc</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>Once the fusion plan object is destroyed, all the operations created are destroyed automatically and do not need any special cleanup.</p>
 </div>
 <div class="section" id="supported-fusions">
-<span id="supported-fusions"></span><h2>Supported Fusions<a class="headerlink" href="#supported-fusions" title="Permalink to this headline">¶</a></h2>
+<h2>Supported Fusions<a class="headerlink" href="#supported-fusions" title="Permalink to this headline">¶</a></h2>
 <p>The tables below outlines the supported fusions for fp32 and fp16 as well as any applicable constraints. <strong>(C = convolution, B = bias, N = batch normalization, A = activation)</strong>
 Fusion Plans with grouped convolutions are not supported.</p>
 <p><img alt="Convolution based fp32 fusion" src="_images/fp32fusions.png" /></p>
 <p><img alt="Convolution based fp16 fusion" src="_images/fp16fusions.png" /></p>
 </div>
 <div class="section" id="performance-comparison-to-non-fused-kernels">
-<span id="performance-comparison-to-non-fused-kernels"></span><h2>Performance Comparison to Non-Fused Kernels<a class="headerlink" href="#performance-comparison-to-non-fused-kernels" title="Permalink to this headline">¶</a></h2>
+<h2>Performance Comparison to Non-Fused Kernels<a class="headerlink" href="#performance-comparison-to-non-fused-kernels" title="Permalink to this headline">¶</a></h2>
 <p>The following graph depicts the speedup gained for a fused Convolution+Bias+Activation over a non-fused version, all configurations have a batch size of 64:</p>
 <p><img alt="CBA Graph" src="_images/cba.png" /></p>
 <p>Speedup obtained by fusing Batchnorm (spatial mode) with Activation are presented in the graph below:</p>
@@ -694,29 +702,29 @@ Fusion Plans with grouped convolutions are not supported.</p>
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="apireference.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="find_and_immediate.html" class="btn btn-neutral" title="Find and Immediate Mode" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="apireference.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="find_and_immediate.html" class="btn btn-neutral float-left" title="Find and Immediate Mode" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -725,34 +733,16 @@ Fusion Plans with grouped convolutions are not supported.</p>
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

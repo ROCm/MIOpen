@@ -305,7 +305,7 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     if(result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0 /* DIV/0 */)
     {
         MIOPEN_LOG_E("result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0");
-        return ConvSolution(miopenStatusInternalError);
+        return {miopenStatusInternalError};
     }
     result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
     result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
@@ -318,7 +318,7 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     if(alu_tiles_sz > 256 || alu_tiles_sz == 0 /* DIV/0 */)
     {
         MIOPEN_LOG_E("need out pix size ajustments (alu_tiles_sz > 256 || alu_tiles_sz == 0)");
-        return ConvSolution(miopenStatusInternalError);
+        return {miopenStatusInternalError};
     }
 
     int n_alus_total = (result.grp_tile0 * result.grp_tile1);
@@ -329,7 +329,7 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     if(result.n_stacks == 0 /* DIV/0 */)
     {
         MIOPEN_LOG_E("result.n_stacks == 0");
-        return ConvSolution(miopenStatusInternalError);
+        return {miopenStatusInternalError};
     }
     int n_alus_perstack = (n_alus_total + result.n_stacks - 1) / result.n_stacks;
 
@@ -391,7 +391,8 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         std::to_string(static_cast<long long>(params.in_batch_stride)) +
         std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
         std::to_string(static_cast<long long>(params.in_channel_stride)) +
-        std::string(" -DMLO_IN_STRIDE=") + std::to_string(static_cast<long long>(params.in_stride))
+        std::string(" -DMLO_IN_STRIDE=") +
+        std::to_string(static_cast<long long>(params.in_stride))
         // algorithm parameters
         + std::string(" -DMLO_IN_TILE0=") +
         std::to_string(static_cast<long long>(result.in_tile0)) // size of input data per ALU plane
@@ -445,7 +446,7 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     if(n_out_tiles_perstack == 0 /* DIV/0 */)
     {
         MIOPEN_LOG_E("n_out_tiles_perstack == 0");
-        return ConvSolution(miopenStatusInternalError);
+        return {miopenStatusInternalError};
     }
     size_t gbl_wk1 = group_counts >= 2
                          ? (((params.n_outputs / group_counts + n_out_tiles_perstack - 1) /

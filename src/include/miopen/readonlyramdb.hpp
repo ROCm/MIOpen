@@ -41,10 +41,7 @@ class ReadonlyRamDb
     public:
     ReadonlyRamDb(std::string path) : db_path(path) {}
 
-    static ReadonlyRamDb& GetCached(const std::string& path,
-                                    bool warn_if_unreadable,
-                                    const std::string& arch = "",
-                                    std::size_t num_cu      = 0);
+    static ReadonlyRamDb& GetCached(const std::string& path, bool warn_if_unreadable);
 
     boost::optional<DbRecord> FindRecord(const std::string& problem) const
     {
@@ -61,10 +58,8 @@ class ReadonlyRamDb
 
         if(!record.ParseContents(it->second.content))
         {
-            MIOPEN_LOG_E("Error parsing payload under the key: " << problem << " form file "
-                                                                 << db_path
-                                                                 << "#"
-                                                                 << it->second.line);
+            MIOPEN_LOG_E("Error parsing payload under the key: "
+                         << problem << " form file " << db_path << "#" << it->second.line);
             MIOPEN_LOG_E("Contents: " << it->second.content);
             return boost::none;
         }

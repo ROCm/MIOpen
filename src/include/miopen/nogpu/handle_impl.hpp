@@ -61,5 +61,5 @@ struct HandleImpl
     std::int64_t ctx;
     TargetProperties target_properties;
 };
-}
+} // namespace miopen
 #endif // GUARD_MIOPEN_NOGPU_HANDLE_IMPL_HPP_

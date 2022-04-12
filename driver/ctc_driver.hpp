@@ -28,6 +28,7 @@
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "timer.hpp"
+#include "random.hpp"
 #include "ctc_verify.hpp"
 #include <../test/verify.hpp>
 #include <algorithm>
@@ -254,7 +255,7 @@ int CTCDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < labels_sz; i++)
     {
-        labels[i] = static_cast<int>(rand() % num_class + 1);
+        labels[i] = static_cast<int>(GET_RAND() % num_class + 1);
         if(blank_lb > num_class)
             labels[i] = labels[i] == num_class ? num_class - 1 : labels[i];
         else if(blank_lb < 0)
@@ -307,7 +308,7 @@ int CTCDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < probs_sz; i++)
     {
-        probs[i] = static_cast<Tgpu>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
+        probs[i] = static_cast<Tgpu>((static_cast<double>(scale * GET_RAND()) * (1.0 / RAND_MAX)));
     }
     if(apply_softmax)
     {

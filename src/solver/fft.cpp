@@ -430,8 +430,7 @@ ConvSolution fft::GetSolution(const ConvolutionContext& ctx) const
                 {
                 case 0: k(tensors.in, params.workSpace); break;
                 case 1: k(tensors.w, params.workSpace); break;
-                case 4:
-                {
+                case 4: {
                     k(params.workSpace,
                       0,
                       halfw + N * (in_n * in_c + padding),

@@ -39,78 +39,6 @@
 
 using float16 = half_float::half;
 
-static inline void
-get_all_indexes(const std::vector<int>& dimLengths, int dim, std::vector<std::vector<int>>& indexes)
-{
-    if(dim < dimLengths.size())
-    {
-        std::vector<std::vector<int>> updated_indexes;
-
-        if(dim == 0)
-        {
-            for(int i = 0; i < dimLengths[dim]; i++)
-            {
-                std::vector<int> index = {i};
-
-                updated_indexes.push_back(index);
-            };
-        }
-        else
-        {
-            // go through all the current indexes
-            for(const auto& index : indexes)
-                for(int i = 0; i < dimLengths[dim]; i++)
-                {
-                    auto index_new = index; // explicit copying
-
-                    index_new.push_back(i);
-
-                    updated_indexes.push_back(index_new);
-                };
-        };
-
-        // update to the indexes (output)
-        indexes = updated_indexes;
-
-        // further to construct the indexes from the updated status
-        get_all_indexes(dimLengths, dim + 1, indexes);
-    };
-};
-
-static inline int get_offset_from_index(const std::vector<int>& strides,
-                                        const std::vector<int>& index)
-{
-    int offset = 0;
-
-    assert(index.size() == strides.size());
-    for(int i = 0; i < index.size(); i++)
-        offset += strides[i] * index[i];
-
-    return (offset);
-};
-
-static inline int get_flatten_offset(const std::vector<int>& lengths, const std::vector<int>& index)
-{
-    int offset = 0;
-
-    assert(lengths.size() == index.size() && lengths.size() > 0);
-
-    int len    = lengths.size();
-    int stride = 1;
-
-    // for len==1, the loop is not executed
-    for(int i = len - 1; i > 0; i--)
-    {
-        offset += stride * index[i];
-
-        stride *= lengths[i];
-    };
-
-    offset += stride * index[0];
-
-    return (offset);
-};
-
 template <typename Tgpu, typename Tref>
 class miopenReductionHost
 {
@@ -147,7 +75,7 @@ class miopenReductionHost
 
     ~miopenReductionHost(){};
 
-    void Run(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data, int* indices)
+    void Run(float alpha, const Tgpu* in_data, float beta, Tref* out_data, int* indices)
     {
         if(compTypeVal == miopenFloat)
         {
@@ -162,8 +90,9 @@ class miopenReductionHost
                 RunImpl<Tref>(alpha, in_data, beta, out_data, indices);
             else
                 RunImpl<float16>(alpha, in_data, beta, out_data, indices);
-        };
-
+        }
+        else if(compTypeVal == miopenDouble)
+            RunImpl<double>(alpha, in_data, beta, out_data, indices);
         return;
     };
 
@@ -188,11 +117,12 @@ class miopenReductionHost
     bool reduceAllDims;
 
     template <typename compType>
-    void RunImpl(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data, int* indices)
+    void RunImpl(float alpha, const Tgpu* in_data, float beta, Tref* out_data, int* indices)
     {
         bool need_indices =
             (indicesOpt == MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES) &&
-            (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX);
+            (reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
+             reduceOp == MIOPEN_REDUCE_TENSOR_AMAX);
 
         if(need_indices)
             RunImpl_with_indices<compType>(alpha, in_data, beta, out_data, indices);
@@ -202,17 +132,17 @@ class miopenReductionHost
 
     template <typename compType>
     void
-    RunImpl_with_indices(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data, int* indices)
+    RunImpl_with_indices(float alpha, const Tgpu* in_data, float beta, Tref* out_data, int* indices)
     {
-        using reduce::ReduceOpFn2;
-        using reduce::PreUnaryOpFn;
-        using reduce::PosUnaryOpFn;
-        using reduce::ReduceOpZeroVal;
-        using reduce::float_equal_one;
-        using reduce::float_equal_zero;
-        using reduce::convert_type;
         using reduce::binop_with_nan_check;
         using reduce::binop_with_nan_check2;
+        using reduce::convert_type;
+        using reduce::float_equal_one;
+        using reduce::float_equal_zero;
+        using reduce::PosUnaryOpFn;
+        using reduce::PreUnaryOpFn;
+        using reduce::ReduceOpFn2;
+        using reduce::ReduceOpZeroVal;
 
         auto opReduce = ReduceOpFn2<compType>(this->reduceOp);
 
@@ -253,7 +183,7 @@ class miopenReductionHost
 
             // scale the prior dst value and add it to the accumulated value
             if(!float_equal_zero(beta))
-                accuVal += convert_type<compType>(out_data[0] * convert_type<Tref>(beta));
+                accuVal += convert_type<compType>(out_data[0]) * convert_type<compType>(beta);
 
             // store the reduced value to dst location
             out_data[0] = convert_type<Tref>(accuVal);
@@ -280,13 +210,13 @@ class miopenReductionHost
                 // initialize the src index
                 std::fill(dst_index.begin(), dst_index.end(), 0);
 
-                for(int k                       = 0; k < invariantDims.size(); k++)
+                for(int k = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
 
                 int dst_offset = get_offset_from_index(this->outStrides, dst_index);
 
                 // generate the part of src index belonging to invariant dims
-                for(int k                       = 0; k < invariantDims.size(); k++)
+                for(int k = 0; k < invariantDims.size(); k++)
                     src_index[invariantDims[k]] = index_1[k];
 
                 compType accuVal = ReduceOpZeroVal<compType>(this->reduceOp);
@@ -296,7 +226,7 @@ class miopenReductionHost
                 for(const auto& index_2 : indexes_2)
                 {
                     // generate the part of src index belonging to toReduce dims
-                    for(int k                      = 0; k < toReduceDims.size(); k++)
+                    for(int k = 0; k < toReduceDims.size(); k++)
                         src_index[toReduceDims[k]] = index_2[k];
 
                     auto src_offset = get_offset_from_index(this->inStrides, src_index);
@@ -317,7 +247,7 @@ class miopenReductionHost
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero(beta))
                     accuVal +=
-                        convert_type<compType>(out_data[dst_offset] * convert_type<Tref>(beta));
+                        convert_type<compType>(out_data[dst_offset]) * convert_type<compType>(beta);
 
                 // store the reduced value to dst location
                 out_data[dst_offset] = convert_type<Tref>(accuVal);
@@ -327,17 +257,17 @@ class miopenReductionHost
     }; // end of RunImpl_with_indices()
 
     template <typename compType>
-    void RunImpl_no_indices(Tgpu alpha, const Tgpu* in_data, Tgpu beta, Tref* out_data)
+    void RunImpl_no_indices(float alpha, const Tgpu* in_data, float beta, Tref* out_data)
     {
-        using reduce::ReduceOpFn;
-        using reduce::PreUnaryOpFn;
-        using reduce::PosUnaryOpFn;
-        using reduce::ReduceOpZeroVal;
-        using reduce::float_equal_one;
-        using reduce::float_equal_zero;
-        using reduce::convert_type;
         using reduce::binop_with_nan_check;
         using reduce::binop_with_nan_check2;
+        using reduce::convert_type;
+        using reduce::float_equal_one;
+        using reduce::float_equal_zero;
+        using reduce::PosUnaryOpFn;
+        using reduce::PreUnaryOpFn;
+        using reduce::ReduceOpFn;
+        using reduce::ReduceOpZeroVal;
 
         auto opReduce = ReduceOpFn<compType>(this->reduceOp);
 
@@ -376,7 +306,7 @@ class miopenReductionHost
 
             // scale the prior dst value and add it to the accumulated value
             if(!float_equal_zero(beta))
-                accuVal += convert_type<compType>(out_data[0] * convert_type<Tref>(beta));
+                accuVal += convert_type<compType>(out_data[0]) * convert_type<compType>(beta);
 
             // store the reduced value to dst location
             out_data[0] = convert_type<Tref>(accuVal);
@@ -402,13 +332,13 @@ class miopenReductionHost
                 // initialize the src index
                 std::fill(dst_index.begin(), dst_index.end(), 0);
 
-                for(int k                       = 0; k < invariantDims.size(); k++)
+                for(int k = 0; k < invariantDims.size(); k++)
                     dst_index[invariantDims[k]] = index_1[k];
 
                 int dst_offset = get_offset_from_index(this->outStrides, dst_index);
 
                 // generate the part of src index belonging to invariant dims
-                for(int k                       = 0; k < invariantDims.size(); k++)
+                for(int k = 0; k < invariantDims.size(); k++)
                     src_index[invariantDims[k]] = index_1[k];
 
                 compType accuVal = ReduceOpZeroVal<compType>(this->reduceOp);
@@ -417,7 +347,7 @@ class miopenReductionHost
                 for(const auto& index_2 : indexes_2)
                 {
                     // generate the part of src index belonging to toReduce dims
-                    for(int k                      = 0; k < toReduceDims.size(); k++)
+                    for(int k = 0; k < toReduceDims.size(); k++)
                         src_index[toReduceDims[k]] = index_2[k];
 
                     auto src_offset = get_offset_from_index(this->inStrides, src_index);
@@ -438,7 +368,7 @@ class miopenReductionHost
                 // scale the prior dst value and add it to the accumulated value
                 if(!float_equal_zero(beta))
                     accuVal +=
-                        convert_type<compType>(out_data[dst_offset] * convert_type<Tref>(beta));
+                        convert_type<compType>(out_data[dst_offset]) * convert_type<compType>(beta);
 
                 // store the reduced value to dst location
                 out_data[dst_offset] = convert_type<Tref>(accuVal);

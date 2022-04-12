@@ -1,50 +1,58 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Softmax Layer &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Layer Fusion" href="fusion.html" />
     <link rel="prev" title="Pooling Layer" href="pooling.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +66,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -75,6 +83,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +91,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -166,12 +177,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
@@ -454,6 +459,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,11 +494,13 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="apireference.html">API Reference</a> &raquo;</li>
         
@@ -501,7 +509,7 @@
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/softmax.rst.txt" rel="nofollow"> View page source</a>
           
         
@@ -520,26 +528,26 @@
 <p>Softmax type and layers</p>
 <div class="section" id="miopensoftmaxalgorithm-t">
 <h2>miopenSoftmaxAlgorithm_t<a class="headerlink" href="#miopensoftmaxalgorithm-t" title="Permalink to this headline">¶</a></h2>
-<dl class="type">
-<dt id="_CPPv224miopenSoftmaxAlgorithm_t">
-<span id="miopenSoftmaxAlgorithm_t"></span><span class="target" id="group__softmax_1gaf2376aefd82e3d6e08df6da4810ffdfe"></span><em class="property">enum </em><code class="descclassname"></code><code class="descname">miopenSoftmaxAlgorithm_t</code><a class="headerlink" href="#_CPPv224miopenSoftmaxAlgorithm_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv424miopenSoftmaxAlgorithm_t">
+<span id="_CPPv324miopenSoftmaxAlgorithm_t"></span><span id="_CPPv224miopenSoftmaxAlgorithm_t"></span><span class="target" id="group__softmax_1gaf2376aefd82e3d6e08df6da4810ffdfe"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSoftmaxAlgorithm_t</span></span></span><a class="headerlink" href="#_CPPv424miopenSoftmaxAlgorithm_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Softmax implementation algorithms </p>
 <p><em>Values:</em></p>
-<dl class="enumerator">
-<dt id="_CPPv219MIOPEN_SOFTMAX_FAST">
-<span class="target" id="miopen_8h_1gaf2376aefd82e3d6e08df6da4810ffdfea7d462f643547b89ea8460c3b1d58b8d8"></span><code class="descname">MIOPEN_SOFTMAX_FAST</code> = 0<a class="headerlink" href="#_CPPv219MIOPEN_SOFTMAX_FAST" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N24miopenSoftmaxAlgorithm_t19MIOPEN_SOFTMAX_FASTE">
+<span id="_CPPv3N24miopenSoftmaxAlgorithm_t19MIOPEN_SOFTMAX_FASTE"></span><span id="_CPPv2N24miopenSoftmaxAlgorithm_t19MIOPEN_SOFTMAX_FASTE"></span><span class="target" id="miopen_8h_1gaf2376aefd82e3d6e08df6da4810ffdfea7d462f643547b89ea8460c3b1d58b8d8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_SOFTMAX_FAST</span></span></span><a class="headerlink" href="#_CPPv4N24miopenSoftmaxAlgorithm_t19MIOPEN_SOFTMAX_FASTE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>straightforward softmax </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv223MIOPEN_SOFTMAX_ACCURATE">
-<span class="target" id="miopen_8h_1gaf2376aefd82e3d6e08df6da4810ffdfeacd866d881145ad1a323c4a589986cf5e"></span><code class="descname">MIOPEN_SOFTMAX_ACCURATE</code> = 1<a class="headerlink" href="#_CPPv223MIOPEN_SOFTMAX_ACCURATE" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N24miopenSoftmaxAlgorithm_t23MIOPEN_SOFTMAX_ACCURATEE">
+<span id="_CPPv3N24miopenSoftmaxAlgorithm_t23MIOPEN_SOFTMAX_ACCURATEE"></span><span id="_CPPv2N24miopenSoftmaxAlgorithm_t23MIOPEN_SOFTMAX_ACCURATEE"></span><span class="target" id="miopen_8h_1gaf2376aefd82e3d6e08df6da4810ffdfeacd866d881145ad1a323c4a589986cf5e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_SOFTMAX_ACCURATE</span></span></span><a class="headerlink" href="#_CPPv4N24miopenSoftmaxAlgorithm_t23MIOPEN_SOFTMAX_ACCURATEE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>scaled softmax by maximum value in input domain </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv218MIOPEN_SOFTMAX_LOG">
-<span class="target" id="miopen_8h_1gaf2376aefd82e3d6e08df6da4810ffdfead27f321be1aa13300ebb2d175a3666c5"></span><code class="descname">MIOPEN_SOFTMAX_LOG</code> = 2<a class="headerlink" href="#_CPPv218MIOPEN_SOFTMAX_LOG" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N24miopenSoftmaxAlgorithm_t18MIOPEN_SOFTMAX_LOGE">
+<span id="_CPPv3N24miopenSoftmaxAlgorithm_t18MIOPEN_SOFTMAX_LOGE"></span><span id="_CPPv2N24miopenSoftmaxAlgorithm_t18MIOPEN_SOFTMAX_LOGE"></span><span class="target" id="miopen_8h_1gaf2376aefd82e3d6e08df6da4810ffdfead27f321be1aa13300ebb2d175a3666c5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_SOFTMAX_LOG</span></span></span><a class="headerlink" href="#_CPPv4N24miopenSoftmaxAlgorithm_t18MIOPEN_SOFTMAX_LOGE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>log softmax </p>
 </dd></dl>
 
@@ -548,22 +556,20 @@
 </div>
 <div class="section" id="miopensoftmaxmode-t">
 <h2>miopenSoftmaxMode_t<a class="headerlink" href="#miopensoftmaxmode-t" title="Permalink to this headline">¶</a></h2>
-<dl class="type">
-<dt id="_CPPv219miopenSoftmaxMode_t">
-<span id="miopenSoftmaxMode_t"></span><span class="target" id="group__softmax_1gaea670eae33cee9aee53d48624cf28d7d"></span><em class="property">enum </em><code class="descclassname"></code><code class="descname">miopenSoftmaxMode_t</code><a class="headerlink" href="#_CPPv219miopenSoftmaxMode_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv419miopenSoftmaxMode_t">
+<span id="_CPPv319miopenSoftmaxMode_t"></span><span id="_CPPv219miopenSoftmaxMode_t"></span><span class="target" id="group__softmax_1gaea670eae33cee9aee53d48624cf28d7d"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSoftmaxMode_t</span></span></span><a class="headerlink" href="#_CPPv419miopenSoftmaxMode_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Softmax modes </p>
 <p><em>Values:</em></p>
-<dl class="enumerator">
-<dt id="_CPPv228MIOPEN_SOFTMAX_MODE_INSTANCE">
-<span class="target" id="miopen_8h_1gaea670eae33cee9aee53d48624cf28d7dabab93ef42b0ec7744b4fb8ab83d700a3"></span><code class="descname">MIOPEN_SOFTMAX_MODE_INSTANCE</code> = 0<a class="headerlink" href="#_CPPv228MIOPEN_SOFTMAX_MODE_INSTANCE" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19miopenSoftmaxMode_t28MIOPEN_SOFTMAX_MODE_INSTANCEE">
+<span id="_CPPv3N19miopenSoftmaxMode_t28MIOPEN_SOFTMAX_MODE_INSTANCEE"></span><span id="_CPPv2N19miopenSoftmaxMode_t28MIOPEN_SOFTMAX_MODE_INSTANCEE"></span><span class="target" id="miopen_8h_1gaea670eae33cee9aee53d48624cf28d7dabab93ef42b0ec7744b4fb8ab83d700a3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_SOFTMAX_MODE_INSTANCE</span></span></span><a class="headerlink" href="#_CPPv4N19miopenSoftmaxMode_t28MIOPEN_SOFTMAX_MODE_INSTANCEE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>compute per image (N) across C, H, W </p>
 </dd></dl>
 
-<dl class="enumerator">
-<dt id="_CPPv227MIOPEN_SOFTMAX_MODE_CHANNEL">
-<span class="target" id="miopen_8h_1gaea670eae33cee9aee53d48624cf28d7daf5c13b390d4b6132b51976a92f0f3029"></span><code class="descname">MIOPEN_SOFTMAX_MODE_CHANNEL</code><p>=</p>
-<p>        1</p>
-<a class="headerlink" href="#_CPPv227MIOPEN_SOFTMAX_MODE_CHANNEL" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19miopenSoftmaxMode_t27MIOPEN_SOFTMAX_MODE_CHANNELE">
+<span id="_CPPv3N19miopenSoftmaxMode_t27MIOPEN_SOFTMAX_MODE_CHANNELE"></span><span id="_CPPv2N19miopenSoftmaxMode_t27MIOPEN_SOFTMAX_MODE_CHANNELE"></span><span class="target" id="miopen_8h_1gaea670eae33cee9aee53d48624cf28d7daf5c13b390d4b6132b51976a92f0f3029"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_SOFTMAX_MODE_CHANNEL</span></span></span><a class="headerlink" href="#_CPPv4N19miopenSoftmaxMode_t27MIOPEN_SOFTMAX_MODE_CHANNELE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>compute per spatial location (H, W) per image (N) across C </p>
 </dd></dl>
 
@@ -572,111 +578,111 @@
 </div>
 <div class="section" id="miopensoftmaxforward">
 <h2>miopenSoftmaxForward<a class="headerlink" href="#miopensoftmaxforward" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv220miopenSoftmaxForward14miopenHandle_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv">
-<span id="miopenSoftmaxForward__miopenHandle_t.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP"></span><span class="target" id="group__softmax_1ga088ac959b8d1c7bfb599290549a0d8bf"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSoftmaxForward</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, <em class="property">const</em> void *<em>x</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, void *<em>y</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv220miopenSoftmaxForward14miopenHandle_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv420miopenSoftmaxForward14miopenHandle_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv">
+<span id="_CPPv320miopenSoftmaxForward14miopenHandle_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv"></span><span id="_CPPv220miopenSoftmaxForward14miopenHandle_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv"></span><span id="miopenSoftmaxForward__miopenHandle_t.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP"></span><span class="target" id="group__softmax_1ga088ac959b8d1c7bfb599290549a0d8bf"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSoftmaxForward</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">beta</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">yDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv420miopenSoftmaxForward14miopenHandle_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute a softmax forward layer. </p>
 <p>This API only implements the SOFTMAX_MODE_CHANNEL in SOFTMAX_ACCURATE path.</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">alpha</span></code>: Floating point scaling factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">xDesc</span></code>: Tensor descriptor for data input tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">x</span></code>: Data tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">beta</span></code>: Floating point shift factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">yDesc</span></code>: Tensor descriptor for output data tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">y</span></code>: Data tensor y (output) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>alpha</strong> – Floating point scaling factor, allocated on the host (input) </p></li>
+<li><p><strong>xDesc</strong> – Tensor descriptor for data input tensor x (input) </p></li>
+<li><p><strong>x</strong> – Data tensor x (input) </p></li>
+<li><p><strong>beta</strong> – Floating point shift factor, allocated on the host (input) </p></li>
+<li><p><strong>yDesc</strong> – Tensor descriptor for output data tensor y (input) </p></li>
+<li><p><strong>y</strong> – Data tensor y (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopensoftmaxbackward">
 <h2>miopenSoftmaxBackward<a class="headerlink" href="#miopensoftmaxbackward" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv221miopenSoftmaxBackward14miopenHandle_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv">
-<span id="miopenSoftmaxBackward__miopenHandle_t.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP"></span><span class="target" id="group__softmax_1gabd108f05c9c5a41a5e07c0b2146eda17"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSoftmaxBackward</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, <em class="property">const</em> void *<em>y</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dyDesc</em>, <em class="property">const</em> void *<em>dy</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dxDesc</em>, void *<em>dx</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv221miopenSoftmaxBackward14miopenHandle_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421miopenSoftmaxBackward14miopenHandle_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv">
+<span id="_CPPv321miopenSoftmaxBackward14miopenHandle_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv"></span><span id="_CPPv221miopenSoftmaxBackward14miopenHandle_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv"></span><span id="miopenSoftmaxBackward__miopenHandle_t.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP"></span><span class="target" id="group__softmax_1gabd108f05c9c5a41a5e07c0b2146eda17"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSoftmaxBackward</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">yDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dyDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dy</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">beta</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dxDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421miopenSoftmaxBackward14miopenHandle_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute a softmax backwards layer. </p>
 <p>This API only implements the SOFTMAX_MODE_CHANNEL in SOFTMAX_ACCURATE path.</p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">alpha</span></code>: Floating point scaling factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">yDesc</span></code>: Tensor descriptor for input data tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">y</span></code>: Data tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">dyDesc</span></code>: Tensor descriptor for input data tensor dy (input) </li>
-<li><code class="docutils literal"><span class="pre">dy</span></code>: Data delta tensor dy (input) </li>
-<li><code class="docutils literal"><span class="pre">beta</span></code>: Floating point shift factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">dxDesc</span></code>: Tensor descriptor for data output tensor dx (input) </li>
-<li><code class="docutils literal"><span class="pre">dx</span></code>: Output data delta tensor dx (output) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>alpha</strong> – Floating point scaling factor, allocated on the host (input) </p></li>
+<li><p><strong>yDesc</strong> – Tensor descriptor for input data tensor y (input) </p></li>
+<li><p><strong>y</strong> – Data tensor y (input) </p></li>
+<li><p><strong>dyDesc</strong> – Tensor descriptor for input data tensor dy (input) </p></li>
+<li><p><strong>dy</strong> – Data delta tensor dy (input) </p></li>
+<li><p><strong>beta</strong> – Floating point shift factor, allocated on the host (input) </p></li>
+<li><p><strong>dxDesc</strong> – Tensor descriptor for data output tensor dx (input) </p></li>
+<li><p><strong>dx</strong> – Output data delta tensor dx (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopensoftmaxforward-v2">
 <h2>miopenSoftmaxForward_V2<a class="headerlink" href="#miopensoftmaxforward-v2" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv223miopenSoftmaxForward_V214miopenHandle_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv24miopenSoftmaxAlgorithm_t19miopenSoftmaxMode_t">
-<span id="miopenSoftmaxForward_V2__miopenHandle_t.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP.miopenSoftmaxAlgorithm_t.miopenSoftmaxMode_t"></span><span class="target" id="group__softmax_1gae24128e0a87bb590c1da34fc215dbfa1"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSoftmaxForward_V2</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>xDesc</em>, <em class="property">const</em> void *<em>x</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, void *<em>y</em>, <a class="reference internal" href="#_CPPv224miopenSoftmaxAlgorithm_t" title="miopenSoftmaxAlgorithm_t">miopenSoftmaxAlgorithm_t</a> <em>algorithm</em>, <a class="reference internal" href="#_CPPv219miopenSoftmaxMode_t" title="miopenSoftmaxMode_t">miopenSoftmaxMode_t</a> <em>mode</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv223miopenSoftmaxForward_V214miopenHandle_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv24miopenSoftmaxAlgorithm_t19miopenSoftmaxMode_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv423miopenSoftmaxForward_V214miopenHandle_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv24miopenSoftmaxAlgorithm_t19miopenSoftmaxMode_t">
+<span id="_CPPv323miopenSoftmaxForward_V214miopenHandle_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv24miopenSoftmaxAlgorithm_t19miopenSoftmaxMode_t"></span><span id="_CPPv223miopenSoftmaxForward_V214miopenHandle_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv24miopenSoftmaxAlgorithm_t19miopenSoftmaxMode_t"></span><span id="miopenSoftmaxForward_V2__miopenHandle_t.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP.miopenSoftmaxAlgorithm_t.miopenSoftmaxMode_t"></span><span class="target" id="group__softmax_1gae24128e0a87bb590c1da34fc215dbfa1"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSoftmaxForward_V2</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">beta</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">yDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span>, <a class="reference internal" href="#_CPPv424miopenSoftmaxAlgorithm_t" title="miopenSoftmaxAlgorithm_t"><span class="n"><span class="pre">miopenSoftmaxAlgorithm_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">algorithm</span></span>, <a class="reference internal" href="#_CPPv419miopenSoftmaxMode_t" title="miopenSoftmaxMode_t"><span class="n"><span class="pre">miopenSoftmaxMode_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv423miopenSoftmaxForward_V214miopenHandle_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv24miopenSoftmaxAlgorithm_t19miopenSoftmaxMode_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute a softmax forward layer with expanded modes and algorithms. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">alpha</span></code>: Floating point scaling factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">xDesc</span></code>: Tensor descriptor for data input tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">x</span></code>: Data tensor x (input) </li>
-<li><code class="docutils literal"><span class="pre">beta</span></code>: Floating point shift factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">yDesc</span></code>: Tensor descriptor for output data tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">y</span></code>: Data tensor y (output) </li>
-<li><code class="docutils literal"><span class="pre">algorithm</span></code>: Softmax implementation algorithm (input) </li>
-<li><code class="docutils literal"><span class="pre">mode</span></code>: Softmax mode (input) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>alpha</strong> – Floating point scaling factor, allocated on the host (input) </p></li>
+<li><p><strong>xDesc</strong> – Tensor descriptor for data input tensor x (input) </p></li>
+<li><p><strong>x</strong> – Data tensor x (input) </p></li>
+<li><p><strong>beta</strong> – Floating point shift factor, allocated on the host (input) </p></li>
+<li><p><strong>yDesc</strong> – Tensor descriptor for output data tensor y (input) </p></li>
+<li><p><strong>y</strong> – Data tensor y (output) </p></li>
+<li><p><strong>algorithm</strong> – Softmax implementation algorithm (input) </p></li>
+<li><p><strong>mode</strong> – Softmax mode (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopensoftmaxbackward-v2">
 <h2>miopenSoftmaxBackward_V2<a class="headerlink" href="#miopensoftmaxbackward-v2" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv224miopenSoftmaxBackward_V214miopenHandle_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv24miopenSoftmaxAlgorithm_t19miopenSoftmaxMode_t">
-<span id="miopenSoftmaxBackward_V2__miopenHandle_t.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP.miopenSoftmaxAlgorithm_t.miopenSoftmaxMode_t"></span><span class="target" id="group__softmax_1ga5ba1576b309bb73380da933098558808"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSoftmaxBackward_V2</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> void *<em>alpha</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>yDesc</em>, <em class="property">const</em> void *<em>y</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dyDesc</em>, <em class="property">const</em> void *<em>dy</em>, <em class="property">const</em> void *<em>beta</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>dxDesc</em>, void *<em>dx</em>, <a class="reference internal" href="#_CPPv224miopenSoftmaxAlgorithm_t" title="miopenSoftmaxAlgorithm_t">miopenSoftmaxAlgorithm_t</a> <em>algorithm</em>, <a class="reference internal" href="#_CPPv219miopenSoftmaxMode_t" title="miopenSoftmaxMode_t">miopenSoftmaxMode_t</a> <em>mode</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv224miopenSoftmaxBackward_V214miopenHandle_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv24miopenSoftmaxAlgorithm_t19miopenSoftmaxMode_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv424miopenSoftmaxBackward_V214miopenHandle_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv24miopenSoftmaxAlgorithm_t19miopenSoftmaxMode_t">
+<span id="_CPPv324miopenSoftmaxBackward_V214miopenHandle_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv24miopenSoftmaxAlgorithm_t19miopenSoftmaxMode_t"></span><span id="_CPPv224miopenSoftmaxBackward_V214miopenHandle_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv24miopenSoftmaxAlgorithm_t19miopenSoftmaxMode_t"></span><span id="miopenSoftmaxBackward_V2__miopenHandle_t.voidCP.miopenTensorDescriptor_tC.voidCP.miopenTensorDescriptor_tC.voidCP.voidCP.miopenTensorDescriptor_tC.voidP.miopenSoftmaxAlgorithm_t.miopenSoftmaxMode_t"></span><span class="target" id="group__softmax_1ga5ba1576b309bb73380da933098558808"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSoftmaxBackward_V2</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">alpha</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">yDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dyDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dy</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">beta</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dxDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dx</span></span>, <a class="reference internal" href="#_CPPv424miopenSoftmaxAlgorithm_t" title="miopenSoftmaxAlgorithm_t"><span class="n"><span class="pre">miopenSoftmaxAlgorithm_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">algorithm</span></span>, <a class="reference internal" href="#_CPPv419miopenSoftmaxMode_t" title="miopenSoftmaxMode_t"><span class="n"><span class="pre">miopenSoftmaxMode_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv424miopenSoftmaxBackward_V214miopenHandle_tPKvK24miopenTensorDescriptor_tPKvK24miopenTensorDescriptor_tPKvPKvK24miopenTensorDescriptor_tPv24miopenSoftmaxAlgorithm_t19miopenSoftmaxMode_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute a softmax backwards layer with expanded modes and algorithms. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">alpha</span></code>: Floating point scaling factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">yDesc</span></code>: Tensor descriptor for input data tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">y</span></code>: Data tensor y (input) </li>
-<li><code class="docutils literal"><span class="pre">dyDesc</span></code>: Tensor descriptor for input data tensor dy (input) </li>
-<li><code class="docutils literal"><span class="pre">dy</span></code>: Data delta tensor dy (input) </li>
-<li><code class="docutils literal"><span class="pre">beta</span></code>: Floating point shift factor, allocated on the host (input) </li>
-<li><code class="docutils literal"><span class="pre">dxDesc</span></code>: Tensor descriptor for data output tensor dx (input) </li>
-<li><code class="docutils literal"><span class="pre">dx</span></code>: Output data delta tensor dx (output) </li>
-<li><code class="docutils literal"><span class="pre">algorithm</span></code>: Softmax implementation algorithm (input) </li>
-<li><code class="docutils literal"><span class="pre">mode</span></code>: Softmax mode (input) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>alpha</strong> – Floating point scaling factor, allocated on the host (input) </p></li>
+<li><p><strong>yDesc</strong> – Tensor descriptor for input data tensor y (input) </p></li>
+<li><p><strong>y</strong> – Data tensor y (input) </p></li>
+<li><p><strong>dyDesc</strong> – Tensor descriptor for input data tensor dy (input) </p></li>
+<li><p><strong>dy</strong> – Data delta tensor dy (input) </p></li>
+<li><p><strong>beta</strong> – Floating point shift factor, allocated on the host (input) </p></li>
+<li><p><strong>dxDesc</strong> – Tensor descriptor for data output tensor dx (input) </p></li>
+<li><p><strong>dx</strong> – Output data delta tensor dx (output) </p></li>
+<li><p><strong>algorithm</strong> – Softmax implementation algorithm (input) </p></li>
+<li><p><strong>mode</strong> – Softmax mode (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
@@ -687,29 +693,29 @@
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="fusion.html" class="btn btn-neutral float-right" title="Layer Fusion" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="pooling.html" class="btn btn-neutral" title="Pooling Layer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="fusion.html" class="btn btn-neutral float-right" title="Layer Fusion" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="pooling.html" class="btn btn-neutral float-left" title="Pooling Layer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -718,34 +724,16 @@
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

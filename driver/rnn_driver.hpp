@@ -34,6 +34,7 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
+#include "random.hpp"
 #include <../test/verify.hpp>
 #include <algorithm>
 #include <cstdlib>
@@ -363,7 +364,7 @@ std::vector<int> RNNDriver<Tgpu, Tref>::GetWeightTensorLengthsFromCmdLine()
     int wei_bi = 1;
     if((inflags.GetValueInt("bidirection")) == 1)
         wei_bi = 2;
-    wei_oh     = wei_hh * wei_bi;
+    wei_oh = wei_hh * wei_bi;
 
     int wei_sc = 1;
     if((inflags.GetValueStr("mode")) == "lstm")
@@ -402,7 +403,7 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect RNN Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     miopenRNNBiasMode_t biasMode;
@@ -417,7 +418,7 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect bias Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     miopenRNNDirectionMode_t directionMode;
@@ -432,7 +433,7 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect direction Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     miopenRNNInputMode_t inMode;
@@ -447,7 +448,7 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect input Mode\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     miopenRNNAlgo_t algo;
@@ -462,7 +463,7 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     else
     {
         printf("Incorrect RNN algorithm\n");
-        exit(0);
+        exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
     if(inflags.GetValueInt("use_dropout"))
@@ -562,7 +563,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    uint32_t ctx     = 0;
+    uint32_t ctx = 0;
 #endif
 
     in_dev           = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
@@ -618,10 +619,11 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     int layer = inflags.GetValueInt("num_layer");
     int bidir = inflags.GetValueInt("bidirection");
 
-    reserveSpace_sz = 2 * (inflags.GetValueStr("mode") == "lstm"
-                               ? 6
-                               : (inflags.GetValueStr("mode") == "gru" ? 4 : 1)) *
-                      layer * inputBatchLenSum * hid_h * (bidir + 1);
+    reserveSpace_sz =
+        2 *
+        (inflags.GetValueStr("mode") == "lstm" ? 6
+                                               : (inflags.GetValueStr("mode") == "gru" ? 4 : 1)) *
+        layer * inputBatchLenSum * hid_h * (bidir + 1);
     if(inflags.GetValueInt("use_dropout"))
     {
         reserveSpace_sz += (layer - 1) * inputBatchLenSum * hid_h * (bidir + 1);
@@ -667,19 +669,19 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = static_cast<Tgpu>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
+        in[i] = static_cast<Tgpu>((static_cast<double>(scale * GET_RAND()) * (1.0 / RAND_MAX)));
     }
 
     for(int i = 0; i < hy_sz; i++)
     {
-        hx[i] = static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+        hx[i] = static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
     }
 
     if((inflags.GetValueStr("mode")) == "lstm")
     {
         for(int i = 0; i < hy_sz; i++)
         {
-            cx[i] = static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+            cx[i] = static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
         }
     }
 
@@ -687,12 +689,14 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < out_sz; i++)
         {
-            dout[i] = static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+            dout[i] =
+                static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
         }
 
         for(int i = 0; i < hy_sz; i++)
         {
-            dhy[i] = static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+            dhy[i] =
+                static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
         }
 
         if((inflags.GetValueStr("mode")) == "lstm")
@@ -700,7 +704,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             for(int i = 0; i < hy_sz; i++)
             {
                 dcy[i] =
-                    static_cast<Tgpu>((scale * static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+                    static_cast<Tgpu>((scale * static_cast<double>(GET_RAND()) * (1.0 / RAND_MAX)));
             }
         }
     }
@@ -718,7 +722,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     for(int i = 0; i < wei_sz; i++)
     {
         wei[i] =
-            static_cast<Tgpu>((scale * static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5)));
+            static_cast<Tgpu>((scale * static_cast<double>((GET_RAND()) * (1.0 / RAND_MAX) - 0.5)));
     }
 
     if(inflags.GetValueInt("dump_output"))

@@ -1,50 +1,58 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Kernel Cache &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Performance Database" href="perfdatabase.html" />
     <link rel="prev" title="Debugging and Logging" href="DebugAndLogging.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +66,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -75,6 +83,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +91,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -166,12 +177,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
@@ -454,6 +459,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,18 +494,20 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
       <li>Kernel Cache</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/cache.md.txt" rel="nofollow"> View page source</a>
           
         
@@ -513,25 +521,25 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="kernel-cache">
-<span id="kernel-cache"></span><h1>Kernel Cache<a class="headerlink" href="#kernel-cache" title="Permalink to this headline">¶</a></h1>
-<p>MIOpen will cache binary kernels to disk, so they don't need to be compiled the next time the application is run. This cache is stored by default in <code class="docutils literal"><span class="pre">$HOME/.cache/miopen</span></code>. This location can be customized at build time by setting the <code class="docutils literal"><span class="pre">MIOPEN_CACHE_DIR</span></code> cmake variable.</p>
+  <div class="tex2jax_ignore mathjax_ignore section" id="kernel-cache">
+<h1>Kernel Cache<a class="headerlink" href="#kernel-cache" title="Permalink to this headline">¶</a></h1>
+<p>MIOpen will cache binary kernels to disk, so they don’t need to be compiled the next time the application is run. This cache is stored by default in <code class="docutils literal notranslate"><span class="pre">$HOME/.cache/miopen</span></code>. This location can be customized at build time by setting the <code class="docutils literal notranslate"><span class="pre">MIOPEN_CACHE_DIR</span></code> cmake variable.</p>
 <div class="section" id="clear-the-cache">
-<span id="clear-the-cache"></span><h2>Clear the cache<a class="headerlink" href="#clear-the-cache" title="Permalink to this headline">¶</a></h2>
-<p>The cache can be cleared by simply deleting the cache directory (i.e., <code class="docutils literal"><span class="pre">$HOME/.cache/miopen</span></code>). This should only be needed for development purposes or to free disk space. The cache does not need to be cleared when upgrading MIOpen.</p>
+<h2>Clear the cache<a class="headerlink" href="#clear-the-cache" title="Permalink to this headline">¶</a></h2>
+<p>The cache can be cleared by simply deleting the cache directory (i.e., <code class="docutils literal notranslate"><span class="pre">$HOME/.cache/miopen</span></code>). This should only be needed for development purposes or to free disk space. The cache does not need to be cleared when upgrading MIOpen.</p>
 </div>
 <div class="section" id="disabling-the-cache">
-<span id="disabling-the-cache"></span><h2>Disabling the cache<a class="headerlink" href="#disabling-the-cache" title="Permalink to this headline">¶</a></h2>
-<p>The are several ways to disable the cache. This is generally useful for development purposes. The cache can be disabled during build by either setting <code class="docutils literal"><span class="pre">MIOPEN_CACHE_DIR</span></code> to an empty string, or setting <code class="docutils literal"><span class="pre">BUILD_DEV=ON</span></code> when configuring cmake. The cache can also be disabled at runtime by setting the <code class="docutils literal"><span class="pre">MIOPEN_DISABLE_CACHE</span></code> environment variable to true.</p>
+<h2>Disabling the cache<a class="headerlink" href="#disabling-the-cache" title="Permalink to this headline">¶</a></h2>
+<p>The are several ways to disable the cache. This is generally useful for development purposes. The cache can be disabled during build by either setting <code class="docutils literal notranslate"><span class="pre">MIOPEN_CACHE_DIR</span></code> to an empty string, or setting <code class="docutils literal notranslate"><span class="pre">BUILD_DEV=ON</span></code> when configuring cmake. The cache can also be disabled at runtime by setting the <code class="docutils literal notranslate"><span class="pre">MIOPEN_DISABLE_CACHE</span></code> environment variable to true.</p>
 </div>
 <div class="section" id="updating-miopen-and-removing-the-cache">
-<span id="updating-miopen-and-removing-the-cache"></span><h2>Updating MIOpen and removing the cache<a class="headerlink" href="#updating-miopen-and-removing-the-cache" title="Permalink to this headline">¶</a></h2>
-<p>For MIOpen version 2.3 and earlier, if the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., <code class="docutils literal"><span class="pre">rm</span> <span class="pre">-rf</span> <span class="pre">$HOME/.cache/miopen/&lt;miopen-version-number&gt;</span></code>. More information about the cache can be found <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html">here</a>.</p>
-<p>For MIOpen version 2.4 and later, MIOpen's kernel cache directory is versioned so that users' cached kernels will not collide when upgrading from earlier version.</p>
+<h2>Updating MIOpen and removing the cache<a class="headerlink" href="#updating-miopen-and-removing-the-cache" title="Permalink to this headline">¶</a></h2>
+<p>For MIOpen version 2.3 and earlier, if the compiler changes, or the user modifies the kernels then the cache must be deleted for the MIOpen version in use; e.g., <code class="docutils literal notranslate"><span class="pre">rm</span> <span class="pre">-rf</span> <span class="pre">$HOME/.cache/miopen/&lt;miopen-version-number&gt;</span></code>. More information about the cache can be found <a class="reference external" href="https://rocmsoftwareplatform.github.io/MIOpen/doc/html/cache.html">here</a>.</p>
+<p>For MIOpen version 2.4 and later, MIOpen’s kernel cache directory is versioned so that users’ cached kernels will not collide when upgrading from earlier version.</p>
 </div>
 <div class="section" id="installing-pre-compiled-kernels">
-<span id="installing-pre-compiled-kernels"></span><h2>Installing pre-compiled kernels<a class="headerlink" href="#installing-pre-compiled-kernels" title="Permalink to this headline">¶</a></h2>
-<p>GPU architecture-specific pre-compiled kernel packages are available in the ROCm package repositories, to reduce the startup latency of MIOpen kernels. In essence, these packages have the kernel cache file mentioned above and install them in the ROCm installation directory along with other MIOpen artifacts. Thus, when launching a kernel, MIOpen will first check for the existence of a kernel in the kernel cache installed in the MIOpen installation directory. If the file does not exist or the required kernel is not found, the kernel is compiled and placed in the user's kernel cache.</p>
+<h2>Installing pre-compiled kernels<a class="headerlink" href="#installing-pre-compiled-kernels" title="Permalink to this headline">¶</a></h2>
+<p>GPU architecture-specific pre-compiled kernel packages are available in the ROCm package repositories, to reduce the startup latency of MIOpen kernels. In essence, these packages have the kernel cache file mentioned above and install them in the ROCm installation directory along with other MIOpen artifacts. Thus, when launching a kernel, MIOpen will first check for the existence of a kernel in the kernel cache installed in the MIOpen installation directory. If the file does not exist or the required kernel is not found, the kernel is compiled and placed in the user’s kernel cache.</p>
 <p>These packages are optional for the functioning of MIOpen and must be separately installed from MIOpen. Users who wish to conserve disk space may choose not to install these packages at the cost of higher startup latency. Users have the flexibility to only install kernel packages for installed device architecture, thus minimizing disk space usage.</p>
 <p>Please refer to the MIOpen installation instructions for guidance on installing the MIOpen kernels package.</p>
 </div>
@@ -542,29 +550,29 @@
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="perfdatabase.html" class="btn btn-neutral float-right" title="Performance Database" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="DebugAndLogging.html" class="btn btn-neutral" title="Debugging and Logging" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="perfdatabase.html" class="btn btn-neutral float-right" title="Performance Database" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="DebugAndLogging.html" class="btn btn-neutral float-left" title="Debugging and Logging" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -573,34 +581,16 @@
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

@@ -68,7 +68,8 @@
 #define CBA_DEBUG_VALUES 0
 
 //"Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)",
-typedef enum {
+typedef enum
+{
     miopen_fusion_cbna = 0,
     miopen_fusion_cna  = 1,
     miopen_fusion_na   = 2,
@@ -288,7 +289,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
         }
         mdg.WriteToFile("/tmp/mdgraph.dot");
         std::cerr << "Graph written to /tmp/mdgraph.dot" << std::endl;
-        exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS); // NOLINT (concurrency-mt-unsafe)
     }
 
     if(inflags.GetValueInt("time") == 1)
@@ -300,7 +301,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     if(fusion_mode > 6 || fusion_mode < 0)
     {
         std::cout << "Fusion mode out of range.\n Exiting..." << std::endl;
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
     if(fusion_mode != miopen_fusion_cba && fusion_mode != miopen_fusion_ca &&
        fusion_mode != miopen_fusion_cb)
@@ -466,7 +467,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetBNParametersFromCmdLineArgs()
     else
     {
         printf("Incorrect Batch Normalization Mode\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     return miopenStatusSuccess;
@@ -540,7 +541,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::createSaveBuffers()
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    int status                 = 0;
+    int status   = 0;
 #endif
 
     if(status != CL_SUCCESS)
@@ -558,8 +559,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    int status                 = 0;
-    uint32_t ctx               = 0;
+    int status   = 0;
+    uint32_t ctx = 0;
 #endif
 
     if(useBatchNorm)
@@ -592,7 +593,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
         if(status != CL_SUCCESS)
         {
             printf("Error copying data to GPU\n");
-            exit(EXIT_FAILURE);
+            exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
         }
     }
     else
@@ -612,8 +613,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    int status                 = 0;
-    uint32_t ctx               = 0;
+    int status   = 0;
+    uint32_t ctx = 0;
 #endif
 
     size_t in_sz  = GetTensorSize(inputTensor);
@@ -672,8 +673,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                            // static_cast<Tgpu>(1.0))); // 1.0;
             bias[i] = 10.;
 #else
-            scale[i]           = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            bias[i]            = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            scale[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            bias[i]  = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
 #endif
         }
         status |= scale_dev->ToGPU(q, scale.data());
@@ -761,7 +762,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
     if(miopenError != miopenStatusSuccess)
     {
         std::cerr << "BatchNormActivInference plan not supported." << std::endl;
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     for(int it = 0; it < iters; it++)
@@ -844,7 +845,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
     if(miopenError != miopenStatusSuccess)
     {
         std::cerr << plan_error_str << " plan not supported." << std::endl;
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     for(int it = 0; it < iters; it++)
@@ -901,7 +902,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
             std::cerr << "ConvBiasActivInference plan not supported." << std::endl;
         else
             std::cerr << "ConvActivInference plan not supported." << std::endl;
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     for(int it = 0; it < iters; it++)
@@ -1139,7 +1140,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     {
         printf("Something went wrong.\nBad batch normalization mode in host kernel "
                "selection.\nExiting...\n\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
     // C+N mode so we are done
     if(fusion_mode == miopen_fusion_cn)

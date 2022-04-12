@@ -1,50 +1,58 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Loss Function Layer &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Dropout Layer" href="dropout.html" />
     <link rel="prev" title="Layer Fusion" href="fusion.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +66,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.14.0
               </div>
             
           
@@ -75,6 +83,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +91,40 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -166,12 +177,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="embed.html#full-configuration-line">Full configuration line:</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="driver.html">MIOpenDriver</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#building-the-driver">Building the Driver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#base-arguments">Base Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="driver.html#executing-miopendriver">Executing MIOpenDriver</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="DebugAndLogging.html">Debugging and Logging</a><ul>
@@ -454,6 +459,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,11 +494,13 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
           <li><a href="apireference.html">API Reference</a> &raquo;</li>
         
@@ -501,7 +509,7 @@
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/loss.rst.txt" rel="nofollow"> View page source</a>
           
         
@@ -520,14 +528,14 @@
 <p>The loss function layer API documentation</p>
 <div class="section" id="miopenctclossalgo-t">
 <h2>miopenCTCLossAlgo_t<a class="headerlink" href="#miopenctclossalgo-t" title="Permalink to this headline">¶</a></h2>
-<dl class="type">
-<dt id="_CPPv219miopenCTCLossAlgo_t">
-<span id="miopenCTCLossAlgo_t"></span><span class="target" id="group__LossFunction_1ga3a791761ce6a39c117116a1f0075b2c6"></span><em class="property">enum </em><code class="descclassname"></code><code class="descname">miopenCTCLossAlgo_t</code><a class="headerlink" href="#_CPPv219miopenCTCLossAlgo_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv419miopenCTCLossAlgo_t">
+<span id="_CPPv319miopenCTCLossAlgo_t"></span><span id="_CPPv219miopenCTCLossAlgo_t"></span><span class="target" id="group__LossFunction_1ga3a791761ce6a39c117116a1f0075b2c6"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenCTCLossAlgo_t</span></span></span><a class="headerlink" href="#_CPPv419miopenCTCLossAlgo_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Algorithms available to execute the CTC loss operation </p>
 <p><em>Values:</em></p>
-<dl class="enumerator">
-<dt id="_CPPv234MIOPEN_CTC_LOSS_ALGO_DETERMINISTIC">
-<span class="target" id="group__LossFunction_1gga3a791761ce6a39c117116a1f0075b2c6ad74fca207ff5f01cc77f0d50efc155a1"></span><code class="descname">MIOPEN_CTC_LOSS_ALGO_DETERMINISTIC</code> = 0<a class="headerlink" href="#_CPPv234MIOPEN_CTC_LOSS_ALGO_DETERMINISTIC" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N19miopenCTCLossAlgo_t34MIOPEN_CTC_LOSS_ALGO_DETERMINISTICE">
+<span id="_CPPv3N19miopenCTCLossAlgo_t34MIOPEN_CTC_LOSS_ALGO_DETERMINISTICE"></span><span id="_CPPv2N19miopenCTCLossAlgo_t34MIOPEN_CTC_LOSS_ALGO_DETERMINISTICE"></span><span class="target" id="group__LossFunction_1gga3a791761ce6a39c117116a1f0075b2c6ad74fca207ff5f01cc77f0d50efc155a1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIOPEN_CTC_LOSS_ALGO_DETERMINISTIC</span></span></span><a class="headerlink" href="#_CPPv4N19miopenCTCLossAlgo_t34MIOPEN_CTC_LOSS_ALGO_DETERMINISTICE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Results are guaranteed to be reproducible </p>
 </dd></dl>
 
@@ -536,141 +544,140 @@
 </div>
 <div class="section" id="miopencreatectclossdescriptor">
 <h2>miopenCreateCTCLossDescriptor<a class="headerlink" href="#miopencreatectclossdescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv229miopenCreateCTCLossDescriptorP25miopenCTCLossDescriptor_t">
-<span id="miopenCreateCTCLossDescriptor__miopenCTCLossDescriptor_tP"></span><span class="target" id="group__LossFunction_1gab49c43ec8a3fbdb5860bc3cc3693ed13"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCreateCTCLossDescriptor</code><span class="sig-paren">(</span>miopenCTCLossDescriptor_t *<em>ctcLossDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv229miopenCreateCTCLossDescriptorP25miopenCTCLossDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv429miopenCreateCTCLossDescriptorP25miopenCTCLossDescriptor_t">
+<span id="_CPPv329miopenCreateCTCLossDescriptorP25miopenCTCLossDescriptor_t"></span><span id="_CPPv229miopenCreateCTCLossDescriptorP25miopenCTCLossDescriptor_t"></span><span id="miopenCreateCTCLossDescriptor__miopenCTCLossDescriptor_tP"></span><span class="target" id="group__LossFunction_1gab49c43ec8a3fbdb5860bc3cc3693ed13"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenCreateCTCLossDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenCTCLossDescriptor_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ctcLossDesc</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv429miopenCreateCTCLossDescriptorP25miopenCTCLossDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Create a CTC loss function Descriptor. </p>
-<p>API for creating an uninitialized CTC loss function descriptor. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">ctcLossDesc</span></code>: Pointer to the CTC loss function descriptor type (output) </li>
-</ul>
+<p>API for creating an uninitialized CTC loss function descriptor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ctcLossDesc</strong> – Pointer to the CTC loss function descriptor type (output) </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
 </dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopengetctclossdescriptor">
 <h2>miopenGetCTCLossDescriptor<a class="headerlink" href="#miopengetctclossdescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv226miopenGetCTCLossDescriptor25miopenCTCLossDescriptor_tP16miopenDataType_tPiPb">
-<span id="miopenGetCTCLossDescriptor__miopenCTCLossDescriptor_t.miopenDataType_tP.iP.bP"></span><span class="target" id="group__LossFunction_1ga272a197c1750f5ebddf561712592c9fb"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetCTCLossDescriptor</code><span class="sig-paren">(</span>miopenCTCLossDescriptor_t <em>ctcLossDesc</em>, <a class="reference internal" href="tensor.html#_CPPv216miopenDataType_t" title="miopenDataType_t">miopenDataType_t</a> *<em>dataType</em>, int *<em>blank_label_id</em>, bool *<em>apply_softmax_layer</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv226miopenGetCTCLossDescriptor25miopenCTCLossDescriptor_tP16miopenDataType_tPiPb" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv426miopenGetCTCLossDescriptor25miopenCTCLossDescriptor_tP16miopenDataType_tPiPb">
+<span id="_CPPv326miopenGetCTCLossDescriptor25miopenCTCLossDescriptor_tP16miopenDataType_tPiPb"></span><span id="_CPPv226miopenGetCTCLossDescriptor25miopenCTCLossDescriptor_tP16miopenDataType_tPiPb"></span><span id="miopenGetCTCLossDescriptor__miopenCTCLossDescriptor_t.miopenDataType_tP.iP.bP"></span><span class="target" id="group__LossFunction_1ga272a197c1750f5ebddf561712592c9fb"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenGetCTCLossDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenCTCLossDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ctcLossDesc</span></span>, <a class="reference internal" href="tensor.html#_CPPv416miopenDataType_t" title="miopenDataType_t"><span class="n"><span class="pre">miopenDataType_t</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dataType</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">blank_label_id</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">apply_softmax_layer</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv426miopenGetCTCLossDescriptor25miopenCTCLossDescriptor_tP16miopenDataType_tPiPb" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Retrieves a CTC loss function descriptor’s details. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">ctcLossDesc</span></code>: CTC loss function descriptor (input) </li>
-<li><code class="docutils literal"><span class="pre">dataType</span></code>: Data type used in this CTC loss operation, only fp32 currently supported (output) </li>
-<li><code class="docutils literal"><span class="pre">blank_label_id</span></code>: User defined index for blank label (output) </li>
-<li><code class="docutils literal"><span class="pre">apply_softmax_layer</span></code>: Boolean to toggle input layer property (output) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ctcLossDesc</strong> – CTC loss function descriptor (input) </p></li>
+<li><p><strong>dataType</strong> – Data type used in this CTC loss operation, only fp32 currently supported (output) </p></li>
+<li><p><strong>blank_label_id</strong> – User defined index for blank label (output) </p></li>
+<li><p><strong>apply_softmax_layer</strong> – Boolean to toggle input layer property (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopendestroyctclossdescriptor">
 <h2>miopenDestroyCTCLossDescriptor<a class="headerlink" href="#miopendestroyctclossdescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv230miopenDestroyCTCLossDescriptor25miopenCTCLossDescriptor_t">
-<span id="miopenDestroyCTCLossDescriptor__miopenCTCLossDescriptor_t"></span><span class="target" id="group__LossFunction_1ga12fa67c0c0d3bf42d754c1ebef2a21b5"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenDestroyCTCLossDescriptor</code><span class="sig-paren">(</span>miopenCTCLossDescriptor_t <em>ctcLossDesc</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv230miopenDestroyCTCLossDescriptor25miopenCTCLossDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv430miopenDestroyCTCLossDescriptor25miopenCTCLossDescriptor_t">
+<span id="_CPPv330miopenDestroyCTCLossDescriptor25miopenCTCLossDescriptor_t"></span><span id="_CPPv230miopenDestroyCTCLossDescriptor25miopenCTCLossDescriptor_t"></span><span id="miopenDestroyCTCLossDescriptor__miopenCTCLossDescriptor_t"></span><span class="target" id="group__LossFunction_1ga12fa67c0c0d3bf42d754c1ebef2a21b5"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenDestroyCTCLossDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenCTCLossDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ctcLossDesc</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv430miopenDestroyCTCLossDescriptor25miopenCTCLossDescriptor_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Destroys a CTC loss function descriptor object. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">ctcLossDesc</span></code>: CTC loss function descriptor type (input) </li>
-</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ctcLossDesc</strong> – CTC loss function descriptor type (input) </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
 </dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopensetctclossdescriptor">
 <h2>miopenSetCTCLossDescriptor<a class="headerlink" href="#miopensetctclossdescriptor" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv226miopenSetCTCLossDescriptor25miopenCTCLossDescriptor_t16miopenDataType_tKib">
-<span id="miopenSetCTCLossDescriptor__miopenCTCLossDescriptor_t.miopenDataType_t.iC.b"></span><span class="target" id="group__LossFunction_1ga5e73e4dfa647af184c7e0cb485f15d48"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenSetCTCLossDescriptor</code><span class="sig-paren">(</span>miopenCTCLossDescriptor_t <em>ctcLossDesc</em>, <a class="reference internal" href="tensor.html#_CPPv216miopenDataType_t" title="miopenDataType_t">miopenDataType_t</a> <em>dataType</em>, <em class="property">const</em> int <em>blank_label_id</em>, bool <em>apply_softmax_layer</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv226miopenSetCTCLossDescriptor25miopenCTCLossDescriptor_t16miopenDataType_tKib" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv426miopenSetCTCLossDescriptor25miopenCTCLossDescriptor_t16miopenDataType_tKib">
+<span id="_CPPv326miopenSetCTCLossDescriptor25miopenCTCLossDescriptor_t16miopenDataType_tKib"></span><span id="_CPPv226miopenSetCTCLossDescriptor25miopenCTCLossDescriptor_t16miopenDataType_tKib"></span><span id="miopenSetCTCLossDescriptor__miopenCTCLossDescriptor_t.miopenDataType_t.iC.b"></span><span class="target" id="group__LossFunction_1ga5e73e4dfa647af184c7e0cb485f15d48"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenSetCTCLossDescriptor</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenCTCLossDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ctcLossDesc</span></span>, <a class="reference internal" href="tensor.html#_CPPv416miopenDataType_t" title="miopenDataType_t"><span class="n"><span class="pre">miopenDataType_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">dataType</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">blank_label_id</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">apply_softmax_layer</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv426miopenSetCTCLossDescriptor25miopenCTCLossDescriptor_t16miopenDataType_tKib" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set the details of a CTC loss function descriptor. </p>
-<p><dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">ctcLossDesc</span></code>: CTC loss function descriptor type (input) </li>
-<li><code class="docutils literal"><span class="pre">dataType</span></code>: Data type used in this CTC loss operation, only fp32 currently supported (input) </li>
-<li><code class="docutils literal"><span class="pre">blank_label_id</span></code>: User defined index for blank label, default 0 (input) </li>
-<li><code class="docutils literal"><span class="pre">apply_softmax_layer</span></code>: Boolean to toggle input layer property (input) </li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ctcLossDesc</strong> – CTC loss function descriptor type (input) </p></li>
+<li><p><strong>dataType</strong> – Data type used in this CTC loss operation, only fp32 currently supported (input) </p></li>
+<li><p><strong>blank_label_id</strong> – User defined index for blank label, default 0 (input) </p></li>
+<li><p><strong>apply_softmax_layer</strong> – Boolean to toggle input layer property (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopengetctclossworkspacesize">
 <h2>miopenGetCTCLossWorkspaceSize<a class="headerlink" href="#miopengetctclossworkspacesize" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv229miopenGetCTCLossWorkspaceSize14miopenHandle_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKiPKiPKi19miopenCTCLossAlgo_tK25miopenCTCLossDescriptor_tP6size_t">
-<span id="miopenGetCTCLossWorkspaceSize__miopenHandle_t.miopenTensorDescriptor_tC.miopenTensorDescriptor_tC.iCP.iCP.iCP.miopenCTCLossAlgo_t.miopenCTCLossDescriptor_tC.sP"></span><span class="target" id="group__LossFunction_1ga8dafde7c053b8bcd7a86710a3ab8bb26"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenGetCTCLossWorkspaceSize</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>probsDesc</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>gradientsDesc</em>, <em class="property">const</em> int *<em>labels</em>, <em class="property">const</em> int *<em>labelLengths</em>, <em class="property">const</em> int *<em>inputLengths</em>, <a class="reference internal" href="#_CPPv219miopenCTCLossAlgo_t" title="miopenCTCLossAlgo_t">miopenCTCLossAlgo_t</a> <em>algo</em>, <em class="property">const</em> miopenCTCLossDescriptor_t <em>ctcLossDesc</em>, size_t *<em>workSpaceSize</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv229miopenGetCTCLossWorkspaceSize14miopenHandle_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKiPKiPKi19miopenCTCLossAlgo_tK25miopenCTCLossDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv429miopenGetCTCLossWorkspaceSize14miopenHandle_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKiPKiPKi19miopenCTCLossAlgo_tK25miopenCTCLossDescriptor_tP6size_t">
+<span id="_CPPv329miopenGetCTCLossWorkspaceSize14miopenHandle_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKiPKiPKi19miopenCTCLossAlgo_tK25miopenCTCLossDescriptor_tP6size_t"></span><span id="_CPPv229miopenGetCTCLossWorkspaceSize14miopenHandle_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKiPKiPKi19miopenCTCLossAlgo_tK25miopenCTCLossDescriptor_tP6size_t"></span><span id="miopenGetCTCLossWorkspaceSize__miopenHandle_t.miopenTensorDescriptor_tC.miopenTensorDescriptor_tC.iCP.iCP.iCP.miopenCTCLossAlgo_t.miopenCTCLossDescriptor_tC.sP"></span><span class="target" id="group__LossFunction_1ga8dafde7c053b8bcd7a86710a3ab8bb26"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenGetCTCLossWorkspaceSize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">probsDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">gradientsDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">labels</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">labelLengths</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">inputLengths</span></span>, <a class="reference internal" href="#_CPPv419miopenCTCLossAlgo_t" title="miopenCTCLossAlgo_t"><span class="n"><span class="pre">miopenCTCLossAlgo_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">algo</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenCTCLossDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ctcLossDesc</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">workSpaceSize</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv429miopenGetCTCLossWorkspaceSize14miopenHandle_tK24miopenTensorDescriptor_tK24miopenTensorDescriptor_tPKiPKiPKi19miopenCTCLossAlgo_tK25miopenCTCLossDescriptor_tP6size_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Query the amount of memory required to execute miopenCTCLoss. </p>
-<p>This function calculates the amount of memory required to run the CTC loss function given a CTC loss function descriptor with the specified algorithm. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">probsDesc</span></code>: Tensor descriptor for probabilities (input) </li>
-<li><code class="docutils literal"><span class="pre">gradientsDesc</span></code>: Tensor descriptor for gradients (input) </li>
-<li><code class="docutils literal"><span class="pre">labels</span></code>: Pointer to the flattened labels list (input) </li>
-<li><code class="docutils literal"><span class="pre">labelLengths</span></code>: Pointer to the lengths list for “labels” (input) </li>
-<li><code class="docutils literal"><span class="pre">inputLengths</span></code>: Pointer to the list of the time steps in each batch (input) </li>
-<li><code class="docutils literal"><span class="pre">algo</span></code>: CTC loss algorithm selected (input) </li>
-<li><code class="docutils literal"><span class="pre">ctcLossDesc</span></code>: CTC loss function descriptor type (input) </li>
-<li><code class="docutils literal"><span class="pre">workSpaceSize</span></code>: Number of bytes of workspace required for CTC loss operation with selected algorithm (output) </li>
+<p>This function calculates the amount of memory required to run the CTC loss function given a CTC loss function descriptor with the specified algorithm. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>probsDesc</strong> – Tensor descriptor for probabilities (input) </p></li>
+<li><p><strong>gradientsDesc</strong> – Tensor descriptor for gradients (input) </p></li>
+<li><p><strong>labels</strong> – Pointer to the flattened labels list (input) </p></li>
+<li><p><strong>labelLengths</strong> – Pointer to the lengths list for “labels” (input) </p></li>
+<li><p><strong>inputLengths</strong> – Pointer to the list of the time steps in each batch (input) </p></li>
+<li><p><strong>algo</strong> – CTC loss algorithm selected (input) </p></li>
+<li><p><strong>ctcLossDesc</strong> – CTC loss function descriptor type (input) </p></li>
+<li><p><strong>workSpaceSize</strong> – Number of bytes of workspace required for CTC loss operation with selected algorithm (output) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
 <div class="section" id="miopenctcloss">
 <h2>miopenCTCLoss<a class="headerlink" href="#miopenctcloss" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="_CPPv213miopenCTCLoss14miopenHandle_tK24miopenTensorDescriptor_tPKvPKiPKiPKiPvK24miopenTensorDescriptor_tPv19miopenCTCLossAlgo_tK25miopenCTCLossDescriptor_tPv6size_t">
-<span id="miopenCTCLoss__miopenHandle_t.miopenTensorDescriptor_tC.voidCP.iCP.iCP.iCP.voidP.miopenTensorDescriptor_tC.voidP.miopenCTCLossAlgo_t.miopenCTCLossDescriptor_tC.voidP.s"></span><span class="target" id="group__LossFunction_1gacee71d05d1586529166d6d15ef4d072f"></span> <a class="reference internal" href="handle.html#_CPPv214miopenStatus_t" title="miopenStatus_t">miopenStatus_t</a> <code class="descclassname"></code><code class="descname">miopenCTCLoss</code><span class="sig-paren">(</span>miopenHandle_t <em>handle</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>probsDesc</em>, <em class="property">const</em> void *<em>probs</em>, <em class="property">const</em> int *<em>labels</em>, <em class="property">const</em> int *<em>labelLengths</em>, <em class="property">const</em> int *<em>inputLengths</em>, void *<em>losses</em>, <em class="property">const</em> miopenTensorDescriptor_t <em>gradientsDesc</em>, void *<em>gradients</em>, <a class="reference internal" href="#_CPPv219miopenCTCLossAlgo_t" title="miopenCTCLossAlgo_t">miopenCTCLossAlgo_t</a> <em>algo</em>, <em class="property">const</em> miopenCTCLossDescriptor_t <em>ctcLossDesc</em>, void *<em>workSpace</em>, size_t <em>workSpaceSize</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv213miopenCTCLoss14miopenHandle_tK24miopenTensorDescriptor_tPKvPKiPKiPKiPvK24miopenTensorDescriptor_tPv19miopenCTCLossAlgo_tK25miopenCTCLossDescriptor_tPv6size_t" title="Permalink to this definition">¶</a><br /></dt>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv413miopenCTCLoss14miopenHandle_tK24miopenTensorDescriptor_tPKvPKiPKiPKiPvK24miopenTensorDescriptor_tPv19miopenCTCLossAlgo_tK25miopenCTCLossDescriptor_tPv6size_t">
+<span id="_CPPv313miopenCTCLoss14miopenHandle_tK24miopenTensorDescriptor_tPKvPKiPKiPKiPvK24miopenTensorDescriptor_tPv19miopenCTCLossAlgo_tK25miopenCTCLossDescriptor_tPv6size_t"></span><span id="_CPPv213miopenCTCLoss14miopenHandle_tK24miopenTensorDescriptor_tPKvPKiPKiPKiPvK24miopenTensorDescriptor_tPv19miopenCTCLossAlgo_tK25miopenCTCLossDescriptor_tPv6size_t"></span><span id="miopenCTCLoss__miopenHandle_t.miopenTensorDescriptor_tC.voidCP.iCP.iCP.iCP.voidP.miopenTensorDescriptor_tC.voidP.miopenCTCLossAlgo_t.miopenCTCLossDescriptor_tC.voidP.s"></span><span class="target" id="group__LossFunction_1gacee71d05d1586529166d6d15ef4d072f"></span><span class="pre"></span><span class="w"> </span><a class="reference internal" href="handle.html#_CPPv414miopenStatus_t" title="miopenStatus_t"><span class="n"><span class="pre">miopenStatus_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">miopenCTCLoss</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">miopenHandle_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">probsDesc</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">probs</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">labels</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">labelLengths</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">inputLengths</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">losses</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenTensorDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">gradientsDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">gradients</span></span>, <a class="reference internal" href="#_CPPv419miopenCTCLossAlgo_t" title="miopenCTCLossAlgo_t"><span class="n"><span class="pre">miopenCTCLossAlgo_t</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">algo</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">miopenCTCLossDescriptor_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ctcLossDesc</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">workSpace</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">workSpaceSize</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv413miopenCTCLoss14miopenHandle_tK24miopenTensorDescriptor_tPKvPKiPKiPKiPvK24miopenTensorDescriptor_tPv19miopenCTCLossAlgo_tK25miopenCTCLossDescriptor_tPv6size_t" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Execute forward inference for CTCLoss layer. </p>
-<p>Interface for executing the forward inference pass on a CTCLoss. <dl class="docutils">
-<dt><strong>Return</strong></dt>
-<dd>miopenStatus_t </dd>
-<dt><strong>Parameters</strong></dt>
-<dd><ul class="breatheparameterlist first last simple">
-<li><code class="docutils literal"><span class="pre">handle</span></code>: MIOpen handle (input) </li>
-<li><code class="docutils literal"><span class="pre">probsDesc</span></code>: Tensor descriptor for probabilities (input) </li>
-<li><code class="docutils literal"><span class="pre">probs</span></code>: Pointer to the probabilities tensor (input) </li>
-<li><code class="docutils literal"><span class="pre">labels</span></code>: Pointer to the flattened labels list (input) </li>
-<li><code class="docutils literal"><span class="pre">labelLengths</span></code>: Pointer to the lengths list for “labels” (input) </li>
-<li><code class="docutils literal"><span class="pre">inputLengths</span></code>: Pointer to the list of the time steps in each batch (input) </li>
-<li><code class="docutils literal"><span class="pre">losses</span></code>: Pointer to the computed losses of CTC (Output) </li>
-<li><code class="docutils literal"><span class="pre">gradientsDesc</span></code>: Tensor descriptor for gradients (input) </li>
-<li><code class="docutils literal"><span class="pre">gradients</span></code>: Pointer to the computed gradients of CTC (Output) </li>
-<li><code class="docutils literal"><span class="pre">algo</span></code>: CTC loss algorithm selected (input) </li>
-<li><code class="docutils literal"><span class="pre">ctcLossDesc</span></code>: CTC loss function descriptor type (input) </li>
-<li><code class="docutils literal"><span class="pre">workSpace</span></code>: Pointer to memory allocated for execute CTC loss operation (input) </li>
-<li><code class="docutils literal"><span class="pre">workSpaceSize</span></code>: Number of bytes of workspace required for CTC loss operation with selected algorithm (input) </li>
+<p>Interface for executing the forward inference pass on a CTCLoss. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – MIOpen handle (input) </p></li>
+<li><p><strong>probsDesc</strong> – Tensor descriptor for probabilities (input) </p></li>
+<li><p><strong>probs</strong> – Pointer to the probabilities tensor (input) </p></li>
+<li><p><strong>labels</strong> – Pointer to the flattened labels list (input) </p></li>
+<li><p><strong>labelLengths</strong> – Pointer to the lengths list for “labels” (input) </p></li>
+<li><p><strong>inputLengths</strong> – Pointer to the list of the time steps in each batch (input) </p></li>
+<li><p><strong>losses</strong> – Pointer to the computed losses of CTC (Output) </p></li>
+<li><p><strong>gradientsDesc</strong> – Tensor descriptor for gradients (input) </p></li>
+<li><p><strong>gradients</strong> – Pointer to the computed gradients of CTC (Output) </p></li>
+<li><p><strong>algo</strong> – CTC loss algorithm selected (input) </p></li>
+<li><p><strong>ctcLossDesc</strong> – CTC loss function descriptor type (input) </p></li>
+<li><p><strong>workSpace</strong> – Pointer to memory allocated for execute CTC loss operation (input) </p></li>
+<li><p><strong>workSpaceSize</strong> – Number of bytes of workspace required for CTC loss operation with selected algorithm (input) </p></li>
 </ul>
 </dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>miopenStatus_t </p>
+</dd>
 </dl>
-</p>
 </dd></dl>
 
 </div>
@@ -681,29 +688,29 @@
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="dropout.html" class="btn btn-neutral float-right" title="Dropout Layer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="fusion.html" class="btn btn-neutral" title="Layer Fusion" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="dropout.html" class="btn btn-neutral float-right" title="Dropout Layer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="fusion.html" class="btn btn-neutral float-left" title="Layer Fusion" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -712,34 +719,16 @@
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

@@ -321,7 +321,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                               1, // alpha
                                                               1, // beta
                                                               xDesc[0].GetType()};
-            miopenStatus_t gemm_status = CallGemm(handle,
+            miopenStatus_t gemm_status       = CallGemm(handle,
                                                   gemm_desc,
                                                   workSpace,
                                                   prelayer_shift,
@@ -4029,7 +4029,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                           1, // alpha
                                                           0, // beta
                                                           yDesc[0].GetType()};
-        miopenStatus_t gemm_status = CallGemm(
+        miopenStatus_t gemm_status       = CallGemm(
             handle, gemm_desc, workSpace, 0, w, 0, dx, 0, nullptr, GemmBackend_t::miopengemm);
         if(gemm_status != miopenStatusSuccess)
         {
@@ -4263,12 +4263,11 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         {
             bool use_dropout    = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
             auto prelayer_shift = static_cast<int>(
-                use_dropout
-                    ? (algoMode == miopenRNNdefault && rnnMode == miopenLSTM
-                           ? nLayers * batch_n * hy_stride + nLayers * batch_n * hy_h * bi
-                           : 2 * nLayers * batch_n * hy_stride) +
-                          (li - 1) * batch_n * hy_h * bi
-                    : (li - 1) * batch_n * hy_stride + hid_off);
+                use_dropout ? (algoMode == miopenRNNdefault && rnnMode == miopenLSTM
+                                   ? nLayers * batch_n * hy_stride + nLayers * batch_n * hy_h * bi
+                                   : 2 * nLayers * batch_n * hy_stride) +
+                                  (li - 1) * batch_n * hy_h * bi
+                            : (li - 1) * batch_n * hy_stride + hid_off);
 
             miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
                                                               true,

@@ -140,7 +140,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
  * in a single workgroup. If that doesn't suffice, cut down the number of input rows (verticals)
  * processed in a single workgroup. At last, cut down the input row into chunks.
  *
-*/
+ */
 static inline miopenStatus_t ComputeInputParams(
     const ConvolutionContext& params,
     int out_lcl_width,
@@ -181,8 +181,7 @@ static inline miopenStatus_t ComputeInputParams(
         else
         {
             MIOPEN_LOG_I2("Can't fit input data into LDS of size "
-                          << lds_size
-                          << " bytes despite row splitting");
+                          << lds_size << " bytes despite row splitting");
             return miopenStatusNotInitialized;
         }
     }
@@ -192,8 +191,7 @@ static inline miopenStatus_t ComputeInputParams(
     if(workgroup_size * params.kernel_size_w > max_lds_elements)
     {
         MIOPEN_LOG_I2("For large filter size " << params.kernel_size_w
-                                               << ", running out of LDS size (bytes) "
-                                               << lds_size);
+                                               << ", running out of LDS size (bytes) " << lds_size);
         return miopenStatusNotInitialized;
     }
 
@@ -208,7 +206,7 @@ static inline miopenStatus_t ComputeInputParams(
  *
  *  Bear in mind that output width chunk is the same as output width if there was
  *  no split.
-*/
+ */
 static inline void ComputeOutputParams(int output_width,
                                        int workgroup_size,
                                        int output_width_chunk,
@@ -219,9 +217,9 @@ static inline void ComputeOutputParams(int output_width,
 {
 
     size_t out_pixels_per_wkitem_by_mod =
-        (output_width_chunk % 4 == 0) ? 4 : (output_width_chunk % 3 == 0)
-                                                ? 3
-                                                : (output_width_chunk % 2 == 0) ? 2 : 1;
+        (output_width_chunk % 4 == 0)
+            ? 4
+            : (output_width_chunk % 3 == 0) ? 3 : (output_width_chunk % 2 == 0) ? 2 : 1;
 
     assert(workgroup_size != 0);
 
@@ -266,7 +264,7 @@ static inline void ComputeOutputParams(int output_width,
  *
  * The number of loops required to process the entire input = n + 1
  * 1 is added to consider the initial unique x values (x*1).
-*/
+ */
 static inline void ComputeNumInputWidthLoops(
     int width,
     int padding,
@@ -274,7 +272,7 @@ static inline void ComputeNumInputWidthLoops(
     int filter_width,
     int& out_n_horizon_read_loops,
     int& out_horizon_last_chunk_valid_pixels // Last iteration may not process all reads
-    )
+)
 {
     if(width == n_horizon_reads)
     {
@@ -361,9 +359,9 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         std::min(result.n_in_data_tiles, (params.n_outputs / params.group_counts));
 
     static const int read_unit =
-        (params.out_width % 4 == 0) ? 4 : (params.out_width % 3 == 0)
-                                              ? 3
-                                              : (params.out_width % 2 == 0) ? 2 : 1;
+        (params.out_width % 4 == 0)
+            ? 4
+            : (params.out_width % 3 == 0) ? 3 : (params.out_width % 2 == 0) ? 2 : 1;
 
     static const std::string READ_TYPE =
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
@@ -388,7 +386,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
                           GRP_SZ) != miopenStatusSuccess ||
        out_n_vert_reads <= 0)
     {
-        return ConvSolution(miopenStatusNotInitialized);
+        return {miopenStatusNotInitialized};
     }
 
     int out_n_vert_read_loops = static_cast<int>(
@@ -411,12 +409,12 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     if(out_n_horizon_read_loops > 2 && params.pad_w != 0)
     {
         MIOPEN_LOG_I2("Padding where split is more than 2 ways is not supported.");
-        return ConvSolution(miopenStatusNotInitialized);
+        return {miopenStatusNotInitialized};
     }
     if(out_n_horizon_read_loops > 1 && params.group_counts > 1)
     {
         MIOPEN_LOG_I2("For large images, group support is missing.");
-        return ConvSolution(miopenStatusNotInitialized);
+        return {miopenStatusNotInitialized};
     }
 
     int out_horizon_last_chunk_valid_read_units = std::ceil(

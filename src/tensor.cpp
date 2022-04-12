@@ -28,6 +28,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_layout.hpp>
 #include <numeric>
 #include <string>
 
@@ -122,6 +123,13 @@ std::size_t TensorDescriptor::GetElementSpace() const
            1;
 }
 
+bool TensorDescriptor::IsPossibleLayout(const std::string& labels, const std::string& layout) const
+{
+    std::vector<size_t> derived_strides;
+    tensor_layout_to_strides(lens, labels, layout, derived_strides);
+    return derived_strides == strides;
+}
+
 std::size_t TensorDescriptor::GetNumBytes() const
 {
     std::size_t typesize = 0;
@@ -133,6 +141,7 @@ std::size_t TensorDescriptor::GetNumBytes() const
     case miopenHalf: typesize = 2; break;
     case miopenInt32:
     case miopenFloat: typesize = 4; break;
+    case miopenDouble: typesize = 8; break;
     }
     return typesize * this->GetElementSpace();
 }
