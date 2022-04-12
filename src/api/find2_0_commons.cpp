@@ -202,9 +202,11 @@ miopenStatus_t miopenLoadSolution(miopenSolution_t* solution, const char* data, 
 
         auto ss = miopen::BinaryDeserializationStream{data, data + size};
 
-        auto& solution_deref = miopen::deref(solution);
-        solution_deref = new miopen::Solution{};
-        ss << *solution_deref;
+        auto& solution_ptr_deref = miopen::deref(solution);
+        solution_ptr_deref       = new miopen::Solution{};
+        auto& solution_deref     = miopen::deref(*solution);
+
+        ss << solution_deref;
 
         if(!ss.HasFinished())
             MIOPEN_THROW(miopenStatusInvalidValue, "Data buffer end has not been reached.");
