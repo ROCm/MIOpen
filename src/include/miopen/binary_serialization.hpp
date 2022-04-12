@@ -101,8 +101,7 @@ public:
 
     BinaryDeserializationStream(const char* begin, const char* end_) : position(begin), end(end_) {}
 
-    template <class Type,
-              std::enable_if_t<std::is_pod<Type>{} && !std::is_pointer<Type>{}, bool> = true>
+    template <class Type, std::enable_if_t<SerializationCriteria<Type>{}, bool> = true>
     BinaryDeserializationStream& operator<<(Type& value)
     {
         if(position + sizeof(Type) > end)
