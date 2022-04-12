@@ -31,6 +31,7 @@
 #include <miopen/miopen.h>
 
 #include <miopen/convolution.hpp>
+#include <miopen/solution.hpp>
 
 #include <vector>
 
@@ -219,6 +220,8 @@ private:
             EXPECT_EQUAL(miopenSaveSolution(solution, solution_binary.data()), miopenStatusSuccess);
             EXPECT_EQUAL(miopenDestroySolution(solution), miopenStatusSuccess);
 
+            ValidateSerializedSolutionMetadata(solution_binary.data());
+
             miopenSolution_t read_solution;
             EXPECT_EQUAL(
                 miopenLoadSolution(&read_solution, solution_binary.data(), solution_binary.size()),
@@ -231,6 +234,17 @@ private:
         EXPECT_EQUAL(miopenDestroyTensorDescriptor(x_desc), miopenStatusSuccess);
         EXPECT_EQUAL(miopenDestroyTensorDescriptor(w_desc), miopenStatusSuccess);
         EXPECT_EQUAL(miopenDestroyTensorDescriptor(y_desc), miopenStatusSuccess);
+    }
+
+    void ValidateSerializedSolutionMetadata(const char* solution_data)
+    {
+        const auto solution_metadata =
+            reinterpret_cast<const Solution::SerializationMetadata*>(solution_data);
+
+        constexpr const auto check_value = Solution::SerializationMetadata::Current();
+
+        EXPECT_EQUAL(solution_metadata->validation_number, check_value.validation_number);
+        EXPECT_EQUAL(solution_metadata->version, check_value.version);
     }
 
     void TestRunSolution(miopenHandle_t handle,
