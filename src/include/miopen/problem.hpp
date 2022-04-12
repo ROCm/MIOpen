@@ -96,7 +96,7 @@ struct Problem : miopenProblem
         case solver::Primitive::Convolution:
             if(stream.IsDeserializing())
                 problem.operator_descriptor = std::make_shared<ConvolutionDescriptor>();
-            stream << *static_cast<ConvolutionDescriptor*>(problem.operator_descriptor.get());
+            stream << *dynamic_cast<ConvolutionDescriptor*>(problem.operator_descriptor.get());
             break;
         case solver::Primitive::Activation:
         case solver::Primitive::Batchnorm:

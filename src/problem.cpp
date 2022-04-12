@@ -83,7 +83,7 @@ const TensorDescriptor& Problem::GetTensorDescriptorChecked(miopenTensorName_t n
 
 conv::ProblemDescription Problem::AsConvolution() const
 {
-    const auto& conv_desc = *static_cast<ConvolutionDescriptor*>(operator_descriptor.get());
+    const auto& conv_desc = *dynamic_cast<ConvolutionDescriptor*>(operator_descriptor.get());
 
     const auto& x_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
@@ -104,7 +104,7 @@ std::vector<Solution> Problem::FindConvSolutions(Handle& handle,
 {
     auto ret = std::vector<Solution>{};
 
-    const auto& conv_desc = *static_cast<ConvolutionDescriptor*>(operator_descriptor.get());
+    const auto& conv_desc = *dynamic_cast<ConvolutionDescriptor*>(operator_descriptor.get());
 
     if(tensor_descriptors.size() != 3)
         MIOPEN_THROW(miopenStatusInvalidValue,
