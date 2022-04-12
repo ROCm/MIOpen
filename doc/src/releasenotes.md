@@ -1,6 +1,16 @@
 
 ## MIOpen Release notes
 
+### 04/12/2022 [2.16.0]
+ - This release includes enahanced support for MI210 and MI250 and various other improvements.
+
+ - Performance data updates for various GPU architectures
+ - Enhanced support for MI210 and MI250
+ - Fix a correctness issue on Navi GPUs due to different warp sizes
+ - Added support for deterministic results
+ - Fixed some precision issues in BatchNorm kernels in Backward direction
+ - Various other bug fixes and minor improvements
+
 ### 11/02/2021 [2.14.0]
 
  - This release consists of various bug fixes and performance improvements
