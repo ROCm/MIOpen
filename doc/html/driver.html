@@ -1,50 +1,58 @@
 
 
 <!DOCTYPE html>
-<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>MIOpenDriver &mdash; MIOpen: AMD&#39;s deep learning library</title>
   
 
   
-  
-  
-  
-
-  
-
-  
-  
-    
-
-  
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Debugging and Logging" href="DebugAndLogging.html" />
     <link rel="prev" title="Building MIOpen for Embedded Systems" href="embed.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -58,7 +66,7 @@
             
             
               <div class="version">
-                2.11.0
+                2.16.0
               </div>
             
           
@@ -75,6 +83,7 @@
           
         </div>
 
+        
         <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
           
             
@@ -82,38 +91,41 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="releasenotes.html">MIOpen Release notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/17/2021 [2.11.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/25/2021 [2.10.0]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/01/2020 [ 2.9.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">10/28/2020 [ 2.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/18/2020 [ 2.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/20/2020 [ 2.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/10/2020 [ 2.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">06/02/2020 [ 2.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/01/2020 [ 2.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">01/24/2020 [ 2.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2019 [ 2.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/25/2019 [ 2.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/13/2019 [ 2.0.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/08/2019 [ 2.0.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">05/03/2019 [ 1.8.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">04/11/2019 [ 1.8.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">02/06/2019 [ 1.7.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/19/2018 [ 1.7.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">11/18/2018 [ 1.6.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/14/2018 [ 1.5.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/30/2018 [ 1.4.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/19/2018 [ 1.4.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/06/2018 [ 1.4.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/30/2018 [ 1.3.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">03/08/2018 [ 1.2.1 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">12/15/2017 [ 1.2.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">09/08/2017 [ 1.1.0 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">08/27/2017 [ 1.0.2 ]</a></li>
-<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#">07/26/2017 [ 1.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id1">04/12/2022 [2.16.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id2">11/02/2021 [2.14.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id3">08/03/2021 [2.12.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id4">05/17/2021 [2.11.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id5">03/25/2021 [2.10.0]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id6">12/01/2020 [ 2.9.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id7">10/28/2020 [ 2.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id8">09/18/2020 [ 2.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id9">08/20/2020 [ 2.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id10">07/10/2020 [ 2.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id11">06/02/2020 [ 2.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id12">03/01/2020 [ 2.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id13">01/24/2020 [ 2.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id14">12/19/2019 [ 2.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id15">09/25/2019 [ 2.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id16">08/13/2019 [ 2.0.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id17">07/08/2019 [ 2.0.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id18">05/03/2019 [ 1.8.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id19">04/11/2019 [ 1.8.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id20">02/06/2019 [ 1.7.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id21">12/19/2018 [ 1.7.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id22">11/18/2018 [ 1.6.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id23">09/14/2018 [ 1.5.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id24">07/30/2018 [ 1.4.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id25">07/19/2018 [ 1.4.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id26">07/06/2018 [ 1.4.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id27">03/30/2018 [ 1.3.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id28">03/08/2018 [ 1.2.1 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id29">12/15/2017 [ 1.2.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id30">09/08/2017 [ 1.1.0 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id31">08/27/2017 [ 1.0.2 ]</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releasenotes.html#id32">07/26/2017 [ 1.0.1 ]</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releasenotes.html#initial-release">06/30/2017 [ 1.0.0 ] Initial release</a></li>
 </ul>
 </li>
@@ -126,11 +138,9 @@
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-miopen-with-pre-built-packages">Installing MIOpen with pre-built packages</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-miopen-kernels-package">Installing MIOpen kernels package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#installing-the-dependencies">Installing the dependencies</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#installing-minimum-dependencies-in-rocm-environment">Installing minimum dependencies in ROCm environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#building-miopen-from-source">Building MIOpen from source</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install.html#configuring-with-cmake">Configuring with cmake</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#for-opencl-run">For OpenCL, run:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#for-the-hip-backend-on-rocm-3-3-and-earlier-run">For the HIP backend on ROCm 3.3 and earlier, run:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#for-the-hip-backend-on-rocm-3-5-and-later-run">For the HIP backend on ROCm 3.5 and later, run:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#setting-up-locations">Setting Up Locations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#system-performance-database-and-user-database">System Performance Database and User Database</a></li>
@@ -241,6 +251,7 @@
 <li class="toctree-l2"><a class="reference internal" href="Getting_Started_FusionAPI.html#performance-comparison-to-non-fused-kernels">Performance Comparison to Non-Fused Kernels</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="MI200AlternateImplementation.html">MI200 MFMA Behavior Specifics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="apireference.html">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="datatypes.html">Datatypes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="handle.html">Handle</a><ul>
@@ -454,6 +465,7 @@
             
           
         </div>
+        
       </div>
     </nav>
 
@@ -488,18 +500,20 @@
 
 
 
+
+
 <div role="navigation" aria-label="breadcrumbs navigation">
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="index.html">Docs</a> &raquo;</li>
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
       <li>MIOpenDriver</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
-            
+          
             <a href="_sources/driver.md.txt" rel="nofollow"> View page source</a>
           
         
@@ -513,85 +527,85 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="miopendriver">
-<span id="miopendriver"></span><h1>MIOpenDriver<a class="headerlink" href="#miopendriver" title="Permalink to this headline">¶</a></h1>
-<p>The <code class="docutils literal"><span class="pre">MIOpenDriver</span></code> enables the user to test the functionality of any particular
-layer in MIOpen in both the forward and backward direction. MIOpen is shipped with <code class="docutils literal"><span class="pre">MIOpenDriver</span></code> and its install directory is <code class="docutils literal"><span class="pre">miopen/bin</span></code> located in the install directory path.</p>
+  <div class="tex2jax_ignore mathjax_ignore section" id="miopendriver">
+<h1>MIOpenDriver<a class="headerlink" href="#miopendriver" title="Permalink to this headline">¶</a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">MIOpenDriver</span></code> enables the user to test the functionality of any particular
+layer in MIOpen in both the forward and backward direction. MIOpen is shipped with <code class="docutils literal notranslate"><span class="pre">MIOpenDriver</span></code> and its install directory is <code class="docutils literal notranslate"><span class="pre">miopen/bin</span></code> located in the install directory path.</p>
 <div class="section" id="building-the-driver">
-<span id="building-the-driver"></span><h2>Building the Driver<a class="headerlink" href="#building-the-driver" title="Permalink to this headline">¶</a></h2>
+<h2>Building the Driver<a class="headerlink" href="#building-the-driver" title="Permalink to this headline">¶</a></h2>
 <p>MIOpenDriver can be build by typing:</p>
-<p><code class="docutils literal"><span class="pre">make</span> <span class="pre">MIOpenDriver</span></code> from the <code class="docutils literal"><span class="pre">build</span></code> directory.</p>
+<p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">MIOpenDriver</span></code> from the <code class="docutils literal notranslate"><span class="pre">build</span></code> directory.</p>
 </div>
 <div class="section" id="base-arguments">
-<span id="base-arguments"></span><h2>Base Arguments<a class="headerlink" href="#base-arguments" title="Permalink to this headline">¶</a></h2>
-<p>All the supported layers in MIOpen can be found by the supported <code class="docutils literal"><span class="pre">base_args</span></code> here:</p>
-<p><code class="docutils literal"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">--help</span></code></p>
+<h2>Base Arguments<a class="headerlink" href="#base-arguments" title="Permalink to this headline">¶</a></h2>
+<p>All the supported layers in MIOpen can be found by the supported <code class="docutils literal notranslate"><span class="pre">base_args</span></code> here:</p>
+<p><code class="docutils literal notranslate"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">--help</span></code></p>
 <p>The supported base arguments:</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">conv</span></code> - Convolutions</li>
-<li><code class="docutils literal"><span class="pre">CBAInfer</span></code> - Convolution+Bias+Activation fusions for inference</li>
-<li><code class="docutils literal"><span class="pre">pool</span></code> - Pooling</li>
-<li><code class="docutils literal"><span class="pre">lrn</span></code> - Local Response Normalization</li>
-<li><code class="docutils literal"><span class="pre">activ</span></code> - Activations</li>
-<li><code class="docutils literal"><span class="pre">softmax</span></code> - Softmax</li>
-<li><code class="docutils literal"><span class="pre">bnorm</span></code> - Batch Normalization</li>
-<li><code class="docutils literal"><span class="pre">rnn</span></code> - Recurrent Neural Networks (including LSTM and GRU)</li>
-<li><code class="docutils literal"><span class="pre">gemm</span></code> - General Matrix Multiplication</li>
-<li><code class="docutils literal"><span class="pre">ctc</span></code> - CTC Loss Function</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">conv</span></code> - Convolutions</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CBAInfer</span></code> - Convolution+Bias+Activation fusions for inference</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pool</span></code> - Pooling</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lrn</span></code> - Local Response Normalization</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">activ</span></code> - Activations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">softmax</span></code> - Softmax</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bnorm</span></code> - Batch Normalization</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rnn</span></code> - Recurrent Neural Networks (including LSTM and GRU)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gemm</span></code> - General Matrix Multiplication</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ctc</span></code> - CTC Loss Function</p></li>
 </ul>
-<p>These base arguments support fp32 float type, but some of the drivers suport further datatypes -- specifically, half precision (fp16), brain float16 (bfp16), and 8-bit integers (int8).
-To toggle half precision simpily add the suffix <code class="docutils literal"><span class="pre">fp16</span></code> to end of the base argument; e.g., <code class="docutils literal"><span class="pre">convfp16</span></code>.
-Likewise, to toggle brain float16 just add the suffix <code class="docutils literal"><span class="pre">bfp16</span></code>, and to use 8-bit integers add <code class="docutils literal"><span class="pre">int8</span></code>.</p>
+<p>These base arguments support fp32 float type, but some of the drivers suport further datatypes – specifically, half precision (fp16), brain float16 (bfp16), and 8-bit integers (int8).
+To toggle half precision simpily add the suffix <code class="docutils literal notranslate"><span class="pre">fp16</span></code> to end of the base argument; e.g., <code class="docutils literal notranslate"><span class="pre">convfp16</span></code>.
+Likewise, to toggle brain float16 just add the suffix <code class="docutils literal notranslate"><span class="pre">bfp16</span></code>, and to use 8-bit integers add <code class="docutils literal notranslate"><span class="pre">int8</span></code>.</p>
 <p>Notes for this release:</p>
 <ul class="simple">
-<li>Only convolutions support bfp16 and int8</li>
-<li>RNN's support fp16 but only on the HIP backend</li>
-<li>CTC loss function only supports fp32</li>
+<li><p>Only convolutions support bfp16 and int8</p></li>
+<li><p>RNN’s support fp16 but only on the HIP backend</p></li>
+<li><p>CTC loss function only supports fp32</p></li>
 </ul>
 <p>Summary of base_args meant for different datatypes and different operations:</p>
 <p><img alt="DatatypeSupport" src="_images/driverTableCrop.png" /></p>
 </div>
 <div class="section" id="executing-miopendriver">
-<span id="executing-miopendriver"></span><h2>Executing MIOpenDriver<a class="headerlink" href="#executing-miopendriver" title="Permalink to this headline">¶</a></h2>
+<h2>Executing MIOpenDriver<a class="headerlink" href="#executing-miopendriver" title="Permalink to this headline">¶</a></h2>
 <p>To execute from the build directory:</p>
-<p><code class="docutils literal"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">*base_arg*</span> <span class="pre">*layer_specific_args*</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">*base_arg*</span> <span class="pre">*layer_specific_args*</span></code></p>
 <p>Or to execute the default configuration simpily run:</p>
-<p><code class="docutils literal"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">*base_arg*</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">*base_arg*</span></code></p>
 <p>MIOpenDriver example usages:</p>
 <ul class="simple">
-<li>Convolution with search on:</li>
+<li><p>Convolution with search on:</p></li>
 </ul>
-<p><code class="docutils literal"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">conv</span> <span class="pre">-W</span> <span class="pre">32</span> <span class="pre">-H</span> <span class="pre">32</span> <span class="pre">-c</span> <span class="pre">3</span> <span class="pre">-k</span> <span class="pre">32</span> <span class="pre">-x</span> <span class="pre">5</span> <span class="pre">-y</span> <span class="pre">5</span> <span class="pre">-p</span> <span class="pre">2</span> <span class="pre">-q</span> <span class="pre">2</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">conv</span> <span class="pre">-W</span> <span class="pre">32</span> <span class="pre">-H</span> <span class="pre">32</span> <span class="pre">-c</span> <span class="pre">3</span> <span class="pre">-k</span> <span class="pre">32</span> <span class="pre">-x</span> <span class="pre">5</span> <span class="pre">-y</span> <span class="pre">5</span> <span class="pre">-p</span> <span class="pre">2</span> <span class="pre">-q</span> <span class="pre">2</span></code></p>
 <ul class="simple">
-<li>Forward convolution with search off:</li>
+<li><p>Forward convolution with search off:</p></li>
 </ul>
-<p><code class="docutils literal"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">conv</span> <span class="pre">-W</span> <span class="pre">32</span> <span class="pre">-H</span> <span class="pre">32</span> <span class="pre">-c</span> <span class="pre">3</span> <span class="pre">-k</span> <span class="pre">32</span> <span class="pre">-x</span> <span class="pre">5</span> <span class="pre">-y</span> <span class="pre">5</span> <span class="pre">-p</span> <span class="pre">2</span> <span class="pre">-q</span> <span class="pre">2</span> <span class="pre">-s</span> <span class="pre">0</span> <span class="pre">-F</span> <span class="pre">1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">conv</span> <span class="pre">-W</span> <span class="pre">32</span> <span class="pre">-H</span> <span class="pre">32</span> <span class="pre">-c</span> <span class="pre">3</span> <span class="pre">-k</span> <span class="pre">32</span> <span class="pre">-x</span> <span class="pre">5</span> <span class="pre">-y</span> <span class="pre">5</span> <span class="pre">-p</span> <span class="pre">2</span> <span class="pre">-q</span> <span class="pre">2</span> <span class="pre">-s</span> <span class="pre">0</span> <span class="pre">-F</span> <span class="pre">1</span></code></p>
 <ul class="simple">
-<li>Convolution with half or bfloat16 input type</li>
+<li><p>Convolution with half or bfloat16 input type</p></li>
 </ul>
-<p><code class="docutils literal"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">convfp16</span> <span class="pre">-W</span> <span class="pre">32</span> <span class="pre">-H</span> <span class="pre">32</span> <span class="pre">-c</span> <span class="pre">3</span> <span class="pre">-k</span> <span class="pre">32</span> <span class="pre">-x</span> <span class="pre">5</span> <span class="pre">-y</span> <span class="pre">5</span> <span class="pre">-p</span> <span class="pre">2</span> <span class="pre">-q</span> <span class="pre">2</span> <span class="pre">-s</span> <span class="pre">0</span> <span class="pre">-F</span> <span class="pre">1</span></code>
-<code class="docutils literal"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">convbfp16</span> <span class="pre">-W</span> <span class="pre">32</span> <span class="pre">-H</span> <span class="pre">32</span> <span class="pre">-c</span> <span class="pre">3</span> <span class="pre">-k</span> <span class="pre">32</span> <span class="pre">-x</span> <span class="pre">5</span> <span class="pre">-y</span> <span class="pre">5</span> <span class="pre">-p</span> <span class="pre">2</span> <span class="pre">-q</span> <span class="pre">2</span> <span class="pre">-s</span> <span class="pre">0</span> <span class="pre">-F</span> <span class="pre">1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">convfp16</span> <span class="pre">-W</span> <span class="pre">32</span> <span class="pre">-H</span> <span class="pre">32</span> <span class="pre">-c</span> <span class="pre">3</span> <span class="pre">-k</span> <span class="pre">32</span> <span class="pre">-x</span> <span class="pre">5</span> <span class="pre">-y</span> <span class="pre">5</span> <span class="pre">-p</span> <span class="pre">2</span> <span class="pre">-q</span> <span class="pre">2</span> <span class="pre">-s</span> <span class="pre">0</span> <span class="pre">-F</span> <span class="pre">1</span></code>
+<code class="docutils literal notranslate"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">convbfp16</span> <span class="pre">-W</span> <span class="pre">32</span> <span class="pre">-H</span> <span class="pre">32</span> <span class="pre">-c</span> <span class="pre">3</span> <span class="pre">-k</span> <span class="pre">32</span> <span class="pre">-x</span> <span class="pre">5</span> <span class="pre">-y</span> <span class="pre">5</span> <span class="pre">-p</span> <span class="pre">2</span> <span class="pre">-q</span> <span class="pre">2</span> <span class="pre">-s</span> <span class="pre">0</span> <span class="pre">-F</span> <span class="pre">1</span></code></p>
 <ul class="simple">
-<li>Pooling with default parameters:</li>
+<li><p>Pooling with default parameters:</p></li>
 </ul>
-<p><code class="docutils literal"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">pool</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">pool</span></code></p>
 <ul class="simple">
-<li>LRN with default parameters and timing on:</li>
+<li><p>LRN with default parameters and timing on:</p></li>
 </ul>
-<p><code class="docutils literal"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">lrn</span> <span class="pre">-t</span> <span class="pre">1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">lrn</span> <span class="pre">-t</span> <span class="pre">1</span></code></p>
 <ul class="simple">
-<li>Batch normalization with spatial fwd train, saving mean and variance tensors:</li>
+<li><p>Batch normalization with spatial fwd train, saving mean and variance tensors:</p></li>
 </ul>
-<p><code class="docutils literal"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">bnorm</span> <span class="pre">-F</span> <span class="pre">1</span> <span class="pre">-n</span> <span class="pre">32</span> <span class="pre">-c</span> <span class="pre">512</span> <span class="pre">-H</span> <span class="pre">16</span> <span class="pre">-W</span> <span class="pre">16</span> <span class="pre">-m</span> <span class="pre">1</span> <span class="pre">-s</span> <span class="pre">1</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">bnorm</span> <span class="pre">-F</span> <span class="pre">1</span> <span class="pre">-n</span> <span class="pre">32</span> <span class="pre">-c</span> <span class="pre">512</span> <span class="pre">-H</span> <span class="pre">16</span> <span class="pre">-W</span> <span class="pre">16</span> <span class="pre">-m</span> <span class="pre">1</span> <span class="pre">-s</span> <span class="pre">1</span></code></p>
 <ul class="simple">
-<li>RNN with forward and backwards pass, no bias, bi-directional and LSTM mode</li>
+<li><p>RNN with forward and backwards pass, no bias, bi-directional and LSTM mode</p></li>
 </ul>
-<p><code class="docutils literal"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">rnn</span> <span class="pre">-n</span> <span class="pre">4,4,4,3,3,3,2,2,2,1</span> <span class="pre">-k</span> <span class="pre">10</span> <span class="pre">-H</span> <span class="pre">512</span> <span class="pre">-W</span> <span class="pre">1024</span> <span class="pre">-l</span> <span class="pre">3</span> <span class="pre">-F</span> <span class="pre">0</span> <span class="pre">-b</span> <span class="pre">0</span> <span class="pre">-r</span> <span class="pre">1</span> <span class="pre">-m</span> <span class="pre">lstm</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">rnn</span> <span class="pre">-n</span> <span class="pre">4,4,4,3,3,3,2,2,2,1</span> <span class="pre">-k</span> <span class="pre">10</span> <span class="pre">-H</span> <span class="pre">512</span> <span class="pre">-W</span> <span class="pre">1024</span> <span class="pre">-l</span> <span class="pre">3</span> <span class="pre">-F</span> <span class="pre">0</span> <span class="pre">-b</span> <span class="pre">0</span> <span class="pre">-r</span> <span class="pre">1</span> <span class="pre">-m</span> <span class="pre">lstm</span></code></p>
 <ul class="simple">
-<li>Printout layer specific input arguments:</li>
+<li><p>Printout layer specific input arguments:</p></li>
 </ul>
-<p><code class="docutils literal"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">*base_arg*</span> <span class="pre">-?</span></code> <strong>OR</strong>  <code class="docutils literal"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">*base_arg*</span> <span class="pre">-h</span> <span class="pre">(--help)</span></code></p>
-<p>Note: By default the CPU verification is turned on. Verification can be disabled using <code class="docutils literal"><span class="pre">-V</span> <span class="pre">0</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">*base_arg*</span> <span class="pre">-?</span></code> <strong>OR</strong>  <code class="docutils literal notranslate"><span class="pre">./bin/MIOpenDriver</span> <span class="pre">*base_arg*</span> <span class="pre">-h</span> <span class="pre">(--help)</span></code></p>
+<p>Note: By default the CPU verification is turned on. Verification can be disabled using <code class="docutils literal notranslate"><span class="pre">-V</span> <span class="pre">0</span></code>.</p>
 </div>
 </div>
 
@@ -600,29 +614,29 @@ Likewise, to toggle brain float16 just add the suffix <code class="docutils lite
            
           </div>
           <footer>
-  
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="DebugAndLogging.html" class="btn btn-neutral float-right" title="Debugging and Logging" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="embed.html" class="btn btn-neutral" title="Building MIOpen for Embedded Systems" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
+        <a href="DebugAndLogging.html" class="btn btn-neutral float-right" title="Debugging and Logging" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="embed.html" class="btn btn-neutral float-left" title="Building MIOpen for Embedded Systems" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Advanced Micro Devices, Inc.
+        &#169; Copyright 2021, Advanced Micro Devices, Inc.
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
@@ -631,34 +645,16 @@ Likewise, to toggle brain float16 just add the suffix <code class="docutils lite
   </div>
   
 
-
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.11.0',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>
