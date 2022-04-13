@@ -456,8 +456,8 @@ ComputeDynamicIGemmWrwKernelArgs(const conv::ProblemDescription& conv_problem,
     int c          = conv_problem.GetOutChannels();
     int ho         = conv_problem.GetInHeight();
     int wo         = conv_problem.GetInWidth();
-    int stride_h   = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w   = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int stride_h   = conv_problem.GetOutHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w   = conv_problem.GetOutWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
     int dilation_h = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
     int dilation_w = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
     int pad_h      = conv_problem.GetPadH();
@@ -541,8 +541,8 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
     const auto& wo        = ctx.in_width;
     const auto& y         = ctx.kernel_size_h;
     const auto& x         = ctx.kernel_size_w;
-    const auto stride_h   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-    const auto stride_w   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+    const auto stride_h   = ctx.kernel_stride_h;
+    const auto stride_w   = ctx.kernel_stride_w;
     const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
     const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
     const auto& pad_h     = ctx.pad_h;
