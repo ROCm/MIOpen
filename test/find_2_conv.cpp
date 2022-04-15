@@ -76,13 +76,14 @@ private:
         w_dev = handle_deref.Write(w.data);
         y_dev = handle_deref.Write(y.data);
 
-        miopenHandle_t handle;
+        miopenHandle_t handle = &handle_deref;
         miopenProblem_t problem;
 
-        deref(&handle) = &handle_deref;
         EXPECT_EQUAL(miopenCreateProblem(&problem), miopenStatusSuccess);
 
-        AddConvDescriptor(problem);
+        EXPECT_EQUAL(miopenSetProblemOperatorDescriptor(problem, &filter, direction),
+                     miopenStatusSuccess);
+
         AddConvTensorDescriptors(problem);
 
         std::ignore          = TestFindSolutions(handle, problem);
@@ -94,24 +95,12 @@ private:
         EXPECT_EQUAL(miopenDestroyProblem(problem), miopenStatusSuccess);
     }
 
-    void AddConvDescriptor(miopenProblem_t problem)
-    {
-        miopenConvolutionDescriptor_t conv;
-        miopen::deref(&conv) = new ConvolutionDescriptor{filter};
-        EXPECT_EQUAL(miopenSetProblemOperatorDescriptor(problem, conv, direction),
-                     miopenStatusSuccess);
-        EXPECT_EQUAL(miopenDestroyConvolutionDescriptor(conv), miopenStatusSuccess);
-    }
-
     void AddConvTensorDescriptors(miopenProblem_t problem)
     {
         auto test_set_tensor_descriptor = [problem](miopenTensorName_t name,
-                                                    const TensorDescriptor& desc) {
-            miopenTensorDescriptor_t api_desc;
-            miopen::deref(&api_desc) = new TensorDescriptor{desc};
-            EXPECT_EQUAL(miopenSetProblemTensorDescriptor(problem, name, api_desc),
+                                                    TensorDescriptor& desc) {
+            EXPECT_EQUAL(miopenSetProblemTensorDescriptor(problem, name, &desc),
                          miopenStatusSuccess);
-            EXPECT_EQUAL(miopenDestroyTensorDescriptor(api_desc), miopenStatusSuccess);
         };
 
         test_set_tensor_descriptor(miopenTensorConvolutionX, x.desc);
@@ -196,10 +185,7 @@ private:
 
     void TestRunSolutions(miopenHandle_t handle, const std::vector<miopenSolution_t>& solutions)
     {
-        miopenTensorDescriptor_t x_desc, w_desc, y_desc;
-        miopen::deref(&x_desc) = new TensorDescriptor{x.desc};
-        miopen::deref(&w_desc) = new TensorDescriptor{w.desc};
-        miopen::deref(&y_desc) = new TensorDescriptor{y.desc};
+        miopenTensorDescriptor_t x_desc = &x.desc, w_desc = &w.desc, y_desc = &y.desc;
 
         for(const auto& solution : solutions)
         {
@@ -230,10 +216,6 @@ private:
             TestRunSolution(handle, read_solution, names, descriptors, buffers);
             EXPECT_EQUAL(miopenDestroySolution(read_solution), miopenStatusSuccess);
         }
-
-        EXPECT_EQUAL(miopenDestroyTensorDescriptor(x_desc), miopenStatusSuccess);
-        EXPECT_EQUAL(miopenDestroyTensorDescriptor(w_desc), miopenStatusSuccess);
-        EXPECT_EQUAL(miopenDestroyTensorDescriptor(y_desc), miopenStatusSuccess);
     }
 
     void ValidateSerializedSolutionMetadata(const char* solution_data)
@@ -264,8 +246,8 @@ private:
         std::size_t workspace_size;
         checked_get_attr(miopenSolutionAttributeWorkspaceSize, workspace_size);
 
-        auto workspace     = std::vector<char>(workspace_size);
-        auto workspace_dev = workspace_size != 0 ? handle_deref.Write(workspace) : nullptr;
+        auto workspace_dev =
+            workspace_size != 0 ? handle_deref.Write(std::vector<char>(workspace_size)) : nullptr;
 
         const auto checked_run_solution = [&](auto&& descriptors_) {
             EXPECT_EQUAL(miopenRunSolution(handle,
