@@ -71,7 +71,19 @@ void Solution::Run(Handle& handle,
         {
             problem_ = {};
             problem_.SetOperatorDescriptor(&conv_desc);
-            problem_.SetDirection(problem.GetDirection());
+
+            switch(problem.GetDirection())
+            {
+            case miopenProblemDirectionForward:
+                problem_.SetDirection(miopenProblemDirectionBackward);
+                break;
+            case miopenProblemDirectionBackward:
+                problem_.SetDirection(miopenProblemDirectionForward);
+                break;
+            case miopenProblemDirectionBackwardWeight:
+                problem_.SetDirection(miopenProblemDirectionBackwardWeight);
+                break;
+            }
 
             std::swap(x, y);
 
@@ -81,10 +93,10 @@ void Solution::Run(Handle& handle,
         }
     }
 
-    const auto conv_problem = problem.AsConvolution();
+    const auto conv_problem = problem_.AsConvolution();
 
     const auto invoke_ctx = [&]() -> AnyInvokeParams {
-        switch(problem.GetDirection())
+        switch(problem_.GetDirection())
         {
         case miopenProblemDirectionForward:
             return conv::DataInvokeParams(
