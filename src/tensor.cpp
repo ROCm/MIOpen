@@ -152,16 +152,18 @@ int TensorDescriptor::GetVectorLength() const { return this->vector_c; }
 
 std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
 {
-    assert(l.size() <= this->GetSize());
-    return std::inner_product(l.begin(), l.end(), strides.begin(), std::size_t{0});
+    if(this->GetVectorLength()==1)
+    {
+        assert(l.size() <= this->GetSize());
+        return std::inner_product(l.begin(), l.end(), strides.begin(), std::size_t{0});
+    }
+    else
+    {
+        assert(l.size() +1 <= this->GetSize());
+        return std::inner_product(l.begin()+1, l.end(), strides.begin(), static_cast<std::size_t>(*(l.begin())));
+    }
 }
 
-std::size_t TensorDescriptor::GetIndexVect(int ivect, std::initializer_list<int> l) const
-{
-    assert(ivect < this->vector_c);
-    assert(l.size() <= this->GetSize());
-    return std::inner_product(l.begin(), l.end(), strides.begin(), std::size_t{ivect});
-}
 
 std::size_t TensorDescriptor::GetElementSpace() const
 {

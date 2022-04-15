@@ -174,17 +174,11 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::size_t GetIndex(std::initializer_list<int> l) const;
 
-    std::size_t GetIndexVect(int ivect, std::initializer_list<int> l) const;
 
     template <class... Ts>
     std::size_t GetIndex(Ts... is) const
     {
         return this->GetIndex({static_cast<int>(is)...});
-    }
-    template <class Tvec, class... Ts>
-    std::size_t GetIndexVect(Tvec ivec, Ts... is) const
-    {
-        return this->GetIndexVect(static_cast<int>(ivec),{static_cast<int>(is)...});
     }
 
     bool IsPacked() const;

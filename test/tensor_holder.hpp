@@ -250,39 +250,22 @@ struct tensor
     template <class... Ts>
     T& operator()(Ts... xs)
     {
-        if(this->desc.vector_c ==  1)
-        {
-            assert(this->desc.GetIndex(xs...) < data.size());
-            return this->data[this->desc.GetIndex(xs...)];
-        }
-        else
-        {
-            assert(this->desc.GetIndexVect(xs...) < data.size());
-            return this->data[this->desc.GetIndexVect(xs...)];
-        }
+        assert(this->desc.GetIndex(xs...) < data.size());
+        return this->data[this->desc.GetIndex(xs...)];
     }
 
     template <class... Ts>
     const T& operator()(Ts... xs) const
     {
-        if(this->desc.vector_c ==  1)
-        {
-            assert(this->desc.GetIndex(xs...) < data.size());
-            return this->data[this->desc.GetIndex(xs...)];
-        }
-        else
-        {
-            assert(this->desc.GetIndexVect(xs...) < data.size());
-            return this->data[this->desc.GetIndexVect(xs...)];
-        }
+        assert(this->desc.GetIndex(xs...) < data.size());
+        return this->data[this->desc.GetIndex(xs...)];
     }
 
     template <class Integer, Integer N>
     const T& operator()(const std::array<Integer, N>& multi_id) const
     {
         auto f = [&](auto... is) {
-            if(this->desc.vector_c ==  1) return this->desc.GetIndex(is...); 
-            else return this->desc.GetIndexVect(is...); 
+            return this->desc.GetIndex(is...); 
         };
         assert(miopen::unpack(f, multi_id) < data.size());
         return this->data[miopen::unpack(f, multi_id)];

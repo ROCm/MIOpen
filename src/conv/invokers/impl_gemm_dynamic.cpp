@@ -10,6 +10,22 @@
 namespace miopen {
 namespace conv {
 
+static inline uint32_t
+igemm_find_tile_size_with_upper_bound(uint32_t out_size, size_t upper_bound,
+                uint32_t stride, uint32_t dilation, uint32_t filter)
+{
+    // return tile size so that the required input tile(sec_in) is no larger than upper_bound
+    uint32_t n_tiles = 1; 
+    for( ; n_tiles <= out_size ; n_tiles++){
+        uint32_t tile_size = (out_size + n_tiles - 1) / n_tiles;
+        uint32_t sec_in = (tile_size - 1) * stride + 1 + dilation * (filter - 1);
+        if(sec_in <= upper_bound)
+            break;
+    }
+
+    return (out_size + n_tiles - 1) / n_tiles;
+}
+
 static float CallImplGemmDynamicForward1x1(const miopen::Handle& handle,
                                            const ProblemDescription& conv_problem,
                                            ConstData_t src,
@@ -1033,18 +1049,18 @@ InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
     const solver::PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
 {
     const auto& conv_problem = ctx.conv_problem;
-    int hi                   = conv_problem.GetOutHeight();
-    int wi                   = conv_problem.GetOutWidth();
+    int hi                   = conv_problem.GetInHeight();
+    int wi                   = conv_problem.GetInWidth();
     int n                    = conv_problem.GetInBatchSize();
-    int k                    = conv_problem.GetInChannels();
-    int c                    = conv_problem.GetOutChannels();
+    int k                    = conv_problem.GetOutChannels()*config.vector_c; 
+    int c                    = conv_problem.GetInChannels();
     int ks                   = 1;                           
-    int ho                   = conv_problem.GetInHeight();
-    int wo                   = conv_problem.GetInWidth();
-    int stride_h             = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w             = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
-    int dilation_h           = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
-    int dilation_w           = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
+    int ho                   = conv_problem.GetOutHeight();
+    int wo                   = conv_problem.GetOutWidth();
+    int stride_h             = conv_problem.GetKernelStrideH();
+    int stride_w             = conv_problem.GetKernelStrideW();
+    int dilation_h           = conv_problem.GetDilationH();
+    int dilation_w           = conv_problem.GetDilationW();
     int pad_h                = conv_problem.GetPadH();
     int pad_w                = conv_problem.GetPadW();
     int y                    = conv_problem.GetWeightsHeight();
@@ -1052,8 +1068,10 @@ InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
     int group                = conv_problem.GetGroupCount();
     
     // Currentlly we do not tile in H/W dimension, using tile H/W as Ho/Wo, Thus Number of Tile equal to one
-    uint32_t tile_h          = ho;
-    uint32_t tile_w          = wo;
+    uint32_t upper_bound_h = 0xffff;    // 16bit
+    uint32_t upper_bound_w = 0xffff;    // 16bit
+    uint32_t tile_h          = igemm_find_tile_size_with_upper_bound(ho, upper_bound_h, stride_h, dilation_h, y);
+    uint32_t tile_w          = igemm_find_tile_size_with_upper_bound(wo, upper_bound_w, stride_w, dilation_w, x);
     uint32_t ntile_h         = (ho + tile_h - 1) / tile_h;
     uint32_t ntile_w         = (wo + tile_w - 1) / tile_w;
     int tile_hw              = (tile_h<<16)|tile_w;
@@ -1099,7 +1117,7 @@ InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
     opArgs.emplace_back(wi);
     opArgs.emplace_back(n / splits_4G);
     opArgs.emplace_back(k / group);
-    opArgs.emplace_back(c / group / config.vector_c);
+    opArgs.emplace_back(c / group);
     opArgs.emplace_back(group);
     opArgs.emplace_back(ks);
     opArgs.emplace_back(ho);
@@ -1119,6 +1137,32 @@ InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
     opArgs.emplace_back(mdiv_7.magic);
     opArgs.emplace_back(shift_pack_0);
     opArgs.emplace_back(shift_pack_1);
+    std::cout<<"("<<tile_hw<<"),";
+    std::cout<<"("<<ntile_hw<<"),";
+    std::cout<<"("<<hi<<"),";
+    std::cout<<"("<<wi<<"),";
+    std::cout<<"("<<n / splits_4G<<"),";
+    std::cout<<"("<<k / group<<"),";
+    std::cout<<"("<<c / group<<"),";
+    std::cout<<"("<<group<<"),";
+    std::cout<<"("<<ks<<"),";
+    std::cout<<"("<<ho<<"),";
+    std::cout<<"("<<wo<<"),";
+    std::cout<<"("<<stride_hw<<"),";
+    std::cout<<"("<<dilation_hw<<"),";
+    std::cout<<"("<<pad_hw<<"),";
+    std::cout<<"("<<wei_hw<<"),";
+    std::cout<<"("<<move_slice_k<<"),";
+    std::cout<<"("<<mdiv_0.magic<<"),";
+    std::cout<<"("<<mdiv_1.magic<<"),";
+    std::cout<<"("<<mdiv_2.magic<<"),";
+    std::cout<<"("<<mdiv_3.magic<<"),";
+    std::cout<<"("<<mdiv_4.magic<<"),";
+    std::cout<<"("<<mdiv_5.magic<<"),";
+    std::cout<<"("<<mdiv_6.magic<<"),";
+    std::cout<<"("<<mdiv_7.magic<<"),";
+    std::cout<<"("<<shift_pack_0<<"),";
+    std::cout<<"("<<shift_pack_1<<"),";
 
     const auto is_nchwc = ctx.IsLayoutNCHWC();
     if(!is_nchwc) MIOPEN_THROW("Error : Data layout is not in NCHW vector-c format");
@@ -1133,6 +1177,28 @@ InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
             opArgs[0] = OpKernelArg(tensors.in);
             opArgs[1] = OpKernelArg(tensors.w);
             opArgs[2] = OpKernelArg(tensors.out);
+            std::vector<half_float::half> host_in(512);
+            if(tensors.out == nullptr) std::cout<<"tensor out mem alloc fail";
+            if(host_in.data()==nullptr) std::cout<<"host in mem alloc fail";
+            if(tensors.in == nullptr) std::cout<<"tensor in mem alloc fail";
+            auto status = hipMemcpy(host_in.data(), tensors.in, 1024, hipMemcpyDeviceToHost);
+            if(status != hipSuccess)
+             MIOPEN_THROW_HIP_STATUS(status, "Hip error writing to buffer: ");
+            std::cout<<"---------------input before put into kernel Args----------\n";
+            for(int idx = 0; idx<512; idx++){
+                //std::cout<<"("<<idx<<","<<double(host_in[idx])<<")";          
+            }
+
+            std::vector<half_float::half> host_wei(576);
+            if(host_wei.data()==nullptr) std::cout<<"host in mem alloc fail";
+            if(tensors.w == nullptr) std::cout<<"tensor in mem alloc fail";
+            status = hipMemcpy(host_wei.data(), tensors.w, 1152, hipMemcpyDeviceToHost);
+            if(status != hipSuccess)
+             MIOPEN_THROW_HIP_STATUS(status, "Hip error writing to buffer: ");
+            std::cout<<"---------------weight before put into kernel Args----------\n";
+            for(int idx = 0; idx<576; idx++){
+                //std::cout<<"("<<idx<<","<<double(host_wei[idx])<<")";          
+            }
             ker(opArgs);
 
             if(handle.IsProfilingEnabled())

@@ -90,6 +90,10 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
     }
 
     MIOPEN_HANDLE_LOCK
+    std::cout<<"---------Grid Size--------"<<std::endl;
+    std::cout<<gdims[0]<<','<<gdims[1]<<','<<gdims[2]<<std::endl;
+    std::cout<<"---------Block Size--------"<<std::endl;
+    std::cout<<ldims[0]<<','<<ldims[1]<<','<<ldims[2]<<std::endl;
 
     auto status = hipExtModuleLaunchKernel(fun,
                                            gdims[0],

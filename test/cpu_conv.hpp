@@ -65,6 +65,8 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
     std::size_t wei_k_len = wei.desc.GetLengths()[0];
     std::size_t wei_c_len = wei.desc.GetLengths()[1];
 
+    std::size_t vector_len = in.desc.GetVectorLength();
+
     std::size_t wei_k_len_per_group = wei_k_len / group_count;
 
     std::array<std::size_t, ConvDim> in_spatial_len{};
@@ -75,13 +77,14 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
     std::copy_n(wei.desc.GetLengths().begin() + 2, ConvDim, wei_spatial_len.begin());
     std::copy_n(out.desc.GetLengths().begin() + 2, ConvDim, out_spatial_len.begin());
 
+
     // f(x0, x1, xs...)
     // f1(xs...) = f(x0, x1, xs...)
     // f2(xs_array) = f1(xs...)
     // out (n k y x )
     auto par_ford_out_nk_spatial =
         miopen::unpacker(miopen::prepender(par_ford, out_n_len, wei_k_len))(out_spatial_len);
-
+    // Traversal N K Ho Wo of 
     par_ford_out_nk_spatial(
         [&](std::size_t out_n_id, std::size_t out_k_id, auto... out_spatial_id_pack) {
             auto out_spatial_id = make_array(out_spatial_id_pack...);
@@ -115,18 +118,33 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
 
                     if(!out_of_bound)
                     {
-                        std::array<std::size_t, ConvDim + 2> in_id{};
-                        in_id[0] = out_n_id;
-                        in_id[1] = in_c_id;
-                        std::copy_n(in_spatial_id.begin(), ConvDim, in_id.begin() + 2);
-
-                        acc += double(in(in_id)) *
-                               double(wei(out_k_id, wei_c_id, wei_spatial_id_pack...));
+                        if(vector_len > 1)
+                        {
+                            std::array<std::size_t, ConvDim + 3> in_id{};
+                            in_id[1] = out_n_id;
+                            in_id[2] = in_c_id;
+                            std::copy_n(in_spatial_id.begin(), ConvDim, in_id.begin() + 3);
+                            
+                            for(std::size_t i = 0; i<vector_len; i++)
+                            {
+                                in_id[0] = i;
+                                acc += double(in(in_id)) *
+                                       double(wei(i, out_k_id, wei_c_id, wei_spatial_id_pack...));
+                            }
+                        }
+                        else{
+                            std::array<std::size_t, ConvDim + 2> in_id{};
+                            in_id[0] = out_n_id;
+                            in_id[1] = in_c_id;
+                            std::copy_n(in_spatial_id.begin(), ConvDim, in_id.begin() + 2);
+                            acc += double(in(in_id)) *
+                                   double(wei(out_k_id, wei_c_id, wei_spatial_id_pack...));
+                        }
                     }
                 });
             });
 
-            out(out_n_id, out_k_id, out_spatial_id_pack...) = acc;
+            out(out_k_id%vector_len, out_n_id, out_k_id/vector_len, out_spatial_id_pack...) = acc;
         });
 }
 

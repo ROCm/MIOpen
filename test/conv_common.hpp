@@ -158,16 +158,16 @@ struct scalar_gen_random_integer
 
     double operator()() const
     {
-        return static_cast<double>(min_val + GET_RAND() % (max_val - min_val + 1));
+        //return static_cast<double>(min_val + GET_RAND() % (max_val - min_val + 1));
+        return static_cast<double>(1);
     }
 };
 
 struct tensor_elem_gen_one
 {
-    template <class... Ts>
-    double operator()(Ts...) const
+    double operator()() const
     {
-        return 1;
+        return static_cast<double>(1);
     }
 };
 
@@ -287,12 +287,23 @@ struct verify_forward_conv : conv_base<T, Tout>
 
             bool is_int8 =
                 weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4;
+            bool is_vect_c = weights.desc.GetVectorLength() > 1;
             rout.par_for_each([&](auto... is) {
-                if(is_int8)
+                if(is_int8 && !is_vect_c)
                     rout(is...) = Tout(double(rout(is...)) + double(this->bias));
+                else if(is_vect_c)
+                {
+                    for(std::size_t i = 0; i<weights.desc.GetVectorLength(); i++)
+                    rout(i, is...) = double(rout(i, is...)) + double(this->bias);
+                }
                 else
                     rout(is...) = double(rout(is...)) + double(this->bias);
             });
+            std::cout<<"--------------CPU result-------------------\n";
+            for(int idx = 0; idx<rout.data.size(); idx++){
+                std::cout<<"("<<idx<<","<<double(rout.data[idx])<<")";          
+            }
+            std::cout<<"-------------------------------------------\n";
         }
 
         return rout;
@@ -711,7 +722,11 @@ struct verify_forward_conv : conv_base<T, Tout>
                 stats->solver_name += "_fallback";
         }
         rout.data = handle.Read<Tout>(out_dev, rout.data.size());
-
+        std::cout<<"--------------GPU result-------------------\n";
+        for(int idx = 0; idx<rout.data.size(); idx++){
+                std::cout<<"("<<idx<<","<<double(rout.data[idx])<<")";            
+        }
+        std::cout<<"-------------------------------------------\n";
         return rout;
     }
 
@@ -1823,6 +1838,7 @@ struct conv_driver : test_driver
                                 filter_dims.at(0),
                                 filter_dims.at(1)}
                           .generate(tensor_elem_gen_integer{17});
+            
             }
             else if(fil_layout == "CHWN_VECT_C"){
                 weights = tensor<T>{type,
@@ -2130,7 +2146,18 @@ struct conv_driver : test_driver
 
                 input.generate(gen_positive_value);
                 output.generate(gen_positive_value);
-                weights.generate(gen_sign_value);
+                //weights.generate(gen_sign_value);
+                weights.generate(gen_positive_value);
+
+                //for each can not handle vector type looping. manuually setting one.
+                for(int idx = 0; idx<input.data.size(); idx++){
+                    input.data[idx] = 1.0;            
+                }
+                for(int idx = 0; idx<weights.data.size(); idx++){
+                    weights.data[idx] = 1.0;            
+                }
+
+
 
                 auto&& handle = get_handle();
 

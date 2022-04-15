@@ -260,7 +260,7 @@ GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
     const ConvolutionContext& ctx, const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
 {
     const auto& n     = ctx.batch_sz;
-    const auto& k     = ctx.n_outputs;
+    const auto& k     = ctx.n_outputs * config.vector_c;
     const auto& ho    = ctx.out_height;
     const auto& wo    = ctx.out_width;
     const auto& group = ctx.group_counts;
@@ -272,8 +272,12 @@ GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
     auto splits_4G =
         igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
 
-    const auto gemm_m = (n / splits_4G) * ho * wo;
-    const auto gemm_n = k / group;
+    const auto gemm_m = k/group;
+    const auto gemm_n = (n / splits_4G) * ho * wo;
+    
+    printf("(gemm_m, gemm_n) = (%d, %d)", gemm_m, gemm_n);
+    printf("(config.gemm_m_per_block, config.gemm_n_per_block) = (%d, %d)", config.gemm_m_per_block, config.gemm_n_per_block);
+    
     size_t block_size = config.BlockSize();
     size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
                        integer_divide_ceil(gemm_n, config.gemm_n_per_block);
@@ -618,7 +622,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
 
     std::tie(kernel_name, block_size, grid_size, splits_4G) =
         GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(ctx, config);
-
+    std::cout<<"--------------Kernel invoker argu"<<std::endl;
+    std::cout<<kernel_name<<','<<block_size<<','<<grid_size;
     kernel.kernel_file = kernel_name + ".s";
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
