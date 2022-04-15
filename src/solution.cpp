@@ -46,7 +46,7 @@ void Solution::Run(Handle& handle,
     if(problem.GetOperatorDescriptor().GetPrimitive() != solver::Primitive::Convolution)
         MIOPEN_THROW(miopenStatusNotImplemented);
 
-    const auto conv_problem = problem.AsConvolution();
+    auto problem_ = problem;
 
     const auto get_input_checked = [&](auto name, const std::string& name_str) {
         const auto& found = inputs.find(name);
@@ -59,9 +59,29 @@ void Solution::Run(Handle& handle,
         return ret;
     };
 
-    const auto& x = get_input_checked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
-    const auto& w = get_input_checked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
-    const auto& y = get_input_checked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
+    auto x       = get_input_checked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
+    const auto w = get_input_checked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
+    auto y       = get_input_checked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
+
+    {
+        const auto& conv_desc =
+            dynamic_cast<const ConvolutionDescriptor&>(problem.GetOperatorDescriptor());
+
+        if(conv_desc.mode == miopenTranspose)
+        {
+            problem_ = {};
+            problem_.SetOperatorDescriptor(&conv_desc);
+            problem_.SetDirection(problem.GetDirection());
+
+            std::swap(x, y);
+
+            problem_.RegisterTensorDescriptor(miopenTensorConvolutionX, *x.descriptor);
+            problem_.RegisterTensorDescriptor(miopenTensorConvolutionW, *w.descriptor);
+            problem_.RegisterTensorDescriptor(miopenTensorConvolutionY, *y.descriptor);
+        }
+    }
+
+    const auto conv_problem = problem.AsConvolution();
 
     const auto invoke_ctx = [&]() -> AnyInvokeParams {
         switch(problem.GetDirection())

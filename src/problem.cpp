@@ -52,8 +52,8 @@ std::vector<Solution> Problem::FindSolutions(Handle& handle,
     case solver::Primitive::Activation:
     case solver::Primitive::Batchnorm:
     case solver::Primitive::Pooling:
-    case solver::Primitive::Invalid:
-    default: MIOPEN_THROW(miopenStatusNotImplemented); break;
+    default: MIOPEN_THROW(miopenStatusNotImplemented);
+    case solver::Primitive::Invalid: MIOPEN_THROW(miopenStatusInvalidValue);
     }
 
     const auto sorter = [&]() -> std::function<bool(const Solution&, const Solution&)> {
@@ -125,10 +125,16 @@ std::vector<Solution> Problem::FindConvSolutions(Handle& handle,
         switch(direction)
         {
         case miopenProblemDirectionForward:
+            if(conv_desc.mode == miopenTranspose)
+                return conv_desc.BackwardDataGetWorkSpaceSize(handle, w_desc, x_desc, y_desc);
             return conv_desc.ForwardGetWorkSpaceSize(handle, w_desc, x_desc, y_desc);
         case miopenProblemDirectionBackward:
+            if(conv_desc.mode == miopenTranspose)
+                return conv_desc.ForwardGetWorkSpaceSize(handle, w_desc, y_desc, x_desc);
             return conv_desc.BackwardDataGetWorkSpaceSize(handle, w_desc, y_desc, x_desc);
         case miopenProblemDirectionBackwardWeight:
+            if(conv_desc.mode == miopenTranspose)
+                return conv_desc.BackwardWeightsGetWorkSpaceSize(handle, x_desc, y_desc, w_desc);
             return conv_desc.BackwardWeightsGetWorkSpaceSize(handle, y_desc, x_desc, w_desc);
         default: MIOPEN_THROW(miopenStatusNotImplemented);
         }
@@ -143,42 +149,57 @@ std::vector<Solution> Problem::FindConvSolutions(Handle& handle,
 
     switch(direction)
     {
-    case miopenProblemDirectionForward:
-        conv_desc.FindConvFwdAlgorithm(handle,
-                                       x_desc,
-                                       x.get(),
-                                       w_desc,
-                                       w.get(),
-                                       y_desc,
-                                       y.get(),
-                                       max_solutions,
-                                       &found,
-                                       find1_solutions.data(),
-                                       workspace.get(),
-                                       workspace_size,
-                                       options.exhaustive_search);
+    case miopenProblemDirectionForward: {
+        const auto method = conv_desc.mode == miopenTranspose
+                                ? &ConvolutionDescriptor::FindConvFwdAlgorithm
+                                : &ConvolutionDescriptor::FindConvBwdDataAlgorithm;
+
+        (conv_desc.*method)(handle,
+                            x_desc,
+                            x.get(),
+                            w_desc,
+                            w.get(),
+                            y_desc,
+                            y.get(),
+                            max_solutions,
+                            &found,
+                            find1_solutions.data(),
+                            workspace.get(),
+                            workspace_size,
+                            options.exhaustive_search);
         break;
-    case miopenProblemDirectionBackward:
-        conv_desc.FindConvBwdDataAlgorithm(handle,
-                                           y_desc,
-                                           y.get(),
-                                           w_desc,
-                                           w.get(),
-                                           x_desc,
-                                           x.get(),
-                                           max_solutions,
-                                           &found,
-                                           find1_solutions.data(),
-                                           workspace.get(),
-                                           workspace_size,
-                                           options.exhaustive_search);
+    }
+    case miopenProblemDirectionBackward: {
+        const auto method = conv_desc.mode == miopenTranspose
+                                ? &ConvolutionDescriptor::FindConvBwdDataAlgorithm
+                                : &ConvolutionDescriptor::FindConvFwdAlgorithm;
+
+        (conv_desc.*method)(handle,
+                            y_desc,
+                            y.get(),
+                            w_desc,
+                            w.get(),
+                            x_desc,
+                            x.get(),
+                            max_solutions,
+                            &found,
+                            find1_solutions.data(),
+                            workspace.get(),
+                            workspace_size,
+                            options.exhaustive_search);
         break;
-    case miopenProblemDirectionBackwardWeight:
+    }
+    case miopenProblemDirectionBackwardWeight: {
+        decltype(auto) y_desc_ = miopenTranspose ? x_desc : y_desc;
+        decltype(auto) y_      = miopenTranspose ? x : y;
+        decltype(auto) x_desc_ = miopenTranspose ? y_desc : x_desc;
+        decltype(auto) x_      = miopenTranspose ? y : x;
+
         conv_desc.FindConvBwdWeightsAlgorithm(handle,
-                                              y_desc,
-                                              y.get(),
-                                              x_desc,
-                                              x.get(),
+                                              y_desc_,
+                                              y_.get(),
+                                              x_desc_,
+                                              x_.get(),
                                               w_desc,
                                               w.get(),
                                               max_solutions,
@@ -188,6 +209,7 @@ std::vector<Solution> Problem::FindConvSolutions(Handle& handle,
                                               workspace_size,
                                               options.exhaustive_search);
         break;
+    }
     }
 
     ret.reserve(found);
