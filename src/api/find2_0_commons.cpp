@@ -89,7 +89,7 @@ miopenStatus_t miopenDestroySearchOptions(miopenSearchOptions_t options)
 miopenStatus_t miopenSetSearchOption(miopenSearchOptions_t options,
                                      miopenSearchOptionName_t optionName,
                                      size_t valueSize,
-                                     void* value)
+                                     const void* value)
 {
     MIOPEN_LOG_FUNCTION(options, optionName, valueSize, value);
 
@@ -100,7 +100,7 @@ miopenStatus_t miopenSetSearchOption(miopenSearchOptions_t options,
             if(valueSize != sizeof(int))
                 MIOPEN_THROW(miopenStatusBadParm,
                              "Exhaustive search option only accepts values of type int.");
-            miopen::deref(options).exhaustive_search = *reinterpret_cast<int*>(value) != 0;
+            miopen::deref(options).exhaustive_search = *reinterpret_cast<const int*>(value) != 0;
             break;
         case miopenSearchOptionResultsOrder:
             if(valueSize != sizeof(miopenSearchResultsOrder_t))
@@ -108,13 +108,13 @@ miopenStatus_t miopenSetSearchOption(miopenSearchOptions_t options,
                              "Search results order option only accepts values of type "
                              "miopenSearchResultsOrder_t.");
             miopen::deref(options).results_order =
-                *reinterpret_cast<miopenSearchResultsOrder_t*>(value);
+                *reinterpret_cast<const miopenSearchResultsOrder_t*>(value);
             break;
         case miopenSearchOptionWorkspaceLimit:
             if(valueSize != sizeof(size_t))
                 MIOPEN_THROW(miopenStatusBadParm,
                              "Exhaustive search option only accepts values of type size_t.");
-            miopen::deref(options).workspace_limit = *reinterpret_cast<size_t*>(value);
+            miopen::deref(options).workspace_limit = *reinterpret_cast<const size_t*>(value);
             break;
         case miopenSearchOptionInvalid:
         default: MIOPEN_THROW(miopenStatusBadParm, "Invalid value of optionName."); break;
@@ -151,9 +151,9 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
 miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  miopenSolution_t solution,
                                  size_t nInputs,
-                                 miopenTensorName_t* names,
-                                 miopenTensorDescriptor_t* descriptors,
-                                 void** buffers,
+                                 const miopenTensorName_t* names,
+                                 const miopenTensorDescriptor_t* descriptors,
+                                 void* const* buffers,
                                  void* workspace,
                                  size_t workspaceSize)
 {

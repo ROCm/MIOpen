@@ -4736,7 +4736,7 @@ miopenStatus_t miopenDestroySearchOptions(miopenSearchOptions_t options);
 miopenStatus_t miopenSetSearchOption(miopenSearchOptions_t options,
                                      miopenSearchOptionName_t optionName,
                                      size_t valueSize,
-                                     void* value);
+                                     const void* value);
 
 MIOPEN_DECLARE_OBJECT(miopenSolution);
 
@@ -4760,9 +4760,9 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
 miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  miopenSolution_t solution,
                                  size_t nInputs,
-                                 miopenTensorName_t* names,
-                                 miopenTensorDescriptor_t* descriptors,
-                                 void** buffers,
+                                 const miopenTensorName_t* names,
+                                 const miopenTensorDescriptor_t* descriptors,
+                                 void* const* buffers,
                                  void* workspace,
                                  size_t workspaceSize);
 
