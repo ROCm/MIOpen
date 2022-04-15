@@ -64,9 +64,9 @@ struct Solution : miopenSolution
     void SetTime(float value) { time = value; }
     std::size_t GetWorkspaceSize() const { return workspace_required; }
     void SetWorkspaceSize(std::size_t value) { workspace_required = value; }
-    solver::Id GetSolver() const { return solver; }
+    const solver::Id& GetSolver() const { return solver; }
     void SetSolver(solver::Id value) { solver = value; }
-    Problem GetProblem() const { return problem; }
+    const Problem& GetProblem() const { return problem; }
     void SetProblem(Problem value) { problem = std::move(value); }
 
     void Run(Handle& handle,
