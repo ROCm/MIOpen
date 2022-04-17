@@ -304,7 +304,7 @@ BatchedTransposeSolution::BatchedTransposeSolution(const ExecutionContext& ctx,
     kernel_param_heuristic = batched_transpose::HeuristicGet(data_size, batch, height, width);
 }
 
-solver::KernelInfo BatchedTransposeSolution::GetKernel() const
+solver::KernelInfo BatchedTransposeSolution::GetKernelInfo() const
 {
     std::size_t block_size = BATCHED_TRANSPOSE_BLOCK_SIZE;
 #if BATCHED_TRANSPOSE_PERSISTENT
@@ -327,7 +327,7 @@ solver::KernelInfo BatchedTransposeSolution::GetKernel() const
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    MIOPEN_LOG_I2("BatchedTransposeSolution use kernel: " + kernel_name);
+    MIOPEN_LOG_T(kernel_name);
 
     return kernel;
 }
@@ -351,6 +351,8 @@ std::vector<OpKernelArg> BatchedTransposeSolution::GetKernelArg() const
     opArgs.emplace_back(0); // placeholder
     opArgs.emplace_back(height);
     opArgs.emplace_back(width);
+    if(grid_size != static_cast<uint32_t>(grid_size))
+        MIOPEN_THROW("Variable grid size can't be casted to uint32_t safely");
     opArgs.emplace_back(static_cast<uint32_t>(grid_size));
     opArgs.emplace_back(dim_total);
     opArgs.emplace_back(magic_h.magic);
@@ -374,7 +376,7 @@ bool BatchedTransposeSolution::IsSkippable() const
     return height == 1 || width == 1;
 }
 
-size_t BatchedTransposeSolution::GetSize() const
+size_t BatchedTransposeSolution::GetOutputTensorSize() const
 {
     return miopen::GetTypeSize(data_type) * batch * height * width;
 }

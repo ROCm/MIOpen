@@ -1784,6 +1784,8 @@ struct conv_driver : test_driver
         {
             weights         = tensor<T>{weight_tensor_dims}.generate(tensor_elem_gen_integer{17});
             output_channels = weight_tensor_dims.at(0);
+            std::copy(
+                weight_tensor_dims.begin() + 2, weight_tensor_dims.end(), filter_dims.begin());
         }
         else if(spatial_dim == 2)
         {
