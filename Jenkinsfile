@@ -119,9 +119,10 @@ def buildHipClangJob(Map conf=[:]){
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         env.DOCKER_BUILDKIT=1
+        def docker_registry = "docker.io"
         checkout scm
         def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
-        def image = "${NODE_DOCKER_REGISTRY}/miopen_build_cache/miopen:${branch}"
+        def image = "${docker_registry}}/miopen_build_cache/miopen:${branch}"
         def prefixpath = conf.get("prefixpath", "/usr/local")
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
 
