@@ -3763,6 +3763,9 @@ struct PerformanceConfigHipImplicitGemmFwdXdlops
     PerformanceConfigHipImplicitGemmFwdXdlops() : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
     {
     }
+    PerformanceConfigHipImplicitGemmFwdXdlops(bool ) : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
+    {
+    }
     void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue(const ConvolutionContext& ctx);
     bool IsValidValue() const;
@@ -3772,6 +3775,7 @@ struct PerformanceConfigHipImplicitGemmFwdXdlops
     {
         f(s.kernel_id, "kernel_id");
     }
+    bool operator==(const PerformanceConfigHipImplicitGemmFwdXdlops& other) const;
 };
 
 struct ConvHipImplicitGemmFwdXdlops : ConvSolver
@@ -3791,7 +3795,9 @@ struct ConvHipImplicitGemmFwdXdlops : ConvSolver
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceConfigHipImplicitGemmFwdXdlops& config) const;
+                             const PerformanceConfigHipImplicitGemmFwdXdlops& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+    float GetWti(const ConvolutionContext& ) const override {return 0.01f;};
 };
 
 struct AnySolver;
