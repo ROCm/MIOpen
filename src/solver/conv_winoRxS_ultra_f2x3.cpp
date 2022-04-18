@@ -41,7 +41,7 @@
 #include <tuple>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3_MAKE_FASTEST)
+
 
 namespace miopen {
 namespace solver {
@@ -371,7 +371,7 @@ void CopyDataToBuffer(const Handle& handle, const std::vector<T> data, void* buf
 
 bool ConvBinWinogradUltraRxSf2x3::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3{}))
         return false;
 
 #if MIOPEN_BACKEND_HIP
@@ -686,9 +686,6 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
                  reserved_offset,
                  reserved_offset,
                  reserved_offset);
-
-            if(miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3_MAKE_FASTEST{}))
-                handle.ResetKernelTime();
         };
     };
 
