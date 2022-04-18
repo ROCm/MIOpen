@@ -42,6 +42,16 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3)
 
+static inline size_t Ceil(const size_t v, const size_t m)
+{
+    assert(m > 0);
+    return (v + m - 1) / m;
+}
+
+static inline size_t RoundUpToMultiple(size_t val, size_t factor)
+{
+    return Ceil(val, factor) * factor;
+}
 
 namespace miopen {
 namespace solver {
@@ -447,8 +457,10 @@ size_t ConvBinWinogradUltraRxSf2x3::GetWorkspaceSize(const ConvolutionContext& p
     const int out_H = desc.out_h;
     const int out_W = desc.out_w;
 
-    return control_buf_type_size * group_size *
-           ((N * out_H * out_W / (o_tile_step_H * o_tile_step_W) + group_size - 1) / group_size);
+    return control_buf_type_size * RoundUpToMultiple(N * RoundUpToMultiple(out_H, o_tile_step_H) *
+                                                         RoundUpToMultiple(out_W, o_tile_step_W) /
+                                                         (o_tile_step_H * o_tile_step_W),
+                                                     group_size);
 }
 
 ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params) const
