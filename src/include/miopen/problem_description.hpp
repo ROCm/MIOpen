@@ -209,7 +209,7 @@ struct ProblemDescription
     }
     bool IsHalfx8() const
     {
-        return in_data_type == miopenHalfx8 && weights_data_type == miopenHalfx4 &&
+        return in_data_type == miopenHalfx8 && weights_data_type == miopenHalfx8 &&
                out_data_type == miopenHalfx8;
     }
 

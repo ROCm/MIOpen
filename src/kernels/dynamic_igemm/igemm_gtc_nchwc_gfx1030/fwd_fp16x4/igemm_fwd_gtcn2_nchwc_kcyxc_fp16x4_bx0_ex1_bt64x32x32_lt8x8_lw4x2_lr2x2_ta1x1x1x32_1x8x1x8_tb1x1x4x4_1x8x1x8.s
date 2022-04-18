@@ -1176,12 +1176,6 @@ L_igemm_fwd_gtcn2_nchwc_kcyxc_fp16x4_bx0_ex1_bt64x32x32_lt8x8_lw4x2_lr2x2_ta1x1x
     ds_read_b64 v[v_c+10:v_c+10+1], v[v_co_sld] offset:2560
     ds_read_b64 v[v_c+12:v_c+12+1], v[v_co_sld] offset:3072
     ds_read_b64 v[v_c+14:v_c+14+1], v[v_co_sld] offset:3584
-    .cnt = 0
-    .rept 16
-    v_mov_b32 v[v_c + (.cnt)], 72
-    .cnt = .cnt + 1
-    .endr
-    vshuial;
     v_cmp_eq_i32 1, v[v_out_flag]
     s_and_saveexec_b64 s[s_tmp+4:s_tmp+5], vcc
     ;   store to global, m index start:0

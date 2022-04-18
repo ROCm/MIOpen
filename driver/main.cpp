@@ -69,6 +69,7 @@ int main(int argc, char* argv[])
     }
     else if(base_arg == "convfp16" || base_arg == "convfp16x4" || base_arg == "convfp16x8")
     {
+        std::cout << "enter convfp16 driver" << std::endl;
         drv = new ConvDriver<float16, float>();
     }
     else if(base_arg == "convbfp16")

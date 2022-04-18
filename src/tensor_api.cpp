@@ -48,14 +48,20 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
     });
 }
 
-extern "C" miopenStatus_t miopenSet4dTensorDescriptorWithLayout(
-    miopenTensorDescriptor_t tensorDesc, miopenDataType_t dataType, miopenTensorLayout_t tensorLayout, int n, int c, int h, int w)
+extern "C" miopenStatus_t miopenSet4dTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
+                                                                miopenDataType_t dataType,
+                                                                miopenTensorLayout_t tensorLayout,
+                                                                int n,
+                                                                int c,
+                                                                int h,
+                                                                int w)
 {
 
     MIOPEN_LOG_FUNCTION(tensorDesc, dataType, tensorLayout, n, c, h, w);
     return miopen::try_([&] {
         std::initializer_list<int> lens = {n, c, h, w};
-        miopen::deref(tensorDesc)       = miopen::TensorDescriptor(dataType, tensorLayout, lens.begin(), 4);
+        miopen::deref(tensorDesc) =
+            miopen::TensorDescriptor(dataType, tensorLayout, lens.begin(), 4);
     });
 }
 
@@ -102,14 +108,13 @@ extern "C" miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_t t
 
 // Internal API
 // MD: This should not be required to be exported. Temporary hack
-MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorVectorLength(
-    miopenTensorDescriptor_t tensorDesc, int* vectorLength)
+MIOPEN_EXPORT miopenStatus_t
+miopenGet4dTensorDescriptorVectorLength(miopenTensorDescriptor_t tensorDesc, int* vectorLength)
 {
 
     MIOPEN_LOG_FUNCTION(tensorDesc, vectorLength);
-    return miopen::try_([&] {
-        miopen::deref(vectorLength) = miopen::deref(tensorDesc).GetVectorLength();
-    });
+    return miopen::try_(
+        [&] { miopen::deref(vectorLength) = miopen::deref(tensorDesc).GetVectorLength(); });
 }
 
 MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorLengths(

@@ -37,13 +37,13 @@ struct conv2d_driver : conv_driver<T>
                   this->generate_data_limited(this->get_batch_sizes(), 1));
         this->add(this->input_channels,
                   "input_channels",
-                  this->generate_data_limited(this->get_input_channels(), 1, {8}));
+                  this->generate_data_limited(this->get_input_channels(), 1, {32}));
         this->add(this->output_channels,
                   "output_channels",
-                  this->generate_data_limited(this->get_output_channels(), 1, {8}));
+                  this->generate_data_limited(this->get_output_channels(), 1, {64}));
         this->add(this->spatial_dim_elements,
                   "spatial_dim_elements",
-                  this->generate_data_limited(this->get_2d_spatial_dims(), 1, {8, 8}));
+                  this->generate_data_limited(this->get_2d_spatial_dims(), 1, {28, 28}));
         this->add(this->filter_dims,
                   "filter_dims",
                   this->generate_data_limited(this->get_2d_filter_dims(), 2, {3, 3}));

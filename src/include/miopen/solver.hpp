@@ -3750,7 +3750,8 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC : ConvSolver
                              bool disableConfigOverrideFromEnv = false) const;
 };
 
-struct PerformanceConfigAsmImplicitGemmGTCvector : Serializable<PerformanceConfigAsmImplicitGemmGTCvector>
+struct PerformanceConfigAsmImplicitGemmGTCvector
+    : Serializable<PerformanceConfigAsmImplicitGemmGTCvector>
 {
     std::string direction;
     std::string tensor_layout;
@@ -3926,7 +3927,7 @@ struct PerformanceConfigAsmImplicitGemmGTCvector : Serializable<PerformanceConfi
 };
 struct PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC : PerformanceConfigAsmImplicitGemmGTCvector
 {
-    
+
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC(std::string dir,
                                                      std::string layout,
                                                      std::string prec,
@@ -4012,7 +4013,7 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC : PerformanceConfigAsmIm
                                                     spare)
     {
     }
-    
+
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC()
         : PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC("fwd",
                                                            "nchwc_kcyxc",

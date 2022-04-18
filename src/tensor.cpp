@@ -43,7 +43,9 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<std
     this->CalculateStrides();
 }
 
-TensorDescriptor::TensorDescriptor(miopenDataType_t t, miopenTensorLayout_t playout, std::initializer_list<std::size_t> plens)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
+                                   miopenTensorLayout_t playout,
+                                   std::initializer_list<std::size_t> plens)
     : lens(plens), packed(true), type(t), tensorLayout(playout)
 {
     this->CalculateVectorC();
@@ -105,7 +107,7 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    miopenTensorLayout_t layout_in,
                                    std::vector<std::size_t> lens_in,
                                    std::vector<std::size_t> strides_in)
-    :lens(std::move(lens_in)), strides(std::move(strides_in)), type(t), tensorLayout(layout_in)
+    : lens(std::move(lens_in)), strides(std::move(strides_in)), type(t), tensorLayout(layout_in)
 {
     this->CalculateVectorC();
     packed = (this->GetElementSize() == this->GetElementSpace());
@@ -117,21 +119,25 @@ void TensorDescriptor::CalculateStrides()
     strides.resize(lens.size(), 0);
     if(strides.empty())
         return;
-    if(tensorLayout == miopenTensorNCHW_VECT_C){
+    if(tensorLayout == miopenTensorNCHW_VECT_C)
+    {
         lens[1] /= vector_c;
     }
-    else if(tensorLayout == miopenTensorCHWN_VECT_C){
+    else if(tensorLayout == miopenTensorCHWN_VECT_C)
+    {
         lens[0] /= vector_c;
     }
 
     strides.back() = vector_c;
     std::partial_sum(
         lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<std::size_t>());
-    for(int i=0; i<strides.size()-1; i++) strides[i] *= vector_c;
+    for(int i = 0; i < strides.size() - 1; i++)
+        strides[i] *= vector_c;
 }
 
-void TensorDescriptor::CalculateVectorC(){
-    vector_c = ( (type == miopenHalfx8) ? 8 : ( type == miopenHalfx4 ? 4 : 1) );
+void TensorDescriptor::CalculateVectorC()
+{
+    vector_c = ((type == miopenHalfx8) ? 8 : (type == miopenHalfx4 ? 4 : 1));
 }
 
 const std::vector<std::size_t>& TensorDescriptor::GetLengths() const { return lens; }
@@ -144,26 +150,26 @@ int TensorDescriptor::GetSize() const
 std::size_t TensorDescriptor::GetElementSize() const
 {
     assert(lens.size() == strides.size());
-    return std::accumulate(
-        lens.begin(), lens.end(), vector_c, std::multiplies<std::size_t>());
+    return std::accumulate(lens.begin(), lens.end(), vector_c, std::multiplies<std::size_t>());
 }
 miopenDataType_t TensorDescriptor::GetType() const { return this->type; }
+miopenTensorLayout_t TensorDescriptor::GetLayout_t() const { return this->tensorLayout; }
 int TensorDescriptor::GetVectorLength() const { return this->vector_c; }
 
 std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
 {
-    if(this->GetVectorLength()==1)
+    if(this->GetVectorLength() == 1)
     {
         assert(l.size() <= this->GetSize());
         return std::inner_product(l.begin(), l.end(), strides.begin(), std::size_t{0});
     }
     else
     {
-        assert(l.size() +1 <= this->GetSize());
-        return std::inner_product(l.begin()+1, l.end(), strides.begin(), static_cast<std::size_t>(*(l.begin())));
+        assert(l.size() + 1 <= this->GetSize());
+        return std::inner_product(
+            l.begin() + 1, l.end(), strides.begin(), static_cast<std::size_t>(*(l.begin())));
     }
 }
-
 
 std::size_t TensorDescriptor::GetElementSpace() const
 {

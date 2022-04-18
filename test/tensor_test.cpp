@@ -60,8 +60,13 @@ struct tensor_fixture_4_vector : tensor_base
     tensor_fixture_4_vector()
     {
         miopenCreateTensorDescriptor(&tensor);
-        std::vector<size_t> lens = {100, 32, 8, 8};
-        miopenSet4dTensorDescriptorWithLayout(tensor, miopenHalfx4, miopenTensorNCHW_VECT_C, 100, 32, 8, 8);
+        std::size_t n = 100;
+        std::size_t c = 32;
+        std::size_t h = 8;
+        std::size_t w = 8;
+
+        miopenSet4dTensorDescriptorWithLayout(
+            tensor, miopenHalfx4, miopenTensorNCHW_VECT_C, n, c, h, w);
     }
 };
 
@@ -727,17 +732,17 @@ struct tensor_test_suit_4d_vector
     {
         void run()
         {
-            EXPECT(this->get_tensor().GetIndex({0, 0, 0, 0}) == 0);
-            EXPECT(this->get_tensor().GetIndex({0, 0, 0, 1}) == 4);
-            EXPECT(this->get_tensor().GetIndex({0, 0, 0, 2}) == 8);
-            EXPECT(this->get_tensor().GetIndex({0, 0, 1, 0}) == 32);
-            EXPECT(this->get_tensor().GetIndex({0, 0, 1, 1}) == 36);
+            EXPECT(this->get_tensor().GetIndex({0, 0, 0, 0, 0}) == 0);
+            EXPECT(this->get_tensor().GetIndex({1, 0, 0, 0, 0}) == 1);
+            EXPECT(this->get_tensor().GetIndex({2, 0, 0, 0, 0}) == 2);
+            EXPECT(this->get_tensor().GetIndex({3, 0, 0, 0, 0}) == 3);
+            EXPECT(this->get_tensor().GetIndex({0, 0, 0, 0, 1}) == 4);
         }
     };
 
     static void run_tests()
     {
-        run_test<get_tensor_4d>(); 
+        run_test<get_tensor_4d>();
         run_test<get_tensor_4d_strides>();
         run_test<get_tensor_4d_lengths>();
 
@@ -1005,7 +1010,7 @@ int main()
     tensor_test_suit_4d<tensor_fixture_n4d>::run_tests();
     tensor_test_suit_4d<tensor_fixture_n4d_strides>::run_tests();
     tensor_test_suit_4d_bytes<tensor_fixture_n4d_numBytes>::run_tests();
-    
+
     // printf("Running 4-D vector format. \n");
     // 4-dimensional tests with vector format
     tensor_test_suit_4d_vector<tensor_fixture_4_vector>::run_tests();

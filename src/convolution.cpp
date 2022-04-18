@@ -234,7 +234,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
         }
         else
         {
-            out_c = wei_k/wDesc.GetVectorLength();
+            out_c = wei_k / wDesc.GetVectorLength();
 
             for(int i = 0; i < spatial_dim; ++i)
             {
@@ -256,10 +256,13 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
 
     const std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
     std::vector<std::size_t> out_strides;
-    if(yLayout.find("_VECT_")!=std::string::npos){
-        tensor_layout_to_strides_vect(out_lens, default_layout, yLayout, xDesc.GetVectorLength(), out_strides);
+    if(yLayout.find("_VECT_") != std::string::npos)
+    {
+        tensor_layout_to_strides_vect(
+            out_lens, default_layout, yLayout, xDesc.GetVectorLength(), out_strides);
     }
-    else{
+    else
+    {
         tensor_layout_to_strides(out_lens, default_layout, yLayout, out_strides);
     }
     return {(xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4

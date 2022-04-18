@@ -447,21 +447,21 @@ void PerformanceConfigAsmImplicitGemmGTCvector::CopyParameters(
     const PerformanceConfigAsmImplicitGemmGTCvector& other)
 {
     // only copy parameters except spare/index, in case we break the search state
-    direction             = other.direction;
-    tensor_layout         = other.tensor_layout;
-    precision             = other.precision;
-    nxb                   = other.nxb;
-    nxe                   = other.nxe;
-    gemm_m_per_block      = other.gemm_m_per_block;
-    gemm_n_per_block      = other.gemm_n_per_block;
-    gemm_k_per_block      = other.gemm_k_per_block;
-    lanegroup_tile_m      = other.lanegroup_tile_m;
-    lanegroup_tile_n      = other.lanegroup_tile_n;
-    lanegroup_wave_m      = other.lanegroup_wave_m;
-    lanegroup_wave_n      = other.lanegroup_wave_n;
-    lanegroup_repeat_m    = other.lanegroup_repeat_m;
-    lanegroup_repeat_n    = other.lanegroup_repeat_n;
-    vector_c              = other.vector_c;
+    direction          = other.direction;
+    tensor_layout      = other.tensor_layout;
+    precision          = other.precision;
+    nxb                = other.nxb;
+    nxe                = other.nxe;
+    gemm_m_per_block   = other.gemm_m_per_block;
+    gemm_n_per_block   = other.gemm_n_per_block;
+    gemm_k_per_block   = other.gemm_k_per_block;
+    lanegroup_tile_m   = other.lanegroup_tile_m;
+    lanegroup_tile_n   = other.lanegroup_tile_n;
+    lanegroup_wave_m   = other.lanegroup_wave_m;
+    lanegroup_wave_n   = other.lanegroup_wave_n;
+    lanegroup_repeat_m = other.lanegroup_repeat_m;
+    lanegroup_repeat_n = other.lanegroup_repeat_n;
+    vector_c           = other.vector_c;
     std::copy(std::begin(other.tensor_a_thread_lengths),
               std::end(other.tensor_a_thread_lengths),
               std::begin(tensor_a_thread_lengths));
@@ -479,30 +479,31 @@ void PerformanceConfigAsmImplicitGemmGTCvector::CopyParameters(
 std::string PerformanceConfigAsmImplicitGemmGTCvector::ToString() const
 {
     std::ostringstream ss;
-    //ss << ToKernelName();
+    // ss << ToKernelName();
     Serialize(ss);
     return ss.str();
 }
 
-std::string PerformanceConfigAsmImplicitGemmGTCvector::ToKernelName(const ConvolutionContext& ctx) const
+std::string
+PerformanceConfigAsmImplicitGemmGTCvector::ToKernelName(const ConvolutionContext& ctx) const
 {
     std::ostringstream kernel_name;
-    const auto device_name = ctx.GetStream().GetDeviceName();
-    std::string gtc_str    = device_name == "gfx1030" ? "_gtcn2_" : "_gtcn_";
+    const auto device_name    = ctx.GetStream().GetDeviceName();
+    std::string gtc_str       = device_name == "gfx1030" ? "_gtcn2_" : "_gtcn_";
     std::string vec_precision = precision == "Halfx4" ? "fp16x4" : "fp16x8";
-    kernel_name << "igemm_" << direction << gtc_str << tensor_layout << "_" << vec_precision << "_bx"
-                << nxb << "_ex" << nxe << "_bt" << gemm_m_per_block << "x" << gemm_n_per_block
-                << "x" << gemm_k_per_block << "_lt" << lanegroup_tile_m << "x" << lanegroup_tile_n
-                << "_lw" << lanegroup_wave_m << "x" << lanegroup_wave_n << "_lr"
-                << lanegroup_repeat_m << "x" << lanegroup_repeat_n << "_ta" << tensor_a_thread_lengths[0]
-                << "x" << tensor_a_thread_lengths[1] << "x" << tensor_a_thread_lengths[2] << "x"
-                << tensor_a_thread_lengths[3] << "_" << tensor_a_cluster_lengths[0] << "x"
-                << tensor_a_cluster_lengths[1] << "x" << tensor_a_cluster_lengths[2] << "x"
-                << tensor_a_cluster_lengths[3] << "_tb" << tensor_b_thread_lengths[0] << "x"
-                << tensor_b_thread_lengths[1] << "x" << tensor_b_thread_lengths[2] << "x"
-                << tensor_b_thread_lengths[3] << "_" << tensor_b_cluster_lengths[0] << "x"
-                << tensor_b_cluster_lengths[1] << "x" << tensor_b_cluster_lengths[2] << "x"
-                << tensor_b_cluster_lengths[3];
+    kernel_name << "igemm_" << direction << gtc_str << tensor_layout << "_" << vec_precision
+                << "_bx" << nxb << "_ex" << nxe << "_bt" << gemm_m_per_block << "x"
+                << gemm_n_per_block << "x" << gemm_k_per_block << "_lt" << lanegroup_tile_m << "x"
+                << lanegroup_tile_n << "_lw" << lanegroup_wave_m << "x" << lanegroup_wave_n << "_lr"
+                << lanegroup_repeat_m << "x" << lanegroup_repeat_n << "_ta"
+                << tensor_a_thread_lengths[0] << "x" << tensor_a_thread_lengths[1] << "x"
+                << tensor_a_thread_lengths[2] << "x" << tensor_a_thread_lengths[3] << "_"
+                << tensor_a_cluster_lengths[0] << "x" << tensor_a_cluster_lengths[1] << "x"
+                << tensor_a_cluster_lengths[2] << "x" << tensor_a_cluster_lengths[3] << "_tb"
+                << tensor_b_thread_lengths[0] << "x" << tensor_b_thread_lengths[1] << "x"
+                << tensor_b_thread_lengths[2] << "x" << tensor_b_thread_lengths[3] << "_"
+                << tensor_b_cluster_lengths[0] << "x" << tensor_b_cluster_lengths[1] << "x"
+                << tensor_b_cluster_lengths[2] << "x" << tensor_b_cluster_lengths[3];
 
     return kernel_name.str();
 }

@@ -157,9 +157,6 @@ inline std::string GetCodeObjectVersionOption()
 static hipModulePtr CreateModule(const boost::filesystem::path& hsaco_file)
 {
     hipModule_t raw_m;
-    std::cout<<"---------------------------------------\n";
-    std::cout<<"hsaco_file:"<<hsaco_file.string()<<std::endl;
-    std::cout<<"---------------------------------------\n";
     auto status = hipModuleLoad(&raw_m, hsaco_file.string().c_str());
     hipModulePtr m{raw_m};
     if(status != hipSuccess)

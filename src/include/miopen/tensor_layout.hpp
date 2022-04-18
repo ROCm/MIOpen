@@ -87,22 +87,22 @@ void tensor_layout_to_strides_vect(const std::vector<T>& len,
 
     // Now construct the strides according to layout by multiply the
     // dimension lengths together.
-    std::transform(len_layout.begin(),
-                   len_layout.end(),
-                   std::back_inserter(strides),
-                   [&base_layout, &vector, &dim_to_len](char cur_layout_char) {
-                       auto pos = base_layout.find(cur_layout_char);
-                       if(pos == std::string::npos)
-                       {
-                           MIOPEN_THROW(std::string("mismatched layout string - ").append(base_layout));
-                       }
-                       return std::accumulate(base_layout.begin() + pos + 1,
-                                              base_layout.end(),
-                                              vector,
-                                              [&dim_to_len](T accumulator, char l) {
-                                                  return accumulator * dim_to_len[l];
-                                              });
-                   });
+    std::transform(
+        len_layout.begin(),
+        len_layout.end(),
+        std::back_inserter(strides),
+        [&base_layout, &vector, &dim_to_len](char cur_layout_char) {
+            auto pos = base_layout.find(cur_layout_char);
+            if(pos == std::string::npos)
+            {
+                MIOPEN_THROW(std::string("mismatched layout string - ").append(base_layout));
+            }
+            return std::accumulate(
+                base_layout.begin() + pos + 1,
+                base_layout.end(),
+                vector,
+                [&dim_to_len](T accumulator, char l) { return accumulator * dim_to_len[l]; });
+        });
 }
 
 inline std::string tensor_layout_get_default(int size)

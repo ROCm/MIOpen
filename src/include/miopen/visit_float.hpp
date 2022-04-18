@@ -66,7 +66,7 @@ void visit_float(miopenDataType_t t, F f)
         break;
     }
     case miopenHalfx4:
-    case miopenHalfx8:  
+    case miopenHalfx8:
     case miopenHalf: {
         f(as_float<half_float::half>{});
         break;

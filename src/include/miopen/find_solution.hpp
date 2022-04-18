@@ -157,10 +157,12 @@ struct SolverContainer
                 }
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
-                else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic()){
+                else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
                 }
-                else if(!solver.IsApplicable(search_params)){
+                else if(!solver.IsApplicable(search_params))
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
                 }
                 else

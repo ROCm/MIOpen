@@ -264,7 +264,7 @@ inline int GetDataTypeId(miopenDataType_t t)
 {
     switch(t)
     {
-    case miopenHalfx8:    
+    case miopenHalfx8:
     case miopenHalfx4:
     case miopenHalf: return (static_cast<int>('H'));
     case miopenFloat: return (static_cast<int>('F'));

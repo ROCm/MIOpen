@@ -158,17 +158,13 @@ struct scalar_gen_random_integer
 
     double operator()() const
     {
-        //return static_cast<double>(min_val + GET_RAND() % (max_val - min_val + 1));
-        return static_cast<double>(1);
+        return static_cast<double>(min_val + GET_RAND() % (max_val - min_val + 1));
     }
 };
 
 struct tensor_elem_gen_one
 {
-    double operator()() const
-    {
-        return static_cast<double>(1);
-    }
+    double operator()() const { return static_cast<double>(1); }
 };
 
 struct conv_stats
@@ -293,17 +289,12 @@ struct verify_forward_conv : conv_base<T, Tout>
                     rout(is...) = Tout(double(rout(is...)) + double(this->bias));
                 else if(is_vect_c)
                 {
-                    for(std::size_t i = 0; i<weights.desc.GetVectorLength(); i++)
-                    rout(i, is...) = double(rout(i, is...)) + double(this->bias);
+                    for(std::size_t i = 0; i < weights.desc.GetVectorLength(); i++)
+                        rout(i, is...) = double(rout(i, is...)) + double(this->bias);
                 }
                 else
                     rout(is...) = double(rout(is...)) + double(this->bias);
             });
-            std::cout<<"--------------CPU result-------------------\n";
-            for(int idx = 0; idx<rout.data.size(); idx++){
-                std::cout<<"("<<idx<<","<<double(rout.data[idx])<<")";          
-            }
-            std::cout<<"-------------------------------------------\n";
         }
 
         return rout;
@@ -722,11 +713,6 @@ struct verify_forward_conv : conv_base<T, Tout>
                 stats->solver_name += "_fallback";
         }
         rout.data = handle.Read<Tout>(out_dev, rout.data.size());
-        std::cout<<"--------------GPU result-------------------\n";
-        for(int idx = 0; idx<rout.data.size(); idx++){
-                std::cout<<"("<<idx<<","<<double(rout.data[idx])<<")";            
-        }
-        std::cout<<"-------------------------------------------\n";
         return rout;
     }
 
@@ -1592,7 +1578,7 @@ struct conv_driver : test_driver
     std::size_t batch_size{};
     std::size_t input_channels{};
     std::size_t output_channels{};
-    std::size_t vector_c;
+    std::size_t vector_c = 1;
     std::string in_layout;
     std::string fil_layout; // keep same as MIOpenDriver argument name
     std::string out_layout;
@@ -1730,22 +1716,29 @@ struct conv_driver : test_driver
     ///\brief We only support fp16x4 and fp16x8 vector type
     void find_vector_c_from_conv_mode()
     {
-        if(conv_mode.compare(0, 4, "conv") == 0){
-            auto found_vec = conv_mode.find("fp16x");       
-            if(found_vec != std::string::npos){
+        if(conv_mode.compare(0, 4, "conv") == 0)
+        {
+            auto found_vec = conv_mode.find("fp16x");
+            if(found_vec != std::string::npos)
+            {
                 std::string vec_str = conv_mode.substr(found_vec + 5);
-        ///\todo try catch()
-                vector_c = std::stoi( vec_str );
-                if(vector_c == 4){
+                ///\todo try catch()
+                vector_c = std::stoi(vec_str);
+                if(vector_c == 4)
+                {
                     type = miopenHalfx4;
                 }
-                else if(vector_c == 8){
+                else if(vector_c == 8)
+                {
                     type = miopenHalfx8;
                 }
-                else{
+                else
+                {
                     MIOPEN_THROW("Unsupported vector length");
-                }    
-            }else{
+                }
+            }
+            else
+            {
                 vector_c = 1;
             }
         }
@@ -1775,10 +1768,10 @@ struct conv_driver : test_driver
         else
             filter.spatialDim = filter_dims.size();
 
-        //VECT_C found from cmode argument
+        // VECT_C found from cmode argument
         find_vector_c_from_conv_mode();
         auto vec_found = conv_mode.find("fp16x");
-        conv_mode = conv_mode.substr(0, vec_found);
+        conv_mode      = conv_mode.substr(0, vec_found);
 
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
@@ -1794,22 +1787,26 @@ struct conv_driver : test_driver
         }
         else if(spatial_dim == 2)
         {
-            if(in_layout == "NCHW_VECT_C"){
-                input = tensor<T>{
-                              type,
-                              miopenTensorNCHW_VECT_C,
-                              batch_size,
-                              input_channels,
-                              spatial_dim_elements.at(0),
-                              spatial_dim_elements.at(1)}
-                        .generate(tensor_elem_gen_integer{17});
+            if(in_layout == "NCHW_VECT_C")
+            {
+                batch_size     = input_dims.at(0);
+                input_channels = input_dims.at(1);
+                std::copy(input_dims.begin() + 2, input_dims.end(), spatial_dim_elements.begin());
+                input = tensor<T>{type,
+                                  miopenTensorNCHW_VECT_C,
+                                  batch_size,
+                                  input_channels,
+                                  spatial_dim_elements.at(0),
+                                  spatial_dim_elements.at(1)}
+                            .generate(tensor_elem_gen_integer{17});
             }
-            else{
+            else
+            {
                 input = tensor<T>{batch_size,
-                              input_channels,
-                              spatial_dim_elements.at(0),
-                              spatial_dim_elements.at(1)}
-                        .generate(tensor_elem_gen_integer{17});
+                                  input_channels,
+                                  spatial_dim_elements.at(0),
+                                  spatial_dim_elements.at(1)}
+                            .generate(tensor_elem_gen_integer{17});
             }
         }
         else if(spatial_dim == 3)
@@ -1826,36 +1823,41 @@ struct conv_driver : test_driver
         {
             weights         = tensor<T>{weight_tensor_dims}.generate(tensor_elem_gen_integer{17});
             output_channels = weight_tensor_dims.at(0);
-            std::copy(weight_tensor_dims.begin() + 2, weight_tensor_dims.end(), filter_dims.begin());
+            std::copy(
+                weight_tensor_dims.begin() + 2, weight_tensor_dims.end(), filter_dims.begin());
         }
         else if(spatial_dim == 2)
         {
-            if(fil_layout == "NCHW_VECT_C"){
-            weights = tensor<T>{type,
-                                miopenTensorNCHW_VECT_C,
-                                output_channels,
-                                input_channels / filter.group_count,
-                                filter_dims.at(0),
-                                filter_dims.at(1)}
-                          .generate(tensor_elem_gen_integer{17});
-            
-            }
-            else if(fil_layout == "CHWN_VECT_C"){
+            if(fil_layout == "NCHW_VECT_C")
+            {
+                output_channels = weight_tensor_dims.at(0);
+                std::copy(
+                    weight_tensor_dims.begin() + 2, weight_tensor_dims.end(), filter_dims.begin());
                 weights = tensor<T>{type,
-                                miopenTensorCHWN_VECT_C,
-                                output_channels,
-                                input_channels / filter.group_count,
-                                filter_dims.at(0),
-                                filter_dims.at(1)}
-                          .generate(tensor_elem_gen_integer{17});
+                                    miopenTensorNCHW_VECT_C,
+                                    output_channels,
+                                    input_channels / filter.group_count,
+                                    filter_dims.at(0),
+                                    filter_dims.at(1)}
+                              .generate(tensor_elem_gen_integer{17});
             }
-            else{
-                weights = tensor<T>{
-                                output_channels,
-                                input_channels / filter.group_count,
-                                filter_dims.at(0),
-                                filter_dims.at(1)}
-                          .generate(tensor_elem_gen_integer{17});
+            else if(fil_layout == "CHWN_VECT_C")
+            {
+                weights = tensor<T>{type,
+                                    miopenTensorCHWN_VECT_C,
+                                    output_channels,
+                                    input_channels / filter.group_count,
+                                    filter_dims.at(0),
+                                    filter_dims.at(1)}
+                              .generate(tensor_elem_gen_integer{17});
+            }
+            else
+            {
+                weights = tensor<T>{output_channels,
+                                    input_channels / filter.group_count,
+                                    filter_dims.at(0),
+                                    filter_dims.at(1)}
+                              .generate(tensor_elem_gen_integer{17});
             }
         }
         else if(spatial_dim == 3)
@@ -1868,19 +1870,21 @@ struct conv_driver : test_driver
                           .generate(tensor_elem_gen_integer{17});
         }
 
-        if(in_layout.find("_VECT_")!=std::string::npos && 
-           fil_layout.find("_VECT_")!=std::string::npos && out_layout.find("_VECT_")!=std::string::npos )
+        if(in_layout.find("_VECT_") != std::string::npos &&
+           fil_layout.find("_VECT_") != std::string::npos &&
+           out_layout.find("_VECT_") != std::string::npos)
         {
             if(input.desc.GetSize() != in_layout.find_first_of('_') ||
                weights.desc.GetSize() != fil_layout.find_first_of('_') ||
-               input.desc.GetSize() != out_layout.find_first_of('_') )
-               {
-                   std::cerr << "FAILED: layout not match dimension size!" << std::endl;
-                   return;
-               }
+               input.desc.GetSize() != out_layout.find_first_of('_'))
+            {
+                std::cerr << "FAILED: layout not match dimension size!" << std::endl;
+                return;
+            }
         }
         else if(input.desc.GetSize() != in_layout.size() ||
-                weights.desc.GetSize() != fil_layout.size() || input.desc.GetSize() != out_layout.size())
+                weights.desc.GetSize() != fil_layout.size() ||
+                input.desc.GetSize() != out_layout.size())
         {
             std::cerr << "FAILED: layout not match dimension size!" << std::endl;
             return;
@@ -1894,15 +1898,17 @@ struct conv_driver : test_driver
         {
             const std::vector<std::size_t> dim_lens = input.desc.GetLengths();
             std::vector<std::size_t> dim_strides;
-            if(in_layout.find("_VECT_")!=std::string::npos){
+            if(in_layout.find("_VECT_") != std::string::npos)
+            {
                 miopen::tensor_layout_to_strides_vect(
-                dim_lens,
-                miopen::tensor_layout_get_default(weights.desc.GetSize()),
-                in_layout,
-                vector_c,
-                dim_strides);
+                    dim_lens,
+                    miopen::tensor_layout_get_default(weights.desc.GetSize()),
+                    in_layout,
+                    vector_c,
+                    dim_strides);
             }
-            else{
+            else
+            {
                 miopen::tensor_layout_to_strides(
                     dim_lens,
                     miopen::tensor_layout_get_default(weights.desc.GetSize()),
@@ -1915,15 +1921,17 @@ struct conv_driver : test_driver
         {
             const std::vector<std::size_t> dim_lens = weights.desc.GetLengths();
             std::vector<std::size_t> dim_strides;
-            if(fil_layout.find("_VECT_")!=std::string::npos){
+            if(fil_layout.find("_VECT_") != std::string::npos)
+            {
                 miopen::tensor_layout_to_strides_vect(
-                dim_lens,
-                miopen::tensor_layout_get_default(weights.desc.GetSize()),
-                fil_layout,
-                vector_c,
-                dim_strides);
+                    dim_lens,
+                    miopen::tensor_layout_get_default(weights.desc.GetSize()),
+                    fil_layout,
+                    vector_c,
+                    dim_strides);
             }
-            else{
+            else
+            {
                 miopen::tensor_layout_to_strides(
                     dim_lens,
                     miopen::tensor_layout_get_default(weights.desc.GetSize()),
@@ -1980,7 +1988,7 @@ struct conv_driver : test_driver
         // bfloat16 is not supported for conv3d
         if(is_bfloat16 && !(filter.spatialDim == 2))
             return;
-        
+
         if(((filter.mode == miopenTranspose) &&
             ((filter.group_count == 1 && in_c_len == wei_k_len) ||
              (filter.group_count > 1 && wei_k_len % filter.group_count == 0))) ||
@@ -2071,16 +2079,26 @@ struct conv_driver : test_driver
                 auto output = get_output_tensor(filter, input, weights, out_layout);
 
                 auto gen_positive_value = [=](auto...) {
-                    auto data_type    = input.desc.GetType();
-                    std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
+                    auto data_type = input.desc.GetType();
+                    std::size_t v_max =
+                        is_int8 ? 16
+                                : (data_type == miopenHalf || data_type == miopenHalfx4 ||
+                                   data_type == miopenHalfx8)
+                                      ? 4
+                                      : 16;
 
                     return gen_float ? scalar_gen_random_float{0, 1}()
                                      : scalar_gen_random_integer{1, v_max}();
                 };
 
                 auto gen_sign_value = [=](auto... is) {
-                    auto data_type    = input.desc.GetType();
-                    std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
+                    auto data_type = input.desc.GetType();
+                    std::size_t v_max =
+                        is_int8 ? 16
+                                : (data_type == miopenHalf || data_type == miopenHalfx4 ||
+                                   data_type == miopenHalfx8)
+                                      ? 4
+                                      : 16;
 
                     return gen_float ? scalar_gen_random_float{-1, 1}()
                                      : scalar_gen_random_integer{1, v_max}() *
@@ -2146,18 +2164,8 @@ struct conv_driver : test_driver
 
                 input.generate(gen_positive_value);
                 output.generate(gen_positive_value);
-                //weights.generate(gen_sign_value);
-                weights.generate(gen_positive_value);
-
-                //for each can not handle vector type looping. manuually setting one.
-                for(int idx = 0; idx<input.data.size(); idx++){
-                    input.data[idx] = 1.0;            
-                }
-                for(int idx = 0; idx<weights.data.size(); idx++){
-                    weights.data[idx] = 1.0;            
-                }
-
-
+                weights.generate(gen_sign_value);
+                // weights.generate(gen_positive_value);
 
                 auto&& handle = get_handle();
 
@@ -2189,13 +2197,13 @@ struct conv_driver : test_driver
                                   handle, weights.desc, input.desc, output.desc)
                             : filter.ForwardGetWorkSpaceSize(
                                   handle, weights.desc, input.desc, output.desc);
-                    
+
                     size_t workspace_size_3 = filter.BackwardWeightsGetWorkSpaceSize(
                         handle,
                         filter.mode == miopenTranspose ? input.desc : output.desc,
                         filter.mode == miopenTranspose ? output.desc : input.desc,
                         weights.desc);
-                    
+
                     std::vector<size_t> workspace_sizes = {
                         workspace_size_1, workspace_size_2, workspace_size_3};
                     size_t workspace_size =

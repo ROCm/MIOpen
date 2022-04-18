@@ -272,12 +272,13 @@ GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
     auto splits_4G =
         igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
 
-    const auto gemm_m = k/group;
+    const auto gemm_m = k / group;
     const auto gemm_n = (n / splits_4G) * ho * wo;
-    
-    printf("(gemm_m, gemm_n) = (%d, %d)", gemm_m, gemm_n);
-    printf("(config.gemm_m_per_block, config.gemm_n_per_block) = (%d, %d)", config.gemm_m_per_block, config.gemm_n_per_block);
-    
+
+    // printf("(gemm_m, gemm_n) = (%d, %d)", gemm_m, gemm_n);
+    // printf("(config.gemm_m_per_block, config.gemm_n_per_block) = (%d, %d)",
+    // config.gemm_m_per_block, config.gemm_n_per_block);
+
     size_t block_size = config.BlockSize();
     size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
                        integer_divide_ceil(gemm_n, config.gemm_n_per_block);
@@ -289,58 +290,26 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
 {
 
     static const std::vector<std::tuple<int, int, int>> tile_list_Halfx4 = {
-        std::make_tuple(256, 128, 32),
-        std::make_tuple(128, 256, 32),
-        std::make_tuple(224, 128, 32),
-        std::make_tuple(128, 224, 32),
-        std::make_tuple(192, 128, 32),
-        std::make_tuple(128, 192, 32),
-        std::make_tuple(192, 64, 32),
-        std::make_tuple(64, 192, 32),
-        std::make_tuple(160, 128, 32),
-        std::make_tuple(128, 160, 32),
-        std::make_tuple(160, 64, 32),
-        std::make_tuple(64, 160, 32),
-        std::make_tuple(128, 128, 32),
-        std::make_tuple(128, 96, 32),
-        std::make_tuple(96, 128, 32),
-        std::make_tuple(96, 96, 32),
-        std::make_tuple(128, 64, 32),
-        std::make_tuple(64, 128, 32),
-        std::make_tuple(64, 64, 64),
-        std::make_tuple(64, 64, 32),
-        std::make_tuple(128, 32, 32),
-        std::make_tuple(32, 128, 32),
-        std::make_tuple(64, 32, 32),
-        std::make_tuple(32, 64, 32),
+        std::make_tuple(256, 128, 32), std::make_tuple(128, 256, 32), std::make_tuple(224, 128, 32),
+        std::make_tuple(128, 224, 32), std::make_tuple(192, 128, 32), std::make_tuple(128, 192, 32),
+        std::make_tuple(192, 64, 32),  std::make_tuple(64, 192, 32),  std::make_tuple(160, 128, 32),
+        std::make_tuple(128, 160, 32), std::make_tuple(160, 64, 32),  std::make_tuple(64, 160, 32),
+        std::make_tuple(128, 128, 32), std::make_tuple(128, 96, 32),  std::make_tuple(96, 128, 32),
+        std::make_tuple(96, 96, 32),   std::make_tuple(128, 64, 32),  std::make_tuple(64, 128, 32),
+        std::make_tuple(64, 64, 64),   std::make_tuple(64, 64, 32),   std::make_tuple(128, 32, 32),
+        std::make_tuple(32, 128, 32),  std::make_tuple(64, 32, 32),   std::make_tuple(32, 64, 32),
         std::make_tuple(32, 32, 32),
     };
 
     static const std::vector<std::tuple<int, int, int>> tile_list_Halfx8 = {
-        std::make_tuple(256, 128, 32),
-        std::make_tuple(128, 256, 32),
-        std::make_tuple(224, 128, 64),
-        std::make_tuple(128, 224, 64),
-        std::make_tuple(192, 128, 32),
-        std::make_tuple(128, 192, 32),
-        std::make_tuple(192, 64, 32),
-        std::make_tuple(64, 192, 32),
-        std::make_tuple(160, 128, 64),
-        std::make_tuple(128, 160, 64),
-        std::make_tuple(160, 64, 64),
-        std::make_tuple(64, 160, 64),
-        std::make_tuple(128, 128, 32),
-        std::make_tuple(128, 96, 64),
-        std::make_tuple(96, 128, 64),
-        std::make_tuple(96, 96, 32),
-        std::make_tuple(128, 64, 32),
-        std::make_tuple(64, 128, 32),
-        std::make_tuple(64, 64, 64),
-        std::make_tuple(64, 64, 32),
-        std::make_tuple(128, 32, 32),
-        std::make_tuple(32, 128, 32),
-        std::make_tuple(64, 32, 32),
-        std::make_tuple(32, 64, 32),
+        std::make_tuple(256, 128, 32), std::make_tuple(128, 256, 32), std::make_tuple(224, 128, 64),
+        std::make_tuple(128, 224, 64), std::make_tuple(192, 128, 32), std::make_tuple(128, 192, 32),
+        std::make_tuple(192, 64, 32),  std::make_tuple(64, 192, 32),  std::make_tuple(160, 128, 64),
+        std::make_tuple(128, 160, 64), std::make_tuple(160, 64, 64),  std::make_tuple(64, 160, 64),
+        std::make_tuple(128, 128, 32), std::make_tuple(128, 96, 64),  std::make_tuple(96, 128, 64),
+        std::make_tuple(96, 96, 32),   std::make_tuple(128, 64, 32),  std::make_tuple(64, 128, 32),
+        std::make_tuple(64, 64, 64),   std::make_tuple(64, 64, 32),   std::make_tuple(128, 32, 32),
+        std::make_tuple(32, 128, 32),  std::make_tuple(64, 32, 32),   std::make_tuple(32, 64, 32),
         std::make_tuple(32, 32, 32),
     };
 
@@ -397,14 +366,14 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
     }
 #endif
 
-    const auto& n         = ctx.batch_sz;
-    const auto& c         = ctx.n_inputs;
-    const auto& k         = ctx.n_outputs;
-    const auto& ho        = ctx.out_height;
-    const auto& wo        = ctx.out_width;
-    const auto& y         = ctx.kernel_size_h;
-    const auto& x         = ctx.kernel_size_w;
-    const auto& group     = ctx.group_counts;
+    const auto& n     = ctx.batch_sz;
+    const auto& c     = ctx.n_inputs;
+    const auto& k     = ctx.n_outputs;
+    const auto& ho    = ctx.out_height;
+    const auto& wo    = ctx.out_width;
+    const auto& y     = ctx.kernel_size_h;
+    const auto& x     = ctx.kernel_size_w;
+    const auto& group = ctx.group_counts;
 
     size_t gemm_m = n * ho * wo;
     size_t gemm_n = k / group;
@@ -413,10 +382,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
     int m_per_block, n_per_block, k_per_block;
 
     std::tie(m_per_block, n_per_block, k_per_block) = HeuristicInitMacroTileNoPadGemmK(
-        gemm_m,
-        gemm_n,
-        gemm_k,
-        ctx.IsHalfx4() ? tile_list_Halfx4 : tile_list_Halfx8);
+        gemm_m, gemm_n, gemm_k, ctx.IsHalfx4() ? tile_list_Halfx4 : tile_list_Halfx8);
 
     auto find_with_gemm_k_pad = [&]() {
         const auto& config_list = GetFwdDlopsNCHWCConfigList();
@@ -428,11 +394,11 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
             if(!((ctx.IsHalfx4() && config.precision == "Halfx4") ||
                  (ctx.IsHalfx8() && config.precision == "Halfx8")))
                 continue;
-            
+
             if(!((ctx.IsNCHWc_NCHWc() && config.tensor_layout == "nchwc_kcyxc") ||
                  (ctx.IsNCHWc_CHWNc() && config.tensor_layout == "nchwc_cyxkc")))
                 continue;
-                
+
             if(!(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
                 continue;
             // If we go here, then this is our last hope.
@@ -452,7 +418,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
         }
         CopyParameters(config_list[selected_index]);
     };
-    
+
     find_with_gemm_k_pad();
 }
 
@@ -495,7 +461,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(const Convolution
     if(IsDefaultConstructed())
         return false;
 
-    if(!((ctx.IsHalfx4() && precision == "Halfx4") || (ctx.IsHalfx8() && precision == "Halfx8") ))
+    if(!((ctx.IsHalfx4() && precision == "Halfx4") || (ctx.IsHalfx8() && precision == "Halfx8")))
         return false;
 
     const auto& c         = ctx.n_inputs;
@@ -518,8 +484,9 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(const Convolution
     if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
     {
         // c, k should be integer multiples of vector_c
-        if((c / group) %  vector_c != 0 || (k / group) %  vector_c != 0){
-                return false;
+        if((c / group) % vector_c != 0 || (k / group) % vector_c != 0)
+        {
+            return false;
         }
     }
 
@@ -571,26 +538,25 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionC
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx1030"))
         return false;
-    
+
     if(!ctx.use_asm_kernels)
         return false;
-    
+
     if(!ctx.direction.IsForward())
         return false;
-    
+
     if(!ctx.Is2d())
         return false;
-    
+
     if(!ctx.IsHalfx4() && !ctx.IsHalfx8())
         return false;
-    
+
     if(!ctx.rmv.IsV3())
         return false;
-    
+
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
-    
 
     if(0 == igemm_split_batch_size(ctx.in_height,
                                    ctx.in_width,
@@ -601,7 +567,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionC
                                    ctx.n_inputs,
                                    miopen::GetTypeSize(ctx.in_data_type)))
         return false;
-    
+
     return true;
 }
 
@@ -622,8 +588,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
 
     std::tie(kernel_name, block_size, grid_size, splits_4G) =
         GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(ctx, config);
-    std::cout<<"--------------Kernel invoker argu"<<std::endl;
-    std::cout<<kernel_name<<','<<block_size<<','<<grid_size;
     kernel.kernel_file = kernel_name + ".s";
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
@@ -635,7 +599,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    if(!ctx.IsLayoutNCHWC()) MIOPEN_THROW("Tensor layout is not in VECT_C format");
+    if(!ctx.IsLayoutNCHWC())
+        MIOPEN_THROW("Tensor layout is not in VECT_C format");
 
     result.construction_params.push_back(kernel);
     std::ostringstream options;
@@ -645,7 +610,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     result.construction_params[0].comp_options = opts_0.str();
 
     std::ostringstream msg;
-    MIOPEN_LOG_I2(SolverDbId() << ": "<< config.ToString() << msg.str());
+    MIOPEN_LOG_I2(SolverDbId() << ": " << config.ToString() << msg.str());
 
     result.invoker_factory = conv::MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(ctx, config);
     return result;

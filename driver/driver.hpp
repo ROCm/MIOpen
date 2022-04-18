@@ -139,10 +139,10 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
 [[gnu::noreturn]] inline void Usage()
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
-    printf(
-        "Supported Base Arguments: conv[fp16|fp16x4|fp16x8|int8|bfp16], CBAInfer[fp16], pool[fp16], lrn[fp16], "
-        "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm, ctc, dropout[fp16], "
-        "tensorop[fp16], reduce[fp16,fp64]\n");
+    printf("Supported Base Arguments: conv[fp16|fp16x4|fp16x8|int8|bfp16], CBAInfer[fp16], "
+           "pool[fp16], lrn[fp16], "
+           "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm, ctc, dropout[fp16], "
+           "tensorop[fp16], reduce[fp16,fp64]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
@@ -156,13 +156,14 @@ inline std::string ParseBaseArg(int argc, char* argv[])
 
     std::string arg = argv[1];
 
-    if(arg != "conv" && arg != "convfp16" && arg != "convfp16x4" && arg != "convfp16x8" && arg != "convint8" && arg != "convbfp16" &&
-       arg != "CBAInfer" && arg != "CBAInferfp16" && arg != "pool" && arg != "poolfp16" &&
-       arg != "lrn" && arg != "lrnfp16" && arg != "activ" && arg != "activfp16" &&
-       arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" &&
-       arg != "rnn" && arg != "rnnfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" &&
-       arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
-       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" && arg != "--version")
+    if(arg != "conv" && arg != "convfp16" && arg != "convfp16x4" && arg != "convfp16x8" &&
+       arg != "convint8" && arg != "convbfp16" && arg != "CBAInfer" && arg != "CBAInferfp16" &&
+       arg != "pool" && arg != "poolfp16" && arg != "lrn" && arg != "lrnfp16" && arg != "activ" &&
+       arg != "activfp16" && arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" &&
+       arg != "bnormfp16" && arg != "rnn" && arg != "rnnfp16" &&
+       arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" && arg != "dropout" &&
+       arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" && arg != "reduce" &&
+       arg != "reducefp16" && arg != "reducefp64" && arg != "--version")
     {
         printf("Invalid Base Input Argument\n");
         Usage();
