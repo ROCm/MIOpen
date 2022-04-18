@@ -698,6 +698,8 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
                  reserved_offset,
                  reserved_offset,
                  reserved_offset);
+
+            handle.ResetKernelTime();
         };
     };
 
