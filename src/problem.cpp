@@ -33,28 +33,90 @@
 #include <miopen/solution.hpp>
 #include <miopen/search_options.hpp>
 
+#include <nlohmann/json.hpp>
+
 namespace miopen {
+
+namespace detail {
+
+// Selected only with empty VariantArgs
+template <int i, template <class Type> class Visitor, class... VariantArgs>
+struct VisitTypeImpl
+{
+    template <class... Args>
+    void operator()(int, Args...)
+    {
+        MIOPEN_THROW(miopenStatusInvalidValue);
+    }
+};
+
+template <int i, template <class Type> class Visitor, class VariantArg, class... VariantArgs>
+struct VisitTypeImpl<i, Visitor, VariantArg, VariantArgs...>
+{
+    template <class... Args>
+    void operator()(int id, Args... args)
+    {
+        if(i == id)
+        {
+            Visitor<VariantArg>{args...}();
+            return;
+        }
+
+        VisitTypeImpl<i + 1, Visitor, VariantArgs...>{}(id, args...);
+    }
+};
+
+template <template <class Type> class Visitor, class... VariantArgs>
+struct VisitType;
+
+template <template <class Type> class Visitor, class... VariantArgs>
+struct VisitType<Visitor, boost::variant<VariantArgs...>>
+{
+    template <class... Args>
+    void operator()(int id, Args... args)
+    {
+        detail::VisitTypeImpl<0, Visitor, VariantArgs...>{}(id, args...);
+    }
+};
+
+} // namespace detail
+
+template <template <class Type> class Visitor, class Variant, class... Args>
+void VisitType(int id, Args... args)
+{
+    detail::VisitType<Visitor, Variant>{}(id, args...);
+}
+
+namespace detail {
+
+struct ProblemFindVariantVisitor
+{
+    const Problem* problem;
+    Handle* handle;
+    const SearchOptions* options;
+    std::size_t max_solutions;
+
+    std::vector<Solution> operator()(const ConvolutionDescriptor& conv) const
+    {
+        return problem->FindConvSolutions(*handle, *options, max_solutions, conv);
+    }
+
+    template <class Unimplemented>
+    std::vector<Solution> operator()(const Unimplemented&) const
+    {
+        MIOPEN_THROW(miopenStatusNotImplemented);
+        return {};
+    }
+};
+
+} // namespace detail
 
 std::vector<Solution> Problem::FindSolutions(Handle& handle,
                                              const SearchOptions& options,
                                              std::size_t max_solutions) const
 {
-    if(!operator_descriptor)
-        MIOPEN_THROW(miopenStatusInvalidValue, "Problem operator descriptor has not been set.");
-
-    auto ret = std::vector<Solution>{};
-
-    switch(operator_descriptor->GetPrimitive())
-    {
-    case solver::Primitive::Convolution:
-        ret = FindConvSolutions(handle, options, max_solutions);
-        break;
-    case solver::Primitive::Activation:
-    case solver::Primitive::Batchnorm:
-    case solver::Primitive::Pooling:
-    default: MIOPEN_THROW(miopenStatusNotImplemented);
-    case solver::Primitive::Invalid: MIOPEN_THROW(miopenStatusInvalidValue);
-    }
+    const auto visitor = detail::ProblemFindVariantVisitor{this, &handle, &options, max_solutions};
+    auto ret           = boost::apply_visitor(visitor, operator_descriptor);
 
     const auto sorter = [&]() -> std::function<bool(const Solution&, const Solution&)> {
         switch(options.results_order)
@@ -66,6 +128,7 @@ std::vector<Solution> Problem::FindSolutions(Handle& handle,
         default: MIOPEN_THROW(miopenStatusNotImplemented);
         }
     }();
+
     std::sort(ret.begin(), ret.end(), sorter);
 
     return ret;
@@ -83,7 +146,7 @@ const TensorDescriptor& Problem::GetTensorDescriptorChecked(miopenTensorName_t n
 
 conv::ProblemDescription Problem::AsConvolution() const
 {
-    const auto& conv_desc = *dynamic_cast<ConvolutionDescriptor*>(operator_descriptor.get());
+    const auto& conv_desc = boost::get<ConvolutionDescriptor>(operator_descriptor);
 
     const auto& x_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
@@ -100,11 +163,10 @@ conv::ProblemDescription Problem::AsConvolution() const
 
 std::vector<Solution> Problem::FindConvSolutions(Handle& handle,
                                                  const SearchOptions& options,
-                                                 std::size_t max_solutions) const
+                                                 std::size_t max_solutions,
+                                                 const ConvolutionDescriptor& conv_desc) const
 {
     auto ret = std::vector<Solution>{};
-
-    const auto& conv_desc = *dynamic_cast<ConvolutionDescriptor*>(operator_descriptor.get());
 
     if(tensor_descriptors.size() != 3)
         MIOPEN_THROW(miopenStatusInvalidValue,
@@ -151,8 +213,8 @@ std::vector<Solution> Problem::FindConvSolutions(Handle& handle,
     {
     case miopenProblemDirectionForward: {
         const auto method = conv_desc.mode == miopenTranspose
-                                ? &ConvolutionDescriptor::FindConvFwdAlgorithm
-                                : &ConvolutionDescriptor::FindConvBwdDataAlgorithm;
+                                ? &ConvolutionDescriptor::FindConvBwdDataAlgorithm
+                                : &ConvolutionDescriptor::FindConvFwdAlgorithm;
 
         (conv_desc.*method)(handle,
                             x_desc,
@@ -171,8 +233,8 @@ std::vector<Solution> Problem::FindConvSolutions(Handle& handle,
     }
     case miopenProblemDirectionBackward: {
         const auto method = conv_desc.mode == miopenTranspose
-                                ? &ConvolutionDescriptor::FindConvBwdDataAlgorithm
-                                : &ConvolutionDescriptor::FindConvFwdAlgorithm;
+                                ? &ConvolutionDescriptor::FindConvFwdAlgorithm
+                                : &ConvolutionDescriptor::FindConvBwdDataAlgorithm;
 
         (conv_desc.*method)(handle,
                             y_desc,
@@ -190,10 +252,10 @@ std::vector<Solution> Problem::FindConvSolutions(Handle& handle,
         break;
     }
     case miopenProblemDirectionBackwardWeight: {
-        decltype(auto) y_desc_ = miopenTranspose ? x_desc : y_desc;
-        decltype(auto) y_      = miopenTranspose ? x : y;
         decltype(auto) x_desc_ = miopenTranspose ? y_desc : x_desc;
         decltype(auto) x_      = miopenTranspose ? y : x;
+        decltype(auto) y_desc_ = miopenTranspose ? x_desc : y_desc;
+        decltype(auto) y_      = miopenTranspose ? x : y;
 
         conv_desc.FindConvBwdWeightsAlgorithm(handle,
                                               y_desc_,
@@ -231,6 +293,41 @@ std::vector<Solution> Problem::FindConvSolutions(Handle& handle,
     }
 
     return ret;
+}
+
+void to_json(nlohmann::json& json, const Problem& problem)
+{
+    json = nlohmann::json{
+        {"direction", problem.direction},
+        {"tensors", problem.tensor_descriptors},
+        {"primitive", problem.operator_descriptor.which()},
+    };
+
+    auto operator_serialization = [&](auto&& op) { json["operator"] = op; };
+    boost::apply_visitor(operator_serialization, problem.operator_descriptor);
+}
+
+namespace detail {
+template <class Descriptor>
+struct OperatorDescriptorDeserializer
+{
+    const nlohmann::json* json;
+    OperatorDescriptor* descriptor;
+
+    void operator()() const { *descriptor = json->get<Descriptor>(); }
+};
+} // namespace detail
+
+void from_json(const nlohmann::json& json, Problem& problem)
+{
+    json.at("direction").get_to(problem.direction);
+    json.at("tensors").get_to(problem.tensor_descriptors);
+
+    const auto primitive = json.at("primitive").get<int>();
+    auto operator_json   = json.at("operator");
+
+    VisitType<detail::OperatorDescriptorDeserializer, OperatorDescriptor>(
+        primitive, &operator_json, &problem.operator_descriptor);
 }
 
 } // namespace miopen

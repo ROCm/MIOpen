@@ -29,11 +29,13 @@
 #include <miopen/miopen.h>
 
 #include <miopen/convolution.hpp>
-#include <miopen/binary_serialization.hpp>
 #include <miopen/object.hpp>
-#include <miopen/operator_descriptor.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/tensor.hpp>
+
+#include <nlohmann/json_fwd.hpp>
+
+#include <boost/variant.hpp>
 
 #include <cstring>
 #include <unordered_map>
@@ -47,6 +49,12 @@ struct SearchOptions;
 namespace conv {
 struct ProblemDescription;
 } // namespace conv
+
+namespace detail {
+struct ProblemFindVariantVisitor;
+}
+
+using OperatorDescriptor = boost::variant<ConvolutionDescriptor>;
 
 struct Problem : miopenProblem
 {
@@ -66,11 +74,12 @@ struct Problem : miopenProblem
 
     void SetDirection(miopenProblemDirection_t value) { direction = value; }
 
-    void SetOperatorDescriptor(const OperatorDescriptor* descriptor)
+    void SetOperatorDescriptor(OperatorDescriptor descriptor)
     {
-        operator_descriptor = std::shared_ptr<OperatorDescriptor>(descriptor->Clone());
+        operator_descriptor = std::move(descriptor);
     }
-    const OperatorDescriptor& GetOperatorDescriptor() const { return *operator_descriptor; }
+
+    const OperatorDescriptor& GetOperatorDescriptor() const { return operator_descriptor; }
 
     std::vector<Solution>
     FindSolutions(Handle& handle, const SearchOptions& options, std::size_t max_solutions) const;
@@ -80,42 +89,20 @@ struct Problem : miopenProblem
     const TensorDescriptor& GetTensorDescriptorChecked(miopenTensorName_t name,
                                                        const std::string& name_str) const;
 
-    template <class Stream, std::enable_if_t<IsBinarySerializationRelated<Stream>{}, bool> = true>
-    friend Stream& operator<<(Stream& stream, Problem& problem)
-    {
-        stream << problem.direction;
-        stream << problem.tensor_descriptors;
+    friend void to_json(nlohmann::json& j, const Problem& problem);
+    friend void from_json(const nlohmann::json& j, Problem& problem);
 
-        auto primitive = stream.IsDeserializing() ? solver::Primitive{}
-                                                  : problem.operator_descriptor->GetPrimitive();
-
-        stream << primitive;
-
-        switch(primitive)
-        {
-        case solver::Primitive::Convolution:
-            if(stream.IsDeserializing())
-                problem.operator_descriptor = std::make_shared<ConvolutionDescriptor>();
-            stream << *dynamic_cast<ConvolutionDescriptor*>(problem.operator_descriptor.get());
-            break;
-        case solver::Primitive::Activation:
-        case solver::Primitive::Batchnorm:
-        case solver::Primitive::Pooling:
-        case solver::Primitive::Invalid:
-        default: MIOPEN_THROW(miopenStatusNotImplemented);
-        }
-
-        return stream;
-    }
+    friend struct detail::ProblemFindVariantVisitor;
 
 private:
     miopenProblemDirection_t direction = miopenProblemDirectionForward;
     std::unordered_map<miopenTensorName_t, TensorDescriptor> tensor_descriptors;
-    std::shared_ptr<OperatorDescriptor> operator_descriptor;
+    OperatorDescriptor operator_descriptor;
 
     std::vector<Solution> FindConvSolutions(Handle& handle,
                                             const SearchOptions& options,
-                                            std::size_t max_solutions) const;
+                                            std::size_t max_solutions,
+                                            const ConvolutionDescriptor& conv_desc) const;
 };
 
 } // namespace miopen

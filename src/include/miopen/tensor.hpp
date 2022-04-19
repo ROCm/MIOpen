@@ -26,14 +26,16 @@
 #ifndef GUARD_MIOPEN_TENSOR_HPP_
 #define GUARD_MIOPEN_TENSOR_HPP_
 
-#include <miopen/binary_serialization.hpp>
-#include <miopen/common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/object.hpp>
+
+#include <miopen/common.hpp>
 #include <miopen/each_args.hpp>
-#include <miopen/returns.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/functional.hpp>
+#include <miopen/object.hpp>
+#include <miopen/returns.hpp>
+
+#include <nlohmann/json_fwd.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -209,16 +211,8 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
 
-    template <class Stream, std::enable_if_t<IsBinarySerializationRelated<Stream>{}, bool> = true>
-    friend Stream& operator<<(Stream& stream, TensorDescriptor& problem)
-    {
-        stream << problem.lens;
-        stream << problem.strides;
-        stream << problem.packed;
-        stream << problem.type;
-
-        return stream;
-    }
+    friend void to_json(nlohmann::json& j, const TensorDescriptor& descriptor);
+    friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);
 
 private:
     std::vector<std::size_t> lens;

@@ -395,6 +395,8 @@ option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg wit
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/miopen )
 
+find_package(nlohmann_json)
+
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)

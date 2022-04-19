@@ -213,10 +213,10 @@ struct ProblemDestructor
 
 struct ProblemWrapper : std::unique_ptr<miopenProblem, ProblemDestructor>
 {
-    ProblemWrapper()
+    ProblemWrapper(miopenConvolutionDescriptor_t conv, miopenProblemDirection_t direction)
     {
         miopenProblem_t value;
-        EXPECT_EQUAL(miopenStatusSuccess, miopenCreateProblem(&value));
+        EXPECT_EQUAL(miopenStatusSuccess, miopenCreateConvProblem(&value, conv, direction));
         this->reset(value);
     }
 };
@@ -320,11 +320,9 @@ protected:
     ProblemWrapper MakeConvProblem(miopenProblemDirection_t direction,
                                    miopenTensorDescriptor_t x,
                                    miopenTensorDescriptor_t w,
-                                   miopenTensorDescriptor_t y) const
+                                   miopenTensorDescriptor_t y)
     {
-        auto problem = ProblemWrapper{};
-
-        miopenSetProblemOperatorDescriptor(problem.get(), &filter, direction);
+        auto problem = ProblemWrapper{&filter, direction};
 
         miopenSetProblemTensorDescriptor(problem.get(), miopenTensorConvolutionX, x);
         miopenSetProblemTensorDescriptor(problem.get(), miopenTensorConvolutionW, w);
@@ -362,6 +360,7 @@ struct verify_forward_conv : conv_base<T, Tout>
     using conv_base<T, Tout>::stats;
 
     using conv_base<T, Tout>::RunFind2_0;
+    using conv_base<T, Tout>::MakeConvProblem;
 
     bool is_vect;
 
@@ -902,6 +901,9 @@ struct verify_backward_conv : conv_base<T>
     using conv_base<T>::search;
     using conv_base<T>::stats;
 
+    using conv_base<T>::RunFind2_0;
+    using conv_base<T>::MakeConvProblem;
+
     verify_backward_conv(const tensor<T>& pinput,
                          const tensor<T>& pweights,
                          const tensor<T>& pout,
@@ -1286,7 +1288,11 @@ struct verify_backward_weights_conv : conv_base<T>
     using conv_base<T>::bias;
     using conv_base<T>::search;
     using conv_base<T>::stats;
-    const bool is_conv_wrw_f32 = std::is_same<T, float>::value;
+
+    using conv_base<T>::RunFind2_0;
+    using conv_base<T>::MakeConvProblem;
+
+    static constexpr const bool is_conv_wrw_f32 = std::is_same<T, float>::value;
 
     verify_backward_weights_conv(const tensor<T>& pinput,
                                  const tensor<T>& pweights,
@@ -1517,7 +1523,7 @@ struct verify_backward_weights_conv : conv_base<T>
         }
         case ConvApi::Find_2_0: {
             const auto problem = MakeConvProblem(
-                miopenProblemDirectionBackwardWeight, &input.desc, &weights.desc, &rout.desc);
+                miopenProblemDirectionBackwardWeight, &input.desc, &weights.desc, &out.desc);
 
             const miopenTensorName_t names[3] = {
                 miopenTensorConvolutionX, miopenTensorConvolutionW, miopenTensorConvolutionY};

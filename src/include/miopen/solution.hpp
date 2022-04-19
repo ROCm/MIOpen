@@ -34,6 +34,8 @@
 #include <miopen/solver_id.hpp>
 #include <miopen/tensor.hpp>
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <boost/optional.hpp>
 
 #include <unordered_map>
@@ -44,6 +46,8 @@ struct Handle;
 
 struct Solution : miopenSolution
 {
+    std::vector<std::uint8_t> serialization_cache;
+
     Solution() = default;
 
     struct SerializationMetadata final
@@ -52,6 +56,9 @@ struct Solution : miopenSolution
         unsigned long version;
 
         static constexpr SerializationMetadata Current() { return {0x123456789ABCDEF0, 1}; }
+
+        friend void to_json(nlohmann::json& json, const SerializationMetadata& metadata);
+        friend void from_json(const nlohmann::json& json, SerializationMetadata& metadata);
     };
 
     struct RunInput
@@ -74,37 +81,8 @@ struct Solution : miopenSolution
              Data_t workspace,
              size_t workspace_size);
 
-    template <class Stream, std::enable_if_t<IsBinarySerializationRelated<Stream>{}, bool> = true>
-    friend Stream& operator<<(Stream& stream, Solution& solution)
-    {
-        // Header
-        auto header =
-            stream.IsSerializing() ? SerializationMetadata::Current() : SerializationMetadata{};
-        stream << header;
-
-        if(stream.IsDeserializing())
-        {
-            constexpr const auto check_header = SerializationMetadata::Current();
-            if(header.validation_number != check_header.validation_number)
-                MIOPEN_THROW(miopenStatusInvalidValue,
-                             "Invalid buffer has been passed to the solution deserialization.");
-            if(header.version != check_header.version)
-                MIOPEN_THROW(
-                    miopenStatusInvalidValue,
-                    "Data from wrong version has been passed to the solution deserialization.");
-        }
-
-        // Solution
-        stream << solution.time;
-        stream << solution.workspace_required;
-
-        auto solver_id = solution.solver.ToString();
-        stream << solver_id;
-        solution.solver = solver_id;
-
-        stream << solution.problem;
-        return stream;
-    }
+    friend void to_json(nlohmann::json& json, const Solution& solution);
+    friend void from_json(const nlohmann::json& json, Solution& solution);
 
 private:
     float time                     = 0;

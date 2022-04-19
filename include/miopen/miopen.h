@@ -4710,7 +4710,10 @@ typedef enum
     miopenSolutionAttributeTime          = 2, // float
 } miopenSolutionAttribute_t;
 
-miopenStatus_t miopenCreateProblem(miopenProblem_t* problem);
+miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
+                                       miopenConvolutionDescriptor_t operatorDesc,
+                                       miopenProblemDirection_t direction);
+
 miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
 
 // Universal problem should have named tensor fields rather than ordered.
@@ -4719,10 +4722,6 @@ miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
 miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
                                                 miopenTensorName_t name,
                                                 const miopenTensorDescriptor_t descriptor);
-
-miopenStatus_t miopenSetProblemOperatorDescriptor(miopenProblem_t problem,
-                                                  const void* operatorDesc,
-                                                  miopenProblemDirection_t direction);
 
 /**
  * The miopenSearchOptions will allow the user to configure how search will be

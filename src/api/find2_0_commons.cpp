@@ -26,7 +26,6 @@
 
 #include <miopen/miopen.h>
 
-#include <miopen/binary_serialization.hpp>
 #include <miopen/common.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -36,11 +35,22 @@
 #include <miopen/solution.hpp>
 #include <miopen/type_name.hpp>
 
+#include <nlohmann/json.hpp>
+
 extern "C" {
-miopenStatus_t miopenCreateProblem(miopenProblem_t* problem)
+miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
+                                       miopenConvolutionDescriptor_t operatorDesc,
+                                       miopenProblemDirection_t direction)
 {
     MIOPEN_LOG_FUNCTION(problem);
-    return miopen::try_([&] { miopen::deref(problem) = new miopen::Problem(); });
+    return miopen::try_([&] {
+        miopen::deref(problem)        = new miopen::Problem();
+        decltype(auto) problem_deref  = miopen::deref(*problem);
+        decltype(auto) operator_deref = miopen::deref(operatorDesc);
+
+        problem_deref.SetOperatorDescriptor(operator_deref);
+        problem_deref.SetDirection(direction);
+    });
 }
 
 miopenStatus_t miopenDestroyProblem(miopenProblem_t problem)
@@ -57,22 +67,6 @@ miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
 
     return miopen::try_(
         [&] { miopen::deref(problem).RegisterTensorDescriptor(name, miopen::deref(descriptor)); });
-}
-
-miopenStatus_t miopenSetProblemOperatorDescriptor(miopenProblem_t problem,
-                                                  const void* operatorDesc,
-                                                  miopenProblemDirection_t direction)
-{
-    MIOPEN_LOG_FUNCTION(problem, operatorDesc, direction);
-
-    return miopen::try_([&] {
-        decltype(auto) problem_deref = miopen::deref(problem);
-        const auto operator_deref =
-            reinterpret_cast<const miopen::OperatorDescriptor*>(operatorDesc);
-
-        problem_deref.SetOperatorDescriptor(operator_deref);
-        problem_deref.SetDirection(direction);
-    });
 }
 
 miopenStatus_t miopenCreateSearchOptions(miopenSearchOptions_t* options)
@@ -200,16 +194,9 @@ miopenStatus_t miopenLoadSolution(miopenSolution_t* solution, const char* data, 
         if(data == nullptr)
             MIOPEN_THROW(miopenStatusBadParm, "Data parameter should not be a nullptr.");
 
-        auto ss = miopen::BinaryDeserializationStream{data, data + size};
-
+        auto json                = nlohmann::json::from_msgpack(data, data + size);
         auto& solution_ptr_deref = miopen::deref(solution);
-        solution_ptr_deref       = new miopen::Solution{};
-        auto& solution_deref     = miopen::deref(*solution);
-
-        ss << solution_deref;
-
-        if(!ss.HasFinished())
-            MIOPEN_THROW(miopenStatusInvalidValue, "Data buffer end has not been reached.");
+        solution_ptr_deref       = new miopen::Solution{json.get<miopen::Solution>()};
     });
 }
 
@@ -220,9 +207,20 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data)
     return miopen::try_([&] {
         if(data == nullptr)
             MIOPEN_THROW(miopenStatusBadParm, "Data parameter should not be a nullptr.");
-        auto ss             = miopen::BinarySerializationStream{data};
-        auto& solution_derf = miopen::deref(solution);
-        ss << solution_derf;
+
+        auto& solution_deref = miopen::deref(solution);
+
+        if(solution_deref.serialization_cache.empty())
+        {
+            nlohmann::json json                = solution_deref;
+            solution_deref.serialization_cache = nlohmann::json::to_msgpack(json);
+        }
+
+        std::memcpy(data,
+                    solution_deref.serialization_cache.data(),
+                    solution_deref.serialization_cache.size());
+
+        solution_deref.serialization_cache = {};
     });
 }
 
@@ -233,9 +231,16 @@ miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
     return miopen::try_([&] {
         if(size == nullptr)
             MIOPEN_THROW(miopenStatusBadParm, "Size parameter should not be a nullptr.");
-        auto ss = miopen::BinarySerializationSizeStream{};
-        ss << miopen::deref(solution);
-        *size = ss.GetSize();
+
+        auto& solution_deref = miopen::deref(solution);
+
+        if(solution_deref.serialization_cache.empty())
+        {
+            nlohmann::json json                = solution_deref;
+            solution_deref.serialization_cache = nlohmann::json::to_msgpack(json);
+        }
+
+        *size = solution_deref.serialization_cache.size();
     });
 }
 

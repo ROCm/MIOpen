@@ -33,6 +33,8 @@
 #include <miopen/convolution.hpp>
 #include <miopen/solution.hpp>
 
+#include <nlohmann/json.hpp>
+
 #include <vector>
 
 namespace miopen {
@@ -79,10 +81,7 @@ private:
         miopenHandle_t handle = &handle_deref;
         miopenProblem_t problem;
 
-        EXPECT_EQUAL(miopenCreateProblem(&problem), miopenStatusSuccess);
-
-        EXPECT_EQUAL(miopenSetProblemOperatorDescriptor(problem, &filter, direction),
-                     miopenStatusSuccess);
+        EXPECT_EQUAL(miopenCreateConvProblem(&problem, &filter, direction), miopenStatusSuccess);
 
         AddConvTensorDescriptors(problem);
 
@@ -206,8 +205,6 @@ private:
             EXPECT_EQUAL(miopenSaveSolution(solution, solution_binary.data()), miopenStatusSuccess);
             EXPECT_EQUAL(miopenDestroySolution(solution), miopenStatusSuccess);
 
-            ValidateSerializedSolutionMetadata(solution_binary.data());
-
             miopenSolution_t read_solution;
             EXPECT_EQUAL(
                 miopenLoadSolution(&read_solution, solution_binary.data(), solution_binary.size()),
@@ -216,17 +213,6 @@ private:
             TestRunSolution(handle, read_solution, names, descriptors, buffers);
             EXPECT_EQUAL(miopenDestroySolution(read_solution), miopenStatusSuccess);
         }
-    }
-
-    void ValidateSerializedSolutionMetadata(const char* solution_data)
-    {
-        const auto solution_metadata =
-            reinterpret_cast<const Solution::SerializationMetadata*>(solution_data);
-
-        constexpr const auto check_value = Solution::SerializationMetadata::Current();
-
-        EXPECT_EQUAL(solution_metadata->validation_number, check_value.validation_number);
-        EXPECT_EQUAL(solution_metadata->version, check_value.version);
     }
 
     void TestRunSolution(miopenHandle_t handle,

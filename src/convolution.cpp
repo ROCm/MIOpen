@@ -39,6 +39,8 @@
 #include <miopen/tensor_layout.hpp>
 #include <miopen/algorithm.hpp>
 
+#include <nlohmann/json.hpp>
+
 #include <cassert>
 #include <cstddef>
 #include <algorithm>
@@ -772,6 +774,16 @@ std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)
     return stream;
 }
 
+void to_json(nlohmann::json& json, const ConvolutionAttribute::Gfx90aFp16alt& attribute)
+{
+    json = {{"value", attribute.value}};
+}
+
+void from_json(const nlohmann::json& json, ConvolutionAttribute::Gfx90aFp16alt& attribute)
+{
+    json.at("value").get_to(attribute.value);
+}
+
 void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
 {
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
@@ -798,6 +810,46 @@ int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
     MIOPEN_THROW(miopenStatusBadParm,
                  "[Get conv attribute] Error: Attribute [" +
                      std::to_string(static_cast<int>(attr)) + "] does not exist.");
+}
+
+void to_json(nlohmann::json& json, const ConvolutionAttribute& conv)
+{
+    json = {{"gfx90aFp16alt", conv.gfx90aFp16alt}};
+}
+
+void from_json(const nlohmann::json& json, ConvolutionAttribute& conv)
+{
+    json.at("gfx90aFp16alt").get_to(conv.gfx90aFp16alt);
+}
+
+void to_json(nlohmann::json& json, const ConvolutionDescriptor& conv)
+{
+    json = nlohmann::json{
+        {"spatialDim", conv.spatialDim},
+        {"mode", conv.mode},
+        {"paddingMode", conv.paddingMode},
+        {"pads", conv.pads},
+        {"strides", conv.strides},
+        {"dilations", conv.dilations},
+        {"transOutputPads", conv.trans_output_pads},
+        {"groupCount", conv.group_count},
+        {"lowpQuant", conv.lowp_quant},
+        {"attribute", conv.attribute},
+    };
+}
+
+void from_json(const nlohmann::json& json, ConvolutionDescriptor& conv)
+{
+    json.at("spatialDim").get_to(conv.spatialDim);
+    json.at("mode").get_to(conv.mode);
+    json.at("paddingMode").get_to(conv.paddingMode);
+    json.at("pads").get_to(conv.pads);
+    json.at("strides").get_to(conv.strides);
+    json.at("dilations").get_to(conv.dilations);
+    json.at("transOutputPads").get_to(conv.trans_output_pads);
+    json.at("groupCount").get_to(conv.group_count);
+    json.at("lowpQuant").get_to(conv.lowp_quant);
+    json.at("attribute").get_to(conv.attribute);
 }
 
 } // namespace miopen

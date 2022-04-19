@@ -26,17 +26,17 @@
 #ifndef GUARD_MIOPEN_CONVOLUTION_HPP_
 #define GUARD_MIOPEN_CONVOLUTION_HPP_
 
-#include <miopen/binary_serialization.hpp>
 #include <miopen/common.hpp>
 #include <miopen/env.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
-#include <miopen/operator_descriptor.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/names.hpp>
 #include <miopen/invoke_params.hpp>
+
+#include <nlohmann/json_fwd.hpp>
 
 #include <boost/any.hpp>
 
@@ -94,13 +94,8 @@ struct ConvolutionAttribute
         inline bool GetBwd() const { return Get() != 0; } // true is the default.
         inline bool GetWrW() const { return Get() != 0; } // true is the default.
 
-        template <class Stream,
-                  std::enable_if_t<IsBinarySerializationRelated<Stream>{}, bool> = true>
-        friend Stream& operator<<(Stream& stream, Gfx90aFp16alt& attr)
-        {
-            stream << attr.value;
-            return stream;
-        }
+        friend void to_json(nlohmann::json& json, const Gfx90aFp16alt& attribute);
+        friend void from_json(const nlohmann::json& json, Gfx90aFp16alt& attribute);
     } gfx90aFp16alt;
 
     /// Tri-state attribute values:
@@ -110,17 +105,11 @@ struct ConvolutionAttribute
     void Set(miopenConvolutionAttrib_t attr, int value);
     int Get(miopenConvolutionAttrib_t attr) const;
 
-    template <class Stream, std::enable_if_t<IsBinarySerializationRelated<Stream>{}, bool> = true>
-    friend Stream& operator<<(Stream& stream, ConvolutionAttribute& conv)
-    {
-        stream << conv.gfx90aFp16alt;
-        return stream;
-    }
+    friend void to_json(nlohmann::json& json, const ConvolutionAttribute& conv);
+    friend void from_json(const nlohmann::json& json, ConvolutionAttribute& conv);
 };
 
-struct ConvolutionDescriptor
-    : miopenConvolutionDescriptor,
-      OperatorDescriptorImpl<ConvolutionDescriptor, solver::Primitive::Convolution>
+struct ConvolutionDescriptor : miopenConvolutionDescriptor
 {
     ConvolutionDescriptor(std::size_t spatial_dim,
                           miopenConvolutionMode_t c_mode,
@@ -457,22 +446,8 @@ struct ConvolutionDescriptor
 
     std::size_t GetSolutionCountFallback(Handle& handle, const ProblemDescription& problem) const;
 
-    template <class Stream, std::enable_if_t<IsBinarySerializationRelated<Stream>{}, bool> = true>
-    friend Stream& operator<<(Stream& stream, ConvolutionDescriptor& conv)
-    {
-        stream << conv.spatialDim;
-        stream << conv.mode;
-        stream << conv.paddingMode;
-        stream << conv.pads;
-        stream << conv.strides;
-        stream << conv.dilations;
-        stream << conv.trans_output_pads;
-        stream << conv.group_count;
-        stream << conv.lowp_quant;
-        stream << conv.attribute;
-
-        return stream;
-    }
+    friend void to_json(nlohmann::json& json, const ConvolutionDescriptor& conv);
+    friend void from_json(const nlohmann::json& json, ConvolutionDescriptor& conv);
 };
 
 void ConvolutionBackwardBias(const Handle& handle,

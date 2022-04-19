@@ -32,6 +32,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <functional>
 
 namespace miopen {
 namespace solver {
