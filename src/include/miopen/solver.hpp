@@ -326,7 +326,7 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     std::string ToString() const;
 };
 
-struct ConvAsm1x1U : ConvSolver
+struct ConvAsm1x1U : SearchableSolver1<PerformanceConfigConvAsm1x1U>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
 
@@ -334,14 +334,15 @@ struct ConvAsm1x1U : ConvSolver
     size_t GetWorkspaceSize(const ConvolutionContext& params) const final;
     bool MayNeedWorkspace() const final { return true; }
 
-    PerformanceConfigConvAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
+    PerformanceConfigConvAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const final;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConfigConvAsm1x1U&) const;
+                                  const PerformanceConfigConvAsm1x1U&) const final;
     PerformanceConfigConvAsm1x1U Search(const ConvolutionContext&,
-                                        const AnyInvokeParams& invoke_ctx) const;
+                                        const AnyInvokeParams& invoke_ctx) const final;
+    using SearchableSolver1::GetSolution;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm1x1U& config,
-                             bool disableConfigOverrideFromEnv = false) const;
+                             bool disableConfigOverrideFromEnv) const final;
 };
 
 struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
@@ -355,16 +356,25 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
     bool operator==(const PerformanceConfigConvBiasActivAsm1x1U& other) const;
 };
 
-struct ConvBiasActivAsm1x1U : ConvAsm1x1U
+// Fused solver
+struct ConvBiasActivAsm1x1U : SearchableSolver1<PerformanceConfigConvBiasActivAsm1x1U>
 {
     const std::string& SolverDbId() const final { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
-    PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsApplicable(const ConvolutionContext& params) const override;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
+    bool MayNeedWorkspace() const override { return true; }
+
+    PerformanceConfigConvBiasActivAsm1x1U
+    GetPerformanceConfig(const ConvolutionContext&) const final;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigConvBiasActivAsm1x1U&) const final;
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
-                                                 const AnyInvokeParams& invoke_ctx) const;
+                                                 const AnyInvokeParams& invoke_ctx) const final;
+    using SearchableSolver1::GetSolution;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfigConvAsm1x1U& config,
-                             bool disableConfigOverrideFromEnv = false) const;
+                             const PerformanceConfigConvBiasActivAsm1x1U& config,
+                             bool disableConfigOverrideFromEnv) const final;
 };
 
 struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1UV2>
@@ -926,7 +936,12 @@ struct PerformanceConvMlirIgemm : Serializable<PerformanceConvMlirIgemm>
     bool use_spare_set;
 
     /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1154
-    static const PerformanceConvMlirIgemm& MlirHeuristicInitRequest();
+    static PerformanceConvMlirIgemm& MlirHeuristicInitRequest()
+    {
+        static PerformanceConvMlirIgemm heur;
+        heur.SetMlirHeuristicInitRequest();
+        return heur;
+    }
 
     PerformanceConvMlirIgemm(int, int, int, int, int, int, bool);
 
@@ -955,6 +970,9 @@ struct PerformanceConvMlirIgemm : Serializable<PerformanceConvMlirIgemm>
     bool IsValid(const ConvolutionContext& ctx) const;
     bool SetNextValue(const ConvolutionContext& config);
     std::string ToString() const;
+
+private:
+    void SetMlirHeuristicInitRequest();
 };
 
 struct ConvMlirIgemmFwd : SearchableSolver1<PerformanceConvMlirIgemm>
@@ -990,7 +1008,12 @@ struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdl
     bool use_spare_set;
 
     /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1154
-    static const PerformanceConvMlirIgemmXdlops& MlirHeuristicInitRequest();
+    static PerformanceConvMlirIgemmXdlops& MlirHeuristicInitRequest()
+    {
+        static PerformanceConvMlirIgemmXdlops heur;
+        heur.SetMlirHeuristicInitRequest();
+        return heur;
+    }
 
     PerformanceConvMlirIgemmXdlops(int, int, int, int, int, int, bool, bool, bool);
 
@@ -1019,6 +1042,9 @@ struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdl
     bool IsValid(const ConvolutionContext& ctx) const;
     bool SetNextValue(const ConvolutionContext& config);
     std::string ToString() const;
+
+private:
+    void SetMlirHeuristicInitRequest();
 };
 
 struct ConvMlirIgemmFwdXdlops : SearchableSolver1<PerformanceConvMlirIgemmXdlops>
