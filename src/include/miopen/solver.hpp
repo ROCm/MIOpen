@@ -326,7 +326,7 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     std::string ToString() const;
 };
 
-struct ConvAsm1x1U : ConvSolver
+struct ConvAsm1x1U : SearchableSolver1<PerformanceConfigConvAsm1x1U>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
 
@@ -334,14 +334,14 @@ struct ConvAsm1x1U : ConvSolver
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
     bool MayNeedWorkspace() const override { return true; }
 
-    PerformanceConfigConvAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
+    PerformanceConfigConvAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const final;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConfigConvAsm1x1U&) const;
+                                  const PerformanceConfigConvAsm1x1U&) const final;
     PerformanceConfigConvAsm1x1U Search(const ConvolutionContext&,
-                                        const AnyInvokeParams& invoke_ctx) const;
+                                        const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm1x1U& config,
-                             bool disableConfigOverrideFromEnv = false) const;
+                             bool disableConfigOverrideFromEnv = false) const final;
 };
 
 struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
@@ -356,7 +356,7 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
 };
 
 // Fused solver
-struct ConvBiasActivAsm1x1U : ConvSolver
+struct ConvBiasActivAsm1x1U : SearchableSolver1<PerformanceConfigConvAsm1x1U>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
@@ -364,14 +364,14 @@ struct ConvBiasActivAsm1x1U : ConvSolver
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
     bool MayNeedWorkspace() const override { return true; }
 
-    PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
+    PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const final;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConfigConvBiasActivAsm1x1U&) const;
+                                  const PerformanceConfigConvBiasActivAsm1x1U&) const final;
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
-                                                 const AnyInvokeParams& invoke_ctx) const;
+                                                 const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvBiasActivAsm1x1U& config,
-                             bool disableConfigOverrideFromEnv = false) const;
+                             bool disableConfigOverrideFromEnv = false) const final;
 };
 
 struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1UV2>
