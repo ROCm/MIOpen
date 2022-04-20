@@ -364,7 +364,8 @@ struct ConvBiasActivAsm1x1U : SearchableSolver1<PerformanceConfigConvAsm1x1U>
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
     bool MayNeedWorkspace() const override { return true; }
 
-    PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const final;
+    PerformanceConfigConvBiasActivAsm1x1U
+    GetPerformanceConfig(const ConvolutionContext&) const final;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const PerformanceConfigConvBiasActivAsm1x1U&) const final;
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
