@@ -36,7 +36,6 @@
 #include <numeric>
 #include <string>
 
-
 namespace miopen {
 
 TensorDescriptor::TensorDescriptor() : packed(true) {}
