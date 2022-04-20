@@ -356,7 +356,7 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
 };
 
 // Fused solver
-struct ConvBiasActivAsm1x1U : SearchableSolver1<PerformanceConfigConvAsm1x1U>
+struct ConvBiasActivAsm1x1U : SearchableSolver1<PerformanceConfigConvBiasActivAsm1x1U>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
