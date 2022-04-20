@@ -328,7 +328,7 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
 
 struct ConvAsm1x1U : SearchableSolver1<PerformanceConfigConvAsm1x1U>
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
+    const std::string& SolverDbId() const final { return GetSolverDbId<ConvAsm1x1U>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const final;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const final;
@@ -361,9 +361,9 @@ struct ConvBiasActivAsm1x1U : SearchableSolver1<PerformanceConfigConvBiasActivAs
 {
     const std::string& SolverDbId() const final { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
-    bool MayNeedWorkspace() const override { return true; }
+    bool IsApplicable(const ConvolutionContext& params) const final;
+    size_t GetWorkspaceSize(const ConvolutionContext& params) const final;
+    bool MayNeedWorkspace() const final { return true; }
 
     PerformanceConfigConvBiasActivAsm1x1U
     GetPerformanceConfig(const ConvolutionContext&) const final;
