@@ -339,9 +339,10 @@ struct ConvAsm1x1U : SearchableSolver1<PerformanceConfigConvAsm1x1U>
                                   const PerformanceConfigConvAsm1x1U&) const final;
     PerformanceConfigConvAsm1x1U Search(const ConvolutionContext&,
                                         const AnyInvokeParams& invoke_ctx) const final;
+    using SearchableSolver1::GetSolution;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsm1x1U& config,
-                             bool disableConfigOverrideFromEnv = false) const final;
+                             bool disableConfigOverrideFromEnv) const final;
 };
 
 struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
@@ -370,9 +371,10 @@ struct ConvBiasActivAsm1x1U : SearchableSolver1<PerformanceConfigConvBiasActivAs
                                   const PerformanceConfigConvBiasActivAsm1x1U&) const final;
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
                                                  const AnyInvokeParams& invoke_ctx) const final;
+    using SearchableSolver1::GetSolution;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvBiasActivAsm1x1U& config,
-                             bool disableConfigOverrideFromEnv = false) const final;
+                             bool disableConfigOverrideFromEnv) const final;
 };
 
 struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1UV2>
