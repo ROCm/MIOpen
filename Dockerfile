@@ -24,17 +24,14 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     curl \
     doxygen \
     g++ \
-    gdb \
     git \
     hip-rocclr \
     jq \
-    lcov \
     libelf-dev \
     libncurses5-dev \
     libnuma-dev \
     libpthread-stubs0-dev \
     llvm-amdgpu \
-    miopengemm \
     pkg-config \
     python \
     python3 \
@@ -43,23 +40,17 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     python-pip \
     python3-pip \
     software-properties-common \
-    sqlite3 \
     wget \
     rocm-dev \
     rocm-device-libs \
-    rocm-opencl \
-    rocm-opencl-dev \
     rocm-cmake \
-    rocblas \
     vim \
     zlib1g-dev \
     openssh-server \
-    kmod \
-    mysql-client && \
+    kmod && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# RUN pip3 install --default-timeout=100000 -r requirements.txt
 
 # Setup ubsan environment to printstacktrace
 RUN ln -s /usr/bin/llvm-symbolizer-3.8 /usr/local/bin/llvm-symbolizer
@@ -88,12 +79,12 @@ ENV LANG=C.UTF-8
 RUN cget -p $PREFIX install ROCmSoftwarePlatform/rocm-recipes
 RUN groupadd -f render
 WORKDIR /root
-ARG CK_COMMIT=284178d3f61acfbedc75a067fcbf0d6c434da90b
+ARG CK_COMMIT=5ce59f056ea426bb68779008f7c0548a4a7402df 
 RUN  wget -O ck.tar.gz https://www.github.com/rocmsoftwareplatform/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
     tar zxvf ck.tar.gz &&\
     cd composable_kernel-${CK_COMMIT} && \
     mkdir build && cd build && \
-    CXX=/opt/rocm/bin/hipcc cmake -DCMAKE_PREFIX_PATH=/opt/rocm -D CMAKE_CXX_FLAGS="-DCK_AMD_GPU_GFX908 --amdgpu-target=gfx908 -O3 " .. && \
+    CXX=/opt/rocm/bin/hipcc cmake -DCMAKE_PREFIX_PATH=/opt/rocm -D CMAKE_CXX_FLAGS="--offload-arch=gfx908 -O3 " .. && \
     make -j $(nproc) package && cp *.deb /root/
 
 
@@ -217,7 +208,4 @@ RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."
 RUN groupadd -f render
 
 COPY --from=composable_kernel /root/composablekernel_*.deb /tmp/
-WORKDIR /tmp
-RUN ar x composablekernel_*.deb
-RUN tar zxvf data.tar.gz
-RUN cp -r /tmp/usr/local/* /usr/local/
+RUN dpkg -i --force-all /tmp/composablekernel_*.deb

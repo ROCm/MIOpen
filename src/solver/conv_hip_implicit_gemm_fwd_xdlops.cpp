@@ -12,6 +12,33 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 namespace miopen {
 namespace solver {
 
+struct CKArgs
+{
+    CKArgs(const ConvolutionContext& ctx)
+    {
+        N   = ConvolutionContextInterpreter::GetBatchN(ctx);
+        K   = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+        C   = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+        input = {ConvolutionContextInterpreter::GetInputHeightHi(ctx), ConvolutionContextInterpreter::GetInputWidthWi(ctx)};
+        output = {ConvolutionContextInterpreter::GetOutputHeightHo(ctx), ConvolutionContextInterpreter::GetOutputWidthWo(ctx)};
+        filter = {ConvolutionContextInterpreter::GetFilterHeightY(ctx), ConvolutionContextInterpreter::GetFilterWidthX(ctx)};
+        strides = {ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx), ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx)};
+        dilation = {ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx), ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx)};
+        lPadding = {ConvolutionContextInterpreter::GetInputLeftPadH(ctx), ConvolutionContextInterpreter::GetInputLeftPadW(ctx)};
+        rPadding = {ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx), ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx)};
+    }
+    int N;
+    int K;
+    int C;
+    std::vector<int> input;
+    std::vector<int> output;
+    std::vector<int> filter;
+    std::vector<int> strides;
+    std::vector<int> dilation;
+    std::vector<int> lPadding;
+    std::vector<int> rPadding;
+};
+
 void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionContext& ctx)
 {
     this->index = 0;
@@ -19,41 +46,22 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionC
     add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
     assert(!conv_ptrs.empty());
     this->total_size = conv_ptrs.size();
-    // TODO: Move to convolution_context_interpreter.hpp
-    // side-effect:: need to include ck's host_interface.hpp there
-    const auto N   = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto K   = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const auto C   = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const auto Hi  = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
-    const auto Wi  = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-    const auto Ho  = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto Wo  = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto Y   = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto X   = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    const auto Sy  = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-    const auto Sx  = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-    const auto Dy  = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-    const auto Dx  = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
-    const auto lPy = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-    const auto lPx = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-    const auto rPy = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-    const auto rPx = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
-
+    const auto args = CKArgs{ctx};
     for(auto& conv_ptr : conv_ptrs)
     {
         auto argument_ptr = conv_ptr.MakeArgumentPointer(nullptr,
                                                          nullptr,
                                                          nullptr,
-                                                         N,
-                                                         K,
-                                                         C,
-                                                         {Hi, Wi},
-                                                         {Y, X},
-                                                         {Ho, Wo},
-                                                         {Sx, Sy},
-                                                         {Dy, Dx},
-                                                         {lPy, lPx},
-                                                         {rPy, rPx});
+                                                         args.N,
+                                                         args.K,
+                                                         args.C,
+                                                         args.input,
+                                                         args.filter,
+                                                         args.output,
+                                                         args.strides,
+                                                         args.dilation,
+                                                         args.lPadding,
+                                                         args.rPadding);
         if(conv_ptr.IsSupportedArgument(argument_ptr.get()))
         {
             this->kernel_id = conv_ptr.GetTypeString();
@@ -83,37 +91,20 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(const ConvolutionContext
 {
     std::vector<DeviceConvFwdPtr_t> conv_ptrs;
     add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
-    const auto N   = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto K   = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const auto C   = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const auto Hi  = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
-    const auto Wi  = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-    const auto Ho  = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto Wo  = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto Y   = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto X   = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    const auto Sy  = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-    const auto Sx  = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-    const auto Dy  = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-    const auto Dx  = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
-    const auto lPy = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-    const auto lPx = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-    const auto rPy = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-    const auto rPx = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
-    // static_assert(false, "conv_ptr is being optimized out");
+    const auto args = CKArgs{ctx};
     auto argument_ptr = conv_ptrs[this->index].MakeArgumentPointer(nullptr,
                                                          nullptr,
                                                          nullptr,
-                                                         N,
-                                                         K,
-                                                         C,
-                                                         {Hi, Wi},
-                                                         {Y, X},
-                                                         {Ho, Wo},
-                                                         {Sx, Sy},
-                                                         {Dy, Dx},
-                                                         {lPy, lPx},
-                                                         {rPy, rPx});
+                                                         args.N,
+                                                         args.K,
+                                                         args.C,
+                                                         args.input,
+                                                         args.filter,
+                                                         args.input,
+                                                         args.strides,
+                                                         args.dilation,
+                                                         args.lPadding,
+                                                         args.rPadding);
     return conv_ptrs[this->index].IsSupportedArgument(argument_ptr.get());
 }
     
@@ -172,41 +163,23 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
     std::vector<DeviceConvFwdPtr_t> conv_ptrs;
     add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
     assert(!conv_ptrs.empty());
-    // TODO: Move to convolution_context_interpreter.hpp
-    // side-effect:: need to include ck's host_interface.hpp there
-    const auto N   = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto K   = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const auto C   = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const auto Hi  = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
-    const auto Wi  = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-    const auto Ho  = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto Wo  = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto Y   = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto X   = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    const auto Sy  = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-    const auto Sx  = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-    const auto Dy  = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-    const auto Dx  = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
-    const auto lPy = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-    const auto lPx = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-    const auto rPy = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-    const auto rPx = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+    const auto args = CKArgs{ctx};
 
     for(auto& conv_ptr : conv_ptrs)
     {
         auto argument_ptr = conv_ptr.MakeArgumentPointer(nullptr,
                                                          nullptr,
                                                          nullptr,
-                                                         N,
-                                                         K,
-                                                         C,
-                                                         {Hi, Wi},
-                                                         {Y, X},
-                                                         {Ho, Wo},
-                                                         {Sx, Sy},
-                                                         {Dy, Dx},
-                                                         {lPy, lPx},
-                                                         {rPy, rPx});
+                                                         args.N,
+                                                         args.K,
+                                                         args.C,
+                                                         args.input,
+                                                         args.filter,
+                                                         args.input,
+                                                         args.strides,
+                                                         args.dilation,
+                                                         args.lPadding,
+                                                         args.rPadding);
         if(conv_ptr.IsSupportedArgument(argument_ptr.get()))
             return true;
     }
@@ -218,58 +191,39 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
 {
     std::ignore = disableConfigOverridefromEnv;
     ConvSolution result;
-    // TODO: Move to convolution_context_interpreter.hpp
-    // side-effect:: need to include ck's host_interface.hpp there
+    const auto args = CKArgs{ctx};
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        std::ignore = kernels;
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            std::vector<DeviceConvFwdPtr_t> conv_ptrs;
+            add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
+            auto& conv_ptr       = conv_ptrs.at(config.index);
+            const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors  = data_ctx.tensors;
+            auto argument_ptr    = conv_ptr.MakeArgumentPointer(
+                const_cast<void*>(static_cast<const void*>(tensors.in)),
+                const_cast<void*>(static_cast<const void*>(tensors.w)),
+                static_cast<void*>(tensors.out),
+                args.N,
+                args.K,
+                args.C,
+                args.input,
+                args.filter,
+                args.input,
+                args.strides,
+                args.dilation,
+                args.lPadding,
+                args.rPadding);
+            auto invoker_ptr            = conv_ptr.MakeInvokerPointer();
+            const auto enable_profiling = handle.IsProfilingEnabled();
 
-    const auto N   = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto K   = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const auto C   = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const auto Hi  = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
-    const auto Wi  = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-    const auto Ho  = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto Wo  = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto Y   = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto X   = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    const auto Sy  = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-    const auto Sx  = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-    const auto Dy  = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-    const auto Dx  = ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
-    const auto lPy = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-    const auto lPx = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-    const auto rPy = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-    const auto rPx = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
-    result.invoker_factory = [=] (const std::vector<Kernel>& kernels)
-        {
-            std::ignore = kernels;
-            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters){
-                std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-                add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
-                auto& conv_ptr = conv_ptrs.at(config.index);
-                const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-                const auto& tensors  = data_ctx.tensors;
-                auto argument_ptr = conv_ptr.MakeArgumentPointer(const_cast<void*>(static_cast<const void*>(tensors.in)),
-                                                                const_cast<void*>(static_cast<const void*>(tensors.w)),
-                                                                static_cast<void*>(tensors.out),
-                                                                N,
-                                                                K,
-                                                                C,
-                                                                {Hi, Wi},
-                                                                {Y, X},
-                                                                {Ho, Wo},
-                                                                {Sx, Sy},
-                                                                {Dy, Dx},
-                                                                {lPy, lPx},
-                                                                {rPy, rPx});
-                auto invoker_ptr = conv_ptr.MakeInvokerPointer();
-                const auto enable_profiling = handle.IsProfilingEnabled();
-
-                float elapsed_time = invoker_ptr->Run(argument_ptr.get(), 1, handle.GetStream(),enable_profiling);
-                if(enable_profiling)
-                {
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(elapsed_time);
-                }
-            };
+            float elapsed_time =
+                invoker_ptr->Run(argument_ptr.get(), 1, handle.GetStream(), enable_profiling);
+            if(enable_profiling)
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed_time);
+            }
         };
     };
     return result;
