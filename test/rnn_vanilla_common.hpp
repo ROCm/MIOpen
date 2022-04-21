@@ -759,7 +759,14 @@ void RNNBwdDataCPUVerify(bool use_dropout,
             {
                 for(int bs = 0; bs < in_n.at(ti + 1); bs++)
                 {
+#if defined(__GNUC__) && !defined(__INTEL_COMPILER) && (((__GNUC__ * 100) + __GNUC_MINOR__) >= 800)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+#endif
                     memset(&dhx_host[hx_shift + bs * uni_stride], 0, hy_h * sizeof(T));
+#if defined(__GNUC__) && !defined(__INTEL_COMPILER) && (((__GNUC__ * 100) + __GNUC_MINOR__) >= 800)
+#pragma GCC diagnostic pop
+#endif
                 }
             }
 
@@ -820,9 +827,16 @@ void RNNBwdDataCPUVerify(bool use_dropout,
                 {
                     for(int bs = 0; bs < in_n.at(seqLength - 1 - ti); bs++)
                     {
+#if defined(__GNUC__) && !defined(__INTEL_COMPILER) && (((__GNUC__ * 100) + __GNUC_MINOR__) >= 800)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+#endif
                         memset(&dhx_host[hx_shift + bs * uni_stride + hy_n * hy_h],
                                0,
                                hy_h * sizeof(T));
+#if defined(__GNUC__) && !defined(__INTEL_COMPILER) && (((__GNUC__ * 100) + __GNUC_MINOR__) >= 800)
+#pragma GCC diagnostic pop
+#endif
                     }
                 }
 
@@ -2663,4 +2677,8 @@ struct rnn_basic_vanilla_driver : test_driver
     }
 };
 
+#endif
+
+#if defined(__GNUC__) && !defined(__INTEL_COMPILER) && (((__GNUC__ * 100) + __GNUC_MINOR__) >= 800)
+#pragma GCC diagnostic pop
 #endif
