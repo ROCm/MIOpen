@@ -19,7 +19,7 @@ def cmake_build(Map conf=[:]){
 
     def compiler = conf.get("compiler","/opt/rocm/llvm/bin/clang++")
     def config_targets = conf.get("config_targets","check")
-    def debug_flags = "-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined " + conf.get("extradebugflags", "")
+    def debug_flags = "-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined -Wno-option-ignored " + conf.get("extradebugflags", "")
     def build_envs = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 " + conf.get("build_env","")
     def prefixpath = conf.get("prefixpath","/usr/local")
     def mlir_args = " -DMIOPEN_USE_MLIR=" + conf.get("mlir_build", "ON")
@@ -269,10 +269,14 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_MIOPENTENSILE_LATEST",
+            defaultValue: false,
+            description: "")
+        booleanParam(
+            name: "BUILD_FULL_TESTS1",
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "BUILD_FULL_TESTS",
+            name: "BUILD_FULL_TESTS2",
             defaultValue: true,
             description: "")
         booleanParam(
@@ -759,7 +763,7 @@ pipeline {
         }
         stage("Full Tests I") {
             when {
-                expression { params.BUILD_FULL_TESTS }
+                expression { params.BUILD_FULL_TESTS1 }
             }
             parallel{
                 stage('Int8 HIP All Vega20 /opt/rocm') {
@@ -837,7 +841,7 @@ pipeline {
 
         stage("Full Tests II") {
             when {
-                expression { params.BUILD_FULL_TESTS }
+                expression { params.BUILD_FULL_TESTS2 }
             }
             environment{
                 WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"
@@ -866,16 +870,17 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx90a:xnack-")
                     }
                 }
-                stage('Fp32 Hip All gfx90a Xnack+') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("gfx90a") }
-                    steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx90a:xnack+", enforce_xnack_on: true)
-                    }
-                }
+                // #TODO Code Quality WORKAROUND ROCm 5.1 update
+                // stage('Fp32 Hip All gfx90a Xnack+') {
+                //     when {
+                //         beforeAgent true
+                //         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
+                //     }
+                //     agent{ label rocmnode("gfx90a") }
+                //     steps{
+                //         buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx90a:xnack+", enforce_xnack_on: true)
+                //     }
+                // }
                 stage('Fp16 Hip Install All Vega20') {
                     when {
                         beforeAgent true

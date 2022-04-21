@@ -343,6 +343,7 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmABlockCopyPerformanceParamete
         // vector write into LDS
         DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
 
+        // NOLINTNEXTLINE
         if(!(GemmKPerBlock % data_per_thread_copy_gemmk == 0 &&
              GemmMPerBlock % data_per_thread_copy_gemmm == 0 &&
              GemmKPack % data_per_thread_copy_gemmkpack == 0))
