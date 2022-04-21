@@ -417,7 +417,7 @@ Program Handle::LoadProgram(const std::string& program_name,
         miopen::SaveBinary(
             path.string(), this->GetTargetProperties(), program_name, params, is_kernel_str);
 #endif
-        return std::move(p);
+        return p;
     }
     else
     {

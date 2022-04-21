@@ -88,6 +88,8 @@ const std::unordered_map<std::string, std::pair<const char*,const char*>>& ${EMB
 ")
 
     file(WRITE "${PARSE_SRC}" "
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored \"-Wreserved-identifier\"
 #include <${EMBED_NAME}.hpp>
 ${EXTERNS}
 const std::unordered_map<std::string, std::pair<const char*,const char*>>& ${EMBED_NAME}()
@@ -95,6 +97,7 @@ const std::unordered_map<std::string, std::pair<const char*,const char*>>& ${EMB
     static const std::unordered_map<std::string, std::pair<const char*,const char*>> result = {${INIT_KERNELS}};
     return result;
 }
+#pragma clang diagnostic pop // \"-Wreserved-identifier\"
 ")
 endfunction()
 
