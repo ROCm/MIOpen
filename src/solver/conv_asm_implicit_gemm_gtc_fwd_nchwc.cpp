@@ -481,13 +481,10 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(const Convolution
 
     // TODO : check logic here
     // tensor thread length[1]==1 means per thread read a dword
-    if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
+    // c, k should be integer multiples of vector_c
+    if((c / group) % vector_c != 0 || (k / group) % vector_c != 0)
     {
-        // c, k should be integer multiples of vector_c
-        if((c / group) % vector_c != 0 || (k / group) % vector_c != 0)
-        {
-            return false;
-        }
+        return false;
     }
 
     if((nxe == 0) && !unit_conv)

@@ -163,6 +163,12 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
 
     auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
+    if(wDesc.GetLayout_t() == miopenTensorCHWN_VECT_C)
+    {
+        std::tie(wei_k, wei_c) = miopen::tie_pick<3, 0>{}(wDesc.GetLengths());
+        wei_spatial            = boost::adaptors::slice(wDesc.GetLengths(), 1, 1 + spatial_dim);
+    }
+
     if(mode == miopenConvolution)
     {
         // for depthwise conv wei_c must be 1 while group_count must be wei_c

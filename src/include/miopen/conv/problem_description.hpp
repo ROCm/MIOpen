@@ -82,6 +82,35 @@ constexpr TElement GetW3(int spatial_dims, const std::vector<TElement>& data)
 {
     return std::get<2>(GetDHW(spatial_dims, data));
 }
+template <class TElement>
+constexpr auto GetCHWN(const std::vector<TElement>& data)
+{
+    return miopen::tien<4>(data, 1);
+}
+
+template <class TElement>
+constexpr TElement GetNofCHWN(const std::vector<TElement>& data)
+{
+    return std::get<3>(GetCHWN(data));
+}
+
+template <class TElement>
+constexpr TElement GetCofCHWN(const std::vector<TElement>& data)
+{
+    return std::get<0>(GetCHWN(data));
+}
+
+template <class TElement>
+constexpr TElement GetHofCHWN(const std::vector<TElement>& data)
+{
+    return std::get<1>(GetCHWN(data));
+}
+
+template <class TElement>
+constexpr TElement GetWofCHWN(const std::vector<TElement>& data)
+{
+    return std::get<2>(GetCHWN(data));
+}
 
 template <class TElement>
 constexpr auto GetNCDHW(int spatial_dims, const std::vector<TElement>& data)
@@ -234,8 +263,20 @@ struct ProblemDescription
     // Weights getters
     miopenDataType_t GetWeightsDataType() const { return weights.GetType(); }
     std::size_t GetWeightsDepth() const { return GetD5(GetSpatialDims(), weights.GetLengths()); }
-    std::size_t GetWeightsHeight() const { return GetH5(GetSpatialDims(), weights.GetLengths()); }
-    std::size_t GetWeightsWidth() const { return GetW5(GetSpatialDims(), weights.GetLengths()); }
+    std::size_t GetWeightsHeight() const
+    {
+        if(weights.GetTensorLayout() == "CHWN_VECT_C")
+            return GetHofCHWN(weights.GetLengths());
+        else
+            return GetH5(GetSpatialDims(), weights.GetLengths());
+    }
+    std::size_t GetWeightsWidth() const
+    {
+        if(weights.GetTensorLayout() == "CHWN_VECT_C")
+            return GetWofCHWN(weights.GetLengths());
+        else
+            return GetW5(GetSpatialDims(), weights.GetLengths());
+    }
     // std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims(), weights.GetStrides());
     // }
     // std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims(), weights.GetStrides());

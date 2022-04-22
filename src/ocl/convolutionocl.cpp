@@ -111,16 +111,30 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
 {
     if(conv.group_count == 1)
     {
-        if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
+        if((((wDesc.GetLayout_t() == miopenTensorNCHW) ||
+             (wDesc.GetLayout_t() == miopenTensorNCHW_VECT_C)) &&
+            (xDesc.GetLengths()[1] != wDesc.GetLengths()[1])) ||
+           ((wDesc.GetLayout_t() == miopenTensorCHWN_VECT_C) &&
+            (xDesc.GetLengths()[1] != wDesc.GetLengths()[0])))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
     }
     if(conv.group_count > 1)
     {
         if(xDesc.GetLengths()[1] % conv.group_count != 0 ||
-           wDesc.GetLengths()[0] % conv.group_count != 0 ||
-           conv.group_count > xDesc.GetLengths()[1] || conv.group_count > wDesc.GetLengths()[0])
+           conv.group_count > xDesc.GetLengths()[1] ||
+           (((wDesc.GetLayout_t() == miopenTensorNCHW) ||
+             (wDesc.GetLayout_t() == miopenTensorNCHW_VECT_C)) &&
+            (wDesc.GetLengths()[0] % conv.group_count != 0 ||
+             conv.group_count > wDesc.GetLengths()[0])) ||
+           ((wDesc.GetLayout_t() == miopenTensorCHWN_VECT_C) &&
+            (wDesc.GetLengths()[3] % conv.group_count != 0 ||
+             conv.group_count > wDesc.GetLengths()[3])))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
-        if(xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])
+        if((((wDesc.GetLayout_t() == miopenTensorNCHW) ||
+             (wDesc.GetLayout_t() == miopenTensorNCHW_VECT_C)) &&
+            (xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])) ||
+           ((wDesc.GetLayout_t() == miopenTensorCHWN_VECT_C) &&
+            (xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[0])))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
     }
 }

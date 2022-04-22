@@ -15,6 +15,8 @@ static inline uint32_t igemm_find_tile_size_with_upper_bound(
 {
     // return tile size so that the required input tile(sec_in) is no larger than upper_bound
     uint32_t n_tiles = 1;
+    if(n_tiles > out_size)
+        MIOPEN_THROW("out_size should not be less than one");
     for(; n_tiles <= out_size; n_tiles++)
     {
         uint32_t tile_size = (out_size + n_tiles - 1) / n_tiles;
@@ -1075,6 +1077,8 @@ InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
         igemm_find_tile_size_with_upper_bound(ho, upper_bound_h, stride_h, dilation_h, y);
     uint32_t tile_w =
         igemm_find_tile_size_with_upper_bound(wo, upper_bound_w, stride_w, dilation_w, x);
+    if(tile_h == 0 || tile_w == 0)
+        MIOPEN_THROW("tile_hw should not be zero");
     uint32_t ntile_h = (ho + tile_h - 1) / tile_h;
     uint32_t ntile_w = (wo + tile_w - 1) / tile_w;
     int tile_hw      = (tile_h << 16) | tile_w;
@@ -1092,7 +1096,9 @@ InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
 
     int splits_4G = solver::igemm_split_batch_size(
         hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
-    splits_4G = splits_4G == 0 ? n : splits_4G;
+    splits_4G = (splits_4G == 0 ? n : splits_4G);
+    if(splits_4G == 0)
+        MIOPEN_THROW("splits_4G should not be zero");
 
     uint32_t gemm_n = (n / splits_4G) * tile_h * tile_w;
     uint32_t gemm_m = k / group;

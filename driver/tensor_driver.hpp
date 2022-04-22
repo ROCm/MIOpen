@@ -133,7 +133,7 @@ inline int SetTensor4dVector(miopenTensorDescriptor_t t,
             t, data_type, miopenTensorNCHW_VECT_C, len[0], len[1], len[2], len[3]);
     else if(layout == "CHWN_VECT_C")
         return miopenSet4dTensorDescriptorWithLayout(
-            t, data_type, miopenTensorCHWN_VECT_C, len[0], len[1], len[2], len[3]);
+            t, data_type, miopenTensorCHWN_VECT_C, len[1], len[2], len[3], len[0]);
     else
     {
         MIOPEN_THROW("We only supported NCHW_VECT_C & CHWN_VECT_C layout");
@@ -171,11 +171,10 @@ inline int SetTensorNd(miopenTensorDescriptor_t t,
         MIOPEN_THROW("unmatched layout and dimension size");
     }
 
-    if(layout.compare(0, 3, "NCHW") && layout.find("_VECT_") != std::string::npos)
+    if(layout.find("_VECT_") != std::string::npos)
     {
         return SetTensor4dVector(t, len, layout, data_type);
     }
-    ///\todo CHWN_VECT_C type
 
     // Dimension lengths vector 'len' comes with a default layout.
     std::string len_layout = miopen::tensor_layout_get_default(layout.size());

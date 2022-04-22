@@ -158,6 +158,7 @@ struct scalar_gen_random_integer
 
     double operator()() const
     {
+        // return static_cast<double>(1);
         return static_cast<double>(min_val + GET_RAND() % (max_val - min_val + 1));
     }
 };
@@ -191,6 +192,24 @@ tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
         weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4
             ? (std::is_same<Tout, int>{} ? miopenInt32 : miopenFloat)
             : weights.desc.GetType())};
+}
+
+miopenTensorLayout_t string_to_4D_tensor_layout(std::string layout_string)
+{
+    miopenTensorLayout_t TensorLayout = miopenTensorNCHW;
+    if(layout_string == "NHWC")
+        TensorLayout = miopenTensorNHWC;
+    else if(layout_string == "NCHW_VECT_C")
+        TensorLayout = miopenTensorNCHW_VECT_C;
+    else if(layout_string == "CHWN_VECT_C")
+        TensorLayout = miopenTensorCHWN_VECT_C;
+    else if(layout_string == "CHWN")
+        TensorLayout = miopenTensorCHWN_VECT_C;
+    else if(layout_string == "NCHW")
+        TensorLayout = miopenTensorNCHW;
+    else
+        MIOPEN_THROW("Unsupported tensor layout");
+    return TensorLayout;
 }
 
 // Convolution test base class
@@ -1777,7 +1796,6 @@ struct conv_driver : test_driver
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
         std::size_t spatial_dim = filter.GetSpatialDimension();
         filter.group_count      = std::max(static_cast<int>(groupCount), 1);
-
         if(!input_dims.empty() && in_layout.find("_VECT_") == std::string::npos)
         {
             input          = tensor<T>{input_dims}.generate(tensor_elem_gen_integer{17});
@@ -1843,12 +1861,16 @@ struct conv_driver : test_driver
             }
             else if(fil_layout == "CHWN_VECT_C")
             {
+                output_channels = weight_tensor_dims.at(3);
+                std::copy(weight_tensor_dims.begin() + 1,
+                          weight_tensor_dims.end() - 1,
+                          filter_dims.begin());
                 weights = tensor<T>{type,
                                     miopenTensorCHWN_VECT_C,
-                                    output_channels,
                                     input_channels / filter.group_count,
                                     filter_dims.at(0),
-                                    filter_dims.at(1)}
+                                    filter_dims.at(1),
+                                    output_channels}
                               .generate(tensor_elem_gen_integer{17});
             }
             else
@@ -1917,7 +1939,8 @@ struct conv_driver : test_driver
             }
             input.desc = miopen::TensorDescriptor(miopen_type<T>{}, dim_lens, dim_strides);
         }
-        if(fil_layout != "NCHW" && fil_layout != "NCDHW" && fil_layout != "NCHW_VECT_C")
+        if(fil_layout != "NCHW" && fil_layout != "NCDHW" && fil_layout != "NCHW_VECT_C" &&
+           fil_layout != "CHWN_VECT_C")
         {
             const std::vector<std::size_t> dim_lens = weights.desc.GetLengths();
             std::vector<std::size_t> dim_strides;
@@ -1962,14 +1985,20 @@ struct conv_driver : test_driver
                     filter.dilations.begin());
         std::copy_n(trans_output_pads.begin(), spatial_dim, filter.trans_output_pads.begin());
 
-        std::size_t in_c_len  = input.desc.GetLengths()[1];
-        std::size_t wei_k_len = weights.desc.GetLengths()[0];
-        std::size_t wei_c_len = weights.desc.GetLengths()[1];
-
+        std::size_t in_c_len = input.desc.GetLengths()[1];
         std::vector<std::size_t> in_spatial_len(input.desc.GetLengths().begin() + 2,
                                                 input.desc.GetLengths().end());
+        std::size_t wei_k_len = weights.desc.GetLengths()[0];
+        std::size_t wei_c_len = weights.desc.GetLengths()[1];
         std::vector<std::size_t> wei_spatial_len(weights.desc.GetLengths().begin() + 2,
                                                  weights.desc.GetLengths().end());
+        if(fil_layout == "CHWN_VECT_C")
+        {
+            wei_c_len          = weights.desc.GetLengths()[0];
+            wei_spatial_len[0] = weights.desc.GetLengths()[1];
+            wei_spatial_len[1] = weights.desc.GetLengths()[2];
+            wei_k_len          = weights.desc.GetLengths()[3];
+        }
 
         bool is_int8 = (input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4);
 
@@ -2071,13 +2100,20 @@ struct conv_driver : test_driver
                  (filter.group_count > 1 &&
                   (weights.desc.GetLengths().at(0) % filter.group_count == 0)))) ||
                ((filter.mode == miopenConvolution) &&
+                ((weights.desc.GetLayout_t() == miopenTensorNCHW) ||
+                 (weights.desc.GetLayout_t() == miopenTensorNCHW_VECT_C)) &&
                 ((filter.group_count == 1 &&
                   (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1))) ||
                  (filter.group_count > 1 &&
-                  (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)))))
+                  (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)))) ||
+               ((filter.mode == miopenConvolution) &&
+                (weights.desc.GetLayout_t() == miopenTensorCHWN_VECT_C) &&
+                ((filter.group_count == 1 &&
+                  (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(0))) ||
+                 (filter.group_count > 1 &&
+                  (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(0) == 0)))))
             {
-                auto output = get_output_tensor(filter, input, weights, out_layout);
-
+                auto output             = get_output_tensor(filter, input, weights, out_layout);
                 auto gen_positive_value = [=](auto...) {
                     auto data_type = input.desc.GetType();
                     std::size_t v_max =
@@ -2111,7 +2147,6 @@ struct conv_driver : test_driver
                                                       filter,
                                                       miopen::conv::Direction::Forward);
                 ctx.SetStream(&get_handle());
-
                 bool skip_forward = is_int8 && !IsGemmAplicable(ctx);
                 if(skip_forward)
                 {
@@ -2168,7 +2203,6 @@ struct conv_driver : test_driver
                 // weights.generate(gen_positive_value);
 
                 auto&& handle = get_handle();
-
                 size_t total_mem;
                 if(is_int8)
                 {
