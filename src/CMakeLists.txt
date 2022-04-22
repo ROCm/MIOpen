@@ -773,6 +773,7 @@ if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
     HEADER_LOCATION include/miopen
     GUARDS WRAPPER
     WRAPPER_LOCATIONS miopen/include/miopen
+    ORIGINAL_FILES ${PROJECT_BINARY_DIR}/include/miopen/version.h ${PROJECT_BINARY_DIR}/include/miopen/config.h
   )
 
   #Installing Wrapper Headers
