@@ -252,10 +252,10 @@ std::vector<Solution> Problem::FindConvSolutions(Handle& handle,
         break;
     }
     case miopenProblemDirectionBackwardWeight: {
-        decltype(auto) x_desc_ = miopenTranspose ? y_desc : x_desc;
-        decltype(auto) x_      = miopenTranspose ? y : x;
-        decltype(auto) y_desc_ = miopenTranspose ? x_desc : y_desc;
-        decltype(auto) y_      = miopenTranspose ? x : y;
+        decltype(auto) x_desc_ = conv_desc.mode == miopenTranspose ? y_desc : x_desc;
+        decltype(auto) x_      = conv_desc.mode == miopenTranspose ? y : x;
+        decltype(auto) y_desc_ = conv_desc.mode == miopenTranspose ? x_desc : y_desc;
+        decltype(auto) y_      = conv_desc.mode == miopenTranspose ? x : y;
 
         conv_desc.FindConvBwdWeightsAlgorithm(handle,
                                               y_desc_,
