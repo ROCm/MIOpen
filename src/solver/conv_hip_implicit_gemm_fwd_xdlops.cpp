@@ -142,7 +142,10 @@ size_t ConvHipImplicitGemmFwdXdlops::GetWorkspaceSize(const ConvolutionContext& 
 
 bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
+#if !MIOPEN_BACKEND_HIP
     std::ignore = ctx;
+    return false;
+#else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS{}))
         return false;
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
@@ -184,12 +187,18 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
             return true;
     }
     return false;
+#endif
 }
 
 ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     const ConvolutionContext& ctx, const PerformanceConfigHipImplicitGemmFwdXdlops& config, bool disableConfigOverridefromEnv) const
 {
     std::ignore = disableConfigOverridefromEnv;
+#if !MIOPEN_BACKEND_HIP
+    std::ignore = ctx;
+    std::ignore = config;
+    return {};
+#else
     ConvSolution result;
     const auto args = CKArgs{ctx};
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
@@ -227,6 +236,7 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
         };
     };
     return result;
+#endif
 }
 
 } // namespace solver
