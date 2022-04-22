@@ -75,7 +75,7 @@ def cmake_build(Map conf=[:]){
         def fmode = conf.get("find_mode", "")
         setup_args = " -DMIOPEN_DEFAULT_FIND_MODE=${fmode} " + setup_args
     }
-    if(env.CCACHE_URL)
+    if(env.CCACHE_HOST)
     {
         setup_args = " -DCMAKE_CXX_COMPILER_LAUNCHER='ccache' -DCMAKE_C_COMPILER_LAUNCHER='ccache' " + setup_args
     }
@@ -134,9 +134,18 @@ def buildHipClangJob(Map conf=[:]){
             dockerOpts = dockerOpts + " --env HSA_XNACK=1"
         }
         def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' --build-arg USE_FIN='${build_fin}' "
-        if(env.CCACHE_URL)
+        if(env.CCACHE_HOST)
         {
-            dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='${env.CCACHE_URL}' --build-arg COMPILER_LAUNCHER='ccache' "
+            def check_host = sh("(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 ", returnStdout: true).trim()
+            if(check_host == "+PONG")
+            {
+                echo "FOUND CCACHE SERVER: ${CCACHE_HOST}"
+            }
+            else 
+            {
+                echo "CCACHE SERVER: ${CCACHE_HOST} NOT FOUND, got ${check_host} response"
+            }
+            dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
         }
 
         def variant = env.STAGE_NAME
