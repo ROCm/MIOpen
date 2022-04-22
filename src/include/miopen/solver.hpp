@@ -3785,7 +3785,8 @@ struct PerformanceConfigHipImplicitGemmFwdXdlops
     PerformanceConfigHipImplicitGemmFwdXdlops() : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
     {
     }
-    PerformanceConfigHipImplicitGemmFwdXdlops(bool ) : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
+    PerformanceConfigHipImplicitGemmFwdXdlops(bool)
+        : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
     {
     }
     void HeuristicInit(const ConvolutionContext& ctx);
@@ -3819,7 +3820,7 @@ struct ConvHipImplicitGemmFwdXdlops : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceConfigHipImplicitGemmFwdXdlops& config,
                              bool disableConfigOverrideFromEnv = false) const;
-    float GetWti(const ConvolutionContext& ) const override {return 0.01f;};
+    float GetWti(const ConvolutionContext&) const override { return 0.01f; };
 };
 
 struct AnySolver;

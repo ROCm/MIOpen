@@ -1998,7 +1998,7 @@ struct conv_driver : test_driver
                                                       miopen::conv::Direction::Forward);
                 ctx.SetStream(&get_handle());
 
-                // TODO: Check if this is still valid 
+                // TODO: Check if this is still valid
                 bool skip_forward = false; // is_int8 && !IsGemmAplicable(ctx);
 
                 bool skip_backward_data    = is_int8;

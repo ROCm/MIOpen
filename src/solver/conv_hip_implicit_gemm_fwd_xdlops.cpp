@@ -16,16 +16,23 @@ struct CKArgs
 {
     CKArgs(const ConvolutionContext& ctx)
     {
-        N   = ConvolutionContextInterpreter::GetBatchN(ctx);
-        K   = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-        C   = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-        input = {ConvolutionContextInterpreter::GetInputHeightHi(ctx), ConvolutionContextInterpreter::GetInputWidthWi(ctx)};
-        output = {ConvolutionContextInterpreter::GetOutputHeightHo(ctx), ConvolutionContextInterpreter::GetOutputWidthWo(ctx)};
-        filter = {ConvolutionContextInterpreter::GetFilterHeightY(ctx), ConvolutionContextInterpreter::GetFilterWidthX(ctx)};
-        strides = {ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx), ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx)};
-        dilation = {ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx), ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx)};
-        lPadding = {ConvolutionContextInterpreter::GetInputLeftPadH(ctx), ConvolutionContextInterpreter::GetInputLeftPadW(ctx)};
-        rPadding = {ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx), ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx)};
+        N        = ConvolutionContextInterpreter::GetBatchN(ctx);
+        K        = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
+        C        = ConvolutionContextInterpreter::GetInputChannelC(ctx);
+        input    = {ConvolutionContextInterpreter::GetInputHeightHi(ctx),
+                 ConvolutionContextInterpreter::GetInputWidthWi(ctx)};
+        output   = {ConvolutionContextInterpreter::GetOutputHeightHo(ctx),
+                  ConvolutionContextInterpreter::GetOutputWidthWo(ctx)};
+        filter   = {ConvolutionContextInterpreter::GetFilterHeightY(ctx),
+                  ConvolutionContextInterpreter::GetFilterWidthX(ctx)};
+        strides  = {ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx),
+                   ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx)};
+        dilation = {ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx),
+                    ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx)};
+        lPadding = {ConvolutionContextInterpreter::GetInputLeftPadH(ctx),
+                    ConvolutionContextInterpreter::GetInputLeftPadW(ctx)};
+        rPadding = {ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx),
+                    ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx)};
     }
     int N;
     int K;
@@ -46,7 +53,7 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionC
     add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
     assert(!conv_ptrs.empty());
     this->total_size = conv_ptrs.size();
-    const auto args = CKArgs{ctx};
+    const auto args  = CKArgs{ctx};
     for(auto& conv_ptr : conv_ptrs)
     {
         auto argument_ptr = conv_ptr.MakeArgumentPointer(nullptr,
@@ -76,7 +83,7 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::SetNextValue(const ConvolutionCo
     if(total_size == -1)
         this->HeuristicInit(ctx);
     assert(total_size != -1);
-    if((index +1 ) < total_size)
+    if((index + 1) < total_size)
     {
         ++index;
         return true;
@@ -91,24 +98,25 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(const ConvolutionContext
 {
     std::vector<DeviceConvFwdPtr_t> conv_ptrs;
     add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
-    const auto args = CKArgs{ctx};
+    const auto args   = CKArgs{ctx};
     auto argument_ptr = conv_ptrs[this->index].MakeArgumentPointer(nullptr,
-                                                         nullptr,
-                                                         nullptr,
-                                                         args.N,
-                                                         args.K,
-                                                         args.C,
-                                                         args.input,
-                                                         args.filter,
-                                                         args.input,
-                                                         args.strides,
-                                                         args.dilation,
-                                                         args.lPadding,
-                                                         args.rPadding);
+                                                                   nullptr,
+                                                                   nullptr,
+                                                                   args.N,
+                                                                   args.K,
+                                                                   args.C,
+                                                                   args.input,
+                                                                   args.filter,
+                                                                   args.input,
+                                                                   args.strides,
+                                                                   args.dilation,
+                                                                   args.lPadding,
+                                                                   args.rPadding);
     return conv_ptrs[this->index].IsSupportedArgument(argument_ptr.get());
 }
-    
-bool PerformanceConfigHipImplicitGemmFwdXdlops::operator==(const PerformanceConfigHipImplicitGemmFwdXdlops& other) const
+
+bool PerformanceConfigHipImplicitGemmFwdXdlops::operator==(
+    const PerformanceConfigHipImplicitGemmFwdXdlops& other) const
 {
     return this->index == other.index;
 }
@@ -190,8 +198,10 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
 #endif
 }
 
-ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceConfigHipImplicitGemmFwdXdlops& config, bool disableConfigOverridefromEnv) const
+ConvSolution
+ConvHipImplicitGemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
+                                          const PerformanceConfigHipImplicitGemmFwdXdlops& config,
+                                          bool disableConfigOverridefromEnv) const
 {
     std::ignore = disableConfigOverridefromEnv;
 #if !MIOPEN_BACKEND_HIP
@@ -200,7 +210,7 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     return {};
 #else
     ConvSolution result;
-    const auto args = CKArgs{ctx};
+    const auto args        = CKArgs{ctx};
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
