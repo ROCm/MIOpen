@@ -96,6 +96,7 @@ ARG PREFIX=/usr/local
 ARG USE_FIN="OFF"
 ARG CCACHE_SECONDARY_STORAGE=""
 ARG CCACHE_DIR="/tmp"
+RUN env
 # RUN cget -p $PREFIX install https://github.com/ccache/ccache/archive/7f1572ae9ca958fa923a66235f6a64a360b03523.tar.gz -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
 RUN rm -rf /tmp/ccache* && mkdir /tmp/ccache && wget https://github.com/ccache/ccache/archive/7f1572ae9ca958fa923a66235f6a64a360b03523.tar.gz -O /tmp/ccache.tar.gz && \
     tar zxvf /tmp/ccache.tar.gz -C /tmp/ && mkdir /tmp/ccache-7f1572ae9ca958fa923a66235f6a64a360b03523/build && \
