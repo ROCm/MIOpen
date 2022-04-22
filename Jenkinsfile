@@ -119,10 +119,9 @@ def buildHipClangJob(Map conf=[:]){
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         env.DOCKER_BUILDKIT=1
-        def docker_registry = "docker.io"
         checkout scm
         def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
-        def image = "${docker_registry}}/miopen_build_cache/miopen:${branch}"
+        def image = "miopen"
         def prefixpath = conf.get("prefixpath", "/usr/local")
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
 
@@ -146,6 +145,10 @@ def buildHipClangJob(Map conf=[:]){
         def needs_gpu = conf.get("needs_gpu", true)
 
         def retimage
+        if(env.DOCKER_REPO)
+        {
+            image = "${DOCKER_REPO}/miopen_build_cache/miopen:${branch}"
+        }
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
             try {
                 retimage = docker.build("${image}", dockerArgs + '.')
