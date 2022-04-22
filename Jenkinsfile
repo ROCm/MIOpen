@@ -136,7 +136,7 @@ def buildHipClangJob(Map conf=[:]){
         def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' --build-arg USE_FIN='${build_fin}' "
         if(env.CCACHE_HOST)
         {
-            def check_host = sh("""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
+            def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
             if(check_host == "+PONG")
             {
                 echo "FOUND CCACHE SERVER: ${CCACHE_HOST}"
