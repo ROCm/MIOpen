@@ -1591,8 +1591,8 @@ struct conv_driver : test_driver
     bool gen_float           = false;
     bool immed               = immed_mode;
     bool enable_fdb          = true;
-    std::string output_type;
-    bool int8_vectorize;
+    std::string output_type  = "";
+    bool int8_vectorize      = false;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution},

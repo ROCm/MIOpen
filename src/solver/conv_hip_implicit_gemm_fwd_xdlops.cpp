@@ -220,8 +220,10 @@ ConvHipImplicitGemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
             const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
             auto argument_ptr    = conv_ptr.MakeArgumentPointer(
-                const_cast<void*>(static_cast<const void*>(tensors.in)),
-                const_cast<void*>(static_cast<const void*>(tensors.w)),
+                const_cast<void*>(static_cast<const void*>(
+                    tensors.in)), // NOLINT (cppcoreguidelines-pro-type-const-cast)
+                const_cast<void*>(static_cast<const void*>(
+                    tensors.w)), // NOLINT (cppcoreguidelines-pro-type-const-cast)
                 static_cast<void*>(tensors.out),
                 args.N,
                 args.K,
