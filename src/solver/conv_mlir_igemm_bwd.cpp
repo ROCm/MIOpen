@@ -85,8 +85,7 @@ PerformanceConvMlirIgemm ConvMlirIgemmBwd::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvMlirIgemmBwd::GetSolution(const ConvolutionContext& ctx,
-                                           const PerformanceConvMlirIgemm& config,
-                                           bool) const
+                                           const PerformanceConvMlirIgemm& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;

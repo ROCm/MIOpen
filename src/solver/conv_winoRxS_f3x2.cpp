@@ -377,31 +377,29 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
 /// \todo Consider re-using code from RxS_f2x3.
 ConvSolution
 ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params,
-                                    const PerformanceConfigConvBinWinogradRxSf3x2& config,
-                                    const bool disableConfigOverrideFromEnv) const
+                                    const PerformanceConfigConvBinWinogradRxSf3x2& config) const
 {
     const PerformanceConfigConvBinWinogradRxSf3x2* pcfg = &config;
+
+    //Try to load config from environment variable
     PerformanceConfigConvBinWinogradRxSf3x2 fromEnv;
-    if(!disableConfigOverrideFromEnv)
+    std::string s;
+    const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS{});
+    if(p_asciz != nullptr)
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS{});
-        if(p_asciz != nullptr)
+        s = std::string(p_asciz);
+        if(!s.empty()) // else nothing to parse.
         {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
+            if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
+                MIOPEN_LOG_E("MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS: "
+                                "Bad format or invalid for the problem config: "
+                                << s);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                pcfg = &fromEnv;
             }
         }
     }

@@ -802,7 +802,7 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdV1R1Xdlops& config, bool) const
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdV1R1Xdlops& config) const
 {
     ConvSolution result;
 

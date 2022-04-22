@@ -421,8 +421,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 }
 
 ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfigAsmDirect3x3WrW& config,
-                                           const bool disableConfigOverrideFromEnv) const
+                                           const PerformanceConfigAsmDirect3x3WrW& config) const
 {
     ConvSolution result;
     std::ostringstream options;
@@ -444,30 +443,30 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
     // Perf tune:
     const PerformanceConfigAsmDirect3x3WrW* pcfg = &config;
+
+    //Try to load config from environment variable
     PerformanceConfigAsmDirect3x3WrW fromEnv;
-    if(!disableConfigOverrideFromEnv)
+    std::string s;
+    const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS{});
+    if(p_asciz != nullptr)
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS{});
-        if(p_asciz != nullptr)
+        s = std::string(p_asciz);
+        if(!s.empty()) // else nothing to parse.
         {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
+            if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
+                MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS: "
+                                "Bad format or invalid for the problem config: "
+                                << s);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                pcfg = &fromEnv;
             }
         }
     }
+
     GenerateClangDefsym(options, "limit_wave_cnt", pcfg->GetLimitWaveCnt());
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "c_per_wave", pcfg->GetCPerWave());

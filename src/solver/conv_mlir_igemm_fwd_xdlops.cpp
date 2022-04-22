@@ -199,8 +199,7 @@ ConvMlirIgemmFwdXdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
-                                                 const PerformanceConvMlirIgemmXdlops& config,
-                                                 bool) const
+                                                 const PerformanceConvMlirIgemmXdlops& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;

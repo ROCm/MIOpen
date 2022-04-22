@@ -554,8 +554,7 @@ size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext& params) cons
 }
 
 ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfigConvAsmBwdWrW1x1& config,
-                                           const bool disableConfigOverrideFromEnv) const
+                                           const PerformanceConfigConvAsmBwdWrW1x1& config) const
 {
 
     ConvSolution result;
@@ -722,28 +721,26 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "output_buffer_size", obuf.total_byte_size);
 
     const PerformanceConfigConvAsmBwdWrW1x1* pcfg = &config;
-    PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
 
-    if(!disableConfigOverrideFromEnv)
+    //Try to load config from environment variable
+    PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
+    std::string s;
+    const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS{});
+    if(p_asciz != nullptr)
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS{});
-        if(p_asciz != nullptr)
+        s = std::string(p_asciz);
+        if(!s.empty()) // else nothing to parse.
         {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
+            if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
+                MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS: "
+                                "Bad format or invalid for the problem config: "
+                                << s);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                pcfg = &fromEnv;
             }
         }
     }

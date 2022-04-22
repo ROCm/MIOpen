@@ -632,8 +632,7 @@ ConvHipImplicitGemmV4R4Fwd::Search(const ConvolutionContext& context,
 }
 
 ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& ctx,
-                                                     const PerformanceImplicitGemmV4R4Fwd& config,
-                                                     bool) const
+                                                     const PerformanceImplicitGemmV4R4Fwd& config) const
 {
 
     ConvSolution result;

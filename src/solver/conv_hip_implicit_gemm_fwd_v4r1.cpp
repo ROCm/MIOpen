@@ -167,8 +167,7 @@ ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& context,
 }
 
 ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
-                                                     const PerformanceImplicitGemmV4R1& config,
-                                                     bool) const
+                                                     const PerformanceImplicitGemmV4R1& config) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;
@@ -367,8 +366,7 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
 }
 
 ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
-                                                     const PerformanceImplicitGemmV4R1& config,
-                                                     bool) const
+                                                     const PerformanceImplicitGemmV4R1& config) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;

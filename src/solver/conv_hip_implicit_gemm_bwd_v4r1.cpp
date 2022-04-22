@@ -813,7 +813,7 @@ ConvHipImplicitGemmBwdDataV4R1::Search(const ConvolutionContext& context,
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV4R1& config, bool) const
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV4R1& config) const
 {
     ConvSolution result;
 

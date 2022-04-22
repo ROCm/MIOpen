@@ -861,8 +861,7 @@ template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 ConvSolution
 ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
     const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmForwardV4R4Xdlops& config,
-    bool) const
+    const PerformanceImplicitGemmForwardV4R4Xdlops& config) const
 {
     ConvSolution wino_transform =
         ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>{}.GetSolution(ctx);

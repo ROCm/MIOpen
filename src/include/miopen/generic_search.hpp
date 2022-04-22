@@ -343,7 +343,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         std::vector<KernelInfo> kernels;
         for(const auto& current_config : all_configs)
         {
-            ConvSolution current_solution = s.GetSolution(context, current_config, true);
+            ConvSolution current_solution = s.GetSolution(context, current_config);
             for(auto&& kernel : current_solution.construction_params)
             {
                 if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
@@ -369,7 +369,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
 
             try
             {
-                current_solution = s.GetSolution(context, current_config, true);
+                current_solution = s.GetSolution(context, current_config);
                 if(default_solution.workspace_sz != current_solution.workspace_sz)
                 {
                     ret = -2;

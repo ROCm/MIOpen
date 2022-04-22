@@ -124,10 +124,9 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeP
 }
 
 ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ConvolutionContext& params,
-                                               const PerformanceConfigConvBiasActivAsm1x1U& config,
-                                               bool disableConfigOverrideFromEnv) const
+                                               const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
-    auto sol = ConvAsm1x1U{}.GetSolution(params, config, disableConfigOverrideFromEnv);
+    auto sol = ConvAsm1x1U{}.GetSolution(params, config);
 
     if(sol.construction_params.size() != 1)
         MIOPEN_THROW("ConvBiasActivAsm1x1U expects only one kernel");

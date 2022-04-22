@@ -488,8 +488,7 @@ static int divide_round_plus_inf(const int x, const int y)
 }
 
 ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
-                                      const PerformanceConfigConvAsm1x1U& config,
-                                      const bool disableConfigOverrideFromEnv) const
+                                      const PerformanceConfigConvAsm1x1U& config) const
 {
     ConvSolution result;
 
@@ -667,27 +666,26 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
 
     const PerformanceConfigConvAsm1x1U* pcfg = &config;
+
+    //Try to load config from environment variable
     PerformanceConfigConvAsm1x1U fromEnv;
-    if(!disableConfigOverrideFromEnv)
+    std::string s;
+    const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS{});
+    if(p_asciz != nullptr)
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS{});
-        if(p_asciz != nullptr)
+        s = std::string(p_asciz);
+        if(!s.empty()) // else nothing to parse.
         {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
+            if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
+                MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS: "
+                                "Bad format or invalid for the problem config: "
+                                << s);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                pcfg = &fromEnv;
             }
         }
     }

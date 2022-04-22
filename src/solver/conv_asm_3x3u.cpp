@@ -237,33 +237,31 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 }
 
 ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
-                                      const PerformanceConfigConvAsm3x3U& config,
-                                      const bool disableConfigOverrideFromEnv) const
+                                      const PerformanceConfigConvAsm3x3U& config) const
 {
     ConvSolution result;
     // Perf tune:
     const PerformanceConfigConvAsm3x3U* pcfg = &config;
+
+    //Try to load config from environment variable
     PerformanceConfigConvAsm3x3U fromEnv;
-    if(!disableConfigOverrideFromEnv)
+    std::string s;
+    const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS{});
+    if(p_asciz != nullptr)
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS{});
-        if(p_asciz != nullptr)
+        s = std::string(p_asciz);
+        if(!s.empty()) // else nothing to parse.
         {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
+            if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
+                MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS: "
+                                "Bad format or invalid for the problem config: "
+                                << s);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                pcfg = &fromEnv;
             }
         }
     }

@@ -909,8 +909,7 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetPerformanceConfig(
 
 ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
     const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config,
-    bool) const
+    const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config) const
 {
     ConvSolution result;
 

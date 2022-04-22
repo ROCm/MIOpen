@@ -864,7 +864,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops::GetPerformanceConfig(const ConvolutionContext&
 }
 
 ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmWrwV4R4Xdlops& config, bool) const
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmWrwV4R4Xdlops& config) const
 {
     ConvSolution result;
 

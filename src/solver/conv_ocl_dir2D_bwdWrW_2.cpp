@@ -535,8 +535,7 @@ size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&
 template <int N_BATCH_LOOPS>
 ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
     const ConvolutionContext& params,
-    const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
-    bool) const
+    const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const
 {
     ConvSolution result;
     const auto hw_wave_size   = 64;
