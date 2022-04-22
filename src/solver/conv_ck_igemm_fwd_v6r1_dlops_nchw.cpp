@@ -136,8 +136,9 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
     return config.IsValid(ctx);
 }
 
-ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
+ConvSolution
+ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
+                                         const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
 {
     ConvSolution sol;
     KernelInfo kernel0_info, kernel1_info;

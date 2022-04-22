@@ -697,8 +697,9 @@ ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx,
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV1R1& config) const
+ConvSolution
+ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
+                                            const PerformanceImplicitGemmBwdDataV1R1& config) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;

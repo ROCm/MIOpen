@@ -877,8 +877,7 @@ ConvHipImplicitGemmForwardV4R5Xdlops::GetPerformanceConfig(const ConvolutionCont
 }
 
 ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolution(
-    const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmForwardV4R5Xdlops& config) const
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmForwardV4R5Xdlops& config) const
 {
     ConvSolution result;
 

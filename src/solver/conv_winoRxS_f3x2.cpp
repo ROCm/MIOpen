@@ -381,7 +381,7 @@ ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params,
 {
     const PerformanceConfigConvBinWinogradRxSf3x2* pcfg = &config;
 
-    //Try to load config from environment variable
+    // Try to load config from environment variable
     PerformanceConfigConvBinWinogradRxSf3x2 fromEnv;
     std::string s;
     const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS{});
@@ -393,8 +393,8 @@ ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params,
             if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
             {
                 MIOPEN_LOG_E("MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS: "
-                                "Bad format or invalid for the problem config: "
-                                << s);
+                             "Bad format or invalid for the problem config: "
+                             << s);
             }
             else
             {

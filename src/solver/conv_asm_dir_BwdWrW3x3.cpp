@@ -444,7 +444,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     // Perf tune:
     const PerformanceConfigAsmDirect3x3WrW* pcfg = &config;
 
-    //Try to load config from environment variable
+    // Try to load config from environment variable
     PerformanceConfigAsmDirect3x3WrW fromEnv;
     std::string s;
     const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS{});
@@ -456,8 +456,8 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
             if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
             {
                 MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS: "
-                                "Bad format or invalid for the problem config: "
-                                << s);
+                             "Bad format or invalid for the problem config: "
+                             << s);
             }
             else
             {

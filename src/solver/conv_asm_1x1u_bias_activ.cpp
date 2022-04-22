@@ -123,8 +123,9 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeP
     return GenericSearch(*this, cba_context, fused_invoke_ctx);
 }
 
-ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ConvolutionContext& params,
-                                               const PerformanceConfigConvBiasActivAsm1x1U& config) const
+ConvSolution
+ConvBiasActivAsm1x1U::GetSolution(const ConvolutionContext& params,
+                                  const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
     auto sol = ConvAsm1x1U{}.GetSolution(params, config);
 

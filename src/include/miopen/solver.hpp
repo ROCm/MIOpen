@@ -1443,8 +1443,9 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm
         const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& c) const final;
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config) const final;
+    ConvSolution
+    GetSolution(const ConvolutionContext& ctx,
+                const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config) const final;
 
     static std::tuple<int, int, int, int, int, int, int> CalculateGemmSize(
         const ConvolutionContext& ctx, int GemmMFactor, int GemmNFactor, int GemmKFactor);
@@ -1637,8 +1638,7 @@ struct ConvHipImplicitGemmBwdDataV4R1Xdlops
                                                             int gemm_id);
 };
 
-struct ConvHipImplicitGemmBwdDataV1R1Xdlops
-    : SearchableSolver<PerformanceImplicitGemmBwdV1R1Xdlops>
+struct ConvHipImplicitGemmBwdDataV1R1Xdlops : SearchableSolver<PerformanceImplicitGemmBwdV1R1Xdlops>
 {
     const std::string& SolverDbId() const override
     {
@@ -2673,8 +2673,9 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm
                              const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& c) const final;
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& config) const final;
+    ConvSolution
+    GetSolution(const ConvolutionContext& ctx,
+                const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& config) const final;
 };
 
 struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : Serializable<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
@@ -3478,8 +3479,9 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC
                              const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC&) const final;
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config) const final;
+    ConvSolution
+    GetSolution(const ConvolutionContext& ctx,
+                const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config) const final;
 };
 
 struct PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC : PerformanceConfigAsmImplicitGemmGTC
@@ -3670,8 +3672,9 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC
                              const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC&) const final;
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config) const final;
+    ConvSolution
+    GetSolution(const ConvolutionContext& ctx,
+                const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config) const final;
 };
 
 struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmImplicitGemmGTC
@@ -3867,8 +3870,9 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC
                              const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const final;
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config) const final;
+    ConvSolution
+    GetSolution(const ConvolutionContext& ctx,
+                const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config) const final;
 };
 
 struct AnySolver;

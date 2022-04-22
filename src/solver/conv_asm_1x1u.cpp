@@ -667,7 +667,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     const PerformanceConfigConvAsm1x1U* pcfg = &config;
 
-    //Try to load config from environment variable
+    // Try to load config from environment variable
     PerformanceConfigConvAsm1x1U fromEnv;
     std::string s;
     const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS{});
@@ -679,8 +679,8 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
             if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
             {
                 MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS: "
-                                "Bad format or invalid for the problem config: "
-                                << s);
+                             "Bad format or invalid for the problem config: "
+                             << s);
             }
             else
             {

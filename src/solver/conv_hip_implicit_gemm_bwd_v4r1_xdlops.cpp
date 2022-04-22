@@ -883,8 +883,7 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
-    const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
 {
     ConvSolution result;
 
@@ -896,7 +895,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
 
     const PerformanceImplicitGemmBwdDataV4R1Xdlops* pcfg = &config;
 
-    //Try to load config from environment variable
+    // Try to load config from environment variable
     PerformanceImplicitGemmBwdDataV4R1Xdlops fromEnv;
     std::string s;
     const auto p_asciz =
@@ -909,8 +908,8 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
             if(!fromEnv.Deserialize(s) || !fromEnv.IsReallyValid(ctx))
             {
                 MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_VALS: "
-                                "Bad format or invalid for the problem config: "
-                                << s);
+                             "Bad format or invalid for the problem config: "
+                             << s);
             }
             else
             {
