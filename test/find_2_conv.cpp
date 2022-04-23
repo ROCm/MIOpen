@@ -47,7 +47,7 @@ struct Find2Test : test_driver
     Allocator::ManageDataPtr w_dev;
     Allocator::ManageDataPtr y_dev;
 
-    miopenProblemDirection_t direction;
+    miopenProblemDirection_t direction = miopenProblemDirectionForward;
     // --input 16,192,28,28 --weights 32,192,5,5 --filter 2,2,1,1,1,1,
     miopen::ConvolutionDescriptor filter = {
         2, miopenConvolution, miopenPaddingDefault, {1, 1}, {1, 1}, {1, 1}};

@@ -52,7 +52,7 @@ struct ProblemDescription;
 
 namespace detail {
 struct ProblemFindVariantVisitor;
-}
+} // namespace detail
 
 using OperatorDescriptor = boost::variant<ConvolutionDescriptor>;
 
