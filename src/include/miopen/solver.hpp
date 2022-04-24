@@ -2500,6 +2500,9 @@ struct ConvOclBwdWrW2NonTunable : ConvOclBwdWrW2<1>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 
 private:
+    // To suppress -Woverloaded-virtual
+    using ConvOclBwdWrW2<1>::GetSolution;
+
     // This function dervied from ConvOclBwdWrW2 is declared private
     // so that this solver is not marked searchable/tunable.
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
