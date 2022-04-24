@@ -79,7 +79,7 @@ ENV LANG=C.UTF-8
 RUN cget -p $PREFIX install ROCmSoftwarePlatform/rocm-recipes
 RUN groupadd -f render
 WORKDIR /root
-ARG CK_COMMIT=5ce59f056ea426bb68779008f7c0548a4a7402df 
+ARG CK_COMMIT=db775824f49a979aa222aee26aa282336d956d39
 RUN  wget -O ck.tar.gz https://www.github.com/rocmsoftwareplatform/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
     tar zxvf ck.tar.gz &&\
     cd composable_kernel-${CK_COMMIT} && \
