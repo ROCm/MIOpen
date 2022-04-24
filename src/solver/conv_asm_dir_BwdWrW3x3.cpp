@@ -323,7 +323,7 @@ std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
 }
 
 PerformanceConfigAsmDirect3x3WrW
-ConvAsmBwdWrW3x3::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvAsmBwdWrW3x3::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) const
 {
     PerformanceConfigAsmDirect3x3WrW pp;
     pp.HeuristicInit(params);
@@ -331,7 +331,7 @@ ConvAsmBwdWrW3x3::GetPerformanceConfig(const ConvolutionContext& params) const
     return pp;
 }
 
-bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(const ConvolutionContext& problem,
+bool ConvAsmBwdWrW3x3::IsValidPerformanceConfigCTS(const ConvolutionContext& problem,
                                                 const PerformanceConfigAsmDirect3x3WrW& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
@@ -420,7 +420,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     return ok;
 }
 
-ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
+ConvSolution ConvAsmBwdWrW3x3::GetSolutionCTS(const ConvolutionContext& params,
                                            const PerformanceConfigAsmDirect3x3WrW& config) const
 {
     ConvSolution result;
@@ -532,7 +532,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& context,
+PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::SearchCTS(const ConvolutionContext& context,
                                                           const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);

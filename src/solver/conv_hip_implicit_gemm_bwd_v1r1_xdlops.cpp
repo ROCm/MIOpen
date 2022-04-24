@@ -664,7 +664,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsValid(const ConvolutionContext& ctx
 }
 
 // Used by GenericSearch, not used by HeuristicInit
-bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsValidPerformanceConfig(
+bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsValidPerformanceConfigCTS(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdV1R1Xdlops& c) const
 {
     return c.IsReallyValid(ctx);
@@ -694,7 +694,7 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::CalculateGemmSize(const ConvolutionContext
 }
 
 PerformanceImplicitGemmBwdV1R1Xdlops
-ConvHipImplicitGemmBwdDataV1R1Xdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV1R1Xdlops::GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdV1R1Xdlops>(ctx);
 }
@@ -795,13 +795,13 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
 }
 
 PerformanceImplicitGemmBwdV1R1Xdlops
-ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV1R1Xdlops::SearchCTS(const ConvolutionContext& ctx,
                                              const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
+ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolutionCTS(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdV1R1Xdlops& config) const
 {
     ConvSolution result;

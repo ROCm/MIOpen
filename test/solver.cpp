@@ -93,19 +93,19 @@ public:
         return true;
     }
 
-    TestConfig GetPerformanceConfig(const ConvolutionContext&) const final
+    TestConfig GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final
     {
         TestConfig config{};
         config.str = NoSearchFileName();
         return config;
     }
 
-    bool IsValidPerformanceConfig(const ConvolutionContext&, const TestConfig&) const final
+    bool IsValidPerformanceConfigCTS(const ConvolutionContext&, const TestConfig&) const final
     {
         return true;
     }
 
-    TestConfig Search(const ConvolutionContext&, const AnyInvokeParams&) const final
+    TestConfig SearchCTS(const ConvolutionContext&, const AnyInvokeParams&) const final
     {
         TestConfig config;
         config.str = FileName();
@@ -113,7 +113,7 @@ public:
         return config;
     }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&,
+    solver::ConvSolution GetSolutionCTS(const ConvolutionContext&,
                                      const TestConfig& config) const final
     {
 

@@ -678,12 +678,12 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
 }
 
 PerformanceImplicitGemmBwdDataV1R1
-ConvHipImplicitGemmBwdDataV1R1::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV1R1::GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV1R1>(ctx);
 }
 
-bool ConvHipImplicitGemmBwdDataV1R1::IsValidPerformanceConfig(
+bool ConvHipImplicitGemmBwdDataV1R1::IsValidPerformanceConfigCTS(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV1R1& config) const
 {
     MIOPEN_LOG_I("");
@@ -691,14 +691,14 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmBwdDataV1R1
-ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV1R1::SearchCTS(const ConvolutionContext& ctx,
                                        const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
 ConvSolution
-ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
+ConvHipImplicitGemmBwdDataV1R1::GetSolutionCTS(const ConvolutionContext& ctx,
                                             const PerformanceImplicitGemmBwdDataV1R1& config) const
 {
     ConvSolution result;

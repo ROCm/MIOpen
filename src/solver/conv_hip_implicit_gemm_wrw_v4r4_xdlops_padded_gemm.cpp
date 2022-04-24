@@ -806,7 +806,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsValid(const Convolution
 }
 
 // Used by GenericSearch, not used by HeuristicInit
-bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsValidPerformanceConfig(
+bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsValidPerformanceConfigCTS(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& c) const
 {
     return c.IsReallyValid(ctx);
@@ -910,7 +910,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::CalculateGemmSizeAndGemmKBlock
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
-ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetPerformanceConfig(
+ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetDefaultPerformanceConfigCTS(
     const ConvolutionContext& ctx) const
 {
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm config;
@@ -919,7 +919,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetPerformanceConfig(
     return config;
 }
 
-ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
+ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolutionCTS(
     const ConvolutionContext& ctx,
     const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& config) const
 {
@@ -1180,7 +1180,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const Convolutio
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
-ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::Search(const ConvolutionContext& ctx,
+ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::SearchCTS(const ConvolutionContext& ctx,
                                                      const AnyInvokeParams& invoke_ctx) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add

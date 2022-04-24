@@ -178,13 +178,13 @@ std::string PerformanceConvMlirIgemmXdlops::ToString() const
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmFwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
 }
 
-bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfig(
+bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfigCTS(
     const ConvolutionContext& ctx, const PerformanceConvMlirIgemmXdlops& config) const
 {
     MIOPEN_LOG_I("");
@@ -192,13 +192,13 @@ bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfig(
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmFwdXdlops::Search(const ConvolutionContext& ctx,
+ConvMlirIgemmFwdXdlops::SearchCTS(const ConvolutionContext& ctx,
                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvMlirIgemmFwdXdlops::GetSolutionCTS(const ConvolutionContext& ctx,
                                                  const PerformanceConvMlirIgemmXdlops& config) const
 {
 #if MIOPEN_USE_MLIR

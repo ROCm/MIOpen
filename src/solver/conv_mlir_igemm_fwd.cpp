@@ -139,20 +139,20 @@ std::string PerformanceConvMlirIgemm::ToString() const
     return ss.str();
 }
 
-PerformanceConvMlirIgemm ConvMlirIgemmFwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
+PerformanceConvMlirIgemm ConvMlirIgemmFwd::GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
     return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
 }
 
-bool ConvMlirIgemmFwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+bool ConvMlirIgemmFwd::IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
                                                 const PerformanceConvMlirIgemm& config) const
 {
     MIOPEN_LOG_I("");
     return config.IsValid(ctx);
 }
 
-PerformanceConvMlirIgemm ConvMlirIgemmFwd::Search(const ConvolutionContext& context,
+PerformanceConvMlirIgemm ConvMlirIgemmFwd::SearchCTS(const ConvolutionContext& context,
                                                   const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
@@ -186,7 +186,7 @@ bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
 #endif
 }
 
-ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx,
+ConvSolution ConvMlirIgemmFwd::GetSolutionCTS(const ConvolutionContext& ctx,
                                            const PerformanceConvMlirIgemm& config) const
 {
 #if MIOPEN_USE_MLIR
