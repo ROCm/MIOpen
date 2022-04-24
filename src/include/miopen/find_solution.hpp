@@ -47,13 +47,13 @@ namespace solver {
 template <class Solver, class Context, class Db>
 auto FindSolutionImpl(
     rank<1>, Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
-    -> decltype(s.GetSolution(context, s.Search(context, invoke_ctx)))
+    -> decltype(s.GetSolutionCTS(context, s.Search(context, invoke_ctx)))
 {
     const FindEnforce enforce;
     if(context.disable_perfdb_access)
     {
         MIOPEN_LOG_I(s.SolverDbId() << " (db access disabled)");
-        return s.GetSolution(context, s.GetDefaultPerformanceConfig(context));
+        return s.GetSolutionCTS(context, s.GetDefaultPerformanceConfigCTS(context));
     }
     MIOPEN_LOG_I(s.SolverDbId());
     if(enforce.IsDbClean(context))
@@ -69,14 +69,14 @@ auto FindSolutionImpl(
         }
         else
         {
-            using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
+            using PerformanceConfig = decltype(s.GetDefaultPerformanceConfigCTS(context));
             PerformanceConfig config{};
             if(db.Load(context, s.SolverDbId(), config))
             {
                 MIOPEN_LOG_I2("Perf Db: record loaded: " << s.SolverDbId());
-                if(s.IsValidPerformanceConfig(context, config))
+                if(s.IsValidPerformanceConfigCTS(context, config))
                 {
-                    return s.GetSolution(context, config);
+                    return s.GetSolutionCTS(context, config);
                 }
                 MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
@@ -92,9 +92,9 @@ auto FindSolutionImpl(
             MIOPEN_LOG_I("Starting search: " << s.SolverDbId() << ", enforce: " << enforce);
             try
             {
-                auto c = s.Search(context, invoke_ctx);
+                auto c = s.SearchCTS(context, invoke_ctx);
                 db.Update(context, s.SolverDbId(), c);
-                return s.GetSolution(context, c);
+                return s.GetSolutionCTS(context, c);
             }
             catch(const miopen::Exception& ex)
             {
@@ -103,7 +103,7 @@ auto FindSolutionImpl(
         }
     }
 
-    return s.GetSolution(context, s.GetDefaultPerformanceConfig(context));
+    return s.GetSolutionCTS(context, s.GetDefaultPerformanceConfigCTS(context));
 }
 
 template <class Solver, class Context, class Db>
@@ -213,7 +213,7 @@ struct SolverContainer
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
                 else
                 {
-                    auto s      = solver.GetSolution(ctx, problem);
+                    auto s      = solver.GetSolutionCTS(ctx, problem);
                     s.solver_id = solver.SolverDbId();
                     if(s.Succeeded())
                     {
