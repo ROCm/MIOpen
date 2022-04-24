@@ -147,7 +147,7 @@ def buildHipClangJob(Map conf=[:]){
             }
             dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
             env.CCACHE_DIR = "/tmp"
-            env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_SECONDARY_STORAGE}"""
+            env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
         }
 
         def variant = env.STAGE_NAME
