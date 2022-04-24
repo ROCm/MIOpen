@@ -78,7 +78,7 @@ struct TestConfig : solver::Serializable<TestConfig>
     }
 };
 
-class SearchableTestSolver : public solver::SearchableSolver<TestConfig>
+class SearchableTestSolver : public solver::ConvTunableSolver<TestConfig>
 {
 public:
     static int searches_done() { return _serches_done; }

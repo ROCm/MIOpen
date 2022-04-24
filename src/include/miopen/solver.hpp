@@ -160,8 +160,8 @@ struct SolverMixin : SolverBase
 /// Typedef for convolution solvers
 using ConvSolver = SolverMixin<ConvolutionContext>;
 
-/// Base class for searchable solvers
-struct SearchableSolverBase : ConvSolver
+/// Base class for tunable solvers
+struct ConvTunableSolverBase : ConvSolver
 {
     /// Initializes performance config to the default values.
     /// The function may involve some heuristic to guess the best solution
@@ -179,13 +179,13 @@ struct SearchableSolverBase : ConvSolver
     virtual boost::any Search_(const ConvolutionContext& ctx,
                                const AnyInvokeParams& invoke_ctx) const = 0;
 
-    /// Searchable solvers provide a GetSolution that takes a Context and PerformanceConfig
+    /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
     virtual ConvSolution GetSolution_(const ConvolutionContext& ctx,
                                       const boost::any& config) const = 0;
 };
 
 template <class PerformanceConfig>
-struct SearchableSolver : SearchableSolverBase
+struct ConvTunableSolver : ConvTunableSolverBase
 {
     virtual PerformanceConfig GetPerformanceConfig(const ConvolutionContext&) const             = 0;
     virtual bool IsValidPerformanceConfig(const ConvolutionContext&,
@@ -241,7 +241,7 @@ struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
     std::string ToString() const;
 };
 
-struct ConvAsm3x3U : SearchableSolver<PerformanceConfigConvAsm3x3U>
+struct ConvAsm3x3U : ConvTunableSolver<PerformanceConfigConvAsm3x3U>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm3x3U>(); }
 
@@ -310,7 +310,7 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     std::string ToString() const;
 };
 
-struct ConvAsm1x1U : SearchableSolver<PerformanceConfigConvAsm1x1U>
+struct ConvAsm1x1U : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
 
@@ -339,7 +339,7 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
 };
 
 // Fused solver
-struct ConvBiasActivAsm1x1U : SearchableSolver<PerformanceConfigConvBiasActivAsm1x1U>
+struct ConvBiasActivAsm1x1U : ConvTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
@@ -417,7 +417,7 @@ struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1
     std::string ToString() const;
 };
 
-struct ConvAsm1x1UV2 : SearchableSolver<PerformanceConfigConvAsm1x1UV2>
+struct ConvAsm1x1UV2 : ConvTunableSolver<PerformanceConfigConvAsm1x1UV2>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1UV2>(); }
 
@@ -861,7 +861,7 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     std::string ToString() const;
 };
 
-struct ConvHipImplicitGemmV4R1Fwd : SearchableSolver<PerformanceImplicitGemmV4R1>
+struct ConvHipImplicitGemmV4R1Fwd : ConvTunableSolver<PerformanceImplicitGemmV4R1>
 {
     const std::string& SolverDbId() const override
     {
@@ -879,7 +879,7 @@ struct ConvHipImplicitGemmV4R1Fwd : SearchableSolver<PerformanceImplicitGemmV4R1
                              const PerformanceImplicitGemmV4R1& config) const final;
 };
 
-struct ConvHipImplicitGemmV4R4Fwd : SearchableSolver<PerformanceImplicitGemmV4R4Fwd>
+struct ConvHipImplicitGemmV4R4Fwd : ConvTunableSolver<PerformanceImplicitGemmV4R4Fwd>
 {
     const std::string& SolverDbId() const override
     {
@@ -949,7 +949,7 @@ private:
     void SetMlirHeuristicInitRequest();
 };
 
-struct ConvMlirIgemmFwd : SearchableSolver<PerformanceConvMlirIgemm>
+struct ConvMlirIgemmFwd : ConvTunableSolver<PerformanceConvMlirIgemm>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvMlirIgemmFwd>(); }
 
@@ -1019,7 +1019,7 @@ private:
     void SetMlirHeuristicInitRequest();
 };
 
-struct ConvMlirIgemmFwdXdlops : SearchableSolver<PerformanceConvMlirIgemmXdlops>
+struct ConvMlirIgemmFwdXdlops : ConvTunableSolver<PerformanceConvMlirIgemmXdlops>
 {
     const std::string& SolverDbId() const override
     {
@@ -1082,7 +1082,7 @@ struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
 
-struct ConvHipImplicitGemmV4R4WrW : SearchableSolver<PerformanceImplicitGemmV4R4WrW>
+struct ConvHipImplicitGemmV4R4WrW : ConvTunableSolver<PerformanceImplicitGemmV4R4WrW>
 {
     const std::string& SolverDbId() const override
     {
@@ -1102,7 +1102,7 @@ struct ConvHipImplicitGemmV4R4WrW : SearchableSolver<PerformanceImplicitGemmV4R4
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
 };
 
-struct ConvMlirIgemmWrW : SearchableSolver<PerformanceConvMlirIgemm>
+struct ConvMlirIgemmWrW : ConvTunableSolver<PerformanceConvMlirIgemm>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvMlirIgemmWrW>(); }
 
@@ -1117,7 +1117,7 @@ struct ConvMlirIgemmWrW : SearchableSolver<PerformanceConvMlirIgemm>
                              const PerformanceConvMlirIgemm& config) const final;
 };
 
-struct ConvMlirIgemmWrWXdlops : SearchableSolver<PerformanceConvMlirIgemmXdlops>
+struct ConvMlirIgemmWrWXdlops : ConvTunableSolver<PerformanceConvMlirIgemmXdlops>
 {
     const std::string& SolverDbId() const override
     {
@@ -1405,7 +1405,7 @@ struct PerformanceImplicitGemmBwdV1R1Xdlops : Serializable<PerformanceImplicitGe
 };
 
 struct ConvHipImplicitGemmForwardV4R4Xdlops
-    : SearchableSolver<PerformanceImplicitGemmForwardV4R4Xdlops>
+    : ConvTunableSolver<PerformanceImplicitGemmForwardV4R4Xdlops>
 {
     const std::string& SolverDbId() const override
     {
@@ -1427,7 +1427,7 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops
 };
 
 struct ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm
-    : SearchableSolver<PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm>
+    : ConvTunableSolver<PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm>
 {
     const std::string& SolverDbId() const override
     {
@@ -1452,7 +1452,7 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm
 };
 
 struct ConvHipImplicitGemmForwardV4R5Xdlops
-    : SearchableSolver<PerformanceImplicitGemmForwardV4R5Xdlops>
+    : ConvTunableSolver<PerformanceImplicitGemmForwardV4R5Xdlops>
 {
     const std::string& SolverDbId() const override
     {
@@ -1518,7 +1518,7 @@ struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
 
-struct ConvHipImplicitGemmV4R1WrW : SearchableSolver<PerformanceImplicitGemmV4R1>
+struct ConvHipImplicitGemmV4R1WrW : ConvTunableSolver<PerformanceImplicitGemmV4R1>
 {
     const std::string& SolverDbId() const override
     {
@@ -1536,7 +1536,7 @@ struct ConvHipImplicitGemmV4R1WrW : SearchableSolver<PerformanceImplicitGemmV4R1
                              const PerformanceImplicitGemmV4R1& config) const final;
 };
 
-struct ConvHipImplicitGemmBwdDataV1R1 : SearchableSolver<PerformanceImplicitGemmBwdDataV1R1>
+struct ConvHipImplicitGemmBwdDataV1R1 : ConvTunableSolver<PerformanceImplicitGemmBwdDataV1R1>
 {
     const std::string& SolverDbId() const override
     {
@@ -1559,7 +1559,7 @@ struct ConvHipImplicitGemmBwdDataV1R1 : SearchableSolver<PerformanceImplicitGemm
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
 };
 
-struct ConvMlirIgemmBwd : SearchableSolver<PerformanceConvMlirIgemm>
+struct ConvMlirIgemmBwd : ConvTunableSolver<PerformanceConvMlirIgemm>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvMlirIgemmBwd>(); }
 
@@ -1574,7 +1574,7 @@ struct ConvMlirIgemmBwd : SearchableSolver<PerformanceConvMlirIgemm>
                              const PerformanceConvMlirIgemm& config) const final;
 };
 
-struct ConvMlirIgemmBwdXdlops : SearchableSolver<PerformanceConvMlirIgemmXdlops>
+struct ConvMlirIgemmBwdXdlops : ConvTunableSolver<PerformanceConvMlirIgemmXdlops>
 {
     const std::string& SolverDbId() const override
     {
@@ -1592,7 +1592,7 @@ struct ConvMlirIgemmBwdXdlops : SearchableSolver<PerformanceConvMlirIgemmXdlops>
                              const PerformanceConvMlirIgemmXdlops& config) const final;
 };
 
-struct ConvHipImplicitGemmBwdDataV4R1 : SearchableSolver<PerformanceImplicitGemmBwdDataV4R1>
+struct ConvHipImplicitGemmBwdDataV4R1 : ConvTunableSolver<PerformanceImplicitGemmBwdDataV4R1>
 {
     const std::string& SolverDbId() const override
     {
@@ -1615,7 +1615,7 @@ struct ConvHipImplicitGemmBwdDataV4R1 : SearchableSolver<PerformanceImplicitGemm
 };
 
 struct ConvHipImplicitGemmBwdDataV4R1Xdlops
-    : SearchableSolver<PerformanceImplicitGemmBwdDataV4R1Xdlops>
+    : ConvTunableSolver<PerformanceImplicitGemmBwdDataV4R1Xdlops>
 {
     const std::string& SolverDbId() const override
     {
@@ -1638,7 +1638,7 @@ struct ConvHipImplicitGemmBwdDataV4R1Xdlops
                                                             int gemm_id);
 };
 
-struct ConvHipImplicitGemmBwdDataV1R1Xdlops : SearchableSolver<PerformanceImplicitGemmBwdV1R1Xdlops>
+struct ConvHipImplicitGemmBwdDataV1R1Xdlops : ConvTunableSolver<PerformanceImplicitGemmBwdV1R1Xdlops>
 {
     const std::string& SolverDbId() const override
     {
@@ -1751,7 +1751,7 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlops : ConvSolver
 
 /// Holds common member functions for the Solvers which share the same
 /// "legacy exhaustive search" machinery.
-struct ConvOclDirectFwdLegacyExhaustiveSearch : SearchableSolver<LegacyPerformanceConfig>
+struct ConvOclDirectFwdLegacyExhaustiveSearch : ConvTunableSolver<LegacyPerformanceConfig>
 {
     LegacyPerformanceConfig GetPerformanceConfig(const ConvolutionContext&) const final;
     LegacyPerformanceConfig Search(const ConvolutionContext&,
@@ -1845,7 +1845,7 @@ struct PerformanceConfigConvBinWinogradRxSf3x2
     std::string ToString() const;
 };
 
-struct ConvBinWinogradRxSf3x2 : SearchableSolver<PerformanceConfigConvBinWinogradRxSf3x2>
+struct ConvBinWinogradRxSf3x2 : ConvTunableSolver<PerformanceConfigConvBinWinogradRxSf3x2>
 {
     const std::string& SolverDbId() const override
     {
@@ -1894,7 +1894,7 @@ struct PerformanceConfigConvBinWinogradRxSf2x3
     std::string ToString() const;
 };
 
-struct ConvBinWinogradRxSf2x3 : SearchableSolver<PerformanceConfigConvBinWinogradRxSf2x3>
+struct ConvBinWinogradRxSf2x3 : ConvTunableSolver<PerformanceConfigConvBinWinogradRxSf2x3>
 {
     const std::string& SolverDbId() const override
     {
@@ -2012,7 +2012,7 @@ extern template struct ConvMPBidirectWinograd<6, 3>;
 #endif
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
-struct ConvMPBidirectWinograd_xdlops : SearchableSolver<PerformanceImplicitGemmForwardV4R4Xdlops>
+struct ConvMPBidirectWinograd_xdlops : ConvTunableSolver<PerformanceImplicitGemmForwardV4R4Xdlops>
 {
     const std::string& SolverDbId() const override
     {
@@ -2215,7 +2215,7 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
     std::string ToString() const;
 };
 
-struct ConvAsmBwdWrW3x3 : SearchableSolver<PerformanceConfigAsmDirect3x3WrW>
+struct ConvAsmBwdWrW3x3 : ConvTunableSolver<PerformanceConfigAsmDirect3x3WrW>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsmBwdWrW3x3>(); }
 
@@ -2321,7 +2321,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     std::string ToString() const;
 };
 
-struct ConvAsmBwdWrW1x1 : SearchableSolver<PerformanceConfigConvAsmBwdWrW1x1>
+struct ConvAsmBwdWrW1x1 : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW1x1>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsmBwdWrW1x1>(); }
 
@@ -2399,10 +2399,10 @@ struct PerformanceConfigConvOclBwdWrw2
     std::string ToString() const;
 };
 
-// Unable to use SearchableSolver as a base class
+// Unable to use ConvTunableSolver as a base class
 // because PerformanceConfigConvOclBwdWrw2 is a class template
 template <int N_BATCH_LOOPS>
-struct ConvOclBwdWrW2 : SearchableSolverBase
+struct ConvOclBwdWrW2 : ConvTunableSolverBase
 {
     const std::string& SolverDbId() const override
     {
@@ -2423,7 +2423,7 @@ struct ConvOclBwdWrW2 : SearchableSolverBase
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const;
 
     // GetPerformanceConfig_(), IsValidPerformanceConfig_(), Search_() and GetSolution_()
-    // are only needed if SearchableSolverBase is used as a base class for solver
+    // are only needed if ConvTunableSolverBase is used as a base class for solver
     boost::any GetPerformanceConfig_(const ConvolutionContext& ctx) const final
     {
         return GetPerformanceConfig(ctx);
@@ -2572,7 +2572,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGe
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
 
-struct ConvHipImplicitGemmWrwV4R4Xdlops : SearchableSolver<PerformanceImplicitGemmWrwV4R4Xdlops>
+struct ConvHipImplicitGemmWrwV4R4Xdlops : ConvTunableSolver<PerformanceImplicitGemmWrwV4R4Xdlops>
 {
     const std::string& SolverDbId() const override
     {
@@ -2655,7 +2655,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
 };
 
 struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm
-    : SearchableSolver<PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm>
+    : ConvTunableSolver<PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm>
 {
     const std::string& SolverDbId() const override
     {
@@ -2702,7 +2702,7 @@ struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : Serializable<PerformanceConvCkIg
     }
 };
 
-struct ConvCkIgemmFwdV6r1DlopsNchw : SearchableSolver<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
+struct ConvCkIgemmFwdV6r1DlopsNchw : ConvTunableSolver<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
 {
     const std::string& SolverDbId() const override
     {
@@ -3460,7 +3460,7 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC : PerformanceConfigAsmIm
 };
 
 struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC
-    : SearchableSolver<PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC>
+    : ConvTunableSolver<PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC>
 {
     const std::string& SolverDbId() const override
     {
@@ -3653,7 +3653,7 @@ struct PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC : PerformanceConfigAsmIm
 };
 
 struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC
-    : SearchableSolver<PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC>
+    : ConvTunableSolver<PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC>
 {
     const std::string& SolverDbId() const override
     {
@@ -3851,7 +3851,7 @@ private:
 };
 
 struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC
-    : SearchableSolver<PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC>
+    : ConvTunableSolver<PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC>
 {
     const std::string& SolverDbId() const override
     {
