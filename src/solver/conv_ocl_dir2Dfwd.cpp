@@ -472,7 +472,7 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
 }
 
 ConvSolution ConvOclDirectFwd::GetSolutionCTS(const ConvolutionContext& params,
-                                           const LegacyPerformanceConfig& searched_params) const
+                                              const LegacyPerformanceConfig& searched_params) const
 {
     ConvSolution result = BaseGetSolution(params, searched_params);
 
@@ -487,7 +487,7 @@ ConvSolution ConvOclDirectFwd::GetSolutionCTS(const ConvolutionContext& params,
 
 ConvSolution
 ConvOclDirectFwdFused::GetSolutionCTS(const ConvolutionContext& params,
-                                   const LegacyPerformanceConfig& searched_params) const
+                                      const LegacyPerformanceConfig& searched_params) const
 {
     ConvSolution result = BaseGetSolution(params, searched_params);
     return result;

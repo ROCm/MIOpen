@@ -757,7 +757,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsValidPerformanceConfigCTS(
 }
 PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
 ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::SearchCTS(const ConvolutionContext& ctx,
-                                                   const AnyInvokeParams& invoke_ctx) const
+                                                      const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }

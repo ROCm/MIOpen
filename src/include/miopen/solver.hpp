@@ -173,25 +173,27 @@ struct ConvTunableSolverBase : ConvSolver
     /// Should return false if performance config is wrong for a problem.
     /// Main use is validation of values read from the perf db.
     virtual bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                           const boost::any& config) const = 0;
+                                          const boost::any& config) const = 0;
 
     /// Search
     virtual boost::any Search(const ConvolutionContext& ctx,
-                               const AnyInvokeParams& invoke_ctx) const = 0;
+                              const AnyInvokeParams& invoke_ctx) const = 0;
 
     /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
     virtual ConvSolution GetSolution(const ConvolutionContext& ctx,
-                                      const boost::any& config) const = 0;
+                                     const boost::any& config) const = 0;
 };
 
 template <class PerformanceConfig>
 struct ConvTunableSolver : ConvTunableSolverBase
 {
-    virtual PerformanceConfig GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const             = 0;
+    virtual PerformanceConfig GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const = 0;
     virtual bool IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                                          const PerformanceConfig&) const                       = 0;
-    virtual PerformanceConfig SearchCTS(const ConvolutionContext&, const AnyInvokeParams&) const   = 0;
-    virtual ConvSolution GetSolutionCTS(const ConvolutionContext&, const PerformanceConfig&) const = 0;
+                                             const PerformanceConfig&) const                  = 0;
+    virtual PerformanceConfig SearchCTS(const ConvolutionContext&,
+                                        const AnyInvokeParams&) const                         = 0;
+    virtual ConvSolution GetSolutionCTS(const ConvolutionContext&,
+                                        const PerformanceConfig&) const                       = 0;
 
     boost::any GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const final
     {
@@ -199,7 +201,7 @@ struct ConvTunableSolver : ConvTunableSolverBase
     }
 
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                   const boost::any& config) const final
+                                  const boost::any& config) const final
     {
         return IsValidPerformanceConfigCTS(ctx, boost::any_cast<const PerformanceConfig&>(config));
     }
@@ -247,13 +249,14 @@ struct ConvAsm3x3U : ConvTunableSolver<PerformanceConfigConvAsm3x3U>
 
     bool IsApplicable(const ConvolutionContext& params) const override;
 
-    PerformanceConfigConvAsm3x3U GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
+    PerformanceConfigConvAsm3x3U
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                                  const PerformanceConfigConvAsm3x3U&) const final;
+                                     const PerformanceConfigConvAsm3x3U&) const final;
     PerformanceConfigConvAsm3x3U SearchCTS(const ConvolutionContext&,
-                                        const AnyInvokeParams& invoke_ctx) const final;
+                                           const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
-                             const PerformanceConfigConvAsm3x3U& config) const final;
+                                const PerformanceConfigConvAsm3x3U& config) const final;
 };
 
 struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
@@ -318,13 +321,14 @@ struct ConvAsm1x1U : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
     bool MayNeedWorkspace() const override { return true; }
 
-    PerformanceConfigConvAsm1x1U GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
+    PerformanceConfigConvAsm1x1U
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                                  const PerformanceConfigConvAsm1x1U&) const final;
+                                     const PerformanceConfigConvAsm1x1U&) const final;
     PerformanceConfigConvAsm1x1U SearchCTS(const ConvolutionContext&,
-                                        const AnyInvokeParams& invoke_ctx) const final;
+                                           const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
-                             const PerformanceConfigConvAsm1x1U& config) const final;
+                                const PerformanceConfigConvAsm1x1U& config) const final;
 };
 
 struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
@@ -350,11 +354,11 @@ struct ConvBiasActivAsm1x1U : ConvTunableSolver<PerformanceConfigConvBiasActivAs
     PerformanceConfigConvBiasActivAsm1x1U
     GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                                  const PerformanceConfigConvBiasActivAsm1x1U&) const final;
+                                     const PerformanceConfigConvBiasActivAsm1x1U&) const final;
     PerformanceConfigConvBiasActivAsm1x1U SearchCTS(const ConvolutionContext&,
-                                                 const AnyInvokeParams& invoke_ctx) const final;
+                                                    const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
-                             const PerformanceConfigConvBiasActivAsm1x1U& config) const final;
+                                const PerformanceConfigConvBiasActivAsm1x1U& config) const final;
 };
 
 struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1UV2>
@@ -423,13 +427,14 @@ struct ConvAsm1x1UV2 : ConvTunableSolver<PerformanceConfigConvAsm1x1UV2>
 
     bool IsApplicable(const ConvolutionContext& params) const override;
 
-    PerformanceConfigConvAsm1x1UV2 GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
+    PerformanceConfigConvAsm1x1UV2
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                                  const PerformanceConfigConvAsm1x1UV2&) const final;
+                                     const PerformanceConfigConvAsm1x1UV2&) const final;
     PerformanceConfigConvAsm1x1UV2 SearchCTS(const ConvolutionContext&,
-                                          const AnyInvokeParams& invoke_ctx) const final;
+                                             const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
-                             const PerformanceConfigConvAsm1x1UV2& config) const final;
+                                const PerformanceConfigConvAsm1x1UV2& config) const final;
 };
 
 struct ConvAsm5x10u2v2f1 : ConvSolver
@@ -870,13 +875,14 @@ struct ConvHipImplicitGemmV4R1Fwd : ConvTunableSolver<PerformanceImplicitGemmV4R
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
 
-    PerformanceImplicitGemmV4R1 GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
+    PerformanceImplicitGemmV4R1
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmV4R1& c) const final;
+                                     const PerformanceImplicitGemmV4R1& c) const final;
     PerformanceImplicitGemmV4R1 SearchCTS(const ConvolutionContext&,
-                                       const AnyInvokeParams& invoke_ctx) const final;
+                                          const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmV4R1& config) const final;
+                                const PerformanceImplicitGemmV4R1& config) const final;
 };
 
 struct ConvHipImplicitGemmV4R4Fwd : ConvTunableSolver<PerformanceImplicitGemmV4R4Fwd>
@@ -888,13 +894,14 @@ struct ConvHipImplicitGemmV4R4Fwd : ConvTunableSolver<PerformanceImplicitGemmV4R
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
 
-    PerformanceImplicitGemmV4R4Fwd GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
+    PerformanceImplicitGemmV4R4Fwd
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmV4R4Fwd& config) const final;
+                                     const PerformanceImplicitGemmV4R4Fwd& config) const final;
     PerformanceImplicitGemmV4R4Fwd SearchCTS(const ConvolutionContext&,
-                                          const AnyInvokeParams& invoke_ctx) const final;
+                                             const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmV4R4Fwd& config) const final;
+                                const PerformanceImplicitGemmV4R4Fwd& config) const final;
 
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
 };
@@ -955,13 +962,14 @@ struct ConvMlirIgemmFwd : ConvTunableSolver<PerformanceConvMlirIgemm>
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
 
-    PerformanceConvMlirIgemm GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
+    PerformanceConvMlirIgemm
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceConvMlirIgemm& config) const final;
+                                     const PerformanceConvMlirIgemm& config) const final;
     PerformanceConvMlirIgemm SearchCTS(const ConvolutionContext&,
-                                    const AnyInvokeParams& invoke_ctx) const final;
+                                       const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceConvMlirIgemm& config) const final;
+                                const PerformanceConvMlirIgemm& config) const final;
 };
 
 struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdlops>
@@ -1028,13 +1036,14 @@ struct ConvMlirIgemmFwdXdlops : ConvTunableSolver<PerformanceConvMlirIgemmXdlops
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
 
-    PerformanceConvMlirIgemmXdlops GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
+    PerformanceConvMlirIgemmXdlops
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceConvMlirIgemmXdlops& config) const final;
+                                     const PerformanceConvMlirIgemmXdlops& config) const final;
     PerformanceConvMlirIgemmXdlops SearchCTS(const ConvolutionContext&,
-                                          const AnyInvokeParams& invoke_ctx) const final;
+                                             const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceConvMlirIgemmXdlops& config) const final;
+                                const PerformanceConvMlirIgemmXdlops& config) const final;
 };
 
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
@@ -1091,13 +1100,14 @@ struct ConvHipImplicitGemmV4R4WrW : ConvTunableSolver<PerformanceImplicitGemmV4R
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
 
-    PerformanceImplicitGemmV4R4WrW GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
+    PerformanceImplicitGemmV4R4WrW
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmV4R4WrW& config) const final;
+                                     const PerformanceImplicitGemmV4R4WrW& config) const final;
     PerformanceImplicitGemmV4R4WrW SearchCTS(const ConvolutionContext&,
-                                          const AnyInvokeParams& invoke_ctx) const final;
+                                             const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmV4R4WrW& config) const final;
+                                const PerformanceImplicitGemmV4R4WrW& config) const final;
 
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
 };
@@ -1108,13 +1118,14 @@ struct ConvMlirIgemmWrW : ConvTunableSolver<PerformanceConvMlirIgemm>
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
 
-    PerformanceConvMlirIgemm GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
+    PerformanceConvMlirIgemm
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceConvMlirIgemm& config) const final;
+                                     const PerformanceConvMlirIgemm& config) const final;
     PerformanceConvMlirIgemm SearchCTS(const ConvolutionContext&,
-                                    const AnyInvokeParams& invoke_ctx) const final;
+                                       const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceConvMlirIgemm& config) const final;
+                                const PerformanceConvMlirIgemm& config) const final;
 };
 
 struct ConvMlirIgemmWrWXdlops : ConvTunableSolver<PerformanceConvMlirIgemmXdlops>
@@ -1128,13 +1139,14 @@ struct ConvMlirIgemmWrWXdlops : ConvTunableSolver<PerformanceConvMlirIgemmXdlops
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
     bool MayNeedWorkspace() const override { return true; }
 
-    PerformanceConvMlirIgemmXdlops GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
+    PerformanceConvMlirIgemmXdlops
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceConvMlirIgemmXdlops& config) const final;
+                                     const PerformanceConvMlirIgemmXdlops& config) const final;
     PerformanceConvMlirIgemmXdlops SearchCTS(const ConvolutionContext&,
-                                          const AnyInvokeParams& invoke_ctx) const final;
+                                             const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceConvMlirIgemmXdlops& config) const final;
+                                const PerformanceConvMlirIgemmXdlops& config) const final;
 };
 
 struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlops>
@@ -1417,11 +1429,11 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops
     PerformanceImplicitGemmForwardV4R4Xdlops
     GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmForwardV4R4Xdlops& c) const final;
-    PerformanceImplicitGemmForwardV4R4Xdlops SearchCTS(const ConvolutionContext&,
-                                                    const AnyInvokeParams& invoke_ctx) const final;
+                                     const PerformanceImplicitGemmForwardV4R4Xdlops& c) const final;
+    PerformanceImplicitGemmForwardV4R4Xdlops
+    SearchCTS(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmForwardV4R4Xdlops& config) const final;
+                                const PerformanceImplicitGemmForwardV4R4Xdlops& config) const final;
 
     static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
 };
@@ -1445,7 +1457,7 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm
     SearchCTS(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution
     GetSolutionCTS(const ConvolutionContext& ctx,
-                const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config) const final;
+                   const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config) const final;
 
     static std::tuple<int, int, int, int, int, int, int> CalculateGemmSize(
         const ConvolutionContext& ctx, int GemmMFactor, int GemmNFactor, int GemmKFactor);
@@ -1464,11 +1476,11 @@ struct ConvHipImplicitGemmForwardV4R5Xdlops
     PerformanceImplicitGemmForwardV4R5Xdlops
     GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmForwardV4R5Xdlops& c) const final;
-    PerformanceImplicitGemmForwardV4R5Xdlops SearchCTS(const ConvolutionContext&,
-                                                    const AnyInvokeParams& invoke_ctx) const final;
+                                     const PerformanceImplicitGemmForwardV4R5Xdlops& c) const final;
+    PerformanceImplicitGemmForwardV4R5Xdlops
+    SearchCTS(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmForwardV4R5Xdlops& config) const final;
+                                const PerformanceImplicitGemmForwardV4R5Xdlops& config) const final;
 };
 
 struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
@@ -1527,13 +1539,14 @@ struct ConvHipImplicitGemmV4R1WrW : ConvTunableSolver<PerformanceImplicitGemmV4R
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
 
-    PerformanceImplicitGemmV4R1 GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
+    PerformanceImplicitGemmV4R1
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmV4R1& c) const final;
+                                     const PerformanceImplicitGemmV4R1& c) const final;
     PerformanceImplicitGemmV4R1 SearchCTS(const ConvolutionContext&,
-                                       const AnyInvokeParams& invoke_ctx) const final;
+                                          const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmV4R1& config) const final;
+                                const PerformanceImplicitGemmV4R1& config) const final;
 };
 
 struct ConvHipImplicitGemmBwdDataV1R1 : ConvTunableSolver<PerformanceImplicitGemmBwdDataV1R1>
@@ -1550,11 +1563,11 @@ struct ConvHipImplicitGemmBwdDataV1R1 : ConvTunableSolver<PerformanceImplicitGem
     PerformanceImplicitGemmBwdDataV1R1
     GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmBwdDataV1R1& config) const final;
+                                     const PerformanceImplicitGemmBwdDataV1R1& config) const final;
     PerformanceImplicitGemmBwdDataV1R1 SearchCTS(const ConvolutionContext&,
-                                              const AnyInvokeParams& invoke_ctx) const final;
+                                                 const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmBwdDataV1R1& config) const final;
+                                const PerformanceImplicitGemmBwdDataV1R1& config) const final;
 
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
 };
@@ -1565,13 +1578,14 @@ struct ConvMlirIgemmBwd : ConvTunableSolver<PerformanceConvMlirIgemm>
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
 
-    PerformanceConvMlirIgemm GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
+    PerformanceConvMlirIgemm
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceConvMlirIgemm& config) const final;
+                                     const PerformanceConvMlirIgemm& config) const final;
     PerformanceConvMlirIgemm SearchCTS(const ConvolutionContext&,
-                                    const AnyInvokeParams& invoke_ctx) const final;
+                                       const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceConvMlirIgemm& config) const final;
+                                const PerformanceConvMlirIgemm& config) const final;
 };
 
 struct ConvMlirIgemmBwdXdlops : ConvTunableSolver<PerformanceConvMlirIgemmXdlops>
@@ -1583,13 +1597,14 @@ struct ConvMlirIgemmBwdXdlops : ConvTunableSolver<PerformanceConvMlirIgemmXdlops
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
 
-    PerformanceConvMlirIgemmXdlops GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
+    PerformanceConvMlirIgemmXdlops
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceConvMlirIgemmXdlops& config) const final;
+                                     const PerformanceConvMlirIgemmXdlops& config) const final;
     PerformanceConvMlirIgemmXdlops SearchCTS(const ConvolutionContext&,
-                                          const AnyInvokeParams& invoke_ctx) const final;
+                                             const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceConvMlirIgemmXdlops& config) const final;
+                                const PerformanceConvMlirIgemmXdlops& config) const final;
 };
 
 struct ConvHipImplicitGemmBwdDataV4R1 : ConvTunableSolver<PerformanceImplicitGemmBwdDataV4R1>
@@ -1604,11 +1619,11 @@ struct ConvHipImplicitGemmBwdDataV4R1 : ConvTunableSolver<PerformanceImplicitGem
     PerformanceImplicitGemmBwdDataV4R1
     GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmBwdDataV4R1& config) const final;
+                                     const PerformanceImplicitGemmBwdDataV4R1& config) const final;
     PerformanceImplicitGemmBwdDataV4R1 SearchCTS(const ConvolutionContext&,
-                                              const AnyInvokeParams& invoke_ctx) const final;
+                                                 const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmBwdDataV4R1& config) const final;
+                                const PerformanceImplicitGemmBwdDataV4R1& config) const final;
 
     static int CalculateNumberOfGemm(const ConvolutionContext& ctx);
     static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx, int gemm_id);
@@ -1627,18 +1642,19 @@ struct ConvHipImplicitGemmBwdDataV4R1Xdlops
     PerformanceImplicitGemmBwdDataV4R1Xdlops
     GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmBwdDataV4R1Xdlops& c) const final;
-    PerformanceImplicitGemmBwdDataV4R1Xdlops SearchCTS(const ConvolutionContext&,
-                                                    const AnyInvokeParams& invoke_ctx) const final;
+                                     const PerformanceImplicitGemmBwdDataV4R1Xdlops& c) const final;
+    PerformanceImplicitGemmBwdDataV4R1Xdlops
+    SearchCTS(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const final;
+                                const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const final;
 
     static int CalculateNumberOfGemm(const ConvolutionContext& ctx);
     static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx,
                                                             int gemm_id);
 };
 
-struct ConvHipImplicitGemmBwdDataV1R1Xdlops : ConvTunableSolver<PerformanceImplicitGemmBwdV1R1Xdlops>
+struct ConvHipImplicitGemmBwdDataV1R1Xdlops
+    : ConvTunableSolver<PerformanceImplicitGemmBwdV1R1Xdlops>
 {
     const std::string& SolverDbId() const override
     {
@@ -1652,11 +1668,11 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops : ConvTunableSolver<PerformanceImpli
     PerformanceImplicitGemmBwdV1R1Xdlops
     GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmBwdV1R1Xdlops& c) const final;
+                                     const PerformanceImplicitGemmBwdV1R1Xdlops& c) const final;
     PerformanceImplicitGemmBwdV1R1Xdlops SearchCTS(const ConvolutionContext& ctx,
-                                                const AnyInvokeParams& invoke_ctx) const final;
+                                                   const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmBwdV1R1Xdlops& config) const final;
+                                const PerformanceImplicitGemmBwdV1R1Xdlops& config) const final;
 
     static std::tuple<int, int, int, int> CalculateGemmSize(const ConvolutionContext& ctx);
 };
@@ -1755,7 +1771,7 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : ConvTunableSolver<LegacyPerforma
 {
     LegacyPerformanceConfig GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
     LegacyPerformanceConfig SearchCTS(const ConvolutionContext&,
-                                   const AnyInvokeParams& invoke_ctx) const final;
+                                      const AnyInvokeParams& invoke_ctx) const final;
 
 private:
     template <typename Tgpu>
@@ -1769,9 +1785,9 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
     bool IsApplicable(const ConvolutionContext& params) const override;
 
     bool IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                                  const LegacyPerformanceConfig&) const final;
+                                     const LegacyPerformanceConfig&) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& searched_params) const override;
+                                const LegacyPerformanceConfig& searched_params) const override;
 
 protected:
     bool IsApplicableBase(const ConvolutionContext& params) const;
@@ -1785,7 +1801,7 @@ struct ConvOclDirectFwdFused : ConvOclDirectFwd
     }
 
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& searched_params) const final;
+                                const LegacyPerformanceConfig& searched_params) const final;
 };
 
 struct ConvOclDirectFwd1x1 : ConvOclDirectFwdLegacyExhaustiveSearch
@@ -1795,13 +1811,13 @@ struct ConvOclDirectFwd1x1 : ConvOclDirectFwdLegacyExhaustiveSearch
     bool IsApplicable(const ConvolutionContext& params) const override;
 
     bool IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                                  const LegacyPerformanceConfig&) const final
+                                     const LegacyPerformanceConfig&) const final
     {
         return true;
     }
 
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& searched_params) const final;
+                                const LegacyPerformanceConfig& searched_params) const final;
 };
 
 struct ConvBinWinograd3x3U : ConvSolver
@@ -1858,11 +1874,11 @@ struct ConvBinWinogradRxSf3x2 : ConvTunableSolver<PerformanceConfigConvBinWinogr
     PerformanceConfigConvBinWinogradRxSf3x2
     GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                                  const PerformanceConfigConvBinWinogradRxSf3x2&) const final;
-    PerformanceConfigConvBinWinogradRxSf3x2 SearchCTS(const ConvolutionContext&,
-                                                   const AnyInvokeParams& invoke_ctx) const final;
+                                     const PerformanceConfigConvBinWinogradRxSf3x2&) const final;
+    PerformanceConfigConvBinWinogradRxSf3x2
+    SearchCTS(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
-                             const PerformanceConfigConvBinWinogradRxSf3x2& config) const final;
+                                const PerformanceConfigConvBinWinogradRxSf3x2& config) const final;
 
     static size_t GetNGroups(const size_t group_conv, const size_t grid_group_size)
     {
@@ -1908,11 +1924,11 @@ struct ConvBinWinogradRxSf2x3 : ConvTunableSolver<PerformanceConfigConvBinWinogr
     PerformanceConfigConvBinWinogradRxSf2x3
     GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                                  const PerformanceConfigConvBinWinogradRxSf2x3&) const final;
-    PerformanceConfigConvBinWinogradRxSf2x3 SearchCTS(const ConvolutionContext&,
-                                                   const AnyInvokeParams& invoke_ctx) const final;
+                                     const PerformanceConfigConvBinWinogradRxSf2x3&) const final;
+    PerformanceConfigConvBinWinogradRxSf2x3
+    SearchCTS(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
-                             const PerformanceConfigConvBinWinogradRxSf2x3& config) const final;
+                                const PerformanceConfigConvBinWinogradRxSf2x3& config) const final;
 
     static size_t GetNGroups(const size_t group_conv, const size_t grid_group_size)
     {
@@ -2048,14 +2064,14 @@ struct ConvMPBidirectWinograd_xdlops : ConvTunableSolver<PerformanceImplicitGemm
     }
 
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmForwardV4R4Xdlops& c) const final
+                                     const PerformanceImplicitGemmForwardV4R4Xdlops& c) const final
     {
         return ConvHipImplicitGemmForwardV4R4Xdlops{}.IsValidPerformanceConfigCTS(
             GetTransformedConvContext(ctx), c);
     }
 
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmForwardV4R4Xdlops& config) const final;
+                                const PerformanceImplicitGemmForwardV4R4Xdlops& config) const final;
 
     ConvolutionContext GetTransformedConvContext(const ConvolutionContext&) const;
 
@@ -2081,7 +2097,7 @@ struct ConvMPBidirectWinograd_xdlops : ConvTunableSolver<PerformanceImplicitGemm
     bool IsThisSolverDynamic() const { return true; }
 
     PerformanceImplicitGemmForwardV4R4Xdlops SearchCTS(const ConvolutionContext&,
-                                                    const AnyInvokeParams&) const final;
+                                                       const AnyInvokeParams&) const final;
 };
 
 // To suppress misleading clang warnings
@@ -2221,13 +2237,14 @@ struct ConvAsmBwdWrW3x3 : ConvTunableSolver<PerformanceConfigAsmDirect3x3WrW>
 
     bool IsApplicable(const ConvolutionContext& params) const override;
 
-    PerformanceConfigAsmDirect3x3WrW GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
+    PerformanceConfigAsmDirect3x3WrW
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                                  const PerformanceConfigAsmDirect3x3WrW&) const final;
+                                     const PerformanceConfigAsmDirect3x3WrW&) const final;
     PerformanceConfigAsmDirect3x3WrW SearchCTS(const ConvolutionContext&,
-                                            const AnyInvokeParams& invoke_ctx) const final;
+                                               const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
-                             const PerformanceConfigAsmDirect3x3WrW& config) const final;
+                                const PerformanceConfigAsmDirect3x3WrW& config) const final;
 };
 
 struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsmBwdWrW1x1>
@@ -2329,13 +2346,14 @@ struct ConvAsmBwdWrW1x1 : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW1x1>
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
     bool MayNeedWorkspace() const override { return true; }
 
-    PerformanceConfigConvAsmBwdWrW1x1 GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
+    PerformanceConfigConvAsmBwdWrW1x1
+    GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                                  const PerformanceConfigConvAsmBwdWrW1x1&) const final;
+                                     const PerformanceConfigConvAsmBwdWrW1x1&) const final;
     PerformanceConfigConvAsmBwdWrW1x1 SearchCTS(const ConvolutionContext&,
-                                             const AnyInvokeParams& invoke_ctx) const final;
+                                                const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
-                             const PerformanceConfigConvAsmBwdWrW1x1& config) const final;
+                                const PerformanceConfigConvAsmBwdWrW1x1& config) const final;
 };
 
 /// N_BATCH_LOOPS - {1,2,4,8,16} Num batches processed in single workitem.
@@ -2416,11 +2434,11 @@ struct ConvOclBwdWrW2 : ConvTunableSolverBase
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
     GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                                  const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&) const;
-    PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> SearchCTS(const ConvolutionContext&,
-                                                          const AnyInvokeParams& invoke_ctx) const;
+                                     const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&) const;
+    PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
+    SearchCTS(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
-                             const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const;
+                                const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const;
 
     // GetDefaultPerformanceConfig(), IsValidPerformanceConfig(), Search() and GetSolution()
     // are only needed if ConvTunableSolverBase is used as a base class for solver
@@ -2430,7 +2448,7 @@ struct ConvOclBwdWrW2 : ConvTunableSolverBase
     }
 
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                   const boost::any& config) const final
+                                  const boost::any& config) const final
     {
         return IsValidPerformanceConfigCTS(
             ctx, boost::any_cast<const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&>(config));
@@ -2485,7 +2503,7 @@ private:
     // This function dervied from ConvOclBwdWrW2 is declared private
     // so that this solver is not marked searchable/tunable.
     ConvSolution GetSolutionCTS(const ConvolutionContext& params,
-                             const PerformanceConfigConvOclBwdWrw2<1>& config) const;
+                                const PerformanceConfigConvOclBwdWrw2<1>& config) const;
 };
 
 struct ConvOclBwdWrW53 : ConvSolver
@@ -2586,11 +2604,11 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops : ConvTunableSolver<PerformanceImplicitG
     PerformanceImplicitGemmWrwV4R4Xdlops
     GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmWrwV4R4Xdlops& c) const final;
+                                     const PerformanceImplicitGemmWrwV4R4Xdlops& c) const final;
     PerformanceImplicitGemmWrwV4R4Xdlops SearchCTS(const ConvolutionContext&,
-                                                const AnyInvokeParams& invoke_ctx) const final;
+                                                   const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmWrwV4R4Xdlops& config) const final;
+                                const PerformanceImplicitGemmWrwV4R4Xdlops& config) const final;
 };
 
 struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
@@ -2668,14 +2686,14 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm
 
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const final;
-    bool
-    IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& c) const final;
+    bool IsValidPerformanceConfigCTS(
+        const ConvolutionContext& ctx,
+        const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& c) const final;
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     SearchCTS(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution
     GetSolutionCTS(const ConvolutionContext& ctx,
-                const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& config) const final;
+                   const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& config) const final;
 };
 
 struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : Serializable<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
@@ -2717,11 +2735,11 @@ struct ConvCkIgemmFwdV6r1DlopsNchw : ConvTunableSolver<PerformanceConvCkIgemmFwd
     PerformanceConvCkIgemmFwdV6r1DlopsNchw
     GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
     bool IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                                  const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const final;
+                                     const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const final;
     PerformanceConvCkIgemmFwdV6r1DlopsNchw SearchCTS(const ConvolutionContext&,
-                                                  const AnyInvokeParams&) const final;
+                                                     const AnyInvokeParams&) const final;
     ConvSolution GetSolutionCTS(const ConvolutionContext&,
-                             const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const final;
+                                const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const final;
 };
 
 struct ConvDirectNaiveConvFwd : ConvSolver
@@ -3474,14 +3492,14 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC
 
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
     GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
-    bool
-    IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                             const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC&) const final;
+    bool IsValidPerformanceConfigCTS(
+        const ConvolutionContext&,
+        const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC&) const final;
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
     SearchCTS(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution
     GetSolutionCTS(const ConvolutionContext& ctx,
-                const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config) const final;
+                   const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config) const final;
 };
 
 struct PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC : PerformanceConfigAsmImplicitGemmGTC
@@ -3667,14 +3685,14 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC
 
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
     GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
-    bool
-    IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                             const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC&) const final;
+    bool IsValidPerformanceConfigCTS(
+        const ConvolutionContext&,
+        const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC&) const final;
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
     SearchCTS(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution
     GetSolutionCTS(const ConvolutionContext& ctx,
-                const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config) const final;
+                   const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config) const final;
 };
 
 struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmImplicitGemmGTC
@@ -3865,14 +3883,14 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC
 
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
     GetDefaultPerformanceConfigCTS(const ConvolutionContext&) const final;
-    bool
-    IsValidPerformanceConfigCTS(const ConvolutionContext&,
-                             const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const final;
+    bool IsValidPerformanceConfigCTS(
+        const ConvolutionContext&,
+        const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const final;
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
     SearchCTS(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
     ConvSolution
     GetSolutionCTS(const ConvolutionContext& ctx,
-                const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config) const final;
+                   const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config) const final;
 };
 
 struct AnySolver;

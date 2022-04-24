@@ -332,7 +332,7 @@ ConvAsmBwdWrW3x3::GetDefaultPerformanceConfigCTS(const ConvolutionContext& param
 }
 
 bool ConvAsmBwdWrW3x3::IsValidPerformanceConfigCTS(const ConvolutionContext& problem,
-                                                const PerformanceConfigAsmDirect3x3WrW& c) const
+                                                   const PerformanceConfigAsmDirect3x3WrW& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
 }
@@ -421,7 +421,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 }
 
 ConvSolution ConvAsmBwdWrW3x3::GetSolutionCTS(const ConvolutionContext& params,
-                                           const PerformanceConfigAsmDirect3x3WrW& config) const
+                                              const PerformanceConfigAsmDirect3x3WrW& config) const
 {
     ConvSolution result;
     std::ostringstream options;
@@ -532,8 +532,9 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolutionCTS(const ConvolutionContext& params,
     return result;
 }
 
-PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::SearchCTS(const ConvolutionContext& context,
-                                                          const AnyInvokeParams& invoke_ctx) const
+PerformanceConfigAsmDirect3x3WrW
+ConvAsmBwdWrW3x3::SearchCTS(const ConvolutionContext& context,
+                            const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }

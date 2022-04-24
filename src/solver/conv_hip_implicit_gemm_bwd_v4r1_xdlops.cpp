@@ -864,7 +864,8 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
 }
 
 PerformanceImplicitGemmBwdDataV4R1Xdlops
-ConvHipImplicitGemmBwdDataV4R1Xdlops::GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV4R1Xdlops::GetDefaultPerformanceConfigCTS(
+    const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1Xdlops>(ctx);
 }
@@ -877,7 +878,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfigCTS(
 }
 PerformanceImplicitGemmBwdDataV4R1Xdlops
 ConvHipImplicitGemmBwdDataV4R1Xdlops::SearchCTS(const ConvolutionContext& ctx,
-                                             const AnyInvokeParams& invoke_ctx) const
+                                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }

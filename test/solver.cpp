@@ -114,7 +114,7 @@ public:
     }
 
     solver::ConvSolution GetSolutionCTS(const ConvolutionContext&,
-                                     const TestConfig& config) const final
+                                        const TestConfig& config) const final
     {
 
         solver::ConvSolution ret;

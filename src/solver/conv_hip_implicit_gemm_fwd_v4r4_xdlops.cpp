@@ -843,7 +843,8 @@ ConvHipImplicitGemmForwardV4R4Xdlops::CalculateGemmSize(const ConvolutionContext
 }
 
 PerformanceImplicitGemmForwardV4R4Xdlops
-ConvHipImplicitGemmForwardV4R4Xdlops::GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmForwardV4R4Xdlops::GetDefaultPerformanceConfigCTS(
+    const ConvolutionContext& ctx) const
 {
     PerformanceImplicitGemmForwardV4R4Xdlops config;
     config.HeuristicInit(ctx);
@@ -1019,7 +1020,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops::IsApplicable(const ConvolutionContext
 
 PerformanceImplicitGemmForwardV4R4Xdlops
 ConvHipImplicitGemmForwardV4R4Xdlops::SearchCTS(const ConvolutionContext& ctx,
-                                             const AnyInvokeParams& invoke_ctx) const
+                                                const AnyInvokeParams& invoke_ctx) const
 
 {
     return GenericSearch(*this, ctx, invoke_ctx);

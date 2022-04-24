@@ -155,20 +155,20 @@ bool ConvHipImplicitGemmV4R1WrW::IsValidPerformanceConfigCTS(
 
 PerformanceImplicitGemmV4R1
 ConvHipImplicitGemmV4R1Fwd::SearchCTS(const ConvolutionContext& context,
-                                   const AnyInvokeParams& invoke_ctx) const
+                                      const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }
 PerformanceImplicitGemmV4R1
 ConvHipImplicitGemmV4R1WrW::SearchCTS(const ConvolutionContext& context,
-                                   const AnyInvokeParams& invoke_ctx) const
+                                      const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }
 
 ConvSolution
 ConvHipImplicitGemmV4R1Fwd::GetSolutionCTS(const ConvolutionContext& ctx,
-                                        const PerformanceImplicitGemmV4R1& config) const
+                                           const PerformanceImplicitGemmV4R1& config) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;
@@ -368,7 +368,7 @@ ConvHipImplicitGemmV4R1Fwd::GetSolutionCTS(const ConvolutionContext& ctx,
 
 ConvSolution
 ConvHipImplicitGemmV4R1WrW::GetSolutionCTS(const ConvolutionContext& ctx,
-                                        const PerformanceImplicitGemmV4R1& config) const
+                                           const PerformanceImplicitGemmV4R1& config) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;

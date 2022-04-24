@@ -136,9 +136,8 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfigCTS(
     return config.IsValid(ctx);
 }
 
-ConvSolution
-ConvCkIgemmFwdV6r1DlopsNchw::GetSolutionCTS(const ConvolutionContext& ctx,
-                                         const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
+ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolutionCTS(
+    const ConvolutionContext& ctx, const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
 {
     ConvSolution sol;
     KernelInfo kernel0_info, kernel1_info;
@@ -250,7 +249,7 @@ std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionConte
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
 ConvCkIgemmFwdV6r1DlopsNchw::SearchCTS(const ConvolutionContext& ctx,
-                                    const AnyInvokeParams& invoke_ctx) const
+                                       const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }

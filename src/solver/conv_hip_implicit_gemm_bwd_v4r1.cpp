@@ -807,14 +807,13 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsValidPerformanceConfigCTS(
 
 PerformanceImplicitGemmBwdDataV4R1
 ConvHipImplicitGemmBwdDataV4R1::SearchCTS(const ConvolutionContext& context,
-                                       const AnyInvokeParams& invoke_ctx) const
+                                          const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-ConvSolution
-ConvHipImplicitGemmBwdDataV4R1::GetSolutionCTS(const ConvolutionContext& ctx,
-                                            const PerformanceImplicitGemmBwdDataV4R1& config) const
+ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolutionCTS(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV4R1& config) const
 {
     ConvSolution result;
 

@@ -692,14 +692,13 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsValidPerformanceConfigCTS(
 
 PerformanceImplicitGemmBwdDataV1R1
 ConvHipImplicitGemmBwdDataV1R1::SearchCTS(const ConvolutionContext& ctx,
-                                       const AnyInvokeParams& invoke_ctx) const
+                                          const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-ConvSolution
-ConvHipImplicitGemmBwdDataV1R1::GetSolutionCTS(const ConvolutionContext& ctx,
-                                            const PerformanceImplicitGemmBwdDataV1R1& config) const
+ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolutionCTS(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV1R1& config) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;

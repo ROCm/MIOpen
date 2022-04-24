@@ -294,7 +294,7 @@ bool ConvBinWinogradRxSf3x2::IsValidPerformanceConfigCTS(
 
 PerformanceConfigConvBinWinogradRxSf3x2
 ConvBinWinogradRxSf3x2::SearchCTS(const ConvolutionContext& context,
-                               const AnyInvokeParams& invoke_ctx) const
+                                  const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }
@@ -377,7 +377,7 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
 /// \todo Consider re-using code from RxS_f2x3.
 ConvSolution
 ConvBinWinogradRxSf3x2::GetSolutionCTS(const ConvolutionContext& params,
-                                    const PerformanceConfigConvBinWinogradRxSf3x2& config) const
+                                       const PerformanceConfigConvBinWinogradRxSf3x2& config) const
 {
     const PerformanceConfigConvBinWinogradRxSf3x2* pcfg = &config;
 

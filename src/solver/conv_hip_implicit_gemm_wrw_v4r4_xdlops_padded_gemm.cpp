@@ -1181,7 +1181,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const Convolutio
 
 PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
 ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::SearchCTS(const ConvolutionContext& ctx,
-                                                     const AnyInvokeParams& invoke_ctx) const
+                                                        const AnyInvokeParams& invoke_ctx) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
     return GenericSearch(*this, ctx, invoke_ctx);

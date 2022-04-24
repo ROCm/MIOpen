@@ -50,8 +50,8 @@ namespace solver {
 /*
  * select default configuration if a known configuration has not been found.
  */
-LegacyPerformanceConfig
-ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) const
+LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerformanceConfigCTS(
+    const ConvolutionContext& params) const
 {
     //
     LegacyPerformanceConfig result{};
@@ -206,7 +206,7 @@ static int MeasurePerfConfig(const Handle& handle,
 
 LegacyPerformanceConfig
 ConvOclDirectFwdLegacyExhaustiveSearch::SearchCTS(const ConvolutionContext& params,
-                                               const AnyInvokeParams&) const
+                                                  const AnyInvokeParams&) const
 {
     if(params.IsFp16())
         return SearchImpl<half_float::half>(params);

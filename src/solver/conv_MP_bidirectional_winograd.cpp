@@ -863,7 +863,8 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
     const ConvolutionContext& ctx, const PerformanceImplicitGemmForwardV4R4Xdlops& config) const
 {
     ConvSolution wino_transform =
-        ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>{}.GetSolutionCTS(ctx);
+        ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>{}.GetSolutionCTS(
+            ctx);
 
     const ConvolutionContext xdlops_conv_ctx = GetTransformedConvContext(ctx);
 
@@ -902,7 +903,7 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::S
         GetTransformedInvokeContext<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(ctx,
                                                                                     invoke_ctx);
     return ConvHipImplicitGemmForwardV4R4Xdlops().SearchCTS(GetTransformedConvContext(ctx),
-                                                         transformed_invoke_ctx);
+                                                            transformed_invoke_ctx);
 }
 
 template struct ConvMPBidirectWinograd_xdlops<2, 3>;

@@ -371,7 +371,7 @@ ConvAsm1x1U::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) co
 }
 
 bool ConvAsm1x1U::IsValidPerformanceConfigCTS(const ConvolutionContext& problem,
-                                           const PerformanceConfigConvAsm1x1U& c) const
+                                              const PerformanceConfigConvAsm1x1U& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
 }
@@ -488,7 +488,7 @@ static int divide_round_plus_inf(const int x, const int y)
 }
 
 ConvSolution ConvAsm1x1U::GetSolutionCTS(const ConvolutionContext& params,
-                                      const PerformanceConfigConvAsm1x1U& config) const
+                                         const PerformanceConfigConvAsm1x1U& config) const
 {
     ConvSolution result;
 
@@ -756,7 +756,7 @@ ConvSolution ConvAsm1x1U::GetSolutionCTS(const ConvolutionContext& params,
 }
 
 PerformanceConfigConvAsm1x1U ConvAsm1x1U::SearchCTS(const ConvolutionContext& context,
-                                                 const AnyInvokeParams& invoke_ctx) const
+                                                    const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }

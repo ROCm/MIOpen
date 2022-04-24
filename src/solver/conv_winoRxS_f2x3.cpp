@@ -308,7 +308,7 @@ bool ConvBinWinogradRxSf2x3::IsValidPerformanceConfigCTS(
 
 PerformanceConfigConvBinWinogradRxSf2x3
 ConvBinWinogradRxSf2x3::SearchCTS(const ConvolutionContext& context,
-                               const AnyInvokeParams& invoke_ctx) const
+                                  const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }
@@ -522,7 +522,7 @@ bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) cons
 
 ConvSolution
 ConvBinWinogradRxSf2x3::GetSolutionCTS(const ConvolutionContext& params,
-                                    const PerformanceConfigConvBinWinogradRxSf2x3& config) const
+                                       const PerformanceConfigConvBinWinogradRxSf2x3& config) const
 {
     const auto n_groups = config.n_groups;
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)

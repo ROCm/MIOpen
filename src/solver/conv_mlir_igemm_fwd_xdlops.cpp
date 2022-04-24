@@ -193,13 +193,14 @@ bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfigCTS(
 
 PerformanceConvMlirIgemmXdlops
 ConvMlirIgemmFwdXdlops::SearchCTS(const ConvolutionContext& ctx,
-                               const AnyInvokeParams& invoke_ctx) const
+                                  const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-ConvSolution ConvMlirIgemmFwdXdlops::GetSolutionCTS(const ConvolutionContext& ctx,
-                                                 const PerformanceConvMlirIgemmXdlops& config) const
+ConvSolution
+ConvMlirIgemmFwdXdlops::GetSolutionCTS(const ConvolutionContext& ctx,
+                                       const PerformanceConvMlirIgemmXdlops& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;

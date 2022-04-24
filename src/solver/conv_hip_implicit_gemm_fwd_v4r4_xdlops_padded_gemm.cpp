@@ -1120,7 +1120,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
 
 PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
 ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::SearchCTS(const ConvolutionContext& ctx,
-                                                         const AnyInvokeParams& invoke_ctx) const
+                                                            const AnyInvokeParams& invoke_ctx) const
 
 {
     return GenericSearch(*this, ctx, invoke_ctx);

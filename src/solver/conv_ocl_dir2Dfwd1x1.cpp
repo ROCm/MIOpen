@@ -68,8 +68,9 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
            params.pad_w == 0 && params.pad_h == 0;
 }
 
-ConvSolution ConvOclDirectFwd1x1::GetSolutionCTS(const ConvolutionContext& params,
-                                              const LegacyPerformanceConfig& searched_params) const
+ConvSolution
+ConvOclDirectFwd1x1::GetSolutionCTS(const ConvolutionContext& params,
+                                    const LegacyPerformanceConfig& searched_params) const
 {
     ConvSolution result;
     searched_params.CopyTo(result);

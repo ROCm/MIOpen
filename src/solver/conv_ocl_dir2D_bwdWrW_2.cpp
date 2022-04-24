@@ -508,7 +508,8 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& param
 
 template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) const
+ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfigCTS(
+    const ConvolutionContext& params) const
 {
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> pp;
     pp.HeuristicInit(params);
@@ -737,7 +738,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolutionCTS(
 template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
 ConvOclBwdWrW2<N_BATCH_LOOPS>::SearchCTS(const ConvolutionContext& context,
-                                      const AnyInvokeParams& invoke_ctx) const
+                                         const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }

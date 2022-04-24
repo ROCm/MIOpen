@@ -125,7 +125,7 @@ ConvBiasActivAsm1x1U::SearchCTS(const ConvolutionContext& context, const AnyInvo
 
 ConvSolution
 ConvBiasActivAsm1x1U::GetSolutionCTS(const ConvolutionContext& params,
-                                  const PerformanceConfigConvBiasActivAsm1x1U& config) const
+                                     const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
     auto sol = ConvAsm1x1U{}.GetSolutionCTS(params, config);
 
