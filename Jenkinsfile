@@ -146,7 +146,7 @@ def buildHipClangJob(Map conf=[:]){
                 echo "CCACHE SERVER: ${CCACHE_HOST} NOT FOUND, got ${check_host} response"
             }
             dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
-            env.CCACHE_DIR = "/tmp"
+            env.CCACHE_DIR = """${env.WORKSPACE}/ccache_store"""
             env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
         }
 
