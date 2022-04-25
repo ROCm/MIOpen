@@ -213,7 +213,7 @@ struct SolverContainer
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
                 else
                 {
-                    auto s      = solver.GetSolutionCTS(ctx, problem);
+                    auto s      = solver.GetSolution(ctx, problem);
                     s.solver_id = solver.SolverDbId();
                     if(s.Succeeded())
                     {
