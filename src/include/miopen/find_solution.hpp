@@ -47,7 +47,7 @@ namespace solver {
 template <class Solver, class Context, class Db>
 auto FindSolutionImpl(
     rank<1>, Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
-    -> decltype(s.GetSolutionCTS(context, s.Search(context, invoke_ctx)))
+    -> decltype(s.GetSolutionCTS(context, s.SearchCTS(context, invoke_ctx)))
 {
     const FindEnforce enforce;
     if(context.disable_perfdb_access)
