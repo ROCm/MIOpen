@@ -310,8 +310,9 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
 
     using PerformanceConfig = decltype(s.GetDefaultPerformanceConfigCTS(context));
     PerformanceConfig best_config;
-    const auto default_solution = s.GetSolutionCTS(context, s.GetDefaultPerformanceConfigCTS(context));
-    const auto invoke_ctx       = [invoke_ctx_]() {
+    const auto default_solution =
+        s.GetSolutionCTS(context, s.GetDefaultPerformanceConfigCTS(context));
+    const auto invoke_ctx = [invoke_ctx_]() {
         auto copy = invoke_ctx_;
         copy.SetInvokeType(InvokeType::AutoTune);
         return copy;
