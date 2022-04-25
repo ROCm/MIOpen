@@ -84,7 +84,7 @@ RUN  wget -O ck.tar.gz https://www.github.com/rocmsoftwareplatform/composable_ke
     tar zxvf ck.tar.gz &&\
     cd composable_kernel-${CK_COMMIT} && \
     mkdir build && cd build && \
-    CXX=/opt/rocm/bin/hipcc cmake -DCMAKE_PREFIX_PATH=/opt/rocm -D CMAKE_CXX_FLAGS="--offload-arch=gfx908 -O3 " .. && \
+    CXX=/opt/rocm/bin/hipcc cmake -DCMAKE_PREFIX_PATH=/opt/rocm -D CMAKE_CXX_FLAGS=" --offload-arch=gfx900 --offload-arch=gfx906 --offload-arch=gfx908 --offload-arch=gfx90a -O3 " .. && \
     make -j $(nproc) package && cp *.deb /root/
 
 
