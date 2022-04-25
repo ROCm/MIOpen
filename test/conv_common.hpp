@@ -158,7 +158,6 @@ struct scalar_gen_random_integer
 
     double operator()() const
     {
-        // return static_cast<double>(1);
         return static_cast<double>(min_val + GET_RAND() % (max_val - min_val + 1));
     }
 };
