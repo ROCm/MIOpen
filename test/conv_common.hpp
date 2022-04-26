@@ -193,24 +193,6 @@ tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
             : weights.desc.GetType())};
 }
 
-miopenTensorLayout_t string_to_4D_tensor_layout(std::string layout_string)
-{
-    miopenTensorLayout_t TensorLayout = miopenTensorNCHW;
-    if(layout_string == "NHWC")
-        TensorLayout = miopenTensorNHWC;
-    else if(layout_string == "NCHW_VECT_C")
-        TensorLayout = miopenTensorNCHW_VECT_C;
-    else if(layout_string == "CHWN_VECT_C")
-        TensorLayout = miopenTensorCHWN_VECT_C;
-    else if(layout_string == "CHWN")
-        TensorLayout = miopenTensorCHWN_VECT_C;
-    else if(layout_string == "NCHW")
-        TensorLayout = miopenTensorNCHW;
-    else
-        MIOPEN_THROW("Unsupported tensor layout");
-    return TensorLayout;
-}
-
 // Convolution test base class
 //========================================
 template <class T, class Tout = T>
