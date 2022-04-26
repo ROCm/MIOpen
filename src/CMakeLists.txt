@@ -201,8 +201,7 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
-    solver/conv_winoRxS_f2x3.cpp
-    solver/conv_winoRxS_f3x2.cpp
+    solver/conv_winoRxS.cpp
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
