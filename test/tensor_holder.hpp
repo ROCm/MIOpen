@@ -127,7 +127,6 @@ struct tensor
     tensor(miopenDataType_t t, miopenTensorLayout_t layout, const std::vector<X>& dims)
         : desc(t, layout, dims), data(desc.GetElementSpace())
     {
-        assert(dims.size() == strides.size());
     }
 
     template <class X>
