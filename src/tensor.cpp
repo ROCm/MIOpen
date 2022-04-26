@@ -165,7 +165,7 @@ std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
     }
     else
     {
-        assert(l.size() + 1 <= this->GetSize());
+        assert(l.size() - 1 <= this->GetSize());
         return std::inner_product(
             l.begin() + 1, l.end(), strides.begin(), static_cast<std::size_t>(*(l.begin())));
     }
