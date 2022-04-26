@@ -543,23 +543,25 @@ ConvBinWinogradRxSf2x3::GetSolutionCTS(const ConvolutionContext& params,
 
     // Try to load config from environment variable
     PerformanceConfigConvBinWinogradRxSf2x3 fromEnv;
-    std::string s;
-    const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS{});
-    if(p_asciz != nullptr)
     {
-        s = std::string(p_asciz);
-        if(!s.empty()) // else nothing to parse.
+        std::string s;
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS{});
+        if(p_asciz != nullptr)
         {
-            if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
+            s = std::string(p_asciz);
+            if(!s.empty()) // else nothing to parse.
             {
-                MIOPEN_LOG_E("MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS: "
-                             "Bad format or invalid for the problem config: "
-                             << s);
-            }
-            else
-            {
-                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                pcfg = &fromEnv;
+                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
+                {
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS: "
+                                "Bad format or invalid for the problem config: "
+                                << s);
+                }
+                else
+                {
+                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                    pcfg = &fromEnv;
+                }
             }
         }
     }

@@ -898,24 +898,26 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolutionCTS(
 
     // Try to load config from environment variable
     PerformanceImplicitGemmBwdDataV4R1Xdlops fromEnv;
-    std::string s;
-    const auto p_asciz =
-        miopen::GetStringEnv(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_VALS{});
-    if(p_asciz != nullptr)
     {
-        s = std::string(p_asciz);
-        if(!s.empty()) // else nothing to parse.
+        std::string s;
+        const auto p_asciz =
+            miopen::GetStringEnv(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_VALS{});
+        if(p_asciz != nullptr)
         {
-            if(!fromEnv.Deserialize(s) || !fromEnv.IsReallyValid(ctx))
+            s = std::string(p_asciz);
+            if(!s.empty()) // else nothing to parse.
             {
-                MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_VALS: "
-                             "Bad format or invalid for the problem config: "
-                             << s);
-            }
-            else
-            {
-                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                pcfg = &fromEnv;
+                if(!fromEnv.Deserialize(s) || !fromEnv.IsReallyValid(ctx))
+                {
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_VALS: "
+                                "Bad format or invalid for the problem config: "
+                                << s);
+                }
+                else
+                {
+                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                    pcfg = &fromEnv;
+                }
             }
         }
     }
