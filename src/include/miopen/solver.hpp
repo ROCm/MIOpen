@@ -1773,8 +1773,7 @@ struct ConvBinWinogradRxS : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct PerformanceConfigConvBinWinogradRxS
-    : Serializable<PerformanceConfigConvBinWinogradRxS>
+struct PerformanceConfigConvBinWinogradRxS : Serializable<PerformanceConfigConvBinWinogradRxS>
 {
     int n_groups;
     PerformanceConfigConvBinWinogradRxS(int n_groups_);
@@ -1788,7 +1787,7 @@ struct PerformanceConfigConvBinWinogradRxS
     }
     int GetNGroups() const { return n_groups; }
 
-    template<int Winodata, int Winofilter>
+    template <int Winodata, int Winofilter>
     void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext& config);
@@ -1797,7 +1796,7 @@ struct PerformanceConfigConvBinWinogradRxS
     std::string ToString() const;
 };
 
-template<int Winodata, int Winofilter>
+template <int Winodata, int Winofilter>
 struct ConvBinWinoRxS : ConvSolver
 {
     const std::string& SolverDbId() const override
@@ -1809,7 +1808,7 @@ struct ConvBinWinoRxS : ConvSolver
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const PerformanceConfigConvBinWinogradRxS&) const;
     PerformanceConfigConvBinWinogradRxS Search(const ConvolutionContext&,
-                                                   const AnyInvokeParams& invoke_ctx) const;
+                                               const AnyInvokeParams& invoke_ctx) const;
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsDynamic() const override { return true; }

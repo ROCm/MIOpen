@@ -535,26 +535,27 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
     return applicable;
 }
 
-template<int Winodata, int Winofilter>
-static inline boost::optional<PerformanceConfigConvBinWinogradRxS> GetPerfConfFromEnv(const ConvolutionContext& params)
+template <int Winodata, int Winofilter>
+static inline boost::optional<PerformanceConfigConvBinWinogradRxS>
+GetPerfConfFromEnv(const ConvolutionContext& params)
 {
     PerformanceConfigConvBinWinogradRxS fromEnv;
     std::string s;
     const char* p_asciz = nullptr;
     const char* env_name;
 
-    if (IS2x3)
+    if(IS2x3)
     {
-        p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS{});
+        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS{});
         env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS::value();
     }
-    else if (IS3x2)
+    else if(IS3x2)
     {
-        p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS{});
+        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS{});
         env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS::value();
     }
 
-    if (p_asciz == nullptr)
+    if(p_asciz == nullptr)
         return boost::none;
 
     s = std::string(p_asciz);
@@ -598,7 +599,8 @@ ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& para
 
     if(!disableConfigOverrideFromEnv)
     {
-        boost::optional<PerformanceConfigConvBinWinogradRxS> fromEnv = GetPerfConfFromEnv<Winodata, Winofilter>(params);
+        boost::optional<PerformanceConfigConvBinWinogradRxS> fromEnv =
+            GetPerfConfFromEnv<Winodata, Winofilter>(params);
         if(fromEnv)
         {
             pcfg = &(*fromEnv);
@@ -624,8 +626,8 @@ ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& para
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
-    std::string kernel_name    = "miopenSp3AsmConv_v21_1_3";
-    std::string kernel_file    = "Conv_Winograd_v21_1_3";
+    std::string kernel_name = "miopenSp3AsmConv_v21_1_3";
+    std::string kernel_file = "Conv_Winograd_v21_1_3";
     std::string kernel_postfix;
 
     if(is_gfx9)
@@ -638,12 +640,12 @@ ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& para
         kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
     }
 
-    if (IS2x3)
+    if(IS2x3)
     {
         kernel_postfix = params.IsFp32() ? "_fp32" : "_fp16_dot2_edc";
 
         if(params.kernel_stride_w == 1)
-        {      
+        {
             kernel_postfix += "_stride1";
         }
         else if(params.kernel_stride_w == 2 && !params.direction.IsBackwardData())
@@ -659,15 +661,13 @@ ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& para
             kernel_postfix += "_group";
         }
     }
-    else if (IS3x2)
+    else if(IS3x2)
     {
         kernel_postfix = params.IsFp32() ? "_f3x2_fp32" : "_f3x2_fp16_dot2_edc";
         // if(params.kernel_stride_w == 1)
         kernel_postfix += "_stride1";
         kernel_postfix += "_group";
     }
-    
-     
 
     kernel.kernel_name = kernel_name + kernel_postfix;
     kernel.kernel_file = kernel_file + kernel_postfix + ".s";
