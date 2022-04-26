@@ -910,8 +910,8 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolutionCTS(
                 if(!fromEnv.Deserialize(s) || !fromEnv.IsReallyValid(ctx))
                 {
                     MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_VALS: "
-                                "Bad format or invalid for the problem config: "
-                                << s);
+                                 "Bad format or invalid for the problem config: "
+                                 << s);
                 }
                 else
                 {

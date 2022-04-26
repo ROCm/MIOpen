@@ -554,8 +554,8 @@ ConvBinWinogradRxSf2x3::GetSolutionCTS(const ConvolutionContext& params,
                 if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
                 {
                     MIOPEN_LOG_E("MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS: "
-                                "Bad format or invalid for the problem config: "
-                                << s);
+                                 "Bad format or invalid for the problem config: "
+                                 << s);
                 }
                 else
                 {

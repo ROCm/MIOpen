@@ -680,8 +680,8 @@ ConvSolution ConvAsm1x1U::GetSolutionCTS(const ConvolutionContext& params,
                 if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
                 {
                     MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS: "
-                                "Bad format or invalid for the problem config: "
-                                << s);
+                                 "Bad format or invalid for the problem config: "
+                                 << s);
                 }
                 else
                 {
