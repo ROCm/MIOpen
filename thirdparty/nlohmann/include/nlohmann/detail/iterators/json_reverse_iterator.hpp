@@ -1,13 +1,11 @@
 #pragma once
 
-#include <cstddef> // ptrdiff_t
+#include <cstddef>  // ptrdiff_t
 #include <iterator> // reverse_iterator
-#include <utility> // declval
+#include <utility>  // declval
 
-namespace nlohmann
-{
-namespace detail
-{
+namespace nlohmann {
+namespace detail {
 //////////////////////
 // reverse_iterator //
 //////////////////////
@@ -30,10 +28,10 @@ create @ref const_reverse_iterator).
 
 @since version 1.0.0
 */
-template<typename Base>
+template <typename Base>
 class json_reverse_iterator : public std::reverse_iterator<Base>
 {
-  public:
+public:
     using difference_type = std::ptrdiff_t;
     /// shortcut to the reverse iterator adapter
     using base_iterator = std::reverse_iterator<Base>;
@@ -42,7 +40,9 @@ class json_reverse_iterator : public std::reverse_iterator<Base>
 
     /// create reverse iterator from iterator
     explicit json_reverse_iterator(const typename base_iterator::iterator_type& it) noexcept
-        : base_iterator(it) {}
+        : base_iterator(it)
+    {
+    }
 
     /// create reverse iterator from base class
     explicit json_reverse_iterator(const base_iterator& it) noexcept : base_iterator(it) {}
@@ -96,10 +96,7 @@ class json_reverse_iterator : public std::reverse_iterator<Base>
     }
 
     /// access to successor
-    reference operator[](difference_type n) const
-    {
-        return *(this->operator+(n));
-    }
+    reference operator[](difference_type n) const { return *(this->operator+(n)); }
 
     /// return the key of an object iterator
     auto key() const -> decltype(std::declval<Base>().key())
@@ -112,8 +109,8 @@ class json_reverse_iterator : public std::reverse_iterator<Base>
     reference value() const
     {
         auto it = --this->base();
-        return it.operator * ();
+        return it.operator*();
     }
 };
-}  // namespace detail
-}  // namespace nlohmann
+} // namespace detail
+} // namespace nlohmann

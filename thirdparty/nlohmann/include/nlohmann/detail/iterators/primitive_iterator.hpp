@@ -5,10 +5,8 @@
 
 #include <nlohmann/detail/macro_scope.hpp>
 
-namespace nlohmann
-{
-namespace detail
-{
+namespace nlohmann {
+namespace detail {
 /*
 @brief an iterator for primitive JSON types
 
@@ -20,44 +18,29 @@ end_value (`1`) models past the end.
 */
 class primitive_iterator_t
 {
-  private:
-    using difference_type = std::ptrdiff_t;
+private:
+    using difference_type                        = std::ptrdiff_t;
     static constexpr difference_type begin_value = 0;
-    static constexpr difference_type end_value = begin_value + 1;
+    static constexpr difference_type end_value   = begin_value + 1;
 
-  JSON_PRIVATE_UNLESS_TESTED:
-    /// iterator as signed integer type
-    difference_type m_it = (std::numeric_limits<std::ptrdiff_t>::min)();
+    JSON_PRIVATE_UNLESS_TESTED :
+        /// iterator as signed integer type
+        difference_type m_it = (std::numeric_limits<std::ptrdiff_t>::min)();
 
-  public:
-    constexpr difference_type get_value() const noexcept
-    {
-        return m_it;
-    }
+public:
+    constexpr difference_type get_value() const noexcept { return m_it; }
 
     /// set iterator to a defined beginning
-    void set_begin() noexcept
-    {
-        m_it = begin_value;
-    }
+    void set_begin() noexcept { m_it = begin_value; }
 
     /// set iterator to a defined past the end
-    void set_end() noexcept
-    {
-        m_it = end_value;
-    }
+    void set_end() noexcept { m_it = end_value; }
 
     /// return whether the iterator can be dereferenced
-    constexpr bool is_begin() const noexcept
-    {
-        return m_it == begin_value;
-    }
+    constexpr bool is_begin() const noexcept { return m_it == begin_value; }
 
     /// return whether the iterator is at end
-    constexpr bool is_end() const noexcept
-    {
-        return m_it == end_value;
-    }
+    constexpr bool is_end() const noexcept { return m_it == end_value; }
 
     friend constexpr bool operator==(primitive_iterator_t lhs, primitive_iterator_t rhs) noexcept
     {
@@ -76,7 +59,8 @@ class primitive_iterator_t
         return result;
     }
 
-    friend constexpr difference_type operator-(primitive_iterator_t lhs, primitive_iterator_t rhs) noexcept
+    friend constexpr difference_type operator-(primitive_iterator_t lhs,
+                                               primitive_iterator_t rhs) noexcept
     {
         return lhs.m_it - rhs.m_it;
     }
@@ -119,5 +103,5 @@ class primitive_iterator_t
         return *this;
     }
 };
-}  // namespace detail
-}  // namespace nlohmann
+} // namespace detail
+} // namespace nlohmann

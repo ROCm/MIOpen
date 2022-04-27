@@ -2,7 +2,7 @@
 
 // restore clang diagnostic settings
 #if defined(__clang__)
-    #pragma clang diagnostic pop
+#pragma clang diagnostic pop
 #endif
 
 // clean up

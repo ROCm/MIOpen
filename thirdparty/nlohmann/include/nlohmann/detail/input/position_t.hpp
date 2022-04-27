@@ -2,10 +2,8 @@
 
 #include <cstddef> // size_t
 
-namespace nlohmann
-{
-namespace detail
-{
+namespace nlohmann {
+namespace detail {
 /// struct to capture the start position of the current token
 struct position_t
 {
@@ -17,10 +15,7 @@ struct position_t
     std::size_t lines_read = 0;
 
     /// conversion to size_t to preserve SAX interface
-    constexpr operator size_t() const
-    {
-        return chars_read_total;
-    }
+    constexpr operator size_t() const { return chars_read_total; }
 };
 
 } // namespace detail

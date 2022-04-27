@@ -3,10 +3,8 @@
 #include <string>
 #include <nlohmann/detail/macro_scope.hpp>
 
-namespace nlohmann
-{
-namespace detail
-{
+namespace nlohmann {
+namespace detail {
 
 /*!
 @brief replace all occurrences of a substring by another string
@@ -21,14 +19,13 @@ enforced with an assertion.**
 
 @since version 2.0.0
 */
-inline void replace_substring(std::string& s, const std::string& f,
-                              const std::string& t)
+inline void replace_substring(std::string& s, const std::string& f, const std::string& t)
 {
     JSON_ASSERT(!f.empty());
-    for (auto pos = s.find(f);                // find first occurrence of f
-            pos != std::string::npos;         // make sure f was found
-            s.replace(pos, f.size(), t),      // replace with t, and
-            pos = s.find(f, pos + t.size()))  // find next occurrence of f
+    for(auto pos = s.find(f);            // find first occurrence of f
+        pos != std::string::npos;        // make sure f was found
+        s.replace(pos, f.size(), t),     // replace with t, and
+        pos = s.find(f, pos + t.size())) // find next occurrence of f
     {}
 }
 
