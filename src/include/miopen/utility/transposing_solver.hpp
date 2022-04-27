@@ -591,7 +591,7 @@ private:
         auto transposed_problem = problem;
         for(const auto& transpose : Derived::GetTransposes())
             transpose.Transpose(problem, transposed_problem);
-        return std::move(transposed_problem);
+        return transposed_problem;
     }
 };
 

@@ -86,7 +86,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.16.0)
+rocm_setup_version(VERSION 2.17.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -192,9 +192,12 @@ message(STATUS "Build with HIP ${hip_VERSION}")
 target_flags(HIP_COMPILER_FLAGS hip::device)
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-string(REGEX REPLACE --offload-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-string(REPLACE "$<LINK_LANGUAGE:CXX>" "1" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-string(REPLACE "SHELL:" "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+string(REGEX REPLACE --offload-arch=[a-z0-9:+-]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+# Skip library paths since hip will incorrectly treat it as a source file
+string(APPEND HIP_COMPILER_FLAGS " ")
+foreach(_unused RANGE 2)
+    string(REGEX REPLACE " /[^ ]+\\.(a|so) " " " HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+endforeach()
 
 # Override HIP version in config.h, if necessary.
 # The variables set by find_package() can't be overwritten,
@@ -551,6 +554,18 @@ enable_clang_tidy(
         -readability-qualified-auto
         -readability-redundant-string-init
         -readability-uppercase-literal-suffix
+        #TODO Code Quality WORKAROUND ROCm 5.1 update
+        -altera-id-dependent-backward-branch
+        -bugprone-easily-swappable-parameters
+        -bugprone-implicit-widening-of-multiplication-result
+        -cert-err33-c
+        -google-readability-casting
+        -hicpp-use-emplace
+        -modernize-use-emplace
+        -performance-unnecessary-copy-initialization
+        -readability-container-data-pointer
+        -readability-identifier-length
+        -readability-suspicious-call-argument
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
