@@ -35,6 +35,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <boost/hof/first_of.hpp>
+
 namespace miopen {
 
 namespace detail {
@@ -87,36 +89,21 @@ void VisitType(int id, Args... args)
     detail::VisitType<Visitor, Variant>{}(id, args...);
 }
 
-namespace detail {
-
-struct ProblemFindVariantVisitor
-{
-    const Problem* problem;
-    Handle* handle;
-    const SearchOptions* options;
-    std::size_t max_solutions;
-
-    std::vector<Solution> operator()(const ConvolutionDescriptor& conv) const
-    {
-        return problem->FindConvSolutions(*handle, *options, max_solutions, conv);
-    }
-
-    template <class Unimplemented>
-    std::vector<Solution> operator()(const Unimplemented&) const
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented);
-        return {};
-    }
-};
-
-} // namespace detail
-
 std::vector<Solution> Problem::FindSolutions(Handle& handle,
                                              const SearchOptions& options,
                                              std::size_t max_solutions) const
 {
-    const auto visitor = detail::ProblemFindVariantVisitor{this, &handle, &options, max_solutions};
-    auto ret           = boost::apply_visitor(visitor, operator_descriptor);
+    const auto conv_find = [&](const ConvolutionDescriptor& conv) {
+        return FindConvSolutions(handle, options, max_solutions, conv);
+    };
+
+    const auto unimplemented_find = [&](const auto&) {
+        MIOPEN_THROW(miopenStatusNotImplemented);
+        return std::vector<Solution>{};
+    };
+
+    const auto universal_find = boost::hof::first_of(conv_find, unimplemented_find);
+    auto ret                  = universal_find(operator_descriptor);
 
     const auto sorter = [&]() -> std::function<bool(const Solution&, const Solution&)> {
         switch(options.results_order)
