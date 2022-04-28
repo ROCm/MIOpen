@@ -320,7 +320,7 @@ private:
 
     std::vector<Tgpu> din;
     std::vector<Tgpu> dwei;
-    std::vector<float> out_int8;
+    std::vector<int32_t> out_int8;
     std::vector<Tgpu> db;
     std::vector<float> b_int8;
 
@@ -596,7 +596,7 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> out_len = GetOutputTensorLengths();
 
     miopenDataType_t y_type =
-        (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenFloat : data_type;
+        (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenInt32 : data_type;
     SetTensorNd(outputTensor, out_len, inflags.GetValueStr("out_layout"), y_type);
 
     if(inflags.GetValueInt("bias") != 0)
@@ -1220,7 +1220,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(is_wrw)
         dwei = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
     if(is_int8)
-        out_int8 = std::vector<float>(out_sz, static_cast<float>(0));
+        out_int8 = std::vector<int32_t>(out_sz, 0);
     if(is_transform)
     {
         in_vect4_dev = std::unique_ptr<GPUMem>(
@@ -1753,7 +1753,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPU()
     if(inflags.GetValueInt("dump_output"))
     {
         if(is_int8)
-            dumpBufferToFile<float>("dump_fwd_out_gpu.bin", out_int8.data(), out_int8.size());
+            dumpBufferToFile<int32_t>("dump_fwd_out_gpu.bin", out_int8.data(), out_int8.size());
         else
             dumpBufferToFile<Tgpu>("dump_fwd_out_gpu.bin", out.data.data(), out.data.size());
     }
