@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
     }
     else if(base_arg == "convint8")
     {
-        drv = new ConvDriver<int8_t, float>();
+        drv = new ConvDriver<int8_t, int32_t>();
     }
     else if(base_arg == "CBAInfer")
     {
