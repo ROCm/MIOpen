@@ -32,109 +32,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include <boost/hof/match.hpp>
+
 namespace miopen {
-
-struct SolutionRun
-{
-    Solution* solution;
-    Handle* handle;
-    const std::unordered_map<miopenTensorName_t, Solution::RunInput>* inputs;
-    Data_t workspace;
-    std::size_t workspace_size;
-
-    void operator()(const ConvolutionDescriptor& conv_desc) const
-    {
-        auto problem_ = solution->GetProblem();
-
-        const auto get_input_checked = [&](auto name, const std::string& name_str) {
-            const auto& found = inputs->find(name);
-            if(found == inputs->end())
-                MIOPEN_THROW(miopenStatusInvalidValue,
-                             "Problem is missing " + name_str + " tensor descriptor.");
-            auto ret = found->second;
-            if(!ret.descriptor.has_value())
-                ret.descriptor = solution->GetProblem().GetTensorDescriptorChecked(name, name_str);
-            return ret;
-        };
-
-        auto x       = get_input_checked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
-        const auto w = get_input_checked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
-        auto y       = get_input_checked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
-
-        {
-            if(conv_desc.mode == miopenTranspose)
-            {
-                problem_ = {};
-                problem_.SetOperatorDescriptor(conv_desc);
-
-                switch(solution->GetProblem().GetDirection())
-                {
-                case miopenProblemDirectionForward:
-                    problem_.SetDirection(miopenProblemDirectionBackward);
-                    break;
-                case miopenProblemDirectionBackward:
-                    problem_.SetDirection(miopenProblemDirectionForward);
-                    break;
-                case miopenProblemDirectionBackwardWeight:
-                    problem_.SetDirection(miopenProblemDirectionBackwardWeight);
-                    break;
-                }
-
-                std::swap(x, y);
-
-                problem_.RegisterTensorDescriptor(miopenTensorConvolutionX, *x.descriptor);
-                problem_.RegisterTensorDescriptor(miopenTensorConvolutionW, *w.descriptor);
-                problem_.RegisterTensorDescriptor(miopenTensorConvolutionY, *y.descriptor);
-            }
-        }
-
-        const auto conv_problem = problem_.AsConvolution();
-
-        const auto invoke_ctx = [&]() -> AnyInvokeParams {
-            switch(problem_.GetDirection())
-            {
-            case miopenProblemDirectionForward:
-                return conv::DataInvokeParams(
-                    {*x.descriptor, x.buffer, *w.descriptor, w.buffer, *y.descriptor, y.buffer},
-                    workspace,
-                    workspace_size,
-                    conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd());
-            case miopenProblemDirectionBackward:
-                return conv::DataInvokeParams(
-                    {*y.descriptor, y.buffer, *w.descriptor, w.buffer, *x.descriptor, x.buffer},
-                    workspace,
-                    workspace_size,
-                    conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd());
-            case miopenProblemDirectionBackwardWeight:
-                return conv::WrWInvokeParams{
-                    {*y.descriptor, y.buffer, *x.descriptor, x.buffer, *w.descriptor, w.buffer},
-                    workspace,
-                    workspace_size,
-                    conv_problem.GetConv().attribute.gfx90aFp16alt.GetWrW()};
-            default: MIOPEN_THROW(miopenStatusNotImplemented);
-            }
-        }();
-
-        const auto net_cfg       = conv_problem.BuildConfKey();
-        const auto found_invoker = handle->GetInvoker(net_cfg, solution->GetSolver());
-
-        if(found_invoker)
-        {
-            (*found_invoker)(*handle, invoke_ctx);
-            return;
-        }
-
-        const auto conv_ctx = ConvolutionContext{conv_problem, {handle}};
-
-        decltype(auto) db = GetDb(conv_ctx);
-        const auto conv_solution =
-            solution->GetSolver().GetSolver().FindSolution(conv_ctx, db, invoke_ctx);
-        decltype(auto) invoker = handle->PrepareInvoker(*conv_solution.invoker_factory,
-                                                        conv_solution.construction_params);
-        handle->RegisterInvoker(invoker, net_cfg, solution->GetSolver().ToString());
-        invoker(*handle, invoke_ctx);
-    }
-};
 
 void Solution::Run(Handle& handle,
                    const std::unordered_map<miopenTensorName_t, RunInput>& inputs,
@@ -147,9 +47,107 @@ void Solution::Run(Handle& handle,
                          std::to_string(workspace_required) + " workspace, while " +
                          std::to_string(workspace_size) + " was provided");
 
-    const auto run = SolutionRun{this, &handle, &inputs, workspace, workspace_size};
+    const auto run = boost::hof::match([&](const ConvolutionDescriptor& op_desc) {
+        RunImpl(handle, inputs, workspace, workspace_size, op_desc);
+    });
 
     boost::apply_visitor(run, problem.GetOperatorDescriptor());
+}
+
+void Solution::RunImpl(Handle& handle,
+                       const std::unordered_map<miopenTensorName_t, RunInput>& inputs,
+                       Data_t workspace,
+                       std::size_t workspace_size,
+                       const ConvolutionDescriptor& conv_desc)
+{
+    auto problem_ = GetProblem();
+
+    const auto get_input_checked = [&](auto name, const std::string& name_str) {
+        const auto& found = inputs.find(name);
+        if(found == inputs.end())
+            MIOPEN_THROW(miopenStatusInvalidValue,
+                         "Problem is missing " + name_str + " tensor descriptor.");
+        auto ret = found->second;
+        if(!ret.descriptor.has_value())
+            ret.descriptor = GetProblem().GetTensorDescriptorChecked(name, name_str);
+        return ret;
+    };
+
+    auto x       = get_input_checked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
+    const auto w = get_input_checked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
+    auto y       = get_input_checked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
+
+    {
+        if(conv_desc.mode == miopenTranspose)
+        {
+            problem_ = {};
+            problem_.SetOperatorDescriptor(conv_desc);
+
+            switch(GetProblem().GetDirection())
+            {
+            case miopenProblemDirectionForward:
+                problem_.SetDirection(miopenProblemDirectionBackward);
+                break;
+            case miopenProblemDirectionBackward:
+                problem_.SetDirection(miopenProblemDirectionForward);
+                break;
+            case miopenProblemDirectionBackwardWeight:
+                problem_.SetDirection(miopenProblemDirectionBackwardWeight);
+                break;
+            }
+
+            std::swap(x, y);
+
+            problem_.RegisterTensorDescriptor(miopenTensorConvolutionX, *x.descriptor);
+            problem_.RegisterTensorDescriptor(miopenTensorConvolutionW, *w.descriptor);
+            problem_.RegisterTensorDescriptor(miopenTensorConvolutionY, *y.descriptor);
+        }
+    }
+
+    const auto conv_problem = problem_.AsConvolution();
+
+    const auto invoke_ctx = [&]() -> AnyInvokeParams {
+        switch(problem_.GetDirection())
+        {
+        case miopenProblemDirectionForward:
+            return conv::DataInvokeParams(
+                {*x.descriptor, x.buffer, *w.descriptor, w.buffer, *y.descriptor, y.buffer},
+                workspace,
+                workspace_size,
+                conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd());
+        case miopenProblemDirectionBackward:
+            return conv::DataInvokeParams(
+                {*y.descriptor, y.buffer, *w.descriptor, w.buffer, *x.descriptor, x.buffer},
+                workspace,
+                workspace_size,
+                conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd());
+        case miopenProblemDirectionBackwardWeight:
+            return conv::WrWInvokeParams{
+                {*y.descriptor, y.buffer, *x.descriptor, x.buffer, *w.descriptor, w.buffer},
+                workspace,
+                workspace_size,
+                conv_problem.GetConv().attribute.gfx90aFp16alt.GetWrW()};
+        default: MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+    }();
+
+    const auto net_cfg       = conv_problem.BuildConfKey();
+    const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
+
+    if(found_invoker)
+    {
+        (*found_invoker)(handle, invoke_ctx);
+        return;
+    }
+
+    const auto conv_ctx = ConvolutionContext{conv_problem, {&handle}};
+
+    decltype(auto) db        = GetDb(conv_ctx);
+    const auto conv_solution = GetSolver().GetSolver().FindSolution(conv_ctx, db, invoke_ctx);
+    decltype(auto) invoker =
+        handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
+    handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
+    invoker(handle, invoke_ctx);
 }
 
 void to_json(nlohmann::json& json, const Solution::SerializationMetadata& metadata)

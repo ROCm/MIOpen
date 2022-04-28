@@ -89,6 +89,12 @@ private:
     std::size_t workspace_required = 0;
     solver::Id solver;
     Problem problem;
+
+    void RunImpl(Handle& handle,
+                 const std::unordered_map<miopenTensorName_t, RunInput>& inputs,
+                 Data_t workspace,
+                 std::size_t workspace_size,
+                 const ConvolutionDescriptor& conv_desc);
 };
 
 } // namespace miopen
