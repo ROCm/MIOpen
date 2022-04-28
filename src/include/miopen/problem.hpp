@@ -93,7 +93,7 @@ private:
     std::unordered_map<miopenTensorName_t, TensorDescriptor> tensor_descriptors;
     OperatorDescriptor operator_descriptor;
 
-    std::vector<Solution> FindConvSolutions(Handle& handle,
+    std::vector<Solution> FindSolutionsImpl(Handle& handle,
                                             const SearchOptions& options,
                                             std::size_t max_solutions,
                                             const ConvolutionDescriptor& conv_desc) const;

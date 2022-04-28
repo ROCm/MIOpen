@@ -93,8 +93,8 @@ std::vector<Solution> Problem::FindSolutions(Handle& handle,
                                              const SearchOptions& options,
                                              std::size_t max_solutions) const
 {
-    const auto find = boost::hof::match([&](const ConvolutionDescriptor& conv) {
-        return FindConvSolutions(handle, options, max_solutions, conv);
+    const auto find = boost::hof::match([&](const ConvolutionDescriptor& op_desc) {
+        return FindSolutionsImpl(handle, options, max_solutions, op_desc);
     });
 
     auto ret = boost::apply_visitor(find, operator_descriptor);
