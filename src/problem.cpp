@@ -103,7 +103,7 @@ std::vector<Solution> Problem::FindSolutions(Handle& handle,
     };
 
     const auto universal_find = boost::hof::first_of(conv_find, unimplemented_find);
-    auto ret                  = universal_find(operator_descriptor);
+    auto ret                  = boost::apply_visitor(universal_find, operator_descriptor);
 
     const auto sorter = [&]() -> std::function<bool(const Solution&, const Solution&)> {
         switch(options.results_order)
