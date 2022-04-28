@@ -93,17 +93,11 @@ std::vector<Solution> Problem::FindSolutions(Handle& handle,
                                              const SearchOptions& options,
                                              std::size_t max_solutions) const
 {
-    const auto conv_find = [&](const ConvolutionDescriptor& conv) {
+    const auto universal_find = boost::hof::first_of([&](const ConvolutionDescriptor& conv) {
         return FindConvSolutions(handle, options, max_solutions, conv);
-    };
+    });
 
-    const auto unimplemented_find = [&](const auto&) {
-        MIOPEN_THROW(miopenStatusNotImplemented);
-        return std::vector<Solution>{};
-    };
-
-    const auto universal_find = boost::hof::first_of(conv_find, unimplemented_find);
-    auto ret                  = boost::apply_visitor(universal_find, operator_descriptor);
+    auto ret = boost::apply_visitor(universal_find, operator_descriptor);
 
     const auto sorter = [&]() -> std::function<bool(const Solution&, const Solution&)> {
         switch(options.results_order)
