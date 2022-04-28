@@ -1027,5 +1027,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
         };
     };
 }
+
 } // namespace conv
 } // namespace miopen
