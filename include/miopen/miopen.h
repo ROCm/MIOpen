@@ -337,14 +337,17 @@ typedef enum
     miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
                            (Partially supported) */
     miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
-    miopenHalfx4 = 7,   /*!<Pack of 4 16-bit floating points in NCHW_VECT_C format*/
-    miopenHalfx8 = 8,   /*!<Pack of 8 16-bit floating points in NCHW_VECT_C format*/
+    miopenHalfx4 = 7,   /*!<Pack of 4 16-bit floating point values. Suitable for vectorized tensor
+                           formats only.*/
+    miopenHalfx8 = 8,   /*!<Pack of 8 16-bit floating point values. Suitable for vectorized tensor
+                           formats only.*/
 } miopenDataType_t;
 
 /*! @ingroup tensor
  * @enum miopenTensorLayout_t
- * MIOpen tensor layouts. NCHW, NHWC, CHWN and NCHW_VECT_C with certain vector length(vect_c=4,
- * vect_c=8) are supported in MIOpen.
+ * Tensor layouts supported by MIOpen.
+ * miopenTensorNCHW_VECT_C and miopenTensorCHWN_VECT_C layout are only supported with tensor data
+ * types miopenHalfx4 and miopenHalfx8. miopenTensorCHWN_VECT_C layout only support weight tensor.
  */
 typedef enum
 {
@@ -352,7 +355,7 @@ typedef enum
     miopenTensorNHWC        = 1, /*!< NHWC memory layout (Fully supported) */
     miopenTensorCHWN        = 2, /*!< CHWN memory layout (Not supported) */
     miopenTensorNCHW_VECT_C = 3, /*!< NCHW_VECT_C memory layout (Partially supported) */
-    miopenTensorCHWN_VECT_C = 4, /*!< CHWC_VECT_C memory layout (Partially supported) */
+    miopenTensorCHWN_VECT_C = 4, /*!< CHWN_VECT_C memory layout (Partially supported) */
 } miopenTensorLayout_t;
 
 /*! @ingroup pooling
