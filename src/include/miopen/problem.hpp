@@ -50,10 +50,6 @@ namespace conv {
 struct ProblemDescription;
 } // namespace conv
 
-namespace detail {
-struct ProblemFindVariantVisitor;
-} // namespace detail
-
 using OperatorDescriptor = boost::variant<ConvolutionDescriptor>;
 
 struct Problem : miopenProblem
@@ -91,8 +87,6 @@ struct Problem : miopenProblem
 
     friend void to_json(nlohmann::json& j, const Problem& problem);
     friend void from_json(const nlohmann::json& j, Problem& problem);
-
-    friend struct detail::ProblemFindVariantVisitor;
 
 private:
     miopenProblemDirection_t direction = miopenProblemDirectionForward;
