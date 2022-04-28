@@ -80,39 +80,35 @@ miopenStatus_t miopenDestroySearchOptions(miopenSearchOptions_t options)
     MIOPEN_LOG_FUNCTION(options);
     return miopen::try_([&] { miopen_destroy_object(options); });
 }
-miopenStatus_t miopenSetSearchOption(miopenSearchOptions_t options,
-                                     miopenSearchOptionName_t optionName,
-                                     size_t valueSize,
-                                     const void* value)
+
+miopenStatus_t miopenSearchOptionTuning(miopenSearchOptions_t options, int value)
 {
-    MIOPEN_LOG_FUNCTION(options, optionName, valueSize, value);
+    MIOPEN_LOG_FUNCTION(options, value);
 
     return miopen::try_([&] {
-        switch(optionName)
-        {
-        case miopenSearchOptionExhaustiveSearch:
-            if(valueSize != sizeof(int))
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "Exhaustive search option only accepts values of type int.");
-            miopen::deref(options).exhaustive_search = *reinterpret_cast<const int*>(value) != 0;
-            break;
-        case miopenSearchOptionResultsOrder:
-            if(valueSize != sizeof(miopenSearchResultsOrder_t))
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "Search results order option only accepts values of type "
-                             "miopenSearchResultsOrder_t.");
-            miopen::deref(options).results_order =
-                *reinterpret_cast<const miopenSearchResultsOrder_t*>(value);
-            break;
-        case miopenSearchOptionWorkspaceLimit:
-            if(valueSize != sizeof(size_t))
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "Exhaustive search option only accepts values of type size_t.");
-            miopen::deref(options).workspace_limit = *reinterpret_cast<const size_t*>(value);
-            break;
-        case miopenSearchOptionInvalid:
-        default: MIOPEN_THROW(miopenStatusBadParm, "Invalid value of optionName."); break;
-        }
+        auto& options_deref             = miopen::deref(options);
+        options_deref.exhaustive_search = value != 0;
+    });
+}
+
+miopenStatus_t miopenSearchOptionResultsOrder(miopenSearchOptions_t options,
+                                              miopenSearchResultsOrder_t value)
+{
+    MIOPEN_LOG_FUNCTION(options, value);
+
+    return miopen::try_([&] {
+        auto& options_deref         = miopen::deref(options);
+        options_deref.results_order = value;
+    });
+}
+
+miopenStatus_t miopenSearchOptionWorkspaceLimit(miopenSearchOptions_t options, size_t value)
+{
+    MIOPEN_LOG_FUNCTION(options, value);
+
+    return miopen::try_([&] {
+        auto& options_deref           = miopen::deref(options);
+        options_deref.workspace_limit = value;
     });
 }
 
@@ -244,43 +240,23 @@ miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
     });
 }
 
-miopenStatus_t miopenGetSolutionAttribute(miopenSolution_t solution,
-                                          miopenSolutionAttribute_t solutionAttribute,
-                                          size_t valueSize,
-                                          void* value,
-                                          size_t* valueSizeRet)
+miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t* workspaceSize)
 {
-    MIOPEN_LOG_FUNCTION(solution, solutionAttribute, valueSize, value, valueSizeRet);
+    MIOPEN_LOG_FUNCTION(solution, workspaceSize);
 
     return miopen::try_([&] {
         const auto& solution_deref = miopen::deref(solution);
+        *workspaceSize             = solution_deref.GetWorkspaceSize();
+    });
+}
 
-        const auto impl = [&](auto attr, const std::string& name) {
-            using Type = decltype(attr);
+miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time)
+{
+    MIOPEN_LOG_FUNCTION(solution, time);
 
-            if(valueSizeRet != nullptr)
-                *valueSizeRet = sizeof(Type);
-
-            if(valueSize != 0 && value != nullptr)
-            {
-                if(valueSize != sizeof(Type))
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 name + " is of type " + miopen::get_type_name<Type>() + ".");
-                *reinterpret_cast<Type*>(value) = attr;
-            }
-        };
-
-        switch(solutionAttribute)
-        {
-        case miopenSolutionAttributeTime:
-            impl(solution_deref.GetTime(), "Execution time solution attribute");
-            break;
-        case miopenSolutionAttributeWorkspaceSize:
-            impl(solution_deref.GetWorkspaceSize(), "Workspace size solution attribute");
-            break;
-        case miopenSolutionAttributeInvalid:
-        default: MIOPEN_THROW(miopenStatusNotImplemented); break;
-        }
+    return miopen::try_([&] {
+        const auto& solution_deref = miopen::deref(solution);
+        *time                      = solution_deref.GetTime();
     });
 }
 }

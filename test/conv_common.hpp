@@ -284,12 +284,7 @@ protected:
         for(const auto& solution : solutions)
         {
             auto workspace_size = std::size_t{};
-            EXPECT_EQUAL(miopenStatusSuccess,
-                         miopenGetSolutionAttribute(solution,
-                                                    miopenSolutionAttributeWorkspaceSize,
-                                                    sizeof(decltype(workspace_size)),
-                                                    &workspace_size,
-                                                    nullptr));
+            EXPECT_EQUAL(miopenStatusSuccess, miopenGetSolutionWorkspaceSize(solution));
 
             const auto workspace_dev = workspace_size != 0
                                            ? get_handle().Write(std::vector<char>(workspace_size))

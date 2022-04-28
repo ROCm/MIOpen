@@ -4696,21 +4696,6 @@ typedef enum
     miopenSearchResultsOrderByMemory = 1,
 } miopenSearchResultsOrder_t;
 
-typedef enum
-{
-    miopenSearchOptionInvalid          = 0,
-    miopenSearchOptionExhaustiveSearch = 1, // int
-    miopenSearchOptionResultsOrder     = 2, // miopenSearchResultsOrder_t
-    miopenSearchOptionWorkspaceLimit   = 3, // size_t
-} miopenSearchOptionName_t;
-
-typedef enum
-{
-    miopenSolutionAttributeInvalid       = 0,
-    miopenSolutionAttributeWorkspaceSize = 1, // size_t
-    miopenSolutionAttributeTime          = 2, // float
-} miopenSolutionAttribute_t;
-
 miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
                                        miopenConvolutionDescriptor_t operatorDesc,
                                        miopenProblemDirection_t direction);
@@ -4732,11 +4717,15 @@ miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
 MIOPEN_DECLARE_OBJECT(miopenSearchOptions);
 
 miopenStatus_t miopenCreateSearchOptions(miopenSearchOptions_t* options);
+
 miopenStatus_t miopenDestroySearchOptions(miopenSearchOptions_t options);
-miopenStatus_t miopenSetSearchOption(miopenSearchOptions_t options,
-                                     miopenSearchOptionName_t optionName,
-                                     size_t valueSize,
-                                     const void* value);
+
+miopenStatus_t miopenSearchOptionTuning(miopenSearchOptions_t options, int value);
+
+miopenStatus_t miopenSearchOptionResultsOrder(miopenSearchOptions_t options,
+                                              miopenSearchResultsOrder_t value);
+
+miopenStatus_t miopenSearchOptionWorkspaceLimit(miopenSearchOptions_t options, size_t value);
 
 MIOPEN_DECLARE_OBJECT(miopenSolution);
 
@@ -4774,11 +4763,9 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
 
 miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size);
 
-miopenStatus_t miopenGetSolutionAttribute(miopenSolution_t solution,
-                                          miopenSolutionAttribute_t solutionAttribute,
-                                          size_t valueSize,
-                                          void* value,
-                                          size_t* valueSizeRet);
+miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t* workspaceSize);
+
+miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
 
 #ifdef __cplusplus
 }

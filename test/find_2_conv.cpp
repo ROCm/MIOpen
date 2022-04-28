@@ -140,16 +140,14 @@ private:
             {
                 miopenSearchOptions_t options;
 
-                const auto checked_set_options = [&](auto option, auto value) {
-                    using Type = decltype(value);
-                    EXPECT_EQUAL(miopenSetSearchOption(options, option, sizeof(Type), &value),
-                                 miopenStatusSuccess);
-                };
-
                 EXPECT_EQUAL(miopenCreateSearchOptions(&options), miopenStatusSuccess);
-                checked_set_options(miopenSearchOptionExhaustiveSearch, search);
-                checked_set_options(miopenSearchOptionResultsOrder, miopenSearchResultsOrderByTime);
-                checked_set_options(miopenSearchOptionWorkspaceLimit, workspace_limit);
+
+                EXPECT_EQUAL(miopenSearchOptionTuning(options, search), miopenStatusSuccess);
+                EXPECT_EQUAL(
+                    miopenSearchOptionResultsOrder(options, miopenSearchResultsOrderByTime),
+                    miopenStatusSuccess);
+                EXPECT_EQUAL(miopenSearchOptionWorkspaceLimit(options, search),
+                             miopenStatusSuccess);
 
                 EXPECT_EQUAL(
                     miopenFindSolutions(
@@ -177,8 +175,10 @@ private:
 
             float time;
             std::size_t workspace_size;
-            checked_get_attr(miopenSolutionAttributeTime, time);
-            checked_get_attr(miopenSolutionAttributeWorkspaceSize, workspace_size);
+
+            EXPECT_EQUAL(miopenGetSolutionTime(solution, &time), miopenStatusSuccess);
+            EXPECT_EQUAL(miopenGetSolutionWorkspaceSize(solution, &workspace_size),
+                         miopenStatusSuccess);
         }
     }
 
@@ -223,14 +223,9 @@ private:
     {
         auto& handle_deref = get_handle();
 
-        const auto checked_get_attr = [&](auto name, auto& value) {
-            using Type = std::remove_reference_t<decltype(value)>;
-            EXPECT_EQUAL(miopenGetSolutionAttribute(solution, name, sizeof(Type), &value, nullptr),
-                         miopenStatusSuccess);
-        };
-
         std::size_t workspace_size;
-        checked_get_attr(miopenSolutionAttributeWorkspaceSize, workspace_size);
+        EXPECT_EQUAL(miopenGetSolutionWorkspaceSize(solution, &workspace_size),
+                     miopenStatusSuccess);
 
         auto workspace_dev =
             workspace_size != 0 ? handle_deref.Write(std::vector<char>(workspace_size)) : nullptr;
