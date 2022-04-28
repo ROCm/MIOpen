@@ -142,7 +142,7 @@ conv::ProblemDescription Problem::AsConvolution() const
                : conv::ProblemDescription(y_desc, w_desc, x_desc, conv_desc, conv_dir);
 }
 
-std::vector<Solution> Problem::FindConvSolutions(Handle& handle,
+std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const SearchOptions& options,
                                                  std::size_t max_solutions,
                                                  const ConvolutionDescriptor& conv_desc) const
