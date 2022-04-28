@@ -35,7 +35,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include <boost/hof/first_of.hpp>
+#include <boost/hof/match.hpp>
 
 namespace miopen {
 
@@ -93,11 +93,11 @@ std::vector<Solution> Problem::FindSolutions(Handle& handle,
                                              const SearchOptions& options,
                                              std::size_t max_solutions) const
 {
-    const auto universal_find = boost::hof::first_of([&](const ConvolutionDescriptor& conv) {
+    const auto find = boost::hof::match([&](const ConvolutionDescriptor& conv) {
         return FindConvSolutions(handle, options, max_solutions, conv);
     });
 
-    auto ret = boost::apply_visitor(universal_find, operator_descriptor);
+    auto ret = boost::apply_visitor(find, operator_descriptor);
 
     const auto sorter = [&]() -> std::function<bool(const Solution&, const Solution&)> {
         switch(options.results_order)
