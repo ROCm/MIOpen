@@ -4720,12 +4720,12 @@ miopenStatus_t miopenCreateSearchOptions(miopenSearchOptions_t* options);
 
 miopenStatus_t miopenDestroySearchOptions(miopenSearchOptions_t options);
 
-miopenStatus_t miopenSearchOptionTuning(miopenSearchOptions_t options, int value);
+miopenStatus_t miopenSetSearchOptionTuning(miopenSearchOptions_t options, int value);
 
-miopenStatus_t miopenSearchOptionResultsOrder(miopenSearchOptions_t options,
-                                              miopenSearchResultsOrder_t value);
+miopenStatus_t miopenSetSearchOptionResultsOrder(miopenSearchOptions_t options,
+                                                 miopenSearchResultsOrder_t value);
 
-miopenStatus_t miopenSearchOptionWorkspaceLimit(miopenSearchOptions_t options, size_t value);
+miopenStatus_t miopenSetSearchOptionWorkspaceLimit(miopenSearchOptions_t options, size_t value);
 
 MIOPEN_DECLARE_OBJECT(miopenSolution);
 

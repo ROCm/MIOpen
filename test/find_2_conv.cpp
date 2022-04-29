@@ -142,11 +142,11 @@ private:
 
                 EXPECT_EQUAL(miopenCreateSearchOptions(&options), miopenStatusSuccess);
 
-                EXPECT_EQUAL(miopenSearchOptionTuning(options, search), miopenStatusSuccess);
+                EXPECT_EQUAL(miopenSetSearchOptionTuning(options, search), miopenStatusSuccess);
                 EXPECT_EQUAL(
-                    miopenSearchOptionResultsOrder(options, miopenSearchResultsOrderByTime),
+                    miopenSetSearchOptionResultsOrder(options, miopenSearchResultsOrderByTime),
                     miopenStatusSuccess);
-                EXPECT_EQUAL(miopenSearchOptionWorkspaceLimit(options, workspace_limit),
+                EXPECT_EQUAL(miopenSetSearchOptionWorkspaceLimit(options, workspace_limit),
                              miopenStatusSuccess);
 
                 EXPECT_EQUAL(

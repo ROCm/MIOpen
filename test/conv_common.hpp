@@ -284,7 +284,8 @@ protected:
         for(const auto& solution : solutions)
         {
             auto workspace_size = std::size_t{};
-            EXPECT_EQUAL(miopenStatusSuccess, miopenGetSolutionWorkspaceSize(solution));
+            EXPECT_EQUAL(miopenStatusSuccess,
+                         miopenGetSolutionWorkspaceSize(solution, &workspace_size));
 
             const auto workspace_dev = workspace_size != 0
                                            ? get_handle().Write(std::vector<char>(workspace_size))
@@ -332,7 +333,7 @@ private:
         auto search_options = SearchOptionsWrapper{};
 
         EXPECT_EQUAL(miopenStatusSuccess,
-                     miopenSetSearchOptionTuning(search_options.get(), &search));
+                     miopenSetSearchOptionTuning(search_options.get(), search));
 
         return search_options;
     }
