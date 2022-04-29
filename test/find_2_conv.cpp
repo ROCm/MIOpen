@@ -96,6 +96,8 @@ private:
 
     void AddConvTensorDescriptors(miopenProblem_t problem)
     {
+        std::cerr << "Creating conv tensor descriptos..." << std::endl;
+
         auto test_set_tensor_descriptor = [problem](miopenTensorName_t name,
                                                     TensorDescriptor& desc) {
             EXPECT_EQUAL(miopenSetProblemTensorDescriptor(problem, name, &desc),
@@ -105,10 +107,14 @@ private:
         test_set_tensor_descriptor(miopenTensorConvolutionX, x.desc);
         test_set_tensor_descriptor(miopenTensorConvolutionW, w.desc);
         test_set_tensor_descriptor(miopenTensorConvolutionY, y.desc);
+
+        std::cerr << "Created conv tensor descriptos." << std::endl;
     }
 
     std::vector<miopenSolution_t> TestFindSolutions(miopenHandle_t handle, miopenProblem_t problem)
     {
+        std::cerr << "Testing miopenFindSolutions..." << std::endl;
+
         auto solutions = std::vector<miopenSolution_t>{};
         std::size_t found;
 
@@ -120,12 +126,16 @@ private:
         EXPECT_OP(found, >=, 0);
 
         solutions.resize(found);
+
+        std::cerr << "Finished testing miopenFindSolutions." << std::endl;
         return solutions;
     }
 
     std::vector<miopenSolution_t> TestFindSolutionsWithOptions(miopenHandle_t handle,
                                                                miopenProblem_t problem)
     {
+        std::cerr << "Testing miopenFindSolutions with options..." << std::endl;
+
         auto solutions    = std::vector<miopenSolution_t>{};
         std::size_t found = 0;
 
@@ -159,11 +169,15 @@ private:
 
         EXPECT_OP(found, >=, 0);
         solutions.resize(found);
+
+        std::cerr << "Finished testing miopenFindSolutions with options." << std::endl;
         return solutions;
     }
 
     void TestSolutionAttributes(const std::vector<miopenSolution_t>& solutions)
     {
+        std::cerr << "Testing miopenGetSolution<Attribute>..." << std::endl;
+
         for(const auto& solution : solutions)
         {
             float time;
@@ -173,10 +187,14 @@ private:
             EXPECT_EQUAL(miopenGetSolutionWorkspaceSize(solution, &workspace_size),
                          miopenStatusSuccess);
         }
+
+        std::cerr << "Finished testing miopenGetSolution<Attribute>." << std::endl;
     }
 
     void TestRunSolutions(miopenHandle_t handle, const std::vector<miopenSolution_t>& solutions)
     {
+        std::cerr << "Testing solution functions..." << std::endl;
+
         miopenTensorDescriptor_t x_desc = &x.desc, w_desc = &w.desc, y_desc = &y.desc;
 
         for(const auto& solution : solutions)
@@ -206,6 +224,8 @@ private:
             TestRunSolution(handle, read_solution, names, descriptors, buffers);
             EXPECT_EQUAL(miopenDestroySolution(read_solution), miopenStatusSuccess);
         }
+
+        std::cerr << "Finished testing solution functions." << std::endl;
     }
 
     void TestRunSolution(miopenHandle_t handle,
@@ -214,6 +234,8 @@ private:
                          miopenTensorDescriptor_t* descriptors,
                          void** buffers)
     {
+        std::cerr << "Running a solution..." << std::endl;
+
         auto& handle_deref = get_handle();
 
         std::size_t workspace_size;
@@ -239,6 +261,8 @@ private:
         checked_run_solution(nullptr);
         // With descriptors
         checked_run_solution(descriptors);
+
+        std::cerr << "Ran a solution." << std::endl;
     }
 };
 } // namespace miopen
