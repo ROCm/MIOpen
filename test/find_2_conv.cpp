@@ -146,7 +146,7 @@ private:
                 EXPECT_EQUAL(
                     miopenSearchOptionResultsOrder(options, miopenSearchResultsOrderByTime),
                     miopenStatusSuccess);
-                EXPECT_EQUAL(miopenSearchOptionWorkspaceLimit(options, search),
+                EXPECT_EQUAL(miopenSearchOptionWorkspaceLimit(options, workspace_limit),
                              miopenStatusSuccess);
 
                 EXPECT_EQUAL(
@@ -166,13 +166,6 @@ private:
     {
         for(const auto& solution : solutions)
         {
-            const auto checked_get_attr = [&](auto name, auto& value) {
-                using Type = std::remove_reference_t<decltype(value)>;
-                EXPECT_EQUAL(
-                    miopenGetSolutionAttribute(solution, name, sizeof(Type), &value, nullptr),
-                    miopenStatusSuccess);
-            };
-
             float time;
             std::size_t workspace_size;
 
