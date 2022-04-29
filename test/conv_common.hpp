@@ -332,10 +332,7 @@ private:
         auto search_options = SearchOptionsWrapper{};
 
         EXPECT_EQUAL(miopenStatusSuccess,
-                     miopenSetSearchOption(search_options.get(),
-                                           miopenSearchOptionExhaustiveSearch,
-                                           sizeof(decltype(search)),
-                                           &search));
+                     miopenSetSearchOptionTuning(search_options.get(), &search));
 
         return search_options;
     }
