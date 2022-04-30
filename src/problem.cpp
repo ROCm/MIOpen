@@ -184,7 +184,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     }();
 
     const auto workspace_size = std::min(options.workspace_limit, workspace_max);
-    auto workspace            = handle.Create(workspace_size);
+    auto workspace            = workspace_size != 0 ? handle.Create(workspace_size) : nullptr;
 
     auto find1_solutions = std::vector<miopenConvAlgoPerf_t>{};
     find1_solutions.resize(max_solutions);
