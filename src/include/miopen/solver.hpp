@@ -1799,9 +1799,15 @@ struct PerformanceConfigConvBinWinogradRxS : Serializable<PerformanceConfigConvB
 template <int Winodata, int Winofilter>
 struct ConvBinWinoRxS : ConvSolver
 {
-    const std::string& SolverDbId() const override
+    const std::string& SolverDbId() const override { return GetSolverDbId(); }
+
+    static const std::string& GetSolverDbId()
     {
-        return GetSolverDbId<ConvBinWinoRxS<Winodata, Winofilter>>();
+        static const std::string dbId = std::string("ConvBinWinogradRxSf")
+                                            .append(std::to_string(Winodata))
+                                            .append("x")
+                                            .append(std::to_string(Winofilter));
+        return dbId;
     }
 
     PerformanceConfigConvBinWinogradRxS GetPerformanceConfig(const ConvolutionContext&) const;
