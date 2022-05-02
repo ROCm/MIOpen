@@ -314,9 +314,9 @@ struct tensor_reorder_base_driver : test_driver
     }
     ~tensor_reorder_base_driver() { miopenDestroy(handle); }
 
-    static std::vector<uint32_t> get_dim_3_size() { return {1, 9, 14}; }
-    static std::vector<uint32_t> get_dim_2_size() { return {1, 9, 14}; }
-    static std::vector<uint32_t> get_dim_1_size() { return {3, 8, 14}; }
+    static std::vector<uint32_t> get_dim_3_size() { return {1, 9}; }
+    static std::vector<uint32_t> get_dim_2_size() { return {1, 9}; }
+    static std::vector<uint32_t> get_dim_1_size() { return {3, 8}; }
     static std::vector<uint32_t> get_dim_0_size() { return {1, 2}; }
 
     template <typename F>
@@ -504,4 +504,42 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<tensor_reorder_driver>(argc, argv); }
+template <template <class...> class Driver>
+void test_tensor_reorder(int argc, const char* argv[])
+{
+    std::vector<std::string> as(argv + 1, argv + argc);
+    as.emplace_back("--float");
+    for(auto&& arg : as)
+    {
+        if(arg == "--all")
+        {
+            test_drive_impl<Driver<double>>(argv[0], as);
+            test_drive_impl<Driver<float>>(argv[0], as);
+            test_drive_impl<Driver<half_float::half>>(argv[0], as);
+            test_drive_impl<Driver<int8_t>>(argv[0], std::move(as));
+            break;
+        }
+        if(arg == "--double")
+        {
+            test_drive_impl<Driver<double>>(argv[0], std::move(as));
+            break;
+        }
+        if(arg == "--float")
+        {
+            test_drive_impl<Driver<float>>(argv[0], std::move(as));
+            break;
+        }
+        if(arg == "--half")
+        {
+            test_drive_impl<Driver<half_float::half>>(argv[0], std::move(as));
+            break;
+        }
+        if(arg == "--int8")
+        {
+            test_drive_impl<Driver<int8_t>>(argv[0], std::move(as));
+            break;
+        }
+    }
+}
+
+int main(int argc, const char* argv[]) { test_tensor_reorder<tensor_reorder_driver>(argc, argv); }
