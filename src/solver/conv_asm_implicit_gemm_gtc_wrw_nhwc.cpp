@@ -772,7 +772,7 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
 }
 
 PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
-ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetPerformanceConfig(
+ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetDefaultPerformanceConfigCTS(
     const ConvolutionContext& params) const
 {
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC pp;
@@ -780,14 +780,14 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetPerformanceConfig(
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
-bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsValidPerformanceConfig(
+bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsValidPerformanceConfigCTS(
     const ConvolutionContext& problem,
     const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
 }
 PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
-ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::Search(const ConvolutionContext& ctx,
+ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::SearchCTS(const ConvolutionContext& ctx,
                                                    const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
@@ -939,10 +939,9 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
     return workspace_size;
 }
 
-ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
+ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolutionCTS(
     const ConvolutionContext& ctx,
-    const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config,
-    bool) const
+    const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config) const
 {
     ConvSolution result;
     KernelInfo kernel;

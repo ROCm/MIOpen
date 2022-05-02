@@ -323,7 +323,7 @@ std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
 }
 
 PerformanceConfigAsmDirect3x3WrW
-ConvAsmBwdWrW3x3::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvAsmBwdWrW3x3::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) const
 {
     PerformanceConfigAsmDirect3x3WrW pp;
     pp.HeuristicInit(params);
@@ -331,8 +331,8 @@ ConvAsmBwdWrW3x3::GetPerformanceConfig(const ConvolutionContext& params) const
     return pp;
 }
 
-bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(const ConvolutionContext& problem,
-                                                const PerformanceConfigAsmDirect3x3WrW& c) const
+bool ConvAsmBwdWrW3x3::IsValidPerformanceConfigCTS(const ConvolutionContext& problem,
+                                                   const PerformanceConfigAsmDirect3x3WrW& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
 }
@@ -420,9 +420,8 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     return ok;
 }
 
-ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfigAsmDirect3x3WrW& config,
-                                           const bool disableConfigOverrideFromEnv) const
+ConvSolution ConvAsmBwdWrW3x3::GetSolutionCTS(const ConvolutionContext& params,
+                                              const PerformanceConfigAsmDirect3x3WrW& config) const
 {
     ConvSolution result;
     std::ostringstream options;
@@ -444,8 +443,9 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
     // Perf tune:
     const PerformanceConfigAsmDirect3x3WrW* pcfg = &config;
+
+    // Try to load config from environment variable
     PerformanceConfigAsmDirect3x3WrW fromEnv;
-    if(!disableConfigOverrideFromEnv)
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS{});
@@ -468,6 +468,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
             }
         }
     }
+
     GenerateClangDefsym(options, "limit_wave_cnt", pcfg->GetLimitWaveCnt());
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "c_per_wave", pcfg->GetCPerWave());
@@ -533,8 +534,9 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& context,
-                                                          const AnyInvokeParams& invoke_ctx) const
+PerformanceConfigAsmDirect3x3WrW
+ConvAsmBwdWrW3x3::SearchCTS(const ConvolutionContext& context,
+                            const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }

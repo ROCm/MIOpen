@@ -144,7 +144,7 @@ struct AnySolver
         {
             template <typename U>
             static constexpr auto Test(U*) ->
-                typename std::is_class<decltype(std::declval<U>().GetPerformanceConfig(
+                typename std::is_class<decltype(std::declval<U>().GetDefaultPerformanceConfigCTS(
                     std::declval<const ConvolutionContext&>()))>::type;
 
             template <typename U>
@@ -159,7 +159,7 @@ struct AnySolver
             template <typename U>
             static constexpr auto Test(U*) ->
                 typename std::is_same<ConvSolution,
-                                      decltype(std::declval<U>().GetSolution(
+                                      decltype(std::declval<U>().GetSolutionCTS(
                                           std::declval<const ConvolutionContext&>(),
                                           std::declval<const LegacyPerformanceConfig&>()))>::type;
 
@@ -172,8 +172,8 @@ struct AnySolver
 
         bool TestSysDbRecord_(const DbRecord& record, std::true_type) const
         {
-            using PerformanceConfig =
-                decltype(value.GetPerformanceConfig(std::declval<const ConvolutionContext&>()));
+            using PerformanceConfig = decltype(
+                value.GetDefaultPerformanceConfigCTS(std::declval<const ConvolutionContext&>()));
             PerformanceConfig config{};
             return record.GetValues(value.SolverDbId(), config);
         }
@@ -192,7 +192,7 @@ struct AnySolver
                                                            std::true_type) const
         {
             std::vector<ConvSolution> solutions;
-            solutions.push_back(value.GetSolution(ctx, value.GetPerformanceConfig(ctx)));
+            solutions.push_back(value.GetSolution(ctx, value.GetDefaultPerformanceConfigCTS(ctx)));
             return solutions;
         }
         std::vector<ConvSolution> GetAllSolutions_blegacy_(const ConvolutionContext& ctx,
@@ -237,7 +237,7 @@ struct AnySolver
 
         std::string GetPerfCfgParams_(const ConvolutionContext& ctx, Db& db, std::true_type) const
         {
-            using PerformanceConfig = decltype(value.GetPerformanceConfig(ctx));
+            using PerformanceConfig = decltype(value.GetDefaultPerformanceConfigCTS(ctx));
             PerformanceConfig config{};
             if(db.Load(ctx, value.SolverDbId(), config))
             {

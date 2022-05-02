@@ -69,7 +69,7 @@ bool PerformanceConfigConvBiasActivAsm1x1U::operator==(
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvBiasActivAsm1x1U::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) const
 {
     PerformanceConfigConvBiasActivAsm1x1U pp;
     pp.HeuristicInit(params);
@@ -77,7 +77,7 @@ ConvBiasActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) con
     return pp;
 }
 
-bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
+bool ConvBiasActivAsm1x1U::IsValidPerformanceConfigCTS(
     const ConvolutionContext& problem, const PerformanceConfigConvBiasActivAsm1x1U& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
@@ -94,7 +94,7 @@ size_t ConvBiasActivAsm1x1U::GetWorkspaceSize(const ConvolutionContext& params) 
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeParams&) const
+ConvBiasActivAsm1x1U::SearchCTS(const ConvolutionContext& context, const AnyInvokeParams&) const
 {
     auto cba_context    = context;
     cba_context.bias    = 1;
@@ -123,11 +123,11 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeP
     return GenericSearch(*this, cba_context, fused_invoke_ctx);
 }
 
-ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ConvolutionContext& params,
-                                               const PerformanceConfigConvBiasActivAsm1x1U& config,
-                                               bool disableConfigOverrideFromEnv) const
+ConvSolution
+ConvBiasActivAsm1x1U::GetSolutionCTS(const ConvolutionContext& params,
+                                     const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
-    auto sol = ConvAsm1x1U{}.GetSolution(params, config, disableConfigOverrideFromEnv);
+    auto sol = ConvAsm1x1U{}.GetSolutionCTS(params, config);
 
     if(sol.construction_params.size() != 1)
         MIOPEN_THROW("ConvBiasActivAsm1x1U expects only one kernel");

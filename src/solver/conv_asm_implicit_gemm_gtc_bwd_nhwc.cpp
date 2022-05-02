@@ -860,7 +860,7 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const Convolution
 }
 
 PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
-ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetPerformanceConfig(
+ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetDefaultPerformanceConfigCTS(
     const ConvolutionContext& params) const
 {
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC pp;
@@ -868,15 +868,15 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetPerformanceConfig(
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
-bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsValidPerformanceConfig(
+bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsValidPerformanceConfigCTS(
     const ConvolutionContext& problem,
     const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
 }
 PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
-ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::Search(const ConvolutionContext& ctx,
-                                                   const AnyInvokeParams& invoke_ctx) const
+ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::SearchCTS(const ConvolutionContext& ctx,
+                                                      const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }
@@ -979,14 +979,12 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
     return workspace_size;
 }
 
-ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
+ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolutionCTS(
     const ConvolutionContext& ctx,
-    const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config,
-    bool disableConfigOverrideFromEnv) const
+    const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config) const
 {
     ConvSolution result;
     KernelInfo kernel;
-    (void)disableConfigOverrideFromEnv;
 
     std::string kernel_name;
     size_t block_size;

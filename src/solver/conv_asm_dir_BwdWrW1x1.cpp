@@ -450,7 +450,7 @@ std::string PerformanceConfigConvAsmBwdWrW1x1::ToString() const
 }
 
 PerformanceConfigConvAsmBwdWrW1x1
-ConvAsmBwdWrW1x1::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvAsmBwdWrW1x1::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsmBwdWrW1x1 pp;
     pp.HeuristicInit(params);
@@ -458,8 +458,8 @@ ConvAsmBwdWrW1x1::GetPerformanceConfig(const ConvolutionContext& params) const
     return pp;
 }
 
-bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(const ConvolutionContext& problem,
-                                                const PerformanceConfigConvAsmBwdWrW1x1& c) const
+bool ConvAsmBwdWrW1x1::IsValidPerformanceConfigCTS(const ConvolutionContext& problem,
+                                                   const PerformanceConfigConvAsmBwdWrW1x1& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
 }
@@ -553,9 +553,8 @@ size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext& params) cons
         return 0;
 }
 
-ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfigConvAsmBwdWrW1x1& config,
-                                           const bool disableConfigOverrideFromEnv) const
+ConvSolution ConvAsmBwdWrW1x1::GetSolutionCTS(const ConvolutionContext& params,
+                                              const PerformanceConfigConvAsmBwdWrW1x1& config) const
 {
 
     ConvSolution result;
@@ -722,9 +721,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "output_buffer_size", obuf.total_byte_size);
 
     const PerformanceConfigConvAsmBwdWrW1x1* pcfg = &config;
-    PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
 
-    if(!disableConfigOverrideFromEnv)
+    // Try to load config from environment variable
+    PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS{});
@@ -836,8 +835,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context,
-                                                           const AnyInvokeParams& invoke_ctx) const
+PerformanceConfigConvAsmBwdWrW1x1
+ConvAsmBwdWrW1x1::SearchCTS(const ConvolutionContext& context,
+                            const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }

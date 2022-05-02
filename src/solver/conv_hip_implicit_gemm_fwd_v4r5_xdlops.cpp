@@ -861,14 +861,15 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsValid(const ConvolutionContext&
 }
 
 // Used by GenericSearch, not used by HeuristicInit
-bool ConvHipImplicitGemmForwardV4R5Xdlops::IsValidPerformanceConfig(
+bool ConvHipImplicitGemmForwardV4R5Xdlops::IsValidPerformanceConfigCTS(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmForwardV4R5Xdlops& c) const
 {
     return c.IsReallyValid(ctx);
 }
 
 PerformanceImplicitGemmForwardV4R5Xdlops
-ConvHipImplicitGemmForwardV4R5Xdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmForwardV4R5Xdlops::GetDefaultPerformanceConfigCTS(
+    const ConvolutionContext& ctx) const
 {
     PerformanceImplicitGemmForwardV4R5Xdlops config;
     config.HeuristicInit(ctx);
@@ -876,10 +877,8 @@ ConvHipImplicitGemmForwardV4R5Xdlops::GetPerformanceConfig(const ConvolutionCont
     return config;
 }
 
-ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolution(
-    const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmForwardV4R5Xdlops& config,
-    bool) const
+ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolutionCTS(
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmForwardV4R5Xdlops& config) const
 {
     ConvSolution result;
 
@@ -1057,8 +1056,8 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
 }
 
 PerformanceImplicitGemmForwardV4R5Xdlops
-ConvHipImplicitGemmForwardV4R5Xdlops::Search(const ConvolutionContext& ctx,
-                                             const AnyInvokeParams& invoke_ctx) const
+ConvHipImplicitGemmForwardV4R5Xdlops::SearchCTS(const ConvolutionContext& ctx,
+                                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }

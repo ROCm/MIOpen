@@ -44,8 +44,6 @@
 #include <chrono>
 #include <cassert>
 
-#include <miopen/solver.hpp>
-
 namespace miopen {
 namespace solver {
 
@@ -237,7 +235,7 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
 }
 
 /// Solver member function requirements:
-/// * GetPerformanceConfig shall be implemented.
+/// * GetDefaultPerformanceConfig shall be implemented.
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
 /// * GetSolution shall be implemented.
 /// * Solution should provide invoker
@@ -300,17 +298,17 @@ using RunAndMeasure_t =
 
 template <class Solver, class Context>
 auto GetAllConfigs(const Solver s, const Context& context)
-    -> ComputedContainer<decltype(s.GetPerformanceConfig(context)), Context>
+    -> ComputedContainer<decltype(s.GetDefaultPerformanceConfigCTS(context)), Context>
 {
-    using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
+    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfigCTS(context));
 
-    ComputedContainer<PerformanceConfig, Context> primary(context);
-    const int main_size = std::distance(primary.begin(), primary.end());
+    ComputedContainer<PerformanceConfig, Context> main(context);
+    const int main_size = std::distance(main.begin(), main.end());
     ComputedContainer<PerformanceConfig, Context> spare(context, true);
     const int spare_size = std::distance(spare.begin(), spare.end());
     const bool useSpare  = (main_size == 0);
 
-    ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : primary;
+    ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
     const int n_runs_total                                    = useSpare ? spare_size : main_size;
     MIOPEN_LOG_W(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
                                 << (useSpare ? " (spare)" : "") << "...");
@@ -329,7 +327,7 @@ std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context
     std::vector<ConvSolution> solutions;
     for(const auto& current_config : all_configs)
     {
-        ConvSolution current_solution = s.GetSolution(context, current_config, true);
+        ConvSolution current_solution = s.GetSolutionCTS(context, current_config);
         solutions.push_back(current_solution);
     }
     return solutions;
@@ -337,7 +335,7 @@ std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context
 
 template <class Solver, class Context>
 auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
-    -> decltype(s.GetPerformanceConfig(context_))
+    -> decltype(s.GetDefaultPerformanceConfigCTS(context_))
 {
     static_assert(
         !(is_detected<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
@@ -347,13 +345,26 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     auto context                  = context_;
     context.is_for_generic_search = true;
 
-    using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
-    auto& profile_h         = context.GetStream();
+    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfigCTS(context));
+    PerformanceConfig best_config;
+    const auto default_solution =
+        s.GetSolutionCTS(context, s.GetDefaultPerformanceConfigCTS(context));
+    const auto invoke_ctx = [invoke_ctx_]() {
+        auto copy = invoke_ctx_;
+        copy.SetInvokeType(InvokeType::AutoTune);
+        return copy;
+    }();
+
+    auto& profile_h = context.GetStream();
     AutoEnableProfiling enableProfiling{profile_h};
 
     auto all_configs       = GetAllConfigs(s, context);
     const int n_runs_total = std::distance(all_configs.begin(), all_configs.end());
 
+    bool is_passed  = false; // left false only if all iterations failed.
+    float best_time = std::numeric_limits<float>::max();
+    size_t n_failed = 0;
+    size_t n_best   = 0;
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
@@ -362,7 +373,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         std::vector<KernelInfo> kernels;
         for(const auto& current_config : all_configs)
         {
-            ConvSolution current_solution = s.GetSolution(context, current_config, true);
+            ConvSolution current_solution = s.GetSolutionCTS(context, current_config);
             for(auto&& kernel : current_solution.construction_params)
             {
                 if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
@@ -372,19 +383,6 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         }
         std::ignore = PrecompileKernels(profile_h, kernels);
     }
-
-    PerformanceConfig best_config;
-    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
-    const auto invoke_ctx       = [invoke_ctx_]() {
-        auto copy = invoke_ctx_;
-        copy.SetInvokeType(InvokeType::AutoTune);
-        return copy;
-    }();
-
-    bool is_passed  = false; // left false only if all iterations failed.
-    float best_time = std::numeric_limits<float>::max();
-    size_t n_failed = 0;
-    size_t n_best   = 0;
 
     if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
     {
@@ -401,7 +399,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
 
             try
             {
-                current_solution = s.GetSolution(context, current_config, true);
+                current_solution = s.GetSolutionCTS(context, current_config);
                 if(default_solution.workspace_sz != current_solution.workspace_sz)
                 {
                     ret = -2;
