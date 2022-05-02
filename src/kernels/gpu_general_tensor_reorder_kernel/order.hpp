@@ -23,13 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <cstdint>
 #ifndef ORDER_HPP
 #define ORDER_HPP
 
 template <int... Is>
 struct order
 {
-    static constexpr uint64_t m_size = sizeof...(Is);
+    static constexpr std::size_t m_size = sizeof...(Is);
     // the last dummy element is to prevent compiler complain about empty array, when mSize = 0
     static constexpr int m_data[m_size + 1] = {Is..., 0};
 
