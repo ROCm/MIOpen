@@ -476,7 +476,7 @@ static bool IsApplicableBase(const ConvolutionContext& params)
         return false;
 
     // clang-format off
-    if (! ( (params.kernel_stride_w == 1 || params.kernel_stride_w == 2)
+    if (! (params.kernel_stride_w == 1
         && params.kernel_stride_w == params.kernel_stride_h
         && params.kernel_dilation_w == 1
         && params.kernel_dilation_h == 1
@@ -528,6 +528,8 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}) && IS2x3)
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}) && IS3x2)
+        return false;
+    if(IS2x3 && params.kernel_stride_w == 2)
         return false;
     auto applicable = IsApplicableBase(params);
     if(IS2x3)
