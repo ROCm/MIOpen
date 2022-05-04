@@ -529,7 +529,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}) && IS3x2)
         return false;
-    if(IS2x3 && params.kernel_stride_w == 2)
+    if(IS3x2 && params.kernel_stride_w == 2)
         return false;
     auto applicable = IsApplicableBase(params);
     if(IS2x3)
