@@ -234,7 +234,7 @@ void test_warnings(kernel_type_t kern_type)
 void test_arch_name()
 {
     auto&& h        = get_handle();
-    auto known_arch = {"gfx908", "gfx90a", "gfx906", "gfx900", "gfx803", "gfx1030"};
+    auto known_arch = {"gfx908", "gfx90a", "gfx906", "gfx900", "gfx803", "gfx1030", "gfx1031"};
     auto this_arch  = h.GetDeviceName();
     EXPECT(std::any_of(
         known_arch.begin(), known_arch.end(), [&](std::string arch) { return arch == this_arch; }));
