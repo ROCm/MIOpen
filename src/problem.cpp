@@ -29,6 +29,7 @@
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/conv_algo_name.hpp>
+#include <miopen/datatype.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/search_options.hpp>
@@ -160,9 +161,9 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     const auto& y_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
 
-    auto x = handle.Create(x_desc.GetElementSpace());
-    auto w = handle.Create(w_desc.GetElementSpace());
-    auto y = handle.Create(y_desc.GetElementSpace());
+    auto x = handle.Create(x_desc.GetElementSpace() * get_data_size(x_desc.GetType()));
+    auto w = handle.Create(w_desc.GetElementSpace() * get_data_size(w_desc.GetType()));
+    auto y = handle.Create(y_desc.GetElementSpace() * get_data_size(y_desc.GetType()));
 
     const auto workspace_max = [&]() {
         switch(direction)
