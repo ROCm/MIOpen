@@ -354,8 +354,10 @@ typedef enum
     miopenTensorNCHW        = 0, /*!< NCHW memory layout (Fully supported) */
     miopenTensorNHWC        = 1, /*!< NHWC memory layout (Fully supported) */
     miopenTensorCHWN        = 2, /*!< CHWN memory layout (Not supported) */
-    miopenTensorNCHW_VECT_C = 3, /*!< NCHW_VECT_C memory layout (Partially supported) */
-    miopenTensorCHWN_VECT_C = 4, /*!< CHWN_VECT_C memory layout (Partially supported) */
+    miopenTensorNCHWc4 = 3, /*!< NCHWc4 memory layout (Partially supported) */
+    miopenTensorNCHWc8 = 4, /*!< NCHWc8 memory layout (Partially supported) */
+    miopenTensorCHWNc4 = 5, /*!< CHWNc4 memory layout (Partially supported) */
+    miopenTensorCHWNc8 = 6, /*!< CHWNc8 memory layout (Partially supported) */
 } miopenTensorLayout_t;
 
 /*! @ingroup pooling
