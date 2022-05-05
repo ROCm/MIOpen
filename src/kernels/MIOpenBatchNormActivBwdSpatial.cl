@@ -32,7 +32,7 @@
 #endif
 
 #define MIOPEN_USE_AMDGCN 0
-#if defined(__AMDGCN__) && MIO_BN_GFX1030 != 1
+#if defined(__AMDGCN__) && !MIO_BN_GFX103X
 #undef MIOPEN_USE_AMDGCN
 #define MIOPEN_USE_AMDGCN 1
 #endif
