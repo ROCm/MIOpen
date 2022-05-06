@@ -200,6 +200,7 @@ struct ProblemDescription
         return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
                out_data_type == miopenBFloat16;
     }
+    bool IsInt8() const { return in_data_type == miopenInt8 && weights_data_type == miopenInt8; }
 
     ProblemDescription() = default;
 
