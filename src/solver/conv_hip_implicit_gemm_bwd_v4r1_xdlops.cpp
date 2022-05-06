@@ -896,7 +896,6 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
 
     const PerformanceImplicitGemmBwdDataV4R1Xdlops* pcfg = &config;
 
-    // Try to load config from environment variable
     PerformanceImplicitGemmBwdDataV4R1Xdlops fromEnv;
     {
         std::string s;

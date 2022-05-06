@@ -541,7 +541,6 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
 
     const PerformanceConfigConvBinWinogradRxSf2x3* pcfg = &config;
 
-    // Try to load config from environment variable
     PerformanceConfigConvBinWinogradRxSf2x3 fromEnv;
     {
         std::string s;

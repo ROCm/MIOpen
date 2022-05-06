@@ -444,7 +444,6 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     // Perf tune:
     const PerformanceConfigAsmDirect3x3WrW* pcfg = &config;
 
-    // Try to load config from environment variable
     PerformanceConfigAsmDirect3x3WrW fromEnv;
     {
         std::string s;

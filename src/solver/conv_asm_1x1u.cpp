@@ -667,7 +667,6 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     const PerformanceConfigConvAsm1x1U* pcfg = &config;
 
-    // Try to load config from environment variable
     PerformanceConfigConvAsm1x1U fromEnv;
     {
         std::string s;

@@ -243,7 +243,6 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     // Perf tune:
     const PerformanceConfigConvAsm3x3U* pcfg = &config;
 
-    // Try to load config from environment variable
     PerformanceConfigConvAsm3x3U fromEnv;
     {
         std::string s;

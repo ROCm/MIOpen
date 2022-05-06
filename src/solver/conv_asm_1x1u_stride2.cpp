@@ -593,7 +593,6 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
     int data_len                               = GetTypeSize(params.out_data_type);
     const PerformanceConfigConvAsm1x1UV2* pcfg = &config;
 
-    // Try to load config from environment variable
     PerformanceConfigConvAsm1x1UV2 fromEnv;
     {
         std::string s;
