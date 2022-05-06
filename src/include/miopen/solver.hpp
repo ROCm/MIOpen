@@ -2419,14 +2419,12 @@ struct PerformanceConfigConvOclBwdWrw2
     std::string ToString() const;
 };
 
-// Unable to use ConvTunableSolver as a base class
-// because PerformanceConfigConvOclBwdWrw2 is a class template
 template <int N_BATCH_LOOPS>
-struct ConvOclBwdWrW2 : ConvTunableSolverBase
+struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ConvOclBwdWrW2<N_BATCH_LOOPS>>();
+        return this->template GetSolverDbId<ConvOclBwdWrW2<N_BATCH_LOOPS>>();
     }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
@@ -2434,39 +2432,15 @@ struct ConvOclBwdWrW2 : ConvTunableSolverBase
     bool MayNeedWorkspace() const override { return true; }
 
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-    GetDefaultPerformanceConfig(const ConvolutionContext&) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&) const;
-    PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> Search(const ConvolutionContext&,
-                                                          const AnyInvokeParams& invoke_ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const;
-
-    // GetDefaultPerformanceConfig(), IsValidPerformanceConfig(), Search() and GetSolution()
-    // are only needed if ConvTunableSolverBase is used as a base class for solver
-    boost::any GetDefaultPerformanceConfig(const ConvolutionContext& ctx, int) const final
-    {
-        return GetDefaultPerformanceConfig(ctx);
-    }
-
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const boost::any& config) const final
-    {
-        return IsValidPerformanceConfig(
-            ctx, boost::any_cast<const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&>(config));
-    }
-
-    boost::any
-    Search(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx, int) const final
-    {
-        return Search(ctx, invoke_ctx);
-    }
-
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const boost::any& config) const final
-    {
-        return GetSolution(
-            ctx, boost::any_cast<const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&>(config));
-    }
+    GetDefaultPerformanceConfig(const ConvolutionContext&) const final;
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext&,
+                             const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&) const final;
+    PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
+    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const final;
+    ConvSolution
+    GetSolution(const ConvolutionContext& params,
+                const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const final;
 
 protected:
     bool IsApplicableBase(const ConvolutionContext& params) const;
@@ -2503,13 +2477,9 @@ struct ConvOclBwdWrW2NonTunable : ConvOclBwdWrW2<1>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 
 private:
-    // To suppress -Woverloaded-virtual
-    using ConvOclBwdWrW2<1>::GetSolution;
-
     // This function dervied from ConvOclBwdWrW2 is declared private
     // so that this solver is not marked searchable/tunable.
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfigConvOclBwdWrw2<1>& config) const;
+    using ConvOclBwdWrW2<1>::GetSolution;
 };
 
 struct ConvOclBwdWrW53 : ConvSolver
