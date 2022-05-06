@@ -48,12 +48,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS)
 
-// #define WINODATA 2
-// #define WINOFILTER 3
 #define MAX_CU_LIMIT 512
 
-#define IS2x3 (Winodata == 2 && Winofilter == 3)
-#define IS3x2 (Winodata == 3 && Winofilter == 2)
+#define IS2X3 (Winodata == 2 && Winofilter == 3)
+#define IS3X2 (Winodata == 3 && Winofilter == 2)
 
 /// \todo The model is well-defined in for filters sized up to 5.
 /// However, it seems producing valid results without this limitation,
@@ -494,8 +492,6 @@ static bool IsApplicableBase(const ConvolutionContext& params)
             return false;
         return IsShaderContraintsMet(params.in_height,
                                      params.in_width,
-                                     // params.kernel_dilation_h,
-                                     // params.kernel_dilation_w,
                                      params.batch_sz,    // N
                                      n_inputs_per_group, // K
                                      params.out_height,
@@ -509,8 +505,6 @@ static bool IsApplicableBase(const ConvolutionContext& params)
     {
         return IsShaderContraintsMet(params.kernel_size_h, // RxS
                                      params.kernel_size_w,
-                                     // params.kernel_stride_h,
-                                     // params.kernel_stride_w,
                                      n_inputs_per_group,  // C
                                      n_outputs_per_group, // K
                                      params.in_height,    // HxW
@@ -525,13 +519,13 @@ static bool IsApplicableBase(const ConvolutionContext& params)
 template <int Winodata, int Winofilter>
 bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& params) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}) && IS2x3)
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}) && IS2X3)
         return false;
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}) && IS3x2)
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}) && IS3X2)
         return false;
-    if(IS3x2 && params.kernel_stride_w == 2) // f3x2 stride 2 not implemented yet
+    if(IS3X2 && params.kernel_stride_w == 2) // f3x2 stride 2 not implemented yet
         return false;
-    if(IS2x3 && params.group_counts > 1)
+    if(IS2X3 && params.group_counts > 1)
         return false;
     return IsApplicableBase(params);
 }
@@ -545,28 +539,25 @@ GetPerfConfFromEnv(const ConvolutionContext& params)
     const char* p_asciz = nullptr;
     const char* env_name;
 
-    if(IS2x3)
+    if(IS2X3)
     {
         p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS{});
         env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS::value();
     }
-    else if(IS3x2)
+    else if(IS3X2)
     {
         p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS{});
         env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS::value();
     }
 
     if(p_asciz == nullptr)
-        return boost::none;
+        return {};
 
     s = std::string(p_asciz);
 
-    if(s.empty()) // nothing to parse
-        return boost::none;
-
     if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
     {
-        MIOPEN_LOG_E(env_name << "Bad format or invalid for the problem config: " << s);
+        MIOPEN_LOG_E(env_name << "Tuning config: Bad value or invalid format: `" << s << '\'');
         return boost::none;
     }
 
@@ -600,8 +591,7 @@ ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& para
 
     if(!disableConfigOverrideFromEnv)
     {
-        boost::optional<PerformanceConfigConvBinWinogradRxS> fromEnv =
-            GetPerfConfFromEnv<Winodata, Winofilter>(params);
+        const auto fromEnv = GetPerfConfFromEnv<Winodata, Winofilter>(params);
         if(fromEnv)
         {
             pcfg = &(*fromEnv);
@@ -641,7 +631,7 @@ ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& para
         kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
     }
 
-    if(IS2x3)
+    if(IS2X3)
     {
         kernel_postfix = params.IsFp32() ? "_fp32" : "_fp16_dot2_edc";
 
@@ -662,11 +652,10 @@ ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(const ConvolutionContext& para
             kernel_postfix += "_group";
         }
     }
-    else if(IS3x2)
+    else if(IS3X2)
     {
         kernel_postfix = params.IsFp32() ? "_f3x2_fp32" : "_f3x2_fp16_dot2_edc";
-        // if(params.kernel_stride_w == 1)
-        kernel_postfix += "_stride1";
+        kernel_postfix += "_stride1"; // f3x2 stride 2 is not implemented yet
         kernel_postfix += "_group";
     }
 
