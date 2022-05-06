@@ -1730,7 +1730,7 @@ struct conv_driver : test_driver
         }
         // Only valid for int8 input and weights
         add(output_type, "output_type", generate_data({"", "float", "int32", "int8"}));
-        add(int8_vectorize, "int8_vectorize", generate_data({true, false}));
+        add(int8_vectorize, "int8_vectorize", generate_data({false, true}));
     }
 
     void run()
