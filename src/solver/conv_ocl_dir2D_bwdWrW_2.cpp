@@ -152,7 +152,7 @@ ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& par
 {
     // Invoking base class GetSolution with default values for params obtained
     // from GetDefaultPerformanceConfig(params)
-    return ConvOclBwdWrW2<1>::GetSolutionCTS(params, GetDefaultPerformanceConfigCTS(params));
+    return ConvOclBwdWrW2<1>::GetSolution(params, GetDefaultPerformanceConfig(params));
 }
 
 template <int N_BATCH_LOOPS>
@@ -440,7 +440,7 @@ std::string PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::ToString() const
 }
 
 template <int N_BATCH_LOOPS>
-bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsValidPerformanceConfigCTS(
+bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsValidPerformanceConfig(
     const ConvolutionContext& params,
     const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& perfConfig) const
 {
@@ -497,7 +497,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& p
            /// We use the default PerformanceConfig here. This guarantees that at least
            /// one config will pass the LDS constraint check during auto-tuning.
            /// This works also for non-tunable solver.
-           IsValidPerformanceConfigCTS(params, GetDefaultPerformanceConfigCTS(params));
+           IsValidPerformanceConfig(params, GetDefaultPerformanceConfig(params));
 }
 
 template <int N_BATCH_LOOPS>
@@ -508,8 +508,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& param
 
 template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfigCTS(
-    const ConvolutionContext& params) const
+ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> pp;
     pp.HeuristicInit(params);
@@ -534,7 +533,7 @@ size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&
 }
 
 template <int N_BATCH_LOOPS>
-ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolutionCTS(
+ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
     const ConvolutionContext& params,
     const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const
 {
@@ -737,8 +736,8 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolutionCTS(
 
 template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::SearchCTS(const ConvolutionContext& context,
-                                         const AnyInvokeParams& invoke_ctx) const
+ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ConvolutionContext& context,
+                                      const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }

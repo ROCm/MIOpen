@@ -450,7 +450,7 @@ std::string PerformanceConfigConvAsmBwdWrW1x1::ToString() const
 }
 
 PerformanceConfigConvAsmBwdWrW1x1
-ConvAsmBwdWrW1x1::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) const
+ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsmBwdWrW1x1 pp;
     pp.HeuristicInit(params);
@@ -458,8 +458,8 @@ ConvAsmBwdWrW1x1::GetDefaultPerformanceConfigCTS(const ConvolutionContext& param
     return pp;
 }
 
-bool ConvAsmBwdWrW1x1::IsValidPerformanceConfigCTS(const ConvolutionContext& problem,
-                                                   const PerformanceConfigConvAsmBwdWrW1x1& c) const
+bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(const ConvolutionContext& problem,
+                                                const PerformanceConfigConvAsmBwdWrW1x1& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
 }
@@ -553,8 +553,8 @@ size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext& params) cons
         return 0;
 }
 
-ConvSolution ConvAsmBwdWrW1x1::GetSolutionCTS(const ConvolutionContext& params,
-                                              const PerformanceConfigConvAsmBwdWrW1x1& config) const
+ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
+                                           const PerformanceConfigConvAsmBwdWrW1x1& config) const
 {
 
     ConvSolution result;
@@ -835,9 +835,8 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolutionCTS(const ConvolutionContext& params,
     return result;
 }
 
-PerformanceConfigConvAsmBwdWrW1x1
-ConvAsmBwdWrW1x1::SearchCTS(const ConvolutionContext& context,
-                            const AnyInvokeParams& invoke_ctx) const
+PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context,
+                                                           const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }

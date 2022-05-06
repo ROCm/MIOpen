@@ -50,7 +50,7 @@ namespace solver {
 /*
  * select default configuration if a known configuration has not been found.
  */
-LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerformanceConfigCTS(
+LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerformanceConfig(
     const ConvolutionContext& params) const
 {
     //
@@ -146,7 +146,7 @@ static int MeasurePerfConfig(const Handle& handle,
             {
                 if(s.IsApplicable(params))
                 {
-                    if(s.IsValidPerformanceConfigCTS(params, result))
+                    if(s.IsValidPerformanceConfig(params, result))
                     {
                         kernel_search_result = s.GetSolution(params, result);
                     }
@@ -205,8 +205,8 @@ static int MeasurePerfConfig(const Handle& handle,
 }
 
 LegacyPerformanceConfig
-ConvOclDirectFwdLegacyExhaustiveSearch::SearchCTS(const ConvolutionContext& params,
-                                                  const AnyInvokeParams&) const
+ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params,
+                                               const AnyInvokeParams&) const
 {
     if(params.IsFp16())
         return SearchImpl<half_float::half>(params);
@@ -647,7 +647,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     {
         int ret                   = -1;
         double default_time       = std::numeric_limits<double>::max();
-        const auto default_config = GetDefaultPerformanceConfigCTS(params);
+        const auto default_config = GetDefaultPerformanceConfig(params);
         if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&
            params.group_counts ==
                1) // Group conv: None 1x1 version yet, fallback to universal kernel.

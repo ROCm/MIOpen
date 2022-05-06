@@ -115,11 +115,11 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
-ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const
+ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     for(int i = 0; i < ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList().size(); ++i)
     {
-        if(IsValidPerformanceConfigCTS(ctx, i))
+        if(IsValidPerformanceConfig(ctx, i))
         {
             return {i};
         }
@@ -130,14 +130,15 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfigCTS(const ConvolutionCon
     return {-1};
 }
 
-bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfigCTS(
+bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
     const ConvolutionContext& ctx, const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
 {
     return config.IsValid(ctx);
 }
 
-ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolutionCTS(
-    const ConvolutionContext& ctx, const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
+ConvSolution
+ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
+                                         const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
 {
     ConvSolution sol;
     KernelInfo kernel0_info, kernel1_info;
@@ -248,8 +249,8 @@ std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionConte
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
-ConvCkIgemmFwdV6r1DlopsNchw::SearchCTS(const ConvolutionContext& ctx,
-                                       const AnyInvokeParams& invoke_ctx) const
+ConvCkIgemmFwdV6r1DlopsNchw::Search(const ConvolutionContext& ctx,
+                                    const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }

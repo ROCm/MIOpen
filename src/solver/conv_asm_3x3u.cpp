@@ -157,7 +157,7 @@ std::string PerformanceConfigConvAsm3x3U::ToString() const
 }
 
 PerformanceConfigConvAsm3x3U
-ConvAsm3x3U::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) const
+ConvAsm3x3U::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsm3x3U pp;
     pp.HeuristicInit(params);
@@ -165,8 +165,8 @@ ConvAsm3x3U::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) co
     return pp;
 }
 
-bool ConvAsm3x3U::IsValidPerformanceConfigCTS(const ConvolutionContext& problem,
-                                              const PerformanceConfigConvAsm3x3U& c) const
+bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext& problem,
+                                           const PerformanceConfigConvAsm3x3U& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
 }
@@ -236,8 +236,8 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
     // clang-format on
 }
 
-ConvSolution ConvAsm3x3U::GetSolutionCTS(const ConvolutionContext& params,
-                                         const PerformanceConfigConvAsm3x3U& config) const
+ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
+                                      const PerformanceConfigConvAsm3x3U& config) const
 {
     ConvSolution result;
     // Perf tune:
@@ -314,8 +314,8 @@ ConvSolution ConvAsm3x3U::GetSolutionCTS(const ConvolutionContext& params,
     return result;
 }
 
-PerformanceConfigConvAsm3x3U ConvAsm3x3U::SearchCTS(const ConvolutionContext& context,
-                                                    const AnyInvokeParams& invoke_ctx) const
+PerformanceConfigConvAsm3x3U ConvAsm3x3U::Search(const ConvolutionContext& context,
+                                                 const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }

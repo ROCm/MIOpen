@@ -143,7 +143,7 @@ struct AnySolver
         bool TestSysDbRecord(const DbRecord& record, std::true_type) const
         {
             using PerformanceConfig = decltype(
-                value.GetDefaultPerformanceConfigCTS(std::declval<const ConvolutionContext&>()));
+                value.GetDefaultPerformanceConfig(std::declval<const ConvolutionContext&>()));
             PerformanceConfig config{};
             return record.GetValues(value.SolverDbId(), config);
         }
