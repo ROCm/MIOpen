@@ -333,8 +333,6 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
         ptrB            = Data_t(reinterpret_cast<const float*>(B) + b_offset);
         ptrC            = Data_t(reinterpret_cast<float*>(C) + c_offset);
         break;
-    case miopenHalfx4:
-    case miopenHalfx8:
     case miopenHalf:
         miotsl_in_dtype = miopen_tensile_type_half;
         ptrA            = Data_t(reinterpret_cast<const half_float::half*>(A) + a_offset);
@@ -539,8 +537,6 @@ miopenStatus_t CallGemm(const Handle& handle,
         }
         break;
         case miopenInt32: break;
-        case miopenHalfx4:
-        case miopenHalfx8:
         case miopenHalf: {
             assert(gemm_desc.k % 4 == 0);
 
@@ -852,8 +848,6 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         break;
         case miopenInt32: break;
 
-        case miopenHalfx4:
-        case miopenHalfx8:
         case miopenHalf: {
             assert(gemm_desc.k % 4 == 0);
 
@@ -1103,8 +1097,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
         break;
         case miopenInt32: break;
-        case miopenHalfx4:
-        case miopenHalfx8:
         case miopenHalf: {
             assert(gemm_desc.k % 4 == 0);
 

@@ -45,8 +45,6 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
     {
     case miopenFloat: return "FP32";
     case miopenHalf: return "FP16";
-    case miopenHalfx4: return "FP16x4";
-    case miopenHalfx8: return "FP16x8";
     case miopenInt8: return "INT8";
     case miopenInt8x4: return "INT8x4";
     case miopenInt32: return "INT32";
@@ -191,6 +189,7 @@ struct ProblemDescription
     int GetDilationH() const { return GetH3(GetSpatialDims(), conv.GetConvDilations()); }
     int GetDilationW() const { return GetW3(GetSpatialDims(), conv.GetConvDilations()); }
     int GetGroupCount() const { return conv.GetGroupCount(); }
+    int GetVectorLength() const { return in.GetVectorLength(); }
 
     // In getters
     miopenDataType_t GetInDataType() const { return in.GetType(); }

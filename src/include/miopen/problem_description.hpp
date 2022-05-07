@@ -75,6 +75,7 @@ struct ProblemDescription
     int in_height         = 0;
     int in_width          = 0;
     int in_depth          = 0;
+    int vectorLength      = 1;
     int kernel_size_h     = 0;
     int kernel_size_w     = 0;
     int kernel_size_d     = 0;
@@ -204,13 +205,13 @@ struct ProblemDescription
     }
     bool IsHalfx4() const
     {
-        return in_data_type == miopenHalfx4 && weights_data_type == miopenHalfx4 &&
-               out_data_type == miopenHalfx4;
+        return in_data_type == miopenHalf && weights_data_type == miopenHalf &&
+               out_data_type == miopenHalf && vectorLength == 4;
     }
     bool IsHalfx8() const
     {
-        return in_data_type == miopenHalfx8 && weights_data_type == miopenHalfx8 &&
-               out_data_type == miopenHalfx8;
+        return in_data_type == miopenHalf && weights_data_type == miopenHalf &&
+               out_data_type == miopenHalf && vectorLength == 8;
     }
 
     bool IsNCHWc_NCHWc() const

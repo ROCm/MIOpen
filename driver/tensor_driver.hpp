@@ -128,15 +128,22 @@ inline int SetTensor4dVector(miopenTensorDescriptor_t t,
                              const std::string& layout,
                              miopenDataType_t data_type = miopenFloat)
 {
-    if(layout == "NCHW_VECT_C")
+    if(layout == "NCHW_VECT_C4")
         return miopenSet4dTensorDescriptorWithLayout(
-            t, data_type, miopenTensorNCHW_VECT_C, len[0], len[1], len[2], len[3]);
-    else if(layout == "CHWN_VECT_C")
+            t, data_type, miopenTensorNCHWc4, len[0], len[1], len[2], len[3]);
+    else if(layout == "NCHW_VECT_C8")
         return miopenSet4dTensorDescriptorWithLayout(
-            t, data_type, miopenTensorCHWN_VECT_C, len[1], len[2], len[3], len[0]);
+            t, data_type, miopenTensorNCHWc8, len[0], len[1], len[2], len[3]);
+    else if(layout == "CHWN_VECT_C4")
+        return miopenSet4dTensorDescriptorWithLayout(
+            t, data_type, miopenTensorCHWNc4, len[1], len[2], len[3], len[0]);
+    else if(layout == "CHWN_VECT_C8")
+        return miopenSet4dTensorDescriptorWithLayout(
+            t, data_type, miopenTensorCHWNc8, len[1], len[2], len[3], len[0]);
     else
     {
-        MIOPEN_THROW("We only supported NCHW_VECT_C & CHWN_VECT_C layout");
+        MIOPEN_THROW(
+            "We only supported NCHW_VECT_C & CHWN_VECT_C layout with vector length of 4 and 8");
         return -1;
     }
 }

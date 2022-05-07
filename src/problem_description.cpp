@@ -118,6 +118,7 @@ ProblemDescription::ProblemDescription(conv::ProblemDescription desc)
       in_height(conv_problem.GetInHeight()),
       in_width(conv_problem.GetInWidth()),
       in_depth(conv_problem.GetInDepth()),
+      vectorLength(conv_problem.GetVectorLength()),
 
       kernel_size_h(conv_problem.GetWeightsHeight()),
       kernel_size_w(conv_problem.GetWeightsWidth()),

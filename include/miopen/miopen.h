@@ -337,23 +337,18 @@ typedef enum
     miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
                            (Partially supported) */
     miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
-    miopenHalfx4 = 7,   /*!<Pack of 4 16-bit floating point values. Suitable for vectorized tensor
-                           formats only.*/
-    miopenHalfx8 = 8,   /*!<Pack of 8 16-bit floating point values. Suitable for vectorized tensor
-                           formats only.*/
 } miopenDataType_t;
 
 /*! @ingroup tensor
  * @enum miopenTensorLayout_t
  * Tensor layouts supported by MIOpen.
- * miopenTensorNCHW_VECT_C and miopenTensorCHWN_VECT_C layout are only supported with tensor data
- * types miopenHalfx4 and miopenHalfx8. miopenTensorCHWN_VECT_C layout only support weight tensor.
+ * miopenTensorCHWNc4 and miopenTensorCHWNc8 layout only support weight tensor.
  */
 typedef enum
 {
-    miopenTensorNCHW        = 0, /*!< NCHW memory layout (Fully supported) */
-    miopenTensorNHWC        = 1, /*!< NHWC memory layout (Fully supported) */
-    miopenTensorCHWN        = 2, /*!< CHWN memory layout (Not supported) */
+    miopenTensorNCHW   = 0, /*!< NCHW memory layout (Fully supported) */
+    miopenTensorNHWC   = 1, /*!< NHWC memory layout (Fully supported) */
+    miopenTensorCHWN   = 2, /*!< CHWN memory layout (Not supported) */
     miopenTensorNCHWc4 = 3, /*!< NCHWc4 memory layout (Partially supported) */
     miopenTensorNCHWc8 = 4, /*!< NCHWc8 memory layout (Partially supported) */
     miopenTensorCHWNc4 = 5, /*!< CHWNc4 memory layout (Partially supported) */

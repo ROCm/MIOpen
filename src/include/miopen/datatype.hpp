@@ -44,8 +44,6 @@ inline std::string GetDataType(miopenDataType_t type)
         type_str = "float";
     }
     break;
-    case miopenHalfx4:
-    case miopenHalfx8:
     case miopenHalf: {
         type_str = "half";
     }
@@ -139,8 +137,6 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
     switch(type)
     {
     case miopenHalf: use_fp16 = 1; break;
-    case miopenHalfx4: use_fp16x4 = 1; break;
-    case miopenHalfx8: use_fp16x8 = 1; break;
     case miopenFloat: use_fp32 = 1; break;
     case miopenInt8: use_int8 = 1; break;
     case miopenInt8x4: use_int8x4 = 1; break;

@@ -119,11 +119,11 @@ void TensorDescriptor::CalculateStrides()
     strides.resize(lens.size(), 0);
     if(strides.empty())
         return;
-    if(tensorLayout == miopenTensorNCHW_VECT_C)
+    if(tensorLayout == miopenTensorNCHWc4 || tensorLayout == miopenTensorNCHWc8)
     {
         lens[1] /= vector_c;
     }
-    else if(tensorLayout == miopenTensorCHWN_VECT_C)
+    else if(tensorLayout == miopenTensorCHWNc4 || tensorLayout == miopenTensorCHWNc8)
     {
         lens[0] /= vector_c;
     }
@@ -137,7 +137,11 @@ void TensorDescriptor::CalculateStrides()
 
 void TensorDescriptor::CalculateVectorC()
 {
-    vector_c = ((type == miopenHalfx8) ? 8 : (type == miopenHalfx4 ? 4 : 1));
+    vector_c =
+        ((tensorLayout == miopenTensorCHWNc8 || tensorLayout == miopenTensorNCHWc8)
+             ? 8
+             : ((tensorLayout == miopenTensorCHWNc4 || tensorLayout == miopenTensorNCHWc4) ? 4
+                                                                                           : 1));
 }
 
 const std::vector<std::size_t>& TensorDescriptor::GetLengths() const { return lens; }
@@ -199,8 +203,6 @@ std::size_t TensorDescriptor::GetNumBytes() const
     case miopenInt8x4:
     case miopenInt8: typesize = 1; break;
     case miopenBFloat16:
-    case miopenHalfx4:
-    case miopenHalfx8:
     case miopenHalf: typesize = 2; break;
     case miopenInt32:
     case miopenFloat: typesize = 4; break;

@@ -12,8 +12,6 @@ enum DataTypeEnum_t
     Int8x4   = 4,
     BFloat16 = 5,
     Double   = 6,
-    Halfx4   = 7,
-    Halfx8   = 8,
     Unknown  = 100,
 };
 

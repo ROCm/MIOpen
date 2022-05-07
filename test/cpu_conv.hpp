@@ -74,7 +74,7 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
     std::copy_n(wei.desc.GetLengths().begin() + 2, ConvDim, wei_spatial_len.begin());
     std::copy_n(out.desc.GetLengths().begin() + 2, ConvDim, out_spatial_len.begin());
 
-    if(wei.desc.GetLayout_t() == miopenTensorCHWN_VECT_C)
+    if(wei.desc.GetLayout_t() == miopenTensorCHWNc4 || wei.desc.GetLayout_t() == miopenTensorCHWNc8)
     {
         wei_c_len = wei.desc.GetLengths()[0];
         std::copy_n(wei.desc.GetLengths().begin() + 1, ConvDim, wei_spatial_len.begin());
@@ -88,7 +88,7 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
     // f2(xs_array) = f1(xs...)
     auto par_ford_out_nk_spatial =
         miopen::unpacker(miopen::prepender(par_ford, out_n_len, wei_k_len))(out_spatial_len);
-    if(wei.desc.GetLayout_t() == miopenTensorCHWN_VECT_C)
+    if(wei.desc.GetLayout_t() == miopenTensorCHWNc4 || wei.desc.GetLayout_t() == miopenTensorCHWNc8)
     {
         par_ford_out_nk_spatial(
             [&](std::size_t out_n_id, std::size_t out_k_id, auto... out_spatial_id_pack) {
@@ -160,8 +160,8 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
                     out(out_n_id, out_k_id, out_spatial_id_pack...) = acc;
             });
     }
-    if(wei.desc.GetLayout_t() == miopenTensorNCHW_VECT_C ||
-       wei.desc.GetLayout_t() == miopenTensorNCHW)
+    if(wei.desc.GetLayout_t() == miopenTensorNCHWc4 ||
+       wei.desc.GetLayout_t() == miopenTensorNCHWc8 || wei.desc.GetLayout_t() == miopenTensorNCHW)
     {
         par_ford_out_nk_spatial(
             [&](std::size_t out_n_id, std::size_t out_k_id, auto... out_spatial_id_pack) {

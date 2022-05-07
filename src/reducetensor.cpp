@@ -206,8 +206,6 @@ inline int GetDataTypeSize(miopenDataType_t t)
     switch(t)
     {
     case miopenHalf: return (2);
-    case miopenHalfx4: return (8);
-    case miopenHalfx8: return (16);
     case miopenFloat: return (4);
     case miopenDouble: return (8);
     case miopenInt8: return (1);
@@ -264,8 +262,6 @@ inline int GetDataTypeId(miopenDataType_t t)
 {
     switch(t)
     {
-    case miopenHalfx8:
-    case miopenHalfx4:
     case miopenHalf: return (static_cast<int>('H'));
     case miopenFloat: return (static_cast<int>('F'));
     case miopenBFloat16: return (static_cast<int>('B'));
@@ -305,8 +301,6 @@ static ck::DataTypeEnum_t mapDataTypeId(miopenDataType_t t)
     switch(t)
     {
     case miopenHalf: return DataTypeEnum_t::Half;
-    case miopenHalfx4: return DataTypeEnum_t::Halfx4;
-    case miopenHalfx8: return DataTypeEnum_t::Halfx8;
     case miopenFloat: return DataTypeEnum_t::Float;
     case miopenBFloat16: return DataTypeEnum_t::BFloat16;
     case miopenDouble: return DataTypeEnum_t::Double;

@@ -96,8 +96,6 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenInt32:
     case miopenFloat: return 4;
     case miopenHalf:
-    case miopenHalfx4:
-    case miopenHalfx8:
     case miopenBFloat16: return 2;
     case miopenInt8x4:
     case miopenInt8: return 1;
@@ -206,9 +204,9 @@ struct TensorDescriptor : miopenTensorDescriptor
     }
     std::string GetTensorLayout() const
     {
-        if(tensorLayout == miopenTensorNCHW_VECT_C)
+        if(tensorLayout == miopenTensorNCHWc4 || tensorLayout == miopenTensorNCHWc8)
             return "NCHW_VECT_C";
-        else if(tensorLayout == miopenTensorCHWN_VECT_C)
+        else if(tensorLayout == miopenTensorCHWNc4 || tensorLayout == miopenTensorCHWNc8)
             return "CHWN_VECT_C";
         else
             return "NCHW";

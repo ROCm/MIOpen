@@ -1724,18 +1724,8 @@ struct conv_driver : test_driver
                 std::string vec_str = conv_mode.substr(found_vec + 5);
                 ///\todo try catch()
                 vector_c = std::stoi(vec_str);
-                if(vector_c == 4)
-                {
-                    type = miopenHalfx4;
-                }
-                else if(vector_c == 8)
-                {
-                    type = miopenHalfx8;
-                }
-                else
-                {
+                if(vector_c != 4 && vector_c != 8)
                     MIOPEN_THROW("Unsupported vector length");
-                }
             }
             else
             {
@@ -1791,13 +1781,22 @@ struct conv_driver : test_driver
                 batch_size     = input_dims.at(0);
                 input_channels = input_dims.at(1);
                 std::copy(input_dims.begin() + 2, input_dims.end(), spatial_dim_elements.begin());
-                input = tensor<T>{type,
-                                  miopenTensorNCHW_VECT_C,
-                                  batch_size,
-                                  input_channels,
-                                  spatial_dim_elements.at(0),
-                                  spatial_dim_elements.at(1)}
-                            .generate(tensor_elem_gen_integer{17});
+                if(vector_c == 4)
+                    input = tensor<T>{type,
+                                      miopenTensorNCHWc4,
+                                      batch_size,
+                                      input_channels,
+                                      spatial_dim_elements.at(0),
+                                      spatial_dim_elements.at(1)}
+                                .generate(tensor_elem_gen_integer{17});
+                if(vector_c == 8)
+                    input = tensor<T>{type,
+                                      miopenTensorNCHWc8,
+                                      batch_size,
+                                      input_channels,
+                                      spatial_dim_elements.at(0),
+                                      spatial_dim_elements.at(1)}
+                                .generate(tensor_elem_gen_integer{17});
             }
             else
             {
@@ -1832,13 +1831,22 @@ struct conv_driver : test_driver
                 output_channels = weight_tensor_dims.at(0);
                 std::copy(
                     weight_tensor_dims.begin() + 2, weight_tensor_dims.end(), filter_dims.begin());
-                weights = tensor<T>{type,
-                                    miopenTensorNCHW_VECT_C,
-                                    output_channels,
-                                    input_channels / filter.group_count,
-                                    filter_dims.at(0),
-                                    filter_dims.at(1)}
-                              .generate(tensor_elem_gen_integer{17});
+                if(vector_c == 4)
+                    weights = tensor<T>{type,
+                                        miopenTensorNCHWc4,
+                                        output_channels,
+                                        input_channels / filter.group_count,
+                                        filter_dims.at(0),
+                                        filter_dims.at(1)}
+                                  .generate(tensor_elem_gen_integer{17});
+                if(vector_c == 8)
+                    weights = tensor<T>{type,
+                                        miopenTensorNCHWc8,
+                                        output_channels,
+                                        input_channels / filter.group_count,
+                                        filter_dims.at(0),
+                                        filter_dims.at(1)}
+                                  .generate(tensor_elem_gen_integer{17});
             }
             else if(fil_layout == "CHWN_VECT_C")
             {
@@ -1846,13 +1854,22 @@ struct conv_driver : test_driver
                 std::copy(weight_tensor_dims.begin() + 1,
                           weight_tensor_dims.end() - 1,
                           filter_dims.begin());
-                weights = tensor<T>{type,
-                                    miopenTensorCHWN_VECT_C,
-                                    input_channels / filter.group_count,
-                                    filter_dims.at(0),
-                                    filter_dims.at(1),
-                                    output_channels}
-                              .generate(tensor_elem_gen_integer{17});
+                if(vector_c == 4)
+                    weights = tensor<T>{type,
+                                        miopenTensorCHWNc4,
+                                        input_channels / filter.group_count,
+                                        filter_dims.at(0),
+                                        filter_dims.at(1),
+                                        output_channels}
+                                  .generate(tensor_elem_gen_integer{17});
+                if(vector_c == 8)
+                    weights = tensor<T>{type,
+                                        miopenTensorCHWNc8,
+                                        input_channels / filter.group_count,
+                                        filter_dims.at(0),
+                                        filter_dims.at(1),
+                                        output_channels}
+                                  .generate(tensor_elem_gen_integer{17});
             }
             else
             {
@@ -2082,13 +2099,15 @@ struct conv_driver : test_driver
                   (weights.desc.GetLengths().at(0) % filter.group_count == 0)))) ||
                ((filter.mode == miopenConvolution) &&
                 ((weights.desc.GetLayout_t() == miopenTensorNCHW) ||
-                 (weights.desc.GetLayout_t() == miopenTensorNCHW_VECT_C)) &&
+                 (weights.desc.GetLayout_t() == miopenTensorNCHWc4) ||
+                 (weights.desc.GetLayout_t() == miopenTensorNCHWc8)) &&
                 ((filter.group_count == 1 &&
                   (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1))) ||
                  (filter.group_count > 1 &&
                   (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)))) ||
                ((filter.mode == miopenConvolution) &&
-                (weights.desc.GetLayout_t() == miopenTensorCHWN_VECT_C) &&
+                (weights.desc.GetLayout_t() == miopenTensorCHWNc4 ||
+                 weights.desc.GetLayout_t() == miopenTensorCHWNc8) &&
                 ((filter.group_count == 1 &&
                   (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(0))) ||
                  (filter.group_count > 1 &&
@@ -2096,26 +2115,16 @@ struct conv_driver : test_driver
             {
                 auto output             = get_output_tensor(filter, input, weights, out_layout);
                 auto gen_positive_value = [=](auto...) {
-                    auto data_type = input.desc.GetType();
-                    std::size_t v_max =
-                        is_int8 ? 16
-                                : (data_type == miopenHalf || data_type == miopenHalfx4 ||
-                                   data_type == miopenHalfx8)
-                                      ? 4
-                                      : 16;
+                    auto data_type    = input.desc.GetType();
+                    std::size_t v_max = is_int8 ? 16 : data_type == miopenHalf ? 4 : 16;
 
                     return gen_float ? scalar_gen_random_float{0, 1}()
                                      : scalar_gen_random_integer{1, v_max}();
                 };
 
                 auto gen_sign_value = [=](auto... is) {
-                    auto data_type = input.desc.GetType();
-                    std::size_t v_max =
-                        is_int8 ? 16
-                                : (data_type == miopenHalf || data_type == miopenHalfx4 ||
-                                   data_type == miopenHalfx8)
-                                      ? 4
-                                      : 16;
+                    auto data_type    = input.desc.GetType();
+                    std::size_t v_max = is_int8 ? 16 : data_type == miopenHalf ? 4 : 16;
 
                     return gen_float ? scalar_gen_random_float{-1, 1}()
                                      : scalar_gen_random_integer{1, v_max}() *
