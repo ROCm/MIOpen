@@ -367,7 +367,7 @@ PerformanceConfigAsmImplicitGemmGTCvector::PerformanceConfigAsmImplicitGemmGTCve
     bool spare)
     : direction(dir),
       tensor_layout(layout),
-      precision(prec == miopenHalfx4 ? "Halfx4" : "Halfx8"),
+      precision((prec == miopenHalf && vec_c == 4) ? "Halfx4" : "Halfx8"),
       nxb(b),
       nxe(e),
 

@@ -163,7 +163,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
 
     auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
-    if(wDesc.GetLayout_t() == miopenTensorCHWN_VECT_C)
+    if(wDesc.GetLayout_t() == miopenTensorCHWNc4 || wDesc.GetLayout_t() == miopenTensorCHWNc8)
     {
         std::tie(wei_k, wei_c) = miopen::tie_pick<3, 0>{}(wDesc.GetLengths());
         wei_spatial            = boost::adaptors::slice(wDesc.GetLengths(), 1, 1 + spatial_dim);
@@ -274,7 +274,9 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
     return {(xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
                  ? (yType == miopenInt32 ? yType : miopenFloat)
                  : xDesc.GetType()),
-            (yLayout == "NCHW_VECT_C" ? miopenTensorNCHW_VECT_C : miopenTensorNCHW),
+            (yLayout == "NCHW_VECT_C"
+                 ? (xDesc.GetVectorLength() == 4 ? miopenTensorNCHWc4 : miopenTensorNCHWc8)
+                 : miopenTensorNCHW),
             out_lens,
             out_strides};
 }

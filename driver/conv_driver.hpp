@@ -197,7 +197,7 @@ public:
 
     int AddCmdLineArgs() override;
     ///\brief We only support fp16x4 and fp16x8 vector type
-    void SetDataTypefromBaseArg(std::string baseArg);
+    int GetVectorLengthfromBaseArg(std::string baseArg);
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
 
@@ -438,7 +438,7 @@ bool ConvDriver<Tgpu, Tref>::IsInputTensorTransform() const
 }
 
 template <typename Tgpu, typename Tref>
-void ConvDriver<Tgpu, Tref>::SetDataTypefromBaseArg(std::string baseArg)
+int ConvDriver<Tgpu, Tref>::GetVectorLengthfromBaseArg(std::string baseArg)
 {
     ///\todo Can we modify this to a lambda expression
     if(baseArg.compare(0, 4, "conv") == 0)
@@ -447,21 +447,15 @@ void ConvDriver<Tgpu, Tref>::SetDataTypefromBaseArg(std::string baseArg)
         if(found_vec != std::string::npos)
         {
             std::string vec_str = baseArg.substr(found_vec + 5);
-            int vector_c        = std::stoi(vec_str);
-            if(vector_c == 4)
-            {
-                data_type = miopenHalfx4;
-            }
-            else if(vector_c == 8)
-            {
-                data_type = miopenHalfx8;
-            }
-            else
+            int vectorLength    = std::stoi(vec_str);
+            if(vectorLength != 4 && vectorLength != 8)
             {
                 MIOPEN_THROW("Unsupported vector length");
             }
+            return vectorLength;
         }
     }
+    return 1;
 }
 
 template <typename Tgpu, typename Tref>
@@ -471,7 +465,7 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     inflags.Parse(argc, argv);
 
     std::string base_arg = ParseBaseArg(argc, argv);
-    SetDataTypefromBaseArg(base_arg);
+    int vectorLength     = GetVectorLengthfromBaseArg(base_arg);
 
     // try to set a default layout value for 3d conv if not specified from cmd line
     int spatial_dim = inflags.GetValueInt("spatial_dim");
@@ -488,6 +482,9 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     {
         std::string in_layoutValue = inflags.GetValueStr("in_layout");
         ValidateLayoutInputParameters(in_layoutValue);
+        if(vectorLength != 1)
+            in_layoutValue += std::to_string(vectorLength);
+        inflags.SetValue("in_layout", in_layoutValue);
     }
     // fil layout argument value check
     if(inflags.GetValueStr("fil_layout").empty())
@@ -498,6 +495,9 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     {
         std::string fil_layoutValue = inflags.GetValueStr("fil_layout");
         ValidateLayoutInputParameters(fil_layoutValue);
+        if(vectorLength != 1)
+            fil_layoutValue += std::to_string(vectorLength);
+        inflags.SetValue("fil_layout", fil_layoutValue);
     }
     // out layout argument check
     if(inflags.GetValueStr("out_layout").empty())
@@ -508,6 +508,9 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     {
         std::string out_layoutValue = inflags.GetValueStr("out_layout");
         ValidateLayoutInputParameters(out_layoutValue);
+        if(vectorLength != 1)
+            out_layoutValue += std::to_string(vectorLength);
+        inflags.SetValue("out_layout", out_layoutValue);
     }
     num_iterations = inflags.GetValueInt("iter");
     if(num_iterations < 1)
@@ -628,9 +631,11 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     SetConvDescriptorFromCmdLineArgs();
 
     std::vector<int> out_len = GetOutputTensorLengths();
-    if(miopen::deref(inputTensor).GetLayout_t() == miopenTensorNCHW_VECT_C)
+    if(miopen::deref(inputTensor).GetLayout_t() == miopenTensorNCHWc4 ||
+       miopen::deref(inputTensor).GetLayout_t() == miopenTensorNCHWc8)
         out_len[1] *= miopen::deref(inputTensor).GetVectorLength();
-    if(miopen::deref(inputTensor).GetLayout_t() == miopenTensorCHWN_VECT_C)
+    if(miopen::deref(inputTensor).GetLayout_t() == miopenTensorCHWNc4 ||
+       miopen::deref(inputTensor).GetLayout_t() == miopenTensorCHWNc8)
         out_len[0] *= miopen::deref(inputTensor).GetVectorLength();
 
     miopenDataType_t y_type =

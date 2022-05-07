@@ -3825,7 +3825,7 @@ struct PerformanceConfigAsmImplicitGemmGTCvector
     PerformanceConfigAsmImplicitGemmGTCvector()
         : PerformanceConfigAsmImplicitGemmGTCvector("fwd",
                                                     "nchwc_kcyxc",
-                                                    "Halfx4",
+                                                    "Half",
                                                     1,
                                                     1,
                                                     1,
@@ -3848,7 +3848,7 @@ struct PerformanceConfigAsmImplicitGemmGTCvector
     PerformanceConfigAsmImplicitGemmGTCvector(bool spare)
         : PerformanceConfigAsmImplicitGemmGTCvector("fwd",
                                                     "nchwc_kcyxc",
-                                                    "Halfx4",
+                                                    "Half",
                                                     1,
                                                     1,
                                                     1,
@@ -4017,7 +4017,7 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC : PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC()
         : PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC("fwd",
                                                            "nchwc_kcyxc",
-                                                           "Halfx4",
+                                                           "Half",
                                                            1,
                                                            1,
                                                            1,
@@ -4040,7 +4040,7 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC : PerformanceConfigAsmIm
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC(bool spare)
         : PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC("fwd",
                                                            "nchwc_kcyxc",
-                                                           "Halfx4",
+                                                           "Half",
                                                            1,
                                                            1,
                                                            1,

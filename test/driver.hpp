@@ -278,8 +278,6 @@ struct test_driver
         std::stringstream ss;
         switch(this->type)
         {
-        case miopenHalfx4:
-        case miopenHalfx8:
         case miopenHalf: ss << "--half "; break;
         case miopenBFloat16: ss << "--bfloat16 "; break;
         case miopenInt8x4:
@@ -307,8 +305,6 @@ struct test_driver
 
         switch(this->type)
         {
-        case miopenHalfx4:
-        case miopenHalfx8:
         case miopenHalf: ret.emplace_back("--half"); break;
         case miopenBFloat16: ret.emplace_back("--bf16"); break;
         case miopenInt8x4:

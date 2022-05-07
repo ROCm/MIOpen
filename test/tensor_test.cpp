@@ -65,8 +65,7 @@ struct tensor_fixture_4_vector : tensor_base
         std::size_t h = 8;
         std::size_t w = 8;
 
-        miopenSet4dTensorDescriptorWithLayout(
-            tensor, miopenHalfx4, miopenTensorNCHW_VECT_C, n, c, h, w);
+        miopenSet4dTensorDescriptorWithLayout(tensor, miopenHalf, miopenTensorNCHWc4, n, c, h, w);
     }
 };
 
@@ -622,7 +621,7 @@ struct tensor_test_suit_4d_vector
             miopenDataType_t dt;
             miopenGet4dTensorDescriptor(
                 this->tensor, &dt, &n, &c, &h, &w, &nStride, &cStride, &hStride, &wStride);
-            EXPECT(dt == miopenHalfx4);
+            EXPECT(dt == miopenHalf);
             EXPECT(n == 100);
             EXPECT(c == 8);
             EXPECT(h == 8);
@@ -672,7 +671,7 @@ struct tensor_test_suit_4d_vector
             std::array<int, 4> strides{};
             miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), strides.data());
-            EXPECT(dt == miopenHalfx4);
+            EXPECT(dt == miopenHalf);
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 8);
             EXPECT(lens[2] == 8);
@@ -695,7 +694,7 @@ struct tensor_test_suit_4d_vector
             std::array<int, 4> lens{};
             miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), nullptr);
-            EXPECT(dt == miopenHalfx4);
+            EXPECT(dt == miopenHalf);
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 8);
             EXPECT(lens[2] == 8);
@@ -715,7 +714,7 @@ struct tensor_test_suit_4d_vector
             std::array<int, 4> strides{};
             miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, nullptr, strides.data());
-            EXPECT(dt == miopenHalfx4);
+            EXPECT(dt == miopenHalf);
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 8);
             EXPECT(lens[2] == 8);
