@@ -882,9 +882,11 @@ struct ConvHipImplicitGemmV4R1Fwd final : ConvTunableSolver<PerformanceImplicitG
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmV4R1& c) const override;
+
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceImplicitGemmV4R1& config) const override;
+
     PerformanceImplicitGemmV4R1 Search(const ConvolutionContext&,
                                        const AnyInvokeParams& invoke_ctx) const override;
 };
@@ -2750,7 +2752,6 @@ struct GemmFwdBase : ConvSolver
     {
         return GetWti(ctx, ctx.conv_problem);
     }
-
     float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
 };
 
@@ -2882,7 +2883,6 @@ struct GemmBwdBase : ConvSolver
     {
         return GetWti(ctx, ctx.conv_problem);
     }
-
     float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
 };
 
@@ -2910,8 +2910,8 @@ struct GemmBwd1x1_stride2 : GemmBwdBase
         return GetSolution(ctx, ctx.conv_problem);
     }
 
-    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
 };
 
@@ -2985,7 +2985,6 @@ struct GemmWrwBase : ConvSolver
     {
         return GetWti(ctx, ctx.conv_problem);
     }
-
     float GetWti(const ExecutionContext& context, const conv::ProblemDescription& problem) const;
 };
 
