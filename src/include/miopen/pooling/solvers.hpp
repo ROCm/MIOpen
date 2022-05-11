@@ -58,23 +58,23 @@ struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    std::size_t GetWorkspaceSize(const OldStyleProblemDescription& problem) const override
-    {
-        return GetWorkspaceSize(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
     ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
     {
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
 
+    std::size_t GetWorkspaceSize(const OldStyleProblemDescription& problem) const override
+    {
+        return GetWorkspaceSize(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
     virtual bool IsApplicable(const ExecutionContext& context,
-                              const miopen::pooling::ProblemDescription& problem) const = 0;
-    virtual std::size_t
-    GetWorkspaceSize(const ExecutionContext& context,
-                     const miopen::pooling::ProblemDescription& problem) const                 = 0;
+                              const miopen::pooling::ProblemDescription& problem) const        = 0;
     virtual ConvSolution GetSolution(const ExecutionContext& context,
                                      const miopen::pooling::ProblemDescription& problem) const = 0;
+    virtual std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::pooling::ProblemDescription& problem) const = 0;
 };
 
 struct PoolingForward2d : OldStyleSolver
@@ -83,10 +83,10 @@ struct PoolingForward2d : OldStyleSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pooling::ProblemDescription& problem) const override;
-    std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::pooling::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::pooling::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::pooling::ProblemDescription& problem) const override;
 };
 
 struct PoolingForwardNd : OldStyleSolver
@@ -95,10 +95,10 @@ struct PoolingForwardNd : OldStyleSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pooling::ProblemDescription& problem) const override;
-    std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::pooling::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::pooling::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::pooling::ProblemDescription& problem) const override;
 };
 
 template <class Inner>

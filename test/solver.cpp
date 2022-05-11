@@ -78,7 +78,7 @@ struct TestConfig : solver::Serializable<TestConfig>
     }
 };
 
-class SearchableTestSolver : public solver::ConvTunableSolver<TestConfig>
+class SearchableTestSolver final : public solver::ConvTunableSolver<TestConfig>
 {
 public:
     static int searches_done() { return _serches_done; }
@@ -93,19 +93,19 @@ public:
         return true;
     }
 
-    TestConfig GetDefaultPerformanceConfig(const ConvolutionContext&) const final
+    TestConfig GetDefaultPerformanceConfig(const ConvolutionContext&) const override
     {
         TestConfig config{};
         config.str = NoSearchFileName();
         return config;
     }
 
-    bool IsValidPerformanceConfig(const ConvolutionContext&, const TestConfig&) const final
+    bool IsValidPerformanceConfig(const ConvolutionContext&, const TestConfig&) const override
     {
         return true;
     }
 
-    TestConfig Search(const ConvolutionContext&, const AnyInvokeParams&) const final
+    TestConfig Search(const ConvolutionContext&, const AnyInvokeParams&) const override
     {
         TestConfig config;
         config.str = FileName();
@@ -114,7 +114,7 @@ public:
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const TestConfig& config) const final
+                                     const TestConfig& config) const override
     {
 
         solver::ConvSolution ret;
