@@ -619,7 +619,7 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetCompileParms(
     {
         add += " -DMIOPEN_USE_FPMIX=1";
     }
-    
+
     add += " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
            " -DMIO_BN_HW=" + std::to_string(in_cstride) +
            " -DMIO_BN_NHW=" + std::to_string(n * h * w) +
