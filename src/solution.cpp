@@ -140,7 +140,8 @@ void Solution::RunImpl(Handle& handle,
         return;
     }
 
-    const auto conv_ctx = ConvolutionContext{conv_problem, {&handle}};
+    auto conv_ctx = ConvolutionContext{conv_problem, {&handle}};
+    conv_ctx.DetectRocm();
 
     decltype(auto) db        = GetDb(conv_ctx);
     const auto conv_solution = GetSolver().GetSolver().FindSolution(conv_ctx, db, invoke_ctx);
