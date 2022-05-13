@@ -323,7 +323,7 @@ std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
 }
 
 PerformanceConfigAsmDirect3x3WrW
-ConvAsmBwdWrW3x3::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvAsmBwdWrW3x3::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigAsmDirect3x3WrW pp;
     pp.HeuristicInit(params);
@@ -421,8 +421,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 }
 
 ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfigAsmDirect3x3WrW& config,
-                                           const bool disableConfigOverrideFromEnv) const
+                                           const PerformanceConfigAsmDirect3x3WrW& config) const
 {
     ConvSolution result;
     std::ostringstream options;
@@ -444,8 +443,8 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
     // Perf tune:
     const PerformanceConfigAsmDirect3x3WrW* pcfg = &config;
+
     PerformanceConfigAsmDirect3x3WrW fromEnv;
-    if(!disableConfigOverrideFromEnv)
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS{});
@@ -468,6 +467,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
             }
         }
     }
+
     GenerateClangDefsym(options, "limit_wave_cnt", pcfg->GetLimitWaveCnt());
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "c_per_wave", pcfg->GetCPerWave());

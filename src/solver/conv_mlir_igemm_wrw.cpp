@@ -66,7 +66,8 @@ bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx) const
 #endif
 }
 
-PerformanceConvMlirIgemm ConvMlirIgemmWrW::GetPerformanceConfig(const ConvolutionContext& ctx) const
+PerformanceConvMlirIgemm
+ConvMlirIgemmWrW::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
     return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
@@ -86,8 +87,7 @@ PerformanceConvMlirIgemm ConvMlirIgemmWrW::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx,
-                                           const PerformanceConvMlirIgemm& config,
-                                           bool) const
+                                           const PerformanceConvMlirIgemm& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;

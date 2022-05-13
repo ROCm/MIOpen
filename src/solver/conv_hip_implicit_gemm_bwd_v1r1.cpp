@@ -678,7 +678,7 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
 }
 
 PerformanceImplicitGemmBwdDataV1R1
-ConvHipImplicitGemmBwdDataV1R1::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV1R1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV1R1>(ctx);
 }
@@ -697,8 +697,9 @@ ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx,
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV1R1& config, bool) const
+ConvSolution
+ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
+                                            const PerformanceImplicitGemmBwdDataV1R1& config) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;

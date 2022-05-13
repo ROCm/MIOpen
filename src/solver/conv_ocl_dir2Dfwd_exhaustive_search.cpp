@@ -50,8 +50,8 @@ namespace solver {
 /*
  * select default configuration if a known configuration has not been found.
  */
-LegacyPerformanceConfig
-ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionContext& params) const
+LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerformanceConfig(
+    const ConvolutionContext& params) const
 {
     //
     LegacyPerformanceConfig result{};
@@ -647,7 +647,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     {
         int ret                   = -1;
         double default_time       = std::numeric_limits<double>::max();
-        const auto default_config = GetPerformanceConfig(params);
+        const auto default_config = GetDefaultPerformanceConfig(params);
         if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&
            params.group_counts ==
                1) // Group conv: None 1x1 version yet, fallback to universal kernel.
