@@ -103,7 +103,7 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
         && !(params.direction.IsForward()
             && params.IsFp16()
             && params.kernel_stride_w == 2)
-        && IsValidPerformanceConfig(params, GetPerformanceConfig(params));
+        && IsValidPerformanceConfig(params, GetDefaultPerformanceConfig(params));
     // clang-format on
 }
 

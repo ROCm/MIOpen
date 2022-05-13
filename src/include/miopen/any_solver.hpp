@@ -130,7 +130,7 @@ struct AnySolver
         {
             template <typename U>
             static constexpr auto Test(U*) ->
-                typename std::is_class<decltype(std::declval<U>().GetPerformanceConfig(
+                typename std::is_class<decltype(std::declval<U>().GetDefaultPerformanceConfig(
                     std::declval<const ConvolutionContext&>()))>::type;
 
             template <typename U>
@@ -142,8 +142,8 @@ struct AnySolver
 
         bool TestSysDbRecord(const DbRecord& record, std::true_type) const
         {
-            using PerformanceConfig =
-                decltype(value.GetPerformanceConfig(std::declval<const ConvolutionContext&>()));
+            using PerformanceConfig = decltype(
+                value.GetDefaultPerformanceConfig(std::declval<const ConvolutionContext&>()));
             PerformanceConfig config{};
             return record.GetValues(value.SolverDbId(), config);
         }
