@@ -159,7 +159,7 @@ struct PoolingDescriptor : miopenPoolingDescriptor
                             const void* beta,
                             const TensorDescriptor& dxDesc,
                             Data_t dx,
-                            ConstData_t workSpace) const;
+                            Data_t workSpace) const;
 
     friend std::ostream& operator<<(std::ostream& stream, const PoolingDescriptor& x);
 

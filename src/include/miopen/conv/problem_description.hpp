@@ -82,15 +82,6 @@ constexpr TElement GetW3(int spatial_dims, const std::vector<TElement>& data)
 }
 
 template <class TElement>
-constexpr auto GetNCDHW(int spatial_dims, const std::vector<TElement>& data)
-{
-    if(spatial_dims == 3)
-        return miopen::tien<5>(data, 1);
-    else
-        return std::make_tuple(data[0], data[1], static_cast<TElement>(1), data[2], data[3]);
-}
-
-template <class TElement>
 constexpr TElement GetN5(int spatial_dims, const std::vector<TElement>& data)
 {
     return std::get<0>(GetNCDHW(spatial_dims, data));
