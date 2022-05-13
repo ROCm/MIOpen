@@ -32,7 +32,7 @@ struct OpKernelArg
 
     std::size_t size() const { return buffer.size(); };
 #if HIP_PACKAGE_VERSION_FLAT <= 5001999999ULL
-    std::vector<char, 8> buffer;
+    std::vector<char> buffer;
 #else
     boost::container::small_vector<char, 8> buffer;
 #endif
