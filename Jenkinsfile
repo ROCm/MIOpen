@@ -75,6 +75,10 @@ def cmake_build(Map conf=[:]){
         def fmode = conf.get("find_mode", "")
         setup_args = " -DMIOPEN_DEFAULT_FIND_MODE=${fmode} " + setup_args
     }
+    if(env.CCACHE_HOST)
+    {
+        setup_args = " -DCMAKE_CXX_COMPILER_LAUNCHER='ccache' -DCMAKE_C_COMPILER_LAUNCHER='ccache' " + setup_args
+    }
 
     def pre_setup_cmd = """
             echo \$HSA_ENABLE_SDMA
@@ -114,8 +118,9 @@ def buildHipClangJob(Map conf=[:]){
 
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
+        env.DOCKER_BUILDKIT=1
         checkout scm
-
+        def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
         def image = "miopen"
         def prefixpath = conf.get("prefixpath", "/usr/local")
         def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
@@ -128,7 +133,22 @@ def buildHipClangJob(Map conf=[:]){
         if (conf.get("enforce_xnack_on", false)) {
             dockerOpts = dockerOpts + " --env HSA_XNACK=1"
         }
-        def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' --build-arg USE_FIN='${build_fin}' "
+        def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' --build-arg USE_FIN='${build_fin}' "
+        if(env.CCACHE_HOST)
+        {
+            def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
+            if(check_host == "+PONG")
+            {
+                echo "FOUND CCACHE SERVER: ${CCACHE_HOST}"
+            }
+            else 
+            {
+                echo "CCACHE SERVER: ${CCACHE_HOST} NOT FOUND, got ${check_host} response"
+            }
+            dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
+            env.CCACHE_DIR = """/tmp/ccache_store"""
+            env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
+        }
 
         def variant = env.STAGE_NAME
 
@@ -136,6 +156,10 @@ def buildHipClangJob(Map conf=[:]){
         def needs_gpu = conf.get("needs_gpu", true)
 
         def retimage
+        if(env.DOCKER_REPO)
+        {
+            image = "${DOCKER_REPO}/miopen_build_cache/miopen:${branch}"
+        }
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
             try {
                 retimage = docker.build("${image}", dockerArgs + '.')
