@@ -134,6 +134,7 @@ void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
         if(db_path.empty())
             return;
         constexpr bool isEmbedded = MIOPEN_EMBED_DB;
+        // cppcheck-suppress knownConditionTrueFalse
         if(!debug::rordb_embed_fs_override() && isEmbedded)
         {
 #if MIOPEN_EMBED_DB

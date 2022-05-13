@@ -28,7 +28,6 @@
 #include <miopen/check_numerics.hpp>
 #include <miopen/config.h>
 #include <miopen/convolution.hpp>
-#include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/env.hpp>

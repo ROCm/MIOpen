@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <cstdint>
 #include <half.hpp>
-
+#include <miopen/config.h>
 #include <boost/container/small_vector.hpp>
 struct OpKernelArg
 {
