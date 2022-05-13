@@ -79,12 +79,19 @@ ENV LANG=C.UTF-8
 RUN cget -p $PREFIX install ROCmSoftwarePlatform/rocm-recipes
 RUN groupadd -f render
 WORKDIR /root
-ARG CK_COMMIT=db775824f49a979aa222aee26aa282336d956d39
+ARG LLVM_COMMIT=5cba46feb6af367b1cafaa183ec42dbfb8207b14
+RUN wget -O llvm.tar.gz https://github.com/RadeonOpenCompute/llvm-project/archive/${LLVM_COMMIT}.tar.gz && \
+    tar zxvf llvm.tar.gz && \
+    cd llvm-project-${LLVM_COMMIT} && \
+    mkdir build && cd build &&\
+    cmake -DCMAKE_INSTALL_PREFIX=/opt/rocm-${ROCMVERSION}.0/llvm -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD="AMDGPU;X86" -DLLVM_ENABLE_PROJECTS="clang;lld;compiler-rt" ../llvm && \
+    make -j $(nproc) install 
+ARG CK_COMMIT=cec69bc3bc200de7e09396579fe33cb153f8afeb
 RUN  wget -O ck.tar.gz https://www.github.com/rocmsoftwareplatform/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
     tar zxvf ck.tar.gz &&\
     cd composable_kernel-${CK_COMMIT} && \
     mkdir build && cd build && \
-    CXX=/opt/rocm/bin/hipcc cmake -DCMAKE_PREFIX_PATH=/opt/rocm -D CMAKE_CXX_FLAGS=" --offload-arch=gfx900 --offload-arch=gfx906 --offload-arch=gfx908 --offload-arch=gfx90a -O3 " .. && \
+    CXX=/opt/rocm-${ROCMVERSION}.0/bin/hipcc cmake -DCMAKE_PREFIX_PATH=/opt/rocm -D CMAKE_CXX_FLAGS=" --offload-arch=gfx900 --offload-arch=gfx906 --offload-arch=gfx908 --offload-arch=gfx90a -O3 " .. && \
     make -j $(nproc) package && cp *.deb /root/
 
 
