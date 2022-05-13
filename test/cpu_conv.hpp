@@ -74,59 +74,110 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
     std::copy_n(in.desc.GetLengths().begin() + 2, ConvDim, in_spatial_len.begin());
     std::copy_n(wei.desc.GetLengths().begin() + 2, ConvDim, wei_spatial_len.begin());
     std::copy_n(out.desc.GetLengths().begin() + 2, ConvDim, out_spatial_len.begin());
-
+    bool IsInt8 = std::is_same<Tin, int8_t>::value;
     // f(x0, x1, xs...)
     // f1(xs...) = f(x0, x1, xs...)
     // f2(xs_array) = f1(xs...)
     auto par_ford_out_nk_spatial =
         miopen::unpacker(miopen::prepender(par_ford, out_n_len, wei_k_len))(out_spatial_len);
 
-    par_ford_out_nk_spatial(
-        [&](std::size_t out_n_id, std::size_t out_k_id, auto... out_spatial_id_pack) {
-            auto out_spatial_id = make_array(out_spatial_id_pack...);
+    if(IsInt8)
+    {
+        par_ford_out_nk_spatial(
+            [&](std::size_t out_n_id, std::size_t out_k_id, auto... out_spatial_id_pack) {
+                auto out_spatial_id = make_array(out_spatial_id_pack...);
 
-            std::size_t group_id = out_k_id / wei_k_len_per_group;
+                std::size_t group_id = out_k_id / wei_k_len_per_group;
+                int32_t acc          = 0;
 
-            double acc = 0;
+                ford(wei_c_len)([&](std::size_t wei_c_id) {
+                    std::size_t in_c_id = group_id * wei_c_len + wei_c_id;
 
-            ford(wei_c_len)([&](std::size_t wei_c_id) {
-                std::size_t in_c_id = group_id * wei_c_len + wei_c_id;
+                    auto ford_wei_spatial = miopen::unpacker(ford)(wei_spatial_len);
 
-                auto ford_wei_spatial = miopen::unpacker(ford)(wei_spatial_len);
+                    ford_wei_spatial([&](auto... wei_spatial_id_pack) {
+                        auto wei_spatial_id = make_array(wei_spatial_id_pack...);
 
-                ford_wei_spatial([&](auto... wei_spatial_id_pack) {
-                    auto wei_spatial_id = make_array(wei_spatial_id_pack...);
+                        std::array<std::ptrdiff_t, ConvDim> in_spatial_id{};
 
-                    std::array<std::ptrdiff_t, ConvDim> in_spatial_id{};
+                        for(std::size_t i = 0; i < ConvDim; ++i)
+                        {
+                            in_spatial_id[i] = out_spatial_id[i] * strides[i] +
+                                               wei_spatial_id[i] * dilations[i] - pads[i];
+                        }
 
-                    for(std::size_t i = 0; i < ConvDim; ++i)
-                    {
-                        in_spatial_id[i] = out_spatial_id[i] * strides[i] +
-                                           wei_spatial_id[i] * dilations[i] - pads[i];
-                    }
+                        bool out_of_bound = false;
+                        for(std::size_t i = 0; i < ConvDim; ++i)
+                        {
+                            out_of_bound = out_of_bound or (in_spatial_id[i] < 0 or
+                                                            in_spatial_id[i] >= in_spatial_len[i]);
+                        }
 
-                    bool out_of_bound = false;
-                    for(std::size_t i = 0; i < ConvDim; ++i)
-                    {
-                        out_of_bound = out_of_bound or (in_spatial_id[i] < 0 or
-                                                        in_spatial_id[i] >= in_spatial_len[i]);
-                    }
+                        if(!out_of_bound)
+                        {
+                            std::array<std::size_t, ConvDim + 2> in_id{};
+                            in_id[0] = out_n_id;
+                            in_id[1] = in_c_id;
+                            std::copy_n(in_spatial_id.begin(), ConvDim, in_id.begin() + 2);
 
-                    if(!out_of_bound)
-                    {
-                        std::array<std::size_t, ConvDim + 2> in_id{};
-                        in_id[0] = out_n_id;
-                        in_id[1] = in_c_id;
-                        std::copy_n(in_spatial_id.begin(), ConvDim, in_id.begin() + 2);
-
-                        acc += double(in(in_id)) *
-                               double(wei(out_k_id, wei_c_id, wei_spatial_id_pack...));
-                    }
+                            acc += static_cast<int32_t>(in(in_id)) *
+                                   static_cast<int32_t>(
+                                       wei(out_k_id, wei_c_id, wei_spatial_id_pack...));
+                        }
+                    });
                 });
-            });
 
-            out(out_n_id, out_k_id, out_spatial_id_pack...) = acc;
-        });
+                out(out_n_id, out_k_id, out_spatial_id_pack...) = acc;
+            });
+    }
+    else
+    {
+        par_ford_out_nk_spatial(
+            [&](std::size_t out_n_id, std::size_t out_k_id, auto... out_spatial_id_pack) {
+                auto out_spatial_id = make_array(out_spatial_id_pack...);
+
+                std::size_t group_id = out_k_id / wei_k_len_per_group;
+                double acc           = 0;
+
+                ford(wei_c_len)([&](std::size_t wei_c_id) {
+                    std::size_t in_c_id = group_id * wei_c_len + wei_c_id;
+
+                    auto ford_wei_spatial = miopen::unpacker(ford)(wei_spatial_len);
+
+                    ford_wei_spatial([&](auto... wei_spatial_id_pack) {
+                        auto wei_spatial_id = make_array(wei_spatial_id_pack...);
+
+                        std::array<std::ptrdiff_t, ConvDim> in_spatial_id{};
+
+                        for(std::size_t i = 0; i < ConvDim; ++i)
+                        {
+                            in_spatial_id[i] = out_spatial_id[i] * strides[i] +
+                                               wei_spatial_id[i] * dilations[i] - pads[i];
+                        }
+
+                        bool out_of_bound = false;
+                        for(std::size_t i = 0; i < ConvDim; ++i)
+                        {
+                            out_of_bound = out_of_bound or (in_spatial_id[i] < 0 or
+                                                            in_spatial_id[i] >= in_spatial_len[i]);
+                        }
+
+                        if(!out_of_bound)
+                        {
+                            std::array<std::size_t, ConvDim + 2> in_id{};
+                            in_id[0] = out_n_id;
+                            in_id[1] = in_c_id;
+                            std::copy_n(in_spatial_id.begin(), ConvDim, in_id.begin() + 2);
+
+                            acc += double(in(in_id)) *
+                                   double(wei(out_k_id, wei_c_id, wei_spatial_id_pack...));
+                        }
+                    });
+                });
+
+                out(out_n_id, out_k_id, out_spatial_id_pack...) = acc;
+            });
+    }
 }
 
 template <std::size_t ConvDim, typename Tin, typename Twei, typename Tout, typename Range>

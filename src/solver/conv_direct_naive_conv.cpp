@@ -45,7 +45,7 @@ bool ConvDirectNaiveConvIsAssemblyKernel(const ConvolutionContext& ctx)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     return (device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
-           ctx.IsLayoutDefault();
+           ctx.IsLayoutDefault() && (!ctx.IsInt8());
 }
 
 std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
@@ -79,11 +79,13 @@ std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
         MIOPEN_THROW("unsupported tensor layout");
 
     if(ctx.IsFp32())
-        kernel_name << "fp32";
+        kernel_name << "float";
     else if(ctx.IsFp16())
-        kernel_name << "fp16";
+        kernel_name << "half";
     else if(ctx.IsBfp16())
-        kernel_name << "bf16";
+        kernel_name << "ushort";
+    else if(ctx.IsInt8())
+        kernel_name << "int8_t";
     else
         MIOPEN_THROW("unsupported data type:");
 

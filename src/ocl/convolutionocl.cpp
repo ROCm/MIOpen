@@ -1395,8 +1395,8 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
 
     ValidateConvTensors(tensors);
 
-    if(wDesc.GetType() == miopenInt8)
-        MIOPEN_THROW(miopenStatusBadParm);
+    // if(wDesc.GetType() == miopenInt8)
+    //    MIOPEN_THROW(miopenStatusBadParm);
 
     static const float beta = 0.0f;
     ConvBwdCheckNumerics(handle, tensors, &beta, [&]() {
