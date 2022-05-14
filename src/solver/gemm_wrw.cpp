@@ -45,7 +45,6 @@ static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
     return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
            wDesc.GetType() == miopenHalf;
 }
-#endif
 
 static double
 SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_factor)
@@ -60,6 +59,7 @@ SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_
     else
         return 1.0;
 }
+#endif
 
 bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
                                const conv::ProblemDescription& problem) const

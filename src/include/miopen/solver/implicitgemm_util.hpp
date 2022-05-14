@@ -469,7 +469,7 @@ static inline bool is_use_amd_buffer_load_store(const ConvolutionContext& ctx)
 {
 #if WORKAROUND_MIOPEN_ISSUE_557
     const auto device_name = ctx.GetStream().GetDeviceName();
-    return !StartsWith(device_name, "gfx1030");
+    return !StartsWith(device_name, "gfx103");
 #else
     return true;
 #endif
@@ -478,7 +478,7 @@ static inline bool is_use_amd_buffer_load_store(const ConvolutionContext& ctx)
 static inline bool is_use_v_fmac_f32(const ConvolutionContext& ctx)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
-    return StartsWith(device_name, "gfx1030");
+    return StartsWith(device_name, "gfx103");
 }
 
 static inline bool support_amd_buffer_atomic_fadd(const std::string& device_name)
@@ -599,7 +599,7 @@ static inline bool IsComposableKernelSupportedHardware(const ConvolutionContext&
            StartsWith(c.GetStream().GetDeviceName(), "gfx906") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx90a") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx1030");
+           StartsWith(c.GetStream().GetDeviceName(), "gfx103");
 }
 
 // greatest common divisor, aka highest common factor
@@ -622,7 +622,7 @@ T gcd(T x, T y)
     }
     else if(x > y)
     {
-        return gcd(x % y, y);
+        return gcd(x % y, y); // NOLINT
     }
     else
     {
