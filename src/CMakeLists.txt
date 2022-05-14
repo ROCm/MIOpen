@@ -211,6 +211,8 @@ set( MIOpen_Source
     solver/gemm_wrw.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNd.cpp
+    solver/pooling/backward2d.cpp
+    solver/pooling/backwardNd.cpp
     subbuffers.cpp
     target_properties.cpp
     temp_file.cpp
@@ -482,7 +484,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/lrn_ocl.cpp
         ocl/mloNeuron.cpp
         ocl/mloNorm.cpp
-        ocl/mloPooling.cpp
         ocl/pooling_ocl.cpp
         ocl/tensorocl.cpp
         ocl/softmaxocl.cpp
