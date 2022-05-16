@@ -78,31 +78,48 @@ std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
     else
         MIOPEN_THROW("unsupported tensor layout");
 
-    if(ctx.IsFp32())
+    if(ctx.IsInputFp32())
+        kernel_name << "float_";
+    else if(ctx.IsInputFp16())
+        kernel_name << "half_";
+    else if(ctx.IsInputBfp16())
+        kernel_name << "ushort_";
+    else if(ctx.IsInputInt8())
+        kernel_name << "int8_t_";
+    else
+        MIOPEN_THROW("unsupported data type:");
+
+    if(ctx.IsAccInt32())
+        kernel_name << "int32_t_";
+    else if(ctx.IsAccFp64())
+        kernel_name << "double_";
+    else
+        MIOPEN_THROW("unsupported data type:");
+    
+    if(ctx.IsOutputFp32())
         kernel_name << "float";
-    else if(ctx.IsFp16())
+    else if(ctx.IsOutputFp16())
         kernel_name << "half";
-    else if(ctx.IsBfp16())
+    else if(ctx.IsOutputBfp16())
         kernel_name << "ushort";
-    else if(ctx.IsInt8())
+    else if(ctx.IsOutputInt8())
         kernel_name << "int8_t";
+    else if(ctx.IsOutputInt32())
+        kernel_name << "int32_t";
     else
         MIOPEN_THROW("unsupported data type:");
 
     return kernel_name.str();
 }
 
-std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx)
+std::string ConvDirectNaiveConvKernelFile()
 {
-    if(ConvDirectNaiveConvIsAssemblyKernel(ctx))
-        return "naive_conv_gcn.s";
-    else
-        return "naive_conv.cpp";
+    return "naive_conv.cpp";
 }
 
 std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
 {
-    std::string filename = ConvDirectNaiveConvKernelFile(ctx);
+    std::string filename = ConvDirectNaiveConvKernelFile();
     if(miopen::EndsWith(filename, ".s"))
     {
         std::ostringstream options;

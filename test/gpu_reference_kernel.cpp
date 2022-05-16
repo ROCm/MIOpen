@@ -245,8 +245,7 @@ void rand_tensor_integer(tensor<T>& t, int max = RAND_INTEGER_MAX, int min = RAN
 {
     // use integer to random.
     for(int i = 0; i < t.data.size(); i++)
-        t[i] = 1;
-    // t[i] = static_cast<T>(gen_rand_integer() % (max - min) + min);
+        t[i] = static_cast<T>(gen_rand_integer() % (max - min) + min);
 }
 
 template <typename T>

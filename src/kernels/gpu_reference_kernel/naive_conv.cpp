@@ -96,10 +96,10 @@ inline __device__ __host__ int8_t cast_to(const int32_t& val)
     return static_cast<int8_t>(val & 0xff);
 }
 
-template <typename input_data_t, typename acc_data_t, typename output_data_t>
-inline __device__ void naive_conv_fwd_nchw(const input_data_t* __restrict__ p_in,
-                                           const input_data_t* __restrict__ p_wei,
-                                           output_data_t* __restrict__ p_out,
+template <typename src_data_t, typename acc_data_t, typename dst_data_t>
+inline __device__ void naive_conv_fwd_nchw(const src_data_t* __restrict__ p_in,
+                                           const src_data_t* __restrict__ p_wei,
+                                           dst_data_t* __restrict__ p_out,
                                            int hi,
                                            int wi,
                                            int n,
@@ -164,21 +164,21 @@ inline __device__ void naive_conv_fwd_nchw(const input_data_t* __restrict__ p_in
                                        static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
                         size_t f_idx = static_cast<size_t>(ic) * fy * fx +
                                        static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
-                        value += cast_to<input_data_t, acc_data_t>(p_in[i_idx]) *
-                                 cast_to<input_data_t, acc_data_t>(p_wei[f_idx]);
+                        value += cast_to<src_data_t, acc_data_t>(p_in[i_idx]) *
+                                 cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
                     }
                 }
             }
         }
         size_t o_idx = static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
-        p_out[o_idx] = cast_to<acc_data_t, output_data_t>(value);
+        p_out[o_idx] = cast_to<acc_data_t, dst_data_t>(value);
     }
 }
 
-template <typename input_data_t, typename acc_data_t, typename output_data_t>
-inline __device__ void naive_conv_bwd_nchw(input_data_t* __restrict__ p_in,
-                                           const input_data_t* __restrict__ p_wei,
-                                           const input_data_t* __restrict__ p_out,
+template <typename src_data_t, typename acc_data_t, typename dst_data_t>
+inline __device__ void naive_conv_bwd_nchw(dst_data_t* __restrict__ p_in,
+                                           const src_data_t* __restrict__ p_wei,
+                                           const src_data_t* __restrict__ p_out,
                                            int hi,
                                            int wi,
                                            int n,
@@ -251,21 +251,21 @@ inline __device__ void naive_conv_bwd_nchw(input_data_t* __restrict__ p_in,
                                        static_cast<size_t>(cur_wo);
                         size_t f_idx = static_cast<size_t>(ik) * c_per_group * fy * fx +
                                        static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
-                        value += cast_to<input_data_t, acc_data_t>(p_out[o_idx]) *
-                                 cast_to<input_data_t, acc_data_t>(p_wei[f_idx]);
+                        value += cast_to<src_data_t, acc_data_t>(p_out[o_idx]) *
+                                 cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
                     }
                 }
             }
         }
         size_t i_idx = static_cast<size_t>(ihi) * wi + static_cast<size_t>(iwi);
-        p_in[i_idx]  = cast_to<acc_data_t, output_data_t>(value);
+        p_in[i_idx]  = cast_to<acc_data_t, dst_data_t>(value);
     }
 }
 
-template <typename input_data_t, typename acc_data_t, typename output_data_t>
-inline __device__ void naive_conv_wrw_nchw(const input_data_t* __restrict__ p_in,
-                                           input_data_t* __restrict__ p_wei,
-                                           const input_data_t* __restrict__ p_out,
+template <typename src_data_t, typename acc_data_t, typename dst_data_t>
+inline __device__ void naive_conv_wrw_nchw(const src_data_t* __restrict__ p_in,
+                                           dst_data_t* __restrict__ p_wei,
+                                           const src_data_t* __restrict__ p_out,
                                            int hi,
                                            int wi,
                                            int n,
@@ -332,23 +332,23 @@ inline __device__ void naive_conv_wrw_nchw(const input_data_t* __restrict__ p_in
                                        static_cast<size_t>(cur_h) * wi + static_cast<size_t>(cur_w);
                         size_t o_idx = static_cast<size_t>(in) * k * ho * wo +
                                        static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
-                        value += cast_to<input_data_t, acc_data_t>(p_in[i_idx]) *
-                                 cast_to<input_data_t, acc_data_t>(p_out[o_idx]);
+                        value += cast_to<src_data_t, acc_data_t>(p_in[i_idx]) *
+                                 cast_to<src_data_t, acc_data_t>(p_out[o_idx]);
                     }
                 }
             }
         }
         size_t f_idx = static_cast<size_t>(ic) * fy * fx + static_cast<size_t>(iy) * fx +
                        static_cast<size_t>(ix);
-        p_wei[f_idx] = cast_to<acc_data_t, output_data_t>(value);
+        p_wei[f_idx] = cast_to<acc_data_t, dst_data_t>(value);
     }
 }
 
 // design block_size 256
-template <typename input_data_t, typename acc_data_t, typename output_data_t>
-inline __device__ void naive_conv_fwd_ncdhw(const input_data_t* __restrict__ p_in,
-                                            const input_data_t* __restrict__ p_wei,
-                                            output_data_t* __restrict__ p_out,
+template <typename src_data_t, typename acc_data_t, typename dst_data_t>
+inline __device__ void naive_conv_fwd_ncdhw(const src_data_t* __restrict__ p_in,
+                                            const src_data_t* __restrict__ p_wei,
+                                            dst_data_t* __restrict__ p_out,
                                             int di,
                                             int hi,
                                             int wi,
@@ -433,8 +433,8 @@ inline __device__ void naive_conv_fwd_ncdhw(const input_data_t* __restrict__ p_i
                             size_t f_idx = static_cast<size_t>(ic) * fz * fy * fx +
                                            static_cast<size_t>(iz) * fy * fx +
                                            static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
-                            value += cast_to<input_data_t, acc_data_t>(p_in[i_idx]) *
-                                     cast_to<input_data_t, acc_data_t>(p_wei[f_idx]);
+                            value += cast_to<src_data_t, acc_data_t>(p_in[i_idx]) *
+                                     cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
                         }
                     }
                 }
@@ -442,14 +442,14 @@ inline __device__ void naive_conv_fwd_ncdhw(const input_data_t* __restrict__ p_i
         }
         size_t o_idx = static_cast<size_t>(ido) * ho * wo + static_cast<size_t>(iho) * wo +
                        static_cast<size_t>(iwo);
-        p_out[o_idx] = cast_to<acc_data_t, output_data_t>(value);
+        p_out[o_idx] = cast_to<acc_data_t, dst_data_t>(value);
     }
 }
 
-template <typename input_data_t, typename acc_data_t, typename output_data_t>
-inline __device__ void naive_conv_bwd_ncdhw(input_data_t* __restrict__ p_in,
-                                            const input_data_t* __restrict__ p_wei,
-                                            const input_data_t* __restrict__ p_out,
+template <typename src_data_t, typename acc_data_t, typename dst_data_t>
+inline __device__ void naive_conv_bwd_ncdhw(dst_data_t* __restrict__ p_in,
+                                            const src_data_t* __restrict__ p_wei,
+                                            const src_data_t* __restrict__ p_out,
                                             int di,
                                             int hi,
                                             int wi,
@@ -543,8 +543,8 @@ inline __device__ void naive_conv_bwd_ncdhw(input_data_t* __restrict__ p_in,
                             size_t f_idx = static_cast<size_t>(ik) * c_per_group * fz * fy * fx +
                                            static_cast<size_t>(iz) * fy * fx +
                                            static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
-                            value += cast_to<input_data_t, acc_data_t>(p_out[o_idx]) *
-                                     cast_to<input_data_t, acc_data_t>(p_wei[f_idx]);
+                            value += cast_to<src_data_t, acc_data_t>(p_out[o_idx]) *
+                                     cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
                         }
                     }
                 }
@@ -552,14 +552,14 @@ inline __device__ void naive_conv_bwd_ncdhw(input_data_t* __restrict__ p_in,
         }
         size_t i_idx = static_cast<size_t>(idi) * hi * wi + static_cast<size_t>(ihi) * wi +
                        static_cast<size_t>(iwi);
-        p_in[i_idx] = cast_to<acc_data_t, output_data_t>(value);
+        p_in[i_idx] = cast_to<acc_data_t, dst_data_t>(value);
     }
 }
 
-template <typename input_data_t, typename acc_data_t, typename output_data_t>
-inline __device__ void naive_conv_wrw_ncdhw(const input_data_t* __restrict__ p_in,
-                                            input_data_t* __restrict__ p_wei,
-                                            const input_data_t* __restrict__ p_out,
+template <typename src_data_t, typename acc_data_t, typename dst_data_t>
+inline __device__ void naive_conv_wrw_ncdhw(const src_data_t* __restrict__ p_in,
+                                            dst_data_t* __restrict__ p_wei,
+                                            const src_data_t* __restrict__ p_out,
                                             int di,
                                             int hi,
                                             int wi,
@@ -643,8 +643,8 @@ inline __device__ void naive_conv_wrw_ncdhw(const input_data_t* __restrict__ p_i
                             size_t o_idx = static_cast<size_t>(in) * k * do_ * ho * wo +
                                            static_cast<size_t>(ido) * ho * wo +
                                            static_cast<size_t>(iho) * wo + static_cast<size_t>(iwo);
-                            value += cast_to<input_data_t, acc_data_t>(p_in[i_idx]) *
-                                     cast_to<input_data_t, acc_data_t>(p_out[o_idx]);
+                            value += cast_to<src_data_t, acc_data_t>(p_in[i_idx]) *
+                                     cast_to<src_data_t, acc_data_t>(p_out[o_idx]);
                         }
                     }
                 }
@@ -652,16 +652,16 @@ inline __device__ void naive_conv_wrw_ncdhw(const input_data_t* __restrict__ p_i
         }
         size_t f_idx = static_cast<size_t>(ic) * fz * fy * fx + static_cast<size_t>(iz) * fy * fx +
                        static_cast<size_t>(iy) * fx + static_cast<size_t>(ix);
-        p_wei[f_idx] = cast_to<acc_data_t, output_data_t>(value);
+        p_wei[f_idx] = cast_to<acc_data_t, dst_data_t>(value);
     }
 }
 
 /***************************** nhwc *****************************/
 // design block_size 256
-template <typename input_data_t, typename acc_data_t, typename output_data_t>
-inline __device__ void naive_conv_fwd_nhwc(const input_data_t* __restrict__ p_in,
-                                           const input_data_t* __restrict__ p_wei,
-                                           output_data_t* __restrict__ p_out,
+template <typename src_data_t, typename acc_data_t, typename dst_data_t>
+inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
+                                           const src_data_t* __restrict__ p_wei,
+                                           dst_data_t* __restrict__ p_out,
                                            int hi,
                                            int wi,
                                            int n,
@@ -728,21 +728,21 @@ inline __device__ void naive_conv_fwd_nhwc(const input_data_t* __restrict__ p_in
                                        static_cast<size_t>(iy) * fx * c_per_group +
                                        static_cast<size_t>(ix) * c_per_group +
                                        static_cast<size_t>(ic);
-                        value += cast_to<input_data_t, acc_data_t>(p_in[i_idx]) *
-                                 cast_to<input_data_t, acc_data_t>(p_wei[f_idx]);
+                        value += cast_to<src_data_t, acc_data_t>(p_in[i_idx]) *
+                                 cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
                     }
                 }
             }
         }
         size_t o_idx = static_cast<size_t>(iwo) * k + static_cast<size_t>(ik);
-        p_out[o_idx] = cast_to<acc_data_t, output_data_t>(value);
+        p_out[o_idx] = cast_to<acc_data_t, dst_data_t>(value);
     }
 }
 
-template <typename input_data_t, typename acc_data_t, typename output_data_t>
-inline __device__ void naive_conv_bwd_nhwc(input_data_t* __restrict__ p_in,
-                                           const input_data_t* __restrict__ p_wei,
-                                           const input_data_t* __restrict__ p_out,
+template <typename src_data_t, typename acc_data_t, typename dst_data_t>
+inline __device__ void naive_conv_bwd_nhwc(dst_data_t* __restrict__ p_in,
+                                           const src_data_t* __restrict__ p_wei,
+                                           const src_data_t* __restrict__ p_out,
                                            int hi,
                                            int wi,
                                            int n,
@@ -815,21 +815,21 @@ inline __device__ void naive_conv_bwd_nhwc(input_data_t* __restrict__ p_in,
                                        static_cast<size_t>(iy) * fx * c_per_group +
                                        static_cast<size_t>(ix) * c_per_group +
                                        static_cast<size_t>(ic);
-                        value += cast_to<input_data_t, acc_data_t>(p_out[o_idx]) *
-                                 cast_to<input_data_t, acc_data_t>(p_wei[f_idx]);
+                        value += cast_to<src_data_t, acc_data_t>(p_out[o_idx]) *
+                                 cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
                     }
                 }
             }
         }
         size_t i_idx = static_cast<size_t>(iwi) * c + static_cast<size_t>(ic);
-        p_in[i_idx]  = cast_to<acc_data_t, output_data_t>(value);
+        p_in[i_idx]  = cast_to<acc_data_t, dst_data_t>(value);
     }
 }
 
-template <typename input_data_t, typename acc_data_t, typename output_data_t>
-inline __device__ void naive_conv_wrw_nhwc(const input_data_t* __restrict__ p_in,
-                                           input_data_t* __restrict__ p_wei,
-                                           const input_data_t* __restrict__ p_out,
+template <typename src_data_t, typename acc_data_t, typename dst_data_t>
+inline __device__ void naive_conv_wrw_nhwc(const src_data_t* __restrict__ p_in,
+                                           dst_data_t* __restrict__ p_wei,
+                                           const src_data_t* __restrict__ p_out,
                                            int hi,
                                            int wi,
                                            int n,
@@ -897,23 +897,23 @@ inline __device__ void naive_conv_wrw_nhwc(const input_data_t* __restrict__ p_in
                         size_t o_idx = static_cast<size_t>(in) * ho * wo * k +
                                        static_cast<size_t>(iho) * wo * k +
                                        static_cast<size_t>(iwo) * k;
-                        value += cast_to<input_data_t, acc_data_t>(p_in[i_idx]) *
-                                 cast_to<input_data_t, acc_data_t>(p_out[o_idx]);
+                        value += cast_to<src_data_t, acc_data_t>(p_in[i_idx]) *
+                                 cast_to<src_data_t, acc_data_t>(p_out[o_idx]);
                     }
                 }
             }
         }
         size_t f_idx = static_cast<size_t>(iy) * fx * c_per_group +
                        static_cast<size_t>(ix) * c_per_group + static_cast<size_t>(ic);
-        p_wei[f_idx] = cast_to<acc_data_t, output_data_t>(value);
+        p_wei[f_idx] = cast_to<acc_data_t, dst_data_t>(value);
     }
 }
 
 // design block_size 256
-template <typename input_data_t, typename acc_data_t, typename output_data_t>
-inline __device__ void naive_conv_fwd_ndhwc(const input_data_t* __restrict__ p_in,
-                                            const input_data_t* __restrict__ p_wei,
-                                            output_data_t* __restrict__ p_out,
+template <typename src_data_t, typename acc_data_t, typename dst_data_t>
+inline __device__ void naive_conv_fwd_ndhwc(const src_data_t* __restrict__ p_in,
+                                            const src_data_t* __restrict__ p_wei,
+                                            dst_data_t* __restrict__ p_out,
                                             int di,
                                             int hi,
                                             int wi,
@@ -995,8 +995,8 @@ inline __device__ void naive_conv_fwd_ndhwc(const input_data_t* __restrict__ p_i
                                            static_cast<size_t>(iy) * fx * c_per_group +
                                            static_cast<size_t>(ix) * c_per_group +
                                            static_cast<size_t>(ic);
-                            value += cast_to<input_data_t, acc_data_t>(p_in[i_idx]) *
-                                     cast_to<input_data_t, acc_data_t>(p_wei[f_idx]);
+                            value += cast_to<src_data_t, acc_data_t>(p_in[i_idx]) *
+                                     cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
                         }
                     }
                 }
@@ -1004,13 +1004,13 @@ inline __device__ void naive_conv_fwd_ndhwc(const input_data_t* __restrict__ p_i
         }
         size_t o_idx = static_cast<size_t>(iho) * wo * k + static_cast<size_t>(iwo) * k +
                        static_cast<size_t>(ik);
-        p_out[o_idx] = cast_to<acc_data_t, output_data_t>(value);
+        p_out[o_idx] = cast_to<acc_data_t, dst_data_t>(value);
     }
 }
-template <typename input_data_t, typename acc_data_t, typename output_data_t>
-inline __device__ void naive_conv_bwd_ndhwc(input_data_t* __restrict__ p_in,
-                                            const input_data_t* __restrict__ p_wei,
-                                            const input_data_t* __restrict__ p_out,
+template <typename src_data_t, typename acc_data_t, typename dst_data_t>
+inline __device__ void naive_conv_bwd_ndhwc(dst_data_t* __restrict__ p_in,
+                                            const src_data_t* __restrict__ p_wei,
+                                            const src_data_t* __restrict__ p_out,
                                             int di,
                                             int hi,
                                             int wi,
@@ -1102,8 +1102,8 @@ inline __device__ void naive_conv_bwd_ndhwc(input_data_t* __restrict__ p_in,
                                            static_cast<size_t>(iy) * fx * c_per_group +
                                            static_cast<size_t>(ix) * c_per_group +
                                            static_cast<size_t>(ic);
-                            value += cast_to<input_data_t, acc_data_t>(p_out[o_idx]) *
-                                     cast_to<input_data_t, acc_data_t>(p_wei[f_idx]);
+                            value += cast_to<src_data_t, acc_data_t>(p_out[o_idx]) *
+                                     cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
                         }
                     }
                 }
@@ -1111,14 +1111,14 @@ inline __device__ void naive_conv_bwd_ndhwc(input_data_t* __restrict__ p_in,
         }
         size_t i_idx = static_cast<size_t>(ihi) * wi * c + static_cast<size_t>(iwi) * c +
                        static_cast<size_t>(ic);
-        p_in[i_idx] = cast_to<acc_data_t, output_data_t>(value);
+        p_in[i_idx] = cast_to<acc_data_t, dst_data_t>(value);
     }
 }
 
-template <typename input_data_t, typename acc_data_t, typename output_data_t>
-inline __device__ void naive_conv_wrw_ndhwc(const input_data_t* __restrict__ p_in,
-                                            input_data_t* __restrict__ p_wei,
-                                            const input_data_t* __restrict__ p_out,
+template <typename src_data_t, typename acc_data_t, typename dst_data_t>
+inline __device__ void naive_conv_wrw_ndhwc(const src_data_t* __restrict__ p_in,
+                                            dst_data_t* __restrict__ p_wei,
+                                            const src_data_t* __restrict__ p_out,
                                             int di,
                                             int hi,
                                             int wi,
@@ -1201,8 +1201,8 @@ inline __device__ void naive_conv_wrw_ndhwc(const input_data_t* __restrict__ p_i
                                            static_cast<size_t>(ido) * ho * wo * k +
                                            static_cast<size_t>(iho) * wo * k +
                                            static_cast<size_t>(iwo) * k;
-                            value += cast_to<input_data_t, acc_data_t>(p_in[i_idx]) *
-                                     cast_to<input_data_t, acc_data_t>(p_out[o_idx]);
+                            value += cast_to<src_data_t, acc_data_t>(p_in[i_idx]) *
+                                     cast_to<src_data_t, acc_data_t>(p_out[o_idx]);
                         }
                     }
                 }
@@ -1211,16 +1211,16 @@ inline __device__ void naive_conv_wrw_ndhwc(const input_data_t* __restrict__ p_i
         size_t f_idx = static_cast<size_t>(iz) * fy * fx * c_per_group +
                        static_cast<size_t>(iy) * fx * c_per_group +
                        static_cast<size_t>(ix) * c_per_group + static_cast<size_t>(ic);
-        p_wei[f_idx] = cast_to<acc_data_t, output_data_t>(value);
+        p_wei[f_idx] = cast_to<acc_data_t, dst_data_t>(value);
     }
 }
 
-#define DEFINE_2D_NAIVE_CONV_KERNEL(                                                            \
-    conv_direction, tensor_layout, input_data_t, acc_data_t, output_data_t)                     \
-    extern "C" __global__ void naive_conv_##conv_direction##_##tensor_layout##_##input_data_t(  \
-        input_data_t* __restrict__ p_in,                                                        \
-        input_data_t* __restrict__ p_wei,                                                       \
-        output_data_t* __restrict__ p_out,                                                      \
+#define DEFINE_2D_NAIVE_FWD_CONV_KERNEL(                                                            \
+    tensor_layout, src_data_t, acc_data_t, dst_data_t)                     \
+    extern "C" __global__ void naive_conv_fwd_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(  \
+        src_data_t* __restrict__ p_in,                                                        \
+        src_data_t* __restrict__ p_wei,                                                       \
+        dst_data_t* __restrict__ p_out,                                                      \
         int hi,                                                                                 \
         int wi,                                                                                 \
         int n,                                                                                  \
@@ -1238,7 +1238,7 @@ inline __device__ void naive_conv_wrw_ndhwc(const input_data_t* __restrict__ p_i
         int fx,                                                                                 \
         int group)                                                                              \
     {                                                                                           \
-        naive_conv_##conv_direction##_##tensor_layout<input_data_t, acc_data_t, output_data_t>( \
+        naive_conv_fwd_##tensor_layout<src_data_t, acc_data_t, dst_data_t>( \
             p_in,                                                                               \
             p_wei,                                                                              \
             p_out,                                                                              \
@@ -1260,12 +1260,102 @@ inline __device__ void naive_conv_wrw_ndhwc(const input_data_t* __restrict__ p_i
             group);                                                                             \
     }
 
-#define DEFINE_3D_NAIVE_CONV_KERNEL(                                                            \
-    conv_direction, tensor_layout, input_data_t, acc_data_t, output_data_t)                     \
-    extern "C" __global__ void naive_conv_##conv_direction##_##tensor_layout##_##input_data_t(  \
-        input_data_t* __restrict__ p_in,                                                        \
-        input_data_t* __restrict__ p_wei,                                                       \
-        output_data_t* __restrict__ p_out,                                                      \
+#define DEFINE_2D_NAIVE_BWD_CONV_KERNEL(                                                            \
+    tensor_layout, src_data_t, acc_data_t, dst_data_t)                     \
+    extern "C" __global__ void naive_conv_bwd_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(  \
+        dst_data_t* __restrict__ p_in,                                                        \
+        src_data_t* __restrict__ p_wei,                                                       \
+        src_data_t* __restrict__ p_out,                                                      \
+        int hi,                                                                                 \
+        int wi,                                                                                 \
+        int n,                                                                                  \
+        int k_per_group,                                                                        \
+        int c_per_group,                                                                        \
+        int ho,                                                                                 \
+        int wo,                                                                                 \
+        int sy,                                                                                 \
+        int sx,                                                                                 \
+        int dy,                                                                                 \
+        int dx,                                                                                 \
+        int py,                                                                                 \
+        int px,                                                                                 \
+        int fy,                                                                                 \
+        int fx,                                                                                 \
+        int group)                                                                              \
+    {                                                                                           \
+        naive_conv_bwd_##tensor_layout<src_data_t, acc_data_t, dst_data_t>( \
+            p_in,                                                                               \
+            p_wei,                                                                              \
+            p_out,                                                                              \
+            hi,                                                                                 \
+            wi,                                                                                 \
+            n,                                                                                  \
+            k_per_group,                                                                        \
+            c_per_group,                                                                        \
+            ho,                                                                                 \
+            wo,                                                                                 \
+            sy,                                                                                 \
+            sx,                                                                                 \
+            dy,                                                                                 \
+            dx,                                                                                 \
+            py,                                                                                 \
+            px,                                                                                 \
+            fy,                                                                                 \
+            fx,                                                                                 \
+            group);                                                                             \
+    }
+
+#define DEFINE_2D_NAIVE_WRW_CONV_KERNEL(                                                            \
+    tensor_layout, src_data_t, acc_data_t, dst_data_t)                     \
+    extern "C" __global__ void naive_conv_wrw_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(  \
+        src_data_t* __restrict__ p_in,                                                        \
+        dst_data_t* __restrict__ p_wei,                                                       \
+        src_data_t* __restrict__ p_out,                                                      \
+        int hi,                                                                                 \
+        int wi,                                                                                 \
+        int n,                                                                                  \
+        int k_per_group,                                                                        \
+        int c_per_group,                                                                        \
+        int ho,                                                                                 \
+        int wo,                                                                                 \
+        int sy,                                                                                 \
+        int sx,                                                                                 \
+        int dy,                                                                                 \
+        int dx,                                                                                 \
+        int py,                                                                                 \
+        int px,                                                                                 \
+        int fy,                                                                                 \
+        int fx,                                                                                 \
+        int group)                                                                              \
+    {                                                                                           \
+        naive_conv_wrw_##tensor_layout<src_data_t, acc_data_t, dst_data_t>( \
+            p_in,                                                                               \
+            p_wei,                                                                              \
+            p_out,                                                                              \
+            hi,                                                                                 \
+            wi,                                                                                 \
+            n,                                                                                  \
+            k_per_group,                                                                        \
+            c_per_group,                                                                        \
+            ho,                                                                                 \
+            wo,                                                                                 \
+            sy,                                                                                 \
+            sx,                                                                                 \
+            dy,                                                                                 \
+            dx,                                                                                 \
+            py,                                                                                 \
+            px,                                                                                 \
+            fy,                                                                                 \
+            fx,                                                                                 \
+            group);                                                                             \
+    }
+
+#define DEFINE_3D_NAIVE_FWD_CONV_KERNEL(                                                            \
+    tensor_layout, src_data_t, acc_data_t, dst_data_t)                     \
+    extern "C" __global__ void naive_conv_fwd_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(  \
+        src_data_t* __restrict__ p_in,                                                        \
+        src_data_t* __restrict__ p_wei,                                                       \
+        dst_data_t* __restrict__ p_out,                                                      \
         int di,                                                                                 \
         int hi,                                                                                 \
         int wi,                                                                                 \
@@ -1289,7 +1379,7 @@ inline __device__ void naive_conv_wrw_ndhwc(const input_data_t* __restrict__ p_i
         int fx,                                                                                 \
         int group)                                                                              \
     {                                                                                           \
-        naive_conv_##conv_direction##_##tensor_layout<input_data_t, acc_data_t, output_data_t>( \
+        naive_conv_fwd_##tensor_layout<src_data_t, acc_data_t, dst_data_t>( \
             p_in,                                                                               \
             p_wei,                                                                              \
             p_out,                                                                              \
@@ -1317,44 +1407,162 @@ inline __device__ void naive_conv_wrw_ndhwc(const input_data_t* __restrict__ p_i
             group);                                                                             \
     }
 
-DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nchw, float, double, float)
-DEFINE_2D_NAIVE_CONV_KERNEL(bwd, nchw, float, double, float)
-DEFINE_2D_NAIVE_CONV_KERNEL(wrw, nchw, float, double, float)
-DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nchw, half, double, half)
-DEFINE_2D_NAIVE_CONV_KERNEL(bwd, nchw, half, double, half)
-DEFINE_2D_NAIVE_CONV_KERNEL(wrw, nchw, half, double, half)
-DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nchw, ushort, double, ushort)
-DEFINE_2D_NAIVE_CONV_KERNEL(bwd, nchw, ushort, double, ushort)
-DEFINE_2D_NAIVE_CONV_KERNEL(wrw, nchw, ushort, double, ushort)
-DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nchw, int8_t, int32_t, int32_t)
-DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nhwc, float, double, float)
-DEFINE_2D_NAIVE_CONV_KERNEL(bwd, nhwc, float, double, float)
-DEFINE_2D_NAIVE_CONV_KERNEL(wrw, nhwc, float, double, float)
-DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nhwc, half, double, half)
-DEFINE_2D_NAIVE_CONV_KERNEL(bwd, nhwc, half, double, half)
-DEFINE_2D_NAIVE_CONV_KERNEL(wrw, nhwc, half, double, half)
-DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nhwc, ushort, double, ushort)
-DEFINE_2D_NAIVE_CONV_KERNEL(bwd, nhwc, ushort, double, ushort)
-DEFINE_2D_NAIVE_CONV_KERNEL(wrw, nhwc, ushort, double, ushort)
-DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nhwc, int8_t, int32_t, int32_t)
+#define DEFINE_3D_NAIVE_BWD_CONV_KERNEL(                                                            \
+    tensor_layout, src_data_t, acc_data_t, dst_data_t)                     \
+    extern "C" __global__ void naive_conv_bwd_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(  \
+        dst_data_t* __restrict__ p_in,                                                        \
+        src_data_t* __restrict__ p_wei,                                                       \
+        src_data_t* __restrict__ p_out,                                                      \
+        int di,                                                                                 \
+        int hi,                                                                                 \
+        int wi,                                                                                 \
+        int n,                                                                                  \
+        int k_per_group,                                                                        \
+        int c_per_group,                                                                        \
+        int do_,                                                                                \
+        int ho,                                                                                 \
+        int wo,                                                                                 \
+        int sz,                                                                                 \
+        int sy,                                                                                 \
+        int sx,                                                                                 \
+        int dz,                                                                                 \
+        int dy,                                                                                 \
+        int dx,                                                                                 \
+        int pz,                                                                                 \
+        int py,                                                                                 \
+        int px,                                                                                 \
+        int fz,                                                                                 \
+        int fy,                                                                                 \
+        int fx,                                                                                 \
+        int group)                                                                              \
+    {                                                                                           \
+        naive_conv_bwd_##tensor_layout<src_data_t, acc_data_t, dst_data_t>( \
+            p_in,                                                                               \
+            p_wei,                                                                              \
+            p_out,                                                                              \
+            di,                                                                                 \
+            hi,                                                                                 \
+            wi,                                                                                 \
+            n,                                                                                  \
+            k_per_group,                                                                        \
+            c_per_group,                                                                        \
+            do_,                                                                                \
+            ho,                                                                                 \
+            wo,                                                                                 \
+            sz,                                                                                 \
+            sy,                                                                                 \
+            sx,                                                                                 \
+            dz,                                                                                 \
+            dy,                                                                                 \
+            dx,                                                                                 \
+            pz,                                                                                 \
+            py,                                                                                 \
+            px,                                                                                 \
+            fz,                                                                                 \
+            fy,                                                                                 \
+            fx,                                                                                 \
+            group);                                                                             \
+    }
 
-DEFINE_3D_NAIVE_CONV_KERNEL(fwd, ncdhw, float, double, float)
-DEFINE_3D_NAIVE_CONV_KERNEL(bwd, ncdhw, float, double, float)
-DEFINE_3D_NAIVE_CONV_KERNEL(wrw, ncdhw, float, double, float)
-DEFINE_3D_NAIVE_CONV_KERNEL(fwd, ncdhw, half, double, half)
-DEFINE_3D_NAIVE_CONV_KERNEL(bwd, ncdhw, half, double, half)
-DEFINE_3D_NAIVE_CONV_KERNEL(wrw, ncdhw, half, double, half)
-DEFINE_3D_NAIVE_CONV_KERNEL(fwd, ncdhw, ushort, double, ushort)
-DEFINE_3D_NAIVE_CONV_KERNEL(bwd, ncdhw, ushort, double, ushort)
-DEFINE_3D_NAIVE_CONV_KERNEL(wrw, ncdhw, ushort, double, ushort)
-DEFINE_3D_NAIVE_CONV_KERNEL(fwd, ncdhw, int8_t, int32_t, int32_t)
-DEFINE_3D_NAIVE_CONV_KERNEL(fwd, ndhwc, float, double, float)
-DEFINE_3D_NAIVE_CONV_KERNEL(bwd, ndhwc, float, double, float)
-DEFINE_3D_NAIVE_CONV_KERNEL(wrw, ndhwc, float, double, float)
-DEFINE_3D_NAIVE_CONV_KERNEL(fwd, ndhwc, half, double, half)
-DEFINE_3D_NAIVE_CONV_KERNEL(bwd, ndhwc, half, double, half)
-DEFINE_3D_NAIVE_CONV_KERNEL(wrw, ndhwc, half, double, half)
-DEFINE_3D_NAIVE_CONV_KERNEL(fwd, ndhwc, ushort, double, ushort)
-DEFINE_3D_NAIVE_CONV_KERNEL(bwd, ndhwc, ushort, double, ushort)
-DEFINE_3D_NAIVE_CONV_KERNEL(wrw, ndhwc, ushort, double, ushort)
-DEFINE_3D_NAIVE_CONV_KERNEL(fwd, ndhwc, int8_t, int32_t, int32_t)
+#define DEFINE_3D_NAIVE_WRW_CONV_KERNEL(                                                            \
+    tensor_layout, src_data_t, acc_data_t, dst_data_t)                     \
+    extern "C" __global__ void naive_conv_wrw_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(  \
+        src_data_t* __restrict__ p_in,                                                        \
+        dst_data_t* __restrict__ p_wei,                                                       \
+        src_data_t* __restrict__ p_out,                                                      \
+        int di,                                                                                 \
+        int hi,                                                                                 \
+        int wi,                                                                                 \
+        int n,                                                                                  \
+        int k_per_group,                                                                        \
+        int c_per_group,                                                                        \
+        int do_,                                                                                \
+        int ho,                                                                                 \
+        int wo,                                                                                 \
+        int sz,                                                                                 \
+        int sy,                                                                                 \
+        int sx,                                                                                 \
+        int dz,                                                                                 \
+        int dy,                                                                                 \
+        int dx,                                                                                 \
+        int pz,                                                                                 \
+        int py,                                                                                 \
+        int px,                                                                                 \
+        int fz,                                                                                 \
+        int fy,                                                                                 \
+        int fx,                                                                                 \
+        int group)                                                                              \
+    {                                                                                           \
+        naive_conv_wrw_##tensor_layout<src_data_t, acc_data_t, dst_data_t>( \
+            p_in,                                                                               \
+            p_wei,                                                                              \
+            p_out,                                                                              \
+            di,                                                                                 \
+            hi,                                                                                 \
+            wi,                                                                                 \
+            n,                                                                                  \
+            k_per_group,                                                                        \
+            c_per_group,                                                                        \
+            do_,                                                                                \
+            ho,                                                                                 \
+            wo,                                                                                 \
+            sz,                                                                                 \
+            sy,                                                                                 \
+            sx,                                                                                 \
+            dz,                                                                                 \
+            dy,                                                                                 \
+            dx,                                                                                 \
+            pz,                                                                                 \
+            py,                                                                                 \
+            px,                                                                                 \
+            fz,                                                                                 \
+            fy,                                                                                 \
+            fx,                                                                                 \
+            group);                                                                             \
+    }
+
+DEFINE_2D_NAIVE_FWD_CONV_KERNEL(nchw, float, double, float)
+DEFINE_2D_NAIVE_FWD_CONV_KERNEL(nchw, half, double, half)
+DEFINE_2D_NAIVE_FWD_CONV_KERNEL(nchw, ushort, double, ushort)
+DEFINE_2D_NAIVE_FWD_CONV_KERNEL(nchw, int8_t, int32_t, int32_t)
+DEFINE_2D_NAIVE_FWD_CONV_KERNEL(nhwc, float, double, float)
+DEFINE_2D_NAIVE_FWD_CONV_KERNEL(nhwc, half, double, half)
+DEFINE_2D_NAIVE_FWD_CONV_KERNEL(nhwc, ushort, double, ushort)
+DEFINE_2D_NAIVE_FWD_CONV_KERNEL(nhwc, int8_t, int32_t, int32_t)
+
+DEFINE_2D_NAIVE_BWD_CONV_KERNEL(nchw, float, double, float)
+DEFINE_2D_NAIVE_BWD_CONV_KERNEL(nchw, half, double, half)
+DEFINE_2D_NAIVE_BWD_CONV_KERNEL(nchw, ushort, double, ushort)
+DEFINE_2D_NAIVE_BWD_CONV_KERNEL(nhwc, float, double, float)
+DEFINE_2D_NAIVE_BWD_CONV_KERNEL(nhwc, half, double, half)
+DEFINE_2D_NAIVE_BWD_CONV_KERNEL(nhwc, ushort, double, ushort)
+
+DEFINE_2D_NAIVE_WRW_CONV_KERNEL(nchw, float, double, float)
+DEFINE_2D_NAIVE_WRW_CONV_KERNEL(nchw, half, double, half)
+DEFINE_2D_NAIVE_WRW_CONV_KERNEL(nchw, ushort, double, ushort)
+DEFINE_2D_NAIVE_WRW_CONV_KERNEL(nhwc, float, double, float)
+DEFINE_2D_NAIVE_WRW_CONV_KERNEL(nhwc, half, double, half)
+DEFINE_2D_NAIVE_WRW_CONV_KERNEL(nhwc, ushort, double, ushort)
+
+DEFINE_3D_NAIVE_FWD_CONV_KERNEL(ncdhw, float, double, float)
+DEFINE_3D_NAIVE_FWD_CONV_KERNEL(ncdhw, half, double, half)
+DEFINE_3D_NAIVE_FWD_CONV_KERNEL(ncdhw, ushort, double, ushort)
+DEFINE_3D_NAIVE_FWD_CONV_KERNEL(ncdhw, int8_t, int32_t, int32_t)
+DEFINE_3D_NAIVE_FWD_CONV_KERNEL(ndhwc, float, double, float)
+DEFINE_3D_NAIVE_FWD_CONV_KERNEL(ndhwc, half, double, half)
+DEFINE_3D_NAIVE_FWD_CONV_KERNEL(ndhwc, ushort, double, ushort)
+DEFINE_3D_NAIVE_FWD_CONV_KERNEL(ndhwc, int8_t, int32_t, int32_t)
+
+DEFINE_3D_NAIVE_BWD_CONV_KERNEL(ncdhw, float, double, float)
+DEFINE_3D_NAIVE_BWD_CONV_KERNEL(ncdhw, half, double, half)
+DEFINE_3D_NAIVE_BWD_CONV_KERNEL(ncdhw, ushort, double, ushort)
+DEFINE_3D_NAIVE_BWD_CONV_KERNEL(ndhwc, float, double, float)
+DEFINE_3D_NAIVE_BWD_CONV_KERNEL(ndhwc, half, double, half)
+DEFINE_3D_NAIVE_BWD_CONV_KERNEL(ndhwc, ushort, double, ushort)
+
+DEFINE_3D_NAIVE_WRW_CONV_KERNEL(ncdhw, float, double, float)
+DEFINE_3D_NAIVE_WRW_CONV_KERNEL(ncdhw, half, double, half)
+DEFINE_3D_NAIVE_WRW_CONV_KERNEL(ncdhw, ushort, double, ushort)
+DEFINE_3D_NAIVE_WRW_CONV_KERNEL(ndhwc, float, double, float)
+DEFINE_3D_NAIVE_WRW_CONV_KERNEL(ndhwc, half, double, half)
+DEFINE_3D_NAIVE_WRW_CONV_KERNEL(ndhwc, ushort, double, ushort)
