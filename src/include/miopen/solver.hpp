@@ -2467,7 +2467,6 @@ private:
     // so that this solver is not marked searchable/tunable.
     using ConvOclBwdWrW2<1>::GetDefaultPerformanceConfig;
     using ConvOclBwdWrW2<1>::GetSolution;
-
 };
 
 struct ConvOclBwdWrW53 : ConvSolver
