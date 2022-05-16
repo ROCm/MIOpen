@@ -53,7 +53,7 @@ struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
     using SolverMixin<OldStyleProblemDescription>::GetWorkspaceSize;
     using SolverMixin<OldStyleProblemDescription>::IsApplicable;
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -63,7 +63,7 @@ struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
         return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
     }
 
-    std::size_t GetWorkspaceSize(const OldStyleProblemDescription& problem) const override
+    std::size_t GetWorkspaceSize(const OldStyleProblemDescription& problem) const final
     {
         return GetWorkspaceSize(*std::get<0>(problem), *std::get<1>(problem));
     }
@@ -150,6 +150,89 @@ struct TransposedPoolingFwdNd : PoolingFwdNCHWTransposingSolver<PoolingForwardNd
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<TransposedPoolingFwdNd>();
+    }
+};
+
+struct PoolingBackward2d : OldStyleSolver
+{
+    // To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override { return GetSolverDbId<PoolingBackward2d>(); }
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::pooling::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::pooling::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::pooling::ProblemDescription& problem) const override;
+};
+
+struct PoolingBackwardNd : OldStyleSolver
+{
+    // To suppress -Woverloaded-virtual
+    using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override { return GetSolverDbId<PoolingBackwardNd>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::pooling::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::pooling::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::pooling::ProblemDescription& problem) const override;
+};
+
+template <class Inner>
+struct PoolingBwdNCHWTransposingSolver : TransposingSolver<PoolingBwdNCHWTransposingSolver<Inner>,
+                                                           OldStyleSolver,
+                                                           miopen::pooling::ProblemDescription,
+                                                           miopen::pooling::BwdInvokeParams,
+                                                           Inner>
+{
+    using Problem      = miopen::pooling::ProblemDescription;
+    using InvokeParams = miopen::pooling::BwdInvokeParams;
+
+    inline static auto GetTransposes()
+    {
+        auto ret = std::array<ProblemTensorTransposeDescriptor<Problem, InvokeParams>, 2>{{
+            {
+                &Problem::GetXDesc,
+                &Problem::GetXDesc,
+                &InvokeParams::dxDesc,
+                {},
+                "NCDHW",
+                false,
+            },
+            {
+                &Problem::GetYDesc,
+                &Problem::GetYDesc,
+                &InvokeParams::dyDesc,
+                {&InvokeParams::dy},
+                "NCDHW",
+                true,
+            },
+        }};
+
+        // Before C++20 you can't aggregate initialize non-first union element
+        ret[0].as_output = &InvokeParams::dx;
+
+        return ret;
+    }
+};
+
+struct TransposedPoolingBwd2d : PoolingBwdNCHWTransposingSolver<PoolingBackward2d>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<TransposedPoolingBwd2d>();
+    }
+};
+
+struct TransposedPoolingBwdNd : PoolingBwdNCHWTransposingSolver<PoolingBackwardNd>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<TransposedPoolingBwdNd>();
     }
 };
 
