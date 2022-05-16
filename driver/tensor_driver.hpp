@@ -46,7 +46,7 @@ inline int GetTensorVectorLength(miopenTensorDescriptor_t& tensor)
 
     if(size == 4)
     {
-        miopenGet4dTensorDescriptorVectorLength(tensor, &vectorLength);
+        miopenGetNdTensorDescriptorVectorLength(tensor, &vectorLength);
         return vectorLength;
     }
     else

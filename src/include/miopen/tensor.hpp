@@ -252,7 +252,7 @@ private:
 
     bool packed;
     // Consider is this member redundant
-    int vector_c = 1;
+    int vector_length = 1;
 
     miopenDataType_t type             = miopenFloat;
     miopenTensorLayout_t tensorLayout = miopenTensorNCHW;

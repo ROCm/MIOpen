@@ -121,23 +121,23 @@ void TensorDescriptor::CalculateStrides()
         return;
     if(tensorLayout == miopenTensorNCHWc4 || tensorLayout == miopenTensorNCHWc8)
     {
-        lens[1] /= vector_c;
+        lens[1] /= vector_length;
     }
     else if(tensorLayout == miopenTensorCHWNc4 || tensorLayout == miopenTensorCHWNc8)
     {
-        lens[0] /= vector_c;
+        lens[0] /= vector_length;
     }
 
-    strides.back() = vector_c;
+    strides.back() = vector_length;
     std::partial_sum(
         lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<std::size_t>());
     for(int i = 0; i < strides.size() - 1; i++)
-        strides[i] *= vector_c;
+        strides[i] *= vector_length;
 }
 
 void TensorDescriptor::CalculateVectorC()
 {
-    vector_c =
+    vector_length =
         ((tensorLayout == miopenTensorCHWNc8 || tensorLayout == miopenTensorNCHWc8)
              ? 8
              : ((tensorLayout == miopenTensorCHWNc4 || tensorLayout == miopenTensorNCHWc4) ? 4
@@ -154,11 +154,11 @@ int TensorDescriptor::GetSize() const
 std::size_t TensorDescriptor::GetElementSize() const
 {
     assert(lens.size() == strides.size());
-    return std::accumulate(lens.begin(), lens.end(), vector_c, std::multiplies<std::size_t>());
+    return std::accumulate(lens.begin(), lens.end(), vector_length, std::multiplies<std::size_t>());
 }
 miopenDataType_t TensorDescriptor::GetType() const { return this->type; }
 miopenTensorLayout_t TensorDescriptor::GetLayout_t() const { return this->tensorLayout; }
-int TensorDescriptor::GetVectorLength() const { return this->vector_c; }
+int TensorDescriptor::GetVectorLength() const { return this->vector_length; }
 
 std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
 {
@@ -185,7 +185,7 @@ std::size_t TensorDescriptor::GetElementSpace() const
                    std::minus<std::size_t>());
     return std::inner_product(
                maxIndices.begin(), maxIndices.end(), strides.begin(), std::size_t{0}) +
-           vector_c;
+           vector_length;
 }
 
 bool TensorDescriptor::IsPossibleLayout(const std::string& labels, const std::string& layout) const

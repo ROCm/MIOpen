@@ -1578,7 +1578,7 @@ struct conv_driver : test_driver
     std::size_t batch_size{};
     std::size_t input_channels{};
     std::size_t output_channels{};
-    std::size_t vector_c = 1;
+    std::size_t vector_length = 1;
     std::string in_layout;
     std::string fil_layout; // keep same as MIOpenDriver argument name
     std::string out_layout;
@@ -1714,7 +1714,7 @@ struct conv_driver : test_driver
     }
 
     ///\brief We only support fp16x4 and fp16x8 vector type
-    void find_vector_c_from_conv_mode()
+    void find_vector_length_from_conv_mode()
     {
         if(conv_mode.compare(0, 4, "conv") == 0)
         {
@@ -1723,13 +1723,13 @@ struct conv_driver : test_driver
             {
                 std::string vec_str = conv_mode.substr(found_vec + 5);
                 ///\todo try catch()
-                vector_c = std::stoi(vec_str);
-                if(vector_c != 4 && vector_c != 8)
+                vector_length = std::stoi(vec_str);
+                if(vector_length != 4 && vector_length != 8)
                     MIOPEN_THROW("Unsupported vector length");
             }
             else
             {
-                vector_c = 1;
+                vector_length = 1;
             }
         }
     }
@@ -1759,7 +1759,7 @@ struct conv_driver : test_driver
             filter.spatialDim = filter_dims.size();
 
         // VECT_C found from cmode argument
-        find_vector_c_from_conv_mode();
+        find_vector_length_from_conv_mode();
         auto vec_found = conv_mode.find("fp16x");
         conv_mode      = conv_mode.substr(0, vec_found);
 
@@ -1781,7 +1781,7 @@ struct conv_driver : test_driver
                 batch_size     = input_dims.at(0);
                 input_channels = input_dims.at(1);
                 std::copy(input_dims.begin() + 2, input_dims.end(), spatial_dim_elements.begin());
-                if(vector_c == 4)
+                if(vector_length == 4)
                     input = tensor<T>{type,
                                       miopenTensorNCHWc4,
                                       batch_size,
@@ -1789,7 +1789,7 @@ struct conv_driver : test_driver
                                       spatial_dim_elements.at(0),
                                       spatial_dim_elements.at(1)}
                                 .generate(tensor_elem_gen_integer{17});
-                if(vector_c == 8)
+                if(vector_length == 8)
                     input = tensor<T>{type,
                                       miopenTensorNCHWc8,
                                       batch_size,
@@ -1831,7 +1831,7 @@ struct conv_driver : test_driver
                 output_channels = weight_tensor_dims.at(0);
                 std::copy(
                     weight_tensor_dims.begin() + 2, weight_tensor_dims.end(), filter_dims.begin());
-                if(vector_c == 4)
+                if(vector_length == 4)
                     weights = tensor<T>{type,
                                         miopenTensorNCHWc4,
                                         output_channels,
@@ -1839,7 +1839,7 @@ struct conv_driver : test_driver
                                         filter_dims.at(0),
                                         filter_dims.at(1)}
                                   .generate(tensor_elem_gen_integer{17});
-                if(vector_c == 8)
+                if(vector_length == 8)
                     weights = tensor<T>{type,
                                         miopenTensorNCHWc8,
                                         output_channels,
@@ -1854,7 +1854,7 @@ struct conv_driver : test_driver
                 std::copy(weight_tensor_dims.begin() + 1,
                           weight_tensor_dims.end() - 1,
                           filter_dims.begin());
-                if(vector_c == 4)
+                if(vector_length == 4)
                     weights = tensor<T>{type,
                                         miopenTensorCHWNc4,
                                         input_channels / filter.group_count,
@@ -1862,7 +1862,7 @@ struct conv_driver : test_driver
                                         filter_dims.at(1),
                                         output_channels}
                                   .generate(tensor_elem_gen_integer{17});
-                if(vector_c == 8)
+                if(vector_length == 8)
                     weights = tensor<T>{type,
                                         miopenTensorCHWNc8,
                                         input_channels / filter.group_count,
@@ -1924,7 +1924,7 @@ struct conv_driver : test_driver
                     dim_lens,
                     miopen::tensor_layout_get_default(weights.desc.GetSize()),
                     in_layout,
-                    vector_c,
+                    vector_length,
                     dim_strides);
             }
             else
@@ -1948,7 +1948,7 @@ struct conv_driver : test_driver
                     dim_lens,
                     miopen::tensor_layout_get_default(weights.desc.GetSize()),
                     fil_layout,
-                    vector_c,
+                    vector_length,
                     dim_strides);
             }
             else

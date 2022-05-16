@@ -633,11 +633,14 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> out_len = GetOutputTensorLengths();
     if(miopen::deref(inputTensor).GetLayout_t() == miopenTensorNCHWc4 ||
        miopen::deref(inputTensor).GetLayout_t() == miopenTensorNCHWc8)
+    {
         out_len[1] *= miopen::deref(inputTensor).GetVectorLength();
+    }
     if(miopen::deref(inputTensor).GetLayout_t() == miopenTensorCHWNc4 ||
        miopen::deref(inputTensor).GetLayout_t() == miopenTensorCHWNc8)
+    {
         out_len[0] *= miopen::deref(inputTensor).GetVectorLength();
-
+    }
     miopenDataType_t y_type =
         (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenFloat : data_type;
     SetTensorNd(outputTensor, out_len, inflags.GetValueStr("out_layout"), y_type);
@@ -1244,7 +1247,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             return rc;
         }
     }
-    if(miopen::deref(inputTensor).GetTensorLayout().find("_VECT_") == std::string::npos)
+    if(miopen::deref(inputTensor).GetVectorLength() == 1)
     {
         if(is_fwd || is_wrw)
             in = tensor<Tgpu>(miopen::deref(inputTensor).GetLengths(),

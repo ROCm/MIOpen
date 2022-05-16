@@ -538,7 +538,6 @@ miopenStatus_t CallGemm(const Handle& handle,
         break;
         case miopenInt32: break;
         case miopenHalf: {
-            assert(gemm_desc.k % 4 == 0);
 
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
