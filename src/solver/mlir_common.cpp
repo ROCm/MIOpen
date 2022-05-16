@@ -138,6 +138,18 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx, bool is_xdlops,
         mlir_handle << " --x2 1";
     }
 
+    const auto in_type  = CI::GetInputDataType(ctx);
+    const auto fil_type = ctx.weights_data_type;
+    auto out_type       = CI::GetOutputDataType(ctx);
+
+    // In case this is int8 convolution, ignore the output type and always request int32_t as
+    // default output type. This is because MLIR invoker does casttensor on output if a non-int32_t
+    // is requested.
+    if(in_type == miopenInt8 && fil_type == miopenInt8)
+    {
+        out_type = miopenInt32;
+    }
+
     // clang-format off
     mlir_handle
         << " --operation " << operation
@@ -146,11 +158,11 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx, bool is_xdlops,
         << " --arch " << GetIsaName(ctx.GetStream().GetTargetProperties())
         << " --groupsize " << CI::GetGroupCountG(ctx)
         << " --fil_layout " << fil_layout
-        << " --fil_type " << DTypeName(ctx.weights_data_type)
+        << " --fil_type " << DTypeName(fil_type)
         << " --in_layout " << in_layout
         << " --out_layout " << out_layout
-        << " --in_type " << DTypeName(CI::GetInputDataType(ctx))
-        << " --out_type " << DTypeName(CI::GetOutputDataType(ctx))
+        << " --in_type " << DTypeName(in_type)
+        << " --out_type " << DTypeName(out_type)
         << " --batchsize " << CI::GetBatchN(ctx)
         << " --in_channels " << CI::GetInputChannelC(ctx)
         << " --out_channels " << CI::GetOutputChannelK(ctx)

@@ -2,4 +2,4 @@ RadeonOpenCompute/rocm-cmake@839cf61c355f997283e3baaf245fa9acf2e3baa0 --build
 sqlite3@3.17 -DCMAKE_POSITION_INDEPENDENT_CODE=On
 boost@1.72 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build
 half,https://github.com/pfultz2/half/archive/1.12.0.tar.gz -X header -H sha256:0a08660b68abb176ebc2a0cdf8de46e3182a7f46c66443bb80dbfaaec98cf969 --build
-ROCmSoftwarePlatform/llvm-project-mlir@release/rocm-5.2 -DBUILD_FAT_LIBMLIRMIOPEN=1
+ROCmSoftwarePlatform/llvm-project-mlir@59905bc4e56b4d54dd416f00ecf08d1923bfb4e1 -DBUILD_FAT_LIBMLIRMIOPEN=1
