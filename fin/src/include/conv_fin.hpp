@@ -1410,7 +1410,6 @@ int ConvFin<Tgpu, Tref>::SearchPreCompiledKernels()
             bool retvalue;
             // to extract solver id ,context,solution
             auto process_solver = [&]() -> bool {
-
                 res_item["solver_id"] = solver_id.ToString();
                 const auto s          = solver_id.GetSolver();
                 if(s.IsEmpty())
