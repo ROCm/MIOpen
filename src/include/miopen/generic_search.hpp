@@ -298,9 +298,9 @@ using RunAndMeasure_t =
 
 template <class Solver, class Context>
 auto GetAllConfigs(const Solver s, const Context& context)
-    -> ComputedContainer<decltype(s.GetDefaultPerformanceConfigCTS(context)), Context>
+    -> ComputedContainer<decltype(s.GetDefaultPerformanceConfig(context)), Context>
 {
-    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfigCTS(context));
+    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
 
     ComputedContainer<PerformanceConfig, Context> main(context);
     const int main_size = std::distance(main.begin(), main.end());
@@ -327,7 +327,7 @@ std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context
     std::vector<ConvSolution> solutions;
     for(const auto& current_config : all_configs)
     {
-        ConvSolution current_solution = s.GetSolutionCTS(context, current_config);
+        ConvSolution current_solution = s.GetSolution(context, current_config);
         solutions.push_back(current_solution);
     }
     return solutions;

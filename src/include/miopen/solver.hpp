@@ -2465,7 +2465,9 @@ struct ConvOclBwdWrW2NonTunable final : ConvOclBwdWrW2<1>
 private:
     // This function dervied from ConvOclBwdWrW2 is declared private
     // so that this solver is not marked searchable/tunable.
+    using ConvOclBwdWrW2<1>::GetDefaultPerformanceConfig;
     using ConvOclBwdWrW2<1>::GetSolution;
+
 };
 
 struct ConvOclBwdWrW53 : ConvSolver
