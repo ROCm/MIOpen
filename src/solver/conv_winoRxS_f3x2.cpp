@@ -278,7 +278,7 @@ std::string PerformanceConfigConvBinWinogradRxSf3x2::ToString() const
 }
 
 PerformanceConfigConvBinWinogradRxSf3x2
-ConvBinWinogradRxSf3x2::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) const
+ConvBinWinogradRxSf3x2::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvBinWinogradRxSf3x2 pp;
     pp.HeuristicInit(params);
@@ -286,15 +286,15 @@ ConvBinWinogradRxSf3x2::GetDefaultPerformanceConfigCTS(const ConvolutionContext&
     return pp;
 }
 
-bool ConvBinWinogradRxSf3x2::IsValidPerformanceConfigCTS(
+bool ConvBinWinogradRxSf3x2::IsValidPerformanceConfig(
     const ConvolutionContext& problem, const PerformanceConfigConvBinWinogradRxSf3x2& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
 }
 
 PerformanceConfigConvBinWinogradRxSf3x2
-ConvBinWinogradRxSf3x2::SearchCTS(const ConvolutionContext& context,
-                                  const AnyInvokeParams& invoke_ctx) const
+ConvBinWinogradRxSf3x2::Search(const ConvolutionContext& context,
+                               const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }
@@ -376,12 +376,11 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
 
 /// \todo Consider re-using code from RxS_f2x3.
 ConvSolution
-ConvBinWinogradRxSf3x2::GetSolutionCTS(const ConvolutionContext& params,
-                                       const PerformanceConfigConvBinWinogradRxSf3x2& config) const
+ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params,
+                                    const PerformanceConfigConvBinWinogradRxSf3x2& config) const
 {
     const PerformanceConfigConvBinWinogradRxSf3x2* pcfg = &config;
 
-    // Try to load config from environment variable
     PerformanceConfigConvBinWinogradRxSf3x2 fromEnv;
     {
         std::string s;

@@ -864,26 +864,26 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
 }
 
 PerformanceImplicitGemmBwdDataV4R1Xdlops
-ConvHipImplicitGemmBwdDataV4R1Xdlops::GetDefaultPerformanceConfigCTS(
+ConvHipImplicitGemmBwdDataV4R1Xdlops::GetDefaultPerformanceConfig(
     const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1Xdlops>(ctx);
 }
 
-bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfigCTS(
+bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV4R1Xdlops& c) const
 {
     MIOPEN_LOG_I("");
     return c.IsReallyValid(ctx);
 }
 PerformanceImplicitGemmBwdDataV4R1Xdlops
-ConvHipImplicitGemmBwdDataV4R1Xdlops::SearchCTS(const ConvolutionContext& ctx,
-                                                const AnyInvokeParams& invoke_ctx) const
+ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx,
+                                             const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolutionCTS(
+ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
 {
     ConvSolution result;
@@ -896,7 +896,6 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolutionCTS(
 
     const PerformanceImplicitGemmBwdDataV4R1Xdlops* pcfg = &config;
 
-    // Try to load config from environment variable
     PerformanceImplicitGemmBwdDataV4R1Xdlops fromEnv;
     {
         std::string s;

@@ -292,7 +292,7 @@ std::string PerformanceConfigConvBinWinogradRxSf2x3::ToString() const
 }
 
 PerformanceConfigConvBinWinogradRxSf2x3
-ConvBinWinogradRxSf2x3::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) const
+ConvBinWinogradRxSf2x3::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvBinWinogradRxSf2x3 pp;
     pp.HeuristicInit(params);
@@ -300,15 +300,15 @@ ConvBinWinogradRxSf2x3::GetDefaultPerformanceConfigCTS(const ConvolutionContext&
     return pp;
 }
 
-bool ConvBinWinogradRxSf2x3::IsValidPerformanceConfigCTS(
+bool ConvBinWinogradRxSf2x3::IsValidPerformanceConfig(
     const ConvolutionContext& problem, const PerformanceConfigConvBinWinogradRxSf2x3& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
 }
 
 PerformanceConfigConvBinWinogradRxSf2x3
-ConvBinWinogradRxSf2x3::SearchCTS(const ConvolutionContext& context,
-                                  const AnyInvokeParams& invoke_ctx) const
+ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context,
+                               const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }
@@ -521,8 +521,8 @@ bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) cons
 }
 
 ConvSolution
-ConvBinWinogradRxSf2x3::GetSolutionCTS(const ConvolutionContext& params,
-                                       const PerformanceConfigConvBinWinogradRxSf2x3& config) const
+ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
+                                    const PerformanceConfigConvBinWinogradRxSf2x3& config) const
 {
     const auto n_groups = config.n_groups;
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
@@ -541,7 +541,6 @@ ConvBinWinogradRxSf2x3::GetSolutionCTS(const ConvolutionContext& params,
 
     const PerformanceConfigConvBinWinogradRxSf2x3* pcfg = &config;
 
-    // Try to load config from environment variable
     PerformanceConfigConvBinWinogradRxSf2x3 fromEnv;
     {
         std::string s;
@@ -869,7 +868,7 @@ float ConvBinWinogradRxSf2x3g1::GetWti(const ConvolutionContext& params) const
 ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& params) const
 {
     const auto tunable = ConvBinWinogradRxSf2x3{};
-    return tunable.GetSolutionCTS(params, tunable.GetDefaultPerformanceConfigCTS(params));
+    return tunable.GetSolution(params, tunable.GetDefaultPerformanceConfig(params));
 }
 
 bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const ConvolutionContext&) const

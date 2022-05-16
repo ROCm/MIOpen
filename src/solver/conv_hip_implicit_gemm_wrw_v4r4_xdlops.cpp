@@ -848,15 +848,14 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsValid(const ConvolutionContext& ctx
 }
 
 // Used by GenericSearch, not used by HeuristicInit
-bool ConvHipImplicitGemmWrwV4R4Xdlops::IsValidPerformanceConfigCTS(
+bool ConvHipImplicitGemmWrwV4R4Xdlops::IsValidPerformanceConfig(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmWrwV4R4Xdlops& c) const
 {
     return c.IsReallyValid(ctx);
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops
-ConvHipImplicitGemmWrwV4R4Xdlops::GetDefaultPerformanceConfigCTS(
-    const ConvolutionContext& ctx) const
+ConvHipImplicitGemmWrwV4R4Xdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     PerformanceImplicitGemmWrwV4R4Xdlops config;
     config.HeuristicInit(ctx);
@@ -864,7 +863,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops::GetDefaultPerformanceConfigCTS(
     return config;
 }
 
-ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolutionCTS(
+ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     const ConvolutionContext& ctx, const PerformanceImplicitGemmWrwV4R4Xdlops& config) const
 {
     ConvSolution result;
@@ -1092,8 +1091,8 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ct
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops
-ConvHipImplicitGemmWrwV4R4Xdlops::SearchCTS(const ConvolutionContext& ctx,
-                                            const AnyInvokeParams& invoke_ctx) const
+ConvHipImplicitGemmWrwV4R4Xdlops::Search(const ConvolutionContext& ctx,
+                                         const AnyInvokeParams& invoke_ctx) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
     return GenericSearch(*this, ctx, invoke_ctx);

@@ -457,7 +457,7 @@ std::string PerformanceConfigConvAsm1x1UV2::ToString() const
 }
 
 PerformanceConfigConvAsm1x1UV2
-ConvAsm1x1UV2::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) const
+ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsm1x1UV2 pp;
     pp.HeuristicInit(params);
@@ -465,8 +465,8 @@ ConvAsm1x1UV2::GetDefaultPerformanceConfigCTS(const ConvolutionContext& params) 
     return pp;
 }
 
-bool ConvAsm1x1UV2::IsValidPerformanceConfigCTS(const ConvolutionContext& problem,
-                                                const PerformanceConfigConvAsm1x1UV2& c) const
+bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ConvolutionContext& problem,
+                                             const PerformanceConfigConvAsm1x1UV2& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
 }
@@ -581,8 +581,8 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
     return ok;
 }
 
-ConvSolution ConvAsm1x1UV2::GetSolutionCTS(const ConvolutionContext& params,
-                                           const PerformanceConfigConvAsm1x1UV2& config) const
+ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
+                                        const PerformanceConfigConvAsm1x1UV2& config) const
 {
     ConvSolution result;
     std::ostringstream options;
@@ -592,7 +592,6 @@ ConvSolution ConvAsm1x1UV2::GetSolutionCTS(const ConvolutionContext& params,
     int data_len                               = GetTypeSize(params.out_data_type);
     const PerformanceConfigConvAsm1x1UV2* pcfg = &config;
 
-    // Try to load config from environment variable
     PerformanceConfigConvAsm1x1UV2 fromEnv;
     {
         std::string s;
@@ -741,8 +740,8 @@ ConvSolution ConvAsm1x1UV2::GetSolutionCTS(const ConvolutionContext& params,
     return result;
 }
 
-PerformanceConfigConvAsm1x1UV2 ConvAsm1x1UV2::SearchCTS(const ConvolutionContext& context,
-                                                        const AnyInvokeParams& invoke_ctx) const
+PerformanceConfigConvAsm1x1UV2 ConvAsm1x1UV2::Search(const ConvolutionContext& context,
+                                                     const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }

@@ -67,27 +67,27 @@ bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx) const
 }
 
 PerformanceConvMlirIgemm
-ConvMlirIgemmWrW::GetDefaultPerformanceConfigCTS(const ConvolutionContext& ctx) const
+ConvMlirIgemmWrW::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
     return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
 }
 
-bool ConvMlirIgemmWrW::IsValidPerformanceConfigCTS(const ConvolutionContext& ctx,
-                                                   const PerformanceConvMlirIgemm& config) const
+bool ConvMlirIgemmWrW::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                                const PerformanceConvMlirIgemm& config) const
 {
     MIOPEN_LOG_I("");
     return config.IsValid(ctx);
 }
 
-PerformanceConvMlirIgemm ConvMlirIgemmWrW::SearchCTS(const ConvolutionContext& ctx,
-                                                     const AnyInvokeParams& invoke_ctx) const
+PerformanceConvMlirIgemm ConvMlirIgemmWrW::Search(const ConvolutionContext& ctx,
+                                                  const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-ConvSolution ConvMlirIgemmWrW::GetSolutionCTS(const ConvolutionContext& ctx,
-                                              const PerformanceConvMlirIgemm& config) const
+ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx,
+                                           const PerformanceConvMlirIgemm& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;

@@ -103,7 +103,7 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
         && !(params.direction.IsForward()
             && params.IsFp16()
             && params.kernel_stride_w == 2)
-        && IsValidPerformanceConfigCTS(params, GetDefaultPerformanceConfigCTS(params));
+        && IsValidPerformanceConfig(params, GetDefaultPerformanceConfig(params));
     // clang-format on
 }
 
@@ -112,7 +112,7 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 /// and some logic from the corresponding opencl kernel source.
 /// The cases which lead to errors can be later omitted from the search.
 /// \todo Get rid the duplication of code where possible.
-bool ConvOclDirectFwd::IsValidPerformanceConfigCTS(
+bool ConvOclDirectFwd::IsValidPerformanceConfig(
     const ConvolutionContext& params, const LegacyPerformanceConfig& searched_params) const
 {
     ConvSolution result;
@@ -471,8 +471,8 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     return result;
 }
 
-ConvSolution ConvOclDirectFwd::GetSolutionCTS(const ConvolutionContext& params,
-                                              const LegacyPerformanceConfig& searched_params) const
+ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
+                                           const LegacyPerformanceConfig& searched_params) const
 {
     ConvSolution result = BaseGetSolution(params, searched_params);
 
@@ -486,8 +486,8 @@ ConvSolution ConvOclDirectFwd::GetSolutionCTS(const ConvolutionContext& params,
 }
 
 ConvSolution
-ConvOclDirectFwdFused::GetSolutionCTS(const ConvolutionContext& params,
-                                      const LegacyPerformanceConfig& searched_params) const
+ConvOclDirectFwdFused::GetSolution(const ConvolutionContext& params,
+                                   const LegacyPerformanceConfig& searched_params) const
 {
     ConvSolution result = BaseGetSolution(params, searched_params);
     return result;
