@@ -868,7 +868,8 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmForwardV4R5Xdlops
-ConvHipImplicitGemmForwardV4R5Xdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmForwardV4R5Xdlops::GetDefaultPerformanceConfig(
+    const ConvolutionContext& ctx) const
 {
     PerformanceImplicitGemmForwardV4R5Xdlops config;
     config.HeuristicInit(ctx);
@@ -877,9 +878,7 @@ ConvHipImplicitGemmForwardV4R5Xdlops::GetPerformanceConfig(const ConvolutionCont
 }
 
 ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolution(
-    const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmForwardV4R5Xdlops& config,
-    bool) const
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmForwardV4R5Xdlops& config) const
 {
     ConvSolution result;
 
