@@ -294,6 +294,10 @@ struct ProblemDescription
         return GetInDataType() == miopenBFloat16 && GetWeightsDataType() == miopenBFloat16 &&
                GetOutDataType() == miopenBFloat16;
     }
+    bool IsInt8() const
+    {
+        return GetInDataType() == miopenInt8 && GetWeightsDataType() == miopenInt8;
+    }
 
     // To be used in Solvers that do not implement ALT FP16 kernels.
     // Those Solvers must be non-applicable for gfx90a when this function returns true.
