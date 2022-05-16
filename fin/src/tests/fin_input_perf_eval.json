@@ -1,6 +1,6 @@
 [
     {
-        "arch": "gfx906",
+        "arch": "gfx906:sram-ecc+:xnack-",
         "config": {
             "activMode": -1,
             "batchsize": 32,

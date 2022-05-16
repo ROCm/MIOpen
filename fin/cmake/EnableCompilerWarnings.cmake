@@ -24,7 +24,7 @@
 #
 ################################################################################
 # - Enable warning all for gcc/clang or use /W4 for visual studio
-
+function(enable_target_warnings TARGET_NAME)
 ## Strict warning level
 if (MSVC)
     # Use the highest warning level for visual studio.
@@ -105,6 +105,7 @@ else()
                 -Wno-deprecated-declarations
             )
         endif()
-        add_definitions(${CMAKE_COMPILER_WARNINGS})
+        target_compile_options(${TARGET_NAME} PRIVATE ${CMAKE_COMPILER_WARNINGS})
     endforeach()
 endif ()
+endfunction()
