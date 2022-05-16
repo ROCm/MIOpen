@@ -95,7 +95,7 @@ std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
         kernel_name << "double_";
     else
         MIOPEN_THROW("unsupported data type:");
-    
+
     if(ctx.IsOutputFp32())
         kernel_name << "float";
     else if(ctx.IsOutputFp16())
@@ -112,10 +112,7 @@ std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
     return kernel_name.str();
 }
 
-std::string ConvDirectNaiveConvKernelFile()
-{
-    return "naive_conv.cpp";
-}
+std::string ConvDirectNaiveConvKernelFile() { return "naive_conv.cpp"; }
 
 std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
 {

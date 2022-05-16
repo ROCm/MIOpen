@@ -1215,310 +1215,304 @@ inline __device__ void naive_conv_wrw_ndhwc(const src_data_t* __restrict__ p_in,
     }
 }
 
-#define DEFINE_2D_NAIVE_FWD_CONV_KERNEL(                                                            \
-    tensor_layout, src_data_t, acc_data_t, dst_data_t)                     \
-    extern "C" __global__ void naive_conv_fwd_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(  \
-        src_data_t* __restrict__ p_in,                                                        \
-        src_data_t* __restrict__ p_wei,                                                       \
-        dst_data_t* __restrict__ p_out,                                                      \
-        int hi,                                                                                 \
-        int wi,                                                                                 \
-        int n,                                                                                  \
-        int k_per_group,                                                                        \
-        int c_per_group,                                                                        \
-        int ho,                                                                                 \
-        int wo,                                                                                 \
-        int sy,                                                                                 \
-        int sx,                                                                                 \
-        int dy,                                                                                 \
-        int dx,                                                                                 \
-        int py,                                                                                 \
-        int px,                                                                                 \
-        int fy,                                                                                 \
-        int fx,                                                                                 \
-        int group)                                                                              \
-    {                                                                                           \
-        naive_conv_fwd_##tensor_layout<src_data_t, acc_data_t, dst_data_t>( \
-            p_in,                                                                               \
-            p_wei,                                                                              \
-            p_out,                                                                              \
-            hi,                                                                                 \
-            wi,                                                                                 \
-            n,                                                                                  \
-            k_per_group,                                                                        \
-            c_per_group,                                                                        \
-            ho,                                                                                 \
-            wo,                                                                                 \
-            sy,                                                                                 \
-            sx,                                                                                 \
-            dy,                                                                                 \
-            dx,                                                                                 \
-            py,                                                                                 \
-            px,                                                                                 \
-            fy,                                                                                 \
-            fx,                                                                                 \
-            group);                                                                             \
+#define DEFINE_2D_NAIVE_FWD_CONV_KERNEL(tensor_layout, src_data_t, acc_data_t, dst_data_t) \
+    extern "C" __global__ void                                                             \
+        naive_conv_fwd_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(       \
+            src_data_t* __restrict__ p_in,                                                 \
+            src_data_t* __restrict__ p_wei,                                                \
+            dst_data_t* __restrict__ p_out,                                                \
+            int hi,                                                                        \
+            int wi,                                                                        \
+            int n,                                                                         \
+            int k_per_group,                                                               \
+            int c_per_group,                                                               \
+            int ho,                                                                        \
+            int wo,                                                                        \
+            int sy,                                                                        \
+            int sx,                                                                        \
+            int dy,                                                                        \
+            int dx,                                                                        \
+            int py,                                                                        \
+            int px,                                                                        \
+            int fy,                                                                        \
+            int fx,                                                                        \
+            int group)                                                                     \
+    {                                                                                      \
+        naive_conv_fwd_##tensor_layout<src_data_t, acc_data_t, dst_data_t>(p_in,           \
+                                                                           p_wei,          \
+                                                                           p_out,          \
+                                                                           hi,             \
+                                                                           wi,             \
+                                                                           n,              \
+                                                                           k_per_group,    \
+                                                                           c_per_group,    \
+                                                                           ho,             \
+                                                                           wo,             \
+                                                                           sy,             \
+                                                                           sx,             \
+                                                                           dy,             \
+                                                                           dx,             \
+                                                                           py,             \
+                                                                           px,             \
+                                                                           fy,             \
+                                                                           fx,             \
+                                                                           group);         \
     }
 
-#define DEFINE_2D_NAIVE_BWD_CONV_KERNEL(                                                            \
-    tensor_layout, src_data_t, acc_data_t, dst_data_t)                     \
-    extern "C" __global__ void naive_conv_bwd_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(  \
-        dst_data_t* __restrict__ p_in,                                                        \
-        src_data_t* __restrict__ p_wei,                                                       \
-        src_data_t* __restrict__ p_out,                                                      \
-        int hi,                                                                                 \
-        int wi,                                                                                 \
-        int n,                                                                                  \
-        int k_per_group,                                                                        \
-        int c_per_group,                                                                        \
-        int ho,                                                                                 \
-        int wo,                                                                                 \
-        int sy,                                                                                 \
-        int sx,                                                                                 \
-        int dy,                                                                                 \
-        int dx,                                                                                 \
-        int py,                                                                                 \
-        int px,                                                                                 \
-        int fy,                                                                                 \
-        int fx,                                                                                 \
-        int group)                                                                              \
-    {                                                                                           \
-        naive_conv_bwd_##tensor_layout<src_data_t, acc_data_t, dst_data_t>( \
-            p_in,                                                                               \
-            p_wei,                                                                              \
-            p_out,                                                                              \
-            hi,                                                                                 \
-            wi,                                                                                 \
-            n,                                                                                  \
-            k_per_group,                                                                        \
-            c_per_group,                                                                        \
-            ho,                                                                                 \
-            wo,                                                                                 \
-            sy,                                                                                 \
-            sx,                                                                                 \
-            dy,                                                                                 \
-            dx,                                                                                 \
-            py,                                                                                 \
-            px,                                                                                 \
-            fy,                                                                                 \
-            fx,                                                                                 \
-            group);                                                                             \
+#define DEFINE_2D_NAIVE_BWD_CONV_KERNEL(tensor_layout, src_data_t, acc_data_t, dst_data_t) \
+    extern "C" __global__ void                                                             \
+        naive_conv_bwd_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(       \
+            dst_data_t* __restrict__ p_in,                                                 \
+            src_data_t* __restrict__ p_wei,                                                \
+            src_data_t* __restrict__ p_out,                                                \
+            int hi,                                                                        \
+            int wi,                                                                        \
+            int n,                                                                         \
+            int k_per_group,                                                               \
+            int c_per_group,                                                               \
+            int ho,                                                                        \
+            int wo,                                                                        \
+            int sy,                                                                        \
+            int sx,                                                                        \
+            int dy,                                                                        \
+            int dx,                                                                        \
+            int py,                                                                        \
+            int px,                                                                        \
+            int fy,                                                                        \
+            int fx,                                                                        \
+            int group)                                                                     \
+    {                                                                                      \
+        naive_conv_bwd_##tensor_layout<src_data_t, acc_data_t, dst_data_t>(p_in,           \
+                                                                           p_wei,          \
+                                                                           p_out,          \
+                                                                           hi,             \
+                                                                           wi,             \
+                                                                           n,              \
+                                                                           k_per_group,    \
+                                                                           c_per_group,    \
+                                                                           ho,             \
+                                                                           wo,             \
+                                                                           sy,             \
+                                                                           sx,             \
+                                                                           dy,             \
+                                                                           dx,             \
+                                                                           py,             \
+                                                                           px,             \
+                                                                           fy,             \
+                                                                           fx,             \
+                                                                           group);         \
     }
 
-#define DEFINE_2D_NAIVE_WRW_CONV_KERNEL(                                                            \
-    tensor_layout, src_data_t, acc_data_t, dst_data_t)                     \
-    extern "C" __global__ void naive_conv_wrw_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(  \
-        src_data_t* __restrict__ p_in,                                                        \
-        dst_data_t* __restrict__ p_wei,                                                       \
-        src_data_t* __restrict__ p_out,                                                      \
-        int hi,                                                                                 \
-        int wi,                                                                                 \
-        int n,                                                                                  \
-        int k_per_group,                                                                        \
-        int c_per_group,                                                                        \
-        int ho,                                                                                 \
-        int wo,                                                                                 \
-        int sy,                                                                                 \
-        int sx,                                                                                 \
-        int dy,                                                                                 \
-        int dx,                                                                                 \
-        int py,                                                                                 \
-        int px,                                                                                 \
-        int fy,                                                                                 \
-        int fx,                                                                                 \
-        int group)                                                                              \
-    {                                                                                           \
-        naive_conv_wrw_##tensor_layout<src_data_t, acc_data_t, dst_data_t>( \
-            p_in,                                                                               \
-            p_wei,                                                                              \
-            p_out,                                                                              \
-            hi,                                                                                 \
-            wi,                                                                                 \
-            n,                                                                                  \
-            k_per_group,                                                                        \
-            c_per_group,                                                                        \
-            ho,                                                                                 \
-            wo,                                                                                 \
-            sy,                                                                                 \
-            sx,                                                                                 \
-            dy,                                                                                 \
-            dx,                                                                                 \
-            py,                                                                                 \
-            px,                                                                                 \
-            fy,                                                                                 \
-            fx,                                                                                 \
-            group);                                                                             \
+#define DEFINE_2D_NAIVE_WRW_CONV_KERNEL(tensor_layout, src_data_t, acc_data_t, dst_data_t) \
+    extern "C" __global__ void                                                             \
+        naive_conv_wrw_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(       \
+            src_data_t* __restrict__ p_in,                                                 \
+            dst_data_t* __restrict__ p_wei,                                                \
+            src_data_t* __restrict__ p_out,                                                \
+            int hi,                                                                        \
+            int wi,                                                                        \
+            int n,                                                                         \
+            int k_per_group,                                                               \
+            int c_per_group,                                                               \
+            int ho,                                                                        \
+            int wo,                                                                        \
+            int sy,                                                                        \
+            int sx,                                                                        \
+            int dy,                                                                        \
+            int dx,                                                                        \
+            int py,                                                                        \
+            int px,                                                                        \
+            int fy,                                                                        \
+            int fx,                                                                        \
+            int group)                                                                     \
+    {                                                                                      \
+        naive_conv_wrw_##tensor_layout<src_data_t, acc_data_t, dst_data_t>(p_in,           \
+                                                                           p_wei,          \
+                                                                           p_out,          \
+                                                                           hi,             \
+                                                                           wi,             \
+                                                                           n,              \
+                                                                           k_per_group,    \
+                                                                           c_per_group,    \
+                                                                           ho,             \
+                                                                           wo,             \
+                                                                           sy,             \
+                                                                           sx,             \
+                                                                           dy,             \
+                                                                           dx,             \
+                                                                           py,             \
+                                                                           px,             \
+                                                                           fy,             \
+                                                                           fx,             \
+                                                                           group);         \
     }
 
-#define DEFINE_3D_NAIVE_FWD_CONV_KERNEL(                                                            \
-    tensor_layout, src_data_t, acc_data_t, dst_data_t)                     \
-    extern "C" __global__ void naive_conv_fwd_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(  \
-        src_data_t* __restrict__ p_in,                                                        \
-        src_data_t* __restrict__ p_wei,                                                       \
-        dst_data_t* __restrict__ p_out,                                                      \
-        int di,                                                                                 \
-        int hi,                                                                                 \
-        int wi,                                                                                 \
-        int n,                                                                                  \
-        int k_per_group,                                                                        \
-        int c_per_group,                                                                        \
-        int do_,                                                                                \
-        int ho,                                                                                 \
-        int wo,                                                                                 \
-        int sz,                                                                                 \
-        int sy,                                                                                 \
-        int sx,                                                                                 \
-        int dz,                                                                                 \
-        int dy,                                                                                 \
-        int dx,                                                                                 \
-        int pz,                                                                                 \
-        int py,                                                                                 \
-        int px,                                                                                 \
-        int fz,                                                                                 \
-        int fy,                                                                                 \
-        int fx,                                                                                 \
-        int group)                                                                              \
-    {                                                                                           \
-        naive_conv_fwd_##tensor_layout<src_data_t, acc_data_t, dst_data_t>( \
-            p_in,                                                                               \
-            p_wei,                                                                              \
-            p_out,                                                                              \
-            di,                                                                                 \
-            hi,                                                                                 \
-            wi,                                                                                 \
-            n,                                                                                  \
-            k_per_group,                                                                        \
-            c_per_group,                                                                        \
-            do_,                                                                                \
-            ho,                                                                                 \
-            wo,                                                                                 \
-            sz,                                                                                 \
-            sy,                                                                                 \
-            sx,                                                                                 \
-            dz,                                                                                 \
-            dy,                                                                                 \
-            dx,                                                                                 \
-            pz,                                                                                 \
-            py,                                                                                 \
-            px,                                                                                 \
-            fz,                                                                                 \
-            fy,                                                                                 \
-            fx,                                                                                 \
-            group);                                                                             \
+#define DEFINE_3D_NAIVE_FWD_CONV_KERNEL(tensor_layout, src_data_t, acc_data_t, dst_data_t) \
+    extern "C" __global__ void                                                             \
+        naive_conv_fwd_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(       \
+            src_data_t* __restrict__ p_in,                                                 \
+            src_data_t* __restrict__ p_wei,                                                \
+            dst_data_t* __restrict__ p_out,                                                \
+            int di,                                                                        \
+            int hi,                                                                        \
+            int wi,                                                                        \
+            int n,                                                                         \
+            int k_per_group,                                                               \
+            int c_per_group,                                                               \
+            int do_,                                                                       \
+            int ho,                                                                        \
+            int wo,                                                                        \
+            int sz,                                                                        \
+            int sy,                                                                        \
+            int sx,                                                                        \
+            int dz,                                                                        \
+            int dy,                                                                        \
+            int dx,                                                                        \
+            int pz,                                                                        \
+            int py,                                                                        \
+            int px,                                                                        \
+            int fz,                                                                        \
+            int fy,                                                                        \
+            int fx,                                                                        \
+            int group)                                                                     \
+    {                                                                                      \
+        naive_conv_fwd_##tensor_layout<src_data_t, acc_data_t, dst_data_t>(p_in,           \
+                                                                           p_wei,          \
+                                                                           p_out,          \
+                                                                           di,             \
+                                                                           hi,             \
+                                                                           wi,             \
+                                                                           n,              \
+                                                                           k_per_group,    \
+                                                                           c_per_group,    \
+                                                                           do_,            \
+                                                                           ho,             \
+                                                                           wo,             \
+                                                                           sz,             \
+                                                                           sy,             \
+                                                                           sx,             \
+                                                                           dz,             \
+                                                                           dy,             \
+                                                                           dx,             \
+                                                                           pz,             \
+                                                                           py,             \
+                                                                           px,             \
+                                                                           fz,             \
+                                                                           fy,             \
+                                                                           fx,             \
+                                                                           group);         \
     }
 
-#define DEFINE_3D_NAIVE_BWD_CONV_KERNEL(                                                            \
-    tensor_layout, src_data_t, acc_data_t, dst_data_t)                     \
-    extern "C" __global__ void naive_conv_bwd_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(  \
-        dst_data_t* __restrict__ p_in,                                                        \
-        src_data_t* __restrict__ p_wei,                                                       \
-        src_data_t* __restrict__ p_out,                                                      \
-        int di,                                                                                 \
-        int hi,                                                                                 \
-        int wi,                                                                                 \
-        int n,                                                                                  \
-        int k_per_group,                                                                        \
-        int c_per_group,                                                                        \
-        int do_,                                                                                \
-        int ho,                                                                                 \
-        int wo,                                                                                 \
-        int sz,                                                                                 \
-        int sy,                                                                                 \
-        int sx,                                                                                 \
-        int dz,                                                                                 \
-        int dy,                                                                                 \
-        int dx,                                                                                 \
-        int pz,                                                                                 \
-        int py,                                                                                 \
-        int px,                                                                                 \
-        int fz,                                                                                 \
-        int fy,                                                                                 \
-        int fx,                                                                                 \
-        int group)                                                                              \
-    {                                                                                           \
-        naive_conv_bwd_##tensor_layout<src_data_t, acc_data_t, dst_data_t>( \
-            p_in,                                                                               \
-            p_wei,                                                                              \
-            p_out,                                                                              \
-            di,                                                                                 \
-            hi,                                                                                 \
-            wi,                                                                                 \
-            n,                                                                                  \
-            k_per_group,                                                                        \
-            c_per_group,                                                                        \
-            do_,                                                                                \
-            ho,                                                                                 \
-            wo,                                                                                 \
-            sz,                                                                                 \
-            sy,                                                                                 \
-            sx,                                                                                 \
-            dz,                                                                                 \
-            dy,                                                                                 \
-            dx,                                                                                 \
-            pz,                                                                                 \
-            py,                                                                                 \
-            px,                                                                                 \
-            fz,                                                                                 \
-            fy,                                                                                 \
-            fx,                                                                                 \
-            group);                                                                             \
+#define DEFINE_3D_NAIVE_BWD_CONV_KERNEL(tensor_layout, src_data_t, acc_data_t, dst_data_t) \
+    extern "C" __global__ void                                                             \
+        naive_conv_bwd_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(       \
+            dst_data_t* __restrict__ p_in,                                                 \
+            src_data_t* __restrict__ p_wei,                                                \
+            src_data_t* __restrict__ p_out,                                                \
+            int di,                                                                        \
+            int hi,                                                                        \
+            int wi,                                                                        \
+            int n,                                                                         \
+            int k_per_group,                                                               \
+            int c_per_group,                                                               \
+            int do_,                                                                       \
+            int ho,                                                                        \
+            int wo,                                                                        \
+            int sz,                                                                        \
+            int sy,                                                                        \
+            int sx,                                                                        \
+            int dz,                                                                        \
+            int dy,                                                                        \
+            int dx,                                                                        \
+            int pz,                                                                        \
+            int py,                                                                        \
+            int px,                                                                        \
+            int fz,                                                                        \
+            int fy,                                                                        \
+            int fx,                                                                        \
+            int group)                                                                     \
+    {                                                                                      \
+        naive_conv_bwd_##tensor_layout<src_data_t, acc_data_t, dst_data_t>(p_in,           \
+                                                                           p_wei,          \
+                                                                           p_out,          \
+                                                                           di,             \
+                                                                           hi,             \
+                                                                           wi,             \
+                                                                           n,              \
+                                                                           k_per_group,    \
+                                                                           c_per_group,    \
+                                                                           do_,            \
+                                                                           ho,             \
+                                                                           wo,             \
+                                                                           sz,             \
+                                                                           sy,             \
+                                                                           sx,             \
+                                                                           dz,             \
+                                                                           dy,             \
+                                                                           dx,             \
+                                                                           pz,             \
+                                                                           py,             \
+                                                                           px,             \
+                                                                           fz,             \
+                                                                           fy,             \
+                                                                           fx,             \
+                                                                           group);         \
     }
 
-#define DEFINE_3D_NAIVE_WRW_CONV_KERNEL(                                                            \
-    tensor_layout, src_data_t, acc_data_t, dst_data_t)                     \
-    extern "C" __global__ void naive_conv_wrw_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(  \
-        src_data_t* __restrict__ p_in,                                                        \
-        dst_data_t* __restrict__ p_wei,                                                       \
-        src_data_t* __restrict__ p_out,                                                      \
-        int di,                                                                                 \
-        int hi,                                                                                 \
-        int wi,                                                                                 \
-        int n,                                                                                  \
-        int k_per_group,                                                                        \
-        int c_per_group,                                                                        \
-        int do_,                                                                                \
-        int ho,                                                                                 \
-        int wo,                                                                                 \
-        int sz,                                                                                 \
-        int sy,                                                                                 \
-        int sx,                                                                                 \
-        int dz,                                                                                 \
-        int dy,                                                                                 \
-        int dx,                                                                                 \
-        int pz,                                                                                 \
-        int py,                                                                                 \
-        int px,                                                                                 \
-        int fz,                                                                                 \
-        int fy,                                                                                 \
-        int fx,                                                                                 \
-        int group)                                                                              \
-    {                                                                                           \
-        naive_conv_wrw_##tensor_layout<src_data_t, acc_data_t, dst_data_t>( \
-            p_in,                                                                               \
-            p_wei,                                                                              \
-            p_out,                                                                              \
-            di,                                                                                 \
-            hi,                                                                                 \
-            wi,                                                                                 \
-            n,                                                                                  \
-            k_per_group,                                                                        \
-            c_per_group,                                                                        \
-            do_,                                                                                \
-            ho,                                                                                 \
-            wo,                                                                                 \
-            sz,                                                                                 \
-            sy,                                                                                 \
-            sx,                                                                                 \
-            dz,                                                                                 \
-            dy,                                                                                 \
-            dx,                                                                                 \
-            pz,                                                                                 \
-            py,                                                                                 \
-            px,                                                                                 \
-            fz,                                                                                 \
-            fy,                                                                                 \
-            fx,                                                                                 \
-            group);                                                                             \
+#define DEFINE_3D_NAIVE_WRW_CONV_KERNEL(tensor_layout, src_data_t, acc_data_t, dst_data_t) \
+    extern "C" __global__ void                                                             \
+        naive_conv_wrw_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t(       \
+            src_data_t* __restrict__ p_in,                                                 \
+            dst_data_t* __restrict__ p_wei,                                                \
+            src_data_t* __restrict__ p_out,                                                \
+            int di,                                                                        \
+            int hi,                                                                        \
+            int wi,                                                                        \
+            int n,                                                                         \
+            int k_per_group,                                                               \
+            int c_per_group,                                                               \
+            int do_,                                                                       \
+            int ho,                                                                        \
+            int wo,                                                                        \
+            int sz,                                                                        \
+            int sy,                                                                        \
+            int sx,                                                                        \
+            int dz,                                                                        \
+            int dy,                                                                        \
+            int dx,                                                                        \
+            int pz,                                                                        \
+            int py,                                                                        \
+            int px,                                                                        \
+            int fz,                                                                        \
+            int fy,                                                                        \
+            int fx,                                                                        \
+            int group)                                                                     \
+    {                                                                                      \
+        naive_conv_wrw_##tensor_layout<src_data_t, acc_data_t, dst_data_t>(p_in,           \
+                                                                           p_wei,          \
+                                                                           p_out,          \
+                                                                           di,             \
+                                                                           hi,             \
+                                                                           wi,             \
+                                                                           n,              \
+                                                                           k_per_group,    \
+                                                                           c_per_group,    \
+                                                                           do_,            \
+                                                                           ho,             \
+                                                                           wo,             \
+                                                                           sz,             \
+                                                                           sy,             \
+                                                                           sx,             \
+                                                                           dz,             \
+                                                                           dy,             \
+                                                                           dx,             \
+                                                                           pz,             \
+                                                                           py,             \
+                                                                           px,             \
+                                                                           fz,             \
+                                                                           fy,             \
+                                                                           fx,             \
+                                                                           group);         \
     }
 
 DEFINE_2D_NAIVE_FWD_CONV_KERNEL(nchw, float, double, float)
