@@ -242,6 +242,22 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
     MlirConvArgs args = MakeMlirConvArgs(
         in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides, 0);
 
+    const auto& conv             = ctx.conv_problem.GetConv();
+    const auto& lowp_quant       = conv.lowp_quant;
+    const auto& outDesc          = ctx.conv_problem.GetOut();
+    TensorDescriptor outConvDesc = outDesc;
+    // outConvDesc is only functional when this is a int8 convolution. It allows the output type to
+    // be cast to a different than int32_t. This gives the solver a wider applicable range and
+    // mimics the behavior of the gemm solver.
+    bool needs_output_cast = false;
+    if(ctx.conv_problem.GetIn().GetType() == miopenInt8 &&
+       ctx.conv_problem.GetWeights().GetType() == miopenInt8 &&
+       ctx.conv_problem.GetOut().GetType() != miopenInt32)
+    {
+        needs_output_cast = true;
+        outConvDesc = TensorDescriptor(miopenInt32, outDesc.GetLengths(), outDesc.GetStrides());
+    }
+
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             const auto& forward_invoke_params =
@@ -262,6 +278,15 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
             SetMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, args);
             handle.Run(kernels[0])(args);
 #endif
+            if(needs_output_cast)
+                CastTensor(handle,
+                           &lowp_quant,
+                           outConvDesc,
+                           tensors.out,
+                           tensors.outDesc,
+                           tensors.out,
+                           0,
+                           0);
         };
     };
 }
