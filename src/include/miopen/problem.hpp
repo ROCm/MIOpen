@@ -93,9 +93,12 @@ private:
     std::unordered_map<miopenTensorName_t, TensorDescriptor> tensor_descriptors;
     OperatorDescriptor operator_descriptor;
 
+    using AllocatedBuffers = std::unordered_map<miopenTensorName_t, Allocator::ManageDataPtr>;
+
     std::vector<Solution> FindSolutionsImpl(Handle& handle,
                                             const SearchOptions& options,
                                             std::size_t max_solutions,
+                                            const AllocatedBuffers& buffers,
                                             const ConvolutionDescriptor& conv_desc) const;
 };
 

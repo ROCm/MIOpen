@@ -94,8 +94,19 @@ std::vector<Solution> Problem::FindSolutions(Handle& handle,
                                              const SearchOptions& options,
                                              std::size_t max_solutions) const
 {
+    auto buffers = AllocatedBuffers{};
+
+    for(const auto& pair : tensor_descriptors)
+    {
+        const auto& descriptor  = pair.second;
+        const auto element_size = get_data_size(descriptor.GetType());
+        auto buffer             = handle.Create(descriptor.GetElementSpace() * element_size);
+
+        buffers.emplace(pair.first, std::move(buffer));
+    }
+
     const auto find = boost::hof::match([&](const ConvolutionDescriptor& op_desc) {
-        return FindSolutionsImpl(handle, options, max_solutions, op_desc);
+        return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
     });
 
     auto ret = boost::apply_visitor(find, operator_descriptor);
@@ -146,6 +157,7 @@ conv::ProblemDescription Problem::AsConvolution() const
 std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const SearchOptions& options,
                                                  std::size_t max_solutions,
+                                                 const AllocatedBuffers& buffers,
                                                  const ConvolutionDescriptor& conv_desc) const
 {
     auto ret = std::vector<Solution>{};
@@ -161,9 +173,9 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     const auto& y_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
 
-    auto x = handle.Create(x_desc.GetElementSpace() * get_data_size(x_desc.GetType()));
-    auto w = handle.Create(w_desc.GetElementSpace() * get_data_size(w_desc.GetType()));
-    auto y = handle.Create(y_desc.GetElementSpace() * get_data_size(y_desc.GetType()));
+    const auto& x = buffers.at(miopenTensorConvolutionX);
+    const auto& w = buffers.at(miopenTensorConvolutionW);
+    const auto& y = buffers.at(miopenTensorConvolutionY);
 
     const auto workspace_max = [&]() {
         switch(direction)
