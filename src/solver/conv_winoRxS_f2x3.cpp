@@ -292,7 +292,7 @@ std::string PerformanceConfigConvBinWinogradRxSf2x3::ToString() const
 }
 
 PerformanceConfigConvBinWinogradRxSf2x3
-ConvBinWinogradRxSf2x3::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvBinWinogradRxSf2x3::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvBinWinogradRxSf2x3 pp;
     pp.HeuristicInit(params);
@@ -522,8 +522,7 @@ bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) cons
 
 ConvSolution
 ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
-                                    const PerformanceConfigConvBinWinogradRxSf2x3& config,
-                                    const bool disableConfigOverrideFromEnv) const
+                                    const PerformanceConfigConvBinWinogradRxSf2x3& config) const
 {
     const auto n_groups = config.n_groups;
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
@@ -541,9 +540,8 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     ConvSolution result;
 
     const PerformanceConfigConvBinWinogradRxSf2x3* pcfg = &config;
-    PerformanceConfigConvBinWinogradRxSf2x3 fromEnv;
 
-    if(!disableConfigOverrideFromEnv)
+    PerformanceConfigConvBinWinogradRxSf2x3 fromEnv;
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS{});
@@ -870,7 +868,7 @@ float ConvBinWinogradRxSf2x3g1::GetWti(const ConvolutionContext& params) const
 ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& params) const
 {
     const auto tunable = ConvBinWinogradRxSf2x3{};
-    return tunable.GetSolution(params, tunable.GetPerformanceConfig(params), false);
+    return tunable.GetSolution(params, tunable.GetDefaultPerformanceConfig(params));
 }
 
 bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const ConvolutionContext&) const
