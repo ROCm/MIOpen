@@ -33,6 +33,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/search_options.hpp>
+#include <miopen/tensor_ops.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -101,6 +102,11 @@ std::vector<Solution> Problem::FindSolutions(Handle& handle,
         const auto& descriptor  = pair.second;
         const auto element_size = get_data_size(descriptor.GetType());
         auto buffer             = handle.Create(descriptor.GetElementSpace() * element_size);
+
+        visit_float(descriptor.GetType(), [&](auto as_float) {
+            const auto zero = as_float(0.f);
+            SetTensor(handle, descriptor, buffer.get(), &zero);
+        });
 
         buffers.emplace(pair.first, std::move(buffer));
     }
