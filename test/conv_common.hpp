@@ -1749,6 +1749,9 @@ struct conv_driver : test_driver
         // int8 vectorize is only applicable when input is int8
         if(!is_int8 && int8_vectorize)
             return;
+        // for vectorized inputs only fp32 output is supported.
+        if(int8_vectorize && output_type == "int8")
+            return;
 
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
