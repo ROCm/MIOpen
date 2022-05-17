@@ -1873,11 +1873,10 @@ struct conv_driver : test_driver
                                                  weights.desc.GetLengths().end());
 
         // lack of transposeConv or groupConv for int8 type
-        if(is_int8 && (filter.mode == miopenTranspose || filter.group_count > 1))
+        if(is_int8 && filter.mode == miopenTranspose)
         {
             show_command();
-            std::cout << "MIOpen doesn't support int8 type transpose or group convolution."
-                      << std::endl;
+            std::cout << "MIOpen doesn't support int8 type transpose convolution." << std::endl;
             return;
         }
 

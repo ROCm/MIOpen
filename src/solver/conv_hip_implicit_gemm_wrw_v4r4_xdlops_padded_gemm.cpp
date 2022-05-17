@@ -910,7 +910,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::CalculateGemmSizeAndGemmKBlock
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
-ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetPerformanceConfig(
+ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetDefaultPerformanceConfig(
     const ConvolutionContext& ctx) const
 {
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm config;
@@ -921,8 +921,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetPerformanceConfig(
 
 ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
     const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& config,
-    bool) const
+    const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& config) const
 {
     ConvSolution result;
 

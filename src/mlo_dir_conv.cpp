@@ -369,7 +369,7 @@ AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
 
 void miopen::ConvolutionContext::SetupFloats()
 {
-    if(IsFp32() || IsFp16() || IsBfp16())
+    if(IsFp32() || IsFp16() || IsBfp16() || IsInt8())
     {
         general_compile_options += GetDataTypeKernelParams(in_data_type);
     }

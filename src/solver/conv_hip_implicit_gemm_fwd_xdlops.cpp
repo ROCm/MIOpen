@@ -122,7 +122,7 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::operator==(
 }
 
 PerformanceConfigHipImplicitGemmFwdXdlops
-ConvHipImplicitGemmFwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     PerformanceConfigHipImplicitGemmFwdXdlops pp;
     pp.HeuristicInit(ctx);
@@ -160,7 +160,9 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ctx.IsInt8())
+    if(!ctx.IsInt8()) // check input and weights
+        return false;
+    if(!(ctx.conv_problem.GetOutDataType() == miopenInt8))
         return false;
     if(!ctx.direction.IsForward())
         return false;
@@ -198,12 +200,9 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
 #endif
 }
 
-ConvSolution
-ConvHipImplicitGemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
-                                          const PerformanceConfigHipImplicitGemmFwdXdlops& config,
-                                          bool disableConfigOverridefromEnv) const
+ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
+    const ConvolutionContext& ctx, const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {
-    std::ignore = disableConfigOverridefromEnv;
 #if !MIOPEN_BACKEND_HIP
     std::ignore = ctx;
     std::ignore = config;

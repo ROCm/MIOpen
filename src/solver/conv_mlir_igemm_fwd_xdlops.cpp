@@ -180,7 +180,7 @@ std::string PerformanceConvMlirIgemmXdlops::ToString() const
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmFwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
@@ -201,8 +201,7 @@ ConvMlirIgemmFwdXdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
-                                                 const PerformanceConvMlirIgemmXdlops& config,
-                                                 bool) const
+                                                 const PerformanceConvMlirIgemmXdlops& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;

@@ -327,7 +327,7 @@ extern "C" miopenStatus_t miopenPoolingBackward(miopenHandle_t handle,
                                                 const void* beta,
                                                 const miopenTensorDescriptor_t dxDesc,
                                                 void* dx,
-                                                const void* workSpace)
+                                                void* workSpace)
 {
 
     MIOPEN_LOG_FUNCTION(

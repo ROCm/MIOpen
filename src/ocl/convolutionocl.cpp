@@ -606,7 +606,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     ValidateConvTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
-    if(algo != miopenConvolutionFwdAlgoGEMM && (xDesc.GetType() == miopenInt8x4))
+    if(algo != miopenConvolutionFwdAlgoGEMM && xDesc.GetType() == miopenInt8x4)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
