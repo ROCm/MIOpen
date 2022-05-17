@@ -1088,6 +1088,10 @@ int main()
                                    int8_t,
                                    int32_t,
                                    miopen_tensor_layout_nchw>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
+                                   int8_t,
+                                   float,
+                                   miopen_tensor_layout_nchw>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
                                    float,
                                    float,
@@ -1129,6 +1133,10 @@ int main()
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
                                    int8_t,
                                    int32_t,
+                                   miopen_tensor_layout_ncdhw>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+                                   int8_t,
+                                   float,
                                    miopen_tensor_layout_ncdhw>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
                                    float,
@@ -1172,6 +1180,10 @@ int main()
                                    int8_t,
                                    int32_t,
                                    miopen_tensor_layout_nhwc>>();
+    run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
+                                   int8_t,
+                                   float,
+                                   miopen_tensor_layout_nhwc>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
                                    float,
                                    float,
@@ -1213,6 +1225,10 @@ int main()
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
                                    int8_t,
                                    int32_t,
+                                   miopen_tensor_layout_ndhwc>>();
+    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+                                   int8_t,
+                                   float,
                                    miopen_tensor_layout_ndhwc>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
                                    float,

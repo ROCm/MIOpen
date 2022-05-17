@@ -45,7 +45,7 @@ bool ConvDirectNaiveConvIsAssemblyKernel(const ConvolutionContext& ctx)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     return (device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
-           ctx.IsLayoutDefault() && (!ctx.IsInt8());
+           ctx.IsLayoutDefault() && (!ctx.IsInputInt8());
 }
 
 std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)

@@ -200,12 +200,6 @@ struct ProblemDescription
         return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
                out_data_type == miopenBFloat16;
     }
-    bool IsInt8() const
-    {
-        // output data type of INT8 kernel is INT32
-        return in_data_type == miopenInt8 && weights_data_type == miopenInt8 &&
-               out_data_type == miopenInt32;
-    }
 
     // Check tensor data type respectively
     bool IsInputFp32() const
@@ -236,7 +230,11 @@ struct ProblemDescription
     bool IsAccFp64() const { return IsInputFp32() || IsInputFp16() || IsInputBfp16(); }
     bool IsAccInt32() const { return IsInputInt8(); }
 
-    bool IsOutputFp32() const { return IsFp32(); }
+    bool IsOutputFp32() const
+    {
+        return IsFp32() || (in_data_type == miopenInt8 && weights_data_type == miopenInt8 &&
+                            out_data_type == miopenFloat);
+    }
     bool IsOutputFp16() const { return IsFp16(); }
     bool IsOutputBfp16() const { return IsBfp16(); }
     bool IsOutputInt8() const
@@ -244,7 +242,11 @@ struct ProblemDescription
         return in_data_type == miopenInt8 && weights_data_type == miopenInt8 &&
                out_data_type == miopenInt8;
     }
-    bool IsOutputInt32() const { return IsInt8(); }
+    bool IsOutputInt32() const
+    {
+        return (in_data_type == miopenInt8 && weights_data_type == miopenInt8 &&
+                out_data_type == miopenInt32);
+    }
 
     ProblemDescription() = default;
 
