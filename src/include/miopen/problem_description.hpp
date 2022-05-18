@@ -200,12 +200,7 @@ struct ProblemDescription
         return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
                out_data_type == miopenBFloat16;
     }
-    bool IsInt8() const
-    {
-        // output data type of INT8 kernel is INT32 or FLOAT
-        return in_data_type == miopenInt8 && weights_data_type == miopenInt8 &&
-               (out_data_type == miopenInt32 || out_data_type == miopenFloat);
-    }
+    bool IsInt8() const { return conv_problem.IsInt8(); }
 
     ProblemDescription() = default;
 

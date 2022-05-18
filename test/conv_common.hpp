@@ -1858,11 +1858,10 @@ struct conv_driver : test_driver
         bool is_int8 = (input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4);
 
         // lack of transposeConv or groupConv for int8 type
-        if(is_int8 && (filter.mode == miopenTranspose || filter.group_count > 1))
+        if(is_int8 && filter.mode == miopenTranspose)
         {
             show_command();
-            std::cout << "MIOpen doesn't support int8 type transpose or group convolution."
-                      << std::endl;
+            std::cout << "MIOpen doesn't support int8 type transpose convolution." << std::endl;
             return;
         }
 
@@ -1986,14 +1985,7 @@ struct conv_driver : test_driver
                                                       miopen::conv::Direction::Forward);
                 ctx.SetStream(&get_handle());
 
-                bool skip_forward = is_int8 && !IsGemmAplicable(ctx);
-                if(skip_forward)
-                {
-                    show_command();
-                    std::cout << "This config in int8 type is not supported." << std::endl;
-                    return;
-                }
-
+                bool skip_forward = (input.desc.GetType() == miopenInt8x4 && !IsGemmAplicable(ctx));
                 bool skip_backward_data    = is_int8;
                 bool skip_backward_weights = is_int8;
 
@@ -2119,16 +2111,6 @@ struct conv_driver : test_driver
                             search,
                             false,
                             immed});
-                        verify(verify_forward_conv<T, float>{
-                            input,
-                            weights,
-                            get_output_tensor<T, float>(filter, input, weights, out_layout),
-                            filter,
-                            stats,
-                            0,
-                            search,
-                            true,
-                            immed});
                         verify(verify_forward_conv<T, int>{
                             input,
                             weights,
@@ -2138,16 +2120,6 @@ struct conv_driver : test_driver
                             0,
                             search,
                             false,
-                            immed});
-                        verify(verify_forward_conv<T, int>{
-                            input,
-                            weights,
-                            get_output_tensor<T, int>(filter, input, weights, out_layout),
-                            filter,
-                            stats,
-                            0,
-                            search,
-                            true,
                             immed});
                     }
                     else
