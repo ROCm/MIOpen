@@ -120,7 +120,7 @@ void Solution::RunImpl(Handle& handle,
                 {*y.descriptor, y.buffer, *w.descriptor, w.buffer, *x.descriptor, x.buffer},
                 workspace,
                 workspace_size,
-                conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd());
+                conv_problem.GetConv().attribute.gfx90aFp16alt.GetBwd());
         case miopenProblemDirectionBackwardWeight:
             return conv::WrWInvokeParams{
                 {*y.descriptor, y.buffer, *x.descriptor, x.buffer, *w.descriptor, w.buffer},
