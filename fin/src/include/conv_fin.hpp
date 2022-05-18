@@ -26,6 +26,7 @@
  *******************************************************************************/
 #ifndef GUARD_CONV_FIN_HPP
 #define GUARD_CONV_FIN_HPP
+
 #include "base64.hpp"
 #include "error.hpp"
 #include "fin.hpp"
@@ -48,7 +49,6 @@
 #include <miopen/md5.hpp>
 #include <miopen/perf_field.hpp>
 #include <miopen/solver_id.hpp>
-#include <miopen/version.h>
 
 #if MIOPEN_MODE_NOGPU
 #include <miopen/kernel_cache.hpp>
@@ -71,8 +71,6 @@
 #include <type_traits>
 #include <vector>
 
-#define MIOPEN_ALLSOLVER (MIOPEN_VERSION_MAJOR > 3)
-
 namespace fin {
 
 const int INVOKE_LIMIT = 2;
@@ -80,19 +78,50 @@ using json             = nlohmann::json;
 // TODO: Create a config class to encapsulate config
 // related code, such as checking direction etc
 template <typename Tgpu, typename Tcpu>
-class ConvFin : public BaseFin
+class ConvFin : public Fin
 {
     public:
-    ConvFin() : BaseFin() {}
-    ConvFin(json _job) : BaseFin(), job(_job)
+    ConvFin() : Fin() {}
+    ConvFin(json _job) : Fin(), job(_job)
     {
         if(job.contains("config"))
             PrepConvolution();
     }
 
+    void VerifyDevProps()
+    {
+        std::cerr << "Verifying device properties" << std::endl;
+        std::string arch    = job["arch"];
+        arch                = arch.substr(0, arch.find(':'));
+        const size_t num_cu = job["num_cu"];
+        std::ignore         = num_cu;
+        if(arch == "gfx900")
+        {
+            assert(num_cu == 56 || num_cu == 64);
+        }
+        else if(arch == "gfx906")
+        {
+            assert(num_cu == 60 || num_cu == 64);
+        }
+        else if(arch == "gfx908")
+        {
+            assert(num_cu == 120);
+        }
+        else if(arch == "gfx1030")
+        {
+            assert(num_cu == 72 || num_cu == 36);
+        }
+        else if(arch == "gfx90a")
+        {
+            assert(num_cu == 110);
+        }
+        else
+            throw std::runtime_error("Invalid Arch Name");
+    }
+
     void PrepConvolution()
     {
-        BaseFin::VerifyDevProps(job["arch"], job["num_cu"]);
+        VerifyDevProps();
         command         = job["config"];
         command["bias"] = 0;
         // timing is always enabled
@@ -128,16 +157,14 @@ class ConvFin : public BaseFin
     int TestApplicability();
     int TestPerfDbValid();
     int GetandSetData();
+    int GetSolverList();
     int MIOpenFind();
     int MIOpenFindCompile();
     int MIOpenFindEval();
-    // function used to Search the Precompiled Kernels
-    int SearchPreCompiledKernels();
-    int MIOpenPerfCompile();
-    int MIOpenPerfEval();
 
     // Utility functions
     bool IsInputTensorTransform() const;
+    void InitNoGpuHandle(miopen::Handle& handle);
     json command;
     json job;
 
@@ -167,159 +194,18 @@ miopen::conv::Direction ConvFin<Tgpu, Tref>::GetDirection() const
 }
 
 template <typename Tgpu, typename Tref>
-int ConvFin<Tgpu, Tref>::MIOpenPerfCompile()
+void ConvFin<Tgpu, Tref>::InitNoGpuHandle(miopen::Handle& handle)
 {
-#if MIOPEN_ALLSOLVER
-    std::cerr << "MIOpenPerfCompile" << std::endl;
-    std::cerr << "Processing command: " << command << std::endl;
 #if MIOPEN_MODE_NOGPU
-    GetandSetData();
+    handle.impl->device_name        = job["arch"];
+    handle.impl->num_cu             = job["num_cu"];
+    handle.impl->max_mem_alloc_size = 32UL * 1024 * 1024 * 1024; // 32 GB
+    handle.impl->global_mem_size    = 32UL * 1024 * 1024 * 1024;
+    handle.impl->target_properties.Init(&handle);
 #else
-    throw std::runtime_error(
-        "Unable to perform MIOpenPerfCompile MIOpen was not compiled using HIPNOGPU backend");
+    std::ignore = handle;
 #endif
-    const auto conv_dir = GetDirection();
-    const miopen::ProblemDescription problem(
-        inputTensor.desc, weightTensor.desc, outputTensor.desc, convDesc, conv_dir);
-    GetHandle().EnableProfiling(true);
-    auto ctx    = miopen::ConvolutionContext{problem};
-    auto handle = miopen::Handle{};
-#if MIOPEN_MODE_NOGPU
-    BaseFin::InitNoGpuHandle(handle, job["arch"], job["num_cu"]);
-#else
-    throw std::runtime_error("MIOpen needs to be compiled with the NOGPU backend "
-                             "for MIOpenPerfCompile");
-#endif
-    ctx.SetStream(&handle);
-    ctx.DetectRocm();
-    ctx.SetupFloats();
-
-    const auto network_config   = ctx.BuildConfKey();
-    const bool is_winograd_only = convDesc.IsWinograd3x3SupportedAndFast(ctx);
-    output["is_winograd_only"]  = is_winograd_only;
-    output["network_config"]    = network_config;
-    std::ostringstream ss;
-    problem.Serialize(ss);
-    output["db_key"] = ss.str();
-
-    json perf_result;
-    const auto& tgt_props  = handle.GetTargetProperties();
-    const std::string arch = tgt_props.Name();
-    const size_t num_cu    = handle.GetMaxComputeUnits();
-    std::cerr << "Job Arch: " << job["arch"] << ": Handle Arch: " << arch << std::endl;
-    std::cerr << "Job Num CU: " << job["num_cu"] << ": Handle Num Cu: " << num_cu << std::endl;
-    std::vector<miopen::solver::Id> solver_list;
-    if(job.contains("solvers"))
-        for(std::string solver_str : job["solvers"])
-            solver_list.push_back(miopen::solver::Id(solver_str));
-    else
-        solver_list = miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution);
-
-    for(const auto& solver_id : solver_list)
-    {
-        json res_item;
-        // remove the user db files
-        boost::filesystem::remove_all(miopen::GetCachePath(false));
-        auto process_solver = [&]() -> bool {
-            std::cerr << "Processing Solver: " << solver_id.ToString() << std::endl;
-            res_item["solver_id"] = solver_id.ToString();
-            if(solver_id.ToString() == "ConvBiasActivAsm1x1U" ||
-               solver_id.ToString().find("Fused") != std::string::npos)
-            {
-                std::cerr << "Skipping fused solvers" << std::endl;
-                return false;
-            }
-            const auto& s         = solver_id.GetSolver();
-            const auto algo       = solver_id.GetAlgo(conv_dir);
-            res_item["algorithm"] = algo;
-            if(s.IsEmpty())
-            {
-                res_item["reason"] = "Empty Solver";
-                std::cerr << "Skipping invalid solver: " << solver_id.ToString() << std::endl;
-                return false;
-            }
-            if(!s.IsApplicable(ctx))
-            {
-                res_item["reason"] = "Not Applicable";
-                std::cerr << "Skipping inapplicable solver: " << solver_id.ToString() << std::endl;
-                return false;
-            }
-            if(!s.IsTunable())
-            {
-                res_item["reason"] = "Not Tunable";
-                std::cerr << "Skipping non-tunable solver: " << solver_id.ToString() << std::endl;
-                return false;
-            }
-
-            auto all_solutions = s.GetAllSolutions(ctx);
-
-            // PrecompileKernels call saves to binary_cache,
-            // this needs to be escaped if KERN_CACHE is not on.
-            std::vector<miopen::solver::KernelInfo> kernels;
-            for(const auto& current_solution : all_solutions)
-            {
-                for(auto&& kernel : current_solution.construction_params)
-                {
-                    kernels.push_back(kernel);
-                }
-            }
-            std::ignore = miopen::solver::PrecompileKernels(handle, kernels);
-
-            json kernel_list = json::array();
-            for(const auto& k : kernels)
-            {
-                json kernel;
-                auto p           = handle.LoadProgram(k.kernel_file, k.comp_options, false, "");
-                const auto hsaco = p.IsCodeObjectInMemory()
-                                       ? p.GetCodeObjectBlob()
-                                       : miopen::LoadFile(p.GetCodeObjectPathname().string());
-                if(hsaco.empty())
-                {
-                    std::cerr << "Got empty code object" << std::endl;
-                    throw std::runtime_error("Got empty code object");
-                }
-                // Compress the blob
-                auto md5_sum             = miopen::md5(hsaco);
-                auto size                = hsaco.size();
-                bool success             = false;
-                auto compressed_hsaco    = miopen::compress(hsaco, &success);
-                const auto encoded_hsaco = base64_encode(compressed_hsaco);
-                kernel["kernel_file"]    = k.kernel_file;
-                kernel["comp_options"]   = k.comp_options;
-
-                if(success)
-                {
-                    kernel["uncompressed_size"] = size;
-                    kernel["md5_sum"]           = md5_sum;
-                    kernel["blob"]              = encoded_hsaco;
-                }
-                else
-                {
-                    kernel["md5_sum"]           = "Failed to compress kernel";
-                    kernel["uncompressed_size"] = 0;
-                    kernel["blob"]              = "";
-                }
-                kernel_list.push_back(kernel);
-                std::cerr << "Successfully added new kernel" << std::endl;
-            }
-            res_item["kernel_objects"] = kernel_list;
-            return true;
-        };
-
-        auto res = process_solver();
-        if(res)
-        {
-            res_item["perf_compiled"] = res;
-            perf_result.push_back(res_item);
-        }
-    }
-    output["miopen_perf_compile_result"] = perf_result;
-#else
-    throw std::runtime_error("Unsupported feature");
-#endif
-    return 1;
 }
-
 template <typename Tgpu, typename Tref>
 int ConvFin<Tgpu, Tref>::MIOpenFindCompile()
 {
@@ -338,7 +224,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFindCompile()
     auto ctx    = miopen::ConvolutionContext{problem};
     auto handle = miopen::Handle{};
 #if MIOPEN_MODE_NOGPU
-    BaseFin::InitNoGpuHandle(handle, job["arch"], job["num_cu"]);
+    InitNoGpuHandle(handle);
 #else
     throw std::runtime_error("MIOpen needs to be compiled with the NOGPU backend "
                              "for MIOpenFindCompile");
@@ -362,9 +248,6 @@ int ConvFin<Tgpu, Tref>::MIOpenFindCompile()
     const size_t num_cu    = handle.GetMaxComputeUnits();
     std::cerr << "Job Arch: " << job["arch"] << ": Handle Arch: " << arch << std::endl;
     std::cerr << "Job Num CU: " << job["num_cu"] << ": Handle Num Cu: " << num_cu << std::endl;
-    bool dynamic_only = false;
-    if(job.contains("dynamic_only"))
-        dynamic_only = job["dynamic_only"];
     // since applicability has been run, the solver list should come from Tuna
     for(const auto& solver_id :
         miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution))
@@ -396,12 +279,6 @@ int ConvFin<Tgpu, Tref>::MIOpenFindCompile()
                 std::cerr << "Skipping inapplicable solver: " << solver_id.ToString() << std::endl;
                 return false;
             }
-            if(dynamic_only && !s.IsDynamic())
-            {
-                res_item["reason"] = "Not Dynamic";
-                std::cerr << "Skipping static solver: " << solver_id.ToString() << std::endl;
-                return false;
-            }
             miopen::solver::ConvSolution solution;
             try
             {
@@ -421,8 +298,10 @@ int ConvFin<Tgpu, Tref>::MIOpenFindCompile()
             for(const auto& k : solution.construction_params)
             {
                 json kernel;
-
-                auto p           = handle.LoadProgram(k.kernel_file, k.comp_options, false, "");
+                auto comp_opts = k.comp_options;
+                // if(comp_opts[0] != ' ')
+                //     comp_opts    = ' ' + comp_opts;
+                auto p           = handle.LoadProgram(k.kernel_file, comp_opts, false, "");
                 const auto hsaco = p.IsCodeObjectInMemory()
                                        ? p.GetCodeObjectBlob()
                                        : miopen::LoadFile(p.GetCodeObjectPathname().string());
@@ -439,7 +318,6 @@ int ConvFin<Tgpu, Tref>::MIOpenFindCompile()
                 const auto encoded_hsaco = base64_encode(compressed_hsaco);
                 kernel["kernel_file"]    = k.kernel_file;
                 kernel["comp_options"]   = k.comp_options;
-
                 if(success)
                 {
                     kernel["uncompressed_size"] = size;
@@ -468,289 +346,6 @@ int ConvFin<Tgpu, Tref>::MIOpenFindCompile()
     }
     output["miopen_find_compile_result"] = find_result;
     return 1;
-}
-
-void SolutionHasProgram(miopen::Handle& handle, miopen::solver::ConvSolution& solution)
-{
-    for(auto& kern : solution.construction_params)
-    {
-        if(!miopen::EndsWith(kern.kernel_file, ".mlir"))
-        {
-            kern.comp_options += " -mcpu=" + handle.GetDeviceName();
-        }
-        kern.kernel_file += ".o";
-        std::cerr << "checking binary : " << kern.kernel_file << " : " << kern.comp_options
-                  << std::endl;
-        if(!handle.HasProgram(kern.kernel_file, kern.comp_options))
-        {
-            std::cerr << "Binary object check failed, either tuning params have changed or "
-                         "fin is unable to write binary to program cache"
-                      << std::endl;
-        }
-    }
-}
-
-template <typename Tgpu, typename Tref>
-int ConvFin<Tgpu, Tref>::MIOpenPerfEval()
-{
-#if MIOPEN_ALLSOLVER
-    std::cerr << "MIOpenPerfEval" << std::endl;
-    std::cerr << "Processing command: " << command << std::endl;
-// Before this step is executed, the following steps should have been evaluated
-// alloc_buf only if only timing is required
-// alloc_buf, fill_buf and copy_buf_to_device if numerical accuracy would be
-// checked ??
-#if MIOPEN_MODE_NOGPU
-    throw std::runtime_error("Unable to run MIOpenPerfEval, Invalid MIOpen backend: HIPNOGPU");
-#endif
-    const auto conv_dir = GetDirection();
-    // The first arg to the DataInvokeParams changes based on direction
-    const miopen::ProblemDescription problem(
-        inputTensor.desc, weightTensor.desc, outputTensor.desc, convDesc, conv_dir);
-    GetHandle().EnableProfiling(true);
-    auto ctx = miopen::ConvolutionContext{problem};
-    auto& h  = GetHandle();
-    ctx.SetStream(&(h));
-    ctx.DetectRocm();
-    ctx.SetupFloats();
-
-    const auto network_config   = ctx.BuildConfKey();
-    const bool is_winograd_only = convDesc.IsWinograd3x3SupportedAndFast(ctx);
-    output["is_winograd_only"]  = is_winograd_only;
-    output["network_config"]    = network_config;
-    std::ostringstream ss;
-    problem.Serialize(ss);
-    output["db_key"] = ss.str();
-
-    auto db = GetDb(ctx);
-    json perf_result;
-    const auto& tgt_props  = h.GetTargetProperties();
-    const std::string arch = tgt_props.Name();
-    const size_t num_cu    = h.GetMaxComputeUnits();
-    std::cerr << "Job Arch: " << job["arch"] << ": Handle Arch: " << arch << std::endl;
-    std::cerr << "Job Num CU: " << job["num_cu"] << ": Handle Num Cu: " << num_cu << std::endl;
-    for(const auto& kinder :
-        job["miopen_perf_compile_result"]) // The "miopen_perf_compile_result" list generated
-                                           // by miopen_perf_compile operation
-    {
-        // Somehow the direction changes mid loop !
-        json res_item;
-        boost::system::error_code ec;
-        boost::filesystem::remove_all(miopen::GetCachePath(false), ec);
-        // boost::filesystem::remove_all(miopen::GetCachePath(true), ec);
-        if(ec)
-        {
-            std::cerr << "Error while removing MIOpen cache: " << ec.message();
-        }
-        auto process_solver = [&]() -> bool {
-            const std::string solver_name = kinder["solver_id"];
-            std::cerr << "Processing solver: " << solver_name << std::endl;
-            const auto solver_id    = miopen::solver::Id{solver_name};
-            const auto& s           = solver_id.GetSolver();
-            res_item["solver_name"] = solver_name;
-            const auto algo         = solver_id.GetAlgo(conv_dir);
-            res_item["algorithm"]   = algo;
-            std::string params      = "";
-
-            if(s.IsEmpty())
-            {
-                std::cerr << "Skipping invalid solver: " << solver_id.ToString() << std::endl;
-                return false;
-            }
-            if(!s.IsApplicable(ctx))
-            {
-                std::cerr << "Solver inapplicable: " << solver_name << std::endl;
-                throw std::runtime_error(
-                    "InApplicable solver was sent to fin, check Tuna for errors");
-                return false;
-            }
-            if(!s.IsTunable())
-            {
-                std::cerr << "Skipping non-tunable solver: " << solver_id.ToString() << std::endl;
-                return false;
-            }
-
-            std::cerr << solver_name << " is applicable" << std::endl;
-            // Get the binary
-            std::cerr << "loading binaries from fin input" << std::endl;
-            for(const auto& kernel_obj : kinder["kernel_objects"])
-            {
-                const auto size          = kernel_obj["uncompressed_size"];
-                const auto md5_sum       = kernel_obj["md5_sum"];
-                const auto encoded_hsaco = kernel_obj["blob"];
-                const auto decoded_hsaco = base64_decode(encoded_hsaco);
-                const auto hsaco         = miopen::decompress(decoded_hsaco, size);
-
-                std::string kernel_file_no_ext = kernel_obj["kernel_file"];
-                std::string kernel_file        = kernel_file_no_ext + ".o";
-                std::string comp_opts          = kernel_obj["comp_options"];
-                // LoadProgram doesn't add -mcpu for mlir
-                if(!miopen::EndsWith(kernel_file_no_ext, ".mlir"))
-                {
-                    comp_opts += " -mcpu=" + h.GetDeviceName();
-                }
-
-                if(miopen::md5(hsaco) == md5_sum)
-                {
-                    auto p = miopen::Program{kernel_file, hsaco};
-                    std::cerr << "Add Program: " << kernel_file << "; args: " << comp_opts
-                              << std::endl;
-                    h.AddProgram(p, kernel_file, comp_opts);
-
-                    // SaveBinary adds ".o" to kernel_file
-                    miopen::SaveBinary(hsaco,
-                                       h.GetTargetProperties(),
-                                       h.GetMaxComputeUnits(),
-                                       kernel_file_no_ext,
-                                       comp_opts,
-                                       false);
-                }
-                else
-                {
-                    std::cerr << "Corrupt Binary Object" << std::endl;
-                    throw std::runtime_error("Corrupt binary object");
-                    return false;
-                }
-            }
-
-            miopen::solver::ConvSolution solution;
-            solution              = s.FindSolution(ctx, db, {}); // auto tune is not expected here
-            res_item["workspace"] = solution.workspace_sz;
-            SolutionHasProgram(h, solution);
-
-            std::cerr << "Checking for workspace" << std::endl;
-            if(solution.workspace_sz > workspace.desc.GetNumBytes())
-            {
-                std::cerr << "Allocating " << solution.workspace_sz << " bytes for workspace"
-                          << std::endl;
-                workspace = tensor<Tgpu, Tref>{
-                    q,
-                    std::vector<size_t>{static_cast<size_t>(solution.workspace_sz / sizeof(Tgpu))},
-                    false,
-                    false};
-                workspace.AllocateBuffers();
-            }
-            if(!solution.invoker_factory)
-            {
-                std::cerr << "Invoker not implemeted" << std::endl;
-                res_item["reason"] = "Invoker not implemented";
-                return false;
-            }
-
-            std::cerr << "Preparing invokers" << std::endl;
-            try
-            {
-                float time    = 0.0f;
-                ctx.do_search = true;
-                ctx.db_update = true;
-
-                // This is required because DataInvokeParams switches tensor order due to
-                // direction and it does not have a
-                // copy constructor or a default constructor
-                if(conv_dir == miopen::conv::Direction::Forward)
-                {
-                    const auto invoke_ctx =
-                        miopen::conv::DataInvokeParams{{inputTensor.desc,
-                                                        inputTensor.gpuData.buf.get(),
-                                                        weightTensor.desc,
-                                                        weightTensor.gpuData.buf.get(),
-                                                        outputTensor.desc,
-                                                        outputTensor.gpuData.buf.get()},
-                                                       workspace.gpuData.buf.get(),
-                                                       workspace.desc.GetNumBytes(),
-                                                       convDesc.attribute.gfx90aFp16alt.GetFwd()};
-
-                    solution = s.FindSolution(ctx, db, invoke_ctx); // forcing search here
-                    std::cerr << solver_name << "Finished Search FWD" << std::endl;
-                    SolutionHasProgram(h, solution);
-                    params = s.GetPerfCfgParams(ctx, db);
-
-                    const auto invoker =
-                        h.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
-                    invoker(h, invoke_ctx);
-                    time = h.GetKernelTime();
-                }
-                else if(conv_dir == miopen::conv::Direction::BackwardData)
-                {
-                    const auto invoke_ctx =
-                        miopen::conv::DataInvokeParams{{outputTensor.desc,
-                                                        outputTensor.gpuData.buf.get(),
-                                                        weightTensor.desc,
-                                                        weightTensor.gpuData.buf.get(),
-                                                        inputTensor.desc,
-                                                        inputTensor.gpuData.buf.get()},
-                                                       workspace.gpuData.buf.get(),
-                                                       workspace.desc.GetNumBytes(),
-                                                       convDesc.attribute.gfx90aFp16alt.GetBwd()};
-
-                    solution = s.FindSolution(ctx, db, invoke_ctx); // forcing search here
-                    std::cerr << solver_name << "Finished Search BWD" << std::endl;
-                    SolutionHasProgram(h, solution);
-                    params = s.GetPerfCfgParams(ctx, db);
-
-                    const auto invoker =
-                        h.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
-                    invoker(h, invoke_ctx);
-                    time = h.GetKernelTime();
-                }
-                else if(conv_dir == miopen::conv::Direction::BackwardWeights)
-                {
-                    const auto invoke_ctx =
-                        miopen::conv::WrWInvokeParams{{outputTensor.desc,
-                                                       outputTensor.gpuData.buf.get(),
-                                                       inputTensor.desc,
-                                                       inputTensor.gpuData.buf.get(),
-                                                       weightTensor.desc,
-                                                       weightTensor.gpuData.buf.get()},
-                                                      workspace.gpuData.buf.get(),
-                                                      workspace.desc.GetNumBytes(),
-                                                      convDesc.attribute.gfx90aFp16alt.GetWrW()};
-
-                    solution = s.FindSolution(ctx, db, invoke_ctx); // forcing search here
-                    std::cerr << solver_name << "Finished Search WRW" << std::endl;
-                    SolutionHasProgram(h, solution);
-                    params = s.GetPerfCfgParams(ctx, db);
-
-                    const auto invoker =
-                        h.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
-                    invoker(h, invoke_ctx);
-                    time = h.GetKernelTime();
-                }
-                else
-                {
-                    ss.str("");
-                    ss << "Invalid Direction: solver " << solver_name << ", dir "
-                       << static_cast<int>(conv_dir);
-                    throw std::runtime_error(ss.str());
-                }
-
-                res_item["params"]    = params;
-                res_item["time"]      = time;
-                res_item["layout"]    = ctx.in_layout;
-                res_item["data_type"] = ctx.in_data_type;
-                res_item["direction"] = conv_dir;
-                res_item["bias"]      = ctx.bias;
-                res_item["reason"]    = "Success";
-            }
-            catch(const std::exception& e)
-            {
-                res_item["reason"] = std::string("Invoker exeception: ") + e.what();
-                return false;
-            }
-
-            return true;
-        };
-
-        auto res              = process_solver();
-        res_item["evaluated"] = res;
-        perf_result.push_back(res_item);
-    }
-    output["miopen_perf_eval_result"] = perf_result;
-    return 1;
-#else
-    throw std::runtime_error("Unsupported feature");
-    return 0;
-#endif
 }
 
 template <typename Tgpu, typename Tref>
@@ -791,9 +386,6 @@ int ConvFin<Tgpu, Tref>::MIOpenFindEval()
     const size_t num_cu    = h.GetMaxComputeUnits();
     std::cerr << "Job Arch: " << job["arch"] << ": Handle Arch: " << arch << std::endl;
     std::cerr << "Job Num CU: " << job["num_cu"] << ": Handle Num Cu: " << num_cu << std::endl;
-    bool dynamic_only = false;
-    if(job.contains("dynamic_only"))
-        dynamic_only = job["dynamic_only"];
     for(const auto& kinder :
         job["miopen_find_compile_result"]) // The "miopen_find_compile_result" list generated
                                            // by miopen_find_compile operation
@@ -827,14 +419,8 @@ int ConvFin<Tgpu, Tref>::MIOpenFindEval()
                     "InApplicable solver was sent to fin, check Tuna for errors");
                 return false;
             }
-            if(dynamic_only && !s.IsDynamic())
-            {
-                res_item["reason"] = "Not Dynamic";
-                std::cerr << "Skipping static solver: " << solver_id.ToString() << std::endl;
-                return false;
-            }
             std::cerr << solver_name << " is applicable" << std::endl;
-            auto solution         = s.FindSolution(ctx, db, {}); // auto tune is not expected here
+            const auto solution   = s.FindSolution(ctx, db, {}); // auto tune is not expected here
             res_item["workspace"] = solution.workspace_sz;
             // Get the binary
             std::cerr << "loading binaries from fin input" << std::endl;
@@ -845,21 +431,11 @@ int ConvFin<Tgpu, Tref>::MIOpenFindEval()
                 const auto encoded_hsaco = kernel_obj["blob"];
                 const auto decoded_hsaco = base64_decode(encoded_hsaco);
                 const auto hsaco         = miopen::decompress(decoded_hsaco, size);
-
-                std::string kernel_file_no_ext = kernel_obj["kernel_file"];
-                std::string kernel_file        = kernel_file_no_ext + ".o";
-                std::string comp_opts          = kernel_obj["comp_options"];
-                // LoadProgram doesn't add -mcpu for mlir
-                if(!miopen::EndsWith(kernel_file_no_ext, ".mlir"))
-                {
-                    comp_opts += " -mcpu=" + h.GetDeviceName();
-                }
-
+                std::string comp_opts    = kernel_obj["comp_options"];
+                std::string kernel_file  = kernel_obj["kernel_file"];
                 if(miopen::md5(hsaco) == md5_sum)
                 {
                     auto p = miopen::Program{kernel_file, hsaco};
-                    std::cerr << "Add Program: " << kernel_file << "; args: " << comp_opts
-                              << std::endl;
                     h.AddProgram(p, kernel_file, comp_opts);
                 }
                 else
@@ -869,9 +445,15 @@ int ConvFin<Tgpu, Tref>::MIOpenFindEval()
                     return false;
                 }
             }
-
-            SolutionHasProgram(h, solution);
-
+            for(const auto& kern : solution.construction_params)
+            {
+                if(!h.HasProgram(kern.kernel_file, kern.comp_options))
+                {
+                    std::cerr << "Binary object check failed, either tuning params have changed or "
+                                 "fin is unable to write binary to program cache"
+                              << std::endl;
+                }
+            }
             std::cerr << "Checking for workspace" << std::endl;
             if(solution.workspace_sz > workspace.desc.GetNumBytes())
             {
@@ -1045,13 +627,8 @@ int ConvFin<Tgpu, Tref>::MIOpenFind()
             for(const auto& k : solution.construction_params)
             {
                 json kernel;
-                auto comp_opts = k.comp_options;
-                if(!miopen::EndsWith(k.kernel_file, ".mlir"))
-                {
-                    comp_opts = k.comp_options + " -mcpu=" + arch;
-                }
-                const auto hsaco =
-                    miopen::LoadBinary(tgt_props, num_cu, k.kernel_file, comp_opts, false);
+                const auto hsaco = miopen::LoadBinary(
+                    tgt_props, num_cu, k.kernel_file, k.comp_options + " -mcpu=" + arch, false);
                 if(hsaco.empty())
                     throw std::runtime_error("Got empty code object");
                 // Compress the blob
@@ -1178,7 +755,7 @@ int ConvFin<Tgpu, Tref>::TestApplicability()
     auto ctx    = miopen::ConvolutionContext{problem};
     auto handle = miopen::Handle{};
 #if MIOPEN_MODE_NOGPU
-    BaseFin::InitNoGpuHandle(handle, job["arch"], job["num_cu"]);
+    InitNoGpuHandle(handle);
 #else
     throw std::runtime_error("MIOpen needs to be compiled with the NOGPU backend "
                              "to test applicability");
@@ -1340,164 +917,27 @@ int ConvFin<Tgpu, Tref>::TestPerfDbValid()
 }
 
 template <typename Tgpu, typename Tref>
-int ConvFin<Tgpu, Tref>::SearchPreCompiledKernels()
+int ConvFin<Tgpu, Tref>::GetSolverList()
 {
-    json find_result;
-    auto handle = miopen::Handle{};
-
-#if MIOPEN_MODE_NOGPU
-    BaseFin::InitNoGpuHandle(handle, job["arch"], job["num_cu"]);
-#else
-    throw std::runtime_error("MIOpen needs to be compiled with the NOGPU backend "
-                             "for SearchPreCompiledKernels");
-#endif
-
-    // extract numcu and arch details from handle
-    const auto& tgt_props  = handle.GetTargetProperties();
-    const size_t num_cu    = handle.GetMaxComputeUnits();
-    const std::string arch = tgt_props.Name();
-
-    namespace fs = boost::filesystem;
-
-    // to fetch the kdb folder location
-    // ex:  /opt/rocm/miopen/share/miopen/db
-    auto pathstr = miopen::GetCachePath(true);
-
-    // append the json input arch and numcu values to file
-    boost::filesystem::path sys_path =
-        pathstr / (miopen::Handle::GetDbBasename(tgt_props, num_cu) + ".kdb");
-    std::cout << "System KernDB path = " << sys_path << std::endl;
-
-    // checks the file present in shared folder
-    if(boost::filesystem::exists(sys_path))
+    // pair.first = id, pair. second = string id
+    std::vector<std::unordered_map<std::string, std::string>> solvers;
+    for(const auto& id :
+        miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution))
     {
-        std::cout << "KernDB file Present  =  " << sys_path << std::endl;
-
-        json file_chk;
-        file_chk["kdb_file"]       = sys_path.string().c_str();
-        file_chk["kdb_file_found"] = true;
-        find_result.push_back(file_chk);
-
-// sets the values specific to Tensor from the json i/p file.
-#if MIOPEN_MODE_NOGPU
-        GetandSetData();
-#endif
-
-        // following methods are used to set the
-        // problem description, directionm context etc.
-        const auto conv_dir = GetDirection();
-        const miopen::ProblemDescription problem(
-            inputTensor.desc, weightTensor.desc, outputTensor.desc, convDesc, conv_dir);
-        auto ctx = miopen::ConvolutionContext{problem};
-
-        ctx.SetStream(&handle);
-        ctx.DetectRocm();
-        ctx.SetupFloats();
-
-        const auto network_config = ctx.BuildConfKey();
-        std::ostringstream ss;
-        problem.Serialize(ss);
-
-        // create handle, which holds information about kernel/solver/solution etc
-        auto db_obj = GetDb(ctx);
-
-        // get the solver ids, this is populated for default ids.
-        for(const auto& solver_id :
-            miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution))
-        {
-
-            json res_item;
-            bool retvalue;
-            // to extract solver id ,context,solution
-            auto process_solver = [&]() -> bool {
-                res_item["solver_id"] = solver_id.ToString();
-                const auto s          = solver_id.GetSolver();
-                if(s.IsEmpty())
-                {
-                    res_item["reason"] = "Empty Solver";
-                    std::cerr << "Skipping invalid solver: " << solver_id.ToString() << std::endl;
-                    return false;
-                }
-                if(!s.IsApplicable(ctx))
-                {
-                    res_item["reason"] = "Not Applicable";
-                    return false;
-                }
-
-                // we need to do this to avoid perf db search/update.
-                // scenario is get the solver id specific solution.
-                ctx.do_search             = false;
-                ctx.disable_perfdb_access = false;
-
-                // find solution for solver id.
-                const auto default_solution = s.FindSolution(ctx, db_obj, {});
-
-                if(default_solution.Succeeded() && default_solution.construction_params.empty())
-                {
-                    std::cout << "Internal error in solver: " << solver_id.ToString() << std::endl;
-                    res_item["reason"] = "Solver Id Error";
-                    return false;
-                }
-                json cdobj_list = json::array();
-                // check the presence of precompiled kernel code object present
-                // in memory ?
-                for(const auto& k : default_solution.construction_params)
-                {
-                    json cdobj_result;
-                    auto comp_opts   = k.comp_options;
-                    const auto hsaco = miopen::LoadBinary(
-                        tgt_props, num_cu, k.kernel_file, comp_opts + " -mcpu=" + arch, false);
-                    if(hsaco.empty())
-                    {
-                        std::cout << "!!!FAILURE !!! - Kernel Db is not present" << std::endl;
-                        cdobj_result["kernel_db_access"] = false;
-                        retvalue                         = false;
-                    }
-                    else
-                    {
-                        std::cout << "!!!Sucess!!! - Kernel Db is present" << std::endl;
-                        cdobj_result["kernel_db_access"] = true;
-
-                        // create the Program object
-                        auto proObj = miopen::HIPOCProgram{comp_opts + " -mcpu=" + arch, hsaco};
-
-                        // check the code object presence?
-                        const auto c_hsaco = proObj.IsCodeObjectInMemory();
-                        if(c_hsaco)
-                        {
-                            std::cout << "!!!Success!!!Kernel Code Objet present in memory"
-                                      << std::endl;
-                            cdobj_result["code_object_in_memory"] = true;
-                            retvalue                              = true;
-                        }
-                        else
-                        {
-                            std::cout << "!!! FAILURE!!!Code Objet is not in memory" << std::endl;
-                            cdobj_result["code_object_in_memory"] = false;
-                            retvalue                              = false;
-                        }
-                    } // else
-                    cdobj_list.push_back(cdobj_result);
-                } // for
-                res_item["kerenel_objects_list"] = cdobj_list;
-                return retvalue;
-            };
-            auto result                     = process_solver();
-            res_item["code_obj_chk_result"] = result;
-            find_result.push_back(res_item);
-        } // for-sloverlist
-    }     // if( file exisits?)
-    else
-    {
-        std::cout << " Kernel Database= " << sys_path << " Does not exist in the system path"
-                  << std::endl;
-        json err_result;
-        err_result["kdb_file"]       = sys_path.string().c_str();
-        err_result["kdb_file_found"] = false;
-        find_result.push_back(err_result);
+        std::unordered_map<std::string, std::string> solver;
+        solver["id"]      = std::to_string(id.Value());
+        solver["name"]    = id.ToString();
+        solver["tunable"] = "0";
+        solver["dynamic"] = "0";
+        if(id.GetSolver().IsTunable())
+            solver["tunable"] = "1";
+        if(id.GetSolver().IsDynamic())
+            solver["dynamic"] = "1";
+        solvers.push_back(solver);
     }
-    output["chk_pre_compiled_kernels"] = find_result;
-    return true;
+
+    output["all_solvers"] = solvers;
+    return 0;
 }
 
 template <typename Tgpu, typename Tref>
@@ -1544,7 +984,6 @@ int ConvFin<Tgpu, Tref>::CopyFromDevice()
 template <typename Tgpu, typename Tref>
 int ConvFin<Tgpu, Tref>::ProcessStep(const std::string& step_name)
 {
-
     steps_processed.push_back(step_name);
     if(step_name == "alloc_buf")
         return AllocateBuffers();
@@ -1555,23 +994,25 @@ int ConvFin<Tgpu, Tref>::ProcessStep(const std::string& step_name)
     if(step_name == "copy_buf_from_device")
         return CopyFromDevice();
     if(step_name == "applicability")
+    {
         return TestApplicability();
+    }
     if(step_name == "perf_db_test")
         return TestPerfDbValid();
+    if(step_name == "get_solvers")
+        return GetSolverList();
     if(step_name == "miopen_find")
-        return MIOpenFind();
-    if(step_name == "miopen_find_compile")
-        return MIOpenFindCompile();
-    if(step_name == "miopen_find_eval")
-        return MIOpenFindEval();
-    if(step_name == "chk_pre_compiled_kernels")
     {
-        return SearchPreCompiledKernels();
+        return MIOpenFind();
     }
-    if(step_name == "miopen_perf_compile")
-        return MIOpenPerfCompile();
-    if(step_name == "miopen_perf_eval")
-        return MIOpenPerfEval();
+    if(step_name == "miopen_find_compile")
+    {
+        return MIOpenFindCompile();
+    }
+    if(step_name == "miopen_find_eval")
+    {
+        return MIOpenFindEval();
+    }
     return 0;
 }
 

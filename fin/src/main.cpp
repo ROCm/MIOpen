@@ -27,7 +27,6 @@
 #include <miopen/miopen.h>
 
 #include "conv_fin.hpp"
-#include "bn_fin.hpp"
 #include "error.hpp"
 #include "fin.hpp"
 
@@ -50,7 +49,6 @@ using json = nlohmann::json;
 
 [[gnu::noreturn]] void Usage()
 {
-
     printf("Usage: ./fin *input_json *output_json\n\n");
     printf("Supported arguments:\n");
     printf("-i *input_json\n");
@@ -128,8 +126,9 @@ int main(int argc, char* argv[], char* envp[])
     // process through the jobs
     for(auto& it : j)
     {
-        auto command                    = it;
-        std::unique_ptr<fin::BaseFin> f = nullptr;
+        auto command                = it;
+        std::unique_ptr<fin::Fin> f = nullptr;
+        // TODO : Move this to a factory function
         if(command.contains("config"))
         {
             if(command["config"]["cmd"] == "conv")
@@ -143,14 +142,6 @@ int main(int argc, char* argv[], char* envp[])
             else if(command["config"]["cmd"] == "convbfp16")
             {
                 f = std::make_unique<fin::ConvFin<bfloat16, float>>(command);
-            }
-            else if(command["config"]["cmd"] == "bnorm")
-            {
-                f = std::make_unique<fin::BNFin<float, float>>(command);
-            }
-            else if(command["config"]["cmd"] == "bnormfp16")
-            {
-                f = std::make_unique<fin::BNFin<float, float>>(command);
             }
             else
             {
@@ -169,15 +160,8 @@ int main(int argc, char* argv[], char* envp[])
 
         for(auto& step_it : command["steps"])
         {
-            if(step_it == "get_solvers")
-            {
-                f->GetSolverList();
-            }
-            else
-            {
-                std::string step = step_it.get<std::string>();
-                f->ProcessStep(step);
-            }
+            std::string step = step_it.get<std::string>();
+            f->ProcessStep(step);
         }
         f->output["config_tuna_id"] = command["config_tuna_id"];
         f->output["arch"]           = command["arch"];
