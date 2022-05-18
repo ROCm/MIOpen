@@ -89,7 +89,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx) 
 
     KernelInfo kernel;
 
-    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx);
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile();
     kernel.kernel_name = ConvDirectNaiveConvKernelName(ctx);
     kernel.g_wk.clear();
 
