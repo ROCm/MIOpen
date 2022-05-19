@@ -550,6 +550,9 @@ typedef enum
         0, /*!< Use alternative fp16 implementation.
             Only supported for gfx90a; has no effect for other targets.
             0 - disabled, 1 - enabled, -1 or unset - default (F0B1W1) >*/
+    MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC =
+        1, /*!< Restrict MIOpen convolutions to kernels which produce numerically deterministic
+              results. 0 - disabled (default), 1 - enabled >*/
 } miopenConvolutionAttrib_t;
 
 /** @addtogroup tensor

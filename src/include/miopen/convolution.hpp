@@ -93,6 +93,25 @@ struct ConvolutionAttribute
         inline bool GetWrW() const { return Get() != 0; } // true is the default.
     } gfx90aFp16alt;
 
+    class Deterministic
+    {
+        int value = 0;
+        friend struct ConvolutionAttribute;
+
+    public:
+        inline int Get() const
+        {
+            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{});
+            return value;
+        }
+        operator bool() const
+        {
+            const auto tmp_val = this->Get(); // Make sure we read the env var
+            return tmp_val == 1;
+        }
+    } deterministic;
+
     /// Tri-state attribute values:
     /// * -1: Default (attribute-specific).
     /// * 0: Disabled/Yes.
