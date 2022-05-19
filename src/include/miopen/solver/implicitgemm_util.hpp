@@ -607,7 +607,7 @@ template <typename T>
 T gcd(T x, T y)
 {
     assert(!(x == 0 && y == 0));
-    //for clang
+    // for clang
     if(x == 0 && y == 0)
     {
         return 1;
