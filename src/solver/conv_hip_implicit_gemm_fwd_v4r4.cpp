@@ -308,11 +308,10 @@ PerformanceImplicitGemmV4R4Fwd::CalculateGemmBBlockCopyPerformanceParameters(
         // GemmBBlockCopySrcDataPerRead_GemmN also bounded by size of threadwise copy
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, b_data_per_thread_copy);
 
-        const auto b_data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
-#pragma clang diagnostic ignored "-Wdivision-by-zero"
+        // show clang b_data_per_thread_copy_gemmn is non-zero
+        const auto b_data_per_thread_copy_gemmn = (SrcDataPerRead_GemmN == 0) ? 1 : SrcDataPerRead_GemmN;
         const auto b_data_per_thread_copy_gemmk =
             b_data_per_thread_copy / b_data_per_thread_copy_gemmn;
-#pragma clang diagnostic pop
 
         // GemmBBlockCopyDstDataPerWrite_GemmN also bounded by size of threadwise copy
         DstDataPerWrite_GemmN = gcd(DstDataPerWrite_GemmN, b_data_per_thread_copy_gemmn);
