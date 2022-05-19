@@ -1240,7 +1240,7 @@ struct verify_backward_conv : conv_base<T>
         }
         case ConvApi::Find_2_0: {
             const auto problem = MakeConvProblem(
-                miopenProblemDirectionBackward, &input.desc, &weights.desc, &out.desc);
+                miopenProblemDirectionBackward, &rinput.desc, &weights.desc, &out.desc);
 
             const miopenTensorName_t names[3] = {
                 miopenTensorConvolutionX, miopenTensorConvolutionW, miopenTensorConvolutionY};
@@ -1516,7 +1516,7 @@ struct verify_backward_weights_conv : conv_base<T>
         }
         case ConvApi::Find_2_0: {
             const auto problem = MakeConvProblem(
-                miopenProblemDirectionBackwardWeight, &input.desc, &weights.desc, &out.desc);
+                miopenProblemDirectionBackwardWeight, &input.desc, &rweights.desc, &out.desc);
 
             const miopenTensorName_t names[3] = {
                 miopenTensorConvolutionX, miopenTensorConvolutionW, miopenTensorConvolutionY};
