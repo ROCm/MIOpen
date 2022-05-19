@@ -308,17 +308,15 @@ PerformanceImplicitGemmV4R4Fwd::CalculateGemmBBlockCopyPerformanceParameters(
         // GemmBBlockCopySrcDataPerRead_GemmN also bounded by size of threadwise copy
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, b_data_per_thread_copy);
 
-        // show clang b_data_per_thread_copy_gemmn is non-zero
         const auto b_data_per_thread_copy_gemmn = SrcDataPerRead_GemmN;
-        // const auto b_data_per_thread_copy_gemmk =
-        //    b_data_per_thread_copy / b_data_per_thread_copy_gemmn;
+        const auto b_data_per_thread_copy_gemmk =
+            b_data_per_thread_copy / b_data_per_thread_copy_gemmn;
 
         // GemmBBlockCopyDstDataPerWrite_GemmN also bounded by size of threadwise copy
         DstDataPerWrite_GemmN = gcd(DstDataPerWrite_GemmN, b_data_per_thread_copy_gemmn);
 
         // calculate blockwise copy thread cluster lengths
-        // ClusterLengths_GemmK = GemmKPerBlock / b_data_per_thread_copy_gemmk;
-        ClusterLengths_GemmK = BlockSize * b_data_per_thread_copy_gemmn / GemmNPerBlock;
+        ClusterLengths_GemmK = GemmKPerBlock / b_data_per_thread_copy_gemmk;
         ClusterLengths_GemmN = GemmNPerBlock / b_data_per_thread_copy_gemmn;
 
         if(!(ClusterLengths_GemmK > 0 && ClusterLengths_GemmN > 0))
