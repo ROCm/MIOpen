@@ -217,7 +217,8 @@ PerformanceImplicitGemmBwdDataV4R1::CalculateGemmABlockCopyPerformanceParameters
 
         // decide threadwise copy lengths
         // show clang a_data_per_thread_copy_gemmm is non-zero
-        const auto a_data_per_thread_copy_gemmm = (SrcDataPerRead_GemmM == 0) ? 1 : SrcDataPerRead_GemmM;
+        const auto a_data_per_thread_copy_gemmm =
+            (SrcDataPerRead_GemmM == 0) ? 1 : SrcDataPerRead_GemmM;
         const auto a_data_per_thread_copy_gemmk =
             a_data_per_thread_copy / a_data_per_thread_copy_gemmm;
 
