@@ -238,7 +238,7 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
             const auto enable_profiling = handle.IsProfilingEnabled();
 
             float elapsed_time =
-                invoker_ptr->Run(argument_ptr.get(), 1, handle.GetStream(), enable_profiling);
+                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
             if(enable_profiling)
             {
                 handle.ResetKernelTime();
