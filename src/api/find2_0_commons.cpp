@@ -131,7 +131,7 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
             problem_deref.FindSolutions(handle_deref, options_deref, maxSolutions);
 
         for(auto i = 0; i < solutions_deref.size(); ++i)
-            miopen::deref(solutions + i) = new miopen::Solution{solutions_deref[i]};
+            miopen::deref(solutions + i) = new miopen::Solution{std::move(solutions_deref[i])};
 
         if(numSolutions != nullptr)
             *numSolutions = solutions_deref.size();
