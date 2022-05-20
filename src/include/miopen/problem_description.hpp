@@ -203,17 +203,7 @@ struct ProblemDescription
         return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
                out_data_type == miopenBFloat16;
     }
-    bool IsHalfx4() const
-    {
-        return in_data_type == miopenHalf && weights_data_type == miopenHalf &&
-               out_data_type == miopenHalf && vectorLength == 4;
-    }
-    bool IsHalfx8() const
-    {
-        return in_data_type == miopenHalf && weights_data_type == miopenHalf &&
-               out_data_type == miopenHalf && vectorLength == 8;
-    }
-
+    bool IsInt8() const { return conv_problem.IsInt8(); }
     bool IsNCHWc_NCHWc() const
     {
         return in_layout == "NCHWc" && weights_layout == "NCHWc" && out_layout == "NCHWc";

@@ -111,15 +111,6 @@ constexpr TElement GetWofCHWN(const std::vector<TElement>& data)
 }
 
 template <class TElement>
-constexpr auto GetNCDHW(int spatial_dims, const std::vector<TElement>& data)
-{
-    if(spatial_dims == 3)
-        return miopen::tien<5>(data, 1);
-    else
-        return std::make_tuple(data[0], data[1], static_cast<TElement>(1), data[2], data[3]);
-}
-
-template <class TElement>
 constexpr TElement GetN5(int spatial_dims, const std::vector<TElement>& data)
 {
     return std::get<0>(GetNCDHW(spatial_dims, data));
@@ -344,6 +335,11 @@ struct ProblemDescription
     {
         return GetInDataType() == miopenBFloat16 && GetWeightsDataType() == miopenBFloat16 &&
                GetOutDataType() == miopenBFloat16;
+    }
+    bool IsInt8() const
+    {
+        return GetInDataType() == miopenInt8 && GetWeightsDataType() == miopenInt8 &&
+               (GetOutDataType() == miopenInt32 || GetOutDataType() == miopenFloat);
     }
 
     // To be used in Solvers that do not implement ALT FP16 kernels.

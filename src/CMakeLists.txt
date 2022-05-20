@@ -210,6 +210,8 @@ set( MIOpen_Source
     solver/gemm_wrw.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNd.cpp
+    solver/pooling/backward2d.cpp
+    solver/pooling/backwardNd.cpp
     subbuffers.cpp
     target_properties.cpp
     temp_file.cpp
@@ -332,6 +334,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/gpr_alloc.inc
         kernels/bfloat16_dev.hpp
         kernels/float_types.h
+        kernels/workaround_issue_1431.hpp
         )
 
     set(MIOPEN_KERNELS
@@ -442,8 +445,28 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_bidirect_winograd_out.s
         kernels/UniversalTranspose.cl)
 
+    # Kernels in development lists.
+    # Should be ALWAYS empty in develop branch (at the time of PR merge)
+    # Intention: to speed up kernel development rebuild time
+    set(MIOPEN_DEVELOPMENT_KERNELS)
+
+    # Only referenced by MIOPEN_DEVELOPMENT_KERNELS
+    set(MIOPEN_DEVELOPMENT_KERNEL_INCLUDES)
+
+    LIST(LENGTH MIOPEN_DEVELOPMENT_KERNELS MIOPEN_DEVELOPMENT_KERNELS_COUNT)
+    LIST(LENGTH MIOPEN_DEVELOPMENT_KERNEL_INCLUDES MIOPEN_DEVELOPMENT_KERNEL_INCLUDES_COUNT)
+
     add_kernels("kernel.cpp" "MIOPEN_KERNEL_" "" "${MIOPEN_KERNELS}")
     add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "_INCLUDE" "${MIOPEN_KERNEL_INCLUDES}")
+
+    if(${MIOPEN_DEVELOPMENT_KERNELS_COUNT})
+        add_kernels("kernel.cpp" "MIOPEN_KERNEL_" "" "${MIOPEN_DEVELOPMENT_KERNELS}")
+    endif()
+    
+    if(${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES_COUNT})
+        add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "_INCLUDE" "${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES}")
+    endif()
+
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
@@ -457,7 +480,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/lrn_ocl.cpp
         ocl/mloNeuron.cpp
         ocl/mloNorm.cpp
-        ocl/mloPooling.cpp
         ocl/pooling_ocl.cpp
         ocl/tensorocl.cpp
         ocl/softmaxocl.cpp
@@ -520,7 +542,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     set(KERNELS_SRC_BATCH_FACTOR 50 CACHE STRING "Amount of kernel source files to inline to a single object file.")
     set(KERNELS_BATCH_ID 0)
 
-    function(inline_kernels_src BATCH_FACTOR KERNELS KERNEL_INCLUDES EXTRA_OPTIONS)
+    function(inline_kernels_src BATCH_FACTOR KERNELS KERNEL_INCLUDES EXTRA_OPTIONS MESSAGE_SUFFIX)
         set(KERNELS_BATCH)
         set(KERNELS_BATCH_SIZE 0)
         set(PROCESSED 0)
@@ -540,7 +562,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     DEPENDS addkernels ${KERNELS_BATCH} ${KERNEL_INCLUDES}
                     COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
-                    COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}"
+                    COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}${MESSAGE_SUFFIX}"
                     )
                 configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
                 list(APPEND MIOpen_Source ${KERNEL_SRC_CPP_PATH} ${KERNEL_SRC_HPP_PATH})
@@ -554,8 +576,20 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         set(MIOpen_Source ${MIOpen_Source} PARENT_SCOPE)
     endfunction()
 
-    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNELS}" "${MIOPEN_KERNEL_INCLUDES}" "")
-    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNEL_INCLUDES}" "" "-no-recurse;-mark-includes")
+    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNELS}" "${MIOPEN_KERNEL_INCLUDES}" "" "")
+    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNEL_INCLUDES}" "" "-no-recurse;-mark-includes" " (includes)")
+
+    set(MIOPEN_DEVELOPMENT_KERNELS_DEPS ${MIOPEN_KERNEL_INCLUDES})
+    list(APPEND MIOPEN_DEVELOPMENT_KERNELS_DEPS ${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES})
+
+    if(${MIOPEN_DEVELOPMENT_KERNELS_COUNT})
+        inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_DEVELOPMENT_KERNELS}" "${MIOPEN_DEVELOPMENT_KERNELS_DEPS}" "" " (dev kernels)")
+    endif()
+    
+    if(${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES_COUNT})
+        inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES}" "" "-no-recurse;-mark-includes" " (dev includes)")
+    endif()
+
 endif()
 
 if(MIOPEN_USE_COMGR)
@@ -772,6 +806,7 @@ if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
     HEADER_LOCATION include/miopen
     GUARDS WRAPPER
     WRAPPER_LOCATIONS miopen/include/miopen
+    ORIGINAL_FILES ${PROJECT_BINARY_DIR}/include/miopen/version.h ${PROJECT_BINARY_DIR}/include/miopen/config.h
   )
 
   #Installing Wrapper Headers

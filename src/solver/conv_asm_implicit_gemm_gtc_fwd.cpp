@@ -1354,8 +1354,8 @@ FindImplicitGemmGtcDynamicFwdKernel(const ConvolutionContext& ctx)
     const auto& k         = ctx.n_outputs;
     const auto& ho        = ctx.out_height;
     const auto& wo        = ctx.out_width;
-    const auto stride_h   = ctx.out_height > 1 ? ctx.kernel_stride_h : 1;
-    const auto stride_w   = ctx.out_width > 1 ? ctx.kernel_stride_w : 1;
+    const auto stride_h   = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
+    const auto stride_w   = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
     const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
     const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
     const auto& pad_h     = ctx.pad_h;
