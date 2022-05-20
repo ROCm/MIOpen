@@ -37,6 +37,7 @@
 #include <miopen/type_name.hpp>
 #include <miopen/miopen.h>
 #include <miopen/buffer_info.hpp>
+#include <miopen/sequences.hpp>
 
 #include <boost/any.hpp>
 
@@ -241,6 +242,17 @@ struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
         f(self.filters_per_wave, "filters_per_wave");
         f(self.output_lines_per_wave, "output_lines_per_wave");
     }
+
+    // clang-format off
+    auto PerfFieldRules() const
+    {
+        return seq::MakeRuleSet(
+            std::make_tuple(seq::Span<int, 0, 9>{}, &PerformanceConfigConvAsm3x3U::limit_wave_cnt),
+            std::make_tuple(seq::Span<int, 1, 8>{}, &PerformanceConfigConvAsm3x3U::filters_per_wave),
+            std::make_tuple(seq::Span<int, 1, 8>{}, &PerformanceConfigConvAsm3x3U::output_lines_per_wave)
+        );
+    }
+    // clang-format on
 
     void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
