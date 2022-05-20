@@ -70,11 +70,6 @@ PerformanceConfigConvAsm3x3U::PerformanceConfigConvAsm3x3U(int lwc, int fpw, int
 {
 }
 
-bool PerformanceConfigConvAsm3x3U::operator==(const PerformanceConfigConvAsm3x3U& other) const
-{
-    return PerfFieldRules().Compare(*this, other);
-}
-
 bool PerformanceConfigConvAsm3x3U::IsValidValue() const { return PerfFieldRules().IsIn(*this); }
 
 bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& config) const

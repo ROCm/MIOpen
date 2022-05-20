@@ -111,18 +111,6 @@ PerformanceConfigAsmDirect3x3WrW::PerformanceConfigAsmDirect3x3WrW(
 {
 }
 
-bool PerformanceConfigAsmDirect3x3WrW::operator==(
-    const PerformanceConfigAsmDirect3x3WrW& other) const
-{
-    // clang-format off
-    return limit_wave_cnt == other.limit_wave_cnt
-        && reverse_inout == other.reverse_inout
-        && chunk_size == other.chunk_size
-        && k_per_wave == other.k_per_wave
-        && pipe_lines_depth == other.pipe_lines_depth
-        && n_per_group == other.n_per_group; // clang-format on
-}
-
 bool PerformanceConfigAsmDirect3x3WrW::IsValidValue() const
 {
     // clang-format off

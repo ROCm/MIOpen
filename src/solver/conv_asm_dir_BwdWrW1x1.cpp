@@ -274,23 +274,6 @@ PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(int chunk_s
 {
 }
 
-bool PerformanceConfigConvAsmBwdWrW1x1::operator==(
-    const PerformanceConfigConvAsmBwdWrW1x1& other) const
-{
-    // clang-format off
-    return chunk_size == other.chunk_size
-        && c_per_gpr == other.c_per_gpr
-        && c_mult == other.c_mult
-        && k_per_gpr == other.k_per_gpr
-        && k_mult == other.k_mult
-        && n_per_gpr == other.n_per_gpr
-        && n_part_cnt == other.n_part_cnt
-        && read_size == other.read_size
-        && short_store == other.short_store
-        && data_prefetch == other.data_prefetch
-        && use_spare_set == other.use_spare_set; // clang-format on
-}
-
 bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
 {
     // clang-format off

@@ -287,22 +287,6 @@ PerformanceConfigConvAsm1x1UV2::PerformanceConfigConvAsm1x1UV2(int chunk_size_,
 {
 }
 
-bool PerformanceConfigConvAsm1x1UV2::operator==(const PerformanceConfigConvAsm1x1UV2& other) const
-{
-    // clang-format off
-    return chunk_size == other.chunk_size
-        && dwords_per_ld == other.dwords_per_ld
-        && c_mult == other.c_mult
-        && k_mult == other.k_mult
-        && n_mult == other.n_mult
-        && w_mult == other.w_mult
-        && h_mult == other.h_mult
-        && h_per_chunk == other.h_per_chunk
-        && waves_k_in_group == other.waves_k_in_group
-        && waves_c_in_group == other.waves_c_in_group
-        && use_spare_set == other.use_spare_set; // clang-format on
-}
-
 bool PerformanceConfigConvAsm1x1UV2::IsValidValue() const
 {
     // clang-format off

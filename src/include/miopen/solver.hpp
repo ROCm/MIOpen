@@ -246,7 +246,11 @@ struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
-    bool operator==(const PerformanceConfigConvAsm3x3U& other) const;
+    inline bool operator==(const PerformanceConfigConvAsm3x3U& other) const
+    {
+        return PerfFieldRules().Compare(*this, other);
+    }
+
     std::string ToString() const;
 };
 
@@ -316,7 +320,20 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
-    bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
+    inline bool operator==(const PerformanceConfigConvAsm1x1U& other) const
+    {
+        // clang-format off
+        return read_size == other.read_size
+            && k_mult == other.k_mult
+            && chunks_per_wave == other.chunks_per_wave
+            && chunk_size == other.chunk_size
+            && n_mult == other.n_mult
+            && c_mult == other.c_mult
+            && waves_c_in_group == other.waves_c_in_group
+            && waves_k_in_group == other.waves_k_in_group
+            && use_spare_set == other.use_spare_set; // clang-format on
+    }
+
     std::string ToString() const;
 };
 
@@ -345,7 +362,20 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
     {
     }
     bool IsValid(const ConvolutionContext& config) const;
-    bool operator==(const PerformanceConfigConvBiasActivAsm1x1U& other) const;
+    inline bool operator==(const PerformanceConfigConvBiasActivAsm1x1U& other) const
+    {
+        // clang-format off
+                return read_size == other.read_size
+                    && k_mult == other.k_mult
+                    && chunks_per_wave == other.chunks_per_wave
+                    && chunk_size == other.chunk_size
+                    && n_mult == other.n_mult
+                    && c_mult == other.c_mult
+                    && waves_c_in_group == other.waves_c_in_group
+                    && waves_k_in_group == other.waves_k_in_group
+                    && use_spare_set == other.use_spare_set; // clang-format on
+    }
+
 };
 
 // Fused solver
@@ -423,7 +453,22 @@ struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
-    bool operator==(const PerformanceConfigConvAsm1x1UV2& other) const;
+    inline bool operator==(const PerformanceConfigConvAsm1x1UV2& other) const
+    {
+        // clang-format off
+        return chunk_size == other.chunk_size
+            && dwords_per_ld == other.dwords_per_ld
+            && c_mult == other.c_mult
+            && k_mult == other.k_mult
+            && n_mult == other.n_mult
+            && w_mult == other.w_mult
+            && h_mult == other.h_mult
+            && h_per_chunk == other.h_per_chunk
+            && waves_k_in_group == other.waves_k_in_group
+            && waves_c_in_group == other.waves_c_in_group
+            && use_spare_set == other.use_spare_set; // clang-format on
+    }
+
     std::string ToString() const;
 };
 
@@ -1842,7 +1887,11 @@ struct PerformanceConfigConvBinWinogradRxSf3x2
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
-    bool operator==(const PerformanceConfigConvBinWinogradRxSf3x2& other) const;
+    inline bool operator==(const PerformanceConfigConvBinWinogradRxSf3x2& other) const
+    {
+        return n_groups == other.n_groups;
+    }
+
     std::string ToString() const;
 };
 
@@ -1890,7 +1939,11 @@ struct PerformanceConfigConvBinWinogradRxSf2x3
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
-    bool operator==(const PerformanceConfigConvBinWinogradRxSf2x3& other) const;
+    inline bool operator==(const PerformanceConfigConvBinWinogradRxSf2x3& other) const
+    {
+        return n_groups == other.n_groups;
+    }
+
     std::string ToString() const;
 };
 
@@ -2211,7 +2264,17 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
-    bool operator==(const PerformanceConfigAsmDirect3x3WrW& other) const;
+    inline bool operator==(const PerformanceConfigAsmDirect3x3WrW& other) const
+    {
+        // clang-format off
+        return limit_wave_cnt == other.limit_wave_cnt
+            && reverse_inout == other.reverse_inout
+            && chunk_size == other.chunk_size
+            && k_per_wave == other.k_per_wave
+            && pipe_lines_depth == other.pipe_lines_depth
+            && n_per_group == other.n_per_group; // clang-format on
+    }
+
     std::string ToString() const;
 };
 
@@ -2317,7 +2380,22 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
-    bool operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const;
+    inline bool operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
+    {
+        // clang-format off
+        return chunk_size == other.chunk_size
+            && c_per_gpr == other.c_per_gpr
+            && c_mult == other.c_mult
+            && k_per_gpr == other.k_per_gpr
+            && k_mult == other.k_mult
+            && n_per_gpr == other.n_per_gpr
+            && n_part_cnt == other.n_part_cnt
+            && read_size == other.read_size
+            && short_store == other.short_store
+            && data_prefetch == other.data_prefetch
+            && use_spare_set == other.use_spare_set; // clang-format on
+    }
+
     std::string ToString() const;
 };
 
@@ -2395,7 +2473,16 @@ struct PerformanceConfigConvOclBwdWrw2
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& params) const;
-    bool operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const;
+    inline bool operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
+	{
+	    // clang-format off
+	    return n_waves == other.n_waves
+		&& read_size == other.read_size
+		&& n_out_channels_per_tile == other.n_out_channels_per_tile
+		&& n_out_channels_tiles == other.n_out_channels_tiles
+		&& n_out_rows_in_lcl == other.n_out_rows_in_lcl; // clang-format on
+	}
+
     std::string ToString() const;
 };
 
