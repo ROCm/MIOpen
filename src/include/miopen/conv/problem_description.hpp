@@ -208,7 +208,7 @@ struct ProblemDescription
     {
         if(GetSpatialDims() == 2)
         {
-            return in.GetLayout(in.GetTensorLayout());
+            return in.GetLayout(in.GetLayout_str());
         }
         else
         {
@@ -242,7 +242,7 @@ struct ProblemDescription
     {
         if(GetSpatialDims() == 2)
         {
-            return out.GetLayout(out.GetTensorLayout());
+            return out.GetLayout(out.GetLayout_str());
         }
         else
         {
@@ -264,14 +264,14 @@ struct ProblemDescription
     std::size_t GetWeightsDepth() const { return GetD5(GetSpatialDims(), weights.GetLengths()); }
     std::size_t GetWeightsHeight() const
     {
-        if(weights.GetTensorLayout() == "CHWN_VECT_C")
+        if(weights.GetLayout_str() == "CHWNc")
             return GetHofCHWN(weights.GetLengths());
         else
             return GetH5(GetSpatialDims(), weights.GetLengths());
     }
     std::size_t GetWeightsWidth() const
     {
-        if(weights.GetTensorLayout() == "CHWN_VECT_C")
+        if(weights.GetLayout_str() == "CHWNc")
             return GetWofCHWN(weights.GetLengths());
         else
             return GetW5(GetSpatialDims(), weights.GetLengths());
@@ -287,7 +287,7 @@ struct ProblemDescription
     {
         if(GetSpatialDims() == 2)
         {
-            return weights.GetLayout(weights.GetTensorLayout());
+            return weights.GetLayout(weights.GetLayout_str());
         }
         else
         {

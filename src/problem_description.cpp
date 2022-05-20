@@ -46,10 +46,10 @@ bool ProblemDescription::IsLayoutNHWC() const
 
 bool ProblemDescription::IsLayoutNCHWC() const
 {
-    return ((spatial_dims == 2) && (in_layout == "NCHW_VECT_C") && (out_layout == "NCHW_VECT_C") &&
-            (weights_layout == "NCHW_VECT_C")) ||
-           ((spatial_dims == 2) && (in_layout == "NCHW_VECT_C") && (out_layout == "NCHW_VECT_C") &&
-            (weights_layout == "CHWN_VECT_C"));
+    return ((spatial_dims == 2) && (in_layout == "NCHWc") && (out_layout == "NCHWc") &&
+            (weights_layout == "NCHWc")) ||
+           ((spatial_dims == 2) && (in_layout == "NCHWc") && (out_layout == "NCHWc") &&
+            (weights_layout == "CHWNc"));
 }
 
 void ProblemDescription::Serialize(std::ostream& stream) const

@@ -216,14 +216,12 @@ struct ProblemDescription
 
     bool IsNCHWc_NCHWc() const
     {
-        return in_layout == "NCHW_VECT_C" && weights_layout == "NCHW_VECT_C" &&
-               out_layout == "NCHW_VECT_C";
+        return in_layout == "NCHWc" && weights_layout == "NCHWc" && out_layout == "NCHWc";
     }
 
     bool IsNCHWc_CHWNc() const
     {
-        return in_layout == "NCHW_VECT_C" && weights_layout == "CHWN_VECT_C" &&
-               out_layout == "NCHW_VECT_C";
+        return in_layout == "NCHWc" && weights_layout == "CHWNc" && out_layout == "NCHWc";
     }
 
     ProblemDescription() = default;

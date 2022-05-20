@@ -126,6 +126,9 @@ struct TensorDescriptor : miopenTensorDescriptor
                      miopenTensorLayout_t playout,
                      std::initializer_list<std::size_t> plens);
     TensorDescriptor(miopenDataType_t t,
+                     miopenTensorLayout_t playout,
+                     std::vector<std::size_t> plens);
+    TensorDescriptor(miopenDataType_t t,
                      std::initializer_list<std::size_t> plens,
                      std::initializer_list<std::size_t> pstrides);
     TensorDescriptor(miopenDataType_t t, const int* plens, int size);
@@ -156,7 +159,8 @@ struct TensorDescriptor : miopenTensorDescriptor
     }
 
     void CalculateStrides();
-    void CalculateVectorC();
+    void CalculateVectorLength();
+    bool IsVectorized() const;
 
     const std::vector<std::size_t>& GetLengths() const;
     const std::vector<std::size_t>& GetStrides() const;
@@ -164,6 +168,7 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     miopenDataType_t GetType() const;
     miopenTensorLayout_t GetLayout_t() const;
+    std::string GetLayout_str() const;
 
     int GetVectorLength() const;
 
@@ -202,19 +207,10 @@ struct TensorDescriptor : miopenTensorDescriptor
                          }));
         return result;
     }
-    std::string GetTensorLayout() const
-    {
-        if(tensorLayout == miopenTensorNCHWc4 || tensorLayout == miopenTensorNCHWc8)
-            return "NCHW_VECT_C";
-        else if(tensorLayout == miopenTensorCHWNc4 || tensorLayout == miopenTensorCHWNc8)
-            return "CHWN_VECT_C";
-        else
-            return "NCHW";
-    }
 
     std::string GetLayout(std::string labels) const
     {
-        if(labels.find("_VECT_") == std::string::npos)
+        if(labels.find("c") == std::string::npos)
         {
             if(labels.size() != strides.size())
             {
@@ -231,7 +227,7 @@ struct TensorDescriptor : miopenTensorDescriptor
         }
         else
         {
-            std::string base_label = labels.substr(0, labels.find("_VECT_"));
+            std::string base_label = labels.substr(0, labels.find("c"));
             if(base_label.size() != strides.size())
             {
                 MIOPEN_THROW(
@@ -240,7 +236,7 @@ struct TensorDescriptor : miopenTensorDescriptor
             auto result = base_label;
             auto p      = find_permutation(lens, strides);
             std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
-            return result + labels.substr(labels.find("_VECT_"));
+            return result + labels.substr(labels.find("c"));
         }
     }
 
@@ -251,7 +247,6 @@ private:
     std::vector<std::size_t> strides;
 
     bool packed;
-    // Consider is this member redundant
     int vector_length = 1;
 
     miopenDataType_t type             = miopenFloat;

@@ -70,11 +70,11 @@ void tensor_layout_to_strides(const std::vector<T>& len,
 }
 
 template <typename T>
-void tensor_layout_to_strides_vect(const std::vector<T>& len,
-                                   const std::string& len_layout,
-                                   const std::string& layout,
-                                   const int vector,
-                                   std::vector<T>& strides)
+void tensor_layout_to_strides(const std::vector<T>& len,
+                              const std::string& len_layout,
+                              const std::string& layout,
+                              const int vector,
+                              std::vector<T>& strides)
 {
     const std::string base_layout = layout.substr(0, len.size());
     // Bind the layout and the dimension lengths together into a map.

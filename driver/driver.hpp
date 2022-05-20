@@ -156,14 +156,13 @@ inline std::string ParseBaseArg(int argc, char* argv[])
 
     std::string arg = argv[1];
 
-    if(arg != "conv" && arg != "convfp16" && arg != "convfp16x4" && arg != "convfp16x8" &&
-       arg != "convint8" && arg != "convbfp16" && arg != "CBAInfer" && arg != "CBAInferfp16" &&
-       arg != "pool" && arg != "poolfp16" && arg != "lrn" && arg != "lrnfp16" && arg != "activ" &&
-       arg != "activfp16" && arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" &&
-       arg != "bnormfp16" && arg != "rnn" && arg != "rnnfp16" &&
-       arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" && arg != "dropout" &&
-       arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" && arg != "reduce" &&
-       arg != "reducefp16" && arg != "reducefp64" && arg != "--version")
+    if(arg != "conv" && arg != "convfp16" && arg != "convint8" && arg != "convbfp16" &&
+       arg != "CBAInfer" && arg != "CBAInferfp16" && arg != "pool" && arg != "poolfp16" &&
+       arg != "lrn" && arg != "lrnfp16" && arg != "activ" && arg != "activfp16" &&
+       arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" &&
+       arg != "rnn" && arg != "rnnfp16" && arg != "gemm" /*&& arg != "gemmfp16"*/ && arg != "ctc" &&
+       arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
+       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" && arg != "--version")
     {
         printf("Invalid Base Input Argument\n");
         Usage();

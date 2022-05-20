@@ -353,6 +353,8 @@ typedef enum
     miopenTensorNCHWc8 = 4, /*!< NCHWc8 memory layout (Partially supported) */
     miopenTensorCHWNc4 = 5, /*!< CHWNc4 memory layout (Partially supported) */
     miopenTensorCHWNc8 = 6, /*!< CHWNc8 memory layout (Partially supported) */
+    miopenTensorNCDHW  = 7, /*!< NCDHW memory layout (Fully supported) */
+    miopenTensorNDHWC  = 8, /*!< NCDHW memory layout (Fully supported) */
 } miopenTensorLayout_t;
 
 /*! @ingroup pooling
@@ -597,9 +599,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
 
 /*! @brief Set shape of 4D tensor with specific layout
  *
- * Second Interface for setting 4-D tensor shape. This interface support NHWC, NCHW_VECT_C,
- * CHWN_VECT_C layout The supported VECT_C type layout, user input like: convfp16x8 -n 8 -c 64 -h 5
- * -w 5 ... initialized to tensor with lengths of (8, 8, 5, 5) and strides of (1600, 200, 40, 8)
+ * Interface for setting 4-D tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
  * @param tensorDesc   Tensor descriptor type (output)
  * @param dataType     MIOpen datatype (input)
  * @param tensorLayout Tensor layout (input)

@@ -37,6 +37,24 @@
 #include <numeric>
 #include <vector>
 
+inline miopenTensorLayout_t StringToLayoutType(std::string layout)
+{
+    miopenTensorLayout_t default_layout = miopenTensorNCHW;
+    if(layout == "NCHWc4")
+        return miopenTensorNCHWc4;
+    else if(layout == "NCHWc8")
+        return miopenTensorNCHWc8;
+    else if(layout == "CHWNc4")
+        return miopenTensorCHWNc4;
+    else if(layout == "CHWNc8")
+        return miopenTensorCHWNc8;
+    else
+    {
+        MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8 vectorized tensor layout.");
+        return default_layout;
+    }
+}
+
 inline int GetTensorVectorLength(miopenTensorDescriptor_t& tensor)
 {
     int vectorLength;
@@ -125,25 +143,18 @@ inline int SetTensor4d(miopenTensorDescriptor_t t,
 
 inline int SetTensor4dVector(miopenTensorDescriptor_t t,
                              std::vector<int>& len,
-                             const std::string& layout,
+                             miopenTensorLayout_t layout,
                              miopenDataType_t data_type = miopenFloat)
 {
-    if(layout == "NCHW_VECT_C4")
+    if(layout == miopenTensorNCHWc4 || layout == miopenTensorNCHWc8)
         return miopenSet4dTensorDescriptorWithLayout(
-            t, data_type, miopenTensorNCHWc4, len[0], len[1], len[2], len[3]);
-    else if(layout == "NCHW_VECT_C8")
+            t, data_type, layout, len[0], len[1], len[2], len[3]);
+    else if(layout == miopenTensorCHWNc4 || layout == miopenTensorCHWNc8)
         return miopenSet4dTensorDescriptorWithLayout(
-            t, data_type, miopenTensorNCHWc8, len[0], len[1], len[2], len[3]);
-    else if(layout == "CHWN_VECT_C4")
-        return miopenSet4dTensorDescriptorWithLayout(
-            t, data_type, miopenTensorCHWNc4, len[1], len[2], len[3], len[0]);
-    else if(layout == "CHWN_VECT_C8")
-        return miopenSet4dTensorDescriptorWithLayout(
-            t, data_type, miopenTensorCHWNc8, len[1], len[2], len[3], len[0]);
+            t, data_type, layout, len[1], len[2], len[3], len[0]);
     else
     {
-        MIOPEN_THROW(
-            "We only supported NCHW_VECT_C & CHWN_VECT_C layout with vector length of 4 and 8");
+        MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8 vectorized tensor layout.");
         return -1;
     }
 }
@@ -173,14 +184,14 @@ inline int SetTensorNd(miopenTensorDescriptor_t t,
         return SetTensorNd(t, len, data_type);
     }
 
-    if(layout.size() != len.size() && layout.find("_VECT_") == std::string::npos)
+    if(layout.size() != len.size() && layout.find("c") == std::string::npos)
     {
         MIOPEN_THROW("unmatched layout and dimension size");
     }
 
-    if(layout.find("_VECT_") != std::string::npos)
+    if(layout.find("c") != std::string::npos)
     {
-        return SetTensor4dVector(t, len, layout, data_type);
+        return SetTensor4dVector(t, len, StringToLayoutType(layout), data_type);
     }
 
     // Dimension lengths vector 'len' comes with a default layout.
@@ -219,8 +230,4 @@ inline size_t GetTensorSpace(miopenTensorDescriptor_t& tensor)
     return miopen::deref(tensor).GetElementSpace();
 }
 
-inline std::string GetTensorLayout(miopenTensorDescriptor_t& tensor)
-{
-    return miopen::deref(tensor).GetTensorLayout();
-}
 #endif // GUARD_MIOPEN_TENSOR_DRIVER_HPP
