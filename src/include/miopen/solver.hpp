@@ -375,7 +375,6 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
                     && waves_k_in_group == other.waves_k_in_group
                     && use_spare_set == other.use_spare_set; // clang-format on
     }
-
 };
 
 // Fused solver
@@ -2474,14 +2473,14 @@ struct PerformanceConfigConvOclBwdWrw2
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& params) const;
     inline bool operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
-	{
-	    // clang-format off
+    {
+        // clang-format off
 	    return n_waves == other.n_waves
 		&& read_size == other.read_size
 		&& n_out_channels_per_tile == other.n_out_channels_per_tile
 		&& n_out_channels_tiles == other.n_out_channels_tiles
 		&& n_out_rows_in_lcl == other.n_out_rows_in_lcl; // clang-format on
-	}
+    }
 
     std::string ToString() const;
 };
