@@ -48,20 +48,17 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
     });
 }
 
-extern "C" miopenStatus_t miopenSet4dTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
+extern "C" miopenStatus_t miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
                                                                 miopenDataType_t dataType,
                                                                 miopenTensorLayout_t tensorLayout,
-                                                                int n,
-                                                                int c,
-                                                                int h,
-                                                                int w)
+                                                                int* lens,
+                                                                int num_lens)
 {
 
-    MIOPEN_LOG_FUNCTION(tensorDesc, dataType, tensorLayout, n, c, h, w);
+    MIOPEN_LOG_FUNCTION(tensorDesc, dataType, tensorLayout, lens, num_lens);
     return miopen::try_([&] {
-        std::initializer_list<int> lens = {n, c, h, w};
         miopen::deref(tensorDesc) =
-            miopen::TensorDescriptor(dataType, tensorLayout, lens.begin(), 4);
+            miopen::TensorDescriptor(dataType, tensorLayout, lens, num_lens);
     });
 }
 

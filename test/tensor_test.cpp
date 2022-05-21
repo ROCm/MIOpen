@@ -60,12 +60,10 @@ struct tensor_fixture_4_vector : tensor_base
     tensor_fixture_4_vector()
     {
         miopenCreateTensorDescriptor(&tensor);
-        std::size_t n = 100;
-        std::size_t c = 32;
-        std::size_t h = 8;
-        std::size_t w = 8;
+        std::vector<int> lens = {100, 32, 8, 8};
 
-        miopenSet4dTensorDescriptorWithLayout(tensor, miopenHalf, miopenTensorNCHWc4, n, c, h, w);
+        miopenSetNdTensorDescriptorWithLayout(
+            tensor, miopenHalf, miopenTensorNCHWc4, lens.data(), lens.size());
     }
 };
 

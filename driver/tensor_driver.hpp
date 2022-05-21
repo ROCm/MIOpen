@@ -55,6 +55,18 @@ inline miopenTensorLayout_t StringToLayoutType(std::string layout)
     }
 }
 
+inline void LengthReorder(std::vector<int>& lens, const std::initializer_list<int>& indices)
+{
+    std::vector<int> out_lens;
+    out_lens.reserve(indices.size());
+    for(int index : indices)
+    {
+        assert(0 <= index && index < values.size());
+        out_lens.push_back(std::move(lens[index]));
+    }
+    lens = std::move(out_lens);
+}
+
 inline int GetTensorVectorLength(miopenTensorDescriptor_t& tensor)
 {
     int vectorLength;
@@ -141,22 +153,25 @@ inline int SetTensor4d(miopenTensorDescriptor_t t,
     return miopenSet4dTensorDescriptor(t, data_type, UNPACK_VEC4(len));
 }
 
-inline int SetTensor4dVector(miopenTensorDescriptor_t t,
+inline int SetTensorNdVector(miopenTensorDescriptor_t t,
                              std::vector<int>& len,
                              miopenTensorLayout_t layout,
                              miopenDataType_t data_type = miopenFloat)
 {
     if(layout == miopenTensorNCHWc4 || layout == miopenTensorNCHWc8)
-        return miopenSet4dTensorDescriptorWithLayout(
-            t, data_type, layout, len[0], len[1], len[2], len[3]);
+    {
+        // Do nothing, MIOpen implicit logic that lens are in NCHW order.
+    }
     else if(layout == miopenTensorCHWNc4 || layout == miopenTensorCHWNc8)
-        return miopenSet4dTensorDescriptorWithLayout(
-            t, data_type, layout, len[1], len[2], len[3], len[0]);
+    {
+        LengthReorder(len, {1, 2, 3, 0});
+    }
     else
     {
         MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8 vectorized tensor layout.");
         return -1;
     }
+    return miopenSetNdTensorDescriptorWithLayout(t, data_type, layout, len.data(), len.size());
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
@@ -191,7 +206,7 @@ inline int SetTensorNd(miopenTensorDescriptor_t t,
 
     if(layout.find("c") != std::string::npos)
     {
-        return SetTensor4dVector(t, len, StringToLayoutType(layout), data_type);
+        return SetTensorNdVector(t, len, StringToLayoutType(layout), data_type);
     }
 
     // Dimension lengths vector 'len' comes with a default layout.

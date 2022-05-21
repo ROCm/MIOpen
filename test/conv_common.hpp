@@ -1798,10 +1798,8 @@ struct conv_driver : test_driver
 
         if(!input_dims.empty())
         {
-            input = tensor<T>{type,
-                              input_layout_t,
-                              input_dims}
-                        .generate(tensor_elem_gen_integer{17});
+            input =
+                tensor<T>{type, input_layout_t, input_dims}.generate(tensor_elem_gen_integer{17});
             batch_size     = input_dims.at(0);
             input_channels = input_dims.at(1);
             std::copy(input_dims.begin() + 2, input_dims.end(), spatial_dim_elements.begin());
@@ -1809,7 +1807,7 @@ struct conv_driver : test_driver
         else if(spatial_dim == 2)
         {
             ///\todo This means input_dims ranged in NCHW way, shall we determine the tensor
-            ///dimension via layout string?
+            /// dimension via layout string?
             input = tensor<T>{type,
                               input_layout_t,
                               batch_size,
@@ -1830,11 +1828,10 @@ struct conv_driver : test_driver
 
         if(!weight_tensor_dims.empty())
         {
-            if(fil_layout == "NCHW"){
-                weights = tensor<T>{type,
-                                    weight_layout_t,
-                                    weight_tensor_dims}
-                                  .generate(tensor_elem_gen_integer{17});
+            if(fil_layout == "NCHW")
+            {
+                weights = tensor<T>{type, weight_layout_t, weight_tensor_dims}.generate(
+                    tensor_elem_gen_integer{17});
                 output_channels = weight_tensor_dims.at(0);
                 std::copy(
                     weight_tensor_dims.begin() + 2, weight_tensor_dims.end(), filter_dims.begin());
@@ -1850,11 +1847,9 @@ struct conv_driver : test_driver
                 std::copy(
                     filter_dims.begin(), filter_dims.end(), chwn_weight_tensor_dims.begin() + 1);
                 chwn_weight_tensor_dims.push_back(output_channels);
-                
-                weights = tensor<T>{type,
-                                    weight_layout_t,
-                                    chwn_weight_tensor_dims}
-                              .generate(tensor_elem_gen_integer{17});
+
+                weights = tensor<T>{type, weight_layout_t, chwn_weight_tensor_dims}.generate(
+                    tensor_elem_gen_integer{17});
             }
         }
         else if(spatial_dim == 2)

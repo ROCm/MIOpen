@@ -144,8 +144,8 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
                         in_id[0] = out_n_id;
                         in_id[1] = in_c_id;
                         std::copy_n(in_spatial_id.begin(), ConvDim, in_id.begin() + 2);
-                        acc += Tacc(in(in_id)) *
-                               Tacc(wei(out_k_id, wei_c_id, wei_spatial_id_pack...));
+                        acc +=
+                            Tacc(in(in_id)) * Tacc(wei(out_k_id, wei_c_id, wei_spatial_id_pack...));
                     }
                 }
             });
