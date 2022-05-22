@@ -26,6 +26,7 @@
 
 #include <miopen/solution.hpp>
 
+#include <miopen/check_numerics.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/any_solver.hpp>
@@ -104,7 +105,19 @@ void Solution::RunImpl(Handle& handle,
         }
     }
 
+    if(miopen::CheckNumericsEnabled())
+    {
+        if(problem_.GetDirection() != miopenProblemDirectionBackward)
+            miopen::checkNumericsInput(handle, *x.descriptor, x);
+        if(problem_.GetDirection() != miopenProblemDirectionBackwardWeight)
+            miopen::checkNumericsInput(handle, *w.descriptor, w);
+        if(problem_.GetDirection() != miopenProblemDirectionForward)
+            miopen::checkNumericsInput(handle, *y.descriptor, y);
+    }
+
     const auto conv_problem = problem_.AsConvolution();
+
+    Problem::ValidateGroupCount(*x.descriptor, *w.descriptor, conv_problem.GetConv());
 
     const auto invoke_ctx = [&]() -> AnyInvokeParams {
         switch(problem_.GetDirection())
@@ -134,9 +147,22 @@ void Solution::RunImpl(Handle& handle,
     const auto net_cfg       = conv_problem.BuildConfKey();
     const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
 
+    const auto checkNumericsOutput = [&]() {
+        if(miopen::CheckNumericsEnabled())
+        {
+            if(problem_.GetDirection() == miopenProblemDirectionBackward)
+                miopen::checkNumericsOutput(handle, *x.descriptor, x);
+            if(problem_.GetDirection() == miopenProblemDirectionBackwardWeight)
+                miopen::checkNumericsOutput(handle, *w.descriptor, w);
+            if(problem_.GetDirection() == miopenProblemDirectionForward)
+                miopen::checkNumericsOutput(handle, *y.descriptor, y);
+        }
+    };
+
     if(found_invoker)
     {
         (*found_invoker)(handle, invoke_ctx);
+        checkNumericsOutput();
         return;
     }
 
@@ -149,6 +175,7 @@ void Solution::RunImpl(Handle& handle,
         handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
     invoker(handle, invoke_ctx);
+    checkNumericsOutput();
 }
 
 void to_json(nlohmann::json& json, const Solution::SerializationMetadata& metadata)

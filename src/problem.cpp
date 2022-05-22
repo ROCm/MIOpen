@@ -179,6 +179,8 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     const auto& y_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
 
+    ValidateGroupCount(x_desc, w_desc, conv_desc);
+
     const auto& x = buffers.at(miopenTensorConvolutionX);
     const auto& w = buffers.at(miopenTensorConvolutionW);
     const auto& y = buffers.at(miopenTensorConvolutionY);
@@ -293,6 +295,26 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     }
 
     return ret;
+}
+
+void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
+                                 const TensorDescriptor& wDesc,
+                                 const ConvolutionDescriptor& conv)
+{
+    if(conv.group_count == 1)
+    {
+        if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
+            MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
+    }
+    if(conv.group_count > 1)
+    {
+        if(xDesc.GetLengths()[1] % conv.group_count != 0 ||
+           wDesc.GetLengths()[0] % conv.group_count != 0 ||
+           conv.group_count > xDesc.GetLengths()[1] || conv.group_count > wDesc.GetLengths()[0])
+            MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
+        if(xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])
+            MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
+    }
 }
 
 void to_json(nlohmann::json& json, const Problem& problem)

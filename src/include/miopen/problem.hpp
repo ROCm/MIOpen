@@ -86,6 +86,10 @@ struct Problem : miopenProblem
     const TensorDescriptor& GetTensorDescriptorChecked(miopenTensorName_t name,
                                                        const std::string& name_str) const;
 
+    static void ValidateGroupCount(const TensorDescriptor& xDesc,
+                                   const TensorDescriptor& wDesc,
+                                   const ConvolutionDescriptor& conv);
+
     friend void to_json(nlohmann::json& j, const Problem& problem);
     friend void from_json(const nlohmann::json& j, Problem& problem);
 
