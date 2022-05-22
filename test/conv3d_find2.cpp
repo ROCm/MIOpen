@@ -26,9 +26,9 @@
 #include "conv_common.hpp"
 
 template <class T>
-struct conv3d_driver : conv_driver<T, ConvApi::Find_2_0>
+struct conv3d_find2_driver : conv_driver<T, ConvApi::Find_2_0>
 {
-    conv3d_driver() : conv_driver<T, ConvApi::Find_2_0>()
+    conv3d_find2_driver() : conv_driver<T, ConvApi::Find_2_0>()
     {
         this->add(this->input_dims, "input");
         this->add(this->weight_tensor_dims, "weights");
@@ -59,4 +59,4 @@ struct conv3d_driver : conv_driver<T, ConvApi::Find_2_0>
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<conv3d_driver>(argc, argv); }
+int main(int argc, const char* argv[]) { test_drive<conv3d_find2_driver>(argc, argv); }
