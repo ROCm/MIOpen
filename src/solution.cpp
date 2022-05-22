@@ -108,11 +108,11 @@ void Solution::RunImpl(Handle& handle,
     if(miopen::CheckNumericsEnabled())
     {
         if(problem_.GetDirection() != miopenProblemDirectionBackward)
-            miopen::checkNumericsInput(handle, *x.descriptor, x);
+            miopen::checkNumericsInput(handle, *x.descriptor, x.buffer);
         if(problem_.GetDirection() != miopenProblemDirectionBackwardWeight)
-            miopen::checkNumericsInput(handle, *w.descriptor, w);
+            miopen::checkNumericsInput(handle, *w.descriptor, w.buffer);
         if(problem_.GetDirection() != miopenProblemDirectionForward)
-            miopen::checkNumericsInput(handle, *y.descriptor, y);
+            miopen::checkNumericsInput(handle, *y.descriptor, y.buffer);
     }
 
     const auto conv_problem = problem_.AsConvolution();
@@ -151,11 +151,11 @@ void Solution::RunImpl(Handle& handle,
         if(miopen::CheckNumericsEnabled())
         {
             if(problem_.GetDirection() == miopenProblemDirectionBackward)
-                miopen::checkNumericsOutput(handle, *x.descriptor, x);
+                miopen::checkNumericsOutput(handle, *x.descriptor, x.buffer);
             if(problem_.GetDirection() == miopenProblemDirectionBackwardWeight)
-                miopen::checkNumericsOutput(handle, *w.descriptor, w);
+                miopen::checkNumericsOutput(handle, *w.descriptor, w.buffer);
             if(problem_.GetDirection() == miopenProblemDirectionForward)
-                miopen::checkNumericsOutput(handle, *y.descriptor, y);
+                miopen::checkNumericsOutput(handle, *y.descriptor, y.buffer);
         }
     };
 
