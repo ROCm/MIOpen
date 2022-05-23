@@ -118,3 +118,9 @@
      HIP_PACKAGE_VERSION_PATCH)
 
 #endif
+
+/// Workaround for https://github.com/boostorg/config/issues/392#issuecomment-1109889533
+/// TODO: Remove the W/A as soon we switch to the properly fixed boost.
+#if MIOPEN_BACKEND_HIP
+#include <hip/hip_version.h>
+#endif

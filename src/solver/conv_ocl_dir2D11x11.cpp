@@ -133,6 +133,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
     // this one is valid only till _FLOAT8
     // but it's not an error, the kernel does not use these types at all
     static const std::string READ_TYPE =
+        // cppcheck-suppress knownConditionTrueFalse
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
     // param
