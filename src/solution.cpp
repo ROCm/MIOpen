@@ -147,7 +147,7 @@ void Solution::RunImpl(Handle& handle,
     const auto net_cfg       = conv_problem.BuildConfKey();
     const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
 
-    const auto checkNumericsOutput = [&]() {
+    const auto checkNumericsOutput_ = [&]() {
         if(miopen::CheckNumericsEnabled())
         {
             if(problem_.GetDirection() == miopenProblemDirectionBackward)
@@ -162,7 +162,7 @@ void Solution::RunImpl(Handle& handle,
     if(found_invoker)
     {
         (*found_invoker)(handle, invoke_ctx);
-        checkNumericsOutput();
+        checkNumericsOutput_();
         return;
     }
 
@@ -175,7 +175,7 @@ void Solution::RunImpl(Handle& handle,
         handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
     invoker(handle, invoke_ctx);
-    checkNumericsOutput();
+    checkNumericsOutput_();
 }
 
 void to_json(nlohmann::json& json, const Solution::SerializationMetadata& metadata)
