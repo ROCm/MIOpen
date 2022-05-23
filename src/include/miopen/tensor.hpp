@@ -210,7 +210,7 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::string GetLayout(std::string labels) const
     {
-        if(labels.find("c") == std::string::npos)
+        if(*(labels.end() - 1) != 'c')
         {
             if(labels.size() != strides.size())
             {
@@ -227,7 +227,7 @@ struct TensorDescriptor : miopenTensorDescriptor
         }
         else
         {
-            std::string base_label = labels.substr(0, labels.find("c"));
+            std::string base_label = labels.substr(0, labels.size() - 1);
             if(base_label.size() != strides.size())
             {
                 MIOPEN_THROW(
@@ -236,7 +236,7 @@ struct TensorDescriptor : miopenTensorDescriptor
             auto result = base_label;
             auto p      = find_permutation(lens, strides);
             std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
-            return result + labels.substr(labels.find("c"));
+            return result + 'c';
         }
     }
 

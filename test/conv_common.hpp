@@ -140,7 +140,8 @@ static inline bool skip_config(miopen::Handle& handle,
 }
 #endif
 
-miopenTensorLayout_t StringToLayoutType(std::string layout_str, int tensor_vect, int vector_length)
+inline miopenTensorLayout_t
+StringToLayoutType(std::string layout_str, int tensor_vect, int vector_length)
 {
     miopenTensorLayout_t default_layout = miopenTensorNCHW;
     if(tensor_vect == 0)
@@ -1623,9 +1624,9 @@ struct conv_driver : test_driver
     std::size_t batch_size{};
     std::size_t input_channels{};
     std::size_t output_channels{};
-    std::size_t vector_length = 1;
-    std::size_t tensor_vect   = 0; // 0: non vectorized, 1: C-vectorized, 2: N-vectorized. keep same
-                                   // as MIOpenDriver InputFlag "tensor_vect"
+    std::size_t vector_length{};
+    std::size_t tensor_vect{}; // 0: non vectorized, 1: C-vectorized, 2: N-vectorized. keep same
+                               // as MIOpenDriver InputFlag "tensor_vect"
     std::string in_layout;
     std::string fil_layout; // keep same as MIOpenDriver argument name
     std::string out_layout;
@@ -1765,8 +1766,6 @@ struct conv_driver : test_driver
         add(conv_mode, "cmode", generate_data({"conv"}));
         add(pad_mode, "pmode", generate_data({"default", "same", "valid"}));
         add(groupCount, "group-count", generate_data({1}));
-        add(vector_length, "vector-length", set_value(1));
-        add(tensor_vect, "tensor-vector", set_value(0));
         add(do_forward, "disable-forward", set_value(false));
         add(do_backward_data, "disable-backward-data", set_value(false));
         add(do_backward_weights, "disable-backward-weights", set_value(false));
@@ -1828,15 +1827,7 @@ struct conv_driver : test_driver
 
         if(!weight_tensor_dims.empty())
         {
-            if(fil_layout == "NCHW")
-            {
-                weights = tensor<T>{type, weight_layout_t, weight_tensor_dims}.generate(
-                    tensor_elem_gen_integer{17});
-                output_channels = weight_tensor_dims.at(0);
-                std::copy(
-                    weight_tensor_dims.begin() + 2, weight_tensor_dims.end(), filter_dims.begin());
-            }
-            else if(fil_layout == "CHWN")
+            if(fil_layout == "CHWN")
             {
                 output_channels = weight_tensor_dims.at(3);
                 std::copy(weight_tensor_dims.begin() + 1,
@@ -1850,6 +1841,14 @@ struct conv_driver : test_driver
 
                 weights = tensor<T>{type, weight_layout_t, chwn_weight_tensor_dims}.generate(
                     tensor_elem_gen_integer{17});
+            }
+            else
+            {
+                weights = tensor<T>{type, weight_layout_t, weight_tensor_dims}.generate(
+                    tensor_elem_gen_integer{17});
+                output_channels = weight_tensor_dims.at(0);
+                std::copy(
+                    weight_tensor_dims.begin() + 2, weight_tensor_dims.end(), filter_dims.begin());
             }
         }
         else if(spatial_dim == 2)
@@ -1896,6 +1895,9 @@ struct conv_driver : test_driver
         if(input.desc.GetSize() != in_layout.size() ||
            weights.desc.GetSize() != fil_layout.size() || input.desc.GetSize() != out_layout.size())
         {
+            std::cout << input.desc.GetSize() << "," << in_layout.size() << std::endl;
+            std::cout << weights.desc.GetSize() << "," << fil_layout.size() << std::endl;
+            std::cout << input.desc.GetSize() << "," << out_layout.size() << std::endl;
             std::cerr << "FAILED: layout not match dimension size!" << std::endl;
             return;
         }
