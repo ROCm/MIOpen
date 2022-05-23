@@ -170,14 +170,14 @@ struct AnySolver
             static constexpr bool Is = type::value;
         };
 
-        bool TestSysDbRecord_(const DbRecord& record, std::true_type) const
+        bool TestSysDbRecord(const DbRecord& record, std::true_type) const
         {
             using PerformanceConfig = decltype(
                 value.GetDefaultPerformanceConfig(std::declval<const ConvolutionContext&>()));
             PerformanceConfig config{};
             return record.GetValues(value.SolverDbId(), config);
         }
-        bool TestSysDbRecord_(const DbRecord& record, std::false_type) const
+        bool TestSysDbRecord(const DbRecord& record, std::false_type) const
         {
             std::ignore = record;
             return false;
@@ -185,29 +185,35 @@ struct AnySolver
 
         bool TestSysDbRecord(const DbRecord& record) const override
         {
-            return TestSysDbRecord_(record, std::integral_constant<bool, TunableSolver::Is>());
+            return TestSysDbRecord(record, std::integral_constant<bool, TunableSolver::Is>());
         }
 
-        std::vector<ConvSolution> GetAllSolutions_blegacy_(const ConvolutionContext& ctx,
-                                                           std::true_type) const
+        // tunable legacy solver
+        std::vector<ConvSolution>
+        GetAllSolutions(const ConvolutionContext& ctx, std::true_type, std::true_type) const
         {
             std::vector<ConvSolution> solutions;
             solutions.push_back(value.GetSolution(ctx, value.GetDefaultPerformanceConfig(ctx)));
             return solutions;
         }
-        std::vector<ConvSolution> GetAllSolutions_blegacy_(const ConvolutionContext& ctx,
-                                                           std::false_type) const
+
+        // tunable solver, not legacy
+        std::vector<ConvSolution>
+        GetAllSolutions(const ConvolutionContext& ctx, std::true_type, std::false_type) const
         {
             return miopen::solver::GetAllSolutions(value, ctx);
         }
 
-        std::vector<ConvSolution> GetAllSolutions_(const ConvolutionContext& ctx,
-                                                   std::true_type) const
+        // non tunable solver
+        std::vector<ConvSolution>
+        GetAllSolutions(const ConvolutionContext& ctx, std::false_type, std::true_type) const
         {
-            return GetAllSolutions_blegacy_(ctx, std::integral_constant<bool, LegacySolver::Is>());
+            std::vector<ConvSolution> solutions;
+            solutions.push_back(value.GetSolution(ctx));
+            return solutions;
         }
-        std::vector<ConvSolution> GetAllSolutions_(const ConvolutionContext& ctx,
-                                                   std::false_type) const
+        std::vector<ConvSolution>
+        GetAllSolutions(const ConvolutionContext& ctx, std::false_type, std::false_type) const
         {
             std::vector<ConvSolution> solutions;
             solutions.push_back(value.GetSolution(ctx));
@@ -216,7 +222,9 @@ struct AnySolver
 
         std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const override
         {
-            return GetAllSolutions_(ctx, std::integral_constant<bool, TunableSolver::Is>());
+            return GetAllSolutions(ctx,
+                                   std::integral_constant<bool, TunableSolver::Is>(),
+                                   std::integral_constant<bool, LegacySolver::Is>());
         }
 
         AnySolver_tmpl(T obj) : value(std::move(obj)){};
@@ -235,7 +243,7 @@ struct AnySolver
             return miopen::solver::FindSolution(value, ctx, db, invoke_ctx);
         };
 
-        std::string GetPerfCfgParams_(const ConvolutionContext& ctx, Db& db, std::true_type) const
+        std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db, std::true_type) const
         {
             using PerformanceConfig = decltype(value.GetDefaultPerformanceConfig(ctx));
             PerformanceConfig config{};
@@ -254,7 +262,7 @@ struct AnySolver
             return "";
         }
         std::string
-        GetPerfCfgParams_(const ConvolutionContext& ctx, const Db& db, std::false_type) const
+        GetPerfCfgParams(const ConvolutionContext& ctx, const Db& db, std::false_type) const
         {
             MIOPEN_LOG_I2("Perf Db: No Config: " << value.SolverDbId());
             std::ignore = ctx;
@@ -264,7 +272,7 @@ struct AnySolver
 
         std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const override
         {
-            return GetPerfCfgParams_(ctx, db, std::integral_constant<bool, TunableSolver::Is>());
+            return GetPerfCfgParams(ctx, db, std::integral_constant<bool, TunableSolver::Is>());
         }
 
         size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
