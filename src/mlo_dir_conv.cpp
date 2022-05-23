@@ -48,15 +48,9 @@
 #include <sstream>
 #include <unordered_map>
 
-#include <miopen/solver.hpp>
 #if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
 #endif
-#include <miopen/db.hpp>
-#include <miopen/env.hpp>
-#include <miopen/gcn_asm_utils.hpp>
-#include <miopen/mlo_internal.hpp>
-#include <miopen/mlo_utils.hpp>
 
 // Only select the first applicable igemm solver due to long compilation time
 // (JIRA SWDEV-227826)

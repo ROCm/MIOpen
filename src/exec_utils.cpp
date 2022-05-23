@@ -30,7 +30,6 @@
 #include <istream>
 #include <ostream>
 #include <string>
-#include <cstdio>
 #include <array>
 #include <cassert>
 

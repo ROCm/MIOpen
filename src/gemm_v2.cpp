@@ -40,7 +40,11 @@
 
 #if MIOPEN_USE_ROCBLAS
 #include <half.hpp>
+#if HIP_PACKAGE_VERSION_FLAT <= 5001999999ULL
 #include <rocblas.h>
+#else
+#include <rocblas/rocblas.h>
+#endif
 #include <miopen/perf_field.hpp>
 #endif
 

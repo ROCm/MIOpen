@@ -185,6 +185,7 @@ static bool IsAmdRocmOpencl(miopen::ExecutionContext& context)
 #else
         true;
 #endif // MIOPEN_BACKEND_OPENCL
+    // cppcheck-suppress knownConditionTrueFalse
     if(ret_bool)
     {
         static const rocm_meta_version ret_rmv = AmdRocmMetadataVersionDetect(context);

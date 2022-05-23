@@ -45,9 +45,7 @@
 #endif
 
 #include <boost/filesystem.hpp>
-#include <miopen/handle_lock.hpp>
 #include <miopen/load_file.hpp>
-#include <miopen/gemm_geometry.hpp>
 
 #ifndef _WIN32
 #include <unistd.h>

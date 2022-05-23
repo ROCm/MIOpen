@@ -98,14 +98,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <fstream>
-#include <iomanip>
 #include <sstream>
-#include <string>
 #include <ctime>
-#include <cmath>
-#include <ctime>
-#include <cstdlib>
-#include <cstdio>
 #include <cstring>
 #include <vector>
 #include <numeric>
