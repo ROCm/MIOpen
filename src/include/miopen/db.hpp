@@ -57,7 +57,7 @@ constexpr bool DisableUserDbFileIO = MIOPEN_DISABLE_USERDB;
 /// No instance of this class should be used from several threads at the same time.
 class PlainTextDb
 {
-    public:
+public:
     PlainTextDb(const std::string& filename_, bool is_system = false);
 
     /// Searches db for provided key and returns found record or none if key not found in database
@@ -143,7 +143,7 @@ class PlainTextDb
         return record->GetValues(id, values);
     }
 
-    protected:
+protected:
     LockFile& GetLockFile() { return lock_file; }
     const std::string& GetFileName() const { return filename; }
     bool IsWarningIfUnreadable() const { return warning_if_unreadable; }
@@ -152,7 +152,7 @@ class PlainTextDb
     bool UpdateRecordUnsafe(DbRecord& record);
     bool RemoveRecordUnsafe(const std::string& key);
 
-    private:
+private:
     std::string filename;
     LockFile& lock_file;
     const bool warning_if_unreadable;
@@ -188,7 +188,7 @@ TRet GetDbInstance(const std::string& path, bool is_system = true)
 template <class TInstalled, class TUser, bool merge_records>
 class MultiFileDb
 {
-    public:
+public:
     MultiFileDb(const std::string& installed_path, const std::string& user_path)
         : _installed(GetDbInstance<TInstalled>(installed_path, true))
 #if !MIOPEN_DISABLE_USERDB
@@ -261,7 +261,7 @@ class MultiFileDb
         return _user.Remove(args...);
     }
 
-    private:
+private:
     template <class TDb, class TRet = decltype(TDb::GetCached("", true))>
     static TRet GetDbInstance(rank<1>, const std::string& path, bool warn_if_unreadable)
     {
@@ -289,7 +289,7 @@ class MultiFileDb
 template <class TInnerDb>
 class DbTimer
 {
-    public:
+public:
     template <class... TArgs>
     DbTimer(TArgs&&... args) : inner(args...)
     {
@@ -337,7 +337,7 @@ class DbTimer
         return Measure("Remove", [&]() { return inner.Remove(args...); });
     }
 
-    private:
+private:
     TInnerDb inner;
 
     template <class TFunc>

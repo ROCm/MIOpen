@@ -46,6 +46,8 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+        return false;
     if(!ctx.direction.IsForward())
         return false;
     if(!ctx.use_hip_kernels)
@@ -126,13 +128,13 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
 }
 
 PerformanceImplicitGemmV4R1
-ConvHipImplicitGemmV4R1Fwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmV4R1Fwd::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx);
 }
 
 PerformanceImplicitGemmV4R1
-ConvHipImplicitGemmV4R1WrW::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmV4R1WrW::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx);
 }
@@ -164,9 +166,9 @@ ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& context,
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
-                                                     const PerformanceImplicitGemmV4R1& config,
-                                                     bool) const
+ConvSolution
+ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
+                                        const PerformanceImplicitGemmV4R1& config) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;
@@ -364,9 +366,9 @@ ConvSolution ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& c
     return result;
 }
 
-ConvSolution ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
-                                                     const PerformanceImplicitGemmV4R1& config,
-                                                     bool) const
+ConvSolution
+ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
+                                        const PerformanceImplicitGemmV4R1& config) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;

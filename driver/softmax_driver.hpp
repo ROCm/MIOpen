@@ -45,7 +45,7 @@
 template <typename Tgpu, typename Tref>
 class SoftmaxDriver : public Driver
 {
-    public:
+public:
     SoftmaxDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -84,7 +84,7 @@ class SoftmaxDriver : public Driver
         miopenDestroyTensorDescriptor(dInputTensor);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;
@@ -341,9 +341,9 @@ int SoftmaxDriver<Tgpu, Tref>::VerifyForward()
 
     auto error           = miopen::rms_range(outhost, out);
     const Tref tolerance = data_type == miopenHalf ? 5e-2 : 1e-3; // 1e-6;
-    if(!(error < tolerance))
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward Softmax Failed: " << error << "\n";
+        std::cout << "Forward Softmax FAILED: " << error << std::endl;
     }
     else
     {
@@ -375,9 +375,10 @@ int SoftmaxDriver<Tgpu, Tref>::VerifyBackward()
 
     auto error           = miopen::rms_range(dinhost, din);
     const Tref tolerance = data_type == miopenHalf ? 5e-2 : 1e-3; // 1e-6;
-    if(!(error < tolerance))
+
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Backward Softmax Failed: " << error << "\n";
+        std::cout << "Backward Softmax FAILED: " << error << std::endl;
     }
     else
     {

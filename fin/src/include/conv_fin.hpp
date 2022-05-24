@@ -292,7 +292,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFindCompile()
                 return true;
             }
             res_item["reason"]    = "Success";
-            res_item["workspace"] = solution.workspce_sz;
+            res_item["workspace"] = solution.workspace_sz;
             // Get the binary
             json kernel_list = json::array();
             for(const auto& k : solution.construction_params)
@@ -421,7 +421,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFindEval()
             }
             std::cerr << solver_name << " is applicable" << std::endl;
             const auto solution   = s.FindSolution(ctx, db, {}); // auto tune is not expected here
-            res_item["workspace"] = solution.workspce_sz;
+            res_item["workspace"] = solution.workspace_sz;
             // Get the binary
             std::cerr << "loading binaries from fin input" << std::endl;
             for(const auto& kernel_obj : kinder["kernel_objects"])
@@ -455,13 +455,13 @@ int ConvFin<Tgpu, Tref>::MIOpenFindEval()
                 }
             }
             std::cerr << "Checking for workspace" << std::endl;
-            if(solution.workspce_sz > workspace.desc.GetNumBytes())
+            if(solution.workspace_sz > workspace.desc.GetNumBytes())
             {
-                std::cerr << "Allocating " << solution.workspce_sz << " bytes for workspace"
+                std::cerr << "Allocating " << solution.workspace_sz << " bytes for workspace"
                           << std::endl;
                 workspace = tensor<Tgpu, Tref>{
                     q,
-                    std::vector<size_t>{static_cast<size_t>(solution.workspce_sz / sizeof(Tgpu))},
+                    std::vector<size_t>{static_cast<size_t>(solution.workspace_sz / sizeof(Tgpu))},
                     false,
                     false};
                 workspace.AllocateBuffers();
@@ -620,7 +620,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFind()
                 return false;
             }
             const auto solution   = s.FindSolution(ctx, db, {}); // auto tune is not expected here
-            res_item["workspace"] = solution.workspce_sz;
+            res_item["workspace"] = solution.workspace_sz;
             // Get the binary
             miopen::solver::PrecompileKernels(h, solution.construction_params);
             json kernel_list = json::array();
@@ -652,7 +652,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFind()
                 kernel_list.push_back(kernel);
             }
             res_item["kernel_objects"] = kernel_list;
-            if(solution.workspce_sz > workspace.desc.GetNumBytes())
+            if(solution.workspace_sz > workspace.desc.GetNumBytes())
             {
                 res_item["reason"] = "Insufficient Workspace";
                 return false;
