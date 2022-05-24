@@ -118,6 +118,29 @@ std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
                   << "dataType " << gemm_desc.dataType << "} ";
 }
 
+#if MIOPEN_USE_ROCBLAS
+
+inline rocblas_atomics_mode DisableRocblasAtomics(const miopen::Handle& handle)
+{
+    rocblas_atomics_mode cur_mode;
+    rocblas_status status = rocblas_get_atomics_mode(handle.rhandle().get(), &cur_mode);
+    assert(status == rocblas_status::rocblas_status_success);
+    if(cur_mode == rocblas_atomics_allowed)
+    {
+        status = rocblas_set_atomics_mode(handle.rhandle().get(), rocblas_atomics_not_allowed);
+        assert(status == rocblas_status::rocblas_status_success);
+    }
+    return cur_mode;
+}
+
+inline void SetRocblasAtomics(const miopen::Handle& handle, rocblas_atomics_mode mode)
+{
+    rocblas_status status = rocblas_set_atomics_mode(handle.rhandle().get(), mode);
+    assert(status == rocblas_status::rocblas_status_success);
+}
+
+#endif
+
 #if MIOPEN_BACKEND_HIP
 inline void ProfilingRecordStart(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
 {
@@ -492,6 +515,10 @@ miopenStatus_t CallGemm(const Handle& handle,
         {
             ProfilingRecordStart(handle, start, stop);
         }
+        rocblas_atomics_mode cur_mode =
+            rocblas_atomics_mode::rocblas_atomics_allowed; // default value from rocblas
+        if(gemm_desc.deterministic)
+            cur_mode = DisableRocblasAtomics(handle);
 
         rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
 
@@ -650,6 +677,8 @@ miopenStatus_t CallGemm(const Handle& handle,
         if(kcache_key != nullptr)
             *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
+        if(gemm_desc.deterministic)
+            SetRocblasAtomics(handle, cur_mode);
         return miopenStatusSuccess;
 #else
         return miopenStatusNotImplemented;
@@ -795,6 +824,10 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
             ProfilingRecordStart(handle, start, stop);
         }
+        rocblas_atomics_mode cur_mode =
+            rocblas_atomics_mode::rocblas_atomics_allowed; // default value from rocblas
+        if(gemm_desc.deterministic)
+            cur_mode = DisableRocblasAtomics(handle);
 
         rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
 
@@ -969,6 +1002,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
 
+        if(gemm_desc.deterministic)
+            SetRocblasAtomics(handle, cur_mode);
         if(kcache_key != nullptr)
             *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
@@ -1045,6 +1080,12 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
             ProfilingRecordStart(handle, start, stop);
         }
 
+        rocblas_atomics_mode cur_mode =
+            rocblas_atomics_mode::rocblas_atomics_allowed; // default value from rocblas
+        if(gemm_desc.deterministic)
+        {
+            cur_mode = DisableRocblasAtomics(handle);
+        }
         rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
 
         switch(gemm_desc.dataType)
@@ -1210,6 +1251,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
 
+        if(gemm_desc.deterministic)
+            SetRocblasAtomics(handle, cur_mode);
         if(kcache_key != nullptr)
             *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
