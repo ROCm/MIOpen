@@ -45,7 +45,6 @@ static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
     return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
            wDesc.GetType() == miopenHalf;
 }
-#endif
 
 static double
 SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_factor)
@@ -60,6 +59,7 @@ SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_
     else
         return 1.0;
 }
+#endif
 
 bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
                                const conv::ProblemDescription& problem) const
@@ -408,8 +408,8 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
     const auto in_spatial_size = std::accumulate(
         in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
 
-    auto solution        = ConvSolution{miopenStatusSuccess};
-    solution.workspce_sz = workspace_req;
+    auto solution         = ConvSolution{miopenStatusSuccess};
+    solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));

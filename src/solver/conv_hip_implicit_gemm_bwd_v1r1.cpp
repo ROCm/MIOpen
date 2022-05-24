@@ -638,6 +638,8 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}))
         return false;
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+        return false;
     if(!ctx.use_hip_kernels)
         return false;
     if(!ctx.IsLayoutDefault())
@@ -676,7 +678,7 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
 }
 
 PerformanceImplicitGemmBwdDataV1R1
-ConvHipImplicitGemmBwdDataV1R1::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV1R1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV1R1>(ctx);
 }
@@ -695,8 +697,9 @@ ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx,
     return GenericSearch(*this, ctx, invoke_ctx);
 }
 
-ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV1R1& config, bool) const
+ConvSolution
+ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
+                                            const PerformanceImplicitGemmBwdDataV1R1& config) const
 {
     ConvSolution result;
     KernelInfo construction_parameters;
@@ -779,7 +782,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1::GetSolution(
     std::tie(GemmCThreadCopyDstDataPerWrite_GemmN1, std::ignore) =
         config.CalculateGemmCThreadCopyPerformanceParameters(ctx);
 
-    result.workspce_sz = GetWorkspaceSize(ctx);
+    result.workspace_sz = GetWorkspaceSize(ctx);
 
     // clang-format off
     construction_parameters.comp_options =

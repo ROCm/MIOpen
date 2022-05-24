@@ -36,6 +36,7 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
+#include <tuple> // std::ignore
 #include "test.hpp"
 #include "driver.hpp"
 #include "random.hpp"
@@ -182,13 +183,11 @@ struct to_miopen_data_type<uint8_t>
 
 static int gen_rand_integer()
 {
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static int inited = 0;
-    if(inited == 0)
-    {
+    static const int inited = []() -> int {
         std::srand(std::time(nullptr));
-        inited = 1;
-    }
+        return 1;
+    }();
+    std::ignore = inited;
     return GET_RAND();
 }
 
@@ -371,7 +370,8 @@ struct transpose_test : transpose_base
                     };
                 });
 
-            std::vector<miopen::solver::KernelInfo> construction_params{transpose_sol.GetKernel()};
+            std::vector<miopen::solver::KernelInfo> construction_params{
+                transpose_sol.GetKernelInfo()};
 
             const auto invoker =
                 miopen::deref(this->handle).PrepareInvoker(*invoker_factory, construction_params);

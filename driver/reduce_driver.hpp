@@ -51,7 +51,7 @@
 template <typename Tgpu, typename Tref>
 class ReduceDriver : public Driver
 {
-    public:
+public:
     ReduceDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -95,7 +95,7 @@ class ReduceDriver : public Driver
         miopenDestroyReduceTensorDescriptor(reduceDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;
@@ -493,10 +493,10 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
     if(std::is_same<Tgpu, float>::value && reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
         tolerance *= 12.0;
 
-    if(!(error < tolerance))
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "ReduceTensor() Failed with error = " << error
-                  << " , tolerance = " << tolerance << "\n";
+        std::cout << "ReduceTensor() FAILED with error = " << error
+                  << " , tolerance = " << tolerance << std::endl;
     }
     else
     {
@@ -504,9 +504,9 @@ int ReduceDriver<Tgpu, Tref>::VerifyForward()
         {
             auto error2 = miopen::rms_range(outhost_indices, out_indices);
 
-            if(static_cast<float>(error2) != 0.0f)
+            if(!std::isfinite(error2) || std::abs(static_cast<float>(error2)) != 0.0f)
             {
-                std::cout << "ReduceTensor() with indices output Failed: " << error2 << "\n";
+                std::cout << "ReduceTensor() with indices output FAILED: " << error2 << std::endl;
             }
             else
             {

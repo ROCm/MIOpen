@@ -44,6 +44,8 @@ bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS{}))
         return false;
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+        return false;
     if(!IsXdlopsSupport(ctx))
         return false;
     if(!ctx.direction.IsBackwardWrW())
@@ -59,7 +61,7 @@ bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmWrWXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvMlirIgemmWrWXdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
@@ -80,36 +82,53 @@ ConvMlirIgemmWrWXdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
-                                                 const PerformanceConvMlirIgemmXdlops& config,
-                                                 bool) const
+                                                 const PerformanceConvMlirIgemmXdlops& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
-    KernelInfo construction_parameters;
+    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, true));
 
-    construction_parameters.kernel_name  = mlir::GetKernelName(ctx, true);
-    construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
-    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, config, true);
+    for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
+    {
+        KernelInfo construction_parameters;
 
-    size_t local_size  = 0;
-    size_t global_size = 0;
-    MiirGenLaunchParams(construction_parameters.comp_options, local_size, global_size);
+        construction_parameters.kernel_name = mlir::GetKernelName(ctx, true, kernel_id);
+        construction_parameters.kernel_file = construction_parameters.kernel_name + ".mlir";
+        construction_parameters.comp_options =
+            mlir::ConstructBuildOptions(ctx, config, true, kernel_id);
 
-    construction_parameters.l_wk.push_back(local_size);
-    construction_parameters.l_wk.push_back(1);
-    construction_parameters.l_wk.push_back(1);
+        size_t local_size  = 0;
+        size_t global_size = 0;
+        MiirGenLaunchParams(construction_parameters.comp_options, local_size, global_size);
+        construction_parameters.l_wk.push_back(local_size);
+        construction_parameters.l_wk.push_back(1);
+        construction_parameters.l_wk.push_back(1);
+        construction_parameters.g_wk.push_back(global_size);
+        construction_parameters.g_wk.push_back(1);
+        construction_parameters.g_wk.push_back(1);
 
-    construction_parameters.g_wk.push_back(global_size);
-    construction_parameters.g_wk.push_back(1);
-    construction_parameters.g_wk.push_back(1);
+        result.construction_params.push_back(construction_parameters);
+    }
 
-    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(ctx);
-    result.construction_params.push_back(construction_parameters);
+    size_t workspace_req   = GetWorkspaceSize(ctx);
+    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(ctx, workspace_req);
+    result.workspace_sz    = workspace_req;
     return result;
 #else
     std::ignore = ctx;
     std::ignore = config;
     return {};
+#endif
+}
+
+std::size_t ConvMlirIgemmWrWXdlops::GetWorkspaceSize(const ConvolutionContext& params) const
+{
+#if MIOPEN_USE_MLIR
+    std::string comp_options = mlir::ConstructBuildOptions(params, /*is_xdlops=*/true);
+    return MiirGetWorkspaceSize(comp_options);
+#else
+    std::ignore = params;
+    return 0;
 #endif
 }
 

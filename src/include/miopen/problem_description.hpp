@@ -161,7 +161,7 @@ struct ProblemDescription
     }
     struct Direction
     {
-        public:
+    public:
         bool IsKnown() const { return v != boost::none; }
         bool IsForward() const { return v == conv::Direction::Forward; }
         bool IsBackwardData() const { return v == conv::Direction::BackwardData; }
@@ -170,7 +170,7 @@ struct ProblemDescription
         Direction() = default;
         Direction(conv::Direction value) : v(value) {}
 
-        private:
+    private:
         boost::optional<conv::Direction> v;
         void Set(conv::Direction value) { v = value; }
 
@@ -200,6 +200,7 @@ struct ProblemDescription
         return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
                out_data_type == miopenBFloat16;
     }
+    bool IsInt8() const { return conv_problem.IsInt8(); }
 
     ProblemDescription() = default;
 

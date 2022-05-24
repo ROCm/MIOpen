@@ -115,7 +115,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
-ConvCkIgemmFwdV6r1DlopsNchw::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     for(int i = 0; i < ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList().size(); ++i)
     {
@@ -136,8 +136,9 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
     return config.IsValid(ctx);
 }
 
-ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config, bool) const
+ConvSolution
+ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
+                                         const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
 {
     ConvSolution sol;
     KernelInfo kernel0_info, kernel1_info;
@@ -192,7 +193,7 @@ ConvSolution ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(
     sol.construction_params.push_back(kernel1_info);
 
     // workspace is used to save transformed tensor descriptors
-    sol.workspce_sz = GetWorkspaceSize(ctx);
+    sol.workspace_sz = GetWorkspaceSize(ctx);
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
