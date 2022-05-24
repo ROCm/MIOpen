@@ -50,6 +50,7 @@ static std::vector<std::string> OclKernelWarnings(const bool is_miopengemm)
         "-Wno-sign-conversion",
         "-Wno-unused-function",
         "-Wno-unused-macros",
+        "-Wno-declaration-after-statement", // W/A for SWDEV-337356
     };
     // W/A for SWDEV-270602. We'll remove this when we stop using MIOpenGEMM (deprecated).
     if(is_miopengemm)
