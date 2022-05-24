@@ -898,7 +898,7 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(const Convol
 }
 
 PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
-ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetPerformanceConfig(
+ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetDefaultPerformanceConfig(
     const ConvolutionContext& ctx) const
 {
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm config;
@@ -909,8 +909,7 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetPerformanceConfig(
 
 ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
     const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config,
-    bool) const
+    const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config) const
 {
     ConvSolution result;
 
@@ -1040,6 +1039,9 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     const ConvolutionContext& ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS{}))
+        return false;
+
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
 
     if(!ctx.use_hip_kernels)

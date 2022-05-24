@@ -101,7 +101,7 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
             Next();
     }
 
-    public:
+public:
     // STL-like iterator shall be default contructible. Also implements container's end()
     ComputedIterator() : v(), p(nullptr) {}
     // STL-like iterator shall be copy contructible. The default copy ctor is ok.
@@ -140,7 +140,7 @@ class ComputedContainer
     /// for the sake of flexibility. Nevertheless, all element accesses of
     /// the "computed container" shall be const.
 
-    public:
+public:
     using const_iterator = ComputedIterator<PerformanceConfig, Context>;
 
     ComputedContainer(const Context& problem_, const bool spare_ = false)
@@ -168,7 +168,7 @@ class HeartBeat
         timer.start();
     }
 
-    public:
+public:
     HeartBeat() : n_within_beat(), n_best(), best_time(), elapsed_cumulative() {}
 
     void Start()
@@ -235,7 +235,7 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
 }
 
 /// Solver member function requirements:
-/// * GetPerformanceConfig shall be implemented.
+/// * GetDefaultPerformanceConfig shall be implemented.
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
 /// * GetSolution shall be implemented.
 /// * Solution should provide invoker
@@ -298,7 +298,7 @@ using RunAndMeasure_t =
 
 template <class Solver, class Context>
 auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
-    -> decltype(s.GetPerformanceConfig(context_))
+    -> decltype(s.GetDefaultPerformanceConfig(context_))
 {
     static_assert(
         !(is_detected<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
@@ -308,9 +308,9 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     auto context                  = context_;
     context.is_for_generic_search = true;
 
-    using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
+    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
     PerformanceConfig best_config;
-    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
+    const auto default_solution = s.GetSolution(context, s.GetDefaultPerformanceConfig(context));
     const auto invoke_ctx       = [invoke_ctx_]() {
         auto copy = invoke_ctx_;
         copy.SetInvokeType(InvokeType::AutoTune);
@@ -343,7 +343,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         std::vector<KernelInfo> kernels;
         for(const auto& current_config : all_configs)
         {
-            ConvSolution current_solution = s.GetSolution(context, current_config, true);
+            ConvSolution current_solution = s.GetSolution(context, current_config);
             for(auto&& kernel : current_solution.construction_params)
             {
                 if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
@@ -369,14 +369,14 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
 
             try
             {
-                current_solution = s.GetSolution(context, current_config, true);
-                if(default_solution.workspce_sz != current_solution.workspce_sz)
+                current_solution = s.GetSolution(context, current_config);
+                if(default_solution.workspace_sz != current_solution.workspace_sz)
                 {
                     ret = -2;
                     MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
                                      << "Workspace size should not depend on PerformanceConfig: "
-                                     << default_solution.workspce_sz
-                                     << " != " << current_solution.workspce_sz);
+                                     << default_solution.workspace_sz
+                                     << " != " << current_solution.workspace_sz);
                 }
 
                 invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,

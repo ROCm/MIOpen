@@ -148,7 +148,7 @@ struct AnyInvokeParams;
 template <class TInstance>
 class StaticContainer
 {
-    public:
+public:
     inline static TInstance& Instance()
     {
         // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
@@ -355,7 +355,7 @@ struct mlo_construct_base
         return _db_path != nullptr ? _db_path : _search_params.GetPerfDbPath();
     }
 
-    protected:
+protected:
     miopen::ConvolutionContext _search_params;
 
     const char* _db_path = nullptr;
@@ -398,16 +398,16 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
      */
     inline const std::vector<size_t>& getGlobalWkSize() const { return (_g_wk); }
 
-    int _grp_tile0      = 8; // total number ALUs per group
-    int _grp_tile1      = 8; // total number ALUs per group
-    int _out_pix_tile0  = 2; // # of generated pixels per output per wk-item  (ALU)
-    int _out_pix_tile1  = 4; // # of generated pixels per output per wk-item  (ALU)
-    size_t _workspce_sz = 0;
+    int _grp_tile0       = 8; // total number ALUs per group
+    int _grp_tile1       = 8; // total number ALUs per group
+    int _out_pix_tile0   = 2; // # of generated pixels per output per wk-item  (ALU)
+    int _out_pix_tile1   = 4; // # of generated pixels per output per wk-item  (ALU)
+    size_t _workspace_sz = 0;
 
     /*
      * get workspace size
      */
-    inline size_t getWorkSpaceSzBytes() const { return (_workspce_sz); }
+    inline size_t getWorkSpaceSzBytes() const { return (_workspace_sz); }
 
     void setupFloats();
 
@@ -584,7 +584,7 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
      */
     inline bool doBackward() const { return (_do_backward); }
 
-    protected:
+protected:
     bool _do_backward = false;
     int _hw_wave_sz   = 0;
 
@@ -608,76 +608,6 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
     std::string _out_df_layout;
     std::string _out_df_data_type;
 };
-
-struct mlo_construct_pooling2D : mlo_construct_activ_lrn_pooling_common
-{
-    mlo_construct_pooling2D(miopen::conv::Direction dir)
-        : mlo_construct_activ_lrn_pooling_common(dir)
-    {
-        _pooling_method = MLO_POOLING_OP_MAX;
-        _index_type     = miopenIndexUint8;
-        _wsp_index      = miopenPoolingWorkspaceIndexMask;
-        _nan_option     = 0;
-    }
-
-    inline void
-    setPoolingDescr(int pooling_method                          = MLO_POOLING_OP_MAX,
-                    miopenIndexType_t index_type                = miopenIndexUint8,
-                    miopenPoolingWorkspaceIndexMode_t wsp_index = miopenPoolingWorkspaceIndexMask,
-                    int windowHeight                            = 3,
-                    int windowWidth                             = 3,
-                    int padding_h                               = 0,
-                    int padding_w                               = 0,
-                    int stride_h                                = 2,
-                    int stride_w                                = 2,
-                    int NAN_opt                                 = 0)
-    {
-        _pooling_method                = pooling_method;
-        _index_type                    = index_type;
-        _wsp_index                     = wsp_index;
-        _search_params.pad_h           = padding_h;
-        _search_params.pad_w           = padding_w;
-        _search_params.kernel_size_h   = windowHeight;
-        _search_params.kernel_size_w   = windowWidth;
-        _search_params.kernel_stride_h = stride_h;
-        _search_params.kernel_stride_w = stride_w;
-        _nan_option                    = NAN_opt;
-    }
-
-    inline void getPoolingDescr(int& /*pooling_method*/,
-                                miopenIndexType_t& index_type,
-                                miopenPoolingWorkspaceIndexMode_t& wsp_index,
-                                int& windowHeight,
-                                int& windowWidth,
-                                int& padding_h,
-                                int& padding_w,
-                                int& stride_h,
-                                int& stride_w,
-                                int& NAN_opt) const
-    {
-        index_type   = _index_type;
-        wsp_index    = _wsp_index;
-        padding_h    = _search_params.pad_h;
-        padding_w    = _search_params.pad_w;
-        windowHeight = _search_params.kernel_size_h;
-        windowWidth  = _search_params.kernel_size_w;
-        stride_h     = _search_params.kernel_stride_h;
-        stride_w     = _search_params.kernel_stride_w;
-        NAN_opt      = _nan_option;
-    }
-
-    inline int getPoolingMethod() const { return (_pooling_method); }
-    int mloConstruct();
-
-    protected:
-    int _pooling_method;
-    miopenIndexType_t _index_type;
-    miopenPoolingWorkspaceIndexMode_t _wsp_index;
-    int _nan_option;
-    int mloConstructFwd();
-    int mloConstructBwd();
-};
-
 #define MLO_LRN_WITHIN_CHANNEL 0
 #define MLO_LRN_ACROSS_CHANNELS 1
 
@@ -714,7 +644,7 @@ struct mlo_construct_norm : mlo_construct_activ_lrn_pooling_common
 
     void mloConstruct();
 
-    protected:
+protected:
     int mloConstructFwd();
     int mloConstructBwd();
     int _norm_region  = 0;
@@ -752,7 +682,7 @@ struct mlo_construct_neuron : mlo_construct_activ_lrn_pooling_common
 
     void mloConstruct();
 
-    protected:
+protected:
     int mloConstructFwd();
     int mloConstructBwd();
     int _neuron_type;

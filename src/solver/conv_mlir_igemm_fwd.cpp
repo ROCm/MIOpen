@@ -37,11 +37,16 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD)
 namespace miopen {
 namespace solver {
 
-const PerformanceConvMlirIgemm& PerformanceConvMlirIgemm::MlirHeuristicInitRequest()
+void PerformanceConvMlirIgemm::SetMlirHeuristicInitRequest()
 {
-    static const PerformanceConvMlirIgemm p =
-        PerformanceConvMlirIgemm(-2, -2, -2, -2, -2, -2, false);
-    return p;
+    // These values are equivalent to when tuning config is heuristically initialized.
+    // We leave all config fields to be -2/false and use_spare_set untouched.
+    BlockSize      = -2;
+    GemmMPerBlock  = -2;
+    GemmNPerBlock  = -2;
+    GemmKPerBlock  = -2;
+    GemmMPerThread = -2;
+    GemmNPerThread = -2;
 }
 
 PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(int BlockSize_,
@@ -62,18 +67,10 @@ PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(int BlockSize_,
 }
 
 PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(bool spare)
+    : PerformanceConvMlirIgemm::PerformanceConvMlirIgemm(64, 32, 32, 4, 2, 2, spare)
 {
-    // always search full space, no matter if use_spare_set or not
-    BlockSize = 64;
-
-    GemmMPerBlock = 32;
-    GemmNPerBlock = 32;
-    GemmKPerBlock = 4;
-
-    GemmMPerThread = 2;
-    GemmNPerThread = 2;
-
-    use_spare_set = spare;
+    if(spare)
+        SetMlirHeuristicInitRequest();
 }
 
 bool PerformanceConvMlirIgemm::operator==(const PerformanceConvMlirIgemm& other) const
@@ -84,8 +81,7 @@ bool PerformanceConvMlirIgemm::operator==(const PerformanceConvMlirIgemm& other)
         && GemmNPerBlock == other.GemmNPerBlock
         && GemmKPerBlock == other.GemmKPerBlock
         && GemmMPerThread == other.GemmMPerThread
-        && GemmNPerThread == other.GemmNPerThread
-        && use_spare_set == other.use_spare_set;
+        && GemmNPerThread == other.GemmNPerThread;
     // clang-format on
 }
 
@@ -95,7 +91,15 @@ bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx) const
     if(*this == MlirHeuristicInitRequest())
         return true;
 
-    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, *this, false));
+    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, false));
+    bool isValid     = false;
+    for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
+    {
+        isValid = MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, *this, false, kernel_id));
+        if(!isValid)
+            return false;
+    }
+    return isValid;
 #else
     std::ignore = ctx;
     return false;
@@ -104,10 +108,9 @@ bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx) const
 
 bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*config*/)
 {
-    if(*this == MlirHeuristicInitRequest())
-        MIOPEN_THROW("Should not iterate from the heuristic value");
+    if(use_spare_set)
+        return false;
 
-    // always search full space, no matter if use_spare_set or not
     do
     {
         if(!NextTwoPower<64, 256>(BlockSize))
@@ -136,7 +139,8 @@ std::string PerformanceConvMlirIgemm::ToString() const
     return ss.str();
 }
 
-PerformanceConvMlirIgemm ConvMlirIgemmFwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
+PerformanceConvMlirIgemm
+ConvMlirIgemmFwd::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
     return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
@@ -160,6 +164,8 @@ bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD{}))
         return false;
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+        return false;
     if(!ctx.direction.IsForward())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
@@ -182,8 +188,7 @@ bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
 }
 
 ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx,
-                                           const PerformanceConvMlirIgemm& config,
-                                           bool) const
+                                           const PerformanceConvMlirIgemm& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;

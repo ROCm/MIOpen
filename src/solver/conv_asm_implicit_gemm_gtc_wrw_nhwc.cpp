@@ -540,8 +540,8 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(const Convo
     const auto& c         = ctx.n_outputs;
     const auto& y         = ctx.kernel_size_h;
     const auto& x         = ctx.kernel_size_w;
-    const auto stride_h   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-    const auto stride_w   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+    const auto stride_h   = ctx.kernel_stride_h;
+    const auto stride_w   = ctx.kernel_stride_w;
     const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
     const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
     const auto& pad_h     = ctx.pad_h;
@@ -731,8 +731,8 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
     const auto& c         = ctx.n_outputs;
     const auto& y         = ctx.kernel_size_h;
     const auto& x         = ctx.kernel_size_w;
-    const auto stride_h   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-    const auto stride_w   = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
+    const auto stride_h   = ctx.kernel_stride_h;
+    const auto stride_w   = ctx.kernel_stride_w;
     const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
     const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
     const auto& pad_h     = ctx.pad_h;
@@ -772,7 +772,7 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(const Convolution
 }
 
 PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
-ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetPerformanceConfig(
+ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetDefaultPerformanceConfig(
     const ConvolutionContext& params) const
 {
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC pp;
@@ -796,6 +796,9 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::Search(const ConvolutionContext& ctx
 bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC{}))
+        return false;
+
+    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -847,8 +850,8 @@ ComputeDynamicIGemmWrwKernelArgsNHWC(const conv::ProblemDescription& conv_proble
     int c          = conv_problem.GetOutChannels();
     int ho         = conv_problem.GetInHeight();
     int wo         = conv_problem.GetInWidth();
-    int stride_h   = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w   = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int stride_h   = conv_problem.GetOutHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w   = conv_problem.GetOutWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
     int dilation_h = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
     int dilation_w = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
     int pad_h      = conv_problem.GetPadH();
@@ -917,11 +920,11 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
                                                  x); // group * k_per_group as batch for weight
         TransposeSolutionDefault2Nhwc trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
         if(!trans_input.IsSkippable())
-            size_trans_input  = trans_input.GetSize();
+            size_trans_input  = trans_input.GetOutputTensorSize();
         if(!trans_weight.IsSkippable())
-            size_trans_weight = trans_weight.GetSize();
+            size_trans_weight = trans_weight.GetOutputTensorSize();
         if(!trans_output.IsSkippable())
-            size_trans_output = trans_output.GetSize();
+            size_trans_output = trans_output.GetOutputTensorSize();
 
     }
 
@@ -938,8 +941,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetWorkspaceSize(const ConvolutionCo
 
 ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     const ConvolutionContext& ctx,
-    const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config,
-    bool) const
+    const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config) const
 {
     ConvSolution result;
     KernelInfo kernel;
@@ -985,7 +987,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     gemm_k_global_splits = integer_divide_ceil(gemmk, gemmk_per_wg);
 
     const auto required_workspace_size = GetWorkspaceSize(ctx);
-    result.workspce_sz                 = required_workspace_size;
+    result.workspace_sz                 = required_workspace_size;
 
     kernel.kernel_file = kernel_name + ".s";
     kernel.kernel_name = kernel_name;
@@ -1065,27 +1067,27 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         trans_output_skippable = trans_output.IsSkippable();
 
         if(!trans_input_skippable){
-            result.construction_params.push_back(trans_input.GetKernel());
+            result.construction_params.push_back(trans_input.GetKernelInfo());
             opArgsTrans.emplace_back(trans_input.GetKernelArg());
             if(miopen::IsLogging(LoggingLevel::Info2))
                 msg << ", inp trans:"<<trans_input.GetKernelName();
         }
         if(!trans_weight_skippable){
-            result.construction_params.push_back(trans_weight.GetKernel());
+            result.construction_params.push_back(trans_weight.GetKernelInfo());
             opArgsTrans.emplace_back(trans_weight.GetKernelArg());
             if(miopen::IsLogging(LoggingLevel::Info2))
                 msg << ", wei trans:"<<trans_weight.GetKernelName();
         }
         if(!trans_output_skippable){
-            result.construction_params.push_back(trans_output.GetKernel());
+            result.construction_params.push_back(trans_output.GetKernelInfo());
             opArgsTrans.emplace_back(trans_output.GetKernelArg());
             if(miopen::IsLogging(LoggingLevel::Info2))
                 msg << ", out trans:"<<trans_output.GetKernelName();
         }
 
-        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetSize();
-        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetSize();
-        trans_output_size = trans_output_skippable ? 0 : trans_output.GetSize();
+        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
+        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetOutputTensorSize();
+        trans_output_size = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
 
         int idx = 0;
         if(!trans_input_skippable)

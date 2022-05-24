@@ -278,7 +278,7 @@ std::string PerformanceConfigConvBinWinogradRxSf3x2::ToString() const
 }
 
 PerformanceConfigConvBinWinogradRxSf3x2
-ConvBinWinogradRxSf3x2::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvBinWinogradRxSf3x2::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvBinWinogradRxSf3x2 pp;
     pp.HeuristicInit(params);
@@ -377,12 +377,11 @@ bool ConvBinWinogradRxSf3x2::IsApplicable(const ConvolutionContext& params) cons
 /// \todo Consider re-using code from RxS_f2x3.
 ConvSolution
 ConvBinWinogradRxSf3x2::GetSolution(const ConvolutionContext& params,
-                                    const PerformanceConfigConvBinWinogradRxSf3x2& config,
-                                    const bool disableConfigOverrideFromEnv) const
+                                    const PerformanceConfigConvBinWinogradRxSf3x2& config) const
 {
     const PerformanceConfigConvBinWinogradRxSf3x2* pcfg = &config;
+
     PerformanceConfigConvBinWinogradRxSf3x2 fromEnv;
-    if(!disableConfigOverrideFromEnv)
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS{});

@@ -208,7 +208,7 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
 
-    private:
+private:
     std::vector<std::size_t> lens;
     std::vector<std::size_t> strides;
 
@@ -216,6 +216,15 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     miopenDataType_t type = miopenFloat;
 };
+
+template <class TElement>
+constexpr auto GetNCDHW(int spatial_dims, const std::vector<TElement>& data)
+{
+    if(spatial_dims == 3)
+        return miopen::tien<5>(data, 1);
+    else
+        return std::make_tuple(data[0], data[1], static_cast<TElement>(1), data[2], data[3]);
+}
 
 } // namespace miopen
 

@@ -109,7 +109,7 @@ struct AutoMiopenWarmupMode
         miopen::debug::FindEnforceDisable = debug_find_enforce_disable_prev;
     }
 
-    private:
+private:
     bool debug_logging_quiet_prev;
     bool debug_find_enforce_disable_prev;
 };
@@ -123,7 +123,7 @@ struct AutoConvDirectNaiveAlwaysEnable
     }
     ~AutoConvDirectNaiveAlwaysEnable() { miopen::debug::AlwaysEnableConvDirectNaive = prev; }
 
-    private:
+private:
     bool prev;
 };
 
@@ -171,7 +171,7 @@ class ConvDriver : public Driver
 #elif MIOPEN_BACKEND_HIP
     typedef uint32_t context_t;
 #endif
-    public:
+public:
     ConvDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -267,7 +267,7 @@ class ConvDriver : public Driver
         miopenDestroyConvolutionDescriptor(warmupConvDesc);
     }
 
-    private:
+private:
     const miopenDataType_t warmup_data_type = miopenFloat;
     typedef float warmup_Tgpu;
 
@@ -320,7 +320,7 @@ class ConvDriver : public Driver
 
     std::vector<Tgpu> din;
     std::vector<Tgpu> dwei;
-    std::vector<float> out_int8;
+    std::vector<int32_t> out_int8;
     std::vector<Tgpu> db;
     std::vector<float> b_int8;
 
@@ -596,7 +596,7 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> out_len = GetOutputTensorLengths();
 
     miopenDataType_t y_type =
-        (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenFloat : data_type;
+        (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenInt32 : data_type;
     SetTensorNd(outputTensor, out_len, inflags.GetValueStr("out_layout"), y_type);
 
     if(inflags.GetValueInt("bias") != 0)
@@ -1220,7 +1220,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(is_wrw)
         dwei = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
     if(is_int8)
-        out_int8 = std::vector<float>(out_sz, static_cast<float>(0));
+        out_int8 = std::vector<int32_t>(out_sz, 0);
     if(is_transform)
     {
         in_vect4_dev = std::unique_ptr<GPUMem>(
@@ -1434,9 +1434,10 @@ bool ConvDriver<Tgpu, Tref>::UseGPUReference()
 {
     if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
     {
-        if(miopen_type<Tref>{} == miopenFloat &&
-           (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||
-            miopen_type<Tgpu>{} == miopenBFloat16))
+        if((miopen_type<Tref>{} == miopenFloat &&
+            (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||
+             miopen_type<Tgpu>{} == miopenBFloat16)) ||
+           (miopen_type<Tref>{} == miopenInt32 && miopen_type<Tgpu>{} == miopenInt8))
             return true;
         else
             return false;
@@ -1753,7 +1754,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPU()
     if(inflags.GetValueInt("dump_output"))
     {
         if(is_int8)
-            dumpBufferToFile<float>("dump_fwd_out_gpu.bin", out_int8.data(), out_int8.size());
+            dumpBufferToFile<int32_t>("dump_fwd_out_gpu.bin", out_int8.data(), out_int8.size());
         else
             dumpBufferToFile<Tgpu>("dump_fwd_out_gpu.bin", out.data.data(), out.data.size());
     }
@@ -3277,9 +3278,9 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
     if(is_fwd_igemm)
         tolerance = tolerance * 10;
 
-    if(!(error < tolerance))
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward Convolution Failed: " << error << " > " << tolerance << std::endl;
+        std::cout << "Forward Convolution FAILED: " << error << " > " << tolerance << std::endl;
         return EC_VerifyFwd;
     }
 
@@ -3321,9 +3322,9 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         if(is_bwd_igemm)
             tolerance = tolerance * 10;
 
-        if(error_data > tolerance)
+        if(!std::isfinite(error_data) || error_data > tolerance)
         {
-            std::cout << "Backward Convolution Data Failed: " << error_data << " > " << tolerance
+            std::cout << "Backward Convolution Data FAILED: " << error_data << " > " << tolerance
                       << std::endl;
             cumulative_rc |= EC_VerifyBwd;
         }
@@ -3369,9 +3370,9 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
         auto error_weights = is_wrw_run_failed ? std::numeric_limits<double>::max()
                                                : miopen::rms_range(dwei_host.data, dwei);
 
-        if(error_weights > tolerance)
+        if(!std::isfinite(error_weights) || error_weights > tolerance)
         {
-            std::cout << "Backward Convolution Weights Failed: " << error_weights << " > "
+            std::cout << "Backward Convolution Weights FAILED: " << error_weights << " > "
                       << tolerance << std::endl;
             cumulative_rc |= EC_VerifyWrw;
         }
@@ -3392,9 +3393,9 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
 
         auto error_bias      = miopen::rms_range(db_host.data, db);
         const auto tolerance = GetDefaultTolerance();
-        if(error_bias > tolerance)
+        if(!std::isfinite(error_bias) || error_bias > tolerance)
         {
-            std::cout << "Backward Convolution Bias Failed: " << error_bias << " > " << tolerance
+            std::cout << "Backward Convolution Bias FAILED: " << error_bias << " > " << tolerance
                       << std::endl;
             cumulative_rc |= EC_VerifyBwdBias;
         }

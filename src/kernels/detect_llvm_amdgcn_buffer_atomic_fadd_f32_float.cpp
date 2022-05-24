@@ -26,6 +26,11 @@
 
 typedef int32_t int32x4_t __attribute__((ext_vector_type(4)));
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored \
+    "-Wunknown-warning-option" // clang in ROCm 4.3 does not support "reserved-identifier".
+#pragma clang diagnostic ignored "-Wreserved-identifier"
+
 __device__ float
 __llvm_amdgcn_buffer_atomic_add_f32(float vdata,
                                     int32x4_t rsrc,
@@ -38,3 +43,5 @@ extern "C" __global__ void test_llvm_amdgcn_buffer_atomic_fadd_f32_float(float* 
     int32x4_t buffer_resource{0};
     (void)__llvm_amdgcn_buffer_atomic_add_f32(*p_global, buffer_resource, 0, 0, false);
 }
+
+#pragma clang diagnostic pop // "-Wreserved-identifier"

@@ -42,7 +42,7 @@ class AutoMiirHandle
 {
     MiirHandle handle;
 
-    public:
+public:
     AutoMiirHandle(const std::string& options) : handle(miirCreateHandle(options.c_str())) {}
     // Explicitly disable copy and assignment of the handle to avoid double-free risk
     AutoMiirHandle(const AutoMiirHandle&) = delete;
@@ -99,6 +99,12 @@ int MiirGetKernelCount(const std::string& params)
     if(kernel_count < 1)
         MIOPEN_THROW("miirGetKernelCount invalid count: " + std::to_string(kernel_count));
     return kernel_count;
+}
+
+int MiirGetWorkspaceSize(const std::string& params)
+{
+    AutoMiirHandle handle(params);
+    return miirGetWorkspaceSize(handle());
 }
 
 } // namespace miopen
