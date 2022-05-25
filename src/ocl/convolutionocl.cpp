@@ -28,7 +28,6 @@
 #include <miopen/check_numerics.hpp>
 #include <miopen/config.h>
 #include <miopen/convolution.hpp>
-#include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
@@ -606,8 +605,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     ValidateConvTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
-    if(algo != miopenConvolutionFwdAlgoGEMM &&
-       (xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4))
+    if(algo != miopenConvolutionFwdAlgoGEMM && xDesc.GetType() == miopenInt8x4)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -1394,9 +1392,6 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
     auto tensors = ConvBwdTensors{dyDesc, dy, wDesc, w, dxDesc, dx};
 
     ValidateConvTensors(tensors);
-
-    if(wDesc.GetType() == miopenInt8)
-        MIOPEN_THROW(miopenStatusBadParm);
 
     static const float beta = 0.0f;
     ConvBwdCheckNumerics(handle, tensors, &beta, [&]() {

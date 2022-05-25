@@ -1434,9 +1434,10 @@ bool ConvDriver<Tgpu, Tref>::UseGPUReference()
 {
     if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
     {
-        if(miopen_type<Tref>{} == miopenFloat &&
-           (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||
-            miopen_type<Tgpu>{} == miopenBFloat16))
+        if((miopen_type<Tref>{} == miopenFloat &&
+            (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||
+             miopen_type<Tgpu>{} == miopenBFloat16)) ||
+           (miopen_type<Tref>{} == miopenInt32 && miopen_type<Tgpu>{} == miopenInt8))
             return true;
         else
             return false;
