@@ -95,6 +95,13 @@ std::vector<Solution> Problem::FindSolutions(Handle& handle,
                                              const SearchOptions& options,
                                              std::size_t max_solutions) const
 {
+    std::cerr << "Find start" << std::endl;
+
+    struct Finally
+    {
+        ~Finally() { std::cerr << "Find end" << std::endl; }
+    } finally;
+
     auto buffers = AllocatedBuffers{};
 
     for(const auto& pair : tensor_descriptors)
