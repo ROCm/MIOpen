@@ -48,13 +48,6 @@ void Solution::Run(Handle& handle,
                          std::to_string(workspace_required) + " workspace, while " +
                          std::to_string(workspace_size) + " was provided");
 
-    std::cerr << "Run start" << std::endl;
-
-    struct Finally
-    {
-        ~Finally() { std::cerr << "Run end" << std::endl; }
-    } finally;
-
     const auto run = boost::hof::match([&](const ConvolutionDescriptor& op_desc) {
         RunImpl(handle, inputs, workspace, workspace_size, op_desc);
     });
