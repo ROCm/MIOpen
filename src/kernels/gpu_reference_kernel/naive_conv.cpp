@@ -28,6 +28,22 @@
 #include <hip/hip_runtime.h>
 #endif
 
+#ifdef __HIPCC_RTC__
+#ifdef WORKAROUND_ISSUE_HIPRTC_TRUE_TYPE
+/// Definitions from <cstdint>, <cmath> conflict with
+/// /opt/rocm/include/hip/amd_detail/amd_hip_vector_types.h.
+
+typedef signed char int8_t;
+typedef signed short int16_t;
+typedef float float_t;
+#include <limits> // std::numeric_limits
+
+#else
+#include <cstdint> // int8_t, int16_t
+#include <cmath>   // float_t
+#endif
+#endif // __HIPCC_RTC__
+
 // hcc seems need __device__ __host__ together to compile, and no extern "C"
 typedef union value_bf16_fp32_t
 {
