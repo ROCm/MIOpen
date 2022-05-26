@@ -434,35 +434,7 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
                                              const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    const auto& dyDesc = problem.GetIn();
-    const auto& wDesc  = problem.GetWeights();
-    const auto& dxDesc = problem.GetOut();
-    const auto& conv   = problem.GetConv();
-
-    const auto group_count = conv.group_count;
-    const auto in_n        = dxDesc.GetLengths()[0];
-
-    auto solution         = ConvSolution{miopenStatusSuccess};
-    solution.workspace_sz = 0;
-
-    // dx = transpose(w) * dy
-    const auto gemm_desc =
-        group_count > 1 ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count)
-                        : CreateGemmStridedBatchedDescriptorConv1x1BwdData(wDesc, dyDesc, dxDesc);
-
-    const auto in_c = dxDesc.GetLengths()[1];
-
-    const auto wei_k = wDesc.GetLengths()[0];
-
-    const auto spatial_dim = conv.GetSpatialDimension();
-    const auto in_spatial  = boost::adaptors::slice(dxDesc.GetLengths(), 2, 2 + spatial_dim);
-    const auto out_spatial = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + spatial_dim);
-
-    std::size_t out_spatial_size = std::accumulate(
-        out_spatial.begin(), out_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-    std::size_t in_spatial_size = std::accumulate(
-        in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
+    const auto group_count = problem.GetConv().group_count;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
@@ -472,6 +444,39 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
             const auto& dy          = conv_params.tensors.in;
             const auto& w           = conv_params.tensors.w;
             const auto& dx          = conv_params.tensors.out;
+            const auto& dyDesc      = conv_params.tensors.inDesc;
+            const auto& wDesc       = conv_params.tensors.wDesc;
+            const auto& dxDesc      = conv_params.tensors.outDesc;
+
+            const auto in_n = dxDesc.GetLengths()[0];
+
+            auto solution         = ConvSolution{miopenStatusSuccess};
+            solution.workspace_sz = 0;
+
+            // dx = transpose(w) * dy
+            const auto gemm_desc =
+                group_count > 1
+                    ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count)
+                    : CreateGemmStridedBatchedDescriptorConv1x1BwdData(wDesc, dyDesc, dxDesc);
+
+            const auto in_c = dxDesc.GetLengths()[1];
+
+            const auto wei_k = wDesc.GetLengths()[0];
+
+            const auto spatial_dim = conv.GetSpatialDimension();
+            const auto in_spatial = boost::adaptors::slice(dxDesc.GetLengths(), 2, 2 + spatial_dim);
+            const auto out_spatial =
+                boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + spatial_dim);
+
+            std::size_t out_spatial_size = std::accumulate(out_spatial.begin(),
+                                                           out_spatial.end(),
+                                                           std::size_t(1),
+                                                           std::multiplies<std::size_t>());
+
+            std::size_t in_spatial_size = std::accumulate(in_spatial.begin(),
+                                                          in_spatial.end(),
+                                                          std::size_t(1),
+                                                          std::multiplies<std::size_t>());
 
             if(group_count > 1)
             {
