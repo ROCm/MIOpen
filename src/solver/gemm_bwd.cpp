@@ -436,6 +436,9 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
 #if MIOPEN_USE_GEMM
     const auto group_count = problem.GetConv().group_count;
 
+    auto solution         = ConvSolution{miopenStatusSuccess};
+    solution.workspace_sz = 0;
+
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
@@ -449,9 +452,6 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
             const auto& dxDesc      = conv_params.tensors.outDesc;
 
             const auto in_n = dxDesc.GetLengths()[0];
-
-            auto solution         = ConvSolution{miopenStatusSuccess};
-            solution.workspace_sz = 0;
 
             // dx = transpose(w) * dy
             const auto gemm_desc =
