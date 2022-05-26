@@ -122,6 +122,7 @@ std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
 
 inline rocblas_atomics_mode DisableRocblasAtomics(const miopen::Handle& handle)
 {
+    MIOPEN_LOG_I2("");
     rocblas_atomics_mode cur_mode;
     rocblas_status status = rocblas_get_atomics_mode(handle.rhandle().get(), &cur_mode);
     assert(status == rocblas_status::rocblas_status_success);
@@ -135,6 +136,7 @@ inline rocblas_atomics_mode DisableRocblasAtomics(const miopen::Handle& handle)
 
 inline void SetRocblasAtomics(const miopen::Handle& handle, rocblas_atomics_mode mode)
 {
+    MIOPEN_LOG_I2("");
     rocblas_status status = rocblas_set_atomics_mode(handle.rhandle().get(), mode);
     assert(status == rocblas_status::rocblas_status_success);
 }
@@ -1423,7 +1425,8 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx = Col2Im(transpose(w) * dy)
@@ -1473,7 +1476,8 @@ GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 // dw = dy * transpose(Im2Col(x))
@@ -1523,7 +1527,8 @@ GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
@@ -1575,7 +1580,8 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
@@ -1625,7 +1631,8 @@ GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 // y[i] = w * x[i], i is batch id
@@ -1678,7 +1685,8 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx[i] = transpose(w) * dy[i], i is batch id
@@ -1729,7 +1737,8 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDesc
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
@@ -1780,7 +1789,8 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDe
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // y = w * Im2Col(x)
@@ -1831,7 +1841,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx = Col2Im(transpose(w) * dy)
@@ -1882,7 +1893,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDes
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 // dw = dy * transpose(Im2Col(x))
@@ -1933,7 +1945,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dy
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
@@ -1984,7 +1997,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDes
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
@@ -2035,7 +2049,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& 
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 } // namespace miopen
