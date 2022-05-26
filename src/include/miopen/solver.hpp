@@ -1879,13 +1879,12 @@ struct ConvBinWinogradRxS : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct PerformanceConfigConvBinWinogradRxSf3x2
-    : Serializable<PerformanceConfigConvBinWinogradRxSf3x2>
+struct PerformanceConfigConvBinWinogradRxS : Serializable<PerformanceConfigConvBinWinogradRxS>
 {
     int n_groups;
-    PerformanceConfigConvBinWinogradRxSf3x2(int n_groups_);
-    PerformanceConfigConvBinWinogradRxSf3x2() : PerformanceConfigConvBinWinogradRxSf3x2(-1) {}
-    PerformanceConfigConvBinWinogradRxSf3x2(bool) : PerformanceConfigConvBinWinogradRxSf3x2(1) {}
+    PerformanceConfigConvBinWinogradRxS(int n_groups_);
+    PerformanceConfigConvBinWinogradRxS() : PerformanceConfigConvBinWinogradRxS(-1) {}
+    PerformanceConfigConvBinWinogradRxS(bool) : PerformanceConfigConvBinWinogradRxS(1) {}
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -1894,11 +1893,12 @@ struct PerformanceConfigConvBinWinogradRxSf3x2
     }
     int GetNGroups() const { return n_groups; }
 
+    template <int Winodata, int Winofilter>
     void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
-    inline bool operator==(const PerformanceConfigConvBinWinogradRxSf3x2& other) const
+    inline bool operator==(const PerformanceConfigConvBinWinogradRxS& other) const
     {
         return n_groups == other.n_groups;
     }
@@ -1906,23 +1906,30 @@ struct PerformanceConfigConvBinWinogradRxSf3x2
     std::string ToString() const;
 };
 
-struct ConvBinWinogradRxSf3x2 final : ConvTunableSolver<PerformanceConfigConvBinWinogradRxSf3x2>
+template <int Winodata, int Winofilter>
+struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinogradRxS>
 {
-    const std::string& SolverDbId() const override
+    const std::string& SolverDbId() const override { return GetSolverDbId(); }
+
+    static const std::string& GetSolverDbId()
     {
-        return GetSolverDbId<ConvBinWinogradRxSf3x2>();
+        static const std::string dbId = std::string("ConvBinWinogradRxSf")
+                                            .append(std::to_string(Winodata))
+                                            .append("x")
+                                            .append(std::to_string(Winofilter));
+        return dbId;
     }
 
-    PerformanceConfigConvBinWinogradRxSf3x2
+    PerformanceConfigConvBinWinogradRxS
     GetDefaultPerformanceConfig(const ConvolutionContext&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConfigConvBinWinogradRxSf3x2&) const override;
-    PerformanceConfigConvBinWinogradRxSf3x2
-    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const override;
+                                  const PerformanceConfigConvBinWinogradRxS&) const override;
+    PerformanceConfigConvBinWinogradRxS Search(const ConvolutionContext&,
+                                               const AnyInvokeParams& invoke_ctx) const override;
     bool IsApplicable(const ConvolutionContext& params) const override;
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfigConvBinWinogradRxSf3x2& config) const override;
+                             const PerformanceConfigConvBinWinogradRxS& config) const override;
 
     static size_t GetNGroups(const size_t group_conv, const size_t grid_group_size)
     {
@@ -1931,58 +1938,18 @@ struct ConvBinWinogradRxSf3x2 final : ConvTunableSolver<PerformanceConfigConvBin
     }
 };
 
-struct PerformanceConfigConvBinWinogradRxSf2x3
-    : Serializable<PerformanceConfigConvBinWinogradRxSf2x3>
-{
-    int n_groups;
-    PerformanceConfigConvBinWinogradRxSf2x3(int n_groups_);
-    PerformanceConfigConvBinWinogradRxSf2x3() : PerformanceConfigConvBinWinogradRxSf2x3(-1) {}
-    PerformanceConfigConvBinWinogradRxSf2x3(bool) : PerformanceConfigConvBinWinogradRxSf2x3(1) {}
+// Suppress misleading clang warnings
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-template-vtables"
+#endif
 
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
-    {
-        f(self.n_groups, "n_groups");
-    }
-    int GetNGroups() const { return n_groups; }
+extern template struct ConvBinWinoRxS<2, 3>;
+extern template struct ConvBinWinoRxS<3, 2>;
 
-    void HeuristicInit(const ConvolutionContext& config);
-    bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& config);
-    bool IsValid(const ConvolutionContext& config) const;
-    inline bool operator==(const PerformanceConfigConvBinWinogradRxSf2x3& other) const
-    {
-        return n_groups == other.n_groups;
-    }
-
-    std::string ToString() const;
-};
-
-struct ConvBinWinogradRxSf2x3 final : ConvTunableSolver<PerformanceConfigConvBinWinogradRxSf2x3>
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvBinWinogradRxSf2x3>();
-    }
-
-    PerformanceConfigConvBinWinogradRxSf2x3
-    GetDefaultPerformanceConfig(const ConvolutionContext&) const override;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConfigConvBinWinogradRxSf2x3&) const override;
-    PerformanceConfigConvBinWinogradRxSf2x3
-    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    bool IsDynamic() const override { return true; }
-    float GetWti(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfigConvBinWinogradRxSf2x3& config) const override;
-
-    static size_t GetNGroups(const size_t group_conv, const size_t grid_group_size)
-    {
-        assert(group_conv != 0);
-        return grid_group_size / group_conv;
-    }
-};
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 struct ConvBinWinogradRxSf2x3g1 : ConvSolver
 {

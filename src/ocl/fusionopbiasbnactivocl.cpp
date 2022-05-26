@@ -631,6 +631,7 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetCompileParms(
            " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
            " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
            " -DMIOPEN_READ_UNIT=" + std::to_string(read_unit) + " -DMIOPEN_READ_TYPE=" + READ_TYPE +
+           // cppcheck-suppress knownConditionTrueFalse
            " -DMIO_SAVE_MEAN_VARIANCE=" + (saveBatchStats ? "1" : "0") +
            " -DMIO_RUNNING_RESULT=" + ((savePopStats) ? "1" : "0") +
            " -DMIO_BN_VARIANT=" + std::to_string(variant) +
