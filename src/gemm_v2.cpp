@@ -128,12 +128,12 @@ inline rocblas_atomics_mode DisableRocblasAtomics(const miopen::Handle& handle)
     rocblas_atomics_mode cur_mode;
     rocblas_status status = rocblas_get_atomics_mode(handle.rhandle().get(), &cur_mode);
     assert(status == rocblas_status::rocblas_status_success);
-    _unused( status ); // WA till C++17 [[maybe_unused]]  
+    _unused(status); // WA till C++17 [[maybe_unused]]
     if(cur_mode == rocblas_atomics_allowed)
     {
         status = rocblas_set_atomics_mode(handle.rhandle().get(), rocblas_atomics_not_allowed);
         assert(status == rocblas_status::rocblas_status_success);
-        _unused( status ); // WA till C++17 [[maybe_unused]] 
+        _unused(status); // WA till C++17 [[maybe_unused]]
     }
     return cur_mode;
 }
@@ -143,7 +143,7 @@ inline void SetRocblasAtomics(const miopen::Handle& handle, rocblas_atomics_mode
     MIOPEN_LOG_I2("");
     rocblas_status status = rocblas_set_atomics_mode(handle.rhandle().get(), mode);
     assert(status == rocblas_status::rocblas_status_success);
-    _unused( status ); // WA till C++17 [[maybe_unused]] 
+    _unused(status); // WA till C++17 [[maybe_unused]]
 }
 
 #endif
