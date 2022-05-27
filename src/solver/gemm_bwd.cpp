@@ -435,6 +435,7 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
 {
 #if MIOPEN_USE_GEMM
     const auto group_count = problem.GetConv().group_count;
+    const auto spatial_dim = problem.GetConv().GetSpatialDimension();
 
     auto solution         = ConvSolution{miopenStatusSuccess};
     solution.workspace_sz = 0;
@@ -463,7 +464,6 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
 
             const auto wei_k = wDesc.GetLengths()[0];
 
-            const auto spatial_dim = conv.GetSpatialDimension();
             const auto in_spatial = boost::adaptors::slice(dxDesc.GetLengths(), 2, 2 + spatial_dim);
             const auto out_spatial =
                 boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + spatial_dim);
