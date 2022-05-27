@@ -42,7 +42,7 @@ For HIP backend: `apt-get install miopen-hip`
 
 Currently both the backends cannot be installed on the same system simultaneously. If a different backend other than what currently exists on the system is desired, please uninstall the existing backend completely and then install the new backend.
 
-## Installing MIOpen kernels package 
+## Installing MIOpen kernels package
 
 MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. These precompiled kernels comprise a select set of popular input configurations and will expand in future release to contain additional coverage.
 
