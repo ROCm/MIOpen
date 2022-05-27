@@ -31,6 +31,9 @@ MIOPEN_EXPORT int miopenGetTensorIndex(miopenTensorDescriptor_t tensorDesc,
 
 int miopenGetTensorDescriptorElementSize(miopenTensorDescriptor_t tensorDesc);
 
+MIOPEN_EXPORT miopenStatus_t
+miopenGetNdTensorDescriptorVectorLength(miopenTensorDescriptor_t tensorDesc, int* vectorLength);
+
 MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorLengths(
     miopenTensorDescriptor_t tensorDesc, int* n, int* c, int* h, int* w);
 

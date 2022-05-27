@@ -44,6 +44,14 @@ bool ProblemDescription::IsLayoutNHWC() const
     }
 }
 
+bool ProblemDescription::IsLayoutNCHWC() const
+{
+    return ((spatial_dims == 2) && (in_layout == "NCHWc") && (out_layout == "NCHWc") &&
+            (weights_layout == "NCHWc")) ||
+           ((spatial_dims == 2) && (in_layout == "NCHWc") && (out_layout == "NCHWc") &&
+            (weights_layout == "CHWNc"));
+}
+
 void ProblemDescription::Serialize(std::ostream& stream) const
 {
     if(!direction.IsKnown())
@@ -110,6 +118,7 @@ ProblemDescription::ProblemDescription(conv::ProblemDescription desc)
       in_height(conv_problem.GetInHeight()),
       in_width(conv_problem.GetInWidth()),
       in_depth(conv_problem.GetInDepth()),
+      vectorLength(conv_problem.GetVectorLength()),
 
       kernel_size_h(conv_problem.GetWeightsHeight()),
       kernel_size_w(conv_problem.GetWeightsWidth()),

@@ -123,8 +123,34 @@ struct tensor
         assert(dims.size() == strides.size());
     }
 
+    template <class X>
+    tensor(miopenDataType_t t, miopenTensorLayout_t layout, const std::vector<X>& dims)
+        : desc(t, layout, dims), data(desc.GetElementSpace())
+    {
+    }
+
+    template <class X>
+    tensor(miopenDataType_t t,
+           miopenTensorLayout_t layout,
+           const std::vector<X>& dims,
+           const std::vector<X>& strides)
+        : desc(t, layout, dims, strides), data(desc.GetElementSpace())
+    {
+        assert(dims.size() == strides.size());
+    }
+
     tensor(std::size_t n, std::size_t c, std::size_t h, std::size_t w)
         : desc(miopen_type<T>{}, {n, c, h, w}), data(n * c * h * w)
+    {
+    }
+
+    tensor(miopenDataType_t t,
+           miopenTensorLayout_t layout,
+           std::size_t n,
+           std::size_t c,
+           std::size_t h,
+           std::size_t w)
+        : desc(t, layout, {n, c, h, w}), data(desc.GetElementSpace())
     {
     }
 
@@ -146,14 +172,20 @@ struct tensor
     template <class G>
     tensor& generate(G g) &
     {
-        this->generate_impl(g);
+        if(this->desc.GetVectorLength() > 1)
+            this->generate_vect_impl(g);
+        else
+            this->generate_impl(g);
         return *this;
     }
 
     template <class G>
     tensor&& generate(G g) &&
     {
-        this->generate_impl(g);
+        if(this->desc.GetVectorLength() > 1)
+            this->generate_vect_impl(g);
+        else
+            this->generate_impl(g);
         return std::move(*this);
     }
 
@@ -172,9 +204,36 @@ struct tensor
         std::srand(seed);
         auto iterator = data.begin();
         auto assign   = [&](T x) {
-            assert(iterator < data.end());
             *iterator = x;
             ++iterator;
+        };
+        this->for_each(
+            miopen::compose(miopen::compose(assign, miopen::cast_to<T>()), std::move(g)));
+    }
+
+    template <class G>
+    void generate_vect_impl(G g)
+    {
+        auto seed = std::accumulate(desc.GetLengths().begin(),
+                                    desc.GetLengths().end(),
+                                    std::size_t{521288629},
+                                    [](auto x, auto y) {
+                                        x ^= x << 1U;
+                                        return x ^ y;
+                                    });
+        seed ^= data.size();
+        seed ^= desc.GetLengths().size();
+        std::srand(seed);
+        auto iterator     = data.begin();
+        auto vectorLength = desc.GetVectorLength();
+        auto assign       = [&](T x) {
+            assert(iterator < data.end());
+            // for debugging
+            for(auto i = 0; i < vectorLength; i++)
+            {
+                *(iterator + i) = x;
+            }
+            iterator += vectorLength;
         };
         this->for_each(
             miopen::compose(miopen::compose(assign, miopen::cast_to<T>()), std::move(g)));
