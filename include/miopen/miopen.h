@@ -598,9 +598,9 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
 MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
     miopenTensorDescriptor_t tensorDesc, miopenDataType_t dataType, int n, int c, int h, int w);
 
-/*! @brief Set shape of 4D tensor with specific layout
+/*! @brief Set shape of ND tensor with specific layout
  *
- * Interface for setting 4-D tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
+ * Interface for setting N-D tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
  * @param tensorDesc   Tensor descriptor type (output)
  * @param dataType     MIOpen datatype (input)
  * @param tensorLayout Tensor layout (input)
