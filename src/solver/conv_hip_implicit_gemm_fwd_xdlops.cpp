@@ -177,6 +177,8 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
     add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
     assert(!conv_ptrs.empty());
     const auto args = CKArgs{ctx};
+    if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
+        return false;
 
     for(auto& conv_ptr : conv_ptrs)
     {

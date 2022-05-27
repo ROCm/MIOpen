@@ -79,19 +79,27 @@ ENV LANG=C.UTF-8
 RUN cget -p $PREFIX install ROCmSoftwarePlatform/rocm-recipes
 RUN groupadd -f render
 WORKDIR /root
+RUN rm -rf /tmp/ccache* && mkdir /tmp/ccache && wget https://github.com/ccache/ccache/archive/7f1572ae9ca958fa923a66235f6a64a360b03523.tar.gz -O /tmp/ccache.tar.gz && \
+    tar zxvf /tmp/ccache.tar.gz -C /tmp/ && mkdir /tmp/ccache-7f1572ae9ca958fa923a66235f6a64a360b03523/build && \
+    cd /tmp/ccache-7f1572ae9ca958fa923a66235f6a64a360b03523/build && \
+    cmake -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON .. && make -j install
+RUN ccache -s 
 ARG LLVM_COMMIT=5cba46feb6af367b1cafaa183ec42dbfb8207b14
+ARG CCACHE_SECONDARY_STORAGE=""
+ARG CCACHE_DIR="/tmp"
+ARG COMPILER_LAUNCHER=""
 RUN wget -O llvm.tar.gz https://github.com/RadeonOpenCompute/llvm-project/archive/${LLVM_COMMIT}.tar.gz && \
     tar zxvf llvm.tar.gz && \
     cd llvm-project-${LLVM_COMMIT} && \
     mkdir build && cd build &&\
-    cmake -DCMAKE_INSTALL_PREFIX=/opt/rocm-${ROCMVERSION}.0/llvm -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD="AMDGPU;X86" -DLLVM_ENABLE_PROJECTS="clang;lld;compiler-rt" ../llvm && \
+    cmake -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" -DCMAKE_INSTALL_PREFIX=/opt/rocm-${ROCMVERSION}.0/llvm -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD="AMDGPU;X86" -DLLVM_ENABLE_PROJECTS="clang;lld;compiler-rt" ../llvm && \
     make -j $(nproc) install 
-ARG CK_COMMIT=cec69bc3bc200de7e09396579fe33cb153f8afeb
+ARG CK_COMMIT=91d8b7d67ae9dbf8a6e691ea3e17c0b9705c6ba7
 RUN  wget -O ck.tar.gz https://www.github.com/rocmsoftwareplatform/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
     tar zxvf ck.tar.gz &&\
     cd composable_kernel-${CK_COMMIT} && \
     mkdir build && cd build && \
-    CXX=/opt/rocm-${ROCMVERSION}.0/bin/hipcc cmake -DCMAKE_PREFIX_PATH=/opt/rocm -D CMAKE_CXX_FLAGS=" --offload-arch=gfx900 --offload-arch=gfx906 --offload-arch=gfx908 --offload-arch=gfx90a -O3 " .. && \
+    CXX=/opt/rocm-${ROCMVERSION}.0/bin/hipcc cmake -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" -DCMAKE_PREFIX_PATH=/opt/rocm -D CMAKE_CXX_FLAGS=" --offload-arch=gfx900 --offload-arch=gfx906 --offload-arch=gfx908 --offload-arch=gfx90a -O3 " .. && \
     make -j $(nproc) package && cp *.deb /root/
 
 
