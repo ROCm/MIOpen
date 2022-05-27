@@ -40,7 +40,11 @@
 
 #if MIOPEN_USE_ROCBLAS
 #include <half.hpp>
+#if HIP_PACKAGE_VERSION_FLAT <= 5001999999ULL
 #include <rocblas.h>
+#else
+#include <rocblas/rocblas.h>
+#endif
 #include <miopen/perf_field.hpp>
 #endif
 
@@ -538,6 +542,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         break;
         case miopenInt32: break;
         case miopenHalf: {
+
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -845,7 +850,9 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
         break;
         case miopenInt32: break;
+
         case miopenHalf: {
+
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1093,6 +1100,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         break;
         case miopenInt32: break;
         case miopenHalf: {
+
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 

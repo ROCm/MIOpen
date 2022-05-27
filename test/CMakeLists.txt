@@ -446,7 +446,7 @@ endfunction()
 # You can use any number of options, in any order, provided that options do not conflict
 # (e.g. "HALF_ENABLE HALF_DISABLE" is illegal)
 #
-# Data types: FLOAT HALF BF16 INT8.
+# Data types: FLOAT HALF BF16 INT8
 #   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
 #   If nothing is specified, the default value is taken.
 #   Default: FLOAT_ENABLED HALF_DISABLED BF16_DISABLED INT8_DISABLED

@@ -39,7 +39,6 @@
 #include <miopen/write_file.hpp>
 #include <miopen/env.hpp>
 #include <miopen/comgr.hpp>
-#include <miopen/logger.hpp>
 #include <boost/optional.hpp>
 
 #include <cstring>

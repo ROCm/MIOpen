@@ -57,7 +57,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         auto inc_list = GetHipKernelIncList();
         auto inc_path = tmp_dir->path;
         boost::filesystem::create_directories(inc_path);
-        for(auto inc_file : inc_list)
+        for(const auto& inc_file : inc_list)
         {
             auto inc_src = GetKernelInc(inc_file);
             WriteFile(inc_src, inc_path / inc_file);
