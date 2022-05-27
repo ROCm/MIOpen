@@ -48,6 +48,20 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
     });
 }
 
+extern "C" miopenStatus_t miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
+                                                                miopenDataType_t dataType,
+                                                                miopenTensorLayout_t tensorLayout,
+                                                                int* lens,
+                                                                int num_lens)
+{
+
+    MIOPEN_LOG_FUNCTION(tensorDesc, dataType, tensorLayout, lens, num_lens);
+    return miopen::try_([&] {
+        miopen::deref(tensorDesc) =
+            miopen::TensorDescriptor(dataType, tensorLayout, lens, num_lens);
+    });
+}
+
 extern "C" miopenStatus_t miopenSet4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
                                                         miopenDataType_t dataType,
                                                         int n,
@@ -91,6 +105,15 @@ extern "C" miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_t t
 
 // Internal API
 // MD: This should not be required to be exported. Temporary hack
+MIOPEN_EXPORT miopenStatus_t
+miopenGetNdTensorDescriptorVectorLength(miopenTensorDescriptor_t tensorDesc, int* vectorLength)
+{
+
+    MIOPEN_LOG_FUNCTION(tensorDesc, vectorLength);
+    return miopen::try_(
+        [&] { miopen::deref(vectorLength) = miopen::deref(tensorDesc).GetVectorLength(); });
+}
+
 MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorLengths(
     miopenTensorDescriptor_t tensorDesc, int* n, int* c, int* h, int* w)
 {

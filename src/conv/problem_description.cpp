@@ -64,7 +64,7 @@ void ProblemDescription::HeuristicUpdateLayouts()
 {
     const std::string labels = tensor_layout_get_default(in_layout.size());
 
-    static const std::vector<std::string> supported_layouts = {"NCHW", "NHWC", "NCDHW"};
+    static const std::vector<std::string> supported_layouts = {"NCHW", "NHWC", "CHWN", "NCDHW"};
     for(const std::string& layout : supported_layouts)
     {
         // Skip layouts that doesn't match dimension sizes
