@@ -575,14 +575,15 @@ template <typename Tgpu, typename Tref>
 void ConvDriver<Tgpu, Tref>::ValidateVectorizedParameters(int vector_dim, int vector_length)
 {
     if(((vector_length == 4 || vector_length == 8) && vector_dim == 1) ||
-       (vector_length == 0 && vector_dim == 0))
+       (vector_length == 1 && vector_dim == 0))
     {
         // do nothing,Values are matching as defined in Lib.
     }
     else
     {
         std::cerr << "Invalid Tensor Vectorization Parameter Value - "
-                  << "vector_dim:" << vector_dim << "vector_length:" << vector_length << std::endl;
+                  << "vector_dim:" << vector_dim << ", vector_length:" << vector_length
+                  << std::endl;
         exit(EXIT_FAILURE);
     }
 }
