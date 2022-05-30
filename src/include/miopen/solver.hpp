@@ -88,7 +88,7 @@ struct SolverBase
     /// GetDefaultPerformanceConfig() so that GetSolution() would return valid
     /// solution for a problem (i.e. convolution). In other words, if a Solution
     /// says "I'm suitable" for a problem, it agrees to solve that problem correctly.
-    virtual bool IsApplicable_(const boost::any& ctx) const = 0;
+    virtual bool IsApplicable(const boost::any& ctx) const = 0;
 
     /// [Informative as of Sep 2020] The minimum requirement for Dynamic Solvers:
     /// Batch size and input picture size (N, W, H) must NOT be compiled into the
@@ -102,10 +102,10 @@ struct SolverBase
     ///   if Direct computational algorithm is used.
     /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
     /// * @see https://github.com/ROCmSoftwarePlatform/MIOpen/issues/410
-    virtual float GetWti_(const boost::any& ctx) const = 0;
+    virtual float GetWti(const boost::any& ctx) const = 0;
 
     // Returns the workspace size required by the solver for a given ConvolutionContext
-    virtual size_t GetWorkspaceSize_(const boost::any& ctx) const = 0;
+    virtual size_t GetWorkspaceSize(const boost::any& ctx) const = 0;
 
     // Must return true if a Solver has its own implementation of GetWorkspaceSize().
     virtual bool MayNeedWorkspace() const { return false; }
@@ -141,17 +141,17 @@ struct SolverMixin : SolverBase
     virtual float GetWti(const Context&) const { return -2.0; };
     virtual size_t GetWorkspaceSize(const Context&) const { return 0; };
 
-    bool IsApplicable_(const boost::any& ctx) const final
+    bool IsApplicable(const boost::any& ctx) const final
     {
         return IsApplicable(boost::any_cast<const Context&>(ctx));
     }
 
-    float GetWti_(const boost::any& ctx) const final
+    float GetWti(const boost::any& ctx) const final
     {
         return GetWti(boost::any_cast<const Context&>(ctx));
     }
 
-    size_t GetWorkspaceSize_(const boost::any& ctx) const final
+    size_t GetWorkspaceSize(const boost::any& ctx) const final
     {
         return GetWorkspaceSize(boost::any_cast<const Context&>(ctx));
     }
@@ -2721,6 +2721,7 @@ struct ConvDirectNaiveConvWrw : ConvSolver
 struct GemmFwdBase : ConvSolver
 {
     // To suppress -Woverloaded-virtual
+    using ConvSolver::GetWti;
     using ConvSolver::IsApplicable;
 
     bool IsDynamic() const final { return true; }
@@ -2741,6 +2742,9 @@ private:
 
 struct GemmFwd1x1_0_2 : GemmFwdBase
 {
+    // To suppress -Woverloaded-virtual
+    using GemmFwdBase::GetWorkspaceSize;
+
     const std::string& SolverDbId() const final { return GetSolverDbId<GemmFwd1x1_0_2>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
@@ -2769,6 +2773,9 @@ private:
 
 struct GemmFwd1x1_0_1_int8 : GemmFwdBase
 {
+    // To suppress -Woverloaded-virtual
+    using GemmFwdBase::GetWorkspaceSize;
+
     const std::string& SolverDbId() const final { return GetSolverDbId<GemmFwd1x1_0_1_int8>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
@@ -2797,6 +2804,9 @@ private:
 
 struct GemmFwd1x1_0_1 : GemmFwdBase
 {
+    // To suppress -Woverloaded-virtual
+    using GemmFwdBase::GetWorkspaceSize;
+
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_1>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
@@ -2825,6 +2835,9 @@ private:
 
 struct GemmFwdRest : GemmFwdBase
 {
+    // To suppress -Woverloaded-virtual
+    using GemmFwdBase::GetWorkspaceSize;
+
     const std::string& SolverDbId() const final { return GetSolverDbId<GemmFwdRest>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
@@ -2852,6 +2865,7 @@ private:
 struct GemmBwdBase : ConvSolver
 {
     // To suppress -Woverloaded-virtual
+    using ConvSolver::GetWti;
     using ConvSolver::IsApplicable;
 
     bool IsDynamic() const final { return true; }
@@ -2872,6 +2886,7 @@ private:
 struct GemmBwd1x1_stride2 : GemmBwdBase
 {
     // To suppress -Woverloaded-virtual
+    using GemmBwdBase::GetWorkspaceSize;
     using GemmBwdBase::IsApplicable;
 
     const std::string& SolverDbId() const final { return GetSolverDbId<GemmBwd1x1_stride2>(); }
@@ -2902,6 +2917,9 @@ private:
 
 struct GemmBwd1x1_stride1 : GemmBwdBase
 {
+    // To suppress -Woverloaded-virtual
+    using GemmBwdBase::GetWorkspaceSize;
+
     const std::string& SolverDbId() const final { return GetSolverDbId<GemmBwd1x1_stride1>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
@@ -2930,6 +2948,9 @@ private:
 
 struct GemmBwdRest : GemmBwdBase
 {
+    // To suppress -Woverloaded-virtual
+    using GemmBwdBase::GetWorkspaceSize;
+
     const std::string& SolverDbId() const final { return GetSolverDbId<GemmBwdRest>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
@@ -2957,6 +2978,7 @@ private:
 struct GemmWrwBase : ConvSolver
 {
     // To suppress -Woverloaded-virtual
+    using ConvSolver::GetWti;
     using ConvSolver::IsApplicable;
 
     bool IsDynamic() const final { return true; }
@@ -2976,6 +2998,7 @@ private:
 struct GemmWrw1x1_stride1 : GemmWrwBase
 {
     // To suppress -Woverloaded-virtual
+    using GemmWrwBase::GetWorkspaceSize;
     using GemmWrwBase::IsApplicable;
 
     const std::string& SolverDbId() const final { return GetSolverDbId<GemmWrw1x1_stride1>(); }
@@ -3006,6 +3029,9 @@ private:
 
 struct GemmWrwUniversal : GemmWrwBase
 {
+    // To suppress -Woverloaded-virtual
+    using GemmWrwBase::GetWorkspaceSize;
+
     const std::string& SolverDbId() const final { return GetSolverDbId<GemmWrwUniversal>(); }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
