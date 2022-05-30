@@ -105,6 +105,11 @@ void Solution::RunImpl(Handle& handle,
         }
     }
 
+    if(y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
     if(miopen::CheckNumericsEnabled())
     {
         if(problem_.GetDirection() != miopenProblemDirectionBackward)
