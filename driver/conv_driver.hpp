@@ -196,8 +196,6 @@ public:
     }
 
     int AddCmdLineArgs() override;
-    ///\brief We only support fp16x4 and fp16x8 vector type
-    int GetVectorLengthfromBaseArg(std::string baseArg);
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
 
@@ -439,34 +437,10 @@ bool ConvDriver<Tgpu, Tref>::IsInputTensorTransform() const
 }
 
 template <typename Tgpu, typename Tref>
-int ConvDriver<Tgpu, Tref>::GetVectorLengthfromBaseArg(std::string baseArg)
-{
-    ///\todo Can we modify this to a lambda expression
-    if(baseArg.compare(0, 4, "conv") == 0)
-    {
-        auto found_vec = baseArg.find("fp16x");
-        if(found_vec != std::string::npos)
-        {
-            std::string vec_str = baseArg.substr(found_vec + 5);
-            int vectorLength    = std::stoi(vec_str);
-            if(vectorLength != 4 && vectorLength != 8)
-            {
-                MIOPEN_THROW("Unsupported vector length");
-            }
-            return vectorLength;
-        }
-    }
-    return 1;
-}
-
-template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
 
     inflags.Parse(argc, argv);
-
-    std::string base_arg = ParseBaseArg(argc, argv);
-    int vectorLength     = GetVectorLengthfromBaseArg(base_arg);
 
     // try to set a default layout value for 3d conv if not specified from cmd line
     int spatial_dim = inflags.GetValueInt("spatial_dim");

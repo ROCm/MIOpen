@@ -1757,29 +1757,6 @@ struct conv_driver : test_driver
         exit(-1); // NOLINT (concurrency-mt-unsafe)
     }
 
-    ///\brief We only support fp16x4 and fp16x8 vector type
-    void find_vector_c_from_conv_mode()
-    {
-        if(conv_mode.compare(0, 4, "conv") == 0)
-        {
-            auto found_vec = conv_mode.find("fp16x");
-            if(found_vec != std::string::npos)
-            {
-                std::string vec_str = conv_mode.substr(found_vec + 5);
-                ///\todo try catch()
-                vector_c = std::stoi(vec_str);
-                if(vector_c != 4 && vector_c != 8)
-                {
-                    MIOPEN_THROW("Unsupported vector length");
-                }
-            }
-            else
-            {
-                vector_c = 1;
-            }
-        }
-    }
-
     conv_driver()
     {
         add(conv_mode, "cmode", generate_data({"conv"}));
@@ -1803,11 +1780,6 @@ struct conv_driver : test_driver
             filter.spatialDim = get_spatial_dim();
         else
             filter.spatialDim = filter_dims.size();
-
-        // VECT_C found from cmode argument
-        find_vector_c_from_conv_mode();
-        auto vec_found = conv_mode.find("fp16x");
-        conv_mode      = conv_mode.substr(0, vec_found);
 
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];

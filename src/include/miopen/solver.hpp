@@ -4123,25 +4123,26 @@ private:
     void SetParamsForKSplit(const ConvolutionContext& ctx, const size_t& occupancy);
 };
 
-struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC : ConvSolver
+struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
+    : ConvTunableSolver<PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC>
 {
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>();
     }
-
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
-    GetPerformanceConfig(const ConvolutionContext&) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC&) const;
+    GetDefaultPerformanceConfig(const ConvolutionContext&) const override;
+    bool IsValidPerformanceConfig(
+        const ConvolutionContext&,
+        const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC&) const override;
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
-    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const;
+    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const override;
     bool MayNeedWorkspace() const override { return false; }
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     bool IsDynamic() const override { return true; }
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config,
-                             bool disableConfigOverrideFromEnv = false) const;
+    ConvSolution
+    GetSolution(const ConvolutionContext& ctx,
+                const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config) const override;
 };
 
 struct AnySolver;
