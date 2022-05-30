@@ -41,6 +41,7 @@
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
 #else
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #include <CL/cl.h>
 #endif
 
@@ -341,8 +342,8 @@ typedef enum
 
 /*! @ingroup tensor
  * @enum miopenTensorLayout_t
- * MIOpen tensor layouts. NCHW, NHWC, CHWN and NCHW_VECT_C with certain vector length(vect_c=4,
- * vect_c=8) are supported in MIOpen.
+ * Tensor layouts supported by MIOpen.
+ * miopenTensorCHWNc4 and miopenTensorCHWNc8 layout only support weight tensor.
  */
 typedef enum
 {
@@ -353,6 +354,8 @@ typedef enum
     miopenTensorNCHWc8 = 4, /*!< NCHWc8 memory layout (Partially supported) */
     miopenTensorCHWNc4 = 5, /*!< CHWNc4 memory layout (Partially supported) */
     miopenTensorCHWNc8 = 6, /*!< CHWNc8 memory layout (Partially supported) */
+    miopenTensorNCDHW  = 7, /*!< NCDHW memory layout (Fully supported) */
+    miopenTensorNDHWC  = 8, /*!< NCDHW memory layout (Fully supported) */
 } miopenTensorLayout_t;
 
 /*! @ingroup pooling
@@ -595,28 +598,22 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
 MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
     miopenTensorDescriptor_t tensorDesc, miopenDataType_t dataType, int n, int c, int h, int w);
 
-/*! @brief Set shape of 4D tensor with specific layout
+/*! @brief Set shape of ND tensor with specific layout
  *
- * Second Interface for setting 4-D tensor shape. This interface support NHWC, NCHW_VECT_C,
- * CHWN_VECT_C layout The supported VECT_C type layout, user input like: convfp16x8 -n 8 -c 64 -h 5
- * -w 5 ... initialized to tensor with lengths of (8, 8, 5, 5) and strides of (1600, 200, 40, 8)
+ * Interface for setting N-D tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
  * @param tensorDesc   Tensor descriptor type (output)
  * @param dataType     MIOpen datatype (input)
  * @param tensorLayout Tensor layout (input)
- * @param n            Mini-batch size (input)
- * @param c            Number of channels (input)
- * @param h            Data height dimension size (input)
- * @param w            Data width dimension size (input)
+ * @param lens         Tensor dimensions (input)
+ * @param num_lens     Tensor dimension size (input)
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
-miopenSet4dTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
+miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
                                       miopenDataType_t dataType,
                                       miopenTensorLayout_t tensorLayout,
-                                      int n,
-                                      int c,
-                                      int h,
-                                      int w);
+                                      int* lens,
+                                      int num_lens);
 /*! @brief Set shape and stride of 4D tensor
  *
  * Interface for setting 4-D tensor shape and stride.
@@ -2238,7 +2235,7 @@ MIOPEN_EXPORT miopenStatus_t miopenPoolingBackward(miopenHandle_t handle,
                                                    const void* beta,
                                                    const miopenTensorDescriptor_t dxDesc,
                                                    void* dx,
-                                                   const void* workSpace);
+                                                   void* workSpace);
 
 /*! @brief Destroys the pooling descriptor object
  *

@@ -28,7 +28,6 @@
 #include <miopen/check_numerics.hpp>
 #include <miopen/config.h>
 #include <miopen/convolution.hpp>
-#include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
@@ -116,8 +115,8 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
              (wDesc.GetLayout_t() == miopenTensorNCHWc4) ||
              (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
             (xDesc.GetLengths()[1] != wDesc.GetLengths()[1])) ||
-           (((wDesc.GetLayout_t() == miopenTensorCHWNc4) ||
-             (wDesc.GetLayout_t() == miopenTensorCHWNc8)) &&
+           ((wDesc.GetLayout_t() == miopenTensorCHWNc4 ||
+             wDesc.GetLayout_t() == miopenTensorCHWNc8) &&
             (xDesc.GetLengths()[1] != wDesc.GetLengths()[0])))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
     }
@@ -130,8 +129,8 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
              (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
             (wDesc.GetLengths()[0] % conv.group_count != 0 ||
              conv.group_count > wDesc.GetLengths()[0])) ||
-           (((wDesc.GetLayout_t() == miopenTensorCHWNc4) ||
-             (wDesc.GetLayout_t() == miopenTensorCHWNc8)) &&
+           ((wDesc.GetLayout_t() == miopenTensorCHWNc4 ||
+             wDesc.GetLayout_t() == miopenTensorCHWNc8) &&
             (wDesc.GetLengths()[3] % conv.group_count != 0 ||
              conv.group_count > wDesc.GetLengths()[3])))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
@@ -139,8 +138,8 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
              (wDesc.GetLayout_t() == miopenTensorNCHWc4) ||
              (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
             (xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])) ||
-           (((wDesc.GetLayout_t() == miopenTensorCHWNc4) ||
-             (wDesc.GetLayout_t() == miopenTensorCHWNc8)) &&
+           ((wDesc.GetLayout_t() == miopenTensorCHWNc4 ||
+             wDesc.GetLayout_t() == miopenTensorCHWNc8) &&
             (xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[0])))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
     }
@@ -627,8 +626,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     ValidateConvTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
-    if(algo != miopenConvolutionFwdAlgoGEMM &&
-       (xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4))
+    if(algo != miopenConvolutionFwdAlgoGEMM && xDesc.GetType() == miopenInt8x4)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -1415,9 +1413,6 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
     auto tensors = ConvBwdTensors{dyDesc, dy, wDesc, w, dxDesc, dx};
 
     ValidateConvTensors(tensors);
-
-    if(wDesc.GetType() == miopenInt8)
-        MIOPEN_THROW(miopenStatusBadParm);
 
     static const float beta = 0.0f;
     ConvBwdCheckNumerics(handle, tensors, &beta, [&]() {

@@ -262,8 +262,8 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDyna
     int c                    = conv_problem.GetOutChannels();
     int ho                   = conv_problem.GetInHeight();
     int wo                   = conv_problem.GetInWidth();
-    int stride_h             = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w             = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int stride_h   = conv_problem.GetOutHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w   = conv_problem.GetOutWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
     int dilation_h = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
     int dilation_w = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
     int pad_h      = conv_problem.GetPadH();
@@ -590,9 +590,9 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
         if(!trans_output_skippable)
             opArgsTrans.emplace_back(trans_output.GetKernelArg());
 
-        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetSize();
-        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetSize();
-        trans_output_size = trans_output_skippable ? 0 : trans_output.GetSize();
+        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
+        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetOutputTensorSize();
+        trans_output_size = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
 
         int idx = 0;
         if(!trans_input_skippable)
@@ -744,8 +744,8 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     int c                    = conv_problem.GetOutChannels();
     int ho                   = conv_problem.GetInHeight();
     int wo                   = conv_problem.GetInWidth();
-    int stride_h             = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w             = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int stride_h   = conv_problem.GetOutHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w   = conv_problem.GetOutWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
     int dilation_h = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
     int dilation_w = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
     int pad_h      = conv_problem.GetPadH();
@@ -908,9 +908,9 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
         if(!trans_output_skippable)
             opArgsTrans.emplace_back(trans_output.GetKernelArg());
 
-        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetSize();
-        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetSize();
-        trans_output_size = trans_output_skippable ? 0 : trans_output.GetSize();
+        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
+        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetOutputTensorSize();
+        trans_output_size = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
 
         int idx = 0;
         if(!trans_input_skippable)

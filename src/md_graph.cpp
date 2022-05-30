@@ -738,8 +738,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
             add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908", "gfx90a"}, 1);
             add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908", "gfx90a"}, 2);
-            add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030"}, 1);
-            add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030"}, 2);
+            add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030", "gfx1031"}, 1);
+            add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030", "gfx1031"}, 2);
         }
     }
 

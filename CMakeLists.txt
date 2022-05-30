@@ -50,7 +50,7 @@ project ( MIOpen C CXX )
 
 enable_testing()
 
-find_package(ROCM REQUIRED PATHS /opt/rocm)
+find_package(ROCM 0.7.3 REQUIRED PATHS /opt/rocm)
 
 include(ROCMInstallTargets)
 include(ROCMPackageConfigHelpers)
@@ -86,7 +86,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.16.0)
+rocm_setup_version(VERSION 2.17.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -166,7 +166,7 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
             ${CMAKE_INSTALL_PREFIX}/llvm
     )
     if(MIOPEN_HIP_COMPILER)
-        message("hip compiler: ${MIOPEN_HIP_COMPILER}")
+        message(STATUS "hip compiler: ${MIOPEN_HIP_COMPILER}")
     else()
         message(FATAL_ERROR "hip compiler not found")
     endif()
@@ -192,9 +192,12 @@ message(STATUS "Build with HIP ${hip_VERSION}")
 target_flags(HIP_COMPILER_FLAGS hip::device)
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-string(REGEX REPLACE --offload-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-string(REPLACE "$<LINK_LANGUAGE:CXX>" "1" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-string(REPLACE "SHELL:" "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+string(REGEX REPLACE --offload-arch=[a-z0-9:+-]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+# Skip library paths since hip will incorrectly treat it as a source file
+string(APPEND HIP_COMPILER_FLAGS " ")
+foreach(_unused RANGE 2)
+    string(REGEX REPLACE " /[^ ]+\\.(a|so) " " " HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+endforeach()
 
 # Override HIP version in config.h, if necessary.
 # The variables set by find_package() can't be overwritten,
@@ -225,7 +228,7 @@ math(EXPR MIOPEN_hip_VERSION_FLAT "(${MIOPEN_hip_VERSION_MAJOR} * 1000 + ${MIOPE
 
 # Do not enable HIPRTC by default for older ROCm versions in order to avoid
 # build time errors, because HIPRTC is a relatively new component.
-set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 900000000))
+set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 500000000))
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
@@ -253,7 +256,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "OpenCL compiler: ${HIP_OC_COMPILER}")
         set(HIP_OC_COMPILER "${HIP_OC_COMPILER}")
     else()
-        message(FATAL_ERROR "OpenCL compiler not found")
+        message(STATUS "OpenCL compiler not found")
     endif()
 
         # Hcc's clang always defines __HCC__ even when not using hcc driver
@@ -354,16 +357,18 @@ endif()
 # miopengemm
 if(MIOPEN_USE_MIOPENGEMM)
     find_package(miopengemm PATHS /opt/rocm)
-    if(miopengemm_FOUND)
-        message(STATUS "Build with miopengemm")
-        set(MIOPEN_USE_MIOPENGEMM 1)
-    else()
-        message(STATUS "Build without miopengemm")
+    if(NOT miopengemm_FOUND)
         set(MIOPEN_USE_MIOPENGEMM 0)
     endif()
+endif()
+
+if(MIOPEN_USE_MIOPENGEMM)
+    message(STATUS "Build with miopengemm")
 else()
+    if(MIOPEN_BACKEND_OPENCL)
+        message(FATAL_ERROR "MIOpen OpenCL backend requires MIOpenGEMM")
+    endif()
     message(STATUS "Build without miopengemm")
-    set(MIOPEN_USE_MIOPENGEMM 0)
 endif()
 
 if(MIOPEN_USE_COMGR)
@@ -410,8 +415,8 @@ else()
 endif()
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
+set(MIOPEN_PACKAGE_REQS "hip-rocclr")
 
-set(MIOPEN_PACKAGE_REQS "rocm-clang-ocl, hip-rocclr")
 if(MIOPEN_USE_MIOPENGEMM)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
 endif()
@@ -420,14 +425,24 @@ if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
 endif()
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
-set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
-
-# Make backends explicitly conflict
 if(MIOPEN_BACKEND STREQUAL "HIP")
+    # In HIP backend, there is a posibility of HIPRTC disabled.
+    # In this case add the clang-ocl as dependency for runtime kernel compilation
+    if(NOT MIOPEN_USE_HIPRTC )
+        set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-clang-ocl")
+    endif()
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}")
+    set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}")
+
+    # Make backends explicitly conflict
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-opencl)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-opencl)
+
 elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
+    set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
+
+    # Make backends explicitly conflict
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
@@ -541,6 +556,18 @@ enable_clang_tidy(
         -readability-qualified-auto
         -readability-redundant-string-init
         -readability-uppercase-literal-suffix
+        #TODO Code Quality WORKAROUND ROCm 5.1 update
+        -altera-id-dependent-backward-branch
+        -bugprone-easily-swappable-parameters
+        -bugprone-implicit-widening-of-multiplication-result
+        -cert-err33-c
+        -google-readability-casting
+        -hicpp-use-emplace
+        -modernize-use-emplace
+        -performance-unnecessary-copy-initialization
+        -readability-container-data-pointer
+        -readability-identifier-length
+        -readability-suspicious-call-argument
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
