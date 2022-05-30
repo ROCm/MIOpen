@@ -291,7 +291,6 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         solution.SetWorkspaceSize(find1_solutions[i].memory);
         solution.SetSolver(handle.GetFound1_0Id(netcfg, AlgorithmName{algo}).value());
         solution.SetProblem(*this);
-        ret.emplace_back(std::move(solution));
 
         std::cerr << "Found a solution: " << solution.GetSolver().ToString() << " , "
                   << solution.GetWorkspaceSize() << ", " << solution.GetTime() << std::endl;
@@ -300,6 +299,8 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                          << solution.GetWorkspaceSize() << ", "
                                          << solution.GetTime());
                                          */
+
+        ret.emplace_back(std::move(solution));
     }
 
     return ret;
