@@ -428,7 +428,7 @@ endif()
 if(MIOPEN_BACKEND STREQUAL "HIP")
     # In HIP backend, there is a posibility of HIPRTC disabled.
     # In this case add the clang-ocl as dependency for runtime kernel compilation
-    if(NOT MIOPEN_USE_HIPRTC )
+    if(NOT MIOPEN_USE_COMGR)
         set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-clang-ocl")
     endif()
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}")
