@@ -164,6 +164,8 @@ void Solution::RunImpl(Handle& handle,
         }
     };
 
+    std::cerr << "Running a solution: " << GetSolver() << " , " << workspace_size << std::endl;
+
     if(found_invoker)
     {
         (*found_invoker)(handle, invoke_ctx);
