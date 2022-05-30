@@ -293,7 +293,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         solution.SetProblem(*this);
         ret.emplace_back(std::move(solution));
 
-        std::cerr << "Found a solution: " << solution.GetSolver() << " , "
+        std::cerr << "Found a solution: " << solution.GetSolver().ToString() << " , "
                   << solution.GetWorkspaceSize() << ", " << solution.GetTime() << std::endl;
         /*
         MIOPEN_LOG_I("Found solvution: " << solution.GetSolver() << " , "

@@ -164,7 +164,8 @@ void Solution::RunImpl(Handle& handle,
         }
     };
 
-    std::cerr << "Running a solution: " << GetSolver() << " , " << workspace_size << std::endl;
+    std::cerr << "Running a solution: " << GetSolver().ToString() << " , " << workspace_size
+              << std::endl;
 
     if(found_invoker)
     {
