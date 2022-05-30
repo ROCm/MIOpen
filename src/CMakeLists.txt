@@ -201,8 +201,7 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
-    solver/conv_winoRxS_f2x3.cpp
-    solver/conv_winoRxS_f3x2.cpp
+    solver/conv_winoRxS.cpp
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
@@ -210,6 +209,8 @@ set( MIOpen_Source
     solver/gemm_wrw.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNd.cpp
+    solver/pooling/backward2d.cpp
+    solver/pooling/backwardNd.cpp
     subbuffers.cpp
     target_properties.cpp
     temp_file.cpp
@@ -478,7 +479,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/lrn_ocl.cpp
         ocl/mloNeuron.cpp
         ocl/mloNorm.cpp
-        ocl/mloPooling.cpp
         ocl/pooling_ocl.cpp
         ocl/tensorocl.cpp
         ocl/softmaxocl.cpp
