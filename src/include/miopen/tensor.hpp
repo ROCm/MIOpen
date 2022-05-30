@@ -207,15 +207,6 @@ struct TensorDescriptor : miopenTensorDescriptor
                          }));
         return result;
     }
-    std::string GetTensorLayout() const
-    {
-        if(tensorLayout == miopenTensorNCHWc4 || tensorLayout == miopenTensorNCHWc8)
-            return "NCHW_VECT_C";
-        else if(tensorLayout == miopenTensorCHWNc4 || tensorLayout == miopenTensorCHWNc8)
-            return "CHWN_VECT_C";
-        else
-            return "NCHW";
-    }
 
     std::string GetLayout(std::string labels) const
     {

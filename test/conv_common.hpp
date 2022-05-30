@@ -206,7 +206,11 @@ struct scalar_gen_random_integer
 
 struct tensor_elem_gen_one
 {
-    double operator()() const { return static_cast<double>(1); }
+    template <class... Ts>
+    double operator()(Ts...) const
+    {
+        return 1;
+    }
 };
 
 struct conv_stats
@@ -1821,7 +1825,7 @@ struct conv_driver : test_driver
                         .generate(tensor_elem_gen_integer{17});
         }
 
-        if(!weight_tensor_dims.empty() && fil_layout.find("_VECT_") == std::string::npos)
+        if(!weight_tensor_dims.empty())
         {
             if(fil_layout == "CHWN")
             {
@@ -1888,21 +1892,8 @@ struct conv_driver : test_driver
                           .generate(tensor_elem_gen_integer{17});
         }
 
-        if(in_layout.find("_VECT_") != std::string::npos &&
-           fil_layout.find("_VECT_") != std::string::npos &&
-           out_layout.find("_VECT_") != std::string::npos)
-        {
-            if(input.desc.GetSize() != in_layout.find_first_of('_') ||
-               weights.desc.GetSize() != fil_layout.find_first_of('_') ||
-               input.desc.GetSize() != out_layout.find_first_of('_'))
-            {
-                std::cerr << "FAILED: layout not match dimension size!" << std::endl;
-                return;
-            }
-        }
-        else if(input.desc.GetSize() != in_layout.size() ||
-                weights.desc.GetSize() != fil_layout.size() ||
-                input.desc.GetSize() != out_layout.size())
+        if(input.desc.GetSize() != in_layout.size() ||
+           weights.desc.GetSize() != fil_layout.size() || input.desc.GetSize() != out_layout.size())
         {
             std::cout << input.desc.GetSize() << "," << in_layout.size() << std::endl;
             std::cout << weights.desc.GetSize() << "," << fil_layout.size() << std::endl;
@@ -1915,7 +1906,7 @@ struct conv_driver : test_driver
         // by default, this member is constructed when conv2d/3d is constructed (see
         // test_driver::add())
         // but this requires the dimensions come from commandline, which is hard for non-NCHW layout
-        if(in_layout != "NCHW" && in_layout != "NCDHW" && in_layout != "NCHW_VECT_C")
+        if(in_layout != "NCHW" && in_layout != "NCDHW")
         {
             const std::vector<std::size_t> dim_lens = input.desc.GetLengths();
             std::vector<std::size_t> dim_strides;
@@ -2090,7 +2081,7 @@ struct conv_driver : test_driver
                 auto output             = get_output_tensor(filter, input, weights, out_layout);
                 auto gen_positive_value = [=](auto...) {
                     auto data_type    = input.desc.GetType();
-                    std::size_t v_max = is_int8 ? 16 : data_type == miopenHalf ? 4 : 16;
+                    std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
 
                     return gen_float ? scalar_gen_random_float{0, 1}()
                                      : scalar_gen_random_integer{1, v_max}();
@@ -2098,7 +2089,7 @@ struct conv_driver : test_driver
 
                 auto gen_sign_value = [=](auto... is) {
                     auto data_type    = input.desc.GetType();
-                    std::size_t v_max = is_int8 ? 16 : data_type == miopenHalf ? 4 : 16;
+                    std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
 
                     return gen_float ? scalar_gen_random_float{-1, 1}()
                                      : scalar_gen_random_integer{1, v_max}() *
@@ -2158,7 +2149,6 @@ struct conv_driver : test_driver
                 input.generate(gen_positive_value);
                 output.generate(gen_positive_value);
                 weights.generate(gen_sign_value);
-                // weights.generate(gen_positive_value);
 
                 auto&& handle = get_handle();
                 size_t total_mem;
