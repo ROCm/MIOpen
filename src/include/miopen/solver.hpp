@@ -2711,7 +2711,7 @@ struct ConvDirectNaiveConvFwd final : ConvSolver
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const ConvolutionContext&) const final { return 0.01; }
+    float GetWti(const ConvolutionContext&) const override { return 0.01; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
