@@ -71,7 +71,7 @@ struct BnFwdTrainingSpatialSingle final : OldStyleSolver
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnFwdTrainingSpatialMultiple final: OldStyleSolver
+struct BnFwdTrainingSpatialMultiple final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
@@ -123,7 +123,7 @@ struct BnFwdTrainingPerActivation final : OldStyleSolver
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnBwdTrainingSpatialSingle final: OldStyleSolver
+struct BnBwdTrainingSpatialSingle final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;

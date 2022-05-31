@@ -442,7 +442,7 @@ struct ConvAsm1x1UV2 final : ConvTunableSolver<PerformanceConfigConvAsm1x1UV2>
                              const PerformanceConfigConvAsm1x1UV2& config) const override;
 };
 
-struct ConvAsm5x10u2v2f1 final: ConvSolver
+struct ConvAsm5x10u2v2f1 final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm5x10u2v2f1>(); }
 
@@ -469,9 +469,12 @@ struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 final : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct ConvOclDirectFwd11x11 final: ConvSolver
+struct ConvOclDirectFwd11x11 final : ConvSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd11x11>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvOclDirectFwd11x11>();
+    }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
@@ -1034,7 +1037,10 @@ private:
 
 struct ConvMlirIgemmFwdXdlops final : ConvTunableSolver<PerformanceConvMlirIgemmXdlops>
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ConvMlirIgemmFwdXdlops>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvMlirIgemmFwdXdlops>();
+    }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
 
@@ -1134,7 +1140,10 @@ struct ConvMlirIgemmWrW final : ConvTunableSolver<PerformanceConvMlirIgemm>
 
 struct ConvMlirIgemmWrWXdlops final : ConvTunableSolver<PerformanceConvMlirIgemmXdlops>
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ConvMlirIgemmWrWXdlops>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvMlirIgemmWrWXdlops>();
+    }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     PerformanceConvMlirIgemmXdlops
@@ -1594,7 +1603,10 @@ struct ConvMlirIgemmBwd final : ConvTunableSolver<PerformanceConvMlirIgemm>
 
 struct ConvMlirIgemmBwdXdlops final : ConvTunableSolver<PerformanceConvMlirIgemmXdlops>
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ConvMlirIgemmBwdXdlops>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvMlirIgemmBwdXdlops>();
+    }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
 
@@ -1802,7 +1814,10 @@ protected:
 
 struct ConvOclDirectFwdFused final : ConvOclDirectFwd
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwdFused>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvOclDirectFwdFused>();
+    }
 
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const LegacyPerformanceConfig& searched_params) const override;
@@ -1935,7 +1950,10 @@ struct ConvBinWinogradRxSf2x3g1Fused final : ConvSolver
 
 struct ConvBinWinogradRxSFused final : ConvSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ConvBinWinogradRxSFused>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvBinWinogradRxSFused>();
+    }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
@@ -2684,7 +2702,10 @@ struct ConvCkIgemmFwdV6r1DlopsNchw final : ConvTunableSolver<PerformanceConvCkIg
 
 struct ConvDirectNaiveConvFwd final : ConvSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ConvDirectNaiveConvFwd>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvDirectNaiveConvFwd>();
+    }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     bool IsDynamic() const override { return true; }
@@ -2696,7 +2717,10 @@ struct ConvDirectNaiveConvFwd final : ConvSolver
 
 struct ConvDirectNaiveConvBwd final : ConvSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ConvDirectNaiveConvBwd>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvDirectNaiveConvBwd>();
+    }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     bool IsDynamic() const override { return true; }
@@ -2708,7 +2732,10 @@ struct ConvDirectNaiveConvBwd final : ConvSolver
 
 struct ConvDirectNaiveConvWrw final : ConvSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<ConvDirectNaiveConvWrw>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvDirectNaiveConvWrw>();
+    }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override;
     bool IsDynamic() const override { return true; }

@@ -139,12 +139,18 @@ struct PoolingFwdNCHWTransposingSolver : TransposingSolver<PoolingFwdNCHWTranspo
 
 struct TransposedPoolingFwd2d final : PoolingFwdNCHWTransposingSolver<PoolingForward2d>
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<TransposedPoolingFwd2d>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<TransposedPoolingFwd2d>();
+    }
 };
 
 struct TransposedPoolingFwdNd final : PoolingFwdNCHWTransposingSolver<PoolingForwardNd>
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<TransposedPoolingFwdNd>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<TransposedPoolingFwdNd>();
+    }
 };
 
 struct PoolingBackward2d final : OldStyleSolver
