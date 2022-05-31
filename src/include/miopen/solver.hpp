@@ -2400,7 +2400,6 @@ protected:
 #if defined(__clang__) && defined(CONV_OCL_DIR2D_BWDWRW_2_CPP)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wweak-template-vtables"
-#pragma clang diagnostic ignored "-Wunneeded-internal-declaration"
 #endif
 
 extern template struct PerformanceConfigConvOclBwdWrw2<1>;
