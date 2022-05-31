@@ -53,6 +53,21 @@ bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const ConvolutionContext& co
     return PerformanceConfigConvAsm1x1U::IsValid(config);
 }
 
+bool PerformanceConfigConvBiasActivAsm1x1U::operator==(
+    const PerformanceConfigConvBiasActivAsm1x1U& other) const
+{
+    // clang-format off
+            return read_size == other.read_size
+                && k_mult == other.k_mult
+                && chunks_per_wave == other.chunks_per_wave
+                && chunk_size == other.chunk_size
+                && n_mult == other.n_mult
+                && c_mult == other.c_mult
+                && waves_c_in_group == other.waves_c_in_group
+                && waves_k_in_group == other.waves_k_in_group
+                && use_spare_set == other.use_spare_set; // clang-format on
+}
+
 PerformanceConfigConvBiasActivAsm1x1U
 ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {

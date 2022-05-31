@@ -46,6 +46,20 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U)
 namespace miopen {
 namespace solver {
 
+namespace {
+// clang-format off
+auto PerfFieldRules()
+{
+    return seq::MakeRuleSet(
+        std::make_tuple(seq::Span<int, 0, 9>{}, &PerformanceConfigConvAsm3x3U::limit_wave_cnt),
+        std::make_tuple(seq::Span<int, 1, 8>{}, &PerformanceConfigConvAsm3x3U::filters_per_wave),
+        std::make_tuple(seq::Span<int, 1, 8>{}, &PerformanceConfigConvAsm3x3U::output_lines_per_wave)
+    );
+}
+// clang-format on
+
+} // namespace
+
 bool PerformanceConfigConvAsm3x3U::SetNextValue(const ConvolutionContext& /*config*/)
 {
     return !PerfFieldRules().Next(*this);
@@ -54,6 +68,11 @@ bool PerformanceConfigConvAsm3x3U::SetNextValue(const ConvolutionContext& /*conf
 PerformanceConfigConvAsm3x3U::PerformanceConfigConvAsm3x3U(int lwc, int fpw, int olpw)
     : limit_wave_cnt(lwc), filters_per_wave(fpw), output_lines_per_wave(olpw)
 {
+}
+
+bool PerformanceConfigConvAsm3x3U::operator==(const PerformanceConfigConvAsm3x3U& other) const
+{
+    return PerfFieldRules().Compare(*this, other);
 }
 
 bool PerformanceConfigConvAsm3x3U::IsValidValue() const { return PerfFieldRules().IsIn(*this); }

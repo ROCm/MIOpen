@@ -285,6 +285,12 @@ bool PerformanceConfigConvBinWinogradRxS::IsValid(const ConvolutionContext& conf
     return true;
 }
 
+bool PerformanceConfigConvBinWinogradRxS::operator==(
+    const PerformanceConfigConvBinWinogradRxS& other) const
+{
+    return n_groups == other.n_groups;
+}
+
 std::string PerformanceConfigConvBinWinogradRxS::ToString() const
 {
     std::ostringstream ss;
