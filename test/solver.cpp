@@ -42,14 +42,14 @@
 
 namespace miopen {
 namespace tests {
-class TrivialTestSolver : public solver::ConvSolver
+class TrivialTestSolver final : public solver::ConvSolver
 {
 public:
     static const char* FileName() { return "TrivialTestSolver"; }
 
     const std::string& SolverDbId() const override { return GetSolverDbId<TrivialTestSolver>(); }
 
-    bool IsApplicable(const ConvolutionContext& context) const final
+    bool IsApplicable(const ConvolutionContext& context) const override
     {
         return context.in_width == 1;
     }
@@ -87,7 +87,7 @@ public:
 
     const std::string& SolverDbId() const override { return GetSolverDbId<SearchableTestSolver>(); }
 
-    bool IsApplicable(const ConvolutionContext& context) const final
+    bool IsApplicable(const ConvolutionContext& context) const override
     {
         std::ignore = context;
         return true;
