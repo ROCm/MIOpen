@@ -119,6 +119,7 @@
 
 #endif
 
+/// WORKAROUND_BOOST_ISSUE_392
 /// Workaround for https://github.com/boostorg/config/issues/392#issuecomment-1109889533
 /// TODO: Remove the W/A as soon we switch to the properly fixed boost.
 #if MIOPEN_BACKEND_HIP

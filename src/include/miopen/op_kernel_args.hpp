@@ -1,11 +1,22 @@
 #ifndef MIOPEN_GUARD_MLOPEN_OP_KERNEL_ARGS_HPP
 #define MIOPEN_GUARD_MLOPEN_OP_KERNEL_ARGS_HPP
 
+#include <miopen/config.h> /// WORKAROUND_BOOST_ISSUE_392
+
+/// The puzzling problem: WORKAROUND_BOOST_ISSUE_392 does not help
+/// with ROCm 5.1.x: even with config.h is included, build fails
+/// and complains the same thing about noinline.
+/// Therefore we avoid use of boost in this file for 5.1.x.
+/// NOTE: This W/A should be removed altogether with WORKAROUND_BOOST_ISSUE_392.
+#define WORKAROUND_BOOST_ISSUE_392_AVOID_BOOST (HIP_PACKAGE_VERSION_MAJOR == 5 && HIP_PACKAGE_VERSION_MINOR == 1)
+
 #include <type_traits>
 #include <cstdint>
 #include <half.hpp>
-#if HIP_PACKAGE_VERSION_FLAT > 5001999999ULL
-#include <miopen/config.h>
+
+#if WORKAROUND_BOOST_ISSUE_392_AVOID_BOOST
+#include <vector>
+#else
 #include <boost/container/small_vector.hpp>
 #endif
 
@@ -31,7 +42,7 @@ struct OpKernelArg
     }
 
     std::size_t size() const { return buffer.size(); };
-#if HIP_PACKAGE_VERSION_FLAT <= 5001999999ULL
+#if WORKAROUND_BOOST_ISSUE_392_AVOID_BOOST
     std::vector<char> buffer;
 #else
     boost::container::small_vector<char, 8> buffer;
