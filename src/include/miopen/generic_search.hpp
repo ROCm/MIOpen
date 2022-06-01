@@ -309,7 +309,7 @@ auto GetAllConfigs(const Solver s, const Context& context)
     const bool useSpare  = (primary_size == 0);
 
     ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : primary;
-    const int n_runs_total                                    = useSpare ? spare_size : primary_size;
+    const int n_runs_total = useSpare ? spare_size : primary_size;
     MIOPEN_LOG_W(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
                                 << (useSpare ? " (spare)" : "") << "...");
 
