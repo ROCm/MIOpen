@@ -303,13 +303,13 @@ auto GetAllConfigs(const Solver s, const Context& context)
     using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
 
     ComputedContainer<PerformanceConfig, Context> primary(context);
-    const int main_size = std::distance(primary.begin(), primary.end());
+    const int primary_size = std::distance(primary.begin(), primary.end());
     ComputedContainer<PerformanceConfig, Context> spare(context, true);
     const int spare_size = std::distance(spare.begin(), spare.end());
-    const bool useSpare  = (main_size == 0);
+    const bool useSpare  = (primary_size == 0);
 
     ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : primary;
-    const int n_runs_total                                    = useSpare ? spare_size : main_size;
+    const int n_runs_total                                    = useSpare ? spare_size : primary_size;
     MIOPEN_LOG_W(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
                                 << (useSpare ? " (spare)" : "") << "...");
 
