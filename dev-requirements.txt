@@ -1,5 +1,5 @@
 ROCmSoftwarePlatform/rocm-recipes
-RadeonOpenCompute/rocm-cmake@839cf61c355f997283e3baaf245fa9acf2e3baa0 --build
+RadeonOpenCompute/rocm-cmake@695c55dfa4eb3f46a79f3a44620c4cc689b7968c --build
 -f requirements.txt
 # 1.90+
 danmar/cppcheck@dd05839a7e63ef04afd34711cb3e1e0ef742882f
