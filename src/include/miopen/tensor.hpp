@@ -123,12 +123,24 @@ struct TensorDescriptor : miopenTensorDescriptor
     TensorDescriptor();
     TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens);
     TensorDescriptor(miopenDataType_t t,
+                     miopenTensorLayout_t playout,
+                     std::initializer_list<std::size_t> plens);
+    TensorDescriptor(miopenDataType_t t,
+                     miopenTensorLayout_t playout,
+                     std::vector<std::size_t> plens);
+    TensorDescriptor(miopenDataType_t t,
                      std::initializer_list<std::size_t> plens,
                      std::initializer_list<std::size_t> pstrides);
     TensorDescriptor(miopenDataType_t t, const int* plens, int size);
     TensorDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
+    TensorDescriptor(miopenDataType_t t, miopenTensorLayout_t playout, const int* plens, int size);
 
     TensorDescriptor(miopenDataType_t t,
+                     std::vector<std::size_t> lens_in,
+                     std::vector<std::size_t> strides_in);
+
+    TensorDescriptor(miopenDataType_t t,
+                     miopenTensorLayout_t layout_in,
                      std::vector<std::size_t> lens_in,
                      std::vector<std::size_t> strides_in);
 
@@ -147,12 +159,18 @@ struct TensorDescriptor : miopenTensorDescriptor
     }
 
     void CalculateStrides();
+    void CalculateVectorLength();
+    bool IsVectorized() const;
 
     const std::vector<std::size_t>& GetLengths() const;
     const std::vector<std::size_t>& GetStrides() const;
     int GetSize() const;
 
     miopenDataType_t GetType() const;
+    miopenTensorLayout_t GetLayout_t() const;
+    std::string GetLayout_str() const;
+
+    int GetVectorLength() const;
 
     std::size_t GetElementSize() const;
 
@@ -192,18 +210,34 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::string GetLayout(std::string labels) const
     {
-        if(labels.size() != strides.size())
+        if(*(labels.end() - 1) != 'c')
         {
-            MIOPEN_THROW(
-                "Invalid labels size. Layout labels size must be equavalent to stride size");
-        }
+            if(labels.size() != strides.size())
+            {
+                MIOPEN_THROW(
+                    "Invalid labels size. Layout labels size must be equavalent to stride size");
+            }
 
-        // Copy construct the result string from labels. This allocates the space at one go
-        // and is faster than calling push_back in transform.
-        auto result = labels;
-        auto p      = find_permutation(lens, strides);
-        std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
-        return result;
+            // Copy construct the result string from labels. This allocates the space at one go
+            // and is faster than calling push_back in transform.
+            auto result = labels;
+            auto p      = find_permutation(lens, strides);
+            std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
+            return result;
+        }
+        else
+        {
+            std::string base_label = labels.substr(0, labels.size() - 1);
+            if(base_label.size() != strides.size())
+            {
+                MIOPEN_THROW(
+                    "Invalid labels size. Layout labels size must be equavalent to stride size");
+            }
+            auto result = base_label;
+            auto p      = find_permutation(lens, strides);
+            std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
+            return result + 'c';
+        }
     }
 
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
@@ -213,8 +247,10 @@ private:
     std::vector<std::size_t> strides;
 
     bool packed;
+    int vector_length = 1;
 
-    miopenDataType_t type = miopenFloat;
+    miopenDataType_t type             = miopenFloat;
+    miopenTensorLayout_t tensorLayout = miopenTensorNCHW;
 };
 
 template <class TElement>
