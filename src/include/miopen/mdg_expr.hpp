@@ -16,7 +16,7 @@
 #define BOOST_FOREACH(x, y) for(x : y) // NOLINT
 #endif
 #include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/phoenix.hpp>
+#include <boost/phoenix.hpp>
 #include <boost/fusion/adapted.hpp>
 #include <boost/spirit/include/support_utree.hpp>
 #include <miopen/fusion_ops.hpp>

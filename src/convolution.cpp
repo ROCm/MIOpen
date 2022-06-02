@@ -163,6 +163,12 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
 
     auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
+    if(wDesc.GetLayout_str() == "CHWNc")
+    {
+        std::tie(wei_k, wei_c) = miopen::tie_pick<3, 0>{}(wDesc.GetLengths());
+        wei_spatial            = boost::adaptors::slice(wDesc.GetLengths(), 1, 1 + spatial_dim);
+    }
+
     if(mode == miopenConvolution)
     {
         // for depthwise conv wei_c must be 1 while group_count must be wei_c
@@ -234,7 +240,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
         }
         else
         {
-            out_c = wei_k;
+            out_c = wei_k / wDesc.GetVectorLength();
 
             for(int i = 0; i < spatial_dim; ++i)
             {
@@ -256,11 +262,12 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
 
     const std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
     std::vector<std::size_t> out_strides;
-    tensor_layout_to_strides(out_lens, default_layout, yLayout, out_strides);
-
+    tensor_layout_to_strides(
+        out_lens, default_layout, yLayout, xDesc.GetVectorLength(), out_strides);
     return {(xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
                  ? (yType == miopenInt32 ? yType : miopenFloat)
                  : xDesc.GetType()),
+            xDesc.GetLayout_t(),
             out_lens,
             out_strides};
 }
