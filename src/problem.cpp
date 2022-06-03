@@ -211,6 +211,22 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     find1_solutions.resize(max_solutions);
     int found;
 
+    auto log_tensor = [](auto name, const TensorDescriptor& tensor) {
+        std::cerr << name << ": l";
+        LogRange(std::cerr, tensor.GetLengths(), "x");
+        std::cerr << ", s";
+        LogRange(std::cerr, tensor.GetStrides(), "x");
+        std::cerr << ", " << GetDataTypeName(tensor.GetType()) << std::endl;
+    };
+
+    std::cerr << "Transposed: " << (conv_desc.mode == miopenTranspose ? "true" : "false")
+              << std::endl;
+
+    std::cerr << "Conv: " << conv_desc << std::endl;
+    log_tensor("X", x_desc);
+    log_tensor("W", w_desc);
+    log_tensor("Y", y_desc);
+
     switch(direction)
     {
     case miopenProblemDirectionForward: {
