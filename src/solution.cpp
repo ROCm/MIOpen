@@ -78,10 +78,9 @@ void Solution::RunImpl(Handle& handle,
     const auto w = get_input_checked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
     auto y       = get_input_checked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
 
+    if(conv_desc.mode == miopenTranspose)
     {
-        if(conv_desc.mode == miopenTranspose)
-        {
-            problem_ = {};
+        problem_ = {};
             problem_.SetOperatorDescriptor(conv_desc);
 
             switch(GetProblem().GetDirection())
@@ -100,9 +99,8 @@ void Solution::RunImpl(Handle& handle,
             std::swap(x, y);
 
             problem_.RegisterTensorDescriptor(miopenTensorConvolutionX, *x.descriptor);
-            problem_.RegisterTensorDescriptor(miopenTensorConvolutionW, *w.descriptor);
-            problem_.RegisterTensorDescriptor(miopenTensorConvolutionY, *y.descriptor);
-        }
+        problem_.RegisterTensorDescriptor(miopenTensorConvolutionW, *w.descriptor);
+        problem_.RegisterTensorDescriptor(miopenTensorConvolutionY, *y.descriptor);
     }
 
     if(y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
