@@ -137,7 +137,7 @@
     MIOPEN_ROCBLAS_VERSION_PATCH > 999
 #error "Too big ROCBLAS version number(s)"
 #endif
-#define MIOPEN_ROCBLAS_VERSION_FLAT                                                   \
+#define MIOPEN_ROCBLAS_VERSION_FLAT                                                \
     ((MIOPEN_ROCBLAS_VERSION_MAJOR * 1000 + MIOPEN_ROCBLAS_VERSION_MINOR) * 1000 + \
      MIOPEN_ROCBLAS_VERSION_PATCH)
 #endif // MIOPEN_USE_ROCBLAS
