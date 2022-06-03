@@ -63,7 +63,7 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->TestSysDbRecord(record);
     };
-    void GetAllSolutions(const ConvolutionContext& ctx, void(*callback)(ConvSolution)) const
+    void GetAllSolutions(const ConvolutionContext& ctx, void (*callback)(ConvSolution)) const
     {
         assert(ptr_value != nullptr);
         return ptr_value->GetAllSolutions(ctx, callback);
@@ -120,20 +120,21 @@ struct AnySolver
         using ptr = std::shared_ptr<const AnySolver_base>;
 
         virtual ~AnySolver_base(){};
-        virtual bool IsApplicable(const ConvolutionContext& ctx) const                         = 0;
-        virtual bool IsTunable() const                                                         = 0;
-        virtual bool TestSysDbRecord(const DbRecord& record) const                             = 0;
-        virtual void GetAllSolutions(const ConvolutionContext& ctx, void(*callback)(ConvSolution)) const = 0;
-        virtual bool IsDynamic() const                                                         = 0;
-        virtual float GetWti(const ConvolutionContext& ctx) const                              = 0;
-        virtual const std::type_info& Type() const                                             = 0;
-        virtual std::string GetSolverDbId() const                                              = 0;
+        virtual bool IsApplicable(const ConvolutionContext& ctx) const                     = 0;
+        virtual bool IsTunable() const                                                     = 0;
+        virtual bool TestSysDbRecord(const DbRecord& record) const                         = 0;
+        virtual void GetAllSolutions(const ConvolutionContext& ctx,
+                                     void (*callback)(ConvSolution)) const                 = 0;
+        virtual bool IsDynamic() const                                                     = 0;
+        virtual float GetWti(const ConvolutionContext& ctx) const                          = 0;
+        virtual const std::type_info& Type() const                                         = 0;
+        virtual std::string GetSolverDbId() const                                          = 0;
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx,
                                           Db& db,
-                                          const miopen::AnyInvokeParams& invoke_ctx) const     = 0;
-        virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const      = 0;
-        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const                   = 0;
-        virtual bool MayNeedWorkspace() const                                                  = 0;
+                                          const miopen::AnyInvokeParams& invoke_ctx) const = 0;
+        virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const  = 0;
+        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const               = 0;
+        virtual bool MayNeedWorkspace() const                                              = 0;
     };
 
     // templated derived class
@@ -198,32 +199,46 @@ struct AnySolver
         float GetWti(const ConvolutionContext& ctx) const override { return value.GetWti(ctx); }
 
         // tunable legacy solver
-        void GetAllSolutions(const ConvolutionContext& ctx, void(*callback)(ConvSolution), std::true_type, std::true_type) const
+        void GetAllSolutions(const ConvolutionContext& ctx,
+                             void (*callback)(ConvSolution),
+                             std::true_type,
+                             std::true_type) const
         {
             callback(value.GetSolution(ctx, value.GetDefaultPerformanceConfig(ctx)));
         }
 
         // tunable solver, not legacy
-        void GetAllSolutions(const ConvolutionContext& ctx, void(*callback)(ConvSolution), std::true_type, std::false_type) const
+        void GetAllSolutions(const ConvolutionContext& ctx,
+                             void (*callback)(ConvSolution),
+                             std::true_type,
+                             std::false_type) const
         {
             std::ignore = miopen::solver::GenericSearch(value, ctx, {}, callback);
         }
 
         // non tunable solver
-        void GetAllSolutions(const ConvolutionContext& ctx, void(*callback)(ConvSolution), std::false_type, std::true_type) const
+        void GetAllSolutions(const ConvolutionContext& ctx,
+                             void (*callback)(ConvSolution),
+                             std::false_type,
+                             std::true_type) const
         {
             callback(value.GetSolution(ctx));
         }
-        void GetAllSolutions(const ConvolutionContext& ctx, void(*callback)(ConvSolution), std::false_type, std::false_type) const
+        void GetAllSolutions(const ConvolutionContext& ctx,
+                             void (*callback)(ConvSolution),
+                             std::false_type,
+                             std::false_type) const
         {
             callback(value.GetSolution(ctx));
         }
 
-        void GetAllSolutions(const ConvolutionContext& ctx, void(*callback)(ConvSolution)) const override
+        void GetAllSolutions(const ConvolutionContext& ctx,
+                             void (*callback)(ConvSolution)) const override
         {
-            GetAllSolutions(ctx, callback,
-                                   std::integral_constant<bool, TunableSolver::Is>(),
-                                   std::integral_constant<bool, LegacySolver::Is>());
+            GetAllSolutions(ctx,
+                            callback,
+                            std::integral_constant<bool, TunableSolver::Is>(),
+                            std::integral_constant<bool, LegacySolver::Is>());
         }
 
         ConvSolution FindSolution(const ConvolutionContext& ctx,

@@ -297,7 +297,10 @@ using RunAndMeasure_t =
                                                           std::declval<float&>()));
 
 template <class Solver, class Context>
-auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_, void(*callback)(ConvSolution) = nullptr)
+auto GenericSearch(const Solver s,
+                   const Context& context_,
+                   const AnyInvokeParams& invoke_ctx_,
+                   void (*ExportSolution)(ConvSolution) = nullptr)
     -> decltype(s.GetDefaultPerformanceConfig(context_))
 {
     static_assert(
@@ -339,8 +342,8 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         for(const auto& current_config : all_configs)
         {
             ConvSolution current_solution = s.GetSolution(context, current_config);
-            if(callback != nullptr)
-                callback(current_solution);
+            if(ExportSolution != nullptr)
+                ExportSolution(current_solution);
             for(auto&& kernel : current_solution.construction_params)
             {
                 if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
@@ -348,12 +351,12 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
                 kernels.push_back(kernel);
             }
         }
-        if(callback != nullptr)
+        if(ExportSolution != nullptr)
             return best_config;
         std::ignore = PrecompileKernels(profile_h, kernels);
     }
 
-    const auto invoke_ctx       = [invoke_ctx_]() {
+    const auto invoke_ctx = [invoke_ctx_]() {
         auto copy = invoke_ctx_;
         copy.SetInvokeType(InvokeType::AutoTune);
         return copy;
