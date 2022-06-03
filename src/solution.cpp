@@ -81,24 +81,24 @@ void Solution::RunImpl(Handle& handle,
     if(conv_desc.mode == miopenTranspose)
     {
         problem_ = {};
-            problem_.SetOperatorDescriptor(conv_desc);
+        problem_.SetOperatorDescriptor(conv_desc);
 
-            switch(GetProblem().GetDirection())
-            {
-            case miopenProblemDirectionForward:
-                problem_.SetDirection(miopenProblemDirectionBackward);
-                break;
-            case miopenProblemDirectionBackward:
-                problem_.SetDirection(miopenProblemDirectionForward);
-                break;
-            case miopenProblemDirectionBackwardWeight:
-                problem_.SetDirection(miopenProblemDirectionBackwardWeight);
-                break;
-            }
+        switch(GetProblem().GetDirection())
+        {
+        case miopenProblemDirectionForward:
+            problem_.SetDirection(miopenProblemDirectionBackward);
+            break;
+        case miopenProblemDirectionBackward:
+            problem_.SetDirection(miopenProblemDirectionForward);
+            break;
+        case miopenProblemDirectionBackwardWeight:
+            problem_.SetDirection(miopenProblemDirectionBackwardWeight);
+            break;
+        }
 
-            std::swap(x, y);
+        std::swap(x, y);
 
-            problem_.RegisterTensorDescriptor(miopenTensorConvolutionX, *x.descriptor);
+        problem_.RegisterTensorDescriptor(miopenTensorConvolutionX, *x.descriptor);
         problem_.RegisterTensorDescriptor(miopenTensorConvolutionW, *w.descriptor);
         problem_.RegisterTensorDescriptor(miopenTensorConvolutionY, *y.descriptor);
     }
@@ -161,9 +161,6 @@ void Solution::RunImpl(Handle& handle,
                 miopen::checkNumericsOutput(handle, *y.descriptor, y.buffer);
         }
     };
-
-    std::cerr << "Running a solution: " << GetSolver().ToString() << " , " << workspace_size
-              << std::endl;
 
     if(found_invoker)
     {
