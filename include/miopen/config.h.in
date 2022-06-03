@@ -123,8 +123,6 @@
     ((HIP_PACKAGE_VERSION_MAJOR * 1000ULL + HIP_PACKAGE_VERSION_MINOR) * 1000000 + \
      HIP_PACKAGE_VERSION_PATCH)
 
-#endif
-
 /// WORKAROUND_BOOST_ISSUE_392
 /// Workaround for https://github.com/boostorg/config/issues/392#issuecomment-1109889533
 /// See also https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1490#issuecomment-1109928102,
@@ -133,3 +131,5 @@
 #if MIOPEN_BACKEND_HIP
 #include <hip/hip_version.h>
 #endif
+
+#endif // GUARD_CONFIG_H_IN
