@@ -39,6 +39,25 @@ TensorDescriptor::TensorDescriptor() : packed(true) {}
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens)
     : lens(plens), packed(true), type(t)
 {
+    this->CalculateVectorLength();
+    this->CalculateStrides();
+}
+
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
+                                   miopenTensorLayout_t playout,
+                                   std::initializer_list<std::size_t> plens)
+    : lens(plens), packed(true), type(t), tensorLayout(playout)
+{
+    this->CalculateVectorLength();
+    this->CalculateStrides();
+}
+
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
+                                   miopenTensorLayout_t playout,
+                                   std::vector<std::size_t> plens)
+    : lens(plens), packed(true), type(t), tensorLayout(playout)
+{
+    this->CalculateVectorLength();
     this->CalculateStrides();
 }
 
@@ -47,6 +66,7 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    std::initializer_list<std::size_t> pstrides)
     : lens(plens), strides(pstrides), type(t)
 {
+    this->CalculateVectorLength();
     packed = (this->GetElementSize() == this->GetElementSpace());
 }
 
@@ -55,6 +75,7 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t, const int* plens, int siz
 {
     if(!std::all_of(plens, plens + size, [](int x) { return x >= 0; }))
         MIOPEN_THROW("Invalid length. Length must be greater than 0.");
+    this->CalculateVectorLength();
     this->CalculateStrides();
 }
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
@@ -67,7 +88,19 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
         MIOPEN_THROW("Invalid length. Length must be greater than 0.");
     if(!std::all_of(pstrides, pstrides + size, [](int x) { return x >= 0; }))
         MIOPEN_THROW("Invalid strides. Strides must be greater than 0.");
+    this->CalculateVectorLength();
     packed = (this->GetElementSize() == this->GetElementSpace());
+}
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
+                                   miopenTensorLayout_t playout,
+                                   const int* plens,
+                                   int size)
+    : lens(plens, plens + size), packed(true), type(t), tensorLayout(playout)
+{
+    if(!std::all_of(plens, plens + size, [](int x) { return x >= 0; }))
+        MIOPEN_THROW("Invalid length. Length must be greater than 0.");
+    this->CalculateVectorLength();
+    this->CalculateStrides();
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
@@ -75,6 +108,17 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    std::vector<std::size_t> strides_in)
     : lens(std::move(lens_in)), strides(std::move(strides_in)), type(t)
 {
+    this->CalculateVectorLength();
+    packed = (this->GetElementSize() == this->GetElementSpace());
+}
+
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
+                                   miopenTensorLayout_t layout_in,
+                                   std::vector<std::size_t> lens_in,
+                                   std::vector<std::size_t> strides_in)
+    : lens(std::move(lens_in)), strides(std::move(strides_in)), type(t), tensorLayout(layout_in)
+{
+    this->CalculateVectorLength();
     packed = (this->GetElementSize() == this->GetElementSpace());
 }
 
@@ -84,10 +128,32 @@ void TensorDescriptor::CalculateStrides()
     strides.resize(lens.size(), 0);
     if(strides.empty())
         return;
-    strides.back() = 1;
+    if(tensorLayout == miopenTensorNCHWc4 || tensorLayout == miopenTensorNCHWc8)
+    {
+        lens[1] /= vector_length;
+    }
+    else if(tensorLayout == miopenTensorCHWNc4 || tensorLayout == miopenTensorCHWNc8)
+    {
+        lens[0] /= vector_length;
+    }
+
+    strides.back() = vector_length;
     std::partial_sum(
         lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<std::size_t>());
+    for(int i = 0; i < strides.size() - 1; i++)
+        strides[i] *= vector_length;
 }
+
+void TensorDescriptor::CalculateVectorLength()
+{
+    vector_length =
+        ((tensorLayout == miopenTensorCHWNc8 || tensorLayout == miopenTensorNCHWc8)
+             ? 8
+             : ((tensorLayout == miopenTensorCHWNc4 || tensorLayout == miopenTensorNCHWc4) ? 4
+                                                                                           : 1));
+}
+
+bool TensorDescriptor::IsVectorized() const { return vector_length > 1; }
 
 const std::vector<std::size_t>& TensorDescriptor::GetLengths() const { return lens; }
 const std::vector<std::size_t>& TensorDescriptor::GetStrides() const { return strides; }
@@ -99,15 +165,55 @@ int TensorDescriptor::GetSize() const
 std::size_t TensorDescriptor::GetElementSize() const
 {
     assert(lens.size() == strides.size());
-    return std::accumulate(
-        lens.begin(), lens.end(), std::size_t{1}, std::multiplies<std::size_t>());
+    return std::accumulate(lens.begin(), lens.end(), vector_length, std::multiplies<std::size_t>());
 }
 miopenDataType_t TensorDescriptor::GetType() const { return this->type; }
+miopenTensorLayout_t TensorDescriptor::GetLayout_t() const { return this->tensorLayout; }
+std::string TensorDescriptor::GetLayout_str() const
+{
+    switch(this->tensorLayout)
+    {
+    case miopenTensorNCHW: return "NCHW";
+    case miopenTensorNHWC: return "NHWC";
+    case miopenTensorNCHWc4:
+    case miopenTensorNCHWc8: return "NCHWc";
+    case miopenTensorCHWN: return "CHWN";
+    case miopenTensorCHWNc4:
+    case miopenTensorCHWNc8: return "CHWNc";
+    case miopenTensorNCDHW: return "NCDHW";
+    case miopenTensorNDHWC: return "NDHWC";
+    }
+    return "Unknown tensor layout";
+}
+int TensorDescriptor::GetVectorLength() const { return this->vector_length; }
 
 std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
 {
-    assert(l.size() <= this->GetSize());
-    return std::inner_product(l.begin(), l.end(), strides.begin(), std::size_t{0});
+    // l is in NCHW order (MIOpen implicit logic)
+    if(this->GetLayout_str() == "CHWNc")
+    {
+        assert(l.size() - 1 <= this->GetSize());
+        std::initializer_list<int> l_chwn{
+            *(l.begin()), *(l.begin() + 2), *(l.begin() + 3), *(l.begin() + 4), *(l.begin() + 1)};
+        return std::inner_product(l_chwn.begin() + 1,
+                                  l_chwn.end(),
+                                  strides.begin(),
+                                  static_cast<std::size_t>(*(l_chwn.begin())));
+    }
+    else
+    {
+        if(!this->IsVectorized())
+        {
+            assert(l.size() <= this->GetSize());
+            return std::inner_product(l.begin(), l.end(), strides.begin(), std::size_t{0});
+        }
+        else
+        {
+            assert(l.size() - 1 <= this->GetSize());
+            return std::inner_product(
+                l.begin() + 1, l.end(), strides.begin(), static_cast<std::size_t>(*(l.begin())));
+        }
+    }
 }
 
 std::size_t TensorDescriptor::GetElementSpace() const
@@ -120,7 +226,7 @@ std::size_t TensorDescriptor::GetElementSpace() const
                    std::minus<std::size_t>());
     return std::inner_product(
                maxIndices.begin(), maxIndices.end(), strides.begin(), std::size_t{0}) +
-           1;
+           vector_length;
 }
 
 bool TensorDescriptor::IsPossibleLayout(const std::string& labels, const std::string& layout) const

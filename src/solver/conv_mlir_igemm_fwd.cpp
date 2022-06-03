@@ -139,7 +139,8 @@ std::string PerformanceConvMlirIgemm::ToString() const
     return ss.str();
 }
 
-PerformanceConvMlirIgemm ConvMlirIgemmFwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
+PerformanceConvMlirIgemm
+ConvMlirIgemmFwd::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
     return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
@@ -187,8 +188,7 @@ bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
 }
 
 ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx,
-                                           const PerformanceConvMlirIgemm& config,
-                                           bool) const
+                                           const PerformanceConvMlirIgemm& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
