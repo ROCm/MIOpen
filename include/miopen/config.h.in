@@ -63,6 +63,14 @@
 #define MIOPEN_AMD_COMGR_VERSION_PATCH @amd_comgr_VERSION_PATCH@
 // clang-format on
 
+// clang-format off
+#if MIOPEN_USE_ROCBLAS
+#define ROCBLAS_PACKAGE_VERSION_MAJOR @MIOPEN_rocblas_VERSION_MAJOR@
+#define ROCBLAS_PACKAGE_VERSION_MINOR @MIOPEN_rocblas_VERSION_MINOR@
+#define ROCBLAS_PACKAGE_VERSION_PATCH @MIOPEN_rocblas_VERSION_PATCH@
+#endif
+// clang-format on
+
 // Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
 // This switch controls two related but different aspects of MIOpen behavior:
 // 1.  How host code performs conversions of float to bfloat16, important only
@@ -116,6 +124,27 @@
 #define HIP_PACKAGE_VERSION_FLAT                                                   \
     ((HIP_PACKAGE_VERSION_MAJOR * 1000ULL + HIP_PACKAGE_VERSION_MINOR) * 1000000 + \
      HIP_PACKAGE_VERSION_PATCH)
+
+#if MIOPEN_USE_ROCBLAS
+#ifndef ROCBLAS_PACKAGE_VERSION_MAJOR
+#define ROCBLAS_PACKAGE_VERSION_MAJOR 0
+#endif
+#ifndef ROCBLAS_PACKAGE_VERSION_MINOR
+#define ROCBLAS_PACKAGE_VERSION_MINOR 0
+#endif
+#ifndef ROCBLAS_PACKAGE_VERSION_PATCH
+#define ROCBLAS_PACKAGE_VERSION_PATCH 0
+#endif
+// 3 decimal digits for major and minor, 6 digits for patch number.
+// Max number is 999,999,999999 == 0xE8,D4A5,0FFF that fits into 64-bit math.
+#if ROCBLAS_PACKAGE_VERSION_MAJOR > 999 || ROCBLAS_PACKAGE_VERSION_MAJOR > 999 || \
+    ROCBLAS_PACKAGE_VERSION_PATCH > 999999
+#error "Too big ROCBLAS version number(s)"
+#endif
+#define ROCBLAS_PACKAGE_VERSION_FLAT                                                   \
+    ((ROCBLAS_PACKAGE_VERSION_MAJOR * 1000ULL + ROCBLAS_PACKAGE_VERSION_MINOR) * 1000000 + \
+    ROCBLAS_PACKAGE_VERSION_PATCH)
+#endif
 
 /// Workaround for https://github.com/boostorg/config/issues/392#issuecomment-1109889533
 /// TODO: Remove the W/A as soon we switch to the properly fixed boost.

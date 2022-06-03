@@ -40,7 +40,7 @@
 
 #if MIOPEN_USE_ROCBLAS
 #include <half.hpp>
-#if HIP_PACKAGE_VERSION_FLAT <= 5001999999ULL
+#if ROCBLAS_PACKAGE_VERSION_FLAT <= 2044999999ULL
 #include <rocblas.h>
 #else
 #include <rocblas/rocblas.h>
