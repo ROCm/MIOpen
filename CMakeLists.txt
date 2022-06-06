@@ -268,7 +268,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     set(MIOPEN_USE_ROCBLAS ON CACHE BOOL "")
     if(MIOPEN_USE_ROCBLAS)
         find_package(rocblas REQUIRED PATHS /opt/rocm)
-        message(STATUS "Build with rocblas")
+        message(STATUS "Build with rocblas ${rocblas_VERSION}")
     else()
         message(STATUS "Build without rocblas")
     endif()
