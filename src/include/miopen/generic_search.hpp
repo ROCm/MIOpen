@@ -235,7 +235,7 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
 }
 
 /// Solver member function requirements:
-/// * GetPerformanceConfig shall be implemented.
+/// * GetDefaultPerformanceConfig shall be implemented.
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
 /// * GetSolution shall be implemented.
 /// * Solution should provide invoker
@@ -298,7 +298,7 @@ using RunAndMeasure_t =
 
 template <class Solver, class Context>
 auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
-    -> decltype(s.GetPerformanceConfig(context_))
+    -> decltype(s.GetDefaultPerformanceConfig(context_))
 {
     static_assert(
         !(is_detected<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
@@ -308,9 +308,9 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     auto context                  = context_;
     context.is_for_generic_search = true;
 
-    using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
+    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
     PerformanceConfig best_config;
-    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
+    const auto default_solution = s.GetSolution(context, s.GetDefaultPerformanceConfig(context));
     const auto invoke_ctx       = [invoke_ctx_]() {
         auto copy = invoke_ctx_;
         copy.SetInvokeType(InvokeType::AutoTune);
@@ -343,7 +343,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         std::vector<KernelBuildDefinition> kernels;
         for(const auto& current_config : all_configs)
         {
-            ConvSolution current_solution = s.GetSolution(context, current_config, true);
+            ConvSolution current_solution = s.GetSolution(context, current_config);
             for(auto&& kernel : current_solution.construction_params)
             {
                 if(profile_h.HasProgram(kernel.kernel_file, kernel.stringifier(kernel.build_parameters)))
@@ -369,7 +369,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
 
             try
             {
-                current_solution = s.GetSolution(context, current_config, true);
+                current_solution = s.GetSolution(context, current_config);
                 if(default_solution.workspace_sz != current_solution.workspace_sz)
                 {
                     ret = -2;

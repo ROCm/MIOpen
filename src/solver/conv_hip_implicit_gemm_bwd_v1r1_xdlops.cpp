@@ -343,6 +343,7 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmABlockCopyPerformanceParamete
         // vector write into LDS
         DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
 
+        // NOLINTNEXTLINE
         if(!(GemmKPerBlock % data_per_thread_copy_gemmk == 0 &&
              GemmMPerBlock % data_per_thread_copy_gemmm == 0 &&
              GemmKPack % data_per_thread_copy_gemmkpack == 0))
@@ -693,7 +694,8 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::CalculateGemmSize(const ConvolutionContext
 }
 
 PerformanceImplicitGemmBwdV1R1Xdlops
-ConvHipImplicitGemmBwdDataV1R1Xdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV1R1Xdlops::GetDefaultPerformanceConfig(
+    const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdV1R1Xdlops>(ctx);
 }
@@ -801,7 +803,7 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdV1R1Xdlops& config, bool) const
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdV1R1Xdlops& config) const
 {
     ConvSolution result;
 

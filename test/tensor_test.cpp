@@ -54,6 +54,19 @@ struct tensor_fixture_4 : tensor_base
     }
 };
 
+struct tensor_fixture_4_vector : tensor_base
+{
+
+    tensor_fixture_4_vector()
+    {
+        miopenCreateTensorDescriptor(&tensor);
+        std::vector<int> lens = {100, 32, 8, 8};
+
+        miopenSetNdTensorDescriptorWithLayout(
+            tensor, miopenHalf, miopenTensorNCHWc4, lens.data(), lens.size());
+    }
+};
+
 // 1-DIMENSIONAL -------------------
 struct tensor_fixture_n1d : tensor_base
 {
@@ -594,6 +607,149 @@ struct tensor_test_suit_4d
     }
 };
 
+template <class Fixture>
+struct tensor_test_suit_4d_vector
+{
+    struct get_tensor_4d : Fixture
+    {
+        void run()
+        {
+            int n, c, h, w;
+            int nStride, cStride, hStride, wStride;
+            miopenDataType_t dt;
+            miopenGet4dTensorDescriptor(
+                this->tensor, &dt, &n, &c, &h, &w, &nStride, &cStride, &hStride, &wStride);
+            EXPECT(dt == miopenHalf);
+            EXPECT(n == 100);
+            EXPECT(c == 8);
+            EXPECT(h == 8);
+            EXPECT(w == 8);
+            EXPECT(nStride == c * cStride);
+            EXPECT(cStride == h * hStride);
+            EXPECT(hStride == w * wStride);
+            EXPECT(wStride == 4);
+        }
+    };
+
+    struct get_tensor_4d_strides : Fixture
+    {
+        void run()
+        {
+            int nStride, cStride, hStride, wStride;
+            std::tie(nStride, cStride, hStride, wStride) =
+                miopen::tien<4>(this->get_tensor().GetStrides());
+            EXPECT(nStride == 8 * cStride);
+            EXPECT(cStride == 8 * hStride);
+            EXPECT(hStride == 8 * wStride);
+            EXPECT(wStride == 4);
+        }
+    };
+
+    struct get_tensor_4d_lengths : Fixture
+    {
+        void run()
+        {
+            int n, c, h, w;
+            std::tie(n, c, h, w) = miopen::tien<4>(this->get_tensor().GetLengths());
+            EXPECT(n == 100);
+            EXPECT(c == 8);
+            EXPECT(h == 8);
+            EXPECT(w == 8);
+        }
+    };
+
+    struct get_tensor_n : Fixture
+    {
+        void run()
+        {
+            int size;
+            miopenGetTensorDescriptorSize(this->tensor, &size);
+            EXPECT(size == 4);
+            std::array<int, 4> lens{};
+            std::array<int, 4> strides{};
+            miopenDataType_t dt;
+            miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), strides.data());
+            EXPECT(dt == miopenHalf);
+            EXPECT(lens[0] == 100);
+            EXPECT(lens[1] == 8);
+            EXPECT(lens[2] == 8);
+            EXPECT(lens[3] == 8);
+            EXPECT(strides[0] == lens[1] * strides[1]);
+            EXPECT(strides[1] == lens[2] * strides[2]);
+            EXPECT(strides[2] == lens[3] * strides[3]);
+            EXPECT(strides[3] == 4);
+            EXPECT(this->get_tensor().IsPacked());
+        }
+    };
+
+    struct get_tensor_n_lengths : Fixture
+    {
+        void run()
+        {
+            int size;
+            miopenGetTensorDescriptorSize(this->tensor, &size);
+            EXPECT(size == 4);
+            std::array<int, 4> lens{};
+            miopenDataType_t dt;
+            miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), nullptr);
+            EXPECT(dt == miopenHalf);
+            EXPECT(lens[0] == 100);
+            EXPECT(lens[1] == 8);
+            EXPECT(lens[2] == 8);
+            EXPECT(lens[3] == 8);
+            EXPECT(this->get_tensor().IsPacked());
+        }
+    };
+
+    struct get_tensor_n_strides : Fixture
+    {
+        void run()
+        {
+            int size;
+            miopenGetTensorDescriptorSize(this->tensor, &size);
+            EXPECT(size == 4);
+            std::array<int, 4> lens = {{100, 8, 8, 8}};
+            std::array<int, 4> strides{};
+            miopenDataType_t dt;
+            miopenGetTensorDescriptor(this->tensor, &dt, nullptr, strides.data());
+            EXPECT(dt == miopenHalf);
+            EXPECT(lens[0] == 100);
+            EXPECT(lens[1] == 8);
+            EXPECT(lens[2] == 8);
+            EXPECT(lens[3] == 8);
+            EXPECT(strides[0] == lens[1] * strides[1]);
+            EXPECT(strides[1] == lens[2] * strides[2]);
+            EXPECT(strides[2] == lens[3] * strides[3]);
+            EXPECT(strides[3] == 4);
+            EXPECT(this->get_tensor().IsPacked());
+        }
+    };
+
+    struct get_tensor_index : Fixture
+    {
+        void run()
+        {
+            EXPECT(this->get_tensor().GetIndex({0, 0, 0, 0, 0}) == 0);
+            EXPECT(this->get_tensor().GetIndex({1, 0, 0, 0, 0}) == 1);
+            EXPECT(this->get_tensor().GetIndex({2, 0, 0, 0, 0}) == 2);
+            EXPECT(this->get_tensor().GetIndex({3, 0, 0, 0, 0}) == 3);
+            EXPECT(this->get_tensor().GetIndex({0, 0, 0, 0, 1}) == 4);
+        }
+    };
+
+    static void run_tests()
+    {
+        run_test<get_tensor_4d>();
+        run_test<get_tensor_4d_strides>();
+        run_test<get_tensor_4d_lengths>();
+
+        run_test<get_tensor_n>();
+        run_test<get_tensor_n_lengths>();
+        run_test<get_tensor_n_strides>();
+        run_test<get_tensor_index>();
+    }
+};
+
 struct tensor_fixture_n4d_numBytes : tensor_base
 {
     tensor_fixture_n4d_numBytes()
@@ -852,12 +1008,15 @@ int main()
     tensor_test_suit_4d<tensor_fixture_n4d_strides>::run_tests();
     tensor_test_suit_4d_bytes<tensor_fixture_n4d_numBytes>::run_tests();
 
+    // printf("Running 4-D vector format. \n");
+    // 4-dimensional tests with vector format
+    tensor_test_suit_4d_vector<tensor_fixture_4_vector>::run_tests();
+
     // printf("Running 5-D.\n");
     // 5-dimensional tests
     tensor_test_suit_5d<tensor_fixture_n5d>::run_tests();
     tensor_test_suit_5d<tensor_fixture_n5d_strides>::run_tests();
     tensor_test_suit_5d_bytes<tensor_fixture_n5d_numBytes>::run_tests();
-
     run_test<check_tensor_support>();
     check_null_tensor();
 }

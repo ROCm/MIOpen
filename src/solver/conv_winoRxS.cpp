@@ -37,6 +37,7 @@
 #include <miopen/stringutils.hpp>
 
 #include <boost/any.hpp>
+#include <boost/optional.hpp>
 
 #include <tuple>
 
@@ -44,9 +45,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
 
-#define WINODATA 2
-#define WINOFILTER 3
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS)
+
 #define MAX_CU_LIMIT 512
+
+#define IS2X3 (Winodata == 2 && Winofilter == 3)
+#define IS3X2 (Winodata == 3 && Winofilter == 2)
 
 /// \todo The model is well-defined in for filters sized up to 5.
 /// However, it seems producing valid results without this limitation,
@@ -81,10 +86,10 @@ static inline int GetBestNGroupParam(const int R,
                                      const int idilation_w,
                                      const int idilation_h,
                                      const int n_groups,
-                                     const int G)
+                                     const int G,
+                                     const int o_tile,
+                                     const int f_tile)
 {
-    int o_tile     = WINODATA;
-    int f_tile     = WINOFILTER;
     int r_factor   = f_tile * 2;
     int s_factor   = r_factor;
     int c_factor   = 2;
@@ -148,16 +153,13 @@ namespace {
     auto PerfFieldRules()
     {
         return seq::MakeRuleSet(
-            std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{}, &PerformanceConfigConvBinWinogradRxSf2x3::n_groups)
+            std::make_tuple(seq::Span<int, 1, MAX_CU_LIMIT>{}, &PerformanceConfigConvBinWinogradRxS::n_groups)
         );
     }
 // clang-format on
 
-/// \todo Consider re-using code from RxS.
 inline bool IsShaderContraintsMet(const int R,
                                   const int S,
-                                  const int,
-                                  const int,
                                   const int C,
                                   const int K,
                                   const int H,
@@ -205,12 +207,13 @@ inline bool IsShaderContraintsMet(const int R,
 
 } // namespace
 
-PerformanceConfigConvBinWinogradRxSf2x3::PerformanceConfigConvBinWinogradRxSf2x3(int n_groups_)
+PerformanceConfigConvBinWinogradRxS::PerformanceConfigConvBinWinogradRxS(int n_groups_)
     : n_groups(n_groups_)
 {
 }
 
-void PerformanceConfigConvBinWinogradRxSf2x3::HeuristicInit(const ConvolutionContext& config)
+template <int Winodata, int Winofilter>
+void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext& config)
 {
     const auto n_inputs_per_group  = config.n_inputs / config.group_counts,
                n_outputs_per_group = config.n_outputs / config.group_counts;
@@ -236,7 +239,9 @@ void PerformanceConfigConvBinWinogradRxSf2x3::HeuristicInit(const ConvolutionCon
                                       config.kernel_stride_h,
                                       config.kernel_stride_w,
                                       config.GetStream().GetMaxHardwareComputeUnits(),
-                                      config.group_counts);
+                                      config.group_counts,
+                                      Winodata,
+                                      Winofilter);
     }
     else
     {
@@ -254,21 +259,23 @@ void PerformanceConfigConvBinWinogradRxSf2x3::HeuristicInit(const ConvolutionCon
                                       config.kernel_dilation_h,
                                       config.kernel_dilation_w,
                                       config.GetStream().GetMaxHardwareComputeUnits(),
-                                      config.group_counts);
+                                      config.group_counts,
+                                      Winodata,
+                                      Winofilter);
     }
 }
 
-bool PerformanceConfigConvBinWinogradRxSf2x3::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceConfigConvBinWinogradRxS::SetNextValue(const ConvolutionContext& /*config*/)
 {
     return !PerfFieldRules().Next(*this);
 }
 
-bool PerformanceConfigConvBinWinogradRxSf2x3::IsValidValue() const
+bool PerformanceConfigConvBinWinogradRxS::IsValidValue() const
 {
     return PerfFieldRules().IsIn(*this);
 }
 
-bool PerformanceConfigConvBinWinogradRxSf2x3::IsValid(const ConvolutionContext& config) const
+bool PerformanceConfigConvBinWinogradRxS::IsValid(const ConvolutionContext& config) const
 {
     if(config.GetStream().GetMaxHardwareComputeUnits() < n_groups)
         return false;
@@ -278,41 +285,46 @@ bool PerformanceConfigConvBinWinogradRxSf2x3::IsValid(const ConvolutionContext& 
     return true;
 }
 
-inline bool PerformanceConfigConvBinWinogradRxSf2x3::operator==(
-    const PerformanceConfigConvBinWinogradRxSf2x3& other) const
+inline bool PerformanceConfigConvBinWinogradRxS::operator==(
+    const PerformanceConfigConvBinWinogradRxS& other) const
 {
     return n_groups == other.n_groups;
 }
 
-std::string PerformanceConfigConvBinWinogradRxSf2x3::ToString() const
+std::string PerformanceConfigConvBinWinogradRxS::ToString() const
 {
     std::ostringstream ss;
     Serialize(ss);
     return ss.str();
 }
 
-PerformanceConfigConvBinWinogradRxSf2x3
-ConvBinWinogradRxSf2x3::GetPerformanceConfig(const ConvolutionContext& params) const
+template <int Winodata, int Winofilter>
+PerformanceConfigConvBinWinogradRxS
+ConvBinWinoRxS<Winodata, Winofilter>::GetDefaultPerformanceConfig(
+    const ConvolutionContext& params) const
 {
-    PerformanceConfigConvBinWinogradRxSf2x3 pp;
-    pp.HeuristicInit(params);
+    PerformanceConfigConvBinWinogradRxS pp;
+    pp.HeuristicInit<Winodata, Winofilter>(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
 
-bool ConvBinWinogradRxSf2x3::IsValidPerformanceConfig(
-    const ConvolutionContext& problem, const PerformanceConfigConvBinWinogradRxSf2x3& c) const
+template <int Winodata, int Winofilter>
+bool ConvBinWinoRxS<Winodata, Winofilter>::IsValidPerformanceConfig(
+    const ConvolutionContext& problem, const PerformanceConfigConvBinWinogradRxS& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
 }
 
-PerformanceConfigConvBinWinogradRxSf2x3
-ConvBinWinogradRxSf2x3::Search(const ConvolutionContext& context,
-                               const AnyInvokeParams& invoke_ctx) const
+template <int Winodata, int Winofilter>
+PerformanceConfigConvBinWinogradRxS
+ConvBinWinoRxS<Winodata, Winofilter>::Search(const ConvolutionContext& context,
+                                             const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, context, invoke_ctx);
 }
 
+template <int Winodata, int Winofilter>
 class ShaderModel : public UnifiedDescriptionConv2d
 {
     const size_t DATATYPE_BITS;    // S
@@ -354,8 +366,8 @@ public:
             static_cast<double>(RoundUpToMultiple(S * out_w / input_stride_w, 1)) *
             static_cast<double>(RoundUpToMultiple(R * out_h / input_stride_h, 1)); // AK
 
-        constexpr size_t TILE_S = WINOFILTER; // AL
-        constexpr size_t TILE_R = WINOFILTER; // AO
+        constexpr size_t TILE_S = Winofilter; // AL
+        constexpr size_t TILE_R = Winofilter; // AO
         assert(!(U > 2 && V > 2));
         const auto granulated_S =
             (U == 1 && input_stride_w == 1 && filter_stride_w == 1 && S <= TILE_S)
@@ -367,8 +379,8 @@ public:
                  ? TILE_R
                  : 2 * TILE_R)); // AP
 
-        constexpr size_t TILE_OUT_W = WINODATA; // AR
-        constexpr size_t TILE_OUT_H = WINODATA; // AU
+        constexpr size_t TILE_OUT_W = Winodata; // AR
+        constexpr size_t TILE_OUT_H = Winodata; // AU
         const auto granulated_out_w =
             RoundUpToMultiple(out_w + ((input_stride_w == 2 && (pad_w % 2 != 0)) ? 1 : 0),
                               TILE_OUT_W * input_stride_w); // AS
@@ -428,16 +440,12 @@ public:
     }
 };
 
+template <int Winodata, int Winofilter>
 static float GetWtiBase(const ConvolutionContext& params)
 {
     constexpr auto WTI_UNKNOWN = -2.0;
-    const auto rv              = ShaderModel(params).ComputeWti();
+    const auto rv              = ShaderModel<Winodata, Winofilter>(params).ComputeWti();
     return rv < 0 ? WTI_UNKNOWN : rv;
-}
-
-float ConvBinWinogradRxSf2x3::GetWti(const ConvolutionContext& params) const
-{
-    return GetWtiBase(params);
 }
 
 static bool IsApplicableBase(const ConvolutionContext& params)
@@ -467,7 +475,7 @@ static bool IsApplicableBase(const ConvolutionContext& params)
         return false;
 
     // clang-format off
-    if (! ( (params.kernel_stride_w == 1 || params.kernel_stride_w == 2)
+    if (!((params.kernel_stride_w == 1 || params.kernel_stride_w == 2)
         && params.kernel_stride_w == params.kernel_stride_h
         && params.kernel_dilation_w == 1
         && params.kernel_dilation_h == 1
@@ -485,8 +493,6 @@ static bool IsApplicableBase(const ConvolutionContext& params)
             return false;
         return IsShaderContraintsMet(params.in_height,
                                      params.in_width,
-                                     params.kernel_dilation_h,
-                                     params.kernel_dilation_w,
                                      params.batch_sz,    // N
                                      n_inputs_per_group, // K
                                      params.out_height,
@@ -500,8 +506,6 @@ static bool IsApplicableBase(const ConvolutionContext& params)
     {
         return IsShaderContraintsMet(params.kernel_size_h, // RxS
                                      params.kernel_size_w,
-                                     params.kernel_stride_h,
-                                     params.kernel_stride_w,
                                      n_inputs_per_group,  // C
                                      n_outputs_per_group, // K
                                      params.in_height,    // HxW
@@ -513,17 +517,59 @@ static bool IsApplicableBase(const ConvolutionContext& params)
     }
 }
 
-bool ConvBinWinogradRxSf2x3::IsApplicable(const ConvolutionContext& params) const
+template <int Winodata, int Winofilter>
+bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& params) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}) && IS2X3)
         return false;
-    return IsApplicableBase(params) && params.group_counts > 1;
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}) && IS3X2)
+        return false;
+    if(IS3X2 && params.kernel_stride_w == 2) // f3x2 stride 2 not implemented yet
+        return false;
+    if(IS2X3 && params.group_counts > 1)
+        return false;
+    return IsApplicableBase(params);
 }
 
-ConvSolution
-ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
-                                    const PerformanceConfigConvBinWinogradRxSf2x3& config,
-                                    const bool disableConfigOverrideFromEnv) const
+template <int Winodata, int Winofilter>
+static inline boost::optional<PerformanceConfigConvBinWinogradRxS>
+GetPerfConfFromEnv(const ConvolutionContext& params)
+{
+    PerformanceConfigConvBinWinogradRxS fromEnv;
+    std::string s;
+    const char* p_asciz = nullptr;
+    const char* env_name;
+
+    if(IS2X3)
+    {
+        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS{});
+        env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS::value();
+    }
+    else if(IS3X2)
+    {
+        p_asciz  = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS{});
+        env_name = MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS::value();
+    }
+
+    if(p_asciz == nullptr)
+        return {};
+
+    s = std::string(p_asciz);
+
+    if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
+    {
+        MIOPEN_LOG_E(env_name << "Tuning config: Bad value or invalid format: `" << s << '\'');
+        return boost::none;
+    }
+
+    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+
+    return fromEnv;
+}
+
+template <int Winodata, int Winofilter>
+ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
+    const ConvolutionContext& params, const PerformanceConfigConvBinWinogradRxS& config) const
 {
     const auto n_groups = config.n_groups;
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
@@ -540,31 +586,12 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
 
     ConvSolution result;
 
-    const PerformanceConfigConvBinWinogradRxSf2x3* pcfg = &config;
-    PerformanceConfigConvBinWinogradRxSf2x3 fromEnv;
+    const PerformanceConfigConvBinWinogradRxS* pcfg = &config;
 
-    if(!disableConfigOverrideFromEnv)
+    const auto fromEnv = GetPerfConfFromEnv<Winodata, Winofilter>(params);
+    if(fromEnv)
     {
-        std::string s;
-        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS{});
-        if(p_asciz != nullptr)
-        {
-            s = std::string(p_asciz);
-            if(!s.empty()) // else nothing to parse.
-            {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
-                {
-                    MIOPEN_LOG_E("MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: "
-                                 << s);
-                }
-                else
-                {
-                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                    pcfg = &fromEnv;
-                }
-            }
-        }
+        pcfg = &(*fromEnv);
     }
 
     const auto name    = params.GetStream().GetDeviceName();
@@ -586,9 +613,9 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
-    std::string kernel_name    = "miopenSp3AsmConv_v21_1_3";
-    std::string kernel_file    = "Conv_Winograd_v21_1_3";
-    std::string kernel_postfix = params.IsFp32() ? "_fp32" : "_fp16_dot2_edc";
+    std::string kernel_name = "miopenSp3AsmConv_v21_1_3";
+    std::string kernel_file = "Conv_Winograd_v21_1_3";
+    std::string kernel_postfix;
 
     if(is_gfx9)
     {
@@ -600,21 +627,33 @@ ConvBinWinogradRxSf2x3::GetSolution(const ConvolutionContext& params,
         kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
     }
 
-    if(params.kernel_stride_w == 1)
+    if(IS2X3)
     {
-        kernel_postfix += "_stride1";
-    }
-    else if(params.kernel_stride_w == 2 && !params.direction.IsBackwardData())
-    {
-        kernel_postfix += "_stride2";
-    }
-    else // if(params.kernel_dilation_h == 2)
-    {
-        kernel_postfix += "_dilation2";
-    }
+        kernel_postfix = params.IsFp32() ? "_fp32" : "_fp16_dot2_edc";
 
-    if(params.group_counts != 1 || params.direction.IsBackwardWrW())
+        if(params.kernel_stride_w == 1)
+        {
+            kernel_postfix += "_stride1";
+        }
+        else if(params.kernel_stride_w == 2 && !params.direction.IsBackwardData())
+        {
+            kernel_postfix += "_stride2";
+        }
+        else // if(params.kernel_dilation_h == 2)
+        {
+            kernel_postfix += "_dilation2";
+        }
+        if(params.group_counts != 1 || params.direction.IsBackwardWrW())
+        {
+            kernel_postfix += "_group";
+        }
+    }
+    else if(IS3X2)
+    {
+        kernel_postfix = params.IsFp32() ? "_f3x2_fp32" : "_f3x2_fp16_dot2_edc";
+        kernel_postfix += "_stride1"; // f3x2 stride 2 is not implemented yet
         kernel_postfix += "_group";
+    }
 
     kernel.kernel_name = kernel_name + kernel_postfix;
     kernel.kernel_file = kernel_file + kernel_postfix + ".s";
@@ -864,13 +903,13 @@ bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& params) co
 
 float ConvBinWinogradRxSf2x3g1::GetWti(const ConvolutionContext& params) const
 {
-    return GetWtiBase(params);
+    return GetWtiBase<2, 3>(params);
 }
 
 ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& params) const
 {
-    const auto tunable = ConvBinWinogradRxSf2x3{};
-    return tunable.GetSolution(params, tunable.GetPerformanceConfig(params), false);
+    const auto tunable = ConvBinWinoRxS<2, 3>{};
+    return tunable.GetSolution(params, tunable.GetDefaultPerformanceConfig(params));
 }
 
 bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const ConvolutionContext&) const
@@ -909,6 +948,9 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const ConvolutionContext
     result.construction_params.push_back(kernel);
     return result;
 }
+
+template struct ConvBinWinoRxS<2, 3>;
+template struct ConvBinWinoRxS<3, 2>;
 
 } // namespace solver
 } // namespace miopen

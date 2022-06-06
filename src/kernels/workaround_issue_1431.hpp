@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,20 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef ORDER_HPP
-#define ORDER_HPP
+#ifndef WORKAROUND_ISSUE_1431_HPP
+#define WORKAROUND_ISSUE_1431_HPP
 
-template <int... Is>
-struct order
-{
-    static constexpr uint64_t m_size = sizeof...(Is);
-    // the last dummy element is to prevent compiler complain about empty array, when mSize = 0
-    static constexpr int m_data[m_size + 1] = {Is..., 0};
-
-    __host__ __device__ static constexpr uint64_t size() { return m_size; }
-
-    __host__ __device__ static constexpr uint64_t get_size() { return size(); }
-
-    __host__ __device__ static constexpr int at(int I) { return m_data[I]; }
-};
+// This is for the case if compiler defines `warpSize` as a macro.
+#ifdef warpSize
+#undef warpSize
 #endif
+
+// Hack: this replaces each `warpSize` by literal `32`.
+#define warpSize 32
+
+#endif // WORKAROUND_ISSUE_1431_HPP

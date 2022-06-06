@@ -305,7 +305,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<3, 4>{}, miopenConvolutionAlgoWinograd);
     ++id; // Id for ConvSCGemmFGemm.
-    RegisterWithSolver(registry, ++id, ConvBinWinogradRxSf3x2{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(registry, ++id, ConvBinWinoRxS<3, 2>{}, miopenConvolutionAlgoWinograd);
     RegisterWithSolver(
         registry, ++id, ConvWinograd3x3MultipassWrW<3, 5>{}, miopenConvolutionAlgoWinograd);
     RegisterWithSolver(
@@ -335,7 +335,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     ++id; // removed solver ConvHipImplicitGemmV4R4GenFwdXdlops
     ++id; // removed solver ConvHipImplicitGemmV4R4GenWrWXdlops
 
-    RegisterWithSolver(registry, ++id, ConvBinWinogradRxSf2x3{}, miopenConvolutionAlgoWinograd);
+    RegisterWithSolver(registry, ++id, ConvBinWinoRxS<2, 3>{}, miopenConvolutionAlgoWinograd);
 
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmV4R4Fwd{}, miopenConvolutionAlgoImplicitGEMM);
@@ -502,6 +502,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Pooling, pooling::TransposedPoolingFwd2d{}.SolverDbId());
     Register(registry, ++id, Primitive::Pooling, pooling::TransposedPoolingFwdNd{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Pooling, pooling::PoolingBackward2d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Pooling, pooling::PoolingBackwardNd{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
