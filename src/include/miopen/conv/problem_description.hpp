@@ -80,6 +80,35 @@ constexpr TElement GetW3(int spatial_dims, const std::vector<TElement>& data)
 {
     return std::get<2>(GetDHW(spatial_dims, data));
 }
+template <class TElement>
+constexpr auto GetCHWN(const std::vector<TElement>& data)
+{
+    return miopen::tien<4>(data, 1);
+}
+
+template <class TElement>
+constexpr TElement GetNofCHWN(const std::vector<TElement>& data)
+{
+    return std::get<3>(GetCHWN(data));
+}
+
+template <class TElement>
+constexpr TElement GetCofCHWN(const std::vector<TElement>& data)
+{
+    return std::get<0>(GetCHWN(data));
+}
+
+template <class TElement>
+constexpr TElement GetHofCHWN(const std::vector<TElement>& data)
+{
+    return std::get<1>(GetCHWN(data));
+}
+
+template <class TElement>
+constexpr TElement GetWofCHWN(const std::vector<TElement>& data)
+{
+    return std::get<2>(GetCHWN(data));
+}
 
 template <class TElement>
 constexpr TElement GetN5(int spatial_dims, const std::vector<TElement>& data)
@@ -151,6 +180,7 @@ struct ProblemDescription
     int GetDilationH() const { return GetH3(GetSpatialDims(), conv.GetConvDilations()); }
     int GetDilationW() const { return GetW3(GetSpatialDims(), conv.GetConvDilations()); }
     int GetGroupCount() const { return conv.GetGroupCount(); }
+    int GetVectorLength() const { return in.GetVectorLength(); }
 
     // In getters
     miopenDataType_t GetInDataType() const { return in.GetType(); }
@@ -169,7 +199,7 @@ struct ProblemDescription
     {
         if(GetSpatialDims() == 2)
         {
-            return in.GetLayout("NCHW");
+            return in.GetLayout(in.GetLayout_str());
         }
         else
         {
@@ -203,7 +233,7 @@ struct ProblemDescription
     {
         if(GetSpatialDims() == 2)
         {
-            return out.GetLayout("NCHW");
+            return out.GetLayout(out.GetLayout_str());
         }
         else
         {
@@ -223,8 +253,20 @@ struct ProblemDescription
     // Weights getters
     miopenDataType_t GetWeightsDataType() const { return weights.GetType(); }
     std::size_t GetWeightsDepth() const { return GetD5(GetSpatialDims(), weights.GetLengths()); }
-    std::size_t GetWeightsHeight() const { return GetH5(GetSpatialDims(), weights.GetLengths()); }
-    std::size_t GetWeightsWidth() const { return GetW5(GetSpatialDims(), weights.GetLengths()); }
+    std::size_t GetWeightsHeight() const
+    {
+        if(weights.GetLayout_str() == "CHWNc")
+            return GetHofCHWN(weights.GetLengths());
+        else
+            return GetH5(GetSpatialDims(), weights.GetLengths());
+    }
+    std::size_t GetWeightsWidth() const
+    {
+        if(weights.GetLayout_str() == "CHWNc")
+            return GetWofCHWN(weights.GetLengths());
+        else
+            return GetW5(GetSpatialDims(), weights.GetLengths());
+    }
     // std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims(), weights.GetStrides());
     // }
     // std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims(), weights.GetStrides());
@@ -236,7 +278,7 @@ struct ProblemDescription
     {
         if(GetSpatialDims() == 2)
         {
-            return weights.GetLayout("NCHW");
+            return weights.GetLayout(weights.GetLayout_str());
         }
         else
         {

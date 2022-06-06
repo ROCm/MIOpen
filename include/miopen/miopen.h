@@ -340,6 +340,24 @@ typedef enum
     miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
 } miopenDataType_t;
 
+/*! @ingroup tensor
+ * @enum miopenTensorLayout_t
+ * Tensor layouts supported by MIOpen.
+ * miopenTensorCHWNc4 and miopenTensorCHWNc8 layout only support weight tensor.
+ */
+typedef enum
+{
+    miopenTensorNCHW   = 0, /*!< NCHW memory layout (Fully supported) */
+    miopenTensorNHWC   = 1, /*!< NHWC memory layout (Fully supported) */
+    miopenTensorCHWN   = 2, /*!< CHWN memory layout (Not supported) */
+    miopenTensorNCHWc4 = 3, /*!< NCHWc4 memory layout (Partially supported) */
+    miopenTensorNCHWc8 = 4, /*!< NCHWc8 memory layout (Partially supported) */
+    miopenTensorCHWNc4 = 5, /*!< CHWNc4 memory layout (Partially supported) */
+    miopenTensorCHWNc8 = 6, /*!< CHWNc8 memory layout (Partially supported) */
+    miopenTensorNCDHW  = 7, /*!< NCDHW memory layout (Fully supported) */
+    miopenTensorNDHWC  = 8, /*!< NCDHW memory layout (Fully supported) */
+} miopenTensorLayout_t;
+
 /*! @ingroup pooling
  * @enum miopenIndexType_t
  * MIOpen index datatypes.
@@ -583,6 +601,22 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
 MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
     miopenTensorDescriptor_t tensorDesc, miopenDataType_t dataType, int n, int c, int h, int w);
 
+/*! @brief Set shape of ND tensor with specific layout
+ *
+ * Interface for setting N-D tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
+ * @param tensorDesc   Tensor descriptor type (output)
+ * @param dataType     MIOpen datatype (input)
+ * @param tensorLayout Tensor layout (input)
+ * @param lens         Tensor dimensions (input)
+ * @param num_lens     Tensor dimension size (input)
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
+                                      miopenDataType_t dataType,
+                                      miopenTensorLayout_t tensorLayout,
+                                      int* lens,
+                                      int num_lens);
 /*! @brief Set shape and stride of 4D tensor
  *
  * Interface for setting 4-D tensor shape and stride.

@@ -46,6 +46,24 @@ static constexpr auto make_array(T x, Ts... xs)
     return std::array<T, 1 + sizeof...(Ts)>{{x, xs...}};
 }
 
+template <typename Tin, typename Twei, typename Tout>
+struct cpu_convolution_acc_type
+{
+    using type = double; // default using double as accumulator
+};
+
+template <>
+struct cpu_convolution_acc_type<int8_t, int8_t, int32_t>
+{
+    using type = int32_t;
+};
+
+template <>
+struct cpu_convolution_acc_type<int8_t, int8_t, float>
+{
+    using type = double;
+};
+
 template <std::size_t ConvDim,
           typename Tacc,
           typename Tin,
@@ -64,13 +82,12 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
     assert(in.desc.GetSize() == ConvDim + 2 and wei.desc.GetSize() == ConvDim + 2 and
            out.desc.GetSize() == ConvDim + 2 and pads.size() == ConvDim and
            strides.size() == ConvDim and dilations.size() == ConvDim);
-
     std::size_t out_n_len = out.desc.GetLengths()[0];
 
     std::size_t wei_k_len = wei.desc.GetLengths()[0];
     std::size_t wei_c_len = wei.desc.GetLengths()[1];
 
-    std::size_t wei_k_len_per_group = wei_k_len / group_count;
+    std::size_t vector_len = in.desc.GetVectorLength();
 
     std::array<std::size_t, ConvDim> in_spatial_len{};
     std::array<std::size_t, ConvDim> wei_spatial_len{};
@@ -79,6 +96,16 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
     std::copy_n(in.desc.GetLengths().begin() + 2, ConvDim, in_spatial_len.begin());
     std::copy_n(wei.desc.GetLengths().begin() + 2, ConvDim, wei_spatial_len.begin());
     std::copy_n(out.desc.GetLengths().begin() + 2, ConvDim, out_spatial_len.begin());
+
+    if(wei.desc.GetLayout_str() == "CHWNc")
+    {
+        wei_c_len = wei.desc.GetLengths()[0];
+        std::copy_n(wei.desc.GetLengths().begin() + 1, ConvDim, wei_spatial_len.begin());
+        wei_k_len = wei.desc.GetLengths()[3];
+    }
+
+    std::size_t wei_k_len_per_group = wei_k_len / group_count;
+
     // f(x0, x1, xs...)
     // f1(xs...) = f(x0, x1, xs...)
     // f2(xs_array) = f1(xs...)
@@ -108,27 +135,44 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
                     in_spatial_id[i] =
                         out_spatial_id[i] * strides[i] + wei_spatial_id[i] * dilations[i] - pads[i];
                 }
-
                 bool out_of_bound = false;
                 for(std::size_t i = 0; i < ConvDim; ++i)
                 {
                     out_of_bound = out_of_bound or
                                    (in_spatial_id[i] < 0 or in_spatial_id[i] >= in_spatial_len[i]);
                 }
-
                 if(!out_of_bound)
                 {
-                    std::array<std::size_t, ConvDim + 2> in_id{};
-                    in_id[0] = out_n_id;
-                    in_id[1] = in_c_id;
-                    std::copy_n(in_spatial_id.begin(), ConvDim, in_id.begin() + 2);
-
-                    acc += Tacc(in(in_id)) * Tacc(wei(out_k_id, wei_c_id, wei_spatial_id_pack...));
+                    if(vector_len > 1)
+                    {
+                        std::array<std::size_t, ConvDim + 3> in_id{};
+                        in_id[1] = out_n_id;
+                        in_id[2] = in_c_id;
+                        std::copy_n(in_spatial_id.begin(), ConvDim, in_id.begin() + 3);
+                        for(std::size_t i = 0; i < vector_len; i++)
+                        {
+                            in_id[0] = i;
+                            acc += Tacc(in(in_id)) *
+                                   Tacc(wei(i, out_k_id, wei_c_id, wei_spatial_id_pack...));
+                        }
+                    }
+                    else
+                    {
+                        std::array<std::size_t, ConvDim + 2> in_id{};
+                        in_id[0] = out_n_id;
+                        in_id[1] = in_c_id;
+                        std::copy_n(in_spatial_id.begin(), ConvDim, in_id.begin() + 2);
+                        acc +=
+                            Tacc(in(in_id)) * Tacc(wei(out_k_id, wei_c_id, wei_spatial_id_pack...));
+                    }
                 }
             });
         });
-
-        out(out_n_id, out_k_id, out_spatial_id_pack...) = acc;
+        if(vector_len > 1)
+            out(out_k_id % vector_len, out_n_id, out_k_id / vector_len, out_spatial_id_pack...) =
+                acc;
+        else
+            out(out_n_id, out_k_id, out_spatial_id_pack...) = acc;
     });
 }
 
@@ -316,63 +360,33 @@ void cpu_convolution_forward(std::size_t spatial_dim,
                              const Range& dilations,
                              std::size_t group_count)
 {
-    if(std::is_same<Tin, int8_t>::value && std::is_same<Twei, int8_t>::value)
+    using acc_type = typename cpu_convolution_acc_type<Tin, Twei, Tout>::type;
+
+    switch(spatial_dim)
     {
-        switch(spatial_dim)
-        {
-        case 1: {
-            cpu_convolution_forward_impl<1, double>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 2: {
-            cpu_convolution_forward_impl<2, double>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 3: {
-            cpu_convolution_forward_impl<3, double>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 4: {
-            cpu_convolution_forward_impl<4, double>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        default: {
-            MIOPEN_THROW("not belong to any case");
-        }
-        }
+    case 1: {
+        cpu_convolution_forward_impl<1, acc_type>(
+            in, wei, out, pads, strides, dilations, group_count);
+        break;
     }
-    else
-    {
-        switch(spatial_dim)
-        {
-        case 1: {
-            cpu_convolution_forward_impl<1, int32_t>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 2: {
-            cpu_convolution_forward_impl<2, int32_t>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 3: {
-            cpu_convolution_forward_impl<3, int32_t>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 4: {
-            cpu_convolution_forward_impl<4, int32_t>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        default: {
-            MIOPEN_THROW("not belong to any case");
-        }
-        }
+    case 2: {
+        cpu_convolution_forward_impl<2, acc_type>(
+            in, wei, out, pads, strides, dilations, group_count);
+        break;
+    }
+    case 3: {
+        cpu_convolution_forward_impl<3, acc_type>(
+            in, wei, out, pads, strides, dilations, group_count);
+        break;
+    }
+    case 4: {
+        cpu_convolution_forward_impl<4, acc_type>(
+            in, wei, out, pads, strides, dilations, group_count);
+        break;
+    }
+    default: {
+        MIOPEN_THROW("not belong to any case");
+    }
     }
 }
 
@@ -386,63 +400,33 @@ void cpu_convolution_backward_data(std::size_t spatial_dim,
                                    const Range& dilations,
                                    std::size_t group_count)
 {
-    if(std::is_same<Tout, int8_t>::value && std::is_same<Twei, int8_t>::value)
+    using acc_type = typename cpu_convolution_acc_type<Tin, Twei, Tout>::type;
+
+    switch(spatial_dim)
     {
-        switch(spatial_dim)
-        {
-        case 1: {
-            cpu_convolution_backward_data_impl<1, double>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 2: {
-            cpu_convolution_backward_data_impl<2, double>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 3: {
-            cpu_convolution_backward_data_impl<3, double>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 4: {
-            cpu_convolution_backward_data_impl<4, double>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        default: {
-            MIOPEN_THROW("not belong to any case");
-        }
-        }
+    case 1: {
+        cpu_convolution_backward_data_impl<1, acc_type>(
+            in, wei, out, pads, strides, dilations, group_count);
+        break;
     }
-    else
-    {
-        switch(spatial_dim)
-        {
-        case 1: {
-            cpu_convolution_backward_data_impl<1, int32_t>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 2: {
-            cpu_convolution_backward_data_impl<2, int32_t>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 3: {
-            cpu_convolution_backward_data_impl<3, int32_t>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 4: {
-            cpu_convolution_backward_data_impl<4, int32_t>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        default: {
-            MIOPEN_THROW("not belong to any case");
-        }
-        }
+    case 2: {
+        cpu_convolution_backward_data_impl<2, acc_type>(
+            in, wei, out, pads, strides, dilations, group_count);
+        break;
+    }
+    case 3: {
+        cpu_convolution_backward_data_impl<3, acc_type>(
+            in, wei, out, pads, strides, dilations, group_count);
+        break;
+    }
+    case 4: {
+        cpu_convolution_backward_data_impl<4, acc_type>(
+            in, wei, out, pads, strides, dilations, group_count);
+        break;
+    }
+    default: {
+        MIOPEN_THROW("not belong to any case");
+    }
     }
 }
 
@@ -456,64 +440,33 @@ void cpu_convolution_backward_weight(std::size_t spatial_dim,
                                      const Range& dilations,
                                      std::size_t group_count)
 {
-    if(std::is_same<Tin, int8_t>::value && std::is_same<Tout, int8_t>::value)
-    {
-        switch(spatial_dim)
-        {
-        case 1: {
-            cpu_convolution_backward_weight_impl<1, double>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 2: {
-            cpu_convolution_backward_weight_impl<2, double>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 3: {
-            cpu_convolution_backward_weight_impl<3, double>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 4: {
-            cpu_convolution_backward_weight_impl<4, double>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        default: {
-            MIOPEN_THROW("not belong to any case");
-        }
-        }
-    }
+    using acc_type = typename cpu_convolution_acc_type<Tin, Twei, Tout>::type;
 
-    else
+    switch(spatial_dim)
     {
-        switch(spatial_dim)
-        {
-        case 1: {
-            cpu_convolution_backward_weight_impl<1, int32_t>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 2: {
-            cpu_convolution_backward_weight_impl<2, int32_t>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 3: {
-            cpu_convolution_backward_weight_impl<3, int32_t>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        case 4: {
-            cpu_convolution_backward_weight_impl<4, int32_t>(
-                in, wei, out, pads, strides, dilations, group_count);
-            break;
-        }
-        default: {
-            MIOPEN_THROW("not belong to any case");
-        }
-        }
+    case 1: {
+        cpu_convolution_backward_weight_impl<1, acc_type>(
+            in, wei, out, pads, strides, dilations, group_count);
+        break;
+    }
+    case 2: {
+        cpu_convolution_backward_weight_impl<2, acc_type>(
+            in, wei, out, pads, strides, dilations, group_count);
+        break;
+    }
+    case 3: {
+        cpu_convolution_backward_weight_impl<3, acc_type>(
+            in, wei, out, pads, strides, dilations, group_count);
+        break;
+    }
+    case 4: {
+        cpu_convolution_backward_weight_impl<4, acc_type>(
+            in, wei, out, pads, strides, dilations, group_count);
+        break;
+    }
+    default: {
+        MIOPEN_THROW("not belong to any case");
+    }
     }
 }
 #endif
