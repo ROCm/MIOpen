@@ -90,7 +90,7 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx,
     if(xDesc.GetType() == miopenInt8x4 || xDesc.GetType() == miopenInt8)
     {
         // rocBlas needs the output to be int32 always
-        if(yDesc.GetType() != miopenFloat || yDesc.GetType() != miopenInt32 ||
+        if(yDesc.GetType() != miopenFloat && yDesc.GetType() != miopenInt32 &&
            yDesc.GetType() != miopenInt8x4)
             return false;
     }
