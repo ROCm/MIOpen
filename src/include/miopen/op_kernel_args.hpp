@@ -4,10 +4,7 @@
 #include <type_traits>
 #include <cstdint>
 #include <half.hpp>
-#if HIP_PACKAGE_VERSION_FLAT > 5001999999ULL
-#include <miopen/config.h>
 #include <boost/container/small_vector.hpp>
-#endif
 
 struct OpKernelArg
 {
@@ -31,11 +28,7 @@ struct OpKernelArg
     }
 
     std::size_t size() const { return buffer.size(); };
-#if HIP_PACKAGE_VERSION_FLAT <= 5001999999ULL
-    std::vector<char> buffer;
-#else
     boost::container::small_vector<char, 8> buffer;
-#endif
     bool is_ptr = false;
 };
 
