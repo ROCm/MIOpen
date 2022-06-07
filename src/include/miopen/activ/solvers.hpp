@@ -45,7 +45,7 @@ using OldStyleProblemDescription =
 
 using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
 
-struct ActivFwdSolver0 : OldStyleSolver
+struct ActivFwdSolver0 final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
@@ -68,7 +68,7 @@ struct ActivFwdSolver0 : OldStyleSolver
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
-struct ActivFwdSolver1 : OldStyleSolver
+struct ActivFwdSolver1 final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
@@ -91,7 +91,7 @@ struct ActivFwdSolver1 : OldStyleSolver
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
-struct ActivBwdSolver0 : OldStyleSolver
+struct ActivBwdSolver0 final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
@@ -114,7 +114,7 @@ struct ActivBwdSolver0 : OldStyleSolver
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
-struct ActivBwdSolver1 : OldStyleSolver
+struct ActivBwdSolver1 final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
