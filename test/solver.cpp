@@ -42,7 +42,7 @@
 
 namespace miopen {
 namespace tests {
-class TrivialTestSolver : public solver::ConvSolver
+class TrivialTestSolver final : public solver::ConvSolver
 {
 public:
     static const char* FileName() { return "TrivialTestSolver"; }
