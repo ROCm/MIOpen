@@ -1160,10 +1160,6 @@ InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
     opArgs.emplace_back(shift_pack_0);
     opArgs.emplace_back(shift_pack_1);
 
-    const auto is_nchwc = ctx.IsLayoutNCHWC();
-    if(!is_nchwc)
-        MIOPEN_THROW("Error : Data layout is not in NCHW vector-c format");
-
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();

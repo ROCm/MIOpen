@@ -549,6 +549,9 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionC
     if(!ctx.Is2d())
         return false;
 
+    if(!ctx.IsLayoutNCHWC())
+        return false;
+
     if(!(ctx.IsFp16() && ctx.vectorLength == 4) && !(ctx.IsFp16() && ctx.vectorLength == 8))
         return false;
 
