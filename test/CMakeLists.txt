@@ -162,14 +162,6 @@ else()
     set(MIOPEN_TEST_FLOAT TRUE)
 endif()
 
-macro(set_var_to_condition var)
-    if(${ARGN})
-        set(${var} ON)
-    else()
-        set(${name} OFF)
-    endif()
-endmacro()
-
 set_var_to_condition(WORKAROUND_ISSUE_1187_DEFAULT MIOPEN_TEST_GFX90A AND MIOPEN_TEST_FLOAT)
 option( WORKAROUND_ISSUE_1187 "" ${WORKAROUND_ISSUE_1187_DEFAULT})
 
