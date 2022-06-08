@@ -149,6 +149,10 @@ if(MIOPEN_TEST_GPU_DETECTION_FAILED AND NOT (MIOPEN_NO_GPU))
     add_dependencies(check gpu_detection_check)
 endif()
 
+if(MIOPEN_TEST_WITH_MIOPENDRIVER)
+    add_dependencies(check MIOpenDriver)
+endif()
+
 set(MIOPEN_TEST_FLOAT_ARG)
 set(MIOPEN_TEST_FLOAT FALSE)
 if(MIOPEN_TEST_HALF)
@@ -615,9 +619,13 @@ if(${CODECOV_TEST})
     add_custom_test(test_pooling2d_codecov
         COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --input 1, 192, 28, 28 --lens 2 2 --strides 2 2 --pads 0 0 ${MIOPEN_TEST_FLAGS_ARGS}
     )
-
 endif()
 
+if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
+    add_custom_test(test_miopendriver GFX103X_ENABLED
+        COMMAND $<TARGET_FILE:MIOpenDriver> conv
+    )
+endif()
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
 
