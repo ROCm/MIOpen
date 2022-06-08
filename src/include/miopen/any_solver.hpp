@@ -192,9 +192,8 @@ struct AnySolver
         std::vector<ConvSolution>
         GetAllSolutions(const ConvolutionContext& ctx, std::true_type, std::true_type) const
         {
-            std::vector<ConvSolution> solutions;
-            solutions.push_back(value.GetSolution(ctx, value.GetDefaultPerformanceConfig(ctx)));
-            return solutions;
+            std::ignore = ctx;
+            MIOPEN_THROW("No solutions returned for Legacy Solvers.");
         }
 
         // tunable solver, not legacy
