@@ -218,7 +218,7 @@ PerformanceImplicitGemmBwdDataV4R1::CalculateGemmABlockCopyPerformanceParameters
         // decide threadwise copy lengths
         const auto a_data_per_thread_copy_gemmm = SrcDataPerRead_GemmM;
         const auto a_data_per_thread_copy_gemmk =
-            a_data_per_thread_copy / a_data_per_thread_copy_gemmm;
+            a_data_per_thread_copy / a_data_per_thread_copy_gemmm; // NOLINT
 
         // GemmABlockCopyDstDataPerWrite_GemmM also bounded by size of threadwise copy
         DstDataPerWrite_GemmM = gcd(DstDataPerWrite_GemmM, a_data_per_thread_copy_gemmm);

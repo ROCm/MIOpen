@@ -316,7 +316,7 @@ PerformanceImplicitGemmV4R4Fwd::CalculateGemmBBlockCopyPerformanceParameters(
         DstDataPerWrite_GemmN = gcd(DstDataPerWrite_GemmN, b_data_per_thread_copy_gemmn);
 
         // calculate blockwise copy thread cluster lengths
-        ClusterLengths_GemmK = GemmKPerBlock / b_data_per_thread_copy_gemmk;
+        ClusterLengths_GemmK = GemmKPerBlock / b_data_per_thread_copy_gemmk; // NOLINT
         ClusterLengths_GemmN = GemmNPerBlock / b_data_per_thread_copy_gemmn;
 
         if(!(ClusterLengths_GemmK > 0 && ClusterLengths_GemmN > 0))
