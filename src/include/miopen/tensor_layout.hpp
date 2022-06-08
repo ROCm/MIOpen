@@ -69,6 +69,42 @@ void tensor_layout_to_strides(const std::vector<T>& len,
                    });
 }
 
+template <typename T>
+void tensor_layout_to_strides(const std::vector<T>& len,
+                              const std::string& len_layout,
+                              const std::string& layout,
+                              const int vector,
+                              std::vector<T>& strides)
+{
+    const std::string base_layout = layout.substr(0, len.size());
+    // Bind the layout and the dimension lengths together into a map.
+    std::map<char, T> dim_to_len;
+    std::transform(len.begin(),
+                   len.end(),
+                   len_layout.begin(),
+                   std::inserter(dim_to_len, dim_to_len.end()),
+                   [](T l, char dim) { return std::make_pair(dim, l); });
+
+    // Now construct the strides according to layout by multiply the
+    // dimension lengths together.
+    std::transform(
+        len_layout.begin(),
+        len_layout.end(),
+        std::back_inserter(strides),
+        [&base_layout, &vector, &dim_to_len](char cur_layout_char) {
+            auto pos = base_layout.find(cur_layout_char);
+            if(pos == std::string::npos)
+            {
+                MIOPEN_THROW(std::string("mismatched layout string - ").append(base_layout));
+            }
+            return std::accumulate(
+                base_layout.begin() + pos + 1,
+                base_layout.end(),
+                vector,
+                [&dim_to_len](T accumulator, char l) { return accumulator * dim_to_len[l]; });
+        });
+}
+
 inline std::string tensor_layout_get_default(int size)
 {
     if(size == 4)
