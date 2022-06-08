@@ -190,9 +190,8 @@ struct AnySolver
 
         // tunable legacy solver
         std::vector<ConvSolution>
-        GetAllSolutions(const ConvolutionContext& ctx, std::true_type, std::true_type) const
+        GetAllSolutions(const ConvolutionContext&, std::true_type, std::true_type) const
         {
-            std::ignore = ctx;
             MIOPEN_THROW("No solutions returned for Legacy Solvers.");
         }
 
