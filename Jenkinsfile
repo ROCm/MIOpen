@@ -112,8 +112,25 @@ def cmake_build(Map conf=[:]){
         archiveArtifacts artifacts: "build/*.deb", allowEmptyArchive: true, fingerprint: true
     }
 }
+def getDockerImageName(prefixpath)
+{
+    def image = "${env.MIOPEN_IMAGE_URL}:miopen_ci_${env.BRANCH_NAME}_${env.BUILD_NUMBER}"
+    if(prefixpath == "/usr/local")
+    {
+        image = image + "_usr"
+    }
+    else if(prefixpath == "/opt/rocm")
+    {
+        image = image + "_opt"
+    }
+    else
+    {
+        error "Unknown prefixpath: ${prefixpath}"
+    }
+    return image
 
-def buildDocker(Map conf=[:])
+}
+def getDockerImage(Map conf=[:])
 {
     def prefixpath = conf.get("prefixpath", "/usr/local") // one image for each prefix 1: /usr/local 2:/opt/rocm
     def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906") // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
@@ -142,44 +159,22 @@ def buildDocker(Map conf=[:])
     {
         dockerArgs = dockerArgs + " --no-cache "
     }
-    def image = "${env.MIOPEN_IMAGE_URL}"
-    if(prefixpath == "/usr/local")
-    {
-        image = image + "_usr"
-    }
-    else if(prefixpath == "/opt/rocm")
-    {
-        image = image + "_opt"
-    }
-    else
-    {
-        echo "Unknown prefixpath: ${prefixpath}"
-    }
+    echo "Docker Args: ${dockerArgs}"
+    def image = getDockerImageName(prefixpath)
     //Check if image exists 
-    def image_exists
     def retimage
     try 
     {
         echo "Checking for image: ${image}"
         sh "docker manifest inspect --insecure ${image}"
-        image_exists = "1"
         echo "Image: ${image} found!!"
-    }
-    catch(Exception ex)
-    {
-        image_exists = "0"
-    }
-
-    if(image_exists == "1")
-    {
         echo "Pulling down image: ${image}"
         retimage = docker.image("${image}")
         retimage.pull()
     }
-    else
+    catch(Exception ex)
     {
-        echo "Unable to locate image: ${image}; Building Image ..."
-        retimage = docker.build("${image}", dockerArgs + '.')
+        error "Unable to locate image: ${image}"
     }
     return [retimage, image]
 }
@@ -206,7 +201,7 @@ def buildHipClangJob(Map conf=[:]){
         def retimage
         gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
             try {
-                (retimage, image) = buildDocker(conf)
+                (retimage, image) = getDockerImage(conf)
                 if (needs_gpu) {
                     withDockerContainer(image: image, args: dockerOpts) {
                         timeout(time: 5, unit: 'MINUTES')
@@ -222,7 +217,7 @@ def buildHipClangJob(Map conf=[:]){
             }
             catch(Exception ex) {
                 conf.put("no_cache", true)
-                (retimage, image) = buildDocker(conf)
+                (retimage, image) = getDockerImage(conf)
                 retimage = docker.build("${image}", dockerArgs + "--no-cache .")
                 if (needs_gpu) {
                     withDockerContainer(image: image, args: dockerOpts) {
@@ -287,6 +282,33 @@ def CheckDeserializePerfDb(Map conf=[:]){
         ).trim()
         assert has_error.toInteger() == 0
     }
+}
+
+def buildDocker(install_prefix)
+{
+    checkout scm
+    def image_name = getDockerImageName(install_prefix)
+    echo "Building Docker for ${image_name}"
+    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${install_prefix} --build-arg GPU_ARCH='gfx900;gfx906;gfx908;gfx90a;gfx90a:xnack-;gfx1030' --build-arg MIOTENSILE_VER='default' --build-arg USE_TARGETID='OFF' --build-arg USE_MLIR='ON' --build-arg USE_FIN='ON' "
+    if(env.CCACHE_HOST)
+    {
+        def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
+        if(check_host == "+PONG")
+        {
+            echo "FOUND CCACHE SERVER: ${CCACHE_HOST}"
+        }
+        else 
+        {
+            echo "CCACHE SERVER: ${CCACHE_HOST} NOT FOUND, got ${check_host} response"
+        }
+        dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
+        env.CCACHE_DIR = """/tmp/ccache_store"""
+        env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
+    }
+
+    echo "Build Args: ${dockerArgs}"
+    retimage = docker.build("${image_name}", dockerArgs + ' .')
+    retimage.push()
 }
 
 
@@ -405,6 +427,21 @@ pipeline {
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
     }
     stages{
+        stage("Build Docker"){
+            agent{label "master"}
+            parallel{
+                stage('Docker /opt/rocm'){
+                    steps{
+                        buildDocker('/opt/rocm')
+                    }
+                }
+                stage('Docker /usr/local'){
+                    steps{
+                        buildDocker('/usr/local')
+                    }
+                }
+            }
+        }
         stage("Static checks") {
             when {
                 expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU && params.DATATYPE_NA }
