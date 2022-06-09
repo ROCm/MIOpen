@@ -114,7 +114,8 @@ def cmake_build(Map conf=[:]){
 }
 def getDockerImageName(prefixpath)
 {
-    def image = "${env.MIOPEN_IMAGE_URL}:miopen_ci_${env.BRANCH_NAME}_${env.BUILD_NUMBER}"
+    def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
+    def image = "${env.MIOPEN_IMAGE_URL}:miopen_ci_${branch}_${env.BUILD_NUMBER}"
     if(prefixpath == "/usr/local")
     {
         image = image + "_usr"
@@ -186,7 +187,6 @@ def buildHipClangJob(Map conf=[:]){
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         env.DOCKER_BUILDKIT=1
         checkout scm
-        def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
         def image
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         if (conf.get("enforce_xnack_on", false)) {
