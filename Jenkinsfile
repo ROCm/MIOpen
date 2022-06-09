@@ -428,14 +428,15 @@ pipeline {
     }
     stages{
         stage("Build Docker"){
-            agent{label "master"}
             parallel{
                 stage('Docker /opt/rocm'){
+                    agent{label "master"}
                     steps{
                         buildDocker('/opt/rocm')
                     }
                 }
                 stage('Docker /usr/local'){
+                    agent{label "master"}
                     steps{
                         buildDocker('/usr/local')
                     }
