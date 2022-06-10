@@ -293,7 +293,7 @@ def buildDocker(install_prefix)
     def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${install_prefix} --build-arg GPU_ARCH='gfx900;gfx906;gfx908;gfx90a;gfx90a:xnack-;gfx1030' --build-arg MIOTENSILE_VER='default' --build-arg USE_TARGETID='OFF' --build-arg USE_MLIR='ON' --build-arg USE_FIN='ON' "
     if(env.CCACHE_HOST)
     {
-        def check_host = sh(script:"""(printf "PING\\r\\n";) | nc  ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
+        def check_host = sh(script:"""(printf "PING\\r\\n";) | nc  -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
         if(check_host == "+PONG")
         {
             echo "FOUND CCACHE SERVER: ${CCACHE_HOST}"
