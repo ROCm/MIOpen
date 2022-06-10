@@ -133,6 +133,7 @@ def getDockerImageName(prefixpath)
 }
 def getDockerImage(Map conf=[:])
 {
+    env.DOCKER_BUILDKIT=1
     def prefixpath = conf.get("prefixpath", "/usr/local") // one image for each prefix 1: /usr/local 2:/opt/rocm
     def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906") // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
     def miotensile_version = conf.get("miotensile_version", "default") // deprecated
@@ -286,6 +287,7 @@ def CheckDeserializePerfDb(Map conf=[:]){
 
 def buildDocker(install_prefix)
 {
+    env.DOCKER_BUILDKIT=1
     checkout scm
     def image_name = getDockerImageName(install_prefix)
     echo "Building Docker for ${image_name}"
