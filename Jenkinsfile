@@ -308,8 +308,18 @@ def buildDocker(install_prefix)
     }
 
     echo "Build Args: ${dockerArgs}"
-    retimage = docker.build("${image_name}", dockerArgs + ' .')
-    retimage.push()
+    try 
+    {
+        echo "Checking for image: ${image_name}"
+        sh "docker manifest inspect --insecure ${image_name}"
+        echo "Image: ${image} found!! Skipping building image"
+    }
+    catch(Exception ex)
+    {
+        echo "Unable to locate image: ${image}. Building image now"
+        retimage = docker.build("${image_name}", dockerArgs + ' .')
+        retimage.push()
+    }
 }
 
 
@@ -431,13 +441,13 @@ pipeline {
         stage("Build Docker"){
             parallel{
                 stage('Docker /opt/rocm'){
-                    agent{label "docker-build"}
+                    agent{ label rocmnode("nogpu") }
                     steps{
                         buildDocker('/opt/rocm')
                     }
                 }
                 stage('Docker /usr/local'){
-                    agent{label "docker-build"}
+                    agent{ label rocmnode("nogpu") }
                     steps{
                         buildDocker('/usr/local')
                     }
