@@ -115,7 +115,7 @@ def cmake_build(Map conf=[:]){
 def getDockerImageName(prefixpath)
 {
     def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
-    def image = "${env.MIOPEN_IMAGE_URL}:miopen_ci_${branch}_${env.BUILD_NUMBER}"
+    def image = "${env.MIOPEN_IMAGE_URL}:miopen_ci_${branch}"
     if(prefixpath == "/usr/local")
     {
         image = image + "_usr"
