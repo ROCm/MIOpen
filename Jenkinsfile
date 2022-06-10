@@ -430,13 +430,13 @@ pipeline {
         stage("Build Docker"){
             parallel{
                 stage('Docker /opt/rocm'){
-                    agent{label "ansible"}
+                    agent{label "docker-build"}
                     steps{
                         buildDocker('/opt/rocm')
                     }
                 }
                 stage('Docker /usr/local'){
-                    agent{label "ansible"}
+                    agent{label "docker-build"}
                     steps{
                         buildDocker('/usr/local')
                     }
