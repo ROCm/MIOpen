@@ -312,11 +312,11 @@ def buildDocker(install_prefix)
     {
         echo "Checking for image: ${image_name}"
         sh "docker manifest inspect --insecure ${image_name}"
-        echo "Image: ${image} found!! Skipping building image"
+        echo "Image: ${image_name} found!! Skipping building image"
     }
     catch(Exception ex)
     {
-        echo "Unable to locate image: ${image}. Building image now"
+        echo "Unable to locate image: ${image_name}. Building image now"
         retimage = docker.build("${image_name}", dockerArgs + ' .')
         retimage.push()
     }
