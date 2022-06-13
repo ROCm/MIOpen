@@ -1193,7 +1193,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             const int rcf = RunWarmupFindForwardGPU();
             if(rcf != 0)
             {
-                std::cout << "Warm-up: RunWarmupFindForwardGPU() failed, rcf = " << rcf
+                std::cout << "Warm-up: RunWarmupFindForwardGPU() FAILED, rcf = " << rcf
                           << ". Warm-up disabled." << std::endl;
                 warmup_enabled = false;
                 break;
