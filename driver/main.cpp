@@ -188,14 +188,14 @@ int main(int argc, char* argv[])
     int rc = drv->ParseCmdLineArgs(argc, argv);
     if(rc != 0)
     {
-        std::cout << "ParseCmdLineArgs() failed, rc = " << rc << std::endl;
+        std::cout << "ParseCmdLineArgs() FAILED, rc = " << rc << std::endl;
         return rc;
     }
     drv->GetandSetData();
     rc = drv->AllocateBuffersAndCopy();
     if(rc != 0)
     {
-        std::cout << "AllocateBuffersAndCopy() failed, rc = " << rc << std::endl;
+        std::cout << "AllocateBuffersAndCopy() FAILED, rc = " << rc << std::endl;
         return rc;
     }
 
@@ -211,7 +211,7 @@ int main(int argc, char* argv[])
         rc = drv->RunForwardGPU();
         cumulative_rc |= rc;
         if(rc != 0)
-            std::cout << "RunForwardGPU() failed, rc = "
+            std::cout << "RunForwardGPU() FAILED, rc = "
                       << "0x" << std::hex << rc << std::dec << std::endl;
         if(verifyarg) // Verify even if Run() failed.
             cumulative_rc |= drv->VerifyForward();
@@ -222,7 +222,7 @@ int main(int argc, char* argv[])
         rc = drv->RunBackwardGPU();
         cumulative_rc |= rc;
         if(rc != 0)
-            std::cout << "RunBackwardGPU() failed, rc = "
+            std::cout << "RunBackwardGPU() FAILED, rc = "
                       << "0x" << std::hex << rc << std::dec << std::endl;
         if(verifyarg) // Verify even if Run() failed.
             cumulative_rc |= drv->VerifyBackward();

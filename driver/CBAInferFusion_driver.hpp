@@ -1185,7 +1185,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
     int match = miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
     if(match == 0)
     {
-        std::cout << "Forward Activation Failed" << std::endl;
+        std::cout << "Forward Activation FAILED" << std::endl;
         return EC_VerifyFwd;
     }
 
