@@ -804,7 +804,7 @@ if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
     export.h config.h version.h miopen.h
     HEADER_LOCATION include/miopen
     GUARDS WRAPPER
-    WRAPPER_LOCATIONS miopen/include/miopen
+    WRAPPER_LOCATIONS miopen/${CMAKE_INSTALL_INCLUDEDIR}/miopen
     ORIGINAL_FILES ${PROJECT_BINARY_DIR}/include/miopen/version.h ${PROJECT_BINARY_DIR}/include/miopen/config.h
   )
 
