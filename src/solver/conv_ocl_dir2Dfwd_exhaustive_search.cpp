@@ -30,7 +30,6 @@
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
-#include <miopen/mlo_utils.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/bfloat16.hpp>
 
