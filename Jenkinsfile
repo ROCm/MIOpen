@@ -355,6 +355,10 @@ pipeline {
     }
     parameters {
         booleanParam(
+            name: "BUILD_DOCKER",
+            defaultValue: true,
+            description: "")
+        booleanParam(
             name: "BUILD_STATIC_CHECKS",
             defaultValue: true,
             description: "")
@@ -439,6 +443,9 @@ pipeline {
     }
     stages{
         stage("Build Docker"){
+            when {
+                expression {params.BUILD_DOCKER && params.TARGET_NOGPU}
+            }
             parallel{
                 stage('Docker /opt/rocm'){
                     agent{ label rocmnode("nogpu") }
