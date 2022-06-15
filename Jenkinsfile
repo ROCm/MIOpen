@@ -199,7 +199,7 @@ def buildHipClangJob(Map conf=[:]){
         def needs_gpu = conf.get("needs_gpu", true)
 
         def retimage
-        gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
+        gitStatusWrapper(credentialsId: '911f286b-40ee-4cab-9d47-3de2be50fc67', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
             try {
                 (retimage, image) = getDockerImage(conf)
                 if (needs_gpu) {
