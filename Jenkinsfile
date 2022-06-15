@@ -160,7 +160,7 @@ def buildHipClangJob(Map conf=[:]){
         {
             image = "${DOCKER_REPO}/miopen_build_cache/miopen:${branch}"
         }
-        gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
+        gitStatusWrapper(credentialsId: "${env.status_wrapper_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
             try {
                 retimage = docker.build("${image}", dockerArgs + '.')
                 if (needs_gpu) {
