@@ -2184,7 +2184,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
         return rc;
     }
 
-    if(miopen_type<Tgpu>{} == miopen_type<Tref>{})
+    if(miopen_type<Tgpu>{} == miopen_type<Tref>{} || miopen_type<Tgpu>{} == miopenInt8 ||
+       miopen_type<Tgpu>{} == miopenInt8x4)
         out_dev->FromGPU(GetStream(), outhost.data.data());
     else
     {
