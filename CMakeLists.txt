@@ -86,7 +86,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.17.0)
+rocm_setup_version(VERSION 2.18.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -268,7 +268,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     set(MIOPEN_USE_ROCBLAS ON CACHE BOOL "")
     if(MIOPEN_USE_ROCBLAS)
         find_package(rocblas REQUIRED PATHS /opt/rocm)
-        message(STATUS "Build with rocblas")
+        message(STATUS "Build with rocblas ${rocblas_VERSION}")
     else()
         message(STATUS "Build without rocblas")
     endif()
@@ -426,9 +426,9 @@ if(MIOPEN_USE_ROCBLAS)
 endif()
 
 if(MIOPEN_BACKEND STREQUAL "HIP")
-    # In HIP backend, there is a posibility of HIPRTC disabled.
+    # In HIP backend, there is a posibility of COMGR disabled.
     # In this case add the clang-ocl as dependency for runtime kernel compilation
-    if(NOT MIOPEN_USE_HIPRTC )
+    if(NOT MIOPEN_USE_COMGR)
         set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-clang-ocl")
     endif()
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}")

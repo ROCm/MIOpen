@@ -285,9 +285,12 @@ struct lrn_driver : test_driver
 
     lrn_driver()
     {
-        add(input,
-            "input",
-            get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
+        auto gen_value = [](auto... is) {
+            return tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}() *
+                   tensor_elem_gen_checkboard_sign{}(is...);
+        };
+
+        add(input, "input", get_input_tensor(gen_value));
         add(n, "N", generate_data({1, 4, 5}));
         add(alpha, "alpha", generate_data({double(1)}));
         add(beta, "beta", generate_data({double(1)}));
