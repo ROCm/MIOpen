@@ -167,9 +167,6 @@ def getDockerImage(Map conf=[:])
     def retimage
     try 
     {
-        echo "Checking for image: ${image}"
-        sh "docker manifest inspect --insecure ${image}"
-        echo "Image: ${image} found!!"
         echo "Pulling down image: ${image}"
         retimage = docker.image("${image}")
         retimage.pull()
