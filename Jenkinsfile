@@ -2,6 +2,17 @@ def rocmnode(name) {
     return 'rocmtest && miopen && ' + name
 }
 
+def miopenCheckout()
+{
+    checkout([
+        $class: 'GitSCM',
+        branches: scm.branches,
+        doGenerateSubmoduleConfigurations: true,
+        extensions: scm.extensions + [[$class: 'SubmoduleOption', parentCredentials: true]],
+        userRemoteConfigs: scm.userRemoteConfigs
+    ])
+}
+
 def show_node_info() {
     sh """
         echo "NODE_NAME = \$NODE_NAME"
@@ -119,7 +130,7 @@ def buildHipClangJob(Map conf=[:]){
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         env.DOCKER_BUILDKIT=1
-        checkout scm
+        miopenCheckout()
         def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
         def image = "miopen"
         def prefixpath = conf.get("prefixpath", "/usr/local")
