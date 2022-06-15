@@ -34,11 +34,8 @@ namespace miopen {
 template <class MIOpen_Private_TypeName_>
 const std::string& get_type_name()
 {
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static std::string name;
-
-    if(name.empty())
-    {
+    static const std::string ret = []() {
+        std::string name;
 #ifdef _MSC_VER
         name = typeid(MIOpen_Private_TypeName_).name();
         name = name.substr(7);
@@ -55,9 +52,9 @@ const std::string& get_type_name()
 #endif
         name        = name.substr(begin, length);
 #endif
-    }
-
-    return name;
+        return name;
+    }();
+    return ret;
 }
 
 template <class T>
