@@ -1,4 +1,0 @@
-[submodule "fin"]
-	path = fin
-	url = https://github.com/ROCmSoftwarePlatform/fin.git
-	branch = develop
