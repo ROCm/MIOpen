@@ -45,6 +45,9 @@ option( MIOPEN_TEST_DRIVER_ITER_MODE Off)
 option( MIOPEN_TEST_MIOTENSILE "Test MIOpenTensile path" OFF )
 option( MIOPEN_TEST_MLIR "Test for MLIR compilation backend" ${MIOPEN_USE_MLIR} )
 
+set_var_to_condition(MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT MIOPEN_BUILD_DRIVER)
+option( MIOPEN_TEST_WITH_MIOPENDRIVER "Use MIOpenDriver in tests" ${MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT})
+
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" ON)
 
@@ -129,6 +132,7 @@ message(STATUS "MIOPEN_TEST_GFX90A ${MIOPEN_TEST_GFX90A}")
 message(STATUS "MIOPEN_TEST_GFX103X ${MIOPEN_TEST_GFX103X}")
 message(STATUS "MIOPEN_TEST_GPU_XNACK_ENABLED ${MIOPEN_TEST_GPU_XNACK_ENABLED}")
 message(STATUS "MIOPEN_TEST_GPU_DETECTION_FAILED ${MIOPEN_TEST_GPU_DETECTION_FAILED}")
+message(STATUS "MIOPEN_TEST_WITH_MIOPENDRIVER ${MIOPEN_TEST_WITH_MIOPENDRIVER}")
 
 if(MIOPEN_TEST_DRIVER_ITER_MODE)
     add_definitions(-DMIOPEN_TEST_DRIVER_MODE=2)
@@ -145,6 +149,10 @@ if(MIOPEN_TEST_GPU_DETECTION_FAILED AND NOT (MIOPEN_NO_GPU))
     add_dependencies(check gpu_detection_check)
 endif()
 
+if(MIOPEN_TEST_WITH_MIOPENDRIVER)
+    add_dependencies(check MIOpenDriver)
+endif()
+
 set(MIOPEN_TEST_FLOAT_ARG)
 set(MIOPEN_TEST_FLOAT FALSE)
 if(MIOPEN_TEST_HALF)
@@ -157,14 +165,6 @@ else()
     set(MIOPEN_TEST_FLOAT_ARG --float)
     set(MIOPEN_TEST_FLOAT TRUE)
 endif()
-
-macro(set_var_to_condition var)
-    if(${ARGN})
-        set(${var} ON)
-    else()
-        set(${name} OFF)
-    endif()
-endmacro()
 
 set_var_to_condition(WORKAROUND_ISSUE_1187_DEFAULT MIOPEN_TEST_GFX90A AND MIOPEN_TEST_FLOAT)
 option( WORKAROUND_ISSUE_1187 "" ${WORKAROUND_ISSUE_1187_DEFAULT})
@@ -619,9 +619,14 @@ if(${CODECOV_TEST})
     add_custom_test(test_pooling2d_codecov
         COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --input 1, 192, 28, 28 --lens 2 2 --strides 2 2 --pads 0 0 ${MIOPEN_TEST_FLAGS_ARGS}
     )
-
 endif()
 
+if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
+    add_custom_test(test_miopendriver_half SKIP_UNLESS_ALL GFX103X_ENABLED FLOAT_DISABLED HALF_ENABLED
+        # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1576
+        COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvBwd $<TARGET_FILE:MIOpenDriver> convfp16 --forw 2 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
+    )
+endif()
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
 
