@@ -123,21 +123,13 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
 }
 
 Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
-                               const std::vector<solver::KernelInfo>& kernels) const
+                               const std::vector<solver::KernelBuildDefinition>& kernels) const
 {
     std::vector<Kernel> built;
     for(auto& k : kernels)
     {
         MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
-        const auto kernel = this->impl->cache.AddKernel(*this,
-                                                        "",
-                                                        "",
-                                                        k.kernel_file,
-                                                        k.kernel_name,
-                                                        k.l_wk,
-                                                        k.g_wk,
-                                                        k.comp_options,
-                                                        kernels.size());
+        const auto kernel = impl->cache.AddKernel(*this, "", "", k, kernels.size());
         built.push_back(kernel);
     }
     return factory(built);
@@ -165,58 +157,24 @@ bool Handle::HasKernel(const std::string& algorithm, const std::string& network_
 
 KernelInvoke Handle::Run(Kernel /* k */) const { return {}; }
 
-Program Handle::LoadProgram(const std::string& program_name,
-                            std::string params,
-                            bool is_kernel_str,
-                            const std::string& kernel_src) const
+solver::BuildProgramResult
+Handle::LoadProgram(const solver::KernelBuildDefinition& definition) const
 {
-    if(!miopen::EndsWith(program_name, ".mlir"))
+    auto def_copy = definition;
+
+    if(!miopen::EndsWith(definition.kernel_file, ".mlir"))
     {
-        params += " -mcpu=" + this->GetTargetProperties().Name();
+        try
+        {
+            auto& kernel_info = boost::any_cast<solver::KernelInfo&>(def_copy.build_parameters);
+            kernel_info.comp_options += " -mcpu=" + this->GetTargetProperties().Name();
+        }
+        catch(const boost::bad_any_cast&)
+        {
+        }
     }
 
-    auto hsaco       = miopen::LoadBinary(this->GetTargetProperties(),
-                                    this->GetMaxComputeUnits(),
-                                    program_name,
-                                    params,
-                                    is_kernel_str);
-    auto pgmImpl     = std::make_shared<HIPOCProgramImpl>();
-    pgmImpl->program = program_name;
-    pgmImpl->target  = this->GetTargetProperties();
-    auto p           = HIPOCProgram{};
-    p.impl           = pgmImpl;
-    if(hsaco.empty())
-    {
-        // avoid the constructor since it implicitly calls the HIP API
-        pgmImpl->BuildCodeObject(params, is_kernel_str, kernel_src);
-// auto p = HIPOCProgram{
-//     program_name, params, is_kernel_str, this->GetTargetProperties(), kernel_src};
-
-// Save to cache
-#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-        miopen::SaveBinary(p.IsCodeObjectInMemory()
-                               ? p.GetCodeObjectBlob()
-                               : miopen::LoadFile(p.GetCodeObjectPathname().string()),
-                           this->GetTargetProperties(),
-                           this->GetMaxComputeUnits(),
-                           program_name,
-                           params,
-                           is_kernel_str);
-#else
-        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
-        if(p.IsCodeObjectInMemory())
-            miopen::WriteFile(p.GetCodeObjectBlob(), path);
-        else
-            boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params, is_kernel_str);
-#endif
-    }
-    else
-    {
-        pgmImpl->binary = std::vector<char>(hsaco.begin(), hsaco.end());
-        // return HIPOCProgram{program_name, hsaco};
-    }
-    return p;
+    return def_copy(*this);
 }
 
 bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
