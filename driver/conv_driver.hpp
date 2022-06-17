@@ -432,7 +432,8 @@ private:
 template <typename Tgpu, typename Tref>
 bool ConvDriver<Tgpu, Tref>::IsInputTensorTransform() const
 {
-    return (data_type == miopenInt8 && inflags.GetValueInt("in_channels") % 4 != 0) ||
+    return (inflags.GetValueInt("tensor_vect") == 1 && data_type == miopenInt8 &&
+            inflags.GetValueInt("in_channels") % 4 != 0) ||
            data_type == miopenInt8x4;
 }
 
@@ -2183,7 +2184,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
         return rc;
     }
 
-    if(miopen_type<Tgpu>{} == miopen_type<Tref>{})
+    if(miopen_type<Tgpu>{} == miopen_type<Tref>{} || miopen_type<Tgpu>{} == miopenInt8 ||
+       miopen_type<Tgpu>{} == miopenInt8x4)
         out_dev->FromGPU(GetStream(), outhost.data.data());
     else
     {
