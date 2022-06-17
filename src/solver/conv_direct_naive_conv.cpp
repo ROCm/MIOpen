@@ -92,8 +92,8 @@ bool IsOutputInt8(const ConvolutionContext& ctx)
 }
 bool IsOutputInt32(const ConvolutionContext& ctx)
 {
-    return (ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8 &&
-            ctx.out_data_type == miopenInt32);
+    return ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8 &&
+           ctx.out_data_type == miopenInt32;
 }
 
 std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
