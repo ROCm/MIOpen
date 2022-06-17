@@ -213,13 +213,13 @@ ConvSolution ActivFwdSolver1::GetSolution(const ExecutionContext&,
         {"MIOPEN_READ_UNIT", read_unit},
     };
 
-    if(problem.GetXDesc().GetType() == miopenFloat && problem.GetYDesc().GetType() == miopenFloat)
+    if(problem.GetXDesc().GetType() == miopen::DataType::Float && problem.GetYDesc().GetType() == miopen::DataType::Float)
     {
         compiler_options.Define("MIOPEN_USE_FP32", 1);
         compiler_options.Define("MIOPEN_USE_FP16", 0);
     }
-    else if(problem.GetXDesc().GetType() == miopenHalf &&
-            problem.GetYDesc().GetType() == miopenHalf)
+    else if(problem.GetXDesc().GetType() == miopen::DataType::Half &&
+            problem.GetYDesc().GetType() == miopen::DataType::Half)
     {
         compiler_options.Define("MIOPEN_USE_FP32", 0);
         compiler_options.Define("MIOPEN_USE_FP16", 1);

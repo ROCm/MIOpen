@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,45 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "conv_common.hpp"
+#ifndef GUARD_MIOPEN_API_WRAPPERS_HPP_
+#define GUARD_MIOPEN_API_WRAPPERS_HPP_
 
-template <class T>
-struct conv2d_bias_driver : public conv_bias_driver<T>
+#include <miopen/miopen.h>
+#include <iosfwd>
+
+namespace miopen {
+
+enum class DataType
 {
-    std::string conv_dim_type;
-
-    conv2d_bias_driver()
-    {
-        auto gen_value = [](auto... is) {
-            return scalar_gen_random_integer{1, miopen_type<T>{} == miopen::DataType::Half ? 5 : 17}() *
-                   tensor_elem_gen_checkboard_sign{}(is...);
-        };
-
-        this->add(this->output, "output", this->get_tensor(get_inputs, gen_value));
-    }
+    Half = miopenHalf,
+    Float = miopenFloat,
+    Int32 = miopenInt32,
+    Int8 = miopenInt8,
+    Int8x4 = miopenInt8x4,
+    BFloat16 = miopenBFloat16,
+    Double = miopenDouble
 };
 
-int main(int argc, const char* argv[]) { test_drive<conv2d_bias_driver>(argc, argv); }
+inline DataType miopenLegacyToWrapper(miopenDataType_t type) {
+    return DataType(type);
+}
+
+inline miopenDataType_t miopenWrapperToLegacy(DataType wrapper_type) {
+    return miopenDataType_t(wrapper_type);
+}
+
+inline std::ostream& operator<<(std::ostream& os, DataType wrapper_type) {
+    return os << miopenWrapperToLegacy(wrapper_type);
+}
+
+} // miopen namespace
+
+#define miopenHalf ERROR_USE_DATATYPE_ENUM_CLASS_INSTEAD
+#define miopenFloat ERROR_USE_DATATYPE_ENUM_CLASS_INSTEAD
+#define miopenInt32 ERROR_USE_DATATYPE_ENUM_CLASS_INSTEAD
+#define miopenInt8 ERROR_USE_DATATYPE_ENUM_CLASS_INSTEAD
+#define miopenInt8x4 ERROR_USE_DATATYPE_ENUM_CLASS_INSTEAD
+#define miopenBFloat16 ERROR_USE_DATATYPE_ENUM_CLASS_INSTEAD
+#define miopenDouble ERROR_USE_DATATYPE_ENUM_CLASS_INSTEAD
+
+#endif // GUARD_MIOPEN_API_WRAPPERS_HPP_

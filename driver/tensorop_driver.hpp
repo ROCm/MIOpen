@@ -50,7 +50,7 @@ public:
         miopenCreateTensorDescriptor(&bTensor);
         miopenCreateTensorDescriptor(&cTensor);
         // TODO: check the dataype
-        data_type = miopenFloat;
+        data_type = miopen::DataType::Float;
         op        = miopenTensorOpAdd;
         is_set    = false;
         is_scale  = false;

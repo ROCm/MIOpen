@@ -110,7 +110,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
         std::to_string(f_norm_alpha) + std::to_string(f_norm_beta) + std::to_string(f_norm_K) +
         std::to_string(f_norm_alphaoverarea) + std::to_string(local_ar) +
         std::to_string(norm_region) + std::to_string(static_cast<int>(do_backward)) +
-        std::to_string(xDesc.GetType()) + std::to_string(nInStride) + std::to_string(nOutStride) +
+        std::to_string(miopen::miopenWrapperToLegacy(xDesc.GetType())) + std::to_string(nInStride) + std::to_string(nOutStride) +
         std::to_string(nIn) + std::to_string(nOut) + std::to_string(cInStride) +
         std::to_string(cOutStride) + std::to_string(cIn) + std::to_string(cOut) +
         std::to_string(hInStride) + std::to_string(hOutStride) + std::to_string(hIn) +
@@ -286,7 +286,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
         std::to_string(f_norm_alpha) + std::to_string(f_norm_beta) + std::to_string(norm_K) +
         std::to_string(norm_alphaoverarea) + std::to_string(local_ar) +
         std::to_string(norm_region) + std::to_string(f_norm_ratio) +
-        std::to_string(xDesc.GetType()) + std::to_string(nInStride) + std::to_string(nOutStride) +
+        std::to_string(miopen::miopenWrapperToLegacy(xDesc.GetType())) + std::to_string(nInStride) + std::to_string(nOutStride) +
         std::to_string(nIn) + std::to_string(nOut) + std::to_string(cInStride) +
         std::to_string(cOutStride) + std::to_string(cIn) + std::to_string(cOut) +
         std::to_string(hInStride) + std::to_string(hOutStride) + std::to_string(hIn) +

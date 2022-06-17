@@ -65,16 +65,16 @@ static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
                                    const TensorDescriptor& yDesc,
                                    const TensorDescriptor& wDesc)
 {
-    return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
-           wDesc.GetType() == miopenBFloat16;
+    return xDesc.GetType() == miopen::DataType::BFloat16 || yDesc.GetType() == miopen::DataType::BFloat16 ||
+           wDesc.GetType() == miopen::DataType::BFloat16;
 }
 
 static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
                                    const TensorDescriptor& yDesc,
                                    const TensorDescriptor& wDesc)
 {
-    return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
-           wDesc.GetType() == miopenHalf;
+    return xDesc.GetType() == miopen::DataType::Half || yDesc.GetType() == miopen::DataType::Half ||
+           wDesc.GetType() == miopen::DataType::Half;
 }
 #endif
 
@@ -138,12 +138,12 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
        miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 2; }))
     {
         n_transpose_NCHW2CNHW = 1;
-        if(wDesc.GetType() == miopenInt8)
+        if(wDesc.GetType() == miopen::DataType::Int8)
             n_transpose_packed_MN2NM = 1;
         n_gemm_strided_batched = conv.group_count;
         n_transpose_CNHW2NCHW  = 1;
-        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-           yDesc.GetType() != miopenInt32)
+        if((wDesc.GetType() == miopen::DataType::Int8 || wDesc.GetType() == miopen::DataType::Int8x4) &&
+           yDesc.GetType() != miopen::DataType::Int32)
             n_CastTensor = 1;
     }
     // 1x1_stride=1 with GEMM and zero workspace
@@ -152,7 +152,7 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
             miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }))
     {
 
-        if(wDesc.GetType() == miopenInt8)
+        if(wDesc.GetType() == miopen::DataType::Int8)
         {
             n_transpose_packed_MN2NM = in_n;
             n_gemm_runs              = in_n;
@@ -162,19 +162,19 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const conv::ProblemDescriptio
             n_gemm_strided_batched = conv.group_count;
             n_gemm_runs            = in_n;
         }
-        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-           yDesc.GetType() != miopenInt32)
+        if((wDesc.GetType() == miopen::DataType::Int8 || wDesc.GetType() == miopen::DataType::Int8x4) &&
+           yDesc.GetType() != miopen::DataType::Int32)
             n_CastTensor = 1;
     }
     else // not 1x1
     {
         n_Im2ColGPU = in_n;
-        if(wDesc.GetType() == miopenInt8)
+        if(wDesc.GetType() == miopen::DataType::Int8)
             n_transpose_packed_MN2NM = in_n;
         n_gemm_strided_batched = conv.group_count;
         n_gemm_runs            = in_n;
-        if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-           yDesc.GetType() != miopenInt32)
+        if((wDesc.GetType() == miopen::DataType::Int8 || wDesc.GetType() == miopen::DataType::Int8x4) &&
+           yDesc.GetType() != miopen::DataType::Int32)
             n_CastTensor = 1;
     }
 
@@ -210,7 +210,7 @@ size_t GemmFwd1x1_0_2::GetWorkspaceSize(const ExecutionContext& context,
     const auto out_spatial =
         boost::adaptors::slice(yDesc.GetLengths(), 2, 2 + conv.GetSpatialDimension());
 
-    const auto x_t_size = in_n * in_c * (xDesc.GetType() == miopenInt8 ? 2 : 1) *
+    const auto x_t_size = in_n * in_c * (xDesc.GetType() == miopen::DataType::Int8 ? 2 : 1) *
                           std::accumulate(out_spatial.begin(),
                                           out_spatial.end(),
                                           std::size_t(1),
@@ -337,7 +337,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
             std::size_t x_t_size = in_n * in_c * out_spatial_size;
 
             std::size_t wksp_offset = 0;
-            if(wDesc.GetType() == miopenInt8)
+            if(wDesc.GetType() == miopen::DataType::Int8)
             {
                 wksp_offset = x_t_size;
                 transpose_packed_MN2NM(handle,
@@ -355,7 +355,7 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
                 x_t_size *= 2;
             }
 
-            if(wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
+            if(wDesc.GetType() == miopen::DataType::Int8 || wDesc.GetType() == miopen::DataType::Int8x4)
             {
                 const auto xts = GetTypeSize(xDesc.GetType());
                 if(xts > 0)
@@ -441,10 +441,10 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
             if(handle.IsProfilingEnabled())
                 time_gemm += handle.GetKernelTime();
 
-            if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-               yDesc.GetType() != miopenInt32)
+            if((wDesc.GetType() == miopen::DataType::Int8 || wDesc.GetType() == miopen::DataType::Int8x4) &&
+               yDesc.GetType() != miopen::DataType::Int32)
             {
-                TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
+                TensorDescriptor ygemmDesc(miopen::DataType::Int32, yDesc.GetLengths(), yDesc.GetStrides());
 
                 CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
                 if(handle.IsProfilingEnabled())
@@ -521,7 +521,7 @@ bool GemmFwd1x1_0_1_int8::IsApplicable(const ExecutionContext& context,
     return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
            miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }) &&
-           wDesc.GetType() == miopenInt8 && conv.group_count == 1 &&
+           wDesc.GetType() == miopen::DataType::Int8 && conv.group_count == 1 &&
            GetWorkspaceSize(context, problem) > 0;
 #else
     std::ignore = context;
@@ -554,7 +554,7 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
     auto solution         = ConvSolution{miopenStatusSuccess};
     solution.workspace_sz = workspace_req;
 
-    TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
+    TensorDescriptor ygemmDesc(miopen::DataType::Int32, yDesc.GetLengths(), yDesc.GetStrides());
     const GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
     const auto x_type              = xDesc.GetType();
     const auto lowp_quant          = conv.lowp_quant;
@@ -684,7 +684,7 @@ bool GemmFwd1x1_0_1::IsApplicable(const ExecutionContext& context,
     return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
            miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; }) &&
-           wDesc.GetType() != miopenInt8;
+           wDesc.GetType() != miopen::DataType::Int8;
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -799,9 +799,9 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                     }
                 }
 
-                if(wDesc.GetType() == miopenInt8x4 && yDesc.GetType() != miopenInt32)
+                if(wDesc.GetType() == miopen::DataType::Int8x4 && yDesc.GetType() != miopen::DataType::Int32)
                 {
-                    TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
+                    TensorDescriptor ygemmDesc(miopen::DataType::Int32, yDesc.GetLengths(), yDesc.GetStrides());
                     CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
                     if(handle.IsProfilingEnabled())
                         time_gemm += handle.GetKernelTime();
@@ -879,9 +879,9 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                 if(handle.IsProfilingEnabled())
                     time += handle.GetKernelTime();
 
-                if(wDesc.GetType() == miopenInt8x4 && yDesc.GetType() != miopenInt32)
+                if(wDesc.GetType() == miopen::DataType::Int8x4 && yDesc.GetType() != miopen::DataType::Int32)
                 {
-                    TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
+                    TensorDescriptor ygemmDesc(miopen::DataType::Int32, yDesc.GetLengths(), yDesc.GetStrides());
                     CastTensor(handle, &lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
                     if(handle.IsProfilingEnabled())
                         time += handle.GetKernelTime();
@@ -929,7 +929,7 @@ size_t GemmFwdRest::GetWorkspaceSize(const ExecutionContext& context,
                                                 std::multiplies<std::size_t>()) *
                                 GetTypeSize(wDesc.GetType()) * conv.group_count;
 
-    const auto ws_sz = (wDesc.GetType() == miopenInt8 ? 2 * workspace_size : workspace_size);
+    const auto ws_sz = (wDesc.GetType() == miopen::DataType::Int8 ? 2 * workspace_size : workspace_size);
 
     if(ws_sz > MAX_MEM_ALLOC_SZ)
     {
@@ -1091,7 +1091,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                                             xDesc.GetType());
 
                 std::size_t wksp_offset = 0;
-                if(wDesc.GetType() == miopenInt8)
+                if(wDesc.GetType() == miopen::DataType::Int8)
                 {
                     wksp_offset = in_c * wei_spatial_size * out_spatial_size;
 
@@ -1125,8 +1125,8 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                         nullptr,
                         time_precision,
                         conv.group_count > 1 ? callGemmStridedBatched : callGemm,
-                        (conv.group_count > 1 || wDesc.GetType() == miopenInt8 ||
-                         wDesc.GetType() == miopenInt8x4 || wDesc.GetType() == miopenBFloat16)
+                        (conv.group_count > 1 || wDesc.GetType() == miopen::DataType::Int8 ||
+                         wDesc.GetType() == miopen::DataType::Int8x4 || wDesc.GetType() == miopen::DataType::BFloat16)
                             ? GemmBackend_t::miopentensile
                             : GemmBackend_t::miopengemm,
                         conv_params.gfx90aFp16alt);
@@ -1156,7 +1156,7 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                             y,
                             out_offset,
                             nullptr,
-                            (wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4)
+                            (wDesc.GetType() == miopen::DataType::Int8 || wDesc.GetType() == miopen::DataType::Int8x4)
                                 ? GemmBackend_t::rocblas
                                 : GemmBackend_t::miopengemm,
                             conv_params.gfx90aFp16alt);
@@ -1175,10 +1175,10 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
                 }
             }
 
-            if((wDesc.GetType() == miopenInt8 || wDesc.GetType() == miopenInt8x4) &&
-               yDesc.GetType() != miopenInt32)
+            if((wDesc.GetType() == miopen::DataType::Int8 || wDesc.GetType() == miopen::DataType::Int8x4) &&
+               yDesc.GetType() != miopen::DataType::Int32)
             {
-                TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
+                TensorDescriptor ygemmDesc(miopen::DataType::Int32, yDesc.GetLengths(), yDesc.GetStrides());
 
                 CastTensor(handle, &conv.lowp_quant, ygemmDesc, y, yDesc, y, 0, 0);
 

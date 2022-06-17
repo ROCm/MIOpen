@@ -269,7 +269,7 @@ public:
     }
 
 private:
-    const miopenDataType_t warmup_data_type = miopenFloat;
+    const miopen::DataType warmup_data_type = miopen::DataType::Float;
     typedef float warmup_Tgpu;
 
     InputFlags inflags;
@@ -432,8 +432,8 @@ private:
 template <typename Tgpu, typename Tref>
 bool ConvDriver<Tgpu, Tref>::IsInputTensorTransform() const
 {
-    return (data_type == miopenInt8 && inflags.GetValueInt("in_channels") % 4 != 0) ||
-           data_type == miopenInt8x4;
+    return (data_type == miopen::DataType::Int8 && inflags.GetValueInt("in_channels") % 4 != 0) ||
+           data_type == miopen::DataType::Int8x4;
 }
 
 template <typename Tgpu, typename Tref>
@@ -615,9 +615,9 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(inputTensor, in_len, inflags.GetValueStr("in_layout"), data_type);
     SetTensorNd(weightTensor, wei_len, inflags.GetValueStr("fil_layout"), data_type);
 
-    if(inflags.GetValueInt("tensor_vect") == 1 && data_type == miopenInt8)
+    if(inflags.GetValueInt("tensor_vect") == 1 && data_type == miopen::DataType::Int8)
     {
-        data_type = miopenInt8x4;
+        data_type = miopen::DataType::Int8x4;
     }
 
     if(IsInputTensorTransform())
@@ -642,8 +642,8 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     {
         out_len[0] *= miopen::deref(inputTensor).GetVectorLength();
     }
-    miopenDataType_t y_type =
-        (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenInt32 : data_type;
+    miopen::DataType y_type =
+        (data_type == miopen::DataType::Int8 || data_type == miopen::DataType::Int8x4) ? miopen::DataType::Int32 : data_type;
     SetTensorNd(outputTensor, out_len, inflags.GetValueStr("out_layout"), y_type);
 
     if(inflags.GetValueInt("bias") != 0)
@@ -1101,7 +1101,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
 
     bool is_transform = IsInputTensorTransform();
-    bool is_int8      = data_type == miopenInt8 || data_type == miopenInt8x4;
+    bool is_int8      = data_type == miopen::DataType::Int8 || data_type == miopen::DataType::Int8x4;
     size_t in_sz      = GetTensorSize(inputTensor);
     size_t wei_sz     = GetTensorSize(weightTensor);
     size_t out_sz     = GetTensorSize(outputTensor);
@@ -1474,10 +1474,10 @@ bool ConvDriver<Tgpu, Tref>::UseGPUReference()
 {
     if(miopen::IsEnabled(MIOPEN_DRIVER_USE_GPU_REFERENCE{}))
     {
-        if((miopen_type<Tref>{} == miopenFloat &&
-            (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||
-             miopen_type<Tgpu>{} == miopenBFloat16)) ||
-           (miopen_type<Tref>{} == miopenInt32 && miopen_type<Tgpu>{} == miopenInt8))
+        if((miopen_type<Tref>{} == miopen::DataType::Float &&
+            (miopen_type<Tgpu>{} == miopen::DataType::Float || miopen_type<Tgpu>{} == miopen::DataType::Half ||
+             miopen_type<Tgpu>{} == miopen::DataType::BFloat16)) ||
+           (miopen_type<Tref>{} == miopen::DataType::Int32 && miopen_type<Tgpu>{} == miopen::DataType::Int8))
             return true;
         else
             return false;
@@ -1785,7 +1785,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPU()
         }
     }
 
-    bool is_int8 = data_type == miopenInt8 || data_type == miopenInt8x4;
+    bool is_int8 = data_type == miopen::DataType::Int8 || data_type == miopen::DataType::Int8x4;
     if(is_int8)
         out_dev->FromGPU(GetStream(), out_int8.data());
     else
@@ -2262,7 +2262,7 @@ int ConvDriver<Tgpu, Tref>::FindBackwardWeights(int& ret_algo_count,
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    if(data_type == miopenInt8 || data_type == miopenInt8x4)
+    if(data_type == miopen::DataType::Int8 || data_type == miopen::DataType::Int8x4)
     {
         std::cout << "Int8 Backward Convolution is not supported" << std::endl;
         return 0;
@@ -3151,7 +3151,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
         din_dev->FromGPU(GetStream(), din_host.data.data());
     else
     {
-        auto din_tmp = tensor<Tgpu>(miopen::deref(inputTensor).GetType());
+        auto din_tmp = tensor<Tgpu>(miopenWrapperToLegacy(miopen::deref(inputTensor).GetType())); ///////////////////////////!!!
         din_dev->FromGPU(GetStream(), din_tmp.data.data());
         for(int i = 0; i < din_tmp.data.size(); i++)
         {
@@ -3304,7 +3304,7 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
                 RunForwardCPU();
         }
 
-    const auto isInt8 = (data_type == miopenInt8 || data_type == miopenInt8x4);
+    const auto isInt8 = (data_type == miopen::DataType::Int8 || data_type == miopen::DataType::Int8x4);
     auto error        = is_fwd_run_failed ? std::numeric_limits<double>::max()
                                    : (isInt8 ? miopen::rms_range(outhost.data, out_int8)
                                              : miopen::rms_range(outhost.data, out.data));
@@ -3329,7 +3329,7 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::VerifyBackward()
 {
-    if(data_type == miopenInt8 || data_type == miopenInt8x4)
+    if(data_type == miopen::DataType::Int8 || data_type == miopen::DataType::Int8x4)
     {
         std::cout << "Int8 Backward Convolution is not supported" << std::endl;
         return 0;

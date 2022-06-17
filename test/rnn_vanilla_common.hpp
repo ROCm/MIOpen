@@ -143,9 +143,9 @@ void RNNFwdTrainCPUVerify(miopen::Handle& handle,
         miopenCreateTensorDescriptor(&dropout_inputTensor);
         miopenCreateTensorDescriptor(&dropout_outputTensor);
         miopenSetTensorDescriptor(
-            dropout_inputTensor, miopenFloat, 2, drop_in_len.data(), drop_in_str.data());
+            dropout_inputTensor, miopen::DataType::Float, 2, drop_in_len.data(), drop_in_str.data());
         miopenSetTensorDescriptor(
-            dropout_outputTensor, miopenFloat, 2, drop_in_len.data(), drop_out_str.data());
+            dropout_outputTensor, miopen::DataType::Float, 2, drop_in_len.data(), drop_out_str.data());
 
         size_t reserveSpaceSizeInBytes = 0;
         miopenDropoutGetReserveSpaceSize(dropout_inputTensor, &reserveSpaceSizeInBytes);
@@ -632,7 +632,7 @@ void RNNBwdDataCPUVerify(bool use_dropout,
         std::array<int, 2> drop_in_str = {{hy_stride, 1}};
         miopenCreateTensorDescriptor(&dropout_inputTensor);
         miopenSetTensorDescriptor(
-            dropout_inputTensor, miopenFloat, 2, drop_in_len.data(), drop_in_str.data());
+            dropout_inputTensor, miopen::DataType::Float, 2, drop_in_len.data(), drop_in_str.data());
 
         size_t reserveSpaceSizeInBytes = 0;
         miopenDropoutGetReserveSpaceSize(dropout_inputTensor, &reserveSpaceSizeInBytes);
@@ -2356,7 +2356,7 @@ struct rnn_basic_vanilla_driver : test_driver
     {
 
 #if(MIOPEN_BACKEND_OPENCL == 1)
-        if(type == miopenHalf)
+        if(type == miopen::DataType::Half)
             exit(EXIT_SUCCESS); // NOLINT (concurrency-mt-unsafe)
 #endif
 

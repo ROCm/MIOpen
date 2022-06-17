@@ -39,7 +39,7 @@ DropoutDescriptor::DropoutDescriptor()
       state_evo(false),
       rng_mode(MIOPEN_RNG_PSEUDO_XORWOW)
 {
-    dataType_ = miopenFloat;
+    dataType_ = miopen::DataType::Float;
 }
 
 std::ostream& operator<<(std::ostream& stream, const DropoutDescriptor& x)

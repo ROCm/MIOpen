@@ -59,13 +59,13 @@ bool BnFwdTrainingSpatialSingle::IsApplicable(
     bool bfpmixparm = false;
     bool bfp32parm  = true;
 
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
+    if(problem.GetXDesc().GetType() == miopen::DataType::Half &&
+       problem.GetBnScaleBiasMeanVarDesc().GetType() == miopen::DataType::Half)
     {
         bfp32parm = false;
     }
-    else if(problem.GetXDesc().GetType() == miopenHalf &&
-            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+    else if(problem.GetXDesc().GetType() == miopen::DataType::Half &&
+            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopen::DataType::Float)
     {
         bfpmixparm = true;
         bfp32parm  = false;
@@ -98,14 +98,14 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     bool bfp16parm  = false;
     bool bfp32parm  = true;
 
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
+    if(problem.GetXDesc().GetType() == miopen::DataType::Half &&
+       problem.GetBnScaleBiasMeanVarDesc().GetType() == miopen::DataType::Half)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
-    else if(problem.GetXDesc().GetType() == miopenHalf &&
-            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+    else if(problem.GetXDesc().GetType() == miopen::DataType::Half &&
+            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopen::DataType::Float)
     {
         bfpmixparm = true;
         bfp32parm  = false;

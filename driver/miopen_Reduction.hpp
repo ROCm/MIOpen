@@ -77,21 +77,21 @@ public:
 
     void Run(float alpha, const Tgpu* in_data, float beta, Tref* out_data, int* indices)
     {
-        if(compTypeVal == miopenFloat)
+        if(miopen::miopenLegacyToWrapper(compTypeVal) == miopen::DataType::Float)
         {
             if(std::is_same<Tref, double>::value)
                 RunImpl<double>(alpha, in_data, beta, out_data, indices);
             else
                 RunImpl<float>(alpha, in_data, beta, out_data, indices);
         }
-        else if(compTypeVal == miopenHalf)
+        else if(miopen::miopenLegacyToWrapper(compTypeVal) == miopen::DataType::Half)
         {
             if(std::is_same<Tref, double>::value || std::is_same<Tref, float>::value)
                 RunImpl<Tref>(alpha, in_data, beta, out_data, indices);
             else
                 RunImpl<float16>(alpha, in_data, beta, out_data, indices);
         }
-        else if(compTypeVal == miopenDouble)
+        else if(miopen::miopenLegacyToWrapper(compTypeVal) == miopen::DataType::Double)
             RunImpl<double>(alpha, in_data, beta, out_data, indices);
         return;
     };

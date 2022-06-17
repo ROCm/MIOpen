@@ -246,7 +246,7 @@ struct cba_fusion_driver : test_driver
     bool enable_backward_weights = false;
     bool do_backward_data        = true;
     int search                   = 0;
-    unsigned long max_value      = miopen_type<T>{} == miopenHalf ? 5 : 17;
+    unsigned long max_value      = miopen_type<T>{} == miopen::DataType::Half ? 5 : 17;
     double alpha = 0., beta = 0., gamma = 0.;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
@@ -374,7 +374,7 @@ struct cba_fusion_driver : test_driver
             auto output = get_output_tensor(filter, input, weights);
             if(bias_mode)
             {
-                if(input.desc.GetType() == miopenFloat)
+                if(input.desc.GetType() == miopen::DataType::Float)
                 {
                     bias = tensor<T>{1, output.desc.GetLengths()[1], 1, 1}.generate(
                         tensor_elem_gen_integer{17});

@@ -71,14 +71,14 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     bool bfp16parm  = false;
     bool bfp32parm  = true;
 
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
+    if(problem.GetXDesc().GetType() == miopen::DataType::Half &&
+       problem.GetScaleBiasDiffDesc().GetType() == miopen::DataType::Half)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
-    else if(problem.GetXDesc().GetType() == miopenHalf &&
-            problem.GetScaleBiasDiffDesc().GetType() == miopenFloat)
+    else if(problem.GetXDesc().GetType() == miopen::DataType::Half &&
+            problem.GetScaleBiasDiffDesc().GetType() == miopen::DataType::Float)
     {
         bfpmixparm = true;
         bfp32parm  = false;

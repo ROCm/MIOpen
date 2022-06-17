@@ -152,7 +152,7 @@ int mlo_construct_norm::mloConstructFwd()
     }
 
     // Workaround for ROCm 1.8.2 compiler issue (#1057).
-    if(_search_params.in_data_type == miopenHalf && read_unit > 1 &&
+    if(_search_params.in_data_type == miopen::DataType::Half && read_unit > 1 &&
        _kernel_name == "MIOpenLRNAcrossChannels4")
     {
         const std::string name = _search_params.GetStream().GetDeviceName();

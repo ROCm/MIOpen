@@ -64,7 +64,7 @@ static void LogCmdBNorm(const miopenTensorDescriptor_t xDesc,
         int size = {0};
         miopenGetTensorDescriptorSize(xDesc, &size);
         std::stringstream ss;
-        if(miopen::deref(xDesc).GetType() == miopenHalf)
+        if(miopen::deref(xDesc).GetType() == miopen::DataType::Half)
         {
             ss << "bnormfp16";
         }
@@ -136,8 +136,8 @@ miopenBatchNormalizationForwardInference(miopenHandle_t handle,
                         epsilon);
 
     // bfloat16 not supported for batchnorm operation
-    if(miopen::deref(yDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(xDesc).GetType() == miopenBFloat16)
+    if(miopen::deref(yDesc).GetType() == miopen::DataType::BFloat16 ||
+       miopen::deref(xDesc).GetType() == miopen::DataType::BFloat16)
     {
         return miopenStatusNotImplemented;
     }
@@ -207,9 +207,9 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
                         resultSaveInvVariance);
 
     // bfloat16 not supported for batchnorm operation
-    if(miopen::deref(xDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(yDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(bnScaleBiasMeanVarDesc).GetType() == miopenBFloat16)
+    if(miopen::deref(xDesc).GetType() == miopen::DataType::BFloat16 ||
+       miopen::deref(yDesc).GetType() == miopen::DataType::BFloat16 ||
+       miopen::deref(bnScaleBiasMeanVarDesc).GetType() == miopen::DataType::BFloat16)
     {
         return miopenStatusNotImplemented;
     }
@@ -272,9 +272,9 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                                  const void* savedInvVariance)
 {
     // bfloat16 not supported for batchnorm operation
-    if(miopen::deref(xDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(dyDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(dxDesc).GetType() == miopenBFloat16)
+    if(miopen::deref(xDesc).GetType() == miopen::DataType::BFloat16 ||
+       miopen::deref(dyDesc).GetType() == miopen::DataType::BFloat16 ||
+       miopen::deref(dxDesc).GetType() == miopen::DataType::BFloat16)
     {
         return miopenStatusNotImplemented;
     }

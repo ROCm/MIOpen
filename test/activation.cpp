@@ -248,7 +248,7 @@ struct activation_driver : test_driver
             [=](double dy, double x, double y) { return dy * ((x > 0) ? 1 : y + alpha); });
         add(input,
             "input",
-            get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
+            get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopen::DataType::Half ? 5 : 17}));
         add(alpha, "alpha");
         add(beta, "beta");
         add(gamma, "gamma");

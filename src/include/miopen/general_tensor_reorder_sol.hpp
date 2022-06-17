@@ -46,7 +46,7 @@ struct GeneralReorderParam
 
 struct GenericReorderSolutionImpl
 {
-    GenericReorderSolutionImpl(miopenDataType_t data_type_,
+    GenericReorderSolutionImpl(miopen::DataType data_type_,
                                uint32_t dim_0_,
                                uint32_t dim_1_,
                                uint32_t dim_2_,
@@ -63,7 +63,7 @@ struct GenericReorderSolutionImpl
     bool IsSkippable() const;
     size_t GetOutputTensorSize() const;
 
-    miopenDataType_t data_type;
+    miopen::DataType data_type;
     uint32_t dim_0;
     uint32_t dim_1;
     uint32_t dim_2;

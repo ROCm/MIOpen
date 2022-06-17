@@ -87,7 +87,7 @@ struct verify_forward_train_bn_spatial
         tensor<U> runMean;
         tensor<U> runVar;
 
-        if(input.desc.GetType() == miopenFloat)
+        if(input.desc.GetType() == miopen::DataType::Float)
         {
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
                 tensor_elem_gen_integer{17});
@@ -254,7 +254,7 @@ struct verify_forward_train_bn_spatial
         tensor<U> runMean;
         tensor<U> runVar;
 
-        if(input.desc.GetType() == miopenFloat)
+        if(input.desc.GetType() == miopen::DataType::Float)
         {
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
                 tensor_elem_gen_integer{17});
@@ -1113,7 +1113,7 @@ struct batch_norm_spatial_driver : test_driver
         add(input,
             "input",
             get_bn_spatial_input_tensor(
-                tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
+                tensor_elem_gen_integer{miopen_type<T>{} == miopen::DataType::Half ? 5 : 17}));
     }
 
     void run()
@@ -1122,7 +1122,7 @@ struct batch_norm_spatial_driver : test_driver
         std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
 
         if(n == 1 ||
-           ((h * w > 1024) && (input.desc.GetType() == miopenHalf) && (MIO_BN_USE_MIX_PREC == 0)) ||
+           ((h * w > 1024) && (input.desc.GetType() == miopen::DataType::Half) && (MIO_BN_USE_MIX_PREC == 0)) ||
            (n == 128 && c == 16 && h == 32 && w == 32)) // \todo DLOWELL: This last condtion is
                                                         // needed to get half test to pass. Batch
                                                         // norm needs rewriting for fp16.
@@ -1135,7 +1135,7 @@ struct batch_norm_spatial_driver : test_driver
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
         std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
 
-        if(input.desc.GetType() == miopenFloat)
+        if(input.desc.GetType() == miopen::DataType::Float)
         {
             scale = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
             shift = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});

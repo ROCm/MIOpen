@@ -42,10 +42,10 @@ void chk_getop_bounds()
     std::vector<int> conv_desc   = {0, 0, 1, 1, 1, 1};
     // input descriptor
     STATUS(miopenSet4dTensorDescriptor(
-        &inputTensor, miopenFloat, inputs[0], inputs[1], inputs[2], inputs[3]));
+        &inputTensor, miopen::DataType::Float, inputs[0], inputs[1], inputs[2], inputs[3]));
     // convolution descriptor
     STATUS(miopenSet4dTensorDescriptor(&convFilter,
-                                       miopenFloat,
+                                       miopen::DataType::Float,
                                        conv_filter[0], // outputs k
                                        conv_filter[1], // inputs c
                                        conv_filter[2], // kernel size

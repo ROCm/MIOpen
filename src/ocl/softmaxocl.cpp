@@ -98,7 +98,7 @@ miopenStatus_t SoftmaxForward(const Handle& handle,
 
     bool usefp16 = false;
     bool usefp32 = true;
-    if(yDesc.GetType() == miopenHalf)
+    if(yDesc.GetType() == miopen::DataType::Half)
     {
         usefp16 = true;
         usefp32 = false;
@@ -215,7 +215,7 @@ miopenStatus_t SoftmaxForward(const Handle& handle,
             (grid_size % num_batch == 0) ? (grid_size / num_batch) : (grid_size / num_batch + 1);
         const std::vector<size_t> vgd{workgroups * vld[0], 1, 1};
 
-        if((u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
+        if((u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopen::DataType::Half)
             MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");
 
         std::string algo_name = "SoftmaxForwardMultiBatch";
@@ -376,7 +376,7 @@ miopenStatus_t SoftmaxBackward(const Handle& handle,
 
     bool usefp16 = false;
     bool usefp32 = true;
-    if(yDesc.GetType() == miopenHalf)
+    if(yDesc.GetType() == miopen::DataType::Half)
     {
         usefp16 = true;
         usefp32 = false;
@@ -499,7 +499,7 @@ miopenStatus_t SoftmaxBackward(const Handle& handle,
             (grid_size % num_batch == 0) ? (grid_size / num_batch) : (grid_size / num_batch + 1);
         const std::vector<size_t> vgd{workgroups * vld[0], 1, 1};
 
-        if((2 * u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopenHalf)
+        if((2 * u_batch_size + 1) * 256 > 65536 && yDesc.GetType() == miopen::DataType::Half)
             MIOPEN_THROW(miopenStatusBadParm, "Exceed local memory capacity");
 
         std::string algo_name = "SoftmaxBackwardMultiBatch";

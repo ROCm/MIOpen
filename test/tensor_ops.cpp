@@ -288,7 +288,7 @@ struct tensor_ops_driver : test_driver
         std::vector<int> blens = {{32, 16, 20, 16, 8}};
         std::vector<int> clens = {{32, 16, 20, 16, 8}};
 
-        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+        unsigned long max_value = miopen_type<T>{} == miopen::DataType::Half ? 5 : 17;
 
         super_a = tensor<T>{alens}.generate(tensor_elem_gen_integer{max_value});
         super_b = tensor<T>{blens}.generate(tensor_elem_gen_integer{max_value});

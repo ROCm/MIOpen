@@ -59,7 +59,7 @@ struct TensorParameters
         };
     }
 
-    int SetTensordDescriptor(miopenTensorDescriptor_t result, miopenDataType_t data_type);
+    int SetTensordDescriptor(miopenTensorDescriptor_t result, miopen::DataType data_type);
     void CalculateStrides();
 };
 

@@ -57,32 +57,32 @@ struct as_float
 };
 
 template <class F>
-void visit_float(miopenDataType_t t, F f)
+void visit_float(miopen::DataType t, F f)
 {
     switch(t)
     {
-    case miopenFloat: {
+    case miopen::DataType::Float: {
         f(as_float<float>{});
         break;
     }
-    case miopenHalf: {
+    case miopen::DataType::Half: {
         f(as_float<half_float::half>{});
         break;
     }
-    case miopenBFloat16: {
+    case miopen::DataType::BFloat16: {
         f(as_float<bfloat16>{});
         break;
     }
-    case miopenInt8x4:
-    case miopenInt8: {
+    case miopen::DataType::Int8x4:
+    case miopen::DataType::Int8: {
         f(as_float<int8_t>{});
         break;
     }
-    case miopenInt32: {
+    case miopen::DataType::Int32: {
         f(as_float<int>{});
         break;
     }
-    case miopenDouble: {
+    case miopen::DataType::Double: {
         f(as_float<double>{});
         break;
     }

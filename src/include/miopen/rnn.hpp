@@ -75,7 +75,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                   miopenRNNDirectionMode_t bidir,
                   miopenRNNBiasMode_t bmode,
                   miopenRNNAlgo_t amode,
-                  miopenDataType_t dType);
+                  miopen::DataType dType);
 
     RNNDescriptor(int hsz,
                   int layers,
@@ -84,7 +84,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                   miopenRNNDirectionMode_t bidir,
                   miopenRNNBiasMode_t bmode,
                   miopenRNNAlgo_t amode,
-                  miopenDataType_t dType,
+                  miopen::DataType dType,
                   miopenDropoutDescriptor_t dropDesc);
 
     size_t hsize;   // DLOWELL: is this uniform over all layers?
@@ -99,7 +99,7 @@ struct RNNDescriptor : miopenRNNDescriptor
     miopenRNNAlgo_t algoMode;
     miopenRNNInputMode_t inputMode;
     miopenRNNBiasMode_t biasMode;
-    miopenDataType_t dataType;
+    miopen::DataType dataType;
     std::size_t typeSize;
     miopenDropoutDescriptor_t dropoutDesc{};
 
@@ -119,12 +119,12 @@ struct RNNDescriptor : miopenRNNDescriptor
                           c_array_view<const miopenTensorDescriptor_t> xDesc) const;
 
     size_t
-    GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype) const;
+    GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopen::DataType dtype) const;
 
     void GetParamsDescriptor(Handle& handle,
                              const TensorDescriptor& xDesc,
                              TensorDescriptor& wDesc,
-                             miopenDataType_t dtype) const;
+                             miopen::DataType dtype) const;
 
     std::size_t
     GetLayerParamSize(Handle& handle, int layer, const TensorDescriptor& xDesc, int paramID) const;

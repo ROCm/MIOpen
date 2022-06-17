@@ -64,8 +64,8 @@ std::ostream& operator<<(std::ostream& stream, const boost::any& a)
         stream << boost::any_cast<miopenBatchNormMode_t>(a);
     else if(a.type() == typeid(miopenActivationMode_t))
         stream << boost::any_cast<miopenActivationMode_t>(a);
-    else if(a.type() == typeid(miopenDataType_t))
-        stream << boost::any_cast<miopenDataType_t>(a);
+    else if(a.type() == typeid(miopen::DataType))
+        stream << boost::any_cast<miopen::DataType>(a);
     else
         stream << "Unsupported any type: " << a.type().name();
     return stream;

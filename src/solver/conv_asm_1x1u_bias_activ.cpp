@@ -98,7 +98,7 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeP
 {
     auto cba_context    = context;
     cba_context.bias    = 1;
-    cba_context.bias_sz = cba_context.n_outputs * ((context.out_data_type == miopenHalf) ? 2 : 4);
+    cba_context.bias_sz = cba_context.n_outputs * ((context.out_data_type == miopen::DataType::Half) ? 2 : 4);
     if(!context.direction.IsForward())
         MIOPEN_THROW("Only inference supported.");
 
@@ -157,7 +157,7 @@ ConvBiasActivAsm1x1U::GetSolution(const ConvolutionContext& params,
             const auto& top_ocl_buf  = tensors.out;
             const auto& bias_ocl_buf = tensors.bias;
 
-            if(out_data_type == miopenHalf)
+            if(out_data_type == miopen::DataType::Half)
             {
                 short unused = 0;
                 auto alpha   = half(1.0);

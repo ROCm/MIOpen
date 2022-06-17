@@ -250,12 +250,12 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
     // be cast to a different than int32_t. This gives the solver a wider applicable range and
     // mimics the behavior of the gemm solver.
     bool needs_output_cast = false;
-    if(ctx.conv_problem.GetIn().GetType() == miopenInt8 &&
-       ctx.conv_problem.GetWeights().GetType() == miopenInt8 &&
-       ctx.conv_problem.GetOut().GetType() != miopenInt32)
+    if(ctx.conv_problem.GetIn().GetType() == miopen::DataType::Int8 &&
+       ctx.conv_problem.GetWeights().GetType() == miopen::DataType::Int8 &&
+       ctx.conv_problem.GetOut().GetType() != miopen::DataType::Int32)
     {
         needs_output_cast = true;
-        outConvDesc = TensorDescriptor(miopenInt32, outDesc.GetLengths(), outDesc.GetStrides());
+        outConvDesc = TensorDescriptor(miopen::DataType::Int32, outDesc.GetLengths(), outDesc.GetStrides());
     }
 
     return [=](const std::vector<Kernel>& kernels) mutable {
@@ -380,7 +380,7 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t w
                                  std::to_string(workspace_req) + " required)");
 
                 TensorDescriptor workspaceDesc(
-                    miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
+                    miopen::DataType::Float, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
 
 #if MIOPEN_BACKEND_OPENCL
                 for(const auto& k : kernels)

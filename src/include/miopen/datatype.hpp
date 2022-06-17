@@ -35,33 +35,33 @@
 
 namespace miopen {
 
-inline std::string GetDataType(miopenDataType_t type)
+inline std::string GetDataType(miopen::DataType type)
 {
     std::string type_str;
     switch(type)
     {
-    case miopenFloat: {
+    case miopen::DataType::Float: {
         type_str = "float";
     }
     break;
-    case miopenHalf: {
+    case miopen::DataType::Half: {
         type_str = "half";
     }
     break;
-    case miopenBFloat16: {
+    case miopen::DataType::BFloat16: {
         type_str = "bfloat16";
     }
     break;
-    case miopenInt8x4:
-    case miopenInt8: {
+    case miopen::DataType::Int8x4:
+    case miopen::DataType::Int8: {
         type_str = "int8_t";
     }
     break;
-    case miopenInt32: {
+    case miopen::DataType::Int32: {
         type_str = "int";
     }
     break;
-    case miopenDouble: {
+    case miopen::DataType::Double: {
         type_str = "double";
     }
     break;
@@ -69,7 +69,7 @@ inline std::string GetDataType(miopenDataType_t type)
     return type_str;
 }
 
-inline std::size_t get_data_size(miopenDataType_t type)
+inline std::size_t get_data_size(miopen::DataType type)
 {
     auto ret = std::size_t{};
     visit_float(type, [&](auto as_float) { ret = sizeof(decltype(as_float(1.f))); });
@@ -120,7 +120,7 @@ inline std::size_t get_index_max(miopenIndexType_t index_type)
     MIOPEN_THROW("not belong to any case");
 }
 
-inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
+inline KernelBuildParameters GetDataTypeKBP(miopen::DataType type)
 {
     // values for MIOPEN_USE_ macros
     int use_fp16               = 0;
@@ -136,13 +136,13 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
 
     switch(type)
     {
-    case miopenHalf: use_fp16 = 1; break;
-    case miopenFloat: use_fp32 = 1; break;
-    case miopenInt8: use_int8 = 1; break;
-    case miopenInt8x4: use_int8x4 = 1; break;
-    case miopenBFloat16: use_bfp16 = 1; break;
-    case miopenInt32: use_int32 = 1; break;
-    case miopenDouble: use_fp64 = 1; break;
+    case miopen::DataType::Half: use_fp16 = 1; break;
+    case miopen::DataType::Float: use_fp32 = 1; break;
+    case miopen::DataType::Int8: use_int8 = 1; break;
+    case miopen::DataType::Int8x4: use_int8x4 = 1; break;
+    case miopen::DataType::BFloat16: use_bfp16 = 1; break;
+    case miopen::DataType::Int32: use_int32 = 1; break;
+    case miopen::DataType::Double: use_fp64 = 1; break;
     default:
         MIOPEN_THROW("Only float, half, bfloat16, int8, int8x4 data type is supported.");
         break;
@@ -164,7 +164,7 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
     return kbp;
 }
 
-inline std::string GetDataTypeKernelParams(miopenDataType_t type)
+inline std::string GetDataTypeKernelParams(miopen::DataType type)
 {
     return " " + GetDataTypeKBP(type).GenerateFor(kbp::OpenCL{});
 }

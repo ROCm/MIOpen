@@ -510,7 +510,7 @@ struct pooling_driver : test_driver
     {
         std::vector<Index> indices{};
         auto input = tensor<T>{in_shape}.generate(
-            tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17});
+            tensor_elem_gen_integer{miopen_type<T>{} == miopen::DataType::Half ? 5 : 17});
         auto out  = verify(verify_forward_pooling<SptDim>{}, input, filter, indices);
         auto dout = out.first;
         dout.generate(tensor_elem_gen_integer{2503});

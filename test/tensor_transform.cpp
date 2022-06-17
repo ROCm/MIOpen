@@ -144,7 +144,7 @@ struct verify_tensor_transform_layout
     {
         tensor<T> dstSuperCpu = dstSuper;
 
-        if(dstDesc.GetType() == miopenInt8 && srcDesc.GetType() == miopenInt8)
+        if(dstDesc.GetType() == miopen::DataType::Int8 && srcDesc.GetType() == miopen::DataType::Int8)
         {
             int x_c;
             std::tie(std::ignore, x_c, std::ignore, std::ignore) =
@@ -392,7 +392,7 @@ struct tensor_transform_driver : test_driver
         float beta  = scales[1];
 
         unsigned long max_value =
-            miopen_type<T>{} == miopenHalf ? 5 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
+            miopen_type<T>{} == miopen::DataType::Half ? 5 : miopen_type<T>{} == miopen::DataType::Int8 ? 127 : 17;
 
         bool skip_layout = !(miopen::float_equal(static_cast<const float>(alpha), 1.0) &&
                              miopen::float_equal(static_cast<const float>(beta), 0.0) &&
@@ -420,7 +420,7 @@ struct tensor_transform_driver : test_driver
         }
 
         // Test tensor scale addition
-        if(miopen_type<T>{} == miopenInt8 || miopen_type<T>{} == miopenInt8x4)
+        if(miopen_type<T>{} == miopen::DataType::Int8 || miopen_type<T>{} == miopen::DataType::Int8x4)
             return;
 
         super_src = tensor<T>{superLens_src}.generate(tensor_elem_gen_integer{max_value});

@@ -308,7 +308,7 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
 
 void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& config)
 {
-    if(config.in_data_type == miopenDouble)
+    if(config.in_data_type == miopen::DataType::Double)
         MIOPEN_THROW("Double data type is not supported by ConvAsm1x1U");
 
     const auto elements_in_dword = 4 / GetTypeSize(config.in_data_type);
@@ -510,7 +510,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
         const auto subsample_kernel_compilation_options =
             std::string(" -DDATA_TYPE=") +
-            (params.in_data_type == miopenHalf ? "ushort" : "float") +
+            (params.in_data_type == miopen::DataType::Half ? "ushort" : "float") +
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
             std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride_w) +

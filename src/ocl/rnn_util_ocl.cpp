@@ -34,7 +34,7 @@
 namespace miopen {
 
 void LSTMForwardHiddenStateUpdate(const Handle& handle,
-                                  miopenDataType_t rnn_data_type,
+                                  miopen::DataType rnn_data_type,
                                   bool is_inference,
                                   bool is_seq_begin,
                                   int direction,
@@ -75,7 +75,7 @@ void LSTMForwardHiddenStateUpdate(const Handle& handle,
     glb_sz              = wg_sz * item_per_grp;
 
     std::string network_config =
-        "lstmfwdhid-" + std::string(rnn_data_type == miopenHalf ? "fp16-" : "fp32-") +
+        "lstmfwdhid-" + std::string(rnn_data_type == miopen::DataType::Half ? "fp16-" : "fp32-") +
         std::to_string(static_cast<int>(is_inference)) + "x" + std::to_string(RD_BLCK) + "x" +
         std::to_string(item_per_grp) + "x" + std::to_string(wg_sz);
 
@@ -115,7 +115,7 @@ void LSTMForwardHiddenStateUpdate(const Handle& handle,
 
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
 
-        if(rnn_data_type == miopenHalf)
+        if(rnn_data_type == miopen::DataType::Half)
             params += " -DMIOPEN_USE_FP16=1";
         else
             params += " -DMIOPEN_USE_FP32=1";
@@ -152,7 +152,7 @@ void LSTMForwardHiddenStateUpdate(const Handle& handle,
 }
 
 void LSTMBackwardHiddenStateUpdate(const Handle& handle,
-                                   miopenDataType_t rnn_data_type,
+                                   miopen::DataType rnn_data_type,
                                    bool is_seq_begin,
                                    bool is_seq_end,
                                    int direction,
@@ -203,7 +203,7 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
     glb_sz              = wg_sz * item_per_grp;
 
     std::string network_config =
-        "lstmbwdhid-" + std::string(rnn_data_type == miopenHalf ? "fp16-" : "fp32-") +
+        "lstmbwdhid-" + std::string(rnn_data_type == miopen::DataType::Half ? "fp16-" : "fp32-") +
         std::to_string(RD_BLCK) + "x" + std::to_string(item_per_grp) + "x" + std::to_string(wg_sz);
 
     bool use_cx  = cx != nullptr;
@@ -255,7 +255,7 @@ void LSTMBackwardHiddenStateUpdate(const Handle& handle,
 
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
 
-        if(rnn_data_type == miopenHalf)
+        if(rnn_data_type == miopen::DataType::Half)
             params += " -DMIOPEN_USE_FP16=1";
         else
             params += " -DMIOPEN_USE_FP32=1";

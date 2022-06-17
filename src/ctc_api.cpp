@@ -50,7 +50,7 @@ extern "C" miopenStatus_t miopenGetCTCLossDescriptor(miopenCTCLossDescriptor_t c
 {
     MIOPEN_LOG_FUNCTION(ctcLossDesc, dataType, blank_label_id, apply_softmax_layer);
     return miopen::try_([&] {
-        miopen::deref(dataType) = miopen::deref(ctcLossDesc).dataType;
+        miopen::deref(dataType) = miopen::miopenWrapperToLegacy(miopen::deref(ctcLossDesc).dataType);
         if(blank_label_id != nullptr)
             *blank_label_id = miopen::deref(ctcLossDesc).blank_label_id;
         if(apply_softmax_layer != nullptr)
@@ -65,7 +65,7 @@ extern "C" miopenStatus_t miopenSetCTCLossDescriptor(miopenCTCLossDescriptor_t c
 {
     MIOPEN_LOG_FUNCTION(ctcLossDesc, dataType, blank_label_id, apply_softmax_layer);
     return miopen::try_([&] {
-        miopen::deref(ctcLossDesc).dataType            = dataType;
+        miopen::deref(ctcLossDesc).dataType            = miopen::miopenLegacyToWrapper(dataType);
         miopen::deref(ctcLossDesc).blank_label_id      = blank_label_id;
         miopen::deref(ctcLossDesc).apply_softmax_layer = apply_softmax_layer;
     });
@@ -131,8 +131,8 @@ extern "C" miopenStatus_t miopenCTCLoss(miopenHandle_t handle,
                         workSpaceSize);
 
     // bfloat16 not supported for ctc operation
-    if(miopen::deref(probsDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(gradientsDesc).GetType() == miopenBFloat16)
+    if(miopen::deref(probsDesc).GetType() == miopen::DataType::BFloat16 ||
+       miopen::deref(gradientsDesc).GetType() == miopen::DataType::BFloat16)
     {
         return miopenStatusNotImplemented;
     }

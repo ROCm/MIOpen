@@ -234,8 +234,8 @@ tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
         input.desc,
         weights.desc,
         yLayout,
-        weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4
-            ? (std::is_same<Tout, int>{} ? miopenInt32 : miopenFloat)
+        weights.desc.GetType() == miopen::DataType::Int8 || weights.desc.GetType() == miopen::DataType::Int8x4
+            ? (std::is_same<Tout, int>{} ? miopen::DataType::Int32 : miopen::DataType::Float)
             : weights.desc.GetType())};
 }
 
@@ -328,7 +328,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                                     filter.GetGroupCount());
 
             bool is_int8 =
-                weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4;
+                weights.desc.GetType() == miopen::DataType::Int8 || weights.desc.GetType() == miopen::DataType::Int8x4;
             bool is_vect_c = weights.desc.GetVectorLength() > 1;
             rout.par_for_each([&](auto... is) {
                 if(is_int8 && !is_vect_c)
@@ -540,7 +540,7 @@ struct verify_forward_conv : conv_base<T, Tout>
         }
         else // regular find path for testing
         {
-            if(weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4)
+            if(weights.desc.GetType() == miopen::DataType::Int8 || weights.desc.GetType() == miopen::DataType::Int8x4)
             {
 
                 bool is_transform = (input.desc.GetLengths()[1] % 4 != 0 || is_vect);
@@ -552,9 +552,9 @@ struct verify_forward_conv : conv_base<T, Tout>
                 in_len[1]  = ((in_len[1] + 3) / 4) * 4;
                 wei_len[1] = ((wei_len[1] + 3) / 4) * 4;
 
-                miopen::TensorDescriptor input_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8,
+                miopen::TensorDescriptor input_vpad_desc(is_vect ? miopen::DataType::Int8x4 : miopen::DataType::Int8,
                                                          in_len);
-                miopen::TensorDescriptor weight_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8,
+                miopen::TensorDescriptor weight_vpad_desc(is_vect ? miopen::DataType::Int8x4 : miopen::DataType::Int8,
                                                           wei_len);
 
                 auto input_vpad   = tensor<T>{in_len};
@@ -1467,8 +1467,8 @@ struct verify_forward_conv_int8 : conv_base<T>
         in_len[1]  = ((in_len[1] + 3) / 4) * 4;
         wei_len[1] = ((wei_len[1] + 3) / 4) * 4;
 
-        miopen::TensorDescriptor input_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8, in_len);
-        miopen::TensorDescriptor weight_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8, wei_len);
+        miopen::TensorDescriptor input_vpad_desc(is_vect ? miopen::DataType::Int8x4 : miopen::DataType::Int8, in_len);
+        miopen::TensorDescriptor weight_vpad_desc(is_vect ? miopen::DataType::Int8x4 : miopen::DataType::Int8, wei_len);
 
         auto input_vpad   = tensor<T>{in_len};
         auto weights_vpad = tensor<T>{wei_len};
@@ -1967,7 +1967,7 @@ struct conv_driver : test_driver
             wei_k_len          = weights.desc.GetLengths()[3];
         }
 
-        bool is_int8 = (input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4);
+        bool is_int8 = (input.desc.GetType() == miopen::DataType::Int8 || input.desc.GetType() == miopen::DataType::Int8x4);
 
         // lack of transposeConv or groupConv for int8 type
         if(is_int8 && filter.mode == miopenTranspose)
@@ -1978,7 +1978,7 @@ struct conv_driver : test_driver
         }
 
         bool is_bfloat16 =
-            (input.desc.GetType() == miopenBFloat16 && weights.desc.GetType() == miopenBFloat16);
+            (input.desc.GetType() == miopen::DataType::BFloat16 && weights.desc.GetType() == miopen::DataType::BFloat16);
 
         // bfloat16 is not supported for conv3d
         if(is_bfloat16 && !(filter.spatialDim == 2))
@@ -2081,7 +2081,7 @@ struct conv_driver : test_driver
                 auto output             = get_output_tensor(filter, input, weights, out_layout);
                 auto gen_positive_value = [=](auto...) {
                     auto data_type    = input.desc.GetType();
-                    std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
+                    std::size_t v_max = is_int8 ? 16 : (data_type == miopen::DataType::Half) ? 4 : 16;
 
                     return gen_float ? scalar_gen_random_float{0, 1}()
                                      : scalar_gen_random_integer{1, v_max}();
@@ -2089,7 +2089,7 @@ struct conv_driver : test_driver
 
                 auto gen_sign_value = [=](auto... is) {
                     auto data_type    = input.desc.GetType();
-                    std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
+                    std::size_t v_max = is_int8 ? 16 : (data_type == miopen::DataType::Half) ? 4 : 16;
 
                     return gen_float ? scalar_gen_random_float{-1, 1}()
                                      : scalar_gen_random_integer{1, v_max}() *
@@ -2103,19 +2103,19 @@ struct conv_driver : test_driver
                                                       miopen::conv::Direction::Forward);
                 ctx.SetStream(&get_handle());
 
-                bool skip_forward = (input.desc.GetType() == miopenInt8x4 && !IsGemmAplicable(ctx));
+                bool skip_forward = (input.desc.GetType() == miopen::DataType::Int8x4 && !IsGemmAplicable(ctx));
                 bool skip_backward_data    = is_int8;
                 bool skip_backward_weights = is_int8;
 
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
-                if(input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4 ||
-                   input.desc.GetType() == miopenBFloat16)
+                if(input.desc.GetType() == miopen::DataType::Int8 || input.desc.GetType() == miopen::DataType::Int8x4 ||
+                   input.desc.GetType() == miopen::DataType::BFloat16)
                 {
                     show_command();
                     std::cout << "Direct path doesn't support Int8 or BFloat16 type." << std::endl;
                     return;
                 }
-                if(input.desc.GetType() == miopenHalf && filter.mode == miopenConvolution)
+                if(input.desc.GetType() == miopen::DataType::Half && filter.mode == miopenConvolution)
                 {
                     skip_forward = !is_direct_fwd_bwd_data_supported(
                         get_handle(), filter, input.desc, weights.desc, output.desc);
@@ -2159,7 +2159,7 @@ struct conv_driver : test_driver
                     size_t workspace_size = filter.ForwardGetWorkSpaceSize(
                         handle, weights.desc, input.desc, output_int8.desc);
 
-                    // 4x because assume type is miopenInt8x4
+                    // 4x because assume type is miopen::DataType::Int8x4
                     total_mem = input.desc.GetNumBytes() + 4 * input.desc.GetNumBytes() +
                                 weights.desc.GetNumBytes() + 4 * weights.desc.GetNumBytes() +
                                 output_int8.desc.GetNumBytes() + 4 * sizeof(char) * workspace_size;

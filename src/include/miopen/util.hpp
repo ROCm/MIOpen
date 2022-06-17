@@ -48,7 +48,7 @@ float Im2ColGPU(
     const std::vector<int>& stride_spatial,
     const std::vector<int>& dilation_spatial,
     Data_t col,
-    miopenDataType_t type);
+    miopen::DataType type);
 
 float Col2ImGPU(
     const Handle& handle,
@@ -63,7 +63,7 @@ float Col2ImGPU(
     const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& in_spatial,
     Data_t im,
     std::size_t im_offset,
-    miopenDataType_t type);
+    miopen::DataType type);
 
 float transpose_NCHW2CNHW(const Handle& handle,
                           int n,
@@ -78,7 +78,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
                           int out_offset,
                           int h_stride,
                           int w_stride,
-                          miopenDataType_t type);
+                          miopen::DataType type);
 
 float transpose_CNHW2NCHW(const Handle& handle,
                           int n,
@@ -93,7 +93,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
                           int out_offset,
                           int h_stride,
                           int w_stride,
-                          miopenDataType_t type);
+                          miopen::DataType type);
 
 float transpose_NCHW2Vec(const Handle& handle,
                          const std::vector<std::size_t>& lens,
@@ -112,7 +112,7 @@ float transpose_packed_MN2NM(const Handle& handle,
                              int out_offset,
                              ConstData_t in,
                              Data_t out,
-                             miopenDataType_t type);
+                             miopen::DataType type);
 } // namespace miopen
 
 #endif // _MIOPEN_UTIL_HPP_

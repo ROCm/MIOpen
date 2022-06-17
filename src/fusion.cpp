@@ -315,13 +315,13 @@ miopenStatus_t ActivFwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                    double activGamma)
 {
     auto id = std::to_string(GetIdx());
-    if(input_desc.GetType() == miopenFloat)
+    if(input_desc.GetType() == miopen::DataType::Float)
     {
         args.ins_arg("activAlpha" + id, OpKernelArg(static_cast<float>(activAlpha)));
         args.ins_arg("activBeta" + id, OpKernelArg(static_cast<float>(activBeta)));
         args.ins_arg("activGamma" + id, OpKernelArg(static_cast<float>(activGamma)));
     }
-    else if(input_desc.GetType() == miopenHalf)
+    else if(input_desc.GetType() == miopen::DataType::Half)
     {
         args.ins_arg("activAlpha" + id,
                      OpKernelArg(static_cast<half_float::half>(
@@ -345,14 +345,14 @@ std::vector<std::pair<std::string, OpKernelArg>> ActivFwdFusionOpDescriptor::Get
 {
     std::vector<std::pair<std::string, OpKernelArg>> keys;
     auto id = std::to_string(GetIdx());
-    if(input_desc.GetType() == miopenFloat)
+    if(input_desc.GetType() == miopen::DataType::Float)
     {
         float a = 0.0;
         keys.emplace_back("activAlpha" + id, OpKernelArg(a));
         keys.emplace_back("activBeta" + id, OpKernelArg(a));
         keys.emplace_back("activGamma" + id, OpKernelArg(a));
     }
-    else if(input_desc.GetType() == miopenHalf)
+    else if(input_desc.GetType() == miopen::DataType::Half)
     {
         half_float::half a;
         keys.emplace_back("activAlpha" + id, OpKernelArg(a));
@@ -401,14 +401,14 @@ miopenStatus_t ActivBwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
 {
     auto id             = std::to_string(GetIdx());
     auto activDiffScale = activBeta * activGamma;
-    if(input_desc.GetType() == miopenFloat)
+    if(input_desc.GetType() == miopen::DataType::Float)
     {
         args.ins_arg("activAlpha" + id, OpKernelArg(static_cast<float>(activAlpha)));
         args.ins_arg("activBeta" + id, OpKernelArg(static_cast<float>(activBeta)));
         args.ins_arg("activGamma" + id, OpKernelArg(static_cast<float>(activGamma)));
         args.ins_arg("activDiffScale" + id, OpKernelArg(static_cast<float>(activDiffScale)));
     }
-    else if(input_desc.GetType() == miopenHalf)
+    else if(input_desc.GetType() == miopen::DataType::Half)
     {
         args.ins_arg("activAlpha" + id,
                      OpKernelArg(static_cast<half_float::half>(
@@ -444,14 +444,14 @@ std::vector<std::pair<std::string, OpKernelArg>> ActivBwdFusionOpDescriptor::Get
 {
     std::vector<std::pair<std::string, OpKernelArg>> keys;
     auto id = std::to_string(GetIdx());
-    if(input_desc.GetType() == miopenFloat)
+    if(input_desc.GetType() == miopen::DataType::Float)
     {
         float a = 0.0;
         keys.emplace_back("activAlpha" + id, OpKernelArg(a));
         keys.emplace_back("activBeta" + id, OpKernelArg(a));
         keys.emplace_back("activGamma" + id, OpKernelArg(a));
     }
-    else if(input_desc.GetType() == miopenHalf)
+    else if(input_desc.GetType() == miopen::DataType::Half)
     {
         half_float::half a;
         keys.emplace_back("activAlpha" + id, OpKernelArg(a));
@@ -823,7 +823,7 @@ bool FusionPlanDescriptor::GetEnumVal(const std::string& sym, int& val) const
 {
     if(sym == "miopenFloat")
     {
-        val = miopenFloat;
+        val = miopenWrapperToLegacy(miopen::DataType::Float);
         return true;
     }
     else if(sym == "miopenConvolutionFwdAlgoDirect")
@@ -945,7 +945,7 @@ bool FusionPlanDescriptor::GetTensorAttr(const std::string& sym, int& val) const
     else if(sym == "precision")
     {
         assert(input_desc.GetType() == output_desc.GetType());
-        val = input_desc.GetType();
+        val = miopenWrapperToLegacy(input_desc.GetType());
     }
     else
         return false;
@@ -987,9 +987,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         MIOPEN_THROW(miopenStatusBadParm);
     }
     network_config =
-        input_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+        input_desc.ToString() + ((input_desc.GetType() == miopen::DataType::Half) ? "FP16" : "FP32");
     network_config +=
-        output_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+        output_desc.ToString() + ((input_desc.GetType() == miopen::DataType::Half) ? "FP16" : "FP32");
 
     for(auto&& op : op_map)
     {
@@ -1099,7 +1099,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                 auto dType = input_desc.GetType();
                 if(kernel_source_type == OpenclText)
                 {
-                    if(dType == miopenFloat)
+                    if(dType == miopen::DataType::Float)
                     {
                         compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
                     }

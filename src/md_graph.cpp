@@ -524,7 +524,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         // clang-format off
         const auto common_constr = {
             "algo === miopenConvolutionFwdAlgoWinograd",
-            "precision == miopenFloat", "stride_h == stride_w",
+            "precision == miopen::DataType::Float", "stride_h == stride_w",
             "dilation_h == 1",          "dilation_w == 1",
             "c * x * y <= (2^28)",      "k * x * y <= (2^28)",
             "k * oH * oW <= (2^28)",    "c * iH * iW <= (2^28)",
@@ -792,7 +792,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                            "(iN * c * iH * iW) < (2^29)",
                                            "(iN * k * oH * oW) < (2^29)",
                                            "(c * k) < (2^29)",
-                                           "precision == miopenFloat",
+                                           "precision == miopen::DataType::Float",
                                            "weight === 50",
                                            "algo === miopenConvolutionFwdAlgoDirect"};
 
@@ -851,7 +851,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 "(iN * c * iH * iW) < (2^29)",
                 "(iN * k * oH * oW) < (2^29)",
                 "(c * k) < (2^29)",
-                "precision == miopenHalf",
+                "precision == miopen::DataType::Half",
                 "(c % 2) == 0",
                 "(k % 2) == 0",
                 "weight === 50",
@@ -883,7 +883,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                             "dilation_w == 1",
                                             "x == " + std::to_string(len),
                                             "y == " + std::to_string(len),
-                                            "precision == miopenFloat",
+                                            "precision == miopen::DataType::Float",
                                             "weight === 10",
                                             "algo === miopenConvolutionFwdAlgoDirect"};
             if(len != 1)
@@ -896,7 +896,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             else
             {
                 // 1x1 convolutions are only supported for single precision
-                map_conv_bias["constraints"].emplace_back("precision == miopenFloat");
+                map_conv_bias["constraints"].emplace_back("precision == miopen::DataType::Float");
                 map_conv_bias["constraints"].emplace_back("pad_h == 0");
                 map_conv_bias["constraints"].emplace_back("pad_w == 0");
                 map_conv_bias["constraints"].emplace_back("stride_h == 1");
@@ -946,7 +946,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                             "dilation_w == 1",
                                             "x == " + std::to_string(len),
                                             "y == " + std::to_string(len),
-                                            "precision == miopenFloat",
+                                            "precision == miopen::DataType::Float",
                                             "weight === 10",
                                             "algo === miopenConvolutionFwdAlgoDirect",
                                             "pad_h <= 2",
@@ -1222,8 +1222,8 @@ std::string any_string(const boost::any& a)
         return std::to_string(boost::any_cast<miopenBatchNormMode_t>(a));
     else if(a.type() == typeid(miopenActivationMode_t))
         return std::to_string(boost::any_cast<miopenActivationMode_t>(a));
-    else if(a.type() == typeid(miopenDataType_t))
-        return std::to_string(boost::any_cast<miopenDataType_t>(a));
+    else if(a.type() == typeid(miopen::DataType))
+        return std::to_string(miopen::miopenWrapperToLegacy(boost::any_cast<miopen::DataType>(a)));
     else
         return ""; // assert(false);
 }

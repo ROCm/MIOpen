@@ -82,7 +82,7 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
     {
 
         // version
-        if(params.in_data_type == miopenFloat && params.direction.IsForward() &&
+        if(params.in_data_type == miopen::DataType::Float && params.direction.IsForward() &&
            params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
             result.n_in_data_tiles = 128;
@@ -348,7 +348,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         report_inteval   = 5;
 
         // Add 1x1_stride : no padding support yet
-        if(params.in_data_type == miopenFloat && params.direction.IsForward() &&
+        if(params.in_data_type == miopen::DataType::Float && params.direction.IsForward() &&
            params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
 

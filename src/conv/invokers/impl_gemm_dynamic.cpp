@@ -520,9 +520,9 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
         (ctx.GetStream().GetDeviceName() == "gfx90a") && conv_problem.IsFp16();
 
     const bool need_cast = [&]() {
-        if(ctx.conv_problem.GetOut().GetType() == miopenHalf)
+        if(ctx.conv_problem.GetOut().GetType() == miopen::DataType::Half)
             return use_fp32_global_split_on_fp16;
-        if(ctx.conv_problem.GetOut().GetType() == miopenBFloat16)
+        if(ctx.conv_problem.GetOut().GetType() == miopen::DataType::BFloat16)
             return need_set_zero;
         return false;
     }();
@@ -582,7 +582,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             trans_output_idx = idx++;
     }
 
-    const size_t cast_size = need_cast ? miopen::GetTypeSize(miopenFloat) * n * k * ho * wo : 0;
+    const size_t cast_size = need_cast ? miopen::GetTypeSize(miopen::DataType::Float) * n * k * ho * wo : 0;
 
     MultiBufferWorkspaceTraits wt(
         {trans_input_size, trans_weight_size, trans_output_size, cast_size}, buf_alignment);
@@ -595,7 +595,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
-    const TensorDescriptor cast_desc(miopenFloat,
+    const TensorDescriptor cast_desc(miopen::DataType::Float,
                                      ctx.conv_problem.GetOut().GetLengths(),
                                      ctx.conv_problem.GetOut().GetStrides());
     auto null_buf = shared<Data_t>{};
@@ -838,9 +838,9 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     const auto isGfx90aFp16altSupport =
         (ctx.GetStream().GetDeviceName() == "gfx90a") && conv_problem.IsFp16();
     const bool need_cast = [&]() {
-        if(ctx.conv_problem.GetOut().GetType() == miopenHalf)
+        if(ctx.conv_problem.GetOut().GetType() == miopen::DataType::Half)
             return use_fp32_global_split_on_fp16;
-        if(ctx.conv_problem.GetOut().GetType() == miopenBFloat16)
+        if(ctx.conv_problem.GetOut().GetType() == miopen::DataType::BFloat16)
             return need_set_zero;
         return false;
     }();
@@ -900,7 +900,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             trans_output_idx = idx++;
     }
 
-    const size_t cast_size = need_cast ? miopen::GetTypeSize(miopenFloat) * n * c * hi * wi : 0;
+    const size_t cast_size = need_cast ? miopen::GetTypeSize(miopen::DataType::Float) * n * c * hi * wi : 0;
 
     MultiBufferWorkspaceTraits wt(
         {trans_input_size, trans_weight_size, trans_output_size, cast_size}, buf_alignment);
@@ -913,7 +913,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
-    const TensorDescriptor cast_desc(miopenFloat,
+    const TensorDescriptor cast_desc(miopen::DataType::Float,
                                      ctx.conv_problem.GetOut().GetLengths(),
                                      ctx.conv_problem.GetOut().GetStrides());
     auto null_buf = shared<Data_t>{};

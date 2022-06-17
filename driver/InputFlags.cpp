@@ -37,7 +37,7 @@
 #include <algorithm>
 
 int TensorParameters::SetTensordDescriptor(miopenTensorDescriptor_t result,
-                                           miopenDataType_t data_type)
+                                           miopen::DataType data_type)
 {
     if(layout.empty() && strides.empty())
         return SetTensorNd(result, lengths, data_type);

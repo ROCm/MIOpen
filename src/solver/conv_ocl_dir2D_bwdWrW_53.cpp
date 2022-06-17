@@ -67,7 +67,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
         // during kernel compilation, due to compiler bug
         workaround =
             workaround ||
-            (params.out_data_type == miopenHalf &&
+            (params.out_data_type == miopen::DataType::Half &&
              ((params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 3) ||
               (params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 2) ||
               (params.kernel_size_w == 11 && params.kernel_size_h == 11 && params.pad_w == 5) ||
@@ -80,7 +80,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
         // would pass
         workaround =
             workaround ||
-            (params.out_data_type == miopenFloat &&
+            (params.out_data_type == miopen::DataType::Float &&
              ((params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 3) ||
               (params.kernel_size_w == 7 && params.kernel_size_h == 7 && params.pad_w == 1)) &&
              (params.out_height % 112 == 0 || params.out_width % 112 == 0));

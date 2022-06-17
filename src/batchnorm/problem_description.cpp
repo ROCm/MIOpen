@@ -69,12 +69,12 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
     bool bfpmixparm = false;
     bool bfp16parm  = false;
     bool bfp32parm  = true;
-    if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
+    if(xDesc.GetType() == miopen::DataType::Half && GetBnScaleBiasMeanVarDesc().GetType() == miopen::DataType::Half)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
-    else if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+    else if(xDesc.GetType() == miopen::DataType::Half && GetBnScaleBiasMeanVarDesc().GetType() == miopen::DataType::Float)
     {
         bfpmixparm = true;
         bfp32parm  = false;
@@ -195,12 +195,12 @@ NetworkConfig ProblemDescription::MakeForwardInferenceNetworkConfig() const
 
     bool bfp16parm = false;
     bool bfp32parm = true;
-    if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
+    if(xDesc.GetType() == miopen::DataType::Half && GetBnScaleBiasMeanVarDesc().GetType() == miopen::DataType::Half)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
-    else if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+    else if(xDesc.GetType() == miopen::DataType::Half && GetBnScaleBiasMeanVarDesc().GetType() == miopen::DataType::Float)
     {
         bfp32parm = false;
     }
@@ -226,12 +226,12 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
     bool bfpmixparm = false;
     bool bfp16parm  = false;
     bool bfp32parm  = true;
-    if(xDesc.GetType() == miopenHalf && GetScaleBiasDiffDesc().GetType() == miopenHalf)
+    if(xDesc.GetType() == miopen::DataType::Half && GetScaleBiasDiffDesc().GetType() == miopen::DataType::Half)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
-    else if(xDesc.GetType() == miopenHalf && GetScaleBiasDiffDesc().GetType() == miopenFloat)
+    else if(xDesc.GetType() == miopen::DataType::Half && GetScaleBiasDiffDesc().GetType() == miopen::DataType::Float)
     {
         bfpmixparm = true;
         bfp32parm  = false;

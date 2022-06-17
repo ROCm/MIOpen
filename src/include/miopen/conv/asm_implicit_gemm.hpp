@@ -41,7 +41,7 @@ namespace solver {
 struct TunableImplicitGemmGTCDynamic_t
 {
     std::string direction      = " ";
-    miopenDataType_t precision = miopenFloat;
+    miopen::DataType precision = miopen::DataType::Float;
     int nxb                    = 0;
     int nxe                    = 0;
 
@@ -75,7 +75,7 @@ struct TunableImplicitGemmGTCDynamic_t
     std::string GetKernelName() const
     {
         std::ostringstream kernel_name;
-        std::string kernel_precision = precision == miopenFloat ? "fp32" : "fp16";
+        std::string kernel_precision = precision == miopen::DataType::Float ? "fp32" : "fp16";
         kernel_name << "igemm_" << direction << "_gtcx_nchw_" << kernel_precision << "_bx" << nxb
                     << "_ex" << nxe << "_bt" << gemm_m_per_block << "x" << gemm_n_per_block << "x"
                     << gemm_k_per_block << "_wt" << wave_tile_m << "x" << wave_tile_n << "x"

@@ -42,7 +42,7 @@ inline void createTensorDescArray(std::vector<miopen::TensorDescriptor>& td,
                                   std::vector<miopenTensorDescriptor_t>& ptd,
                                   const std::vector<int> bs,
                                   const int secondDim,
-                                  miopenDataType_t dataType)
+                                  miopen::DataType dataType)
 {
 
     std::transform(bs.begin(), bs.end(), std::back_inserter(td), [&](int x) {

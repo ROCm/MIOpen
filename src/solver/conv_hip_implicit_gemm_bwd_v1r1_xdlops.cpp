@@ -734,13 +734,13 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&
         {
             // In case of fp16/bfp16, because there is no atomic add ISA,
             // reduction via atomic add ISA is done via fp32. As a result,
-            // workspace is computed with miopenFloat data type.
+            // workspace is computed with miopen::DataType::Float data type.
             // Later, a separate kernel is invoked that casts from fp32 to fp16/bfp16
             std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
             std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
             std::size_t hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
             std::size_t wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-            return n * c * hi * wi * miopen::GetTypeSize(miopenFloat);
+            return n * c * hi * wi * miopen::GetTypeSize(miopen::DataType::Float);
         }
     }
 }

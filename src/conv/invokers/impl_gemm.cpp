@@ -42,8 +42,8 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
 
                 float elapsed = 0;
                 // clang-format off
-                if((tensors.outDesc.GetType() == miopenHalf ||
-                    tensors.outDesc.GetType() == miopenBFloat16) &&
+                if((tensors.outDesc.GetType() == miopen::DataType::Half ||
+                    tensors.outDesc.GetType() == miopen::DataType::BFloat16) &&
                    (kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw" ||
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw" ||
                     kernel.GetName() == "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"))
@@ -89,7 +89,7 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx)
                     else
                     {
                         float zero = 0.f;
-                        TensorDescriptor workspaceDesc(miopenFloat,
+                        TensorDescriptor workspaceDesc(miopen::DataType::Float,
                                                        tensors.outDesc.GetLengths(),
                                                        tensors.outDesc.GetStrides());
                         SetTensor(handle, workspaceDesc, workSpace, &zero);

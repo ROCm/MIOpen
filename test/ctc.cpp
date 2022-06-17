@@ -704,7 +704,7 @@ struct ctc_driver : test_driver
 
     void run()
     {
-        if(type != miopenFloat)
+        if(type != miopen::DataType::Float)
             return;
 
         /// \todo Resolve the issue and remove workaround.
@@ -712,7 +712,7 @@ struct ctc_driver : test_driver
         if(numClass == 5000 && is_softmax_applied)
             return;
 
-        ctcLossDesc.dataType            = miopenFloat;
+        ctcLossDesc.dataType            = miopen::DataType::Float;
         ctcLossDesc.apply_softmax_layer = is_softmax_applied;
         ctcLossDesc.blank_label_id      = blank_id;
 

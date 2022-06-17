@@ -54,7 +54,7 @@ public:
         miopenCreateTensorDescriptor(&dInputTensor);
         miopenCreateTensorDescriptor(&dOutputTensor);
 
-        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
+        data_type = (sizeof(Tgpu) == 4) ? miopen::DataType::Float : miopen::DataType::Half;
     }
 
     int AddCmdLineArgs() override;
@@ -340,7 +340,7 @@ int SoftmaxDriver<Tgpu, Tref>::VerifyForward()
         inputTensor, outputTensor, in.data(), outhost.data(), alpha, beta, algo, mode);
 
     auto error           = miopen::rms_range(outhost, out);
-    const Tref tolerance = data_type == miopenHalf ? 5e-2 : 1e-3; // 1e-6;
+    const Tref tolerance = data_type == miopen::DataType::Half ? 5e-2 : 1e-3; // 1e-6;
     if(!std::isfinite(error) || error > tolerance)
     {
         std::cout << "Forward Softmax FAILED: " << error << std::endl;
@@ -374,7 +374,7 @@ int SoftmaxDriver<Tgpu, Tref>::VerifyBackward()
                                           mode);
 
     auto error           = miopen::rms_range(dinhost, din);
-    const Tref tolerance = data_type == miopenHalf ? 5e-2 : 1e-3; // 1e-6;
+    const Tref tolerance = data_type == miopen::DataType::Half ? 5e-2 : 1e-3; // 1e-6;
 
     if(!std::isfinite(error) || error > tolerance)
     {

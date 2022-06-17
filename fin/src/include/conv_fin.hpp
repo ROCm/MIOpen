@@ -139,9 +139,9 @@ class ConvFin : public Fin
     std::vector<int> GetBiasTensorLengths();
     int SetConvDescriptor();
     std::vector<size_t> GetOutputTensorLengths() const;
-    miopenDataType_t GetOutputType() const
+    miopen::DataType GetOutputType() const
     {
-        return (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenFloat : data_type;
+        return (data_type == miopen::DataType::Int8 || data_type == miopen::DataType::Int8x4) ? miopen::DataType::Float : data_type;
     }
     miopen::conv::Direction GetDirection() const;
 
@@ -1303,8 +1303,8 @@ std::vector<size_t> ConvFin<Tgpu, Tref>::GetOutputTensorLengths() const
 template <typename Tgpu, typename Tref>
 bool ConvFin<Tgpu, Tref>::IsInputTensorTransform() const
 {
-    return (data_type == miopenInt8 && int(command["in_channels"]) % 4 != 0) ||
-           data_type == miopenInt8x4;
+    return (data_type == miopen::DataType::Int8 && int(command["in_channels"]) % 4 != 0) ||
+           data_type == miopen::DataType::Int8x4;
 }
 
 namespace detail {
@@ -1458,7 +1458,7 @@ int ConvFin<Tgpu, Tref>::FillBuffers()
     throw std::runtime_error("Unable to fill buffers with NOGPU backend");
 #else
     // TODO: Do we need to initialized tensors ?
-    auto is_int8 = (data_type == miopenInt8 || data_type == miopenInt8x4);
+    auto is_int8 = (data_type == miopen::DataType::Int8 || data_type == miopen::DataType::Int8x4);
     srand(0);
 
     inputTensor.FillBuffer(std::bind(init_in<Tgpu>, is_int8, std::placeholders::_1));

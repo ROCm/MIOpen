@@ -201,17 +201,17 @@ inline int GetIndicesTypeSize(miopenIndicesType_t t)
     MIOPEN_THROW("Unknown data type");
 }
 
-inline int GetDataTypeSize(miopenDataType_t t)
+inline int GetDataTypeSize(miopen::DataType t)
 {
     switch(t)
     {
-    case miopenHalf: return (2);
-    case miopenFloat: return (4);
-    case miopenDouble: return (8);
-    case miopenInt8: return (1);
-    case miopenInt8x4: return (4);
-    case miopenBFloat16: return (2);
-    case miopenInt32: return (4);
+    case miopen::DataType::Half: return (2);
+    case miopen::DataType::Float: return (4);
+    case miopen::DataType::Double: return (8);
+    case miopen::DataType::Int8: return (1);
+    case miopen::DataType::Int8x4: return (4);
+    case miopen::DataType::BFloat16: return (2);
+    case miopen::DataType::Int32: return (4);
     default:
         MIOPEN_THROW("Only float, half, double, bfloat16, int8, int8x4 data type is supported.");
     };
@@ -258,17 +258,17 @@ struct get_tunable_reduction_kernel_constants
     };
 };
 
-inline int GetDataTypeId(miopenDataType_t t)
+inline int GetDataTypeId(miopen::DataType t)
 {
     switch(t)
     {
-    case miopenHalf: return (static_cast<int>('H'));
-    case miopenFloat: return (static_cast<int>('F'));
-    case miopenBFloat16: return (static_cast<int>('B'));
-    case miopenDouble: return (static_cast<int>('D'));
-    case miopenInt8:
-    case miopenInt8x4:
-    case miopenInt32: return (static_cast<int>('O'));
+    case miopen::DataType::Half: return (static_cast<int>('H'));
+    case miopen::DataType::Float: return (static_cast<int>('F'));
+    case miopen::DataType::BFloat16: return (static_cast<int>('B'));
+    case miopen::DataType::Double: return (static_cast<int>('D'));
+    case miopen::DataType::Int8:
+    case miopen::DataType::Int8x4:
+    case miopen::DataType::Int32: return (static_cast<int>('O'));
     default: MIOPEN_THROW("Only float, half, bfloat16 data type is supported.");
     };
 };
@@ -294,19 +294,19 @@ inline int GetReduceTensorOpId(miopenReduceTensorOp_t t)
 
 namespace detailDynamic {
 
-static ck::DataTypeEnum_t mapDataTypeId(miopenDataType_t t)
+static ck::DataTypeEnum_t mapDataTypeId(miopen::DataType t)
 {
     using ck::DataTypeEnum_t;
 
     switch(t)
     {
-    case miopenHalf: return DataTypeEnum_t::Half;
-    case miopenFloat: return DataTypeEnum_t::Float;
-    case miopenBFloat16: return DataTypeEnum_t::BFloat16;
-    case miopenDouble: return DataTypeEnum_t::Double;
-    case miopenInt8: return DataTypeEnum_t::Int8;
-    case miopenInt8x4: return DataTypeEnum_t::Int8x4;
-    case miopenInt32: return DataTypeEnum_t::Int32;
+    case miopen::DataType::Half: return DataTypeEnum_t::Half;
+    case miopen::DataType::Float: return DataTypeEnum_t::Float;
+    case miopen::DataType::BFloat16: return DataTypeEnum_t::BFloat16;
+    case miopen::DataType::Double: return DataTypeEnum_t::Double;
+    case miopen::DataType::Int8: return DataTypeEnum_t::Int8;
+    case miopen::DataType::Int8x4: return DataTypeEnum_t::Int8x4;
+    case miopen::DataType::Int32: return DataTypeEnum_t::Int32;
     default: MIOPEN_THROW("Only float, half, double data type is supported.");
     };
 };
@@ -330,9 +330,9 @@ static ck::ReduceTensorOp_t mapReduceOpId(miopenReduceTensorOp_t t)
     };
 };
 
-static std::string get_network_config_string_from_type_enums(miopenDataType_t TSrc,
-                                                             miopenDataType_t TComp,
-                                                             miopenDataType_t TDst)
+static std::string get_network_config_string_from_type_enums(miopen::DataType TSrc,
+                                                             miopen::DataType TComp,
+                                                             miopen::DataType TDst)
 {
     std::ostringstream outs;
 
@@ -341,9 +341,9 @@ static std::string get_network_config_string_from_type_enums(miopenDataType_t TS
     return (outs.str());
 };
 
-static std::string get_definition_string_from_type_enums(miopenDataType_t TSrc,
-                                                         miopenDataType_t TComp,
-                                                         miopenDataType_t TDst)
+static std::string get_definition_string_from_type_enums(miopen::DataType TSrc,
+                                                         miopen::DataType TComp,
+                                                         miopen::DataType TDst)
 {
     std::ostringstream outs;
 
@@ -480,7 +480,7 @@ static std::string get_kernel_file_name(const bool isFirstCall,
 }; // end of namespace detailDynamic
 
 ReduceTensorDescriptor::ReduceTensorDescriptor(miopenReduceTensorOp_t reduceTensorOp,
-                                               miopenDataType_t reduceTensorCompType,
+                                               miopen::DataType reduceTensorCompType,
                                                miopenNanPropagation_t reduceTensorNanOpt,
                                                miopenReduceTensorIndices_t reduceTensorIndices,
                                                miopenIndicesType_t reduceTensorIndicesType)
@@ -681,10 +681,10 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     const bool reduceAllDims = invariantDims.empty();
 
-    float alphaVal = (srcDataType == miopenDouble)
+    float alphaVal = (srcDataType == miopen::DataType::Double)
                          ? static_cast<float>(*reinterpret_cast<const double*>(alpha))
                          : *reinterpret_cast<const float*>(alpha);
-    float betaVal = (srcDataType == miopenDouble)
+    float betaVal = (srcDataType == miopen::DataType::Double)
                         ? static_cast<float>(*reinterpret_cast<const double*>(beta))
                         : *reinterpret_cast<const float*>(beta);
 
@@ -804,13 +804,13 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
             param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
         else
         {
-            if(srcDataType == miopenDouble)
+            if(srcDataType == miopen::DataType::Double)
                 // TODO: support from composable kernel utility for using AMD Buffer Addressing for
                 // double
                 param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
         };
 #else
-        if(srcDataType == miopenDouble)
+        if(srcDataType == miopen::DataType::Double)
             // TODO: support from composable kernel utility for using AMD Buffer Addressing for
             // double
             param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
@@ -826,8 +826,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         std::string algo_name     = "generic_reduce_tensor";
         std::string network_config;
 
-        network_config = "reduce_T" + std::to_string(srcDataType) + std::to_string(dstDataType) +
-                         std::to_string(compType) + "IN";
+        network_config = "reduce_T" + std::to_string(miopen::miopenWrapperToLegacy(srcDataType)) + std::to_string(miopen::miopenWrapperToLegacy(dstDataType)) +
+                         std::to_string(miopen::miopenWrapperToLegacy(compType)) + "IN";
         for(auto dimLen : inDescLengths)
             network_config += std::to_string(dimLen) + "_";
         network_config += "RED";

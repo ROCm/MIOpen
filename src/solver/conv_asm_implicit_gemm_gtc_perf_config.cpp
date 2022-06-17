@@ -91,7 +91,7 @@ PerformanceConfigAsmImplicitGemmGTC::PerformanceConfigAsmImplicitGemmGTC(
 PerformanceConfigAsmImplicitGemmGTC::PerformanceConfigAsmImplicitGemmGTC(
     std::string dir,
     std::string layout,
-    miopenDataType_t prec,
+    miopen::DataType prec,
     int b,
     int e,
     int mpb,
@@ -116,7 +116,7 @@ PerformanceConfigAsmImplicitGemmGTC::PerformanceConfigAsmImplicitGemmGTC(
     bool spare)
     : direction(dir),
       tensor_layout(layout),
-      precision(prec == miopenFloat ? "fp32" : (prec == miopenHalf ? "fp16" : "bf16")),
+      precision(prec == miopen::DataType::Float ? "fp32" : (prec == miopen::DataType::Half ? "fp16" : "bf16")),
       nxb(b),
       nxe(e),
 

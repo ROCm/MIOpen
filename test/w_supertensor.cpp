@@ -53,7 +53,7 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
 {
     size_t wei_sz = 0;
     auto&& handle = get_handle();
-    miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
+    miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopen::DataType::Float);
 
     wei_sz = wei_sz / sizeof(float);
     std::vector<float> wei_h(wei_sz, 0);
@@ -223,7 +223,7 @@ struct verify_w_tensor_get
         int bi              = (directionMode == miopenRNNbidirection) ? 2 : 1;
 
         size_t wei_sz = 0;
-        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
+        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopen::DataType::Float);
 
         wei_sz = wei_sz / sizeof(float);
         std::vector<float> wei_h(wei_sz, 0);
@@ -366,7 +366,7 @@ struct verify_w_tensor_set
 
         size_t wei_sz = 0;
         auto&& handle = get_handle();
-        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
+        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopen::DataType::Float);
         wei_dev = handle.Create(wei_sz);
     }
 
@@ -383,7 +383,7 @@ struct verify_w_tensor_set
         int bi              = (directionMode == miopenRNNbidirection) ? 2 : 1;
 
         size_t wei_sz = 0;
-        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
+        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopen::DataType::Float);
 
         for(int layer = 0; layer < num_layer * bi; layer++)
         {
@@ -494,7 +494,7 @@ struct superTensorTest : test_driver
     std::string directionMode;
     std::string inMode;
     miopenRNNAlgo_t algo = miopenRNNdefault;
-    miopenDataType_t dataType{};
+    miopen::DataType dataType{};
 
     int seqLen{};
     int in_size{};
@@ -518,7 +518,7 @@ struct superTensorTest : test_driver
         disabled_cache = true;
         miopenCreateRNNDescriptor(&rnnDesc);
 
-        dataType = miopenFloat;
+        dataType = miopen::DataType::Float;
 
 #if 1
         std::vector<int> get_seqLen     = {1, 2, 4};

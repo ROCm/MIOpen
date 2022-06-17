@@ -79,12 +79,12 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
     bool bfpmixparm = false;
     bool bfp16parm  = false;
     bool bfp32parm  = true;
-    if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenHalf)
+    if(xDesc.GetType() == miopen::DataType::Half && bnScaleBiasMeanVarDesc.GetType() == miopen::DataType::Half)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
-    else if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenFloat)
+    else if(xDesc.GetType() == miopen::DataType::Half && bnScaleBiasMeanVarDesc.GetType() == miopen::DataType::Float)
     {
         bfpmixparm = true;
         bfp32parm  = false;

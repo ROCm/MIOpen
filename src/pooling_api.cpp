@@ -41,7 +41,7 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
     {
         auto tensor_dim = miopen::deref(tensorDesc).GetSize();
         std::stringstream ss;
-        if(miopen::deref(tensorDesc).GetType() == miopenHalf)
+        if(miopen::deref(tensorDesc).GetType() == miopen::DataType::Half)
         {
             ss << "poolfp16";
         }

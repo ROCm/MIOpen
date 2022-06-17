@@ -65,16 +65,16 @@ static inline bool IsAnyBufferBF16(const TensorDescriptor& xDesc,
                                    const TensorDescriptor& yDesc,
                                    const TensorDescriptor& wDesc)
 {
-    return xDesc.GetType() == miopenBFloat16 || yDesc.GetType() == miopenBFloat16 ||
-           wDesc.GetType() == miopenBFloat16;
+    return xDesc.GetType() == miopen::DataType::BFloat16 || yDesc.GetType() == miopen::DataType::BFloat16 ||
+           wDesc.GetType() == miopen::DataType::BFloat16;
 }
 
 static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
                                    const TensorDescriptor& yDesc,
                                    const TensorDescriptor& wDesc)
 {
-    return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
-           wDesc.GetType() == miopenHalf;
+    return xDesc.GetType() == miopen::DataType::Half || yDesc.GetType() == miopen::DataType::Half ||
+           wDesc.GetType() == miopen::DataType::Half;
 }
 #endif
 

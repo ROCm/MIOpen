@@ -148,15 +148,15 @@ inline std::vector<int> GetTensorStrides(miopenTensorDescriptor_t& tensor)
 
 inline int SetTensor4d(miopenTensorDescriptor_t t,
                        std::vector<int>& len,
-                       miopenDataType_t data_type = miopenFloat)
+                       miopen::DataType data_type = miopen::DataType::Float)
 {
-    return miopenSet4dTensorDescriptor(t, data_type, UNPACK_VEC4(len));
+    return miopenSet4dTensorDescriptor(t, miopen::miopenWrapperToLegacy(data_type), UNPACK_VEC4(len));
 }
 
 inline int SetTensorNdVector(miopenTensorDescriptor_t t,
                              std::vector<int>& len,
                              miopenTensorLayout_t layout,
-                             miopenDataType_t data_type = miopenFloat)
+                             miopen::DataType data_type = miopen::DataType::Float)
 {
     if(layout == miopenTensorNCHWc4 || layout == miopenTensorNCHWc8)
     {
@@ -171,28 +171,28 @@ inline int SetTensorNdVector(miopenTensorDescriptor_t t,
         MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8 vectorized tensor layout.");
         return -1;
     }
-    return miopenSetNdTensorDescriptorWithLayout(t, data_type, layout, len.data(), len.size());
+    return miopenSetNdTensorDescriptorWithLayout(t, miopen::miopenWrapperToLegacy(data_type), layout, len.data(), len.size());
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
                        std::vector<int>& len,
-                       miopenDataType_t data_type = miopenFloat)
+                       miopen::DataType data_type = miopen::DataType::Float)
 {
-    return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), nullptr);
+    return miopenSetTensorDescriptor(t, miopen::miopenWrapperToLegacy(data_type), len.size(), len.data(), nullptr);
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
                        std::vector<int>& len,
                        std::vector<int>& strides,
-                       miopenDataType_t data_type = miopenFloat)
+                       miopen::DataType data_type = miopen::DataType::Float)
 {
-    return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), strides.data());
+    return miopenSetTensorDescriptor(t, miopen::miopenWrapperToLegacy(data_type), len.size(), len.data(), strides.data());
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
                        std::vector<int>& len,
                        const std::string& layout,
-                       miopenDataType_t data_type = miopenFloat)
+                       miopen::DataType data_type = miopen::DataType::Float)
 {
     if(layout.empty())
     {

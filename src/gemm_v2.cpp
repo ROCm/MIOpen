@@ -143,7 +143,7 @@ inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEve
 
 // hacks: control GEMM backend by enviroment variable and build option
 // very nasty
-static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
+static GemmBackend_t enforce_gemm_backend(miopen::DataType data_type,
                                           GemmBackend_t gemm_backend_preferred)
 {
     GemmBackend_t gemm_backend_enforced = GemmBackend_t::nogemmbackend;
@@ -177,7 +177,7 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     case GemmBackend_t::rocblas: gemm_backend_enforced = GemmBackend_t::rocblas; break;
     case GemmBackend_t::miopengemm:
         gemm_backend_enforced =
-            (data_type == miopenFloat) ? GemmBackend_t::miopengemm : GemmBackend_t::rocblas;
+            (data_type == miopen::DataType::Float) ? GemmBackend_t::miopengemm : GemmBackend_t::rocblas;
         break;
     }
 #elif MIOPEN_USE_ROCBLAS
@@ -197,7 +197,7 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     case GemmBackend_t::rocblas:
     case GemmBackend_t::miopengemm:
         gemm_backend_enforced =
-            (data_type == miopenFloat) ? GemmBackend_t::miopengemm : GemmBackend_t::nogemmbackend;
+            (data_type == miopen::DataType::Float) ? GemmBackend_t::miopengemm : GemmBackend_t::nogemmbackend;
         break;
     }
 #else
@@ -331,41 +331,41 @@ miopenStatus_t CallGemmMIOpenTensile(const Handle& handle,
     Data_t ptrA, ptrB, ptrC;
     switch(gemm_desc.dataType)
     {
-    case miopenFloat:
+    case miopen::DataType::Float:
         miotsl_in_dtype = miopen_tensile_type_float;
         ptrA            = Data_t(reinterpret_cast<const float*>(A) + a_offset);
         ptrB            = Data_t(reinterpret_cast<const float*>(B) + b_offset);
         ptrC            = Data_t(reinterpret_cast<float*>(C) + c_offset);
         break;
-    case miopenHalf:
+    case miopen::DataType::Half:
         miotsl_in_dtype = miopen_tensile_type_half;
         ptrA            = Data_t(reinterpret_cast<const half_float::half*>(A) + a_offset);
         ptrB            = Data_t(reinterpret_cast<const half_float::half*>(B) + b_offset);
         ptrC            = Data_t(reinterpret_cast<half_float::half*>(C) + c_offset);
         break;
-    case miopenBFloat16:
+    case miopen::DataType::BFloat16:
         miotsl_in_dtype = miopen_tensile_type_bfloat16;
         ptrA            = Data_t(reinterpret_cast<const unsigned short*>(A) + a_offset);
         ptrB            = Data_t(reinterpret_cast<const unsigned short*>(B) + b_offset);
         ptrC            = Data_t(reinterpret_cast<unsigned short*>(C) + c_offset);
         break;
-    case miopenInt32:
+    case miopen::DataType::Int32:
         miotsl_in_dtype = miopen_tensile_type_int32;
         ptrA            = Data_t(reinterpret_cast<const int32_t*>(A) + a_offset);
         ptrB            = Data_t(reinterpret_cast<const int32_t*>(B) + b_offset);
         ptrC            = Data_t(reinterpret_cast<int32_t*>(C) + c_offset);
         break;
-    case miopenInt8:
-    case miopenInt8x4:
+    case miopen::DataType::Int8:
+    case miopen::DataType::Int8x4:
         miotsl_in_dtype = miopen_tensile_type_int8x4;
         ptrA            = Data_t(reinterpret_cast<const int8_t*>(A) + a_offset);
         ptrB            = Data_t(reinterpret_cast<const int8_t*>(B) + b_offset);
         ptrC            = Data_t(reinterpret_cast<int32_t*>(C) + c_offset);
         break;
-    case miopenDouble:
+    case miopen::DataType::Double:
         MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by MIOpenGEMM.");
     }
-    if(gemm_desc.dataType == miopenInt8 || gemm_desc.dataType == miopenInt8x4)
+    if(gemm_desc.dataType == miopen::DataType::Int8 || gemm_desc.dataType == miopen::DataType::Int8x4)
     {
         miotsl_out_dtype = miopen_tensile_type_int32;
     }
@@ -501,8 +501,8 @@ miopenStatus_t CallGemm(const Handle& handle,
 
         switch(gemm_desc.dataType)
         {
-        case miopenInt8x4:
-        case miopenInt8: {
+        case miopen::DataType::Int8x4:
+        case miopen::DataType::Int8: {
             assert(gemm_desc.k % 4 == 0);
 
             auto alpha = int(gemm_desc.alpha);
@@ -540,8 +540,8 @@ miopenStatus_t CallGemm(const Handle& handle,
             );
         }
         break;
-        case miopenInt32: break;
-        case miopenHalf: {
+        case miopen::DataType::Int32: break;
+        case miopen::DataType::Half: {
 
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
@@ -574,7 +574,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         }
         break;
 
-        case miopenBFloat16: {
+        case miopen::DataType::BFloat16: {
 
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
@@ -607,7 +607,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         }
         break;
 
-        case miopenFloat: {
+        case miopen::DataType::Float: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -639,7 +639,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         }
         break;
 
-        case miopenDouble: {
+        case miopen::DataType::Double: {
             MIOPEN_THROW(miopenStatusBadParm,
                          "miopenDouble data type not supported by MIOpenGEMM.");
         };
@@ -664,7 +664,7 @@ miopenStatus_t CallGemm(const Handle& handle,
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
         std::ignore = gfx90a_alt_impl; // Not supported.
-        if(gemm_desc.dataType != miopenFloat)
+        if(gemm_desc.dataType != miopen::DataType::Float)
             return miopenStatusNotImplemented;
 
         MIOPEN_LOG_FUNCTION("MIOpenGEMM");
@@ -805,8 +805,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
         switch(gemm_desc.dataType)
         {
-        case miopenInt8x4:
-        case miopenInt8: {
+        case miopen::DataType::Int8x4:
+        case miopen::DataType::Int8: {
             assert(gemm_desc.k % 4 == 0);
 
             auto alpha = int(gemm_desc.alpha);
@@ -849,9 +849,9 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
             );
         }
         break;
-        case miopenInt32: break;
+        case miopen::DataType::Int32: break;
 
-        case miopenHalf: {
+        case miopen::DataType::Half: {
 
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
@@ -889,7 +889,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
         break;
 
-        case miopenBFloat16: {
+        case miopen::DataType::BFloat16: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -926,7 +926,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
         break;
 
-        case miopenFloat: {
+        case miopen::DataType::Float: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -963,7 +963,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
         break;
 
-        case miopenDouble: {
+        case miopen::DataType::Double: {
             MIOPEN_THROW(miopenStatusBadParm,
                          "miopenDouble data type not supported by MIOpenGEMM.");
         }
@@ -1056,8 +1056,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
         switch(gemm_desc.dataType)
         {
-        case miopenInt8x4:
-        case miopenInt8: {
+        case miopen::DataType::Int8x4:
+        case miopen::DataType::Int8: {
             assert(gemm_desc.k % 4 == 0);
 
             auto alpha = int(gemm_desc.alpha);
@@ -1098,8 +1098,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
             }
         }
         break;
-        case miopenInt32: break;
-        case miopenHalf: {
+        case miopen::DataType::Int32: break;
+        case miopen::DataType::Half: {
 
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
@@ -1135,7 +1135,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
         break;
 
-        case miopenBFloat16: {
+        case miopen::DataType::BFloat16: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1170,7 +1170,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
         break;
 
-        case miopenFloat: {
+        case miopen::DataType::Float: {
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1205,7 +1205,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
         break;
 
-        case miopenDouble: {
+        case miopen::DataType::Double: {
             MIOPEN_THROW(miopenStatusBadParm,
                          "miopenDouble data type not supported by MIOpenGEMM.");
         }
@@ -1230,7 +1230,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
     case GemmBackend_t::miopengemm: {
 #if MIOPEN_USE_MIOPENGEMM
         std::ignore = gfx90a_alt_impl; // Not supported.
-        if(gemm_desc.dataType != miopenFloat)
+        if(gemm_desc.dataType != miopen::DataType::Float)
             MIOPEN_THROW(miopenStatusNotImplemented, "fp16 is not implemented in MIOPENGEMM");
 
         MIOPEN_LOG_FUNCTION("MIOpenGEMM");
@@ -1346,7 +1346,7 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType());
-    if(wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
+    if(wDesc.GetType() != miopen::DataType::Int8 && wDesc.GetType() != miopen::DataType::Int8x4)
         assert(wDesc.GetType() == yDesc.GetType());
 #endif
 
@@ -1358,13 +1358,13 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
 
     bool isColMajor = false;
     bool transA     = false;
-    bool transB     = (wDesc.GetType() == miopenInt8);
+    bool transB     = (wDesc.GetType() == miopen::DataType::Int8);
     int m           = wei_k;
     int n = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k =
         in_c * std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
     int lda               = k;
-    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
+    int ldb               = wDesc.GetType() == miopen::DataType::Int8 ? k : n;
     int ldc               = n;
     int batch_count       = 1;
     long long int strideA = 0;
@@ -1498,7 +1498,7 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType());
-    if(wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
+    if(wDesc.GetType() != miopen::DataType::Int8 && wDesc.GetType() != miopen::DataType::Int8x4)
         assert(wDesc.GetType() == yDesc.GetType());
 #endif
 
@@ -1510,13 +1510,13 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
 
     bool isColMajor = false;
     bool transA     = false;
-    bool transB     = (wDesc.GetType() == miopenInt8);
+    bool transB     = (wDesc.GetType() == miopen::DataType::Int8);
     int m           = wei_k;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k                 = in_c;
     int lda               = k;
-    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
+    int ldb               = wDesc.GetType() == miopen::DataType::Int8 ? k : n;
     int ldc               = n;
     int batch_count       = 1;
     long long int strideA = 0;
@@ -1600,7 +1600,7 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
 {
 #ifndef NDEBUG
     assert(wDesc.GetType() == xDesc.GetType());
-    if(wDesc.GetType() != miopenInt8 && wDesc.GetType() != miopenInt8x4)
+    if(wDesc.GetType() != miopen::DataType::Int8 && wDesc.GetType() != miopen::DataType::Int8x4)
         assert(wDesc.GetType() == yDesc.GetType());
 #else
     (void)yDesc;
@@ -1614,12 +1614,12 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
 
     bool isColMajor = false;
     bool transA     = false;
-    bool transB     = (wDesc.GetType() == miopenInt8);
+    bool transB     = (wDesc.GetType() == miopen::DataType::Int8);
     int m           = wei_k;
     int n   = std::accumulate(in_spatial.begin(), in_spatial.end(), 1, std::multiplies<int>());
     int k   = in_c;
     int lda = k;
-    int ldb = wDesc.GetType() == miopenInt8 ? k : n;
+    int ldb = wDesc.GetType() == miopen::DataType::Int8 ? k : n;
     int ldc = n;
     int batch_count       = in_n;
     long long int strideA = 0;

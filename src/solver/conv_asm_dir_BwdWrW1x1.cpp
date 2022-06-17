@@ -320,7 +320,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
     if(!(c_per_gpr * n_per_gpr * GetHWPerGpr() * chunk_size == wave_size))
         return false;
-    if(config.out_data_type == miopenHalf || config.out_data_type == miopenBFloat16)
+    if(config.out_data_type == miopen::DataType::Half || config.out_data_type == miopen::DataType::BFloat16)
     {
         if(short_store == 0)
         {
@@ -343,7 +343,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
         bfp16_convert = 0;
     else
         bfp16_convert =
-            (config.out_data_type == miopenBFloat16) ? ((c_mult + k_mult) * read_size) : 0;
+            (config.out_data_type == miopen::DataType::BFloat16) ? ((c_mult + k_mult) * read_size) : 0;
 
     if(!(acc_gprs + 12 + (c_mult + k_mult) * read_size * (data_prefetch + 1) + bfp16_convert <=
          (n_part_cnt > 4 ? 128 : 256)))
@@ -362,7 +362,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& config)
 {
     short_store =
-        (config.out_data_type == miopenHalf || config.out_data_type == miopenBFloat16) ? 1 : 0;
+        (config.out_data_type == miopen::DataType::Half || config.out_data_type == miopen::DataType::BFloat16) ? 1 : 0;
     read_size = 4;
     n_per_gpr =
         (config.batch_sz >= 4 && (AsmImgHeight(config) * AsmImgWidth(config)) <= 128) ? 4 : 1;
@@ -631,7 +631,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
     GenerateClangDefsym(options, "acc_type", 1);
     const unsigned int buf_type =
-        params.out_data_type == miopenHalf ? 2 : params.out_data_type == miopenFloat ? 1 : 3;
+        params.out_data_type == miopen::DataType::Half ? 2 : params.out_data_type == miopen::DataType::Float ? 1 : 3;
     GenerateClangDefsym(options, "buf_type", buf_type);
 
     enum class MemLayout : int

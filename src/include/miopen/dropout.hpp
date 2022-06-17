@@ -66,7 +66,7 @@ struct DropoutDescriptor : miopenDropoutDescriptor
     bool state_evo;
     miopenRNGType_t rng_mode;
 
-    miopenDataType_t dataType_;
+    miopen::DataType dataType_;
 
     void InitPRNGState(Handle& handle,
                        Data_t prng_states,

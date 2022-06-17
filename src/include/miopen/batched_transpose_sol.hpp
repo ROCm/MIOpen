@@ -47,7 +47,7 @@ struct BatchedTransposeParam
 struct BatchedTransposeSolution
 {
     BatchedTransposeSolution(const ExecutionContext& ctx_,
-                             miopenDataType_t data_type_,
+                             miopen::DataType data_type_,
                              uint32_t batch_,
                              uint32_t height_,
                              uint32_t width_);
@@ -57,7 +57,7 @@ struct BatchedTransposeSolution
     bool IsSkippable() const;
     size_t GetOutputTensorSize() const;
 
-    miopenDataType_t data_type;
+    miopen::DataType data_type;
     uint32_t batch;
     uint32_t height;
     uint32_t width;

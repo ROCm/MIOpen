@@ -490,9 +490,9 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
         miopenCreateTensorDescriptor(&dropout_inputTensor);
         miopenCreateTensorDescriptor(&dropout_outputTensor);
         miopenSetTensorDescriptor(
-            dropout_inputTensor, miopenFloat, 2, drop_in_len.data(), drop_in_str.data());
+            dropout_inputTensor, miopen::DataType::Float, 2, drop_in_len.data(), drop_in_str.data());
         miopenSetTensorDescriptor(
-            dropout_outputTensor, miopenFloat, 2, drop_in_len.data(), drop_out_str.data());
+            dropout_outputTensor, miopen::DataType::Float, 2, drop_in_len.data(), drop_out_str.data());
 
         size_t reserveSpaceSizeInBytes = 0;
         miopenDropoutGetReserveSpaceSize(dropout_inputTensor, &reserveSpaceSizeInBytes);
@@ -1105,7 +1105,7 @@ void verify_backward_data_lstm<T>::LSTMBwdDataCPUVerify(
         std::array<int, 2> drop_in_str = {{hy_stride, 1}};
         miopenCreateTensorDescriptor(&dropout_inputTensor);
         miopenSetTensorDescriptor(
-            dropout_inputTensor, miopenFloat, 2, drop_in_len.data(), drop_in_str.data());
+            dropout_inputTensor, miopen::DataType::Float, 2, drop_in_len.data(), drop_in_str.data());
 
         size_t reserveSpaceSizeInBytes = 0;
         miopenDropoutGetReserveSpaceSize(dropout_inputTensor, &reserveSpaceSizeInBytes);
@@ -2933,7 +2933,7 @@ struct lstm_basic_driver : test_driver
         std::cout << "Skip test for Issue #692: " << std::endl;
         exit(EXIT_SUCCESS); // NOLINT (concurrency-mt-unsafe)
 #endif
-        if(type == miopenHalf)
+        if(type == miopen::DataType::Half)
             exit(EXIT_SUCCESS); // NOLINT (concurrency-mt-unsafe)
 #endif
 

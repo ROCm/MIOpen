@@ -3078,7 +3078,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
                                         bool spare = false);
     PerformanceConfigAsmImplicitGemmGTC(std::string dir,
                                         std::string layout,
-                                        miopenDataType_t prec,
+                                        miopen::DataType prec,
                                         int b,
                                         int e,
                                         int mpb,
@@ -3276,7 +3276,7 @@ struct PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC : PerformanceConfigAsmIm
     }
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC(std::string dir,
                                                      std::string layout,
-                                                     miopenDataType_t prec,
+                                                     miopen::DataType prec,
                                                      int b,
                                                      int e,
                                                      int mpb,
@@ -3469,7 +3469,7 @@ struct PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC : PerformanceConfigAsmIm
     }
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC(std::string dir,
                                                      std::string layout,
-                                                     miopenDataType_t prec,
+                                                     miopen::DataType prec,
                                                      int b,
                                                      int e,
                                                      int mpb,
@@ -3661,7 +3661,7 @@ struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmIm
     }
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC(std::string dir,
                                                      std::string layout,
-                                                     miopenDataType_t prec,
+                                                     miopen::DataType prec,
                                                      int b,
                                                      int e,
                                                      int mpb,

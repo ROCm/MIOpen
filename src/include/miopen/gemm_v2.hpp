@@ -73,7 +73,7 @@ struct GemmDescriptor
     int batch_count;
     long long int strideA, strideB, strideC;
     float alpha, beta;
-    miopenDataType_t dataType;
+    miopen::DataType dataType;
 
     friend std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc);
 };

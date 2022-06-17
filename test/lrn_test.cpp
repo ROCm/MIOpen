@@ -287,7 +287,7 @@ struct lrn_driver : test_driver
     {
         add(input,
             "input",
-            get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
+            get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopen::DataType::Half ? 5 : 17}));
         add(n, "N", generate_data({1, 4, 5}));
         add(alpha, "alpha", generate_data({double(1)}));
         add(beta, "beta", generate_data({double(1)}));
@@ -313,7 +313,7 @@ struct lrn_driver : test_driver
         miopen::LRNDescriptor lrn{mode_lookup.at(miopen::ToUpper(mode)), n, {alpha, beta, k}};
 
         auto out                = verify(verify_lrn_foward<T>{lrn, input});
-        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+        unsigned long max_value = miopen_type<T>{} == miopen::DataType::Half ? 5 : 17;
 
         auto scale = tensor<T>{n_batch, channels, height, width}.generate(
             tensor_elem_gen_integer{max_value});

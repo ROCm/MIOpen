@@ -44,7 +44,7 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
     MIOPEN_LOG_FUNCTION(tensorDesc, dataType, n, c, h, w);
     return miopen::try_([&] {
         std::initializer_list<int> lens = {n, c, h, w};
-        miopen::deref(tensorDesc)       = miopen::TensorDescriptor(dataType, lens.begin(), 4);
+        miopen::deref(tensorDesc)       = miopen::TensorDescriptor(miopen::miopenLegacyToWrapper(dataType), lens.begin(), 4);
     });
 }
 
@@ -58,7 +58,7 @@ extern "C" miopenStatus_t miopenSetNdTensorDescriptorWithLayout(miopenTensorDesc
     MIOPEN_LOG_FUNCTION(tensorDesc, dataType, tensorLayout, lens, num_lens);
     return miopen::try_([&] {
         miopen::deref(tensorDesc) =
-            miopen::TensorDescriptor(dataType, tensorLayout, lens, num_lens);
+            miopen::TensorDescriptor(miopen::miopenLegacyToWrapper(dataType), tensorLayout, lens, num_lens);
     });
 }
 
@@ -78,7 +78,7 @@ extern "C" miopenStatus_t miopenSet4dTensorDescriptorEx(miopenTensorDescriptor_t
         std::initializer_list<int> lens    = {n, c, h, w};
         std::initializer_list<int> strides = {nStride, cStride, hStride, wStride};
         miopen::deref(tensorDesc) =
-            miopen::TensorDescriptor(dataType, lens.begin(), strides.begin(), 4);
+            miopen::TensorDescriptor(miopen::miopenLegacyToWrapper(dataType), lens.begin(), strides.begin(), 4);
     });
 }
 
@@ -96,7 +96,7 @@ extern "C" miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_t t
 
     MIOPEN_LOG_FUNCTION(tensorDesc, dataType, n, c, h, w, nStride, cStride, hStride, wStride);
     return miopen::try_([&] {
-        miopen::deref(dataType)       = miopen::deref(tensorDesc).GetType();
+        miopen::deref(dataType)       = miopen::miopenWrapperToLegacy(miopen::deref(tensorDesc).GetType());
         miopen::tie_deref(n, c, h, w) = miopen::tien<4>(miopen::deref(tensorDesc).GetLengths());
         miopen::tie_deref(nStride, cStride, hStride, wStride) =
             miopen::tien<4>(miopen::deref(tensorDesc).GetStrides());
@@ -178,11 +178,11 @@ extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t ten
     return miopen::try_([&] {
         if(stridesA == nullptr)
         {
-            miopen::deref(tensorDesc) = miopen::TensorDescriptor(dataType, dimsA, nbDims);
+            miopen::deref(tensorDesc) = miopen::TensorDescriptor(miopen::miopenLegacyToWrapper(dataType), dimsA, nbDims);
         }
         else
         {
-            miopen::deref(tensorDesc) = miopen::TensorDescriptor(dataType, dimsA, stridesA, nbDims);
+            miopen::deref(tensorDesc) = miopen::TensorDescriptor(miopen::miopenLegacyToWrapper(dataType), dimsA, stridesA, nbDims);
         }
     });
 }
@@ -218,7 +218,7 @@ extern "C" miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t ten
     return miopen::try_([&] {
         if(dataType != nullptr)
         {
-            *dataType = miopen::deref(tensorDesc).GetType();
+            *dataType = miopen::miopenWrapperToLegacy(miopen::deref(tensorDesc).GetType());
         }
         if(dimsA != nullptr)
         {
@@ -252,7 +252,7 @@ static void LogCmdTensorOp(miopenTensorOp_t tensorOp,
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
-        if(miopen::deref(aDesc).GetType() == miopenHalf)
+        if(miopen::deref(aDesc).GetType() == miopen::DataType::Half)
             ss << "tensoropfp16";
         else
             ss << "tensorop";
@@ -260,15 +260,15 @@ static void LogCmdTensorOp(miopenTensorOp_t tensorOp,
         if(!is_set && !is_scale)
         {
             // clang-format off
-            ss << " -A " << std::to_string(*static_cast<const float*>(alpha)) 
-               << " -B " << std::to_string(*static_cast<const float*>(alpha2)) 
+            ss << " -A " << std::to_string(*static_cast<const float*>(alpha))
+               << " -B " << std::to_string(*static_cast<const float*>(alpha2))
                << " -G " << std::to_string(*static_cast<const float*>(beta));
             // clang-format on
         }
         // clang-format off
-        ss << " -n " << miopen::deref(aDesc).GetLengths()[0] 
+        ss << " -n " << miopen::deref(aDesc).GetLengths()[0]
            << " -c " << miopen::deref(aDesc).GetLengths()[1]
-           << " -H " << miopen::deref(aDesc).GetLengths()[2] 
+           << " -H " << miopen::deref(aDesc).GetLengths()[2]
            << " -W " << miopen::deref(aDesc).GetLengths()[3];
         // clag-format on
         if(is_set)

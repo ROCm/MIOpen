@@ -84,20 +84,20 @@ LogCmdLRN(const miopenLRNDescriptor_t lrnDesc, const miopenTensorDescriptor_t xD
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
-        if(miopen::deref(xDesc).GetType() == miopenFloat)
+        if(miopen::deref(xDesc).GetType() == miopen::DataType::Float)
             ss << "lrn";
-        else if(miopen::deref(xDesc).GetType() == miopenHalf)
+        else if(miopen::deref(xDesc).GetType() == miopen::DataType::Half)
             ss << "lrnfp16";
         // clang-format off
-        ss << " -A " << miopen::deref(lrnDesc).GetAlpha() 
-           << " -B " << miopen::deref(lrnDesc).GetBeta() 
-           << " -F " << ((is_fwd) ? "1" : "2") 
-           << " -H " << miopen::deref(xDesc).GetLengths()[2] 
+        ss << " -A " << miopen::deref(lrnDesc).GetAlpha()
+           << " -B " << miopen::deref(lrnDesc).GetBeta()
+           << " -F " << ((is_fwd) ? "1" : "2")
+           << " -H " << miopen::deref(xDesc).GetLengths()[2]
            << " -K " << miopen::deref(lrnDesc).GetK()
            << " -N " << miopen::deref(lrnDesc).GetN()
-           << " -W " << miopen::deref(xDesc).GetLengths()[3] 
+           << " -W " << miopen::deref(xDesc).GetLengths()[3]
            << " -c " << miopen::deref(xDesc).GetLengths()[1]
-           << " -m " << miopen::deref(lrnDesc).GetMode() 
+           << " -m " << miopen::deref(lrnDesc).GetMode()
            << " -n " << miopen::deref(xDesc).GetLengths()[0];
         // clang-format on
 
@@ -120,8 +120,8 @@ extern "C" miopenStatus_t miopenLRNForward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, lrnDesc, alpha, xDesc, x, beta, yDesc, y, do_backward, workSpace);
 
     // bfloat16 not supported for lrn operation
-    if(miopen::deref(yDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(xDesc).GetType() == miopenBFloat16)
+    if(miopen::deref(yDesc).GetType() == miopen::DataType::BFloat16 ||
+       miopen::deref(xDesc).GetType() == miopen::DataType::BFloat16)
     {
         return miopenStatusNotImplemented;
     }
@@ -160,10 +160,10 @@ extern "C" miopenStatus_t miopenLRNBackward(miopenHandle_t handle,
         handle, lrnDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx, workSpace);
 
     // bfloat16 not supported for lrn operation
-    if(miopen::deref(yDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(dyDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(xDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(dxDesc).GetType() == miopenBFloat16)
+    if(miopen::deref(yDesc).GetType() == miopen::DataType::BFloat16 ||
+       miopen::deref(dyDesc).GetType() == miopen::DataType::BFloat16 ||
+       miopen::deref(xDesc).GetType() == miopen::DataType::BFloat16 ||
+       miopen::deref(dxDesc).GetType() == miopen::DataType::BFloat16)
     {
         return miopenStatusNotImplemented;
     }

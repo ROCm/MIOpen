@@ -119,7 +119,7 @@ struct verify_forward_sofmax
 
                     if(algo == MIOPEN_SOFTMAX_LOG)
                     {
-                        double neg_inf = input.desc.GetType() == miopenHalf
+                        double neg_inf = input.desc.GetType() == miopen::DataType::Half
                                              ? NEGATIVE_CUTOFF_VAL_FP16
                                              : NEGATIVE_CUTOFF_VAL_FP32;
                         double sum = neg_inf;
@@ -180,7 +180,7 @@ struct verify_forward_sofmax
 
                     if(algo == MIOPEN_SOFTMAX_LOG)
                     {
-                        double neg_inf = input.desc.GetType() == miopenHalf
+                        double neg_inf = input.desc.GetType() == miopen::DataType::Half
                                              ? NEGATIVE_CUTOFF_VAL_FP16
                                              : NEGATIVE_CUTOFF_VAL_FP32;
                         double sum = neg_inf;
@@ -419,14 +419,14 @@ struct softmax_driver : test_driver
         miopenSoftmaxAlgorithm_t algo = miopenSoftmaxAlgorithm_t(algo_cmd);
         miopenSoftmaxMode_t mode      = miopenSoftmaxMode_t(mode_cmd);
         unsigned long max_value =
-            miopen_type<T>{} == miopenHalf ? (algo == MIOPEN_SOFTMAX_LOG ? 3 : 5) : 17;
+            miopen_type<T>{} == miopen::DataType::Half ? (algo == MIOPEN_SOFTMAX_LOG ? 3 : 5) : 17;
 
         /// \todo Apply mix-precision in softmax to improve the stability of fp16
         if((in_dim[1] * in_dim[2] * in_dim[3] >= 2048) && mode == MIOPEN_SOFTMAX_MODE_INSTANCE &&
-           miopen_type<T>{} == miopenHalf)
+           miopen_type<T>{} == miopen::DataType::Half)
             return;
         if(in_dim[1] >= 96 && in_dim[2] >= 14 && in_dim[3] >= 14 && algo == MIOPEN_SOFTMAX_FAST &&
-           miopen_type<T>{} == miopenHalf)
+           miopen_type<T>{} == miopen::DataType::Half)
             return;
 
         input             = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
