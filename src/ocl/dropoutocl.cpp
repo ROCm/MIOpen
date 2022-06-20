@@ -271,7 +271,7 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
     std::string kernel_name  = "DropoutForward";
 
     std::string network_config =
-        "fwd-" + std::string(xDesc.GetType() == miopen::DataType::Half ? "fp16-" : "fp32-") + "-seed" +
+        "fwd-" + std::string(xDesc.GetType() == miopenHalf ? "fp16-" : "fp32-") + "-seed" +
         std::to_string(seed) + "-rng" + std::to_string(rng_mode) + "-rsvsp" +
         std::to_string(static_cast<int>(use_rsvsp)) + "-mask" +
         std::to_string(static_cast<int>(use_mask)) + "-evo" +
@@ -322,7 +322,7 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
                   " -DREAD_BOOL_TYPE=" +
                   std::string(RD_BLCK == 4 ? "uint" : RD_BLCK == 2 ? "ushort" : "uchar");
 
-        if(xDesc.GetType() == miopen::DataType::Half)
+        if(xDesc.GetType() == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
         else
             params += " -DMIOPEN_USE_FP32=1";
@@ -475,7 +475,7 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
     std::string kernel_name  = "DropoutBackward";
 
     std::string network_config =
-        "bwd-" + std::string(dyDesc.GetType() == miopen::DataType::Half ? "fp16-" : "fp32-") + "-seed" +
+        "bwd-" + std::string(dyDesc.GetType() == miopenHalf ? "fp16-" : "fp32-") + "-seed" +
         std::to_string(seed) + "-rng" + std::to_string(rng_mode) + "-prng" +
         std::to_string(static_cast<int>(use_prng)) + "-evo" +
         std::to_string(static_cast<int>(state_evo)) + "-blk" + std::to_string(RD_BLCK) + "-wg" +
@@ -530,7 +530,7 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
             params += " -DUSE_PRNG=1";
         }
 
-        if(dyDesc.GetType() == miopen::DataType::Half)
+        if(dyDesc.GetType() == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
         else
             params += " -DMIOPEN_USE_FP32=1";

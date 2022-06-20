@@ -94,7 +94,7 @@ struct verify_forward_train_bn_per_activation
         tensor<U> runMean;
         tensor<U> runVar;
 
-        if(input.desc.GetType() == miopen::DataType::Float)
+        if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
                 tensor_elem_gen_integer{17});
@@ -218,7 +218,7 @@ struct verify_forward_train_bn_per_activation
         tensor<U> runMean;
         tensor<U> runVar;
 
-        if(input.desc.GetType() == miopen::DataType::Float)
+        if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<U>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
                 tensor_elem_gen_integer{17});
@@ -958,7 +958,7 @@ struct batch_norm_per_activation_driver : test_driver
         add(input,
             "input",
             get_bn_peract_input_tensor(
-                tensor_elem_gen_integer{miopen_type<T>{} == miopen::DataType::Half ? 5 : 17}));
+                tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
     }
 
     void run()
@@ -978,7 +978,7 @@ struct batch_norm_per_activation_driver : test_driver
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNPerActivation);
         std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
 
-        if(input.desc.GetType() == miopen::DataType::Float)
+        if(input.desc.GetType() == miopenFloat)
         {
             scale = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
             shift = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
@@ -1014,7 +1014,7 @@ struct batch_norm_per_activation_driver : test_driver
             input, scale, shift, estMean, estVar});
 
         // backprop recalc
-        unsigned long max_value = miopen_type<T>{} == miopen::DataType::Half ? 5 : 17;
+        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
         this->tolerance = 8000 * input.desc.GetElementSize();
         auto dy_input   = tensor<T>{n, c, h, w}.generate(

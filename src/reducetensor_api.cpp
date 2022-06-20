@@ -39,13 +39,13 @@ static void LogCmdRedux(const miopen::ReduceTensorDescriptor reduceTensorDesc,
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
-        if(aDesc.GetType() == miopen::DataType::Half)
+        if(aDesc.GetType() == miopenHalf)
             ss << "reducefp16";
-        else if(aDesc.GetType() == miopen::DataType::BFloat16)
+        else if(aDesc.GetType() == miopenBFloat16)
             ss << "reducebfp16";
-        else if(aDesc.GetType() == miopen::DataType::Int8 || aDesc.GetType() == miopen::DataType::Int8x4)
+        else if(aDesc.GetType() == miopenInt8 || aDesc.GetType() == miopenInt8x4)
             ss << "reduceint8";
-        else if(aDesc.GetType() == miopen::DataType::Double)
+        else if(aDesc.GetType() == miopenDouble)
             ss << "reducefp64";
         else
             ss << "reduce";
@@ -113,7 +113,7 @@ miopenSetReduceTensorDescriptor(miopenReduceTensorDescriptor_t reduceTensorDesc,
                         reduceTensorIndicesType);
     return miopen::try_([&] {
         miopen::deref(reduceTensorDesc) = miopen::ReduceTensorDescriptor(reduceTensorOp,
-                                          miopen::miopenLegacyToWrapper(reduceTensorCompType),
+                                                                         reduceTensorCompType,
                                                                          reduceTensorNanOpt,
                                                                          reduceTensorIndices,
                                                                          reduceTensorIndicesType);
@@ -136,7 +136,7 @@ miopenGetReduceTensorDescriptor(const miopenReduceTensorDescriptor_t reduceTenso
                         reduceTensorIndicesType);
     return miopen::try_([&] {
         miopen::deref(reduceTensorOp)       = miopen::deref(reduceTensorDesc).reduceTensorOp_;
-        miopen::deref(reduceTensorCompType) = miopen::miopenWrapperToLegacy(miopen::deref(reduceTensorDesc).reduceTensorCompType_);
+        miopen::deref(reduceTensorCompType) = miopen::deref(reduceTensorDesc).reduceTensorCompType_;
         miopen::deref(reduceTensorNanOpt)   = miopen::deref(reduceTensorDesc).reduceTensorNanOpt_;
         miopen::deref(reduceTensorIndices)  = miopen::deref(reduceTensorDesc).reduceTensorIndices_;
         miopen::deref(reduceTensorIndicesType) =

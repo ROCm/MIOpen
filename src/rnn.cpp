@@ -289,7 +289,7 @@ RNNDescriptor::RNNDescriptor()
     biasMode                    = miopenRNNNoBias;
     algoMode                    = miopenRNNdefault;
     inputMode                   = miopenRNNlinear;
-    dataType                    = miopen::DataType::Float;
+    dataType                    = miopenFloat;
     typeSize                    = 4;
     workspaceScale              = 1;
     miopen::deref(&dropoutDesc) = new miopen::DropoutDescriptor();
@@ -302,7 +302,7 @@ RNNDescriptor::RNNDescriptor(int hsz,
                              miopenRNNDirectionMode_t bidir,
                              miopenRNNBiasMode_t bmode,
                              miopenRNNAlgo_t amode,
-                             miopen::DataType dType)
+                             miopenDataType_t dType)
 {
 
     if(hsz < 0 || layers < 0)
@@ -332,14 +332,14 @@ RNNDescriptor::RNNDescriptor(int hsz,
                      "type must be 0 for disabled bias or 1 for enabled "
                      "bias.");
     }
-    if(dType != miopen::DataType::Float && dType != miopen::DataType::Half)
+    if(dType != miopenFloat && dType != miopenHalf)
     {
         MIOPEN_THROW(miopenStatusBadParm,
                      "RNNDescriptor: Bad parameter(s). RNN datatype must be float or half.");
     }
     else
     {
-        typeSize = dType == miopen::DataType::Half ? 2 : 4;
+        typeSize = dType == miopenHalf ? 2 : 4;
     }
 
     hsize                       = hsz;
@@ -377,7 +377,7 @@ RNNDescriptor::RNNDescriptor(int hsz,
                              miopenRNNDirectionMode_t bidir,
                              miopenRNNBiasMode_t bmode,
                              miopenRNNAlgo_t amode,
-                             miopen::DataType dType,
+                             miopenDataType_t dType,
                              miopenDropoutDescriptor_t dropDesc)
     : hsize(size_t(hsz)),
       nLayers(size_t(layers)),
@@ -417,14 +417,14 @@ RNNDescriptor::RNNDescriptor(int hsz,
                      "type must be 0 for disabled bias or 1 for enabled "
                      "bias.");
     }
-    if(dType != miopen::DataType::Float && dType != miopen::DataType::Half)
+    if(dType != miopenFloat && dType != miopenHalf)
     {
         MIOPEN_THROW(miopenStatusBadParm,
                      "RNNDescriptor: Bad parameter(s). RNN datatype must be float or half.");
     }
     else
     {
-        typeSize = dType == miopen::DataType::Half ? 2 : 4;
+        typeSize = dType == miopenHalf ? 2 : 4;
     }
 
     switch(rmode)
@@ -494,7 +494,7 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
 
 size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
                                     const TensorDescriptor& xDesc,
-                                    miopen::DataType dtype) const
+                                    miopenDataType_t dtype) const
 {
     if(xDesc.GetType() != dataType || dtype != dataType)
     {
@@ -550,7 +550,7 @@ RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& /* handle */,
 void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
                                         const TensorDescriptor& xDesc,
                                         TensorDescriptor& wDesc,
-                                        miopen::DataType dtype) const
+                                        miopenDataType_t dtype) const
 {
 
     if(dtype != dataType)

@@ -173,7 +173,7 @@ struct test_driver
     std::unordered_map<std::string, std::size_t> argument_index;
     int cache_version      = 1;
     std::string cache_path = compute_cache_path();
-    miopen::DataType type  = miopen::DataType::Float;
+    miopenDataType_t type  = miopenFloat;
     bool full_set          = false;
     int limit_set          = 2;
     bool verbose           = false;
@@ -278,13 +278,13 @@ struct test_driver
         std::stringstream ss;
         switch(this->type)
         {
-        case miopen::DataType::Half: ss << "--half "; break;
-        case miopen::DataType::BFloat16: ss << "--bfloat16 "; break;
-        case miopen::DataType::Int8x4:
-        case miopen::DataType::Int8: ss << "--int8 "; break;
-        case miopen::DataType::Int32: ss << "--int32 "; break;
-        case miopen::DataType::Float: ss << "--float "; break;
-        case miopen::DataType::Double: ss << "--double "; break;
+        case miopenHalf: ss << "--half "; break;
+        case miopenBFloat16: ss << "--bfloat16 "; break;
+        case miopenInt8x4:
+        case miopenInt8: ss << "--int8 "; break;
+        case miopenInt32: ss << "--int32 "; break;
+        case miopenFloat: ss << "--float "; break;
+        case miopenDouble: ss << "--double "; break;
         }
         for(auto&& arg : this->arguments)
         {
@@ -305,13 +305,13 @@ struct test_driver
 
         switch(this->type)
         {
-        case miopen::DataType::Half: ret.emplace_back("--half"); break;
-        case miopen::DataType::BFloat16: ret.emplace_back("--bf16"); break;
-        case miopen::DataType::Int8x4:
-        case miopen::DataType::Int8: ret.emplace_back("--int8"); break;
-        case miopen::DataType::Int32: ret.emplace_back("--int32"); break;
-        case miopen::DataType::Float: ret.emplace_back("--float"); break;
-        case miopen::DataType::Double: ret.emplace_back("--double"); break;
+        case miopenHalf: ret.emplace_back("--half"); break;
+        case miopenBFloat16: ret.emplace_back("--bf16"); break;
+        case miopenInt8x4:
+        case miopenInt8: ret.emplace_back("--int8"); break;
+        case miopenInt32: ret.emplace_back("--int32"); break;
+        case miopenFloat: ret.emplace_back("--float"); break;
+        case miopenDouble: ret.emplace_back("--double"); break;
         }
 
         for(auto&& arg : this->arguments)
@@ -1047,19 +1047,19 @@ void set_driver_datatype(Driver& d,
 {
     if(arg_map.count("--half") > 0)
     {
-        d.type = miopen::DataType::Half;
+        d.type = miopenHalf;
     }
     else if(arg_map.count("--int8") > 0)
     {
-        d.type = miopen::DataType::Int8;
+        d.type = miopenInt8;
     }
     else if(arg_map.count("--double") > 0)
     {
-        d.type = miopen::DataType::Double;
+        d.type = miopenDouble;
     }
     else
     {
-        d.type = miopen::DataType::Float;
+        d.type = miopenFloat;
     }
 }
 
@@ -1205,23 +1205,23 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
 
     if(arg_map.count("--half") > 0)
     {
-        d.type = miopen::DataType::Half;
+        d.type = miopenHalf;
     }
     else if(arg_map.count("--int8") > 0)
     {
-        d.type = miopen::DataType::Int8;
+        d.type = miopenInt8;
     }
     else if(arg_map.count("--bfloat16") > 0)
     {
-        d.type = miopen::DataType::BFloat16;
+        d.type = miopenBFloat16;
     }
     else if(arg_map.count("--double") > 0)
     {
-        d.type = miopen::DataType::Double;
+        d.type = miopenDouble;
     }
     else
     {
-        d.type = miopen::DataType::Float;
+        d.type = miopenFloat;
     }
 
     // Show help

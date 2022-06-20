@@ -65,7 +65,7 @@ class Fin
         static auto handle = miopen::Handle{};
         return handle;
     }
-    miopen::DataType GetDataType() { return data_type; }
+    miopenDataType_t GetDataType() { return data_type; }
 
 #if FIN_BACKEND_OPENCL
     cl_command_queue& GetStream() { return q; }
@@ -81,7 +81,7 @@ class Fin
     protected:
     template <typename Tgpu>
     void InitDataType();
-    miopen::DataType data_type = miopen::DataType::Float; // the datatype passed in through the command line
+    miopenDataType_t data_type = miopenFloat; // the datatype passed in through the command line
 
 #if FIN_BACKEND_OPENCL
     cl_command_queue q;

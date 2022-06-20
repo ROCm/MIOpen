@@ -118,11 +118,11 @@ struct verify_tensor_trans
         std::tie(n, c, h, w)                             = miopen::tien<4>(src.desc.GetLengths());
         std::tie(std::ignore, std::ignore, h_out, w_out) = miopen::tien<4>(dst.desc.GetLengths());
 
-        miopen::DataType type = miopen::DataType::Float;
+        miopenDataType_t type = miopenFloat;
         if(std::is_same<T, int8_t>::value)
-            type = miopen::DataType::Int8;
+            type = miopenInt8;
         else if(std::is_same<T, half_float::half>::value)
-            type = miopen::DataType::Half;
+            type = miopenHalf;
 
         if(forward)
             miopen::transpose_NCHW2CNHW(handle,
@@ -224,7 +224,7 @@ struct tensor_vec_driver : test_driver
         }
 
         unsigned long max_value =
-            miopen_type<T>{} == miopen::DataType::Half ? 5 : miopen_type<T>{} == miopen::DataType::Int8 ? 127 : 17;
+            miopen_type<T>{} == miopenHalf ? 5 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
         src = tensor<T>{src_lens}.generate(tensor_elem_gen_integer{max_value});
         dst = tensor<T>{dst_lens}.generate(tensor_elem_gen_integer{max_value});
 

@@ -321,7 +321,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
 
         // Chao: attempt to reduce LDS bank conflict during reading input image from LDS
         // Revisit this if performance regress
-        if(params.out_data_type == miopen::DataType::Float)
+        if(params.out_data_type == miopenFloat)
         {
             in_lcl_width = (in_lcl_width / 2) * 2 + 1;
         }
@@ -590,7 +590,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 
         // Chao: attempt to reduce LDS bank conflict during reading input image from LDS
         // Revisit this if performance regress
-        if(params.out_data_type == miopen::DataType::Float)
+        if(params.out_data_type == miopenFloat)
         {
             in_lcl_width = (in_lcl_width / 2) * 2 + 1;
         }

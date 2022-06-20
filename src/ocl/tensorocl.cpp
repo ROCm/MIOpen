@@ -174,8 +174,8 @@ void OpTensor3d(const Handle& handle,
 
     std::string network_config{};
 
-    network_config = std::to_string(miopen::miopenWrapperToLegacy(bTensorDesc.GetType())) + "-" +
-                     std::to_string(miopen::miopenWrapperToLegacy(aTensorDesc.GetType())) + "-" + std::to_string(tensorOp) + "-";
+    network_config = std::to_string(bTensorDesc.GetType()) + "-" +
+                     std::to_string(aTensorDesc.GetType()) + "-" + std::to_string(tensorOp) + "-";
 
     // for naive tensor ops
     size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
@@ -536,7 +536,7 @@ void OpTensor4d(const Handle& handle,
 
     std::string network_config{};
     network_config +=
-        std::to_string(miopen::miopenWrapperToLegacy(bTensorDesc.GetType())) + "-" + std::to_string(miopen::miopenWrapperToLegacy(aTensorDesc.GetType())) + "-" +
+        std::to_string(bTensorDesc.GetType()) + "-" + std::to_string(aTensorDesc.GetType()) + "-" +
         std::to_string(tensorOp) + "-" + std::to_string(max_num_wg) + "-" +
         ((fwd_conv_bias == 0 && packed_equal_tensor) ? "" : std::to_string(global_threads)) + "-" +
         std::to_string(local_threads);
@@ -1004,8 +1004,8 @@ void OpTensorOther(const Handle& handle,
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
     std::string network_config{};
-    network_config += std::to_string(miopen::miopenWrapperToLegacy(bTensorDesc.GetType())) + "-" +
-                      std::to_string(miopen::miopenWrapperToLegacy(aTensorDesc.GetType())) + "-" + std::to_string(tensorOp) + "-" +
+    network_config += std::to_string(bTensorDesc.GetType()) + "-" +
+                      std::to_string(aTensorDesc.GetType()) + "-" + std::to_string(tensorOp) + "-" +
                       std::to_string(global_threads) + "-" + std::to_string(local_threads);
 
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
@@ -1417,9 +1417,9 @@ void SetTensor(const Handle& handle,
 
     std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
 
-    const miopen::DataType dataType = yDesc_flat.GetType();
+    const miopenDataType_t dataType = yDesc_flat.GetType();
 
-    std::string network_config = "set " + std::to_string(miopen::miopenWrapperToLegacy(dataType));
+    std::string network_config = "set " + std::to_string(dataType);
     for(auto& len : yDesc_flat.GetLengths())
     {
         network_config += " " + std::to_string(len);
@@ -1569,8 +1569,8 @@ void ScaleTensor(const Handle& handle,
 
     assert(yDim_flat > 0 && yDim_flat <= 5);
 
-    const miopen::DataType dataType = yDesc_flat.GetType();
-    if(dataType == miopen::DataType::Int8 || dataType == miopen::DataType::Int8x4 || dataType == miopen::DataType::BFloat16)
+    const miopenDataType_t dataType = yDesc_flat.GetType();
+    if(dataType == miopenInt8 || dataType == miopenInt8x4 || dataType == miopenBFloat16)
     {
         MIOPEN_THROW(miopenStatusBadParm,
                      "Tensor scale operation is not supported for int8, int8x4, and bfloat16.");
@@ -1580,7 +1580,7 @@ void ScaleTensor(const Handle& handle,
 
     const std::vector<std::size_t>& lens = yDesc_flat.GetLengths();
 
-    std::string network_config = "scale " + std::to_string(miopen::miopenWrapperToLegacy(yDesc_flat.GetType()));
+    std::string network_config = "scale " + std::to_string(yDesc_flat.GetType());
     for(auto& len : lens)
     {
         network_config += " " + std::to_string(len);
@@ -1755,7 +1755,7 @@ void CopyTensor(const Handle& handle,
 
         const std::vector<std::size_t>& lens = srcDesc_flat.GetLengths();
 
-        std::string network_config = "copy " + std::to_string(miopen::miopenWrapperToLegacy(srcDesc_flat.GetType()));
+        std::string network_config = "copy " + std::to_string(srcDesc_flat.GetType());
         for(auto& len : lens)
         {
             network_config += " " + std::to_string(len);
@@ -1895,21 +1895,21 @@ void CopyTensor(const Handle& handle,
     }
 }
 
-std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, miopen::DataType type)
+std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, miopenDataType_t type)
 {
     std::string option(buildOption);
     switch(type)
     {
-    case miopen::DataType::Int8: return option += "0";
-    case miopen::DataType::Int32: return option += "1";
-    case miopen::DataType::Half: return option += "2";
-    case miopen::DataType::Float: return option += "3";
-    case miopen::DataType::BFloat16: return option += "4";
-    case miopen::DataType::Double:
+    case miopenInt8: return option += "0";
+    case miopenInt32: return option += "1";
+    case miopenHalf: return option += "2";
+    case miopenFloat: return option += "3";
+    case miopenBFloat16: return option += "4";
+    case miopenDouble:
         // TODO
-        MIOPEN_THROW(miopenStatusBadParm, "miopen::DataType::Double data type not supported in cast tensor.");
-    case miopen::DataType::Int8x4:
-        MIOPEN_THROW(miopenStatusBadParm, "miopen::DataType::Int8x4 data type not supported in cast tensor.");
+        MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported in cast tensor.");
+    case miopenInt8x4:
+        MIOPEN_THROW(miopenStatusBadParm, "miopenInt8x4 data type not supported in cast tensor.");
     default: MIOPEN_THROW(miopenStatusBadParm, "Invalid data type in cast tensor desc.");
     }
 }
@@ -1933,7 +1933,7 @@ void CastTensor(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
     }
 
-    if(srcDesc.GetType() == miopen::DataType::Int8x4 || dstDesc.GetType() == miopen::DataType::Int8x4)
+    if(srcDesc.GetType() == miopenInt8x4 || dstDesc.GetType() == miopenInt8x4)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Tensor cast operation is not supported for int8x4.");
     }
@@ -1971,7 +1971,7 @@ void CastTensor(const Handle& handle,
 
         const std::vector<std::size_t>& lens = srcDesc_flat.GetLengths();
 
-        std::string network_config = "cast " + std::to_string(miopen::miopenWrapperToLegacy(dstDesc_flat.GetType()));
+        std::string network_config = "cast " + std::to_string(dstDesc_flat.GetType());
         for(auto& len : lens)
         {
             network_config += " " + std::to_string(len);
@@ -2009,7 +2009,7 @@ void CastTensor(const Handle& handle,
                     " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
             }
 
-            if(dstDesc_flat.GetType() == miopen::DataType::BFloat16)
+            if(dstDesc_flat.GetType() == miopenBFloat16)
             {
                 parms += " -DMIOPEN_USE_RNE_BFLOAT16=1";
             }
@@ -2153,7 +2153,7 @@ void TransformTensor(const Handle& handle,
         MIOPEN_THROW("Tensor x and y batch sizes do not match");
     }
 
-    if(xDesc.GetType() == miopen::DataType::Int8 && yDesc.GetType() == miopen::DataType::Int8 && x_len.size() >= 3)
+    if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8 && x_len.size() >= 3)
     {
         if(x_len[1] <= y_len[1])
         {
@@ -2176,8 +2176,8 @@ void TransformTensor(const Handle& handle,
         y_len[0] = 1;
 
         miopen::TensorDescriptor x_batch_desc, y_batch_desc;
-        x_batch_desc = miopen::TensorDescriptor(miopen::DataType::Int8, x_len);
-        y_batch_desc = miopen::TensorDescriptor(miopen::DataType::Int8, y_len);
+        x_batch_desc = miopen::TensorDescriptor(miopenInt8, x_len);
+        y_batch_desc = miopen::TensorDescriptor(miopenInt8, y_len);
 
         size_t x_batch_sz = x_batch_desc.GetElementSize();
         size_t y_batch_sz = y_batch_desc.GetElementSize();
@@ -2204,7 +2204,7 @@ void TransformTensor(const Handle& handle,
             }
         }
     }
-    else if(xDesc.GetType() == miopen::DataType::Int8 && yDesc.GetType() == miopen::DataType::Int8x4 && x_len.size() >= 3)
+    else if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8x4 && x_len.size() >= 3)
     {
         if(x_len[1] <= (y_len[1] - 4) || y_len[1] % 4 != 0)
         {
@@ -2213,7 +2213,7 @@ void TransformTensor(const Handle& handle,
 
         transpose_NCHW2Vec(handle, x_len, x, y, 4, false, true, alpha, beta);
     }
-    else if(xDesc.GetType() == miopen::DataType::Int8x4 && yDesc.GetType() == miopen::DataType::Int8 && x_len.size() >= 3)
+    else if(xDesc.GetType() == miopenInt8x4 && yDesc.GetType() == miopenInt8 && x_len.size() >= 3)
     {
         if(y_len[1] <= (x_len[1] - 4) || x_len[1] % 4 != 0)
         {
@@ -2258,15 +2258,15 @@ void TransformTensor(const Handle& handle,
 
         assert(yDim_flat > 0 && yDim_flat <= 5);
 
-        const miopen::DataType dataTypex = xDesc_flat.GetType();
-        const miopen::DataType dataTypey = yDesc_flat.GetType();
+        const miopenDataType_t dataTypex = xDesc_flat.GetType();
+        const miopenDataType_t dataTypey = yDesc_flat.GetType();
 
-        if(dataTypex == miopen::DataType::Int8 || dataTypex == miopen::DataType::Int8x4)
+        if(dataTypex == miopenInt8 || dataTypex == miopenInt8x4)
         {
             MIOPEN_THROW("Tensor x is a unsupported data type");
         }
 
-        if(dataTypey == miopen::DataType::Int8 || dataTypey == miopen::DataType::Int8x4)
+        if(dataTypey == miopenInt8 || dataTypey == miopenInt8x4)
         {
             MIOPEN_THROW("Tensor y is a unsupported data type");
         }
@@ -2280,7 +2280,7 @@ void TransformTensor(const Handle& handle,
 
         const std::vector<std::size_t>& lens = yDesc_flat.GetLengths();
 
-        std::string network_config = "transform " + std::to_string(miopen::miopenWrapperToLegacy(yDesc_flat.GetType()));
+        std::string network_config = "transform " + std::to_string(yDesc_flat.GetType());
         for(auto& len : lens)
         {
             network_config += "x" + std::to_string(len);

@@ -148,7 +148,7 @@ extern "C" miopenStatus_t miopenGetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDes
         }
         if(dataType != nullptr)
         {
-            miopen::deref(dataType) = miopen::miopenWrapperToLegacy(miopen::deref(rnnDesc).dataType);
+            miopen::deref(dataType) = miopen::deref(rnnDesc).dataType;
         }
     });
 }
@@ -168,7 +168,7 @@ extern "C" miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
         rnnDesc, hsize, nlayers, inMode, direction, rnnMode, biasMode, algo, dataType);
     return miopen::try_([&] {
         miopen::deref(rnnDesc) = miopen::RNNDescriptor(
-            hsize, nlayers, rnnMode, inMode, direction, biasMode, algo, miopen::miopenLegacyToWrapper(dataType));
+            hsize, nlayers, rnnMode, inMode, direction, biasMode, algo, dataType);
     });
 }
 
@@ -188,7 +188,7 @@ extern "C" miopenStatus_t miopenSetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDes
         rnnDesc, hsize, nlayers, dropoutDesc, inMode, direction, rnnMode, biasMode, algo, dataType);
     return miopen::try_([&] {
         miopen::deref(rnnDesc) = miopen::RNNDescriptor(
-            hsize, nlayers, rnnMode, inMode, direction, biasMode, algo, miopen::miopenLegacyToWrapper(dataType), dropoutDesc);
+            hsize, nlayers, rnnMode, inMode, direction, biasMode, algo, dataType, dropoutDesc);
     });
 }
 
@@ -229,7 +229,7 @@ extern "C" miopenStatus_t miopenGetRNNParamsDescriptor(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, rnnDesc, xDesc, wDesc, dtype);
     return miopen::try_([&] {
         miopen::deref(rnnDesc).GetParamsDescriptor(
-            miopen::deref(handle), miopen::deref(xDesc), miopen::deref(wDesc), miopen::miopenLegacyToWrapper(dtype));
+            miopen::deref(handle), miopen::deref(xDesc), miopen::deref(wDesc), dtype);
     });
 }
 
@@ -242,7 +242,7 @@ extern "C" miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, rnnDesc, xDesc, numBytes, dtype);
     return miopen::try_([&] {
         miopen::deref(numBytes) = miopen::deref(rnnDesc).GetParamsSize(
-            miopen::deref(handle), miopen::deref(xDesc), miopen::miopenLegacyToWrapper(dtype));
+            miopen::deref(handle), miopen::deref(xDesc), dtype);
     });
 }
 
@@ -458,9 +458,9 @@ static void LogCmdRNN(const miopenTensorDescriptor_t* xDesc,
         }
 
         std::stringstream ss;
-        if(miopen::deref(xDesc[0]).GetType() == miopen::DataType::Float)
+        if(miopen::deref(xDesc[0]).GetType() == miopenFloat)
             ss << "rnn";
-        else if(miopen::deref(xDesc[0]).GetType() == miopen::DataType::Half)
+        else if(miopen::deref(xDesc[0]).GetType() == miopenHalf)
             ss << "rnnfp16";
         ss << " -n " << batch_sz // clang-format off
            << " -W " << miopen::deref(xDesc[0]).GetLengths()[1]
@@ -532,8 +532,8 @@ extern "C" miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
                         reserveSpaceNumBytes);
 
     // bfloat16 not supported for rnn operation
-    if(miopen::deref(wDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(hyDesc).GetType() == miopen::DataType::BFloat16)
+    if(miopen::deref(wDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(hyDesc).GetType() == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }
@@ -622,8 +622,8 @@ extern "C" miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
                         reserveSpaceNumBytes);
 
     // bfloat16 not supported for rnn operation
-    if(miopen::deref(wDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(cxDesc).GetType() == miopen::DataType::BFloat16)
+    if(miopen::deref(wDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(cxDesc).GetType() == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }
@@ -697,8 +697,8 @@ miopenStatus_t miopenRNNBackwardWeights(miopenHandle_t handle,
                         reserveSpaceNumBytes);
 
     // bfloat16 not supported for rnn operation
-    if(miopen::deref(hxDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(dwDesc).GetType() == miopen::DataType::BFloat16)
+    if(miopen::deref(hxDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dwDesc).GetType() == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }

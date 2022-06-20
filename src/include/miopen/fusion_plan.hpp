@@ -88,7 +88,7 @@ private:
     std::string kernel_name;
     std::string algorithm_name;
     std::string network_config;
-    miopen::DataType data_type;
+    miopenDataType_t data_type;
     std::vector<Exec_arg_t> arg_list;
 };
 

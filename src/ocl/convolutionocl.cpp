@@ -564,7 +564,7 @@ void ValidateConvTensors(const ConvTensors& tensors)
 
     const auto tensor_types_not_matched =
         (tensors.xDesc.GetType() != tensors.yDesc.GetType() &&
-         tensors.xDesc.GetType() != miopen::DataType::Int8 && tensors.xDesc.GetType() != miopen::DataType::Int8x4) ||
+         tensors.xDesc.GetType() != miopenInt8 && tensors.xDesc.GetType() != miopenInt8x4) ||
         tensors.xDesc.GetType() != tensors.wDesc.GetType();
 
     // if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
@@ -625,7 +625,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     ValidateConvTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
-    if(algo != miopenConvolutionFwdAlgoGEMM && xDesc.GetType() == miopen::DataType::Int8x4)
+    if(algo != miopenConvolutionFwdAlgoGEMM && xDesc.GetType() == miopenInt8x4)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -1102,7 +1102,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "perfResults cannot be nullptr");
     if(requestAlgoCount < 1)
         MIOPEN_THROW(miopenStatusBadParm, "requestAlgoCount cannot be < 1");
-    if(wDesc.GetType() == miopen::DataType::Int8)
+    if(wDesc.GetType() == miopenInt8)
         MIOPEN_THROW(miopenStatusBadParm);
 
     *returnedAlgoCount = 0;
@@ -1287,7 +1287,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     ValidateConvTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
-    if(wDesc.GetType() == miopen::DataType::Int8)
+    if(wDesc.GetType() == miopenInt8)
         MIOPEN_THROW(miopenStatusBadParm);
 
     ConvBwdCheckNumerics(handle, tensors, beta, [&]() {
@@ -1464,7 +1464,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "perfResults cannot be nullptr");
     if(requestAlgoCount < 1)
         MIOPEN_THROW(miopenStatusBadParm, "requestAlgoCount cannot be < 1");
-    if(xDesc.GetType() == miopen::DataType::Int8)
+    if(xDesc.GetType() == miopenInt8)
         MIOPEN_THROW(miopenStatusBadParm);
 
     *returnedAlgoCount = 0;
@@ -1632,7 +1632,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
     ValidateConvTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
-    if(xDesc.GetType() == miopen::DataType::Int8)
+    if(xDesc.GetType() == miopenInt8)
         MIOPEN_THROW(miopenStatusBadParm);
 
     ConvWrwCheckNumerics(handle, tensors, beta, [&]() {
@@ -1760,7 +1760,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
     auto tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
     ValidateConvTensors(tensors);
 
-    if(xDesc.GetType() == miopen::DataType::Int8)
+    if(xDesc.GetType() == miopenInt8)
         MIOPEN_THROW(miopenStatusBadParm);
 
     float beta = 0;
@@ -1819,11 +1819,11 @@ void ConvolutionBackwardBias(const Handle& handle,
     std::string kernel_name      = "MIOpenConvBwdB";
     std::string network_config =
         "convbwdbias-" +
-        std::string(dyDesc.GetType() == miopen::DataType::Float
+        std::string(dyDesc.GetType() == miopenFloat
                         ? "fp32"
-                        : (dyDesc.GetType() == miopen::DataType::Half
+                        : (dyDesc.GetType() == miopenHalf
                                ? "fp16"
-                               : (dyDesc.GetType() == miopen::DataType::BFloat16 ? "bfloat16" : "int32")));
+                               : (dyDesc.GetType() == miopenBFloat16 ? "bfloat16" : "int32")));
 
     std::string params;
     std::size_t lcl_grp_size0 = 256;

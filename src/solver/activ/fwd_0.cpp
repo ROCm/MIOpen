@@ -108,12 +108,12 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
         {"MIOPEN_NRN_OP_ID", problem.GetActivDesc().GetMode()},
     };
 
-    if(problem.GetXDesc().GetType() == miopen::DataType::Float)
+    if(problem.GetXDesc().GetType() == miopenFloat)
     {
         build_params.Define("MIOPEN_USE_FP16", 0);
         build_params.Define("MIOPEN_USE_FP32", 1);
     }
-    else if(problem.GetXDesc().GetType() == miopen::DataType::Half)
+    else if(problem.GetXDesc().GetType() == miopenHalf)
     {
         build_params.Define("MIOPEN_USE_FP16", 1);
         build_params.Define("MIOPEN_USE_FP32", 0);

@@ -62,7 +62,7 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
             newlens[4] = lengths[4];
     }
     derivedBnDesc =
-        TensorDescriptor(/* xDesc.GetType() */ miopen::DataType::Float, newlens.data(), xDesc.GetSize());
+        TensorDescriptor(/* xDesc.GetType() */ miopenFloat, newlens.data(), xDesc.GetSize());
 }
 
 TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor& tDesc)
@@ -145,7 +145,7 @@ void profileSequence(const Handle& handle, unsigned char select, float* ctime)
 }
 
 void bnFwdTrainSelectMulti(const Handle& handle,
-                           miopen::DataType dtype,
+                           miopenDataType_t dtype,
                            const std::string& program_name,
                            const std::string& algo_name,
                            const std::string& kernel_name,
@@ -262,7 +262,7 @@ void bnFwdTrainSelectMulti(const Handle& handle,
 
 void bnFwdTrainSelectSingleEmpty(const Handle& handle,
                                  int variant,
-                                 miopen::DataType dtype,
+                                 miopenDataType_t dtype,
                                  const std::string& program_name,
                                  const std::string& algo_name,
                                  const std::string& kernel_name,
@@ -410,7 +410,7 @@ void bnFwdTrainSelectSingleEmpty(const Handle& handle,
 
 void bnFwdTrainSelectSingleFull(const Handle& handle,
                                 int variant,
-                                miopen::DataType dtype,
+                                miopenDataType_t dtype,
                                 const std::string& algo_name,
                                 const std::string& network_config,
                                 ConstData_t x,
@@ -546,7 +546,7 @@ void bnFwdTrainSelectSingleFull(const Handle& handle,
 }
 
 void bnBwdTrainSelectSingle(const Handle& handle,
-                            miopen::DataType dtype,
+                            miopenDataType_t dtype,
                             const std::string& program_name,
                             const std::string& algo_name,
                             const std::string& kernel_name,
@@ -582,7 +582,7 @@ void bnBwdTrainSelectSingle(const Handle& handle,
 }
 
 void bnBwdTrainSelectMulti(const Handle& handle,
-                           miopen::DataType dtype,
+                           miopenDataType_t dtype,
                            const std::string& program_name,
                            const std::string& algo_name,
                            const std::string& kernel_name,

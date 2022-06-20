@@ -32,7 +32,7 @@ namespace miopen {
 
 CTCLossDescriptor::CTCLossDescriptor()
 {
-    dataType            = miopen::DataType::Float;
+    dataType            = miopenFloat;
     apply_softmax_layer = true;
     blank_label_id      = 0;
 }

@@ -17,14 +17,14 @@ size_t tensor::size()
     return desc.GetElementSize();
 }
 
-size_t tensor::elem_size(miopen::DataType data_type)
+size_t tensor::elem_size(miopenDataType_t data_type)
 {
     switch(data_type)
     {
-    case miopen::DataType::Float: return sizeof(float);
-    case miopen::DataType::Half: return sizeof(float16);
-    case miopen::DataType::BFloat16: return sizeof(bfloat16);
-    case miopen::DataType::Int8: return sizeof(int8_t);
+    case miopenFloat: return sizeof(float);
+    case miopenHalf: return sizeof(float16);
+    case miopenBFloat16: return sizeof(bfloat16);
+    case miopenInt8: return sizeof(int8_t);
     }
 }
 

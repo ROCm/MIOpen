@@ -123,7 +123,7 @@ struct tensor_set_driver : test_driver
     void run()
     {
         unsigned long max_value =
-            miopen_type<T>{} == miopen::DataType::Half ? 5 : miopen_type<T>{} == miopen::DataType::Int8 ? 127 : 17;
+            miopen_type<T>{} == miopenHalf ? 5 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
 
         super = tensor<T>{superLens}.generate(tensor_elem_gen_integer{max_value});
 

@@ -44,7 +44,7 @@ struct CTCLossDescriptor : miopenCTCLossDescriptor
 {
 
     CTCLossDescriptor();
-    miopen::DataType dataType;
+    miopenDataType_t dataType;
     bool apply_softmax_layer;
     int blank_label_id;
 

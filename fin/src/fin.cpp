@@ -3,24 +3,24 @@
 namespace fin {
 
 template <>
-miopen::DataType GetDataType<int8_t>()
+miopenDataType_t GetDataType<int8_t>()
 {
-    return miopen::DataType::Int8;
+    return miopenInt8;
 }
 template <>
-miopen::DataType GetDataType<float>()
+miopenDataType_t GetDataType<float>()
 {
-    return miopen::DataType::Float;
+    return miopenFloat;
 }
 template <>
-miopen::DataType GetDataType<float16>()
+miopenDataType_t GetDataType<float16>()
 {
-    return miopen::DataType::Half;
+    return miopenHalf;
 }
 template <>
-miopen::DataType GetDataType<bfloat16>()
+miopenDataType_t GetDataType<bfloat16>()
 {
-    return miopen::DataType::BFloat16;
+    return miopenBFloat16;
 }
 [[gnu::noreturn]] void Fin::Usage()
 {

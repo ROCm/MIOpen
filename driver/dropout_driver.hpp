@@ -56,7 +56,7 @@ public:
 
         miopenCreateDropoutDescriptor(&DropoutDesc);
         reservespace_dev = nullptr;
-        data_type        = std::is_same<Tgpu, float16>{} ? miopen::DataType::Half : miopen::DataType::Float;
+        data_type        = std::is_same<Tgpu, float16>{} ? miopenHalf : miopenFloat;
     }
 
     int AddCmdLineArgs() override;

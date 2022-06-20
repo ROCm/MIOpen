@@ -75,31 +75,31 @@ template <class T>
 struct miopen_type;
 
 template <>
-struct miopen_type<float> : std::integral_constant<miopen::DataType, miopen::DataType::Float>
+struct miopen_type<float> : std::integral_constant<miopenDataType_t, miopenFloat>
 {
 };
 
 template <>
-struct miopen_type<double> : std::integral_constant<miopen::DataType, miopen::DataType::Double>
+struct miopen_type<double> : std::integral_constant<miopenDataType_t, miopenDouble>
 {
 };
 
 template <>
-struct miopen_type<half_float::half> : std::integral_constant<miopen::DataType, miopen::DataType::Half>
+struct miopen_type<half_float::half> : std::integral_constant<miopenDataType_t, miopenHalf>
 {
 };
 template <>
-struct miopen_type<bfloat16> : std::integral_constant<miopen::DataType, miopen::DataType::BFloat16>
-{
-};
-
-template <>
-struct miopen_type<int8_t> : std::integral_constant<miopen::DataType, miopen::DataType::Int8>
+struct miopen_type<bfloat16> : std::integral_constant<miopenDataType_t, miopenBFloat16>
 {
 };
 
 template <>
-struct miopen_type<int> : std::integral_constant<miopen::DataType, miopen::DataType::Int32>
+struct miopen_type<int8_t> : std::integral_constant<miopenDataType_t, miopenInt8>
+{
+};
+
+template <>
+struct miopen_type<int> : std::integral_constant<miopenDataType_t, miopenInt32>
 {
 };
 
@@ -124,13 +124,13 @@ struct tensor
     }
 
     template <class X>
-    tensor(miopen::DataType t, miopenTensorLayout_t layout, const std::vector<X>& dims)
+    tensor(miopenDataType_t t, miopenTensorLayout_t layout, const std::vector<X>& dims)
         : desc(t, layout, dims), data(desc.GetElementSpace())
     {
     }
 
     template <class X>
-    tensor(miopen::DataType t,
+    tensor(miopenDataType_t t,
            miopenTensorLayout_t layout,
            const std::vector<X>& dims,
            const std::vector<X>& strides)
@@ -144,7 +144,7 @@ struct tensor
     {
     }
 
-    tensor(miopen::DataType t,
+    tensor(miopenDataType_t t,
            miopenTensorLayout_t layout,
            std::size_t n,
            std::size_t c,
@@ -164,8 +164,8 @@ struct tensor
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
         assert(rhs.GetType() == miopen_type<T>{} ||
-               ((miopen_type<T>{} == miopen::DataType::Int8 || miopen_type<T>{} == miopen::DataType::Int8x4) &&
-                rhs.GetType() == miopen::DataType::Float));
+               ((miopen_type<T>{} == miopenInt8 || miopen_type<T>{} == miopenInt8x4) &&
+                rhs.GetType() == miopenFloat));
         data.resize(desc.GetElementSpace());
     }
 
@@ -387,7 +387,7 @@ tensor<T> make_tensor(std::initializer_list<std::size_t> dims, G g)
     return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}}.generate(g);
 }
 
-// This is needed since there is no TensorDescriptor(miopen::DataType t, const size_t* plens, int
+// This is needed since there is no TensorDescriptor(miopenDataType_t t, const size_t* plens, int
 // size) constructor
 template <class T>
 tensor<T> make_tensor(const std::vector<std::size_t>& dims)

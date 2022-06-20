@@ -60,9 +60,9 @@ public:
         miopenCreateReduceTensorDescriptor(&reduceDesc);
 
         if(std::is_same<Tgpu, double>::value)
-            data_type = miopen::DataType::Double;
+            data_type = miopenDouble;
         else
-            data_type = (sizeof(Tgpu) == 4) ? miopen::DataType::Float : miopen::DataType::Half;
+            data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
     int AddCmdLineArgs() override;
@@ -280,7 +280,7 @@ int ReduceDriver<Tgpu, Tref>::SetReduceTensorDescriptorFromCmdLineArgs()
 {
     miopenReduceTensorOp_t reduceOp =
         static_cast<miopenReduceTensorOp_t>(inflags.GetValueInt("ReduceOp"));
-    miopen::DataType compType = static_cast<miopen::DataType>(inflags.GetValueInt("CompType"));
+    miopenDataType_t compType = static_cast<miopenDataType_t>(inflags.GetValueInt("CompType"));
     miopenNanPropagation_t nanOpt =
         static_cast<miopenNanPropagation_t>(inflags.GetValueInt("NanPropagation"));
     miopenReduceTensorIndices_t indicesOpt =
@@ -294,10 +294,10 @@ int ReduceDriver<Tgpu, Tref>::SetReduceTensorDescriptorFromCmdLineArgs()
          reduceOp == MIOPEN_REDUCE_TENSOR_AMAX);
 
     if(std::is_same<Tgpu, double>::value)
-        compType = miopen::DataType::Double;
+        compType = miopenDouble;
 
     return (miopenSetReduceTensorDescriptor(
-        reduceDesc, reduceOp, miopen::miopenWrapperToLegacy(compType), nanOpt, indicesOpt, indicesType));
+        reduceDesc, reduceOp, compType, nanOpt, indicesOpt, indicesType));
 }
 
 template <typename Tgpu, typename Tref>

@@ -51,27 +51,27 @@ bool ConvDirectNaiveConvIsAssemblyKernel(const ConvolutionContext& ctx)
 // Check tensor data type respectively
 bool IsInputFp32(const ConvolutionContext& ctx)
 {
-    return (ctx.in_data_type == miopen::DataType::Float && ctx.weights_data_type == miopen::DataType::Float) ||
-           (ctx.out_data_type == miopen::DataType::Float && ctx.weights_data_type == miopen::DataType::Float) ||
-           (ctx.in_data_type == miopen::DataType::Float && ctx.out_data_type == miopen::DataType::Float);
+    return (ctx.in_data_type == miopenFloat && ctx.weights_data_type == miopenFloat) ||
+           (ctx.out_data_type == miopenFloat && ctx.weights_data_type == miopenFloat) ||
+           (ctx.in_data_type == miopenFloat && ctx.out_data_type == miopenFloat);
 }
 bool IsInputFp16(const ConvolutionContext& ctx)
 {
-    return (ctx.in_data_type == miopen::DataType::Half && ctx.weights_data_type == miopen::DataType::Half) ||
-           (ctx.out_data_type == miopen::DataType::Half && ctx.weights_data_type == miopen::DataType::Half) ||
-           (ctx.in_data_type == miopen::DataType::Half && ctx.out_data_type == miopen::DataType::Half);
+    return (ctx.in_data_type == miopenHalf && ctx.weights_data_type == miopenHalf) ||
+           (ctx.out_data_type == miopenHalf && ctx.weights_data_type == miopenHalf) ||
+           (ctx.in_data_type == miopenHalf && ctx.out_data_type == miopenHalf);
 }
 bool IsInputBfp16(const ConvolutionContext& ctx)
 {
-    return (ctx.in_data_type == miopen::DataType::BFloat16 && ctx.weights_data_type == miopen::DataType::BFloat16) ||
-           (ctx.out_data_type == miopen::DataType::BFloat16 && ctx.weights_data_type == miopen::DataType::BFloat16) ||
-           (ctx.in_data_type == miopen::DataType::BFloat16 && ctx.out_data_type == miopen::DataType::BFloat16);
+    return (ctx.in_data_type == miopenBFloat16 && ctx.weights_data_type == miopenBFloat16) ||
+           (ctx.out_data_type == miopenBFloat16 && ctx.weights_data_type == miopenBFloat16) ||
+           (ctx.in_data_type == miopenBFloat16 && ctx.out_data_type == miopenBFloat16);
 }
 bool IsInputInt8(const ConvolutionContext& ctx)
 {
-    return (ctx.in_data_type == miopen::DataType::Int8 && ctx.weights_data_type == miopen::DataType::Int8) ||
-           (ctx.out_data_type == miopen::DataType::Int8 && ctx.weights_data_type == miopen::DataType::Int8) ||
-           (ctx.in_data_type == miopen::DataType::Int8 && ctx.out_data_type == miopen::DataType::Int8);
+    return (ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8) ||
+           (ctx.out_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8) ||
+           (ctx.in_data_type == miopenInt8 && ctx.out_data_type == miopenInt8);
 }
 bool IsAccFp64(const ConvolutionContext& ctx)
 {
@@ -80,20 +80,20 @@ bool IsAccFp64(const ConvolutionContext& ctx)
 bool IsAccInt32(const ConvolutionContext& ctx) { return IsInputInt8(ctx); }
 bool IsOutputFp32(const ConvolutionContext& ctx)
 {
-    return ctx.IsFp32() || (ctx.in_data_type == miopen::DataType::Int8 && ctx.weights_data_type == miopen::DataType::Int8 &&
-                            ctx.out_data_type == miopen::DataType::Float);
+    return ctx.IsFp32() || (ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8 &&
+                            ctx.out_data_type == miopenFloat);
 }
 bool IsOutputFp16(const ConvolutionContext& ctx) { return ctx.IsFp16(); }
 bool IsOutputBfp16(const ConvolutionContext& ctx) { return ctx.IsBfp16(); }
 bool IsOutputInt8(const ConvolutionContext& ctx)
 {
-    return ctx.in_data_type == miopen::DataType::Int8 && ctx.weights_data_type == miopen::DataType::Int8 &&
-           ctx.out_data_type == miopen::DataType::Int8;
+    return ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8 &&
+           ctx.out_data_type == miopenInt8;
 }
 bool IsOutputInt32(const ConvolutionContext& ctx)
 {
-    return (ctx.in_data_type == miopen::DataType::Int8 && ctx.weights_data_type == miopen::DataType::Int8 &&
-            ctx.out_data_type == miopen::DataType::Int32);
+    return (ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8 &&
+            ctx.out_data_type == miopenInt32);
 }
 
 std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)

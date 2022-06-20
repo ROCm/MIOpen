@@ -97,9 +97,9 @@ struct ProblemDescription
     std::string in_layout;
     std::string weights_layout;
     std::string out_layout;
-    miopen::DataType in_data_type      = miopen::DataType::Float;
-    miopen::DataType weights_data_type = miopen::DataType::Float;
-    miopen::DataType out_data_type     = miopen::DataType::Float;
+    miopenDataType_t in_data_type      = miopenFloat;
+    miopenDataType_t weights_data_type = miopenFloat;
+    miopenDataType_t out_data_type     = miopenFloat;
     size_t bot_sz                      = 0;
     size_t top_sz                      = 0;
     size_t weights_sz                  = 0;
@@ -190,18 +190,18 @@ struct ProblemDescription
 
     bool IsFp32() const
     {
-        return in_data_type == miopen::DataType::Float && weights_data_type == miopen::DataType::Float &&
-               out_data_type == miopen::DataType::Float;
+        return in_data_type == miopenFloat && weights_data_type == miopenFloat &&
+               out_data_type == miopenFloat;
     }
     bool IsFp16() const
     {
-        return in_data_type == miopen::DataType::Half && weights_data_type == miopen::DataType::Half &&
-               out_data_type == miopen::DataType::Half;
+        return in_data_type == miopenHalf && weights_data_type == miopenHalf &&
+               out_data_type == miopenHalf;
     }
     bool IsBfp16() const
     {
-        return in_data_type == miopen::DataType::BFloat16 && weights_data_type == miopen::DataType::BFloat16 &&
-               out_data_type == miopen::DataType::BFloat16;
+        return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
+               out_data_type == miopenBFloat16;
     }
     bool IsInt8() const { return conv_problem.IsInt8(); }
     bool IsNCHWc_NCHWc() const
@@ -240,7 +240,7 @@ struct ProblemDescription
      * set top tensor
      */
     void setTopDescr(const std::string& layout,
-                     miopen::DataType data_type,
+                     miopenDataType_t data_type,
                      int batch,
                      int channels,
                      int depth,
@@ -275,7 +275,7 @@ struct ProblemDescription
      */
 
     void setBotDescr(const std::string& layout,
-                     miopen::DataType data_type,
+                     miopenDataType_t data_type,
                      int batch,
                      int channels,
                      int depth,
@@ -309,7 +309,7 @@ struct ProblemDescription
      * set top df tensor
      */
     void setTopDfDescr(const std::string& /*layout*/,
-                       miopen::DataType /*data_type*/,
+                       miopenDataType_t /*data_type*/,
                        int batch,
                        int channels,
                        int /*depth*/,
@@ -329,7 +329,7 @@ struct ProblemDescription
      */
 
     void setBotDfDescr(const std::string& /*layout*/,
-                       miopen::DataType /*data_type*/,
+                       miopenDataType_t /*data_type*/,
                        int batch,
                        int channels,
                        int /*depth*/,

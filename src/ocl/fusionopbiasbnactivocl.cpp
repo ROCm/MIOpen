@@ -232,12 +232,12 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(
     size_t read_unit     = 1;
     size_t read_len      = (mode == miopenBNSpatial) ? h * w : c * h * w;
 
-    if(mode == miopenBNSpatial && input_desc.GetType() != miopen::DataType::Half)
+    if(mode == miopenBNSpatial && input_desc.GetType() != miopenHalf)
     {
         read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
     }
 
-    if(input_desc.GetType() == miopen::DataType::Half)
+    if(input_desc.GetType() == miopenHalf)
     {
         add += " -DMIOPEN_USE_FPMIX=1";
     }
@@ -278,7 +278,7 @@ BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
     size_t read_unit     = 1;
     size_t read_len      = (mode == miopenBNSpatial) ? h * w : c * h * w;
 
-    if(mode == miopenBNSpatial && input_desc.GetType() != miopen::DataType::Half)
+    if(mode == miopenBNSpatial && input_desc.GetType() != miopenHalf)
     {
         read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
     }
@@ -401,7 +401,7 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetCompileParms(
     if(input_desc.GetLengths().empty())
         MIOPEN_THROW("The input descriptor is not set");
 
-    if(input_desc.GetType() == miopen::DataType::Half)
+    if(input_desc.GetType() == miopenHalf)
     {
         add += " -DMIOPEN_USE_FPMIX=1";
     }
@@ -615,7 +615,7 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetCompileParms(
     }
     std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
 
-    if(input_desc.GetType() == miopen::DataType::Half)
+    if(input_desc.GetType() == miopenHalf)
     {
         add += " -DMIOPEN_USE_FPMIX=1";
     }

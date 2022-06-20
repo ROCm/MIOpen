@@ -53,14 +53,14 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
     bool bfpmixparm = false;
     bool bfp16parm  = false;
     bool bfp32parm  = true;
-    if(problem.GetXDesc().GetType() == miopen::DataType::Half &&
-       problem.GetBnScaleBiasMeanVarDesc().GetType() == miopen::DataType::Half)
+    if(problem.GetXDesc().GetType() == miopenHalf &&
+       problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
-    else if(problem.GetXDesc().GetType() == miopen::DataType::Half &&
-            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopen::DataType::Float)
+    else if(problem.GetXDesc().GetType() == miopenHalf &&
+            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
     {
         bfpmixparm = true;
         bfp32parm  = false;

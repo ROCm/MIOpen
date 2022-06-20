@@ -76,7 +76,7 @@ static void LogCmdActivation(const miopenTensorDescriptor_t xDesc,
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
-        if(miopen::deref(xDesc).GetType() == miopen::DataType::Half)
+        if(miopen::deref(xDesc).GetType() == miopenHalf)
         {
             ss << "activfp16";
         }
@@ -107,8 +107,8 @@ extern "C" miopenStatus_t miopenActivationForward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, activDesc, alpha, xDesc, x, beta, yDesc, y);
 
     // bfloat16 not supported for activation operation
-    if(miopen::deref(yDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(xDesc).GetType() == miopen::DataType::BFloat16)
+    if(miopen::deref(yDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(xDesc).GetType() == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }
@@ -140,10 +140,10 @@ extern "C" miopenStatus_t miopenActivationBackward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, activDesc, alpha, yDesc, y, dyDesc, dy, xDesc, x, beta, dxDesc, dx);
 
     // bfloat16 not supported for activation operation
-    if(miopen::deref(yDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(dyDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(xDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(dxDesc).GetType() == miopen::DataType::BFloat16)
+    if(miopen::deref(yDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dyDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(xDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dxDesc).GetType() == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }

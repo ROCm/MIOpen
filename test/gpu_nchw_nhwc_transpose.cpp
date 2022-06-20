@@ -42,12 +42,12 @@
 #include "random.hpp"
 
 template <>
-struct miopen_type<uint8_t> : std::integral_constant<miopen::DataType, miopen::DataType::Int8>
+struct miopen_type<uint8_t> : std::integral_constant<miopenDataType_t, miopenInt8>
 {
 };
 
 template <>
-struct miopen_type<uint16_t> : std::integral_constant<miopen::DataType, miopen::DataType::Half>
+struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHalf>
 {
 };
 
@@ -163,19 +163,19 @@ struct to_miopen_data_type
 template <>
 struct to_miopen_data_type<float>
 {
-    static miopen::DataType get() { return miopen::DataType::Float; }
+    static miopenDataType_t get() { return miopenFloat; }
 };
 
 template <>
 struct to_miopen_data_type<uint16_t>
 {
-    static miopen::DataType get() { return miopen::DataType::Half; } // we actually didn't calculate 16bit float
+    static miopenDataType_t get() { return miopenHalf; } // we actually didn't calculate 16bit float
 };
 
 template <>
 struct to_miopen_data_type<uint8_t>
 {
-    static miopen::DataType get() { return miopen::DataType::Int8; }
+    static miopenDataType_t get() { return miopenInt8; }
 };
 
 #define RAND_INTEGER_MAX 120

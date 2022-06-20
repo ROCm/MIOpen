@@ -1558,7 +1558,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 size_t drop_in_offset  = prelayer_shift;
                 size_t drop_out_offset = drop_rsv_start + (li - 1) * batch_n * hy_h * bi;
                 size_t drop_rsv_offset = (drop_rsv_start + (nLayers - 1) * batch_n * hy_h * bi) *
-                                             (wDesc.GetType() == miopen::DataType::Float ? 4 : 2) +
+                                             (wDesc.GetType() == miopenFloat ? 4 : 2) +
                                          (li - 1) * drop_rsv_size;
 
                 miopen::deref(dropoutDesc)
@@ -2857,7 +2857,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         : 2 * nLayers * batch_n * hy_stride;
 
                 size_t drop_rsv_offset = (drop_rsv_start + (nLayers - 1) * batch_n * hy_h * bi) *
-                                             (wDesc.GetType() == miopen::DataType::Float ? 4 : 2) +
+                                             (wDesc.GetType() == miopenFloat ? 4 : 2) +
                                          li * drop_rsv_size;
 
                 miopen::deref(dropoutDesc)

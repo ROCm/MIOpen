@@ -35,7 +35,7 @@
 namespace miopen {
 
 std::string
-EncodeDataTypesForKey(miopen::DataType in, miopen::DataType weights, miopen::DataType out)
+EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out)
 {
     if(in == weights && in == out)
         return GetDataTypeName(in);

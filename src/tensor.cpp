@@ -36,14 +36,14 @@ namespace miopen {
 
 TensorDescriptor::TensorDescriptor() : packed(true) {}
 
-TensorDescriptor::TensorDescriptor(miopen::DataType t, std::initializer_list<std::size_t> plens)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens)
     : lens(plens), packed(true), type(t)
 {
     this->CalculateVectorLength();
     this->CalculateStrides();
 }
 
-TensorDescriptor::TensorDescriptor(miopen::DataType t,
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    miopenTensorLayout_t playout,
                                    std::initializer_list<std::size_t> plens)
     : lens(plens), packed(true), type(t), tensorLayout(playout)
@@ -52,7 +52,7 @@ TensorDescriptor::TensorDescriptor(miopen::DataType t,
     this->CalculateStrides();
 }
 
-TensorDescriptor::TensorDescriptor(miopen::DataType t,
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    miopenTensorLayout_t playout,
                                    std::vector<std::size_t> plens)
     : lens(plens), packed(true), type(t), tensorLayout(playout)
@@ -61,7 +61,7 @@ TensorDescriptor::TensorDescriptor(miopen::DataType t,
     this->CalculateStrides();
 }
 
-TensorDescriptor::TensorDescriptor(miopen::DataType t,
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    std::initializer_list<std::size_t> plens,
                                    std::initializer_list<std::size_t> pstrides)
     : lens(plens), strides(pstrides), type(t)
@@ -70,7 +70,7 @@ TensorDescriptor::TensorDescriptor(miopen::DataType t,
     packed = (this->GetElementSize() == this->GetElementSpace());
 }
 
-TensorDescriptor::TensorDescriptor(miopen::DataType t, const int* plens, int size)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t, const int* plens, int size)
     : lens(plens, plens + size), packed(true), type(t)
 {
     if(!std::all_of(plens, plens + size, [](int x) { return x >= 0; }))
@@ -78,7 +78,7 @@ TensorDescriptor::TensorDescriptor(miopen::DataType t, const int* plens, int siz
     this->CalculateVectorLength();
     this->CalculateStrides();
 }
-TensorDescriptor::TensorDescriptor(miopen::DataType t,
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    const int* plens,
                                    const int* pstrides,
                                    int size)
@@ -91,7 +91,7 @@ TensorDescriptor::TensorDescriptor(miopen::DataType t,
     this->CalculateVectorLength();
     packed = (this->GetElementSize() == this->GetElementSpace());
 }
-TensorDescriptor::TensorDescriptor(miopen::DataType t,
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    miopenTensorLayout_t playout,
                                    const int* plens,
                                    int size)
@@ -103,7 +103,7 @@ TensorDescriptor::TensorDescriptor(miopen::DataType t,
     this->CalculateStrides();
 }
 
-TensorDescriptor::TensorDescriptor(miopen::DataType t,
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    std::vector<std::size_t> lens_in,
                                    std::vector<std::size_t> strides_in)
     : lens(std::move(lens_in)), strides(std::move(strides_in)), type(t)
@@ -112,7 +112,7 @@ TensorDescriptor::TensorDescriptor(miopen::DataType t,
     packed = (this->GetElementSize() == this->GetElementSpace());
 }
 
-TensorDescriptor::TensorDescriptor(miopen::DataType t,
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    miopenTensorLayout_t layout_in,
                                    std::vector<std::size_t> lens_in,
                                    std::vector<std::size_t> strides_in)
@@ -167,7 +167,7 @@ std::size_t TensorDescriptor::GetElementSize() const
     assert(lens.size() == strides.size());
     return std::accumulate(lens.begin(), lens.end(), vector_length, std::multiplies<std::size_t>());
 }
-miopen::DataType TensorDescriptor::GetType() const { return this->type; }
+miopenDataType_t TensorDescriptor::GetType() const { return this->type; }
 miopenTensorLayout_t TensorDescriptor::GetLayout_t() const { return this->tensorLayout; }
 std::string TensorDescriptor::GetLayout_str() const
 {
@@ -241,13 +241,13 @@ std::size_t TensorDescriptor::GetNumBytes() const
     std::size_t typesize = 0;
     switch(this->type)
     {
-    case miopen::DataType::Int8x4:
-    case miopen::DataType::Int8: typesize = 1; break;
-    case miopen::DataType::BFloat16:
-    case miopen::DataType::Half: typesize = 2; break;
-    case miopen::DataType::Int32:
-    case miopen::DataType::Float: typesize = 4; break;
-    case miopen::DataType::Double: typesize = 8; break;
+    case miopenInt8x4:
+    case miopenInt8: typesize = 1; break;
+    case miopenBFloat16:
+    case miopenHalf: typesize = 2; break;
+    case miopenInt32:
+    case miopenFloat: typesize = 4; break;
+    case miopenDouble: typesize = 8; break;
     }
     return typesize * this->GetElementSpace();
 }

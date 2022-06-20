@@ -4710,5 +4710,3 @@ miopenReduceTensor(miopenHandle_t handle,
 #endif
 
 #endif // MIOPEN_GUARD_MIOPEN_H_
-
-#include <miopen/miopen_api_wrappers.hpp>

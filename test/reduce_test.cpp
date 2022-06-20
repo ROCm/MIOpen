@@ -59,7 +59,7 @@ struct verify_reduce_with_indices
     float beta;
 
     miopenReduceTensorOp_t reduceOp;
-    miopen::DataType compTypeVal;
+    miopenDataType_t compTypeVal;
     miopenNanPropagation_t nanOpt;
     miopenReduceTensorIndices_t indicesOpt;
     miopenIndicesType_t indicesType;
@@ -94,14 +94,14 @@ struct verify_reduce_with_indices
 
         std::tuple<tensor<T>, tensor<int>> results;
 
-        if(compTypeVal == miopen::DataType::Float)
+        if(compTypeVal == miopenFloat)
         {
             if(std::is_same<T, double>::value)
                 results = cpuImpl<double>();
             else
                 results = cpuImpl<float>();
         }
-        else if(compTypeVal == miopen::DataType::Half)
+        else if(compTypeVal == miopenHalf)
         {
             if(std::is_same<T, double>::value)
                 results = cpuImpl<double>();
@@ -110,7 +110,7 @@ struct verify_reduce_with_indices
             else
                 results = cpuImpl<half_float::half>();
         }
-        else if(compTypeVal == miopen::DataType::Double)
+        else if(compTypeVal == miopenDouble)
             results = cpuImpl<double>();
 
         if(toVerifyData)
@@ -414,7 +414,7 @@ struct verify_reduce_no_indices
     float beta;
 
     miopenReduceTensorOp_t reduceOp;
-    miopen::DataType compTypeVal;
+    miopenDataType_t compTypeVal;
     miopenNanPropagation_t nanOpt;
 
     verify_reduce_no_indices( // NOLINT (hicpp-member-init)
@@ -443,14 +443,14 @@ struct verify_reduce_no_indices
 
         tensor<T> result;
 
-        if(compTypeVal == miopen::DataType::Float)
+        if(compTypeVal == miopenFloat)
         {
             if(std::is_same<T, double>::value)
                 result = cpuImpl<double>();
             else
                 result = cpuImpl<float>();
         }
-        else if(compTypeVal == miopen::DataType::Half)
+        else if(compTypeVal == miopenHalf)
         {
             if(std::is_same<T, double>::value)
                 result = cpuImpl<double>();
@@ -459,7 +459,7 @@ struct verify_reduce_no_indices
             else
                 result = cpuImpl<half_float::half>();
         }
-        else if(compTypeVal == miopen::DataType::Double)
+        else if(compTypeVal == miopenDouble)
             result = cpuImpl<double>();
 
         const auto dimLengths = output.desc.GetLengths();
@@ -703,7 +703,7 @@ template <class T>
 struct reduce_driver : test_driver
 {
     int reduceOp                    = 0; //  miopenReduceTensorOp_t reduceOp;
-    int compTypeVal                 = 1; //  miopen::DataType compTypeVal;
+    int compTypeVal                 = 1; //  miopenDataType_t compTypeVal;
     int nanOpt                      = 0; //  miopenNanPropagation_t nanOpt;
     int indicesOpt                  = 0; //  miopenReduceTensorIndices_t indicesOpt;
     miopenIndicesType_t indicesType = MIOPEN_32BIT_INDICES;
@@ -756,15 +756,15 @@ struct reduce_driver : test_driver
         using reduce::convert_type;
 
         if(std::is_same<T, double>::value)
-            compTypeVal = static_cast<int>(miopen::DataType::Double);
+            compTypeVal = static_cast<int>(miopenDouble);
 
         if(std::is_same<T, half_float::half>::value)
         {
             if(reduceOp == MIOPEN_REDUCE_TENSOR_MIN || reduceOp == MIOPEN_REDUCE_TENSOR_MAX ||
                reduceOp == MIOPEN_REDUCE_TENSOR_AMAX)
-                compTypeVal = static_cast<int>(miopen::DataType::Half); // let compType be same as the data type
+                compTypeVal = static_cast<int>(miopenHalf); // let compType be same as the data type
             else
-                compTypeVal = static_cast<int>(miopen::DataType::Float);
+                compTypeVal = static_cast<int>(miopenFloat);
         }
 
 #if WORKAROUND_GPU_NUMERIC_ERROR
@@ -782,7 +782,7 @@ struct reduce_driver : test_driver
 
         miopen::ReduceTensorDescriptor reduceDesc(
             static_cast<miopenReduceTensorOp_t>(reduceOp),
-            static_cast<miopen::DataType>(compTypeVal),
+            static_cast<miopenDataType_t>(compTypeVal),
             static_cast<miopenNanPropagation_t>(nanOpt),
             static_cast<miopenReduceTensorIndices_t>(indicesOpt),
             indicesType);
@@ -814,12 +814,12 @@ struct reduce_driver : test_driver
 
         if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
             max_value =
-                miopen_type<T>{} == miopen::DataType::Half ? 41 : miopen_type<T>{} == miopen::DataType::Int8 ? 127 : 111;
+                miopen_type<T>{} == miopenHalf ? 41 : miopen_type<T>{} == miopenInt8 ? 127 : 111;
         else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
             max_value = 3;
         else
             max_value =
-                miopen_type<T>{} == miopen::DataType::Half ? 13 : miopen_type<T>{} == miopen::DataType::Int8 ? 127 : 999;
+                miopen_type<T>{} == miopenHalf ? 13 : miopen_type<T>{} == miopenInt8 ? 127 : 999;
 
         // default data gneration (used by MIN/MAX)
         auto gen_value = [&](auto... is) {

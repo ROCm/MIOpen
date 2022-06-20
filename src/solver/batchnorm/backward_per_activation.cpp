@@ -56,14 +56,14 @@ BnBwdTrainingPerActivation::GetSolution(const ExecutionContext& context,
     bool bfp16parm  = false;
     bool bfp32parm  = true;
 
-    if(problem.GetXDesc().GetType() == miopen::DataType::Half &&
-       problem.GetScaleBiasDiffDesc().GetType() == miopen::DataType::Half)
+    if(problem.GetXDesc().GetType() == miopenHalf &&
+       problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
-    else if(problem.GetXDesc().GetType() == miopen::DataType::Half &&
-            problem.GetScaleBiasDiffDesc().GetType() == miopen::DataType::Float)
+    else if(problem.GetXDesc().GetType() == miopenHalf &&
+            problem.GetScaleBiasDiffDesc().GetType() == miopenFloat)
     {
         bfpmixparm = true;
         bfp32parm  = false;

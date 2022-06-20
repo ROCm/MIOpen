@@ -73,7 +73,7 @@ public:
         miopenCreateTensorDescriptor(&dxOutputTensor);
         miopenCreateTensorDescriptor(&dyInputTensor);
 
-        data_type = (sizeof(Tgpu) == 4) ? miopen::DataType::Float : miopen::DataType::Half;
+        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
     int AddCmdLineArgs() override;
@@ -235,7 +235,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
     }
 
     SetTensorNd(inputTensor, in_len, data_type);
-    SetTensorNd(biasScaleTensor, sb_len, ((sizeof(Tmix) == 4) ? miopen::DataType::Float : miopen::DataType::Half));
+    SetTensorNd(biasScaleTensor, sb_len, ((sizeof(Tmix) == 4) ? miopenFloat : miopenHalf));
     SetTensorNd(outputTensor, in_len, data_type);
 
     // backwards

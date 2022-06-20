@@ -989,7 +989,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
             {
                 const auto& workSpace = invoke_params.workSpace;
                 TensorDescriptor workspaceDesc(
-                    miopen::DataType::Float, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
+                    miopenFloat, tensors.dwDesc.GetLengths(), tensors.dwDesc.GetStrides());
                 SetTensor(handle, workspaceDesc, workSpace, &zero);
                 if(handle.IsProfilingEnabled())
                 {
@@ -1109,7 +1109,7 @@ std::size_t ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const Convolution
         const auto y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
         const auto x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
-        return k * c * y * x * miopen::GetTypeSize(miopen::DataType::Float);
+        return k * c * y * x * miopen::GetTypeSize(miopenFloat);
     }
 }
 } // namespace solver

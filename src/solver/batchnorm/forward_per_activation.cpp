@@ -70,12 +70,12 @@ BnFwdTrainingPerActivation::GetSolution(const ExecutionContext& context,
         bool bfpmixparm = false;
         bool bfp16parm  = false;
         bool bfp32parm  = true;
-        if(xDesc.GetType() == miopen::DataType::Half && bnScaleBiasMeanVarDesc.GetType() == miopen::DataType::Half)
+        if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenHalf)
         {
             bfp16parm = true;
             bfp32parm = false;
         }
-        else if(xDesc.GetType() == miopen::DataType::Half && bnScaleBiasMeanVarDesc.GetType() == miopen::DataType::Float)
+        else if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenFloat)
         {
             bfpmixparm = true;
             bfp32parm  = false;

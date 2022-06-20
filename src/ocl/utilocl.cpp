@@ -55,7 +55,7 @@ float Im2d2ColGPU(const Handle& handle,
                   const int dilation_h,
                   const int dilation_w,
                   Data_t col,
-                  miopen::DataType type)
+                  miopenDataType_t type)
 {
     std::string program_name = "MIOpenIm2d2Col.cl";
     std::string kernel_name  = "Im2d2Col";
@@ -73,15 +73,15 @@ float Im2d2ColGPU(const Handle& handle,
         "_" + std::to_string(stride_w) +
         "d" + std::to_string(dilation_h) +
         "_" + std::to_string(dilation_w) +
-        "t" + std::to_string(miopen::miopenWrapperToLegacy(type));
+        "t" + std::to_string(type);
     // clang-format on
 
     auto&& kernels = handle.GetKernels("miopenIm2d2Col", network_config);
 
     int data_size_bound = c * in_h * in_w;
 
-    int data_size_bound_pack = type == miopen::DataType::Int8x4 ? data_size_bound * 4 : data_size_bound;
-    int im_offset_pack       = type == miopen::DataType::Int8x4 ? im_offset / 4 : im_offset;
+    int data_size_bound_pack = type == miopenInt8x4 ? data_size_bound * 4 : data_size_bound;
+    int im_offset_pack       = type == miopenInt8x4 ? im_offset / 4 : im_offset;
 
     if(!kernels.empty())
     {
@@ -105,7 +105,7 @@ float Im2d2ColGPU(const Handle& handle,
     }
     else
     {
-        const int c_pack = type == miopen::DataType::Int8x4 ? c / 4 : c;
+        const int c_pack = type == miopenInt8x4 ? c / 4 : c;
 
         std::string params;
         int num_ch_per_wg;
@@ -242,7 +242,7 @@ float Im3d2ColGPU(const Handle& handle,
                   const int dilation_h,
                   const int dilation_w,
                   Data_t col,
-                  miopen::DataType type)
+                  miopenDataType_t type)
 {
     std::string program_name = "MIOpenIm3d2Col.cl";
     std::string kernel_name  = "Im3d2Col";
@@ -265,14 +265,14 @@ float Im3d2ColGPU(const Handle& handle,
         "d" + std::to_string(dilation_d) +
         "_" + std::to_string(dilation_h) +
         "_" + std::to_string(dilation_w) +
-        "t" + std::to_string(miopen::miopenWrapperToLegacy(type));
+        "t" + std::to_string(type);
     // clang-format on
 
     auto&& kernels = handle.GetKernels("miopenIm3d2Col", network_config);
 
     // int8x4 vectorize-c format
-    int im_offset_pack = type == miopen::DataType::Int8x4 ? im_offset / 4 : im_offset;
-    int im_c_pack      = type == miopen::DataType::Int8x4 ? im_c / 4 : im_c;
+    int im_offset_pack = type == miopenInt8x4 ? im_offset / 4 : im_offset;
+    int im_c_pack      = type == miopenInt8x4 ? im_c / 4 : im_c;
 
     if(!kernels.empty())
     {
@@ -357,7 +357,7 @@ float Col2Im2dGPU(const Handle& handle,
                   const int in_w,
                   Data_t im,
                   int im_offset,
-                  miopen::DataType type)
+                  miopenDataType_t type)
 {
     std::string program_name = "MIOpenCol2Im2d.cl";
     std::string kernel_name  = "Col2Im2d";
@@ -375,7 +375,7 @@ float Col2Im2dGPU(const Handle& handle,
         "v" + std::to_string(stride_w) +
         "l" + std::to_string(dilation_h) +
         "j" + std::to_string(dilation_w) +
-        "t" + std::to_string(miopen::miopenWrapperToLegacy(type));
+        "t" + std::to_string(type);
     // clang-format on
 
     auto&& kernels = handle.GetKernels("miopenCol2Im2d", network_config);
@@ -451,7 +451,7 @@ float Col2Im3dGPU(const Handle& handle,
                   const int in_w,
                   Data_t im,
                   int im_offset,
-                  miopen::DataType type)
+                  miopenDataType_t type)
 {
     std::string program_name = "MIOpenCol2Im3d.cl";
     std::string kernel_name  = "Col2Im3d";
@@ -474,7 +474,7 @@ float Col2Im3dGPU(const Handle& handle,
         "d" + std::to_string(dilation_d) +
         "_" + std::to_string(dilation_h) +
         "_" + std::to_string(dilation_w) +
-        "t" + std::to_string(miopen::miopenWrapperToLegacy(type));
+        "t" + std::to_string(type);
     // clang-format on
 
     auto&& kernels = handle.GetKernels("miopenCol2Im3d", network_config);
@@ -552,7 +552,7 @@ float Im2ColGPU(
     const std::vector<int>& stride_spatial,
     const std::vector<int>& dilation_spatial,
     Data_t col,
-    miopen::DataType type)
+    miopenDataType_t type)
 {
     switch(spatial_dim)
     {
@@ -621,7 +621,7 @@ float Col2ImGPU(
     const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& in_spatial,
     Data_t im,
     std::size_t im_offset,
-    miopen::DataType type)
+    miopenDataType_t type)
 {
     switch(spatial_dim)
     {
@@ -692,25 +692,25 @@ float transpose_NCHW2CNHW(const Handle& handle,
                           int out_offset,
                           int h_stride,
                           int w_stride,
-                          miopen::DataType type)
+                          miopenDataType_t type)
 {
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config = "t" + std::to_string(miopen::miopenWrapperToLegacy(type));
+    std::string network_config = "t" + std::to_string(type);
 
     std::string kernel_name = "transpose_NCHW2CNHW";
 
     std::string params = GetDataTypeKernelParams(type);
 
-    if(type == miopen::DataType::Int8x4)
+    if(type == miopenInt8x4)
     {
         c /= 4;
         in_offset /= 4;
         out_offset /= 4;
     }
 
-    if(h_stride == 1 && w_stride == 1 && type == miopen::DataType::Float)
+    if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
         kernel_name += "_V1";
 
@@ -831,25 +831,25 @@ float transpose_CNHW2NCHW(const Handle& handle,
                           int out_offset,
                           int h_stride,
                           int w_stride,
-                          miopen::DataType type)
+                          miopenDataType_t type)
 {
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config = "t" + std::to_string(miopen::miopenWrapperToLegacy(type));
+    std::string network_config = "t" + std::to_string(type);
 
     std::string kernel_name = "transpose_CNHW2NCHW";
 
     std::string params = GetDataTypeKernelParams(type);
 
-    if(type == miopen::DataType::Int8x4)
+    if(type == miopenInt8x4)
     {
         c /= 4;
         in_offset /= 4;
         out_offset /= 4;
     }
 
-    if(h_stride == 1 && w_stride == 1 && type == miopen::DataType::Float)
+    if(h_stride == 1 && w_stride == 1 && type == miopenFloat)
     {
         kernel_name += "_V1";
 
@@ -1091,26 +1091,26 @@ float transpose_packed_MN2NM(const Handle& handle,
                              int out_offset,
                              ConstData_t in,
                              Data_t out,
-                             miopen::DataType type)
+                             miopenDataType_t type)
 {
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config = "t" + std::to_string(miopen::miopenWrapperToLegacy(type));
+    std::string network_config = "t" + std::to_string(type);
 
     std::string kernel_name = "transpose_packed_MN2NM";
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
     std::string params = GetDataTypeKernelParams(type);
-    if(type == miopen::DataType::Int8x4)
+    if(type == miopenInt8x4)
     {
         m /= 4;
         in_offset /= 4;
         out_offset /= 4;
     }
 
-    if(!(type == miopen::DataType::Int8x4 || type == miopen::DataType::Int8))
+    if(!(type == miopenInt8x4 || type == miopenInt8))
     {
         MIOPEN_THROW("transpose_packed_MN2NM only meant for int8 variants.");
     }

@@ -45,13 +45,13 @@ struct ReduceTensorDescriptor : miopenReduceTensorDescriptor
 {
     ReduceTensorDescriptor() = default;
     ReduceTensorDescriptor(miopenReduceTensorOp_t reduceTensorOp,
-                           miopen::DataType reduceTensorCompType,
+                           miopenDataType_t reduceTensorCompType,
                            miopenNanPropagation_t reduceTensorNanOpt,
                            miopenReduceTensorIndices_t reduceTensorIndices,
                            miopenIndicesType_t reduceTensorIndicesType);
 
     miopenReduceTensorOp_t reduceTensorOp_;
-    miopen::DataType reduceTensorCompType_;
+    miopenDataType_t reduceTensorCompType_;
     miopenNanPropagation_t reduceTensorNanOpt_;
     miopenReduceTensorIndices_t reduceTensorIndices_;
     miopenIndicesType_t reduceTensorIndicesType_;

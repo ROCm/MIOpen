@@ -296,19 +296,19 @@ static std::string direction_to_string(miopen::conv::Direction direction)
     return "n/a";
 }
 
-static std::string miopen_type_to_string(miopen::DataType type)
+static std::string miopen_type_to_string(miopenDataType_t type)
 {
-    if(type == miopen::DataType::Half)
+    if(type == miopenHalf)
         return "fp16";
-    if(type == miopen::DataType::Float)
+    if(type == miopenFloat)
         return "fp32";
-    if(type == miopen::DataType::Int32)
+    if(type == miopenInt32)
         return "int32";
-    if(type == miopen::DataType::Int8)
+    if(type == miopenInt8)
         return "int8";
-    if(type == miopen::DataType::Int8x4)
+    if(type == miopenInt8x4)
         return "int8x4";
-    if(type == miopen::DataType::BFloat16)
+    if(type == miopenBFloat16)
         return "bf16";
     return "n/a";
 }

@@ -413,7 +413,7 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
      * set top tensor
      */
     void setTopDescr(const std::string& layout,
-                     miopen::DataType data_type,
+                     miopenDataType_t data_type,
                      int batch,
                      int channels,
                      int depth,
@@ -441,7 +441,7 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
      *  set bot tensor
      */
     void setBotDescr(const std::string& layout,
-                     miopen::DataType data_type,
+                     miopenDataType_t data_type,
                      int batch,
                      int channels,
                      int depth,
@@ -469,7 +469,7 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
      * set top df tensor
      */
     void setTopDfDescr(const std::string& layout,
-                       miopen::DataType data_type,
+                       miopenDataType_t data_type,
                        int batch,
                        int channels,
                        int depth,
@@ -511,7 +511,7 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
      *  set bot df tensor
      */
     void setBotDfDescr(const std::string& layout,
-                       miopen::DataType data_type,
+                       miopenDataType_t data_type,
                        int batch,
                        int channels,
                        int depth,

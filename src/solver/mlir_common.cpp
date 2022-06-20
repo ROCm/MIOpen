@@ -47,17 +47,17 @@ static std::string InsertGToLayout(const std::string& layout, char dim)
     return layout_with_g.insert(index, 1, 'G');
 }
 
-static const char* DTypeName(miopen::DataType ty)
+static const char* DTypeName(miopenDataType_t ty)
 {
     switch(ty)
     {
-    case miopen::DataType::Half: return "fp16";
-    case miopen::DataType::Float: return "fp32";
-    case miopen::DataType::Double: return "fp64";
-    case miopen::DataType::BFloat16: return "bf16";
-    case miopen::DataType::Int32: return "i32";
-    case miopen::DataType::Int8: return "i8";
-    case miopen::DataType::Int8x4: return "i8x4";
+    case miopenHalf: return "fp16";
+    case miopenFloat: return "fp32";
+    case miopenDouble: return "fp64";
+    case miopenBFloat16: return "bf16";
+    case miopenInt32: return "i32";
+    case miopenInt8: return "i8";
+    case miopenInt8x4: return "i8x4";
     }
     MIOPEN_THROW(miopenStatusInternalError, "Value outside of datatype enum");
 }
@@ -145,9 +145,9 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx, bool is_xdlops,
     // In case this is int8 convolution, ignore the output type and always request int32_t as
     // default output type. This is because MLIR invoker does casttensor on output if a non-int32_t
     // is requested.
-    if(in_type == miopen::DataType::Int8 && fil_type == miopen::DataType::Int8)
+    if(in_type == miopenInt8 && fil_type == miopenInt8)
     {
-        out_type = miopen::DataType::Int32;
+        out_type = miopenInt32;
     }
 
     // clang-format off

@@ -374,9 +374,9 @@ SQLitePerfDb::SQLitePerfDb(const std::string& filename_, bool is_system_)
         return;
     }
     ProblemDescription prob_desc{conv::Direction::Forward};
-    prob_desc.in_data_type      = miopen::DataType::Float;
-    prob_desc.out_data_type     = miopen::DataType::Float;
-    prob_desc.weights_data_type = miopen::DataType::Float;
+    prob_desc.in_data_type      = miopenFloat;
+    prob_desc.out_data_type     = miopenFloat;
+    prob_desc.weights_data_type = miopenFloat;
     if(!is_system)
     {
         SQLite::result_type res;

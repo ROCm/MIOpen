@@ -39,16 +39,16 @@ static void LogCmdSoftmax(const miopenTensorDescriptor_t xDesc,
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
-        if(miopen::deref(xDesc).GetType() == miopen::DataType::Half)
+        if(miopen::deref(xDesc).GetType() == miopenHalf)
             ss << "softmaxfp16";
         else
             ss << "softmax";
         // clang-format off
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0]
-           << " -c " << miopen::deref(xDesc).GetLengths()[1]
+        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] 
+           << " -c " << miopen::deref(xDesc).GetLengths()[1] 
            << " -H " << miopen::deref(xDesc).GetLengths()[2]
            << " -W " << miopen::deref(xDesc).GetLengths()[3]
-           << " -F " << ((is_fwd) ? "1" : "2")
+           << " -F " << ((is_fwd) ? "1" : "2") 
            << " -a " << algo << " -m " << mode
            << " -A " << ((alpha == nullptr)?"1": std::to_string(*static_cast<const float*>(alpha)))
            << " -B " << ((beta == nullptr)?"0":std::to_string(*static_cast<const float*>(beta)));
@@ -68,8 +68,8 @@ extern "C" miopenStatus_t miopenSoftmaxForward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y);
 
     // bfloat16 not supported for softmax operation
-    if(miopen::deref(xDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(yDesc).GetType() == miopen::DataType::BFloat16)
+    if(miopen::deref(xDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(yDesc).GetType() == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }
@@ -103,9 +103,9 @@ extern "C" miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(alpha, yDesc, y, dyDesc, dy, beta, dxDesc, dx);
 
     // bfloat16 not supported for softmax operation
-    if(miopen::deref(dyDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(dxDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(yDesc).GetType() == miopen::DataType::BFloat16)
+    if(miopen::deref(dyDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dxDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(yDesc).GetType() == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }
@@ -141,8 +141,8 @@ extern "C" miopenStatus_t miopenSoftmaxForward_V2(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(alpha, xDesc, x, beta, yDesc, y, algorithm, mode);
     // check for supported data types
-    if(miopen::deref(xDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(yDesc).GetType() == miopen::DataType::BFloat16)
+    if(miopen::deref(xDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(yDesc).GetType() == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }
@@ -176,9 +176,9 @@ extern "C" miopenStatus_t miopenSoftmaxBackward_V2(miopenHandle_t handle,
 {
 
     MIOPEN_LOG_FUNCTION(alpha, yDesc, y, dyDesc, dy, beta, dxDesc, dx, algorithm, mode);
-    if(miopen::deref(yDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(dyDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(dxDesc).GetType() == miopen::DataType::BFloat16)
+    if(miopen::deref(yDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dyDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dxDesc).GetType() == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }

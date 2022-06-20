@@ -55,7 +55,7 @@ public:
         miopenCreateTensorDescriptor(&dOutputTensor);
 
         miopenCreateLRNDescriptor(&lrnDesc);
-        data_type = (sizeof(Tgpu) == 4) ? miopen::DataType::Float : miopen::DataType::Half;
+        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
     int AddCmdLineArgs() override;

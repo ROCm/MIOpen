@@ -190,9 +190,9 @@ private:
         const std::initializer_list<size_t>& in,
         const std::function<void(ConvolutionContext&)>& context_filler = [](ConvolutionContext&) {})
     {
-        auto ctx = ConvolutionContext{TensorDescriptor{miopen::DataType::Float, in},
-                                      TensorDescriptor{miopen::DataType::Float, in},
-                                      TensorDescriptor{miopen::DataType::Float, in},
+        auto ctx = ConvolutionContext{TensorDescriptor{miopenFloat, in},
+                                      TensorDescriptor{miopenFloat, in},
+                                      TensorDescriptor{miopenFloat, in},
                                       ConvolutionDescriptor{},
                                       conv::Direction::Forward};
         ctx.SetStream(&get_handle());

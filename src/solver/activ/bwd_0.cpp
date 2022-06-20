@@ -135,12 +135,12 @@ ConvSolution ActivBwdSolver0::GetSolution(const ExecutionContext&,
         {"MIOPEN_NRN_OP_ID", problem.GetActivDesc().GetMode()},
     };
 
-    if(xDesc.GetType() == miopen::DataType::Float)
+    if(xDesc.GetType() == miopenFloat)
     {
         compiler_options.Define("MIOPEN_USE_FP16", 0);
         compiler_options.Define("MIOPEN_USE_FP32", 1);
     }
-    else if(xDesc.GetType() == miopen::DataType::Half)
+    else if(xDesc.GetType() == miopenHalf)
     {
         compiler_options.Define("MIOPEN_USE_FP16", 1);
         compiler_options.Define("MIOPEN_USE_FP32", 0);

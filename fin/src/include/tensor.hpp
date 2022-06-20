@@ -39,14 +39,14 @@ using half_float::half;
 typedef half float16;
 
 template <typename T>
-miopen::DataType GetDataType();
+miopenDataType_t GetDataType();
 
 template <>
-miopen::DataType GetDataType<float>();
+miopenDataType_t GetDataType<float>();
 template <>
-miopen::DataType GetDataType<float16>();
+miopenDataType_t GetDataType<float16>();
 template <>
-miopen::DataType GetDataType<bfloat16>();
+miopenDataType_t GetDataType<bfloat16>();
 #if FIN_BACKEND_OPENCL
 #define STATUS_SUCCESS CL_SUCCESS
 using status_t = cl_int;

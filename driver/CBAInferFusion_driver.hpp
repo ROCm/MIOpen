@@ -96,7 +96,7 @@ public:
 
         workspace_fwd_dev = nullptr;
 
-        data_type = (sizeof(Tgpu) == 4) ? miopen::DataType::Float : miopen::DataType::Half;
+        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
         initTiming();
         iters = 0;
     }

@@ -291,13 +291,13 @@ HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t wi
 } // namespace batched_transpose
 
 BatchedTransposeSolution::BatchedTransposeSolution(const ExecutionContext& ctx,
-                                                   miopen::DataType data_type_,
+                                                   miopenDataType_t data_type_,
                                                    uint32_t batch_,
                                                    uint32_t height_,
                                                    uint32_t width_)
     : data_type(data_type_), batch(batch_), height(height_), width(width_)
 {
-    if(data_type == miopen::DataType::Int8x4 || data_type == miopen::DataType::Double)
+    if(data_type == miopenInt8x4 || data_type == miopenDouble)
         MIOPEN_THROW("These data type are not supported");
     num_cu                 = ctx.GetStream().GetMaxComputeUnits();
     std::size_t data_size  = miopen::GetTypeSize(data_type);

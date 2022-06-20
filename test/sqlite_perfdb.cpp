@@ -121,9 +121,9 @@ struct ProblemData : SQLiteSerializable<ProblemData>
         prob.kernel_dilation_w = rnd.Next();
         prob.bias              = rnd.Next();
         prob.in_layout         = "NCHW";
-        prob.in_data_type      = miopen::DataType::Float;
-        prob.weights_data_type = miopen::DataType::Float;
-        prob.out_data_type     = miopen::DataType::Float;
+        prob.in_data_type      = miopenFloat;
+        prob.weights_data_type = miopenFloat;
+        prob.out_data_type     = miopenFloat;
         prob.group_counts      = 1;
     }
     ProblemData(int i) : prob(conv::Direction::Forward)
@@ -143,9 +143,9 @@ struct ProblemData : SQLiteSerializable<ProblemData>
         prob.kernel_dilation_w = i;
         prob.bias              = i;
         prob.in_layout         = "NCHW";
-        prob.in_data_type      = miopen::DataType::Float;
-        prob.weights_data_type = miopen::DataType::Float;
-        prob.out_data_type     = miopen::DataType::Float;
+        prob.in_data_type      = miopenFloat;
+        prob.weights_data_type = miopenFloat;
+        prob.out_data_type     = miopenFloat;
         prob.group_counts      = 1;
     }
 

@@ -178,7 +178,7 @@ class Driver
 public:
     Driver()
     {
-        data_type = miopen::DataType::Float;
+        data_type = miopenFloat;
 #if MIOPEN_BACKEND_OPENCL
         miopenCreate(&handle);
 #elif MIOPEN_BACKEND_HIP
@@ -191,7 +191,7 @@ public:
     }
 
     miopenHandle_t GetHandle() { return handle; }
-    miopen::DataType GetDataType() { return data_type; }
+    miopenDataType_t GetDataType() { return data_type; }
 
 #if MIOPEN_BACKEND_OPENCL
     cl_command_queue& GetStream() { return q; }
@@ -215,7 +215,7 @@ protected:
     template <typename Tgpu>
     void InitDataType();
     miopenHandle_t handle;
-    miopen::DataType data_type;
+    miopenDataType_t data_type;
 
 #if MIOPEN_BACKEND_OPENCL
     cl_command_queue q;
@@ -227,22 +227,22 @@ protected:
 template <>
 inline void Driver::InitDataType<int8_t>()
 {
-    data_type = miopen::DataType::Int8;
+    data_type = miopenInt8;
 }
 template <>
 inline void Driver::InitDataType<float>()
 {
-    data_type = miopen::DataType::Float;
+    data_type = miopenFloat;
 }
 template <>
 inline void Driver::InitDataType<float16>()
 {
-    data_type = miopen::DataType::Half;
+    data_type = miopenHalf;
 }
 template <>
 inline void Driver::InitDataType<bfloat16>()
 {
-    data_type = miopen::DataType::BFloat16;
+    data_type = miopenBFloat16;
 }
 // "std::is_same<Tgpu, float>{}" used to avoid "static_assert" compilation error,
 // which occurs when the condition does not depend in any way on the template parameters.

@@ -60,7 +60,7 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
     (void)algo;
     (void)workSpaceSize;
 
-    if(probsDesc.GetType() != miopen::DataType::Float && probsDesc.GetType() != miopen::DataType::Half)
+    if(probsDesc.GetType() != miopenFloat && probsDesc.GetType() != miopenHalf)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -111,7 +111,7 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
     int lb_prime_offset = 4 * batch_size + total_label_len;
     int problog_offset  = lb_prime_offset + batch_size * max_S_len;
 
-    if(probsDesc.GetType() == miopen::DataType::Half)
+    if(probsDesc.GetType() == miopenHalf)
         problog_offset *= 2;
 
     int alpha_offset = problog_offset + class_sz * batch_size * max_time_step;
@@ -269,7 +269,7 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
            <= lcl_mem_per_grp)
             params += " -DOPT_LCL_MEM_LB";
 
-        if(probsDesc.GetType() == miopen::DataType::Half)
+        if(probsDesc.GetType() == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
         else
             params += " -DMIOPEN_USE_FP32=1 -DOPT_ATOMIC_LOGADDEXP";

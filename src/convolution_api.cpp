@@ -312,16 +312,16 @@ static void LogCmdConvolution(const miopenTensorDescriptor_t xDesc,
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
-        if(miopen::deref(xDesc).GetType() == miopen::DataType::Half)
+        if(miopen::deref(xDesc).GetType() == miopenHalf)
         {
             ss << "convfp16";
         }
-        else if(miopen::deref(xDesc).GetType() == miopen::DataType::BFloat16)
+        else if(miopen::deref(xDesc).GetType() == miopenBFloat16)
         {
             ss << "convbfp16";
         }
-        else if(miopen::deref(xDesc).GetType() == miopen::DataType::Int8 ||
-                miopen::deref(xDesc).GetType() == miopen::DataType::Int8x4)
+        else if(miopen::deref(xDesc).GetType() == miopenInt8 ||
+                miopen::deref(xDesc).GetType() == miopenInt8x4)
         {
             ss << "convint8";
         }
@@ -389,7 +389,7 @@ static void LogCmdConvolution(const miopenTensorDescriptor_t xDesc,
             << " -g " << miopen::deref(convDesc).group_count
             << " -F " << std::to_string(static_cast<int>(conv_dir))
             << " -t 1"; // clang-format on
-        if(miopen::deref(xDesc).GetType() == miopen::DataType::Int8x4)
+        if(miopen::deref(xDesc).GetType() == miopenInt8x4)
             ss << " -Z 1";
         if(is_immediate)
             ss << " -S 0";
@@ -548,8 +548,8 @@ extern "C" miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, alpha, bDesc, b, beta, yDesc, y);
 
     // bfloat16 not supported for bias operation
-    if(miopen::deref(yDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(bDesc).GetType() == miopen::DataType::BFloat16)
+    if(miopen::deref(yDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(bDesc).GetType() == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }
@@ -1324,8 +1324,8 @@ extern "C" miopenStatus_t miopenConvolutionBackwardBias(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, alpha, dyDesc, dy, beta, dbDesc, db);
     // bfloat16 not supported for bias operation
-    if(miopen::deref(dyDesc).GetType() == miopen::DataType::BFloat16 ||
-       miopen::deref(dbDesc).GetType() == miopen::DataType::BFloat16)
+    if(miopen::deref(dyDesc).GetType() == miopenBFloat16 ||
+       miopen::deref(dbDesc).GetType() == miopenBFloat16)
     {
         return miopenStatusNotImplemented;
     }

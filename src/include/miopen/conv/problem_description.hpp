@@ -37,22 +37,22 @@
 namespace miopen {
 
 std::string
-EncodeDataTypesForKey(miopen::DataType in, miopen::DataType weights, miopen::DataType out);
+EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
 
-inline std::string GetDataTypeName(miopen::DataType data_type)
+inline std::string GetDataTypeName(miopenDataType_t data_type)
 {
     switch(data_type)
     {
-    case miopen::DataType::Float: return "FP32";
-    case miopen::DataType::Half: return "FP16";
-    case miopen::DataType::Int8: return "INT8";
-    case miopen::DataType::Int8x4: return "INT8x4";
-    case miopen::DataType::Int32: return "INT32";
-    case miopen::DataType::BFloat16: return "BF16";
-    case miopen::DataType::Double: return "FP64";
+    case miopenFloat: return "FP32";
+    case miopenHalf: return "FP16";
+    case miopenInt8: return "INT8";
+    case miopenInt8x4: return "INT8x4";
+    case miopenInt32: return "INT32";
+    case miopenBFloat16: return "BF16";
+    case miopenDouble: return "FP64";
     }
 
-    return "Unknown(" + std::to_string(miopen::miopenWrapperToLegacy(data_type)) + ")";
+    return "Unknown(" + std::to_string(data_type) + ")";
 }
 
 template <class TElement>
@@ -183,7 +183,7 @@ struct ProblemDescription
     int GetVectorLength() const { return in.GetVectorLength(); }
 
     // In getters
-    miopen::DataType GetInDataType() const { return in.GetType(); }
+    miopenDataType_t GetInDataType() const { return in.GetType(); }
     std::size_t GetInBatchSize() const { return GetN5(GetSpatialDims(), in.GetLengths()); }
     std::size_t GetInChannels() const { return GetC5(GetSpatialDims(), in.GetLengths()); }
     std::size_t GetInDepth() const { return GetD5(GetSpatialDims(), in.GetLengths()); }
@@ -217,7 +217,7 @@ struct ProblemDescription
     }
 
     // Out getters
-    miopen::DataType GetOutDataType() const { return out.GetType(); }
+    miopenDataType_t GetOutDataType() const { return out.GetType(); }
     std::size_t GetOutBatchSize() const { return GetN5(GetSpatialDims(), out.GetLengths()); }
     std::size_t GetOutChannels() const { return GetC5(GetSpatialDims(), out.GetLengths()); }
     std::size_t GetOutDepth() const { return GetD5(GetSpatialDims(), out.GetLengths()); }
@@ -251,7 +251,7 @@ struct ProblemDescription
     }
 
     // Weights getters
-    miopen::DataType GetWeightsDataType() const { return weights.GetType(); }
+    miopenDataType_t GetWeightsDataType() const { return weights.GetType(); }
     std::size_t GetWeightsDepth() const { return GetD5(GetSpatialDims(), weights.GetLengths()); }
     std::size_t GetWeightsHeight() const
     {
@@ -323,23 +323,23 @@ struct ProblemDescription
 
     bool IsFp32() const
     {
-        return GetInDataType() == miopen::DataType::Float && GetWeightsDataType() == miopen::DataType::Float &&
-               GetOutDataType() == miopen::DataType::Float;
+        return GetInDataType() == miopenFloat && GetWeightsDataType() == miopenFloat &&
+               GetOutDataType() == miopenFloat;
     }
     bool IsFp16() const
     {
-        return GetInDataType() == miopen::DataType::Half && GetWeightsDataType() == miopen::DataType::Half &&
-               GetOutDataType() == miopen::DataType::Half;
+        return GetInDataType() == miopenHalf && GetWeightsDataType() == miopenHalf &&
+               GetOutDataType() == miopenHalf;
     }
     bool IsBfp16() const
     {
-        return GetInDataType() == miopen::DataType::BFloat16 && GetWeightsDataType() == miopen::DataType::BFloat16 &&
-               GetOutDataType() == miopen::DataType::BFloat16;
+        return GetInDataType() == miopenBFloat16 && GetWeightsDataType() == miopenBFloat16 &&
+               GetOutDataType() == miopenBFloat16;
     }
     bool IsInt8() const
     {
-        return GetInDataType() == miopen::DataType::Int8 && GetWeightsDataType() == miopen::DataType::Int8 &&
-               (GetOutDataType() == miopen::DataType::Int32 || GetOutDataType() == miopen::DataType::Float);
+        return GetInDataType() == miopenInt8 && GetWeightsDataType() == miopenInt8 &&
+               (GetOutDataType() == miopenInt32 || GetOutDataType() == miopenFloat);
     }
 
     // To be used in Solvers that do not implement ALT FP16 kernels.

@@ -53,7 +53,7 @@ struct BatchedTransposeSolution_0132 : TensorReorderAttributesBase
 {
     BatchedTransposeSolution impl;
     BatchedTransposeSolution_0132(const ExecutionContext& ctx_,
-                                  miopen::DataType data_type_,
+                                  miopenDataType_t data_type_,
                                   uint32_t dim_0_,
                                   uint32_t dim_1_,
                                   uint32_t dim_2_,
@@ -72,7 +72,7 @@ struct BatchedTransposeSolution_0231 : TensorReorderAttributesBase
 {
     BatchedTransposeSolution impl;
     BatchedTransposeSolution_0231(const ExecutionContext& ctx_,
-                                  miopen::DataType data_type_,
+                                  miopenDataType_t data_type_,
                                   uint32_t dim_0_,
                                   uint32_t dim_1_,
                                   uint32_t dim_2_,
@@ -91,7 +91,7 @@ struct BatchedTransposeSolution_0312 : TensorReorderAttributesBase
 {
     BatchedTransposeSolution impl;
     BatchedTransposeSolution_0312(const ExecutionContext& ctx_,
-                                  miopen::DataType data_type_,
+                                  miopenDataType_t data_type_,
                                   uint32_t dim_0_,
                                   uint32_t dim_1_,
                                   uint32_t dim_2_,
@@ -110,7 +110,7 @@ struct BatchedTransposeSolution_2301 : TensorReorderAttributesBase
 {
     BatchedTransposeSolution impl;
     BatchedTransposeSolution_2301(const ExecutionContext& ctx_,
-                                  miopen::DataType data_type_,
+                                  miopenDataType_t data_type_,
                                   uint32_t dim_0_,
                                   uint32_t dim_1_,
                                   uint32_t dim_2_,
@@ -129,7 +129,7 @@ struct BatchedTransposeSolution_3012 : TensorReorderAttributesBase
 {
     BatchedTransposeSolution impl;
     BatchedTransposeSolution_3012(const ExecutionContext& ctx_,
-                                  miopen::DataType data_type_,
+                                  miopenDataType_t data_type_,
                                   uint32_t dim_0_,
                                   uint32_t dim_1_,
                                   uint32_t dim_2_,
@@ -147,7 +147,7 @@ struct BatchedTransposeSolution_3012 : TensorReorderAttributesBase
 struct GenericReorderSolution : TensorReorderAttributesBase
 {
     GenericReorderSolutionImpl impl;
-    GenericReorderSolution(miopen::DataType data_type_,
+    GenericReorderSolution(miopenDataType_t data_type_,
                            uint32_t dim_0_,
                            uint32_t dim_1_,
                            uint32_t dim_2_,
@@ -168,7 +168,7 @@ struct GenericReorderSolution : TensorReorderAttributesBase
 
 inline std::unique_ptr<TensorReorderAttributesBase>
 MakeTensorReorderAttributes(const ExecutionContext& ctx_,
-                            miopen::DataType data_type_,
+                            miopenDataType_t data_type_,
                             uint64_t dim_0_,
                             uint64_t dim_1_,
                             uint64_t dim_2_,
@@ -190,7 +190,7 @@ MakeTensorReorderAttributes(const ExecutionContext& ctx_,
         MIOPEN_THROW("Currentlly we have tensor dimension limitation of 2^32 - 1");
     }
     // Default using general reorder
-    if(data_type_ == miopen::DataType::BFloat16)
+    if(data_type_ == miopenBFloat16)
     {
         MIOPEN_THROW("Unsupported reorder data type");
     }
@@ -212,7 +212,7 @@ MakeTensorReorderAttributes(const ExecutionContext& ctx_,
 
     int which = 0;
     // Special cases that utilize batched transpose kernel
-    if(data_type_ != miopen::DataType::Double)
+    if(data_type_ != miopenDouble)
     {
         if((order_0_ == 0) && (order_1_ == 1) && (order_2_ == 3) && (order_3_ == 2))
             which = 1;

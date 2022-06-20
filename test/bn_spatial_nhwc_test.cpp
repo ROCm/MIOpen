@@ -78,7 +78,7 @@ struct verify_forward_train_bn_spatial
 
         tensor<U> runMean;
         tensor<U> runVar;
-        if(input.desc.GetType() == miopen::DataType::Float)
+        if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<U>{rs_n_batch, rs_height, rs_width, rs_channels}.generate(
                 tensor_elem_gen_integer{17});
@@ -198,7 +198,7 @@ struct verify_forward_train_bn_spatial
 
         tensor<U> runMean;
         tensor<U> runVar;
-        if(input.desc.GetType() == miopen::DataType::Float)
+        if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<U>{rs_n_batch, rs_height, rs_width, rs_channels}.generate(
                 tensor_elem_gen_integer{17});
@@ -670,7 +670,7 @@ struct batch_norm_spatial_nhwc_driver : test_driver
         add(input,
             "input",
             get_bn_spatial_input_tensor(
-                tensor_elem_gen_integer{miopen_type<T>{} == miopen::DataType::Half ? 5 : 17}));
+                tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
     }
 
     void run()
@@ -689,7 +689,7 @@ struct batch_norm_spatial_nhwc_driver : test_driver
         miopen::tensor_layout_to_strides(new_len, "NCHW", "NHWC", new_str);
         input.desc = miopen::TensorDescriptor(miopen_type<T>{}, new_len, new_str);
 
-        if(input.desc.GetType() == miopen::DataType::Float)
+        if(input.desc.GetType() == miopenFloat)
         {
             scale = tensor<PREC_TYPE>{ssn, ssh, ssw, ssc}.generate(tensor_elem_gen_integer{17});
             shift = tensor<PREC_TYPE>{ssn, ssh, ssw, ssc}.generate(tensor_elem_gen_integer{17});

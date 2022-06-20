@@ -89,17 +89,17 @@ auto create_tuple(F f)
     return create_tuple_impl(f, typename detail::gens<N>::type{});
 }
 
-inline std::size_t GetTypeSize(miopen::DataType d)
+inline std::size_t GetTypeSize(miopenDataType_t d)
 {
     switch(d)
     {
-    case miopen::DataType::Int32:
-    case miopen::DataType::Float: return 4;
-    case miopen::DataType::Half:
-    case miopen::DataType::BFloat16: return 2;
-    case miopen::DataType::Int8x4:
-    case miopen::DataType::Int8: return 1;
-    case miopen::DataType::Double: return 8;
+    case miopenInt32:
+    case miopenFloat: return 4;
+    case miopenHalf:
+    case miopenBFloat16: return 2;
+    case miopenInt8x4:
+    case miopenInt8: return 1;
+    case miopenDouble: return 8;
     }
     MIOPEN_THROW("Unknown data type");
 }
@@ -121,38 +121,38 @@ std::ptrdiff_t integer_division_ceil(X x, Y y)
 struct TensorDescriptor : miopenTensorDescriptor
 {
     TensorDescriptor();
-    TensorDescriptor(miopen::DataType t, std::initializer_list<std::size_t> plens);
-    TensorDescriptor(miopen::DataType t,
+    TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens);
+    TensorDescriptor(miopenDataType_t t,
                      miopenTensorLayout_t playout,
                      std::initializer_list<std::size_t> plens);
-    TensorDescriptor(miopen::DataType t,
+    TensorDescriptor(miopenDataType_t t,
                      miopenTensorLayout_t playout,
                      std::vector<std::size_t> plens);
-    TensorDescriptor(miopen::DataType t,
+    TensorDescriptor(miopenDataType_t t,
                      std::initializer_list<std::size_t> plens,
                      std::initializer_list<std::size_t> pstrides);
-    TensorDescriptor(miopen::DataType t, const int* plens, int size);
-    TensorDescriptor(miopen::DataType t, const int* plens, const int* pstrides, int size);
-    TensorDescriptor(miopen::DataType t, miopenTensorLayout_t playout, const int* plens, int size);
+    TensorDescriptor(miopenDataType_t t, const int* plens, int size);
+    TensorDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
+    TensorDescriptor(miopenDataType_t t, miopenTensorLayout_t playout, const int* plens, int size);
 
-    TensorDescriptor(miopen::DataType t,
+    TensorDescriptor(miopenDataType_t t,
                      std::vector<std::size_t> lens_in,
                      std::vector<std::size_t> strides_in);
 
-    TensorDescriptor(miopen::DataType t,
+    TensorDescriptor(miopenDataType_t t,
                      miopenTensorLayout_t layout_in,
                      std::vector<std::size_t> lens_in,
                      std::vector<std::size_t> strides_in);
 
     template <class Range>
-    TensorDescriptor(miopen::DataType t, const Range& plens)
+    TensorDescriptor(miopenDataType_t t, const Range& plens)
         : lens(plens.begin(), plens.end()), packed(true), type(t)
     {
         this->CalculateStrides();
     }
 
     template <class Range1, class Range2, class = decltype(std::declval<Range1>().begin())>
-    TensorDescriptor(miopen::DataType t, const Range1& plens, const Range2& pstrides)
+    TensorDescriptor(miopenDataType_t t, const Range1& plens, const Range2& pstrides)
         : lens(plens.begin(), plens.end()), strides(pstrides.begin(), pstrides.end()), type(t)
     {
         packed = (this->GetElementSize() == this->GetElementSpace());
@@ -166,7 +166,7 @@ struct TensorDescriptor : miopenTensorDescriptor
     const std::vector<std::size_t>& GetStrides() const;
     int GetSize() const;
 
-    miopen::DataType GetType() const;
+    miopenDataType_t GetType() const;
     miopenTensorLayout_t GetLayout_t() const;
     std::string GetLayout_str() const;
 
@@ -249,7 +249,7 @@ private:
     bool packed;
     int vector_length = 1;
 
-    miopen::DataType type             = miopen::DataType::Float;
+    miopenDataType_t type             = miopenFloat;
     miopenTensorLayout_t tensorLayout = miopenTensorNCHW;
 };
 

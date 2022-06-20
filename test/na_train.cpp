@@ -752,7 +752,7 @@ struct na_fusion_driver : test_driver
     miopenBatchNormMode_t bnmode{};
     int batchnormMode = 1;
 
-    unsigned long max_value = miopen_type<T>{} == miopen::DataType::Half ? 5 : 17;
+    unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
     double alpha = 0., beta = 0., gamma = 0.;
 
     na_fusion_driver()

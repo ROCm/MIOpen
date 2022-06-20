@@ -142,9 +142,9 @@ static void LogCmdDropout(const miopenDropoutDescriptor_t dropoutDesc,
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
-        if(miopen::deref(xDesc).GetType() == miopen::DataType::Float)
+        if(miopen::deref(xDesc).GetType() == miopenFloat)
             ss << "dropout";
-        else if(miopen::deref(xDesc).GetType() == miopen::DataType::Half)
+        else if(miopen::deref(xDesc).GetType() == miopenHalf)
             ss << "dropoutfp16";
 
         if(is_fwd)
@@ -157,7 +157,7 @@ static void LogCmdDropout(const miopenDropoutDescriptor_t dropoutDesc,
            << " -l " << (miopen::deref(dropoutDesc).seed & 0xFFFFFFFF)
            << " -m " << ((miopen::deref(dropoutDesc).seed >> 32) & 0xFFFFFFFF)
            << " -p " << std::to_string(miopen::deref(dropoutDesc).dropout);
-        // clang-format on
+        // clang-format on 
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }

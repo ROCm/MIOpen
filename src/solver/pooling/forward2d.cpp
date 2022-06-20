@@ -44,8 +44,8 @@ bool PoolingForward2d::IsApplicable(const ExecutionContext&,
     return problem.GetDirection() == miopen::pooling::Direction::Forward &&
            problem.GetXDesc().GetSize() == 4 &&
            problem.GetXDesc().GetType() == problem.GetYDesc().GetType() &&
-           (problem.GetXDesc().GetType() == miopen::DataType::Float ||
-            problem.GetXDesc().GetType() == miopen::DataType::Half) &&
+           (problem.GetXDesc().GetType() == miopenFloat ||
+            problem.GetXDesc().GetType() == miopenHalf) &&
            problem.GetXDesc().GetLayout("NCHW") == "NCHW" &&
            problem.GetYDesc().GetLayout("NCHW") == "NCHW";
 }
