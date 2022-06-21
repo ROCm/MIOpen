@@ -480,12 +480,12 @@ static std::string get_kernel_file_name(const bool isFirstCall,
 }; // end of namespace detailDynamic
 
 ReduceTensorDescriptor::ReduceTensorDescriptor(miopenReduceTensorOp_t reduceTensorOp,
-                                               miopenDataType_t reduceTensorCompType,
+                                               miopen::api_miopenDataType_t reduceTensorCompType,
                                                miopenNanPropagation_t reduceTensorNanOpt,
                                                miopenReduceTensorIndices_t reduceTensorIndices,
                                                miopenIndicesType_t reduceTensorIndicesType)
     : reduceTensorOp_(reduceTensorOp),
-      reduceTensorCompType_(reduceTensorCompType),
+      reduceTensorCompType_(miopen::miopenApiToInternal(reduceTensorCompType)),
       reduceTensorNanOpt_(reduceTensorNanOpt),
       reduceTensorIndices_(reduceTensorIndices),
       reduceTensorIndicesType_(reduceTensorIndicesType)
@@ -825,9 +825,10 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         std::string program_name1 = "static_kernel_gridwise_generic_reduction_first_call.cpp";
         std::string algo_name     = "generic_reduce_tensor";
         std::string network_config;
-
-        network_config = "reduce_T" + std::to_string(srcDataType) + std::to_string(dstDataType) +
-                         std::to_string(compType) + "IN";
+        
+        network_config = "reduce_T" + std::to_string(miopen::miopenInternalToApi(srcDataType)) + 
+                        std::to_string(miopen::miopenInternalToApi(dstDataType)) +
+                        std::to_string(miopen::miopenInternalToApi(compType)) + "IN";
         for(auto dimLen : inDescLengths)
             network_config += std::to_string(dimLen) + "_";
         network_config += "RED";

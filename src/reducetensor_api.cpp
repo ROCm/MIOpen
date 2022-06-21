@@ -100,7 +100,7 @@ miopenDestroyReduceTensorDescriptor(miopenReduceTensorDescriptor_t reduceTensorD
 extern "C" miopenStatus_t
 miopenSetReduceTensorDescriptor(miopenReduceTensorDescriptor_t reduceTensorDesc,
                                 miopenReduceTensorOp_t reduceTensorOp,
-                                miopenDataType_t reduceTensorCompType,
+                                miopen::api_miopenDataType_t reduceTensorCompType,
                                 miopenNanPropagation_t reduceTensorNanOpt,
                                 miopenReduceTensorIndices_t reduceTensorIndices,
                                 miopenIndicesType_t reduceTensorIndicesType)
@@ -123,7 +123,7 @@ miopenSetReduceTensorDescriptor(miopenReduceTensorDescriptor_t reduceTensorDesc,
 extern "C" miopenStatus_t
 miopenGetReduceTensorDescriptor(const miopenReduceTensorDescriptor_t reduceTensorDesc,
                                 miopenReduceTensorOp_t* reduceTensorOp,
-                                miopenDataType_t* reduceTensorCompType,
+                                miopen::api_miopenDataType_t* reduceTensorCompType,
                                 miopenNanPropagation_t* reduceTensorNanOpt,
                                 miopenReduceTensorIndices_t* reduceTensorIndices,
                                 miopenIndicesType_t* reduceTensorIndicesType)
@@ -136,7 +136,7 @@ miopenGetReduceTensorDescriptor(const miopenReduceTensorDescriptor_t reduceTenso
                         reduceTensorIndicesType);
     return miopen::try_([&] {
         miopen::deref(reduceTensorOp)       = miopen::deref(reduceTensorDesc).reduceTensorOp_;
-        miopen::deref(reduceTensorCompType) = miopen::deref(reduceTensorDesc).reduceTensorCompType_;
+        miopen::deref(reduceTensorCompType) = miopen::miopenInternalToApi(miopen::deref(reduceTensorDesc).reduceTensorCompType_);
         miopen::deref(reduceTensorNanOpt)   = miopen::deref(reduceTensorDesc).reduceTensorNanOpt_;
         miopen::deref(reduceTensorIndices)  = miopen::deref(reduceTensorDesc).reduceTensorIndices_;
         miopen::deref(reduceTensorIndicesType) =

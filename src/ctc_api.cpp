@@ -29,6 +29,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/stringutils.hpp>
+//#include <miopen/miopen_api_wrapper.hpp>
 #include <vector>
 
 extern "C" miopenStatus_t miopenCreateCTCLossDescriptor(miopenCTCLossDescriptor_t* ctcLossDesc)
@@ -44,13 +45,13 @@ extern "C" miopenStatus_t miopenDestroyCTCLossDescriptor(miopenCTCLossDescriptor
 }
 
 extern "C" miopenStatus_t miopenGetCTCLossDescriptor(miopenCTCLossDescriptor_t ctcLossDesc,
-                                                     miopenDataType_t* dataType,
+                                                     miopen::api_miopenDataType_t* dataType,
                                                      int* blank_label_id       = nullptr,
                                                      bool* apply_softmax_layer = nullptr)
 {
     MIOPEN_LOG_FUNCTION(ctcLossDesc, dataType, blank_label_id, apply_softmax_layer);
     return miopen::try_([&] {
-        miopen::deref(dataType) = miopen::deref(ctcLossDesc).dataType;
+        miopen::deref(dataType) = miopen::miopenInternalToApi(miopen::deref(ctcLossDesc).dataType);
         if(blank_label_id != nullptr)
             *blank_label_id = miopen::deref(ctcLossDesc).blank_label_id;
         if(apply_softmax_layer != nullptr)
@@ -59,13 +60,13 @@ extern "C" miopenStatus_t miopenGetCTCLossDescriptor(miopenCTCLossDescriptor_t c
 }
 
 extern "C" miopenStatus_t miopenSetCTCLossDescriptor(miopenCTCLossDescriptor_t ctcLossDesc,
-                                                     miopenDataType_t dataType,
+                                                     miopen::api_miopenDataType_t dataType,
                                                      const int blank_label_id = 0,
                                                      bool apply_softmax_layer = true)
 {
     MIOPEN_LOG_FUNCTION(ctcLossDesc, dataType, blank_label_id, apply_softmax_layer);
     return miopen::try_([&] {
-        miopen::deref(ctcLossDesc).dataType            = dataType;
+        miopen::deref(ctcLossDesc).dataType            = miopen::miopenApiToInternal(dataType);
         miopen::deref(ctcLossDesc).blank_label_id      = blank_label_id;
         miopen::deref(ctcLossDesc).apply_softmax_layer = apply_softmax_layer;
     });

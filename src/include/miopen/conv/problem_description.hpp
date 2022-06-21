@@ -31,6 +31,7 @@
 #include <miopen/names.hpp>
 #include <miopen/sqlite_db.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/miopen_api_wrapper.hpp>
 
 #include <boost/any.hpp>
 
@@ -52,7 +53,7 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
     case miopenDouble: return "FP64";
     }
 
-    return "Unknown(" + std::to_string(data_type) + ")";
+    return "Unknown(" + to_string(data_type) + ")";
 }
 
 template <class TElement>

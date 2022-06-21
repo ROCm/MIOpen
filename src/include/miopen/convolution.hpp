@@ -35,6 +35,7 @@
 #include <miopen/solver_id.hpp>
 #include <miopen/names.hpp>
 #include <miopen/invoke_params.hpp>
+#include <miopen/miopen_api_wrapper.hpp>
 
 #include <boost/any.hpp>
 

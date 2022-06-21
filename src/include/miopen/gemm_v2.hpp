@@ -28,6 +28,7 @@
 
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
+#include <miopen/miopen_api_wrapper.hpp>
 
 namespace miopen {
 

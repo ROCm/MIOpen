@@ -38,6 +38,7 @@
 #include <miopen/miopen.h>
 #include <miopen/reduce_common.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/miopen_api_wrapper.hpp>
 #include <numeric>
 #include <vector>
 #include <string>
@@ -297,7 +298,7 @@ int ReduceDriver<Tgpu, Tref>::SetReduceTensorDescriptorFromCmdLineArgs()
         compType = miopenDouble;
 
     return (miopenSetReduceTensorDescriptor(
-        reduceDesc, reduceOp, compType, nanOpt, indicesOpt, indicesType));
+        reduceDesc, reduceOp, miopen::miopenInternalToApi(compType), nanOpt, indicesOpt, indicesType));
 }
 
 template <typename Tgpu, typename Tref>

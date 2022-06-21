@@ -58,6 +58,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/problem_description.hpp>
+#include <miopen/miopen_api_wrapper.hpp>
 #include "random.hpp"
 #include <numeric>
 #include <sstream>
@@ -3151,7 +3152,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
         din_dev->FromGPU(GetStream(), din_host.data.data());
     else
     {
-        auto din_tmp = tensor<Tgpu>(miopen::deref(inputTensor).GetType());
+        auto din_tmp = tensor<Tgpu>(miopen::miopenInternalToApi(miopen::deref(inputTensor).GetType()));
         din_dev->FromGPU(GetStream(), din_tmp.data.data());
         for(int i = 0; i < din_tmp.data.size(); i++)
         {

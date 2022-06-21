@@ -29,6 +29,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/miopen_api_wrapper.hpp>
 
 #include <boost/range/adaptors.hpp>
 
@@ -73,7 +74,7 @@ float Im2d2ColGPU(const Handle& handle,
         "_" + std::to_string(stride_w) +
         "d" + std::to_string(dilation_h) +
         "_" + std::to_string(dilation_w) +
-        "t" + std::to_string(type);
+        "t" + to_string(type);
     // clang-format on
 
     auto&& kernels = handle.GetKernels("miopenIm2d2Col", network_config);
@@ -265,7 +266,7 @@ float Im3d2ColGPU(const Handle& handle,
         "d" + std::to_string(dilation_d) +
         "_" + std::to_string(dilation_h) +
         "_" + std::to_string(dilation_w) +
-        "t" + std::to_string(type);
+        "t" + to_string(type);
     // clang-format on
 
     auto&& kernels = handle.GetKernels("miopenIm3d2Col", network_config);
@@ -375,7 +376,7 @@ float Col2Im2dGPU(const Handle& handle,
         "v" + std::to_string(stride_w) +
         "l" + std::to_string(dilation_h) +
         "j" + std::to_string(dilation_w) +
-        "t" + std::to_string(type);
+        "t" + to_string(type);
     // clang-format on
 
     auto&& kernels = handle.GetKernels("miopenCol2Im2d", network_config);
@@ -474,7 +475,7 @@ float Col2Im3dGPU(const Handle& handle,
         "d" + std::to_string(dilation_d) +
         "_" + std::to_string(dilation_h) +
         "_" + std::to_string(dilation_w) +
-        "t" + std::to_string(type);
+        "t" + to_string(type);
     // clang-format on
 
     auto&& kernels = handle.GetKernels("miopenCol2Im3d", network_config);
@@ -697,7 +698,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config = "t" + std::to_string(type);
+    std::string network_config = "t" + to_string(type);
 
     std::string kernel_name = "transpose_NCHW2CNHW";
 
@@ -836,7 +837,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config = "t" + std::to_string(type);
+    std::string network_config = "t" + to_string(type);
 
     std::string kernel_name = "transpose_CNHW2NCHW";
 
@@ -1096,7 +1097,7 @@ float transpose_packed_MN2NM(const Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config = "t" + std::to_string(type);
+    std::string network_config = "t" + to_string(type);
 
     std::string kernel_name = "transpose_packed_MN2NM";
 

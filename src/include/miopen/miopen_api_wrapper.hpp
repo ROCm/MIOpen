@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,37 +23,54 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_COMMON_HPP_
-#define GUARD_MIOPEN_COMMON_HPP_
+#ifndef GUARD_MIOPEN_API_WRAPPERS_HPP_
+#define GUARD_MIOPEN_API_WRAPPERS_HPP_
 
-#include <miopen/manage_ptr.hpp>
 #include <miopen/miopen.h>
-#include <miopen/miopen_api_wrapper.hpp>
+#include <iosfwd>
 
-#if MIOPEN_BACKEND_OPENCL
+namespace miopen {
 
-using Data_t = cl_mem;
-// Const doesnt apply to cl_mem
-using ConstData_t   = Data_t;
-using ManageDataPtr = MIOPEN_MANAGE_PTR(cl_mem, clReleaseMemObject);
-
-inline Data_t DataCast(void* p) { return reinterpret_cast<Data_t>(p); }
-
-inline ConstData_t DataCast(const void* p)
+enum class DataType
 {
-    // Casting away const is undefined behaviour, but we do it anyways
-    // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
-    return reinterpret_cast<ConstData_t>(const_cast<void*>(p));
+    Half = miopenHalf,
+    Float = miopenFloat,
+    Int32 = miopenInt32,
+    Int8 = miopenInt8,
+    Int8x4 = miopenInt8x4,
+    BFloat16 = miopenBFloat16,
+    Double = miopenDouble
+};
+
+inline DataType miopenApiToInternal(miopenDataType_t type) {
+    return DataType(type);
 }
 
-#elif MIOPEN_BACKEND_HIP
+inline miopenDataType_t miopenInternalToApi(DataType wrapper_type) {
+    return miopenDataType_t(wrapper_type);
+}
 
-using Data_t        = void*;
-using ConstData_t   = const void*;
-using ManageDataPtr = MIOPEN_MANAGE_PTR(void, hipFree);
+inline std::ostream& operator<<(std::ostream& os, DataType wrapper_type) {
+    return os << miopenInternalToApi(wrapper_type);
+}
 
-inline Data_t DataCast(void* p) { return p; }
+inline std::string to_string(DataType type) {
+    return std::to_string(miopenInternalToApi(type));
+}
 
-inline ConstData_t DataCast(const void* p) { return p; }
-#endif // OpenCL vs hip
-#endif // GUARD_MIOPEN_COMMON_HPP_
+using api_miopenDataType_t = miopenDataType_t;
+
+} // miopen namespace
+
+
+#define miopenDataType_t miopen::DataType
+
+#define miopenHalf      miopen::DataType::Half
+#define miopenFloat     miopen::DataType::Float
+#define miopenInt32     miopen::DataType::Int32
+#define miopenInt8      miopen::DataType::Int8
+#define miopenInt8x4    miopen::DataType::Int8x4
+#define miopenBFloat16  miopen::DataType::BFloat16
+#define miopenDouble    miopen::DataType::Double
+
+#endif // GUARD_MIOPEN_API_WRAPPERS_HPP_

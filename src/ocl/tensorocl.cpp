@@ -174,8 +174,8 @@ void OpTensor3d(const Handle& handle,
 
     std::string network_config{};
 
-    network_config = std::to_string(bTensorDesc.GetType()) + "-" +
-                     std::to_string(aTensorDesc.GetType()) + "-" + std::to_string(tensorOp) + "-";
+    network_config = to_string(bTensorDesc.GetType()) + "-" +
+                     to_string(aTensorDesc.GetType()) + "-" + std::to_string(tensorOp) + "-";
 
     // for naive tensor ops
     size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
@@ -536,7 +536,7 @@ void OpTensor4d(const Handle& handle,
 
     std::string network_config{};
     network_config +=
-        std::to_string(bTensorDesc.GetType()) + "-" + std::to_string(aTensorDesc.GetType()) + "-" +
+        to_string(bTensorDesc.GetType()) + "-" + to_string(aTensorDesc.GetType()) + "-" +
         std::to_string(tensorOp) + "-" + std::to_string(max_num_wg) + "-" +
         ((fwd_conv_bias == 0 && packed_equal_tensor) ? "" : std::to_string(global_threads)) + "-" +
         std::to_string(local_threads);
@@ -1004,8 +1004,8 @@ void OpTensorOther(const Handle& handle,
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
     std::string network_config{};
-    network_config += std::to_string(bTensorDesc.GetType()) + "-" +
-                      std::to_string(aTensorDesc.GetType()) + "-" + std::to_string(tensorOp) + "-" +
+    network_config += to_string(bTensorDesc.GetType()) + "-" +
+                      to_string(aTensorDesc.GetType()) + "-" + std::to_string(tensorOp) + "-" +
                       std::to_string(global_threads) + "-" + std::to_string(local_threads);
 
     visit_float(bTensorDesc.GetType(), [&](auto as_float) {
@@ -1419,7 +1419,7 @@ void SetTensor(const Handle& handle,
 
     const miopenDataType_t dataType = yDesc_flat.GetType();
 
-    std::string network_config = "set " + std::to_string(dataType);
+    std::string network_config = "set " + to_string(dataType);
     for(auto& len : yDesc_flat.GetLengths())
     {
         network_config += " " + std::to_string(len);
@@ -1580,7 +1580,7 @@ void ScaleTensor(const Handle& handle,
 
     const std::vector<std::size_t>& lens = yDesc_flat.GetLengths();
 
-    std::string network_config = "scale " + std::to_string(yDesc_flat.GetType());
+    std::string network_config = "scale " + to_string(yDesc_flat.GetType());
     for(auto& len : lens)
     {
         network_config += " " + std::to_string(len);
@@ -1755,7 +1755,7 @@ void CopyTensor(const Handle& handle,
 
         const std::vector<std::size_t>& lens = srcDesc_flat.GetLengths();
 
-        std::string network_config = "copy " + std::to_string(srcDesc_flat.GetType());
+        std::string network_config = "copy " + to_string(srcDesc_flat.GetType());
         for(auto& len : lens)
         {
             network_config += " " + std::to_string(len);
@@ -1971,7 +1971,7 @@ void CastTensor(const Handle& handle,
 
         const std::vector<std::size_t>& lens = srcDesc_flat.GetLengths();
 
-        std::string network_config = "cast " + std::to_string(dstDesc_flat.GetType());
+        std::string network_config = "cast " + to_string(dstDesc_flat.GetType());
         for(auto& len : lens)
         {
             network_config += " " + std::to_string(len);
@@ -2280,7 +2280,7 @@ void TransformTensor(const Handle& handle,
 
         const std::vector<std::size_t>& lens = yDesc_flat.GetLengths();
 
-        std::string network_config = "transform " + std::to_string(yDesc_flat.GetType());
+        std::string network_config = "transform " + to_string(yDesc_flat.GetType());
         for(auto& len : lens)
         {
             network_config += "x" + std::to_string(len);

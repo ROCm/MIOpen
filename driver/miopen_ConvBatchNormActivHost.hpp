@@ -31,6 +31,7 @@
 #include <iomanip>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/miopen_api_wrapper.hpp>
 
 template <typename Tgpu, typename Tref>
 int miopenBNSpatialFwdInferHost(miopenTensorDescriptor_t& inputTensor,
@@ -244,7 +245,7 @@ int ConvForwardCPU(const std::vector<Tref>& in,
 
     int in_n, in_c, in_h, in_w;
     int in_nstride, in_cstride, in_hstride, in_wstride;
-    miopenDataType_t dt;
+    miopen::api_miopenDataType_t dt;
     miopenGet4dTensorDescriptor(inputTensor,
                                 &dt,
                                 &in_n,

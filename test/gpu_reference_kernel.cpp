@@ -402,15 +402,15 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
 
             EXPECT(
                 miopenSetTensorDescriptor(
-                    inDesc, miopen_type<TRef>{}, in_len.size(), in_len.data(), in_strides.data()) ==
+                    inDesc, miopen::miopenInternalToApi(miopen_type<TRef>{}), in_len.size(), in_len.data(), in_strides.data()) ==
                 miopenStatusSuccess);
             EXPECT(miopenSetTensorDescriptor(weiDesc,
-                                             miopen_type<TRef>{},
+                                             miopen::miopenInternalToApi(miopen_type<TRef>{}),
                                              wei_len.size(),
                                              wei_len.data(),
                                              wei_strides.data()) == miopenStatusSuccess);
             EXPECT(miopenSetTensorDescriptor(outDesc,
-                                             miopen_type<Tout>{},
+                                             miopen::miopenInternalToApi(miopen_type<Tout>{}),
                                              out_len.size(),
                                              out_len.data(),
                                              out_strides.data()) == miopenStatusSuccess);
@@ -780,15 +780,15 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
 
             EXPECT(
                 miopenSetTensorDescriptor(
-                    inDesc, miopen_type<TRef>{}, in_len.size(), in_len.data(), in_strides.data()) ==
+                    inDesc, miopen::miopenInternalToApi(miopen_type<TRef>{}), in_len.size(), in_len.data(), in_strides.data()) ==
                 miopenStatusSuccess);
             EXPECT(miopenSetTensorDescriptor(weiDesc,
-                                             miopen_type<TRef>{},
+                                             miopen::miopenInternalToApi(miopen_type<TRef>{}),
                                              wei_len.size(),
                                              wei_len.data(),
                                              wei_strides.data()) == miopenStatusSuccess);
             EXPECT(miopenSetTensorDescriptor(outDesc,
-                                             miopen_type<Tout>{},
+                                             miopen::miopenInternalToApi(miopen_type<Tout>{}),
                                              out_len.size(),
                                              out_len.data(),
                                              out_strides.data()) == miopenStatusSuccess);

@@ -34,6 +34,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_extra.hpp>
 #include <miopen/tensor_layout.hpp>
+#include <miopen/miopen_api_wrapper.hpp>
 #include <numeric>
 #include <vector>
 
@@ -150,7 +151,7 @@ inline int SetTensor4d(miopenTensorDescriptor_t t,
                        std::vector<int>& len,
                        miopenDataType_t data_type = miopenFloat)
 {
-    return miopenSet4dTensorDescriptor(t, data_type, UNPACK_VEC4(len));
+    return miopenSet4dTensorDescriptor(t, miopen::miopenInternalToApi(data_type), UNPACK_VEC4(len));
 }
 
 inline int SetTensorNdVector(miopenTensorDescriptor_t t,
@@ -171,14 +172,14 @@ inline int SetTensorNdVector(miopenTensorDescriptor_t t,
         MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8 vectorized tensor layout.");
         return -1;
     }
-    return miopenSetNdTensorDescriptorWithLayout(t, data_type, layout, len.data(), len.size());
+    return miopenSetNdTensorDescriptorWithLayout(t, miopen::miopenInternalToApi(data_type), layout, len.data(), len.size());
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
                        std::vector<int>& len,
                        miopenDataType_t data_type = miopenFloat)
 {
-    return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), nullptr);
+    return miopenSetTensorDescriptor(t, miopen::miopenInternalToApi(data_type), len.size(), len.data(), nullptr);
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
@@ -186,7 +187,7 @@ inline int SetTensorNd(miopenTensorDescriptor_t t,
                        std::vector<int>& strides,
                        miopenDataType_t data_type = miopenFloat)
 {
-    return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), strides.data());
+    return miopenSetTensorDescriptor(t, miopen::miopenInternalToApi(data_type), len.size(), len.data(), strides.data());
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,

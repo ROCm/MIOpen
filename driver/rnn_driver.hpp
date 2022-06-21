@@ -46,6 +46,7 @@
 #include <miopen/rnn.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/env.hpp>
+#include <miopen/miopen_api_wrapper.hpp>
 #include <numeric>
 #include <sstream>
 #include <vector>
@@ -209,20 +210,20 @@ int RNNDriver<Tgpu, Tref>::GetandSetData()
     {
         std::array<int, 2> in_lens = {{in_len[i], in_len.back()}};
         miopenCreateTensorDescriptor(&inputTensor);
-        miopenSetTensorDescriptor(inputTensor, data_type, 2, in_lens.data(), nullptr);
+        miopenSetTensorDescriptor(inputTensor, miopen::miopenInternalToApi(data_type), 2, in_lens.data(), nullptr);
         inputTensors.push_back(inputTensor);
 
         std::array<int, 2> out_lens = {{in_len[i], out_len[0]}};
         miopenCreateTensorDescriptor(&outputTensor);
-        miopenSetTensorDescriptor(outputTensor, data_type, 2, out_lens.data(), nullptr);
+        miopenSetTensorDescriptor(outputTensor, miopen::miopenInternalToApi(data_type), 2, out_lens.data(), nullptr);
         outputTensors.push_back(outputTensor);
     }
 
     std::array<int, 3> hid_lens = {{hid_len[0], in_len[0], hid_len[1]}};
-    miopenSetTensorDescriptor(hiddenTensor, data_type, 3, hid_lens.data(), nullptr);
+    miopenSetTensorDescriptor(hiddenTensor, miopen::miopenInternalToApi(data_type), 3, hid_lens.data(), nullptr);
 
     SetRNNDescriptorFromCmdLineArgs();
-    miopenGetRNNParamsDescriptor(handle, rnnDesc, inputTensor, weightTensor, data_type);
+    miopenGetRNNParamsDescriptor(handle, rnnDesc, inputTensor, weightTensor, miopen::miopenInternalToApi(data_type));
 
     return miopenStatusSuccess;
 }
@@ -509,12 +510,12 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
                                   mode,
                                   biasMode,
                                   algo,
-                                  data_type);
+                                  miopen::miopenInternalToApi(data_type));
     }
     else
     {
         miopenSetRNNDescriptor(
-            rnnDesc, wei_hh, layer, inMode, directionMode, mode, biasMode, algo, data_type);
+            rnnDesc, wei_hh, layer, inMode, directionMode, mode, biasMode, algo, miopen::miopenInternalToApi(data_type));
     }
 
     return miopenStatusSuccess;
@@ -549,7 +550,7 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &workSpace_sz);
     miopenGetRNNTrainingReserveSize(
         GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &reserveSpace_sz);
-    miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], &wei_sz, data_type);
+    miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], &wei_sz, miopen::miopenInternalToApi(data_type));
 
     in_sz /= sizeof(Tgpu);
     out_sz /= sizeof(Tgpu);

@@ -33,6 +33,8 @@
 #include <cassert>
 #include <cmath>
 
+#include <miopen/miopen_api_wrapper.hpp>
+
 #include "../test/cpu_reduce_util.hpp"
 
 #include "tensor_driver.hpp"
@@ -77,28 +79,28 @@ public:
 
     void Run(float alpha, const Tgpu* in_data, float beta, Tref* out_data, int* indices)
     {
-        if(compTypeVal == miopenFloat)
+        if(compTypeVal == miopen::miopenInternalToApi(miopenFloat))
         {
             if(std::is_same<Tref, double>::value)
                 RunImpl<double>(alpha, in_data, beta, out_data, indices);
             else
                 RunImpl<float>(alpha, in_data, beta, out_data, indices);
         }
-        else if(compTypeVal == miopenHalf)
+        else if(compTypeVal == miopen::miopenInternalToApi(miopenHalf))
         {
             if(std::is_same<Tref, double>::value || std::is_same<Tref, float>::value)
                 RunImpl<Tref>(alpha, in_data, beta, out_data, indices);
             else
                 RunImpl<float16>(alpha, in_data, beta, out_data, indices);
         }
-        else if(compTypeVal == miopenDouble)
+        else if(compTypeVal == miopen::miopenInternalToApi(miopenDouble))
             RunImpl<double>(alpha, in_data, beta, out_data, indices);
         return;
     };
 
 private:
     miopenReduceTensorOp_t reduceOp;
-    miopenDataType_t compTypeVal;
+    miopen::api_miopenDataType_t compTypeVal;
     miopenNanPropagation_t nanOpt;
     miopenReduceTensorIndices_t indicesOpt;
     miopenIndicesType_t indicesType;

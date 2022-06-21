@@ -782,7 +782,7 @@ struct reduce_driver : test_driver
 
         miopen::ReduceTensorDescriptor reduceDesc(
             static_cast<miopenReduceTensorOp_t>(reduceOp),
-            static_cast<miopenDataType_t>(compTypeVal),
+            static_cast<miopen::api_miopenDataType_t>(compTypeVal),
             static_cast<miopenNanPropagation_t>(nanOpt),
             static_cast<miopenReduceTensorIndices_t>(indicesOpt),
             indicesType);

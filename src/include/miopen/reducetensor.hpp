@@ -34,6 +34,7 @@
 #include <miopen/names.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/miopen_api_wrapper.hpp>
 
 #include <string>
 #include <tuple>
@@ -45,7 +46,7 @@ struct ReduceTensorDescriptor : miopenReduceTensorDescriptor
 {
     ReduceTensorDescriptor() = default;
     ReduceTensorDescriptor(miopenReduceTensorOp_t reduceTensorOp,
-                           miopenDataType_t reduceTensorCompType,
+                           miopen::api_miopenDataType_t reduceTensorCompType,
                            miopenNanPropagation_t reduceTensorNanOpt,
                            miopenReduceTensorIndices_t reduceTensorIndices,
                            miopenIndicesType_t reduceTensorIndicesType);

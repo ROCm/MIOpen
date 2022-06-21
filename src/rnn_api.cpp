@@ -101,7 +101,7 @@ extern "C" miopenStatus_t miopenGetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDes
                                                     miopenRNNMode_t* rnnMode,
                                                     miopenRNNBiasMode_t* biasMode,
                                                     miopenRNNAlgo_t* algoMode,
-                                                    miopenDataType_t* dataType)
+                                                    miopen::api_miopenDataType_t* dataType)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc,
                         hiddenSize,
@@ -148,7 +148,7 @@ extern "C" miopenStatus_t miopenGetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDes
         }
         if(dataType != nullptr)
         {
-            miopen::deref(dataType) = miopen::deref(rnnDesc).dataType;
+            miopen::deref(dataType) = miopen::miopenInternalToApi(miopen::deref(rnnDesc).dataType);
         }
     });
 }
@@ -161,14 +161,14 @@ extern "C" miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
                                                  miopenRNNMode_t rnnMode,
                                                  miopenRNNBiasMode_t biasMode,
                                                  miopenRNNAlgo_t algo,
-                                                 miopenDataType_t dataType)
+                                                 miopen::api_miopenDataType_t dataType)
 {
 
     MIOPEN_LOG_FUNCTION(
         rnnDesc, hsize, nlayers, inMode, direction, rnnMode, biasMode, algo, dataType);
     return miopen::try_([&] {
         miopen::deref(rnnDesc) = miopen::RNNDescriptor(
-            hsize, nlayers, rnnMode, inMode, direction, biasMode, algo, dataType);
+            hsize, nlayers, rnnMode, inMode, direction, biasMode, algo, miopen::miopenApiToInternal(dataType));
     });
 }
 
@@ -181,14 +181,14 @@ extern "C" miopenStatus_t miopenSetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDes
                                                     miopenRNNMode_t rnnMode,
                                                     miopenRNNBiasMode_t biasMode,
                                                     miopenRNNAlgo_t algo,
-                                                    miopenDataType_t dataType)
+                                                    miopen::api_miopenDataType_t dataType)
 {
 
     MIOPEN_LOG_FUNCTION(
         rnnDesc, hsize, nlayers, dropoutDesc, inMode, direction, rnnMode, biasMode, algo, dataType);
     return miopen::try_([&] {
         miopen::deref(rnnDesc) = miopen::RNNDescriptor(
-            hsize, nlayers, rnnMode, inMode, direction, biasMode, algo, dataType, dropoutDesc);
+            hsize, nlayers, rnnMode, inMode, direction, biasMode, algo, miopen::miopenApiToInternal(dataType), dropoutDesc);
     });
 }
 
@@ -224,12 +224,12 @@ extern "C" miopenStatus_t miopenGetRNNParamsDescriptor(miopenHandle_t handle,
                                                        miopenRNNDescriptor_t rnnDesc,
                                                        miopenTensorDescriptor_t xDesc,
                                                        miopenTensorDescriptor_t wDesc,
-                                                       miopenDataType_t dtype)
+                                                       miopen::api_miopenDataType_t dtype)
 {
     MIOPEN_LOG_FUNCTION(handle, rnnDesc, xDesc, wDesc, dtype);
     return miopen::try_([&] {
         miopen::deref(rnnDesc).GetParamsDescriptor(
-            miopen::deref(handle), miopen::deref(xDesc), miopen::deref(wDesc), dtype);
+            miopen::deref(handle), miopen::deref(xDesc), miopen::deref(wDesc), miopen::miopenApiToInternal(dtype));
     });
 }
 
@@ -237,12 +237,12 @@ extern "C" miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
                                                  miopenRNNDescriptor_t rnnDesc,
                                                  miopenTensorDescriptor_t xDesc,
                                                  size_t* numBytes,
-                                                 miopenDataType_t dtype)
+                                                 miopen::api_miopenDataType_t dtype)
 {
     MIOPEN_LOG_FUNCTION(handle, rnnDesc, xDesc, numBytes, dtype);
     return miopen::try_([&] {
         miopen::deref(numBytes) = miopen::deref(rnnDesc).GetParamsSize(
-            miopen::deref(handle), miopen::deref(xDesc), dtype);
+            miopen::deref(handle), miopen::deref(xDesc), miopen::miopenApiToInternal(dtype));
     });
 }
 

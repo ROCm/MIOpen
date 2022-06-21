@@ -38,6 +38,7 @@
 #include <fstream>
 #include <memory>
 #include <miopen/miopen.h>
+#include <miopen/miopen_api_wrapper.hpp>
 #include <miopen/env.hpp>
 #include <numeric>
 #include <sstream>
@@ -141,8 +142,8 @@ int CTCDriver<Tgpu, Tref>::GetandSetData()
     apply_softmax = inflags.GetValueInt("apply_softmax_layer") == 1;
 
     std::vector<int> prob_dim = GetProbabilityTensorLengthsFromCmdLine();
-    miopenSetTensorDescriptor(probsDesc, miopenFloat, 3, prob_dim.data(), nullptr);
-    miopenSetTensorDescriptor(gradientsDesc, miopenFloat, 3, prob_dim.data(), nullptr);
+    miopenSetTensorDescriptor(probsDesc, miopen::miopenInternalToApi(miopenFloat), 3, prob_dim.data(), nullptr);
+    miopenSetTensorDescriptor(gradientsDesc, miopen::miopenInternalToApi(miopenFloat), 3, prob_dim.data(), nullptr);
 
     SetCTCLossDescriptorFromCmdLineArgs();
 
@@ -235,7 +236,7 @@ std::vector<int> CTCDriver<Tgpu, Tref>::GetProbabilityTensorLengthsFromCmdLine()
 template <typename Tgpu, typename Tref>
 int CTCDriver<Tgpu, Tref>::SetCTCLossDescriptorFromCmdLineArgs()
 {
-    miopenSetCTCLossDescriptor(ctcLossDesc, miopenFloat, blank_lb, apply_softmax);
+    miopenSetCTCLossDescriptor(ctcLossDesc, miopen::miopenInternalToApi(miopenFloat), blank_lb, apply_softmax);
     //  Framework implementation: To only get the frist two arguments, follow the example below:
     //  miopenDataType_t datatype;
     //  miopenGetCTCLossDescriptor(ctcLossDesc, &datatype, nullptr, nullptr);

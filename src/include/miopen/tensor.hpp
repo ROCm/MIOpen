@@ -33,6 +33,7 @@
 #include <miopen/returns.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/functional.hpp>
+#include <miopen/miopen_api_wrapper.hpp>
 
 #include <algorithm>
 #include <cassert>
