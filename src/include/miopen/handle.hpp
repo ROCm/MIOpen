@@ -52,7 +52,11 @@
 
 #if MIOPEN_USE_ROCBLAS
 #include <miopen/manage_ptr.hpp>
+#if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
+#else
+#include <rocblas/rocblas.h>
+#endif
 #endif
 
 namespace miopen {

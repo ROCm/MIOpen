@@ -48,20 +48,14 @@
 #include <sstream>
 #include <unordered_map>
 
-#include <miopen/solver.hpp>
 #if MIOPEN_ENABLE_SQLITE
 #include <miopen/sqlite_db.hpp>
 #endif
-#include <miopen/db.hpp>
-#include <miopen/env.hpp>
-#include <miopen/gcn_asm_utils.hpp>
-#include <miopen/mlo_internal.hpp>
-#include <miopen/mlo_utils.hpp>
 
 // Only select the first applicable igemm solver due to long compilation time
 // (JIRA SWDEV-227826)
 /// \todo enable all applicable solvers of igemm after fixing slow compilation
-#define WORKAROUND_SWDEV_227826 1
+#define WORKAROUND_SWDEV_227826 0
 
 #if WORKAROUND_SWDEV_227826
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
@@ -160,8 +154,8 @@ static auto GetImplicitGemmSolvers()
 static auto GetWindogradSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinograd3x3U,
-                                           miopen::solver::ConvBinWinogradRxSf3x2,
-                                           miopen::solver::ConvBinWinogradRxSf2x3,
+                                           miopen::solver::ConvBinWinoRxS<3, 2>,
+                                           miopen::solver::ConvBinWinoRxS<2, 3>,
                                            miopen::solver::ConvBinWinogradRxSf2x3g1,
                                            miopen::solver::ConvBinWinogradRxS,
                                            miopen::solver::ConvMPBidirectWinograd<3, 3>,
@@ -192,8 +186,8 @@ static auto GetImplicitGemmWrWSolvers()
 static auto GetWindogradWrWSolvers()
 {
     return miopen::solver::SolverContainer<miopen::solver::ConvBinWinogradRxS,
-                                           miopen::solver::ConvBinWinogradRxSf3x2,
-                                           miopen::solver::ConvBinWinogradRxSf2x3,
+                                           miopen::solver::ConvBinWinoRxS<3, 2>,
+                                           miopen::solver::ConvBinWinoRxS<2, 3>,
                                            miopen::solver::ConvBinWinogradRxSf2x3g1,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 2>,
                                            miopen::solver::ConvWinograd3x3MultipassWrW<3, 3>,

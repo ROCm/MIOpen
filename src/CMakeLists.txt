@@ -201,8 +201,7 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
-    solver/conv_winoRxS_f2x3.cpp
-    solver/conv_winoRxS_f3x2.cpp
+    solver/conv_winoRxS.cpp
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
@@ -805,7 +804,7 @@ if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
     export.h config.h version.h miopen.h
     HEADER_LOCATION include/miopen
     GUARDS WRAPPER
-    WRAPPER_LOCATIONS miopen/include/miopen
+    WRAPPER_LOCATIONS miopen/${CMAKE_INSTALL_INCLUDEDIR}/miopen
     ORIGINAL_FILES ${PROJECT_BINARY_DIR}/include/miopen/version.h ${PROJECT_BINARY_DIR}/include/miopen/config.h
   )
 
