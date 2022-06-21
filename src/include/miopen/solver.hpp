@@ -2598,7 +2598,8 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm final
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const override;
 };
 
-struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : PerfConfigBase<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
+struct PerformanceConvCkIgemmFwdV6r1DlopsNchw
+    : PerfConfigBase<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
 {
     int ck_tunable_list_id;
 

@@ -100,9 +100,7 @@ struct Serializable
         bool ok  = true;
         std::istringstream ss(s);
         Derived::Visit(
-            out,
-            std::bind(
-                DeserializeField{}, std::ref(ok), std::ref(ss), std::placeholders::_1));
+            out, std::bind(DeserializeField{}, std::ref(ok), std::ref(ss), std::placeholders::_1));
 
         if(!ok)
             return false;
