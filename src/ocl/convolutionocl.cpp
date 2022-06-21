@@ -555,10 +555,13 @@ void ValidateConvTensors(const ConvTensors& tensors)
     const auto tensor_sizes_not_matched = tensors.xDesc.GetSize() != tensors.yDesc.GetSize() ||
                                           tensors.xDesc.GetSize() != tensors.wDesc.GetSize();
 
-    const auto tensor_types_not_matched =
-        (tensors.xDesc.GetType() != tensors.yDesc.GetType() &&
-         tensors.xDesc.GetType() != miopenInt8 && tensors.xDesc.GetType() != miopenInt8x4) ||
-        tensors.xDesc.GetType() != tensors.wDesc.GetType();
+    const auto trivial_tensor_types_not_matched =
+        tensors.xDesc.GetType() != tensors.yDesc.GetType() &&
+        tensors.xDesc.GetType() != miopenInt8 && tensors.xDesc.GetType() != miopenInt8x4;
+    const auto int8_in8x4_tensor_not_matched =
+        (tensors.xDesc.GetType() == miopenInt8 && tensors.yDesc.GetType() != miopenInt32 &&
+         tensors.yDesc.GetType() != miopenFloat) ||
+        (tensors.xDesc.GetType() == miopenInt8x4 && tensors.yDesc.GetType() != miopenInt32);
 
     // if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
     //    MIOPEN_THROW(miopenStatusBadParm);
@@ -566,8 +569,9 @@ void ValidateConvTensors(const ConvTensors& tensors)
 
     const auto x_tensor_invalid = tensors.xDesc.GetSize() < 3;
 
-    const auto bad_parameters =
-        invalid_buffers || tensor_sizes_not_matched || tensor_types_not_matched || x_tensor_invalid;
+    const auto bad_parameters = invalid_buffers || tensor_sizes_not_matched ||
+                                trivial_tensor_types_not_matched || int8_in8x4_tensor_not_matched ||
+                                x_tensor_invalid;
 
     if(bad_parameters)
         MIOPEN_THROW(miopenStatusBadParm);
@@ -1095,8 +1099,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "perfResults cannot be nullptr");
     if(requestAlgoCount < 1)
         MIOPEN_THROW(miopenStatusBadParm, "requestAlgoCount cannot be < 1");
-    if(wDesc.GetType() == miopenInt8)
-        MIOPEN_THROW(miopenStatusBadParm);
 
     *returnedAlgoCount = 0;
 
@@ -1279,9 +1281,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
     ValidateConvTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
-
-    if(wDesc.GetType() == miopenInt8)
-        MIOPEN_THROW(miopenStatusBadParm);
 
     ConvBwdCheckNumerics(handle, tensors, beta, [&]() {
         if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[0])
