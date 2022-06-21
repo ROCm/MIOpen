@@ -265,7 +265,7 @@ int LRNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
     }
 
     Tgpu Data_scale = static_cast<Tgpu>(0.001);
