@@ -227,11 +227,16 @@ endif()
 #TODO Code Quality WORKAROUND ROCm 5.1 update
 if(MIOPEN_BACKEND_OPENCL AND MIOPEN_TEST_ALL)
     if(MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906)
-        list(APPEND SKIP_TESTS test_bn_3d_spatial_test test_conv3d test_immed_conv3d test_immed_conv2d)
+        list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d)
     endif()
     if(MIOPEN_TEST_GFX103X)
         list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d)
     endif()
+endif()
+
+#TODO WORKAROUND_ISSUE_1424
+if(MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906)
+    list(APPEND SKIP_TESTS test_bn_3d_spatial_test)
 endif()
 
 # The usage is non-trivial, see function add_test_command.
