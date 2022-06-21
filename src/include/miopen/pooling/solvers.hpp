@@ -77,7 +77,7 @@ struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
                      const miopen::pooling::ProblemDescription& problem) const = 0;
 };
 
-struct PoolingForward2d : OldStyleSolver
+struct PoolingForward2d final : OldStyleSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForward2d>(); }
     bool IsApplicable(const ExecutionContext& context,
@@ -88,7 +88,7 @@ struct PoolingForward2d : OldStyleSolver
                                  const miopen::pooling::ProblemDescription& problem) const override;
 };
 
-struct PoolingForwardNd : OldStyleSolver
+struct PoolingForwardNd final : OldStyleSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForwardNd>(); }
     bool IsApplicable(const ExecutionContext& context,
@@ -137,7 +137,7 @@ struct PoolingFwdNCHWTransposingSolver : TransposingSolver<PoolingFwdNCHWTranspo
     }
 };
 
-struct TransposedPoolingFwd2d : PoolingFwdNCHWTransposingSolver<PoolingForward2d>
+struct TransposedPoolingFwd2d final : PoolingFwdNCHWTransposingSolver<PoolingForward2d>
 {
     const std::string& SolverDbId() const override
     {
@@ -145,7 +145,7 @@ struct TransposedPoolingFwd2d : PoolingFwdNCHWTransposingSolver<PoolingForward2d
     }
 };
 
-struct TransposedPoolingFwdNd : PoolingFwdNCHWTransposingSolver<PoolingForwardNd>
+struct TransposedPoolingFwdNd final : PoolingFwdNCHWTransposingSolver<PoolingForwardNd>
 {
     const std::string& SolverDbId() const override
     {
@@ -153,7 +153,7 @@ struct TransposedPoolingFwdNd : PoolingFwdNCHWTransposingSolver<PoolingForwardNd
     }
 };
 
-struct PoolingBackward2d : OldStyleSolver
+struct PoolingBackward2d final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
@@ -167,7 +167,7 @@ struct PoolingBackward2d : OldStyleSolver
                                  const miopen::pooling::ProblemDescription& problem) const override;
 };
 
-struct PoolingBackwardNd : OldStyleSolver
+struct PoolingBackwardNd final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
@@ -220,7 +220,7 @@ struct PoolingBwdNCHWTransposingSolver : TransposingSolver<PoolingBwdNCHWTranspo
     }
 };
 
-struct TransposedPoolingBwd2d : PoolingBwdNCHWTransposingSolver<PoolingBackward2d>
+struct TransposedPoolingBwd2d final : PoolingBwdNCHWTransposingSolver<PoolingBackward2d>
 {
     const std::string& SolverDbId() const override
     {
@@ -228,7 +228,7 @@ struct TransposedPoolingBwd2d : PoolingBwdNCHWTransposingSolver<PoolingBackward2
     }
 };
 
-struct TransposedPoolingBwdNd : PoolingBwdNCHWTransposingSolver<PoolingBackwardNd>
+struct TransposedPoolingBwdNd final : PoolingBwdNCHWTransposingSolver<PoolingBackwardNd>
 {
     const std::string& SolverDbId() const override
     {

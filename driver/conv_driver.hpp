@@ -432,7 +432,8 @@ private:
 template <typename Tgpu, typename Tref>
 bool ConvDriver<Tgpu, Tref>::IsInputTensorTransform() const
 {
-    return (data_type == miopenInt8 && inflags.GetValueInt("in_channels") % 4 != 0) ||
+    return (inflags.GetValueInt("tensor_vect") == 1 && data_type == miopenInt8 &&
+            inflags.GetValueInt("in_channels") % 4 != 0) ||
            data_type == miopenInt8x4;
 }
 
@@ -1193,7 +1194,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             const int rcf = RunWarmupFindForwardGPU();
             if(rcf != 0)
             {
-                std::cout << "Warm-up: RunWarmupFindForwardGPU() failed, rcf = " << rcf
+                std::cout << "Warm-up: RunWarmupFindForwardGPU() FAILED, rcf = " << rcf
                           << ". Warm-up disabled." << std::endl;
                 warmup_enabled = false;
                 break;
@@ -2183,7 +2184,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
         return rc;
     }
 
-    if(miopen_type<Tgpu>{} == miopen_type<Tref>{})
+    if(miopen_type<Tgpu>{} == miopen_type<Tref>{} || miopen_type<Tgpu>{} == miopenInt8 ||
+       miopen_type<Tgpu>{} == miopenInt8x4)
         out_dev->FromGPU(GetStream(), outhost.data.data());
     else
     {
@@ -3151,7 +3153,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
         din_dev->FromGPU(GetStream(), din_host.data.data());
     else
     {
-        auto din_tmp = tensor<Tgpu>(miopen::deref(inputTensor).GetType());
+        auto din_tmp = tensor<Tgpu>(miopen::deref(inputTensor));
         din_dev->FromGPU(GetStream(), din_tmp.data.data());
         for(int i = 0; i < din_tmp.data.size(); i++)
         {

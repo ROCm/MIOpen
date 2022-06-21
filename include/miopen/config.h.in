@@ -117,10 +117,38 @@
     ((HIP_PACKAGE_VERSION_MAJOR * 1000ULL + HIP_PACKAGE_VERSION_MINOR) * 1000000 + \
      HIP_PACKAGE_VERSION_PATCH)
 
+#if MIOPEN_USE_ROCBLAS
+// clang-format off
+#define MIOPEN_ROCBLAS_VERSION_MAJOR @rocblas_VERSION_MAJOR@
+#define MIOPEN_ROCBLAS_VERSION_MINOR @rocblas_VERSION_MINOR@
+#define MIOPEN_ROCBLAS_VERSION_PATCH @rocblas_VERSION_PATCH@
+// clang-format on
+#ifndef MIOPEN_ROCBLAS_VERSION_MAJOR
+#define MIOPEN_ROCBLAS_VERSION_MAJOR 0
 #endif
+#ifndef MIOPEN_ROCBLAS_VERSION_MINOR
+#define MIOPEN_ROCBLAS_VERSION_MINOR 0
+#endif
+#ifndef MIOPEN_ROCBLAS_VERSION_PATCH
+#define MIOPEN_ROCBLAS_VERSION_PATCH 0
+#endif
+// 3 decimal digits for each number; max fits into 32 bits.
+#if MIOPEN_ROCBLAS_VERSION_MAJOR > 999 || MIOPEN_ROCBLAS_VERSION_MAJOR > 999 || \
+    MIOPEN_ROCBLAS_VERSION_PATCH > 999
+#error "Too big ROCBLAS version number(s)"
+#endif
+#define MIOPEN_ROCBLAS_VERSION_FLAT                                                \
+    ((MIOPEN_ROCBLAS_VERSION_MAJOR * 1000 + MIOPEN_ROCBLAS_VERSION_MINOR) * 1000 + \
+     MIOPEN_ROCBLAS_VERSION_PATCH)
+#endif // MIOPEN_USE_ROCBLAS
 
+/// WORKAROUND_BOOST_ISSUE_392
 /// Workaround for https://github.com/boostorg/config/issues/392#issuecomment-1109889533
+/// See also https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1490#issuecomment-1109928102,
+/// https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1543
 /// TODO: Remove the W/A as soon we switch to the properly fixed boost.
 #if MIOPEN_BACKEND_HIP
 #include <hip/hip_version.h>
 #endif
+
+#endif // GUARD_CONFIG_H_IN
