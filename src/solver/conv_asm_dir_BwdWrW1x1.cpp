@@ -442,13 +442,6 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& 
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceConfigConvAsmBwdWrW1x1::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConfigConvAsmBwdWrW1x1
 ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {

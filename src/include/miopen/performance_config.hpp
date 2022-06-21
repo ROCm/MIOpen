@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,11 +24,13 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_MLOPEN_SERIALIZABLE_HPP
-#define GUARD_MLOPEN_SERIALIZABLE_HPP
+#ifndef PERFORMANCE_CONFIG_HPP
+#define PERFORMANCE_CONFIG_HPP
 
-#include <ciso646>
-#include <miopen/config.h>
+#include <miopen/miopen.h>
+#include <miopen/errors.hpp>
+#include <miopen/serializable.hpp>
+
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -37,56 +39,21 @@
 namespace miopen {
 namespace solver {
 
-// TODO: Provide specialization to use stro* functions
-template <class T>
-struct Parse
+struct PerfConfig : Serializable<PerfConfig>
 {
-    static bool apply(const std::string& s, T& result)
+    virtual std::string ToString() const;
+
+    template <class Self, class F>
+    static void Visit(Self&&, F)
     {
-        std::stringstream ss;
-        ss.str(s);
-        ss >> result;
-        return true;
+        MIOPEN_THROW(miopenStatusInternalError);
     }
 };
 
-template <class Derived, char Seperator = ','>
-struct Serializable
+template <class Derived>
+struct PerfConfigBase : PerfConfig
 {
-    virtual ~Serializable() = default;
-
-    struct SerializeField
-    {
-        template <class T>
-        void operator()(std::ostream& stream, char& sep, const T& x) const
-        {
-            if(sep != 0)
-                stream << sep;
-            stream << x;
-            sep = Seperator;
-        }
-    };
-
-    struct DeserializeField
-    {
-        template <class T>
-        void operator()(bool& ok, std::istream& stream, T& x) const
-        {
-            if(not ok)
-                return;
-            std::string part;
-
-            if(!std::getline(stream, part, Seperator))
-            {
-                ok = false;
-                return;
-            }
-
-            ok = Parse<T>::apply(part, x);
-        }
-    };
-
-    virtual void Serialize(std::ostream& stream) const
+    void Serialize(std::ostream& stream) const final
     {
         char sep = 0;
         Derived::Visit(
@@ -94,7 +61,7 @@ struct Serializable
             std::bind(SerializeField{}, std::ref(stream), std::ref(sep), std::placeholders::_1));
     }
 
-    virtual bool Deserialize(const std::string& s)
+    bool Deserialize(const std::string& s) final
     {
         auto out = static_cast<const Derived&>(*this);
         bool ok  = true;
@@ -110,15 +77,9 @@ struct Serializable
         static_cast<Derived&>(*this) = out;
         return true;
     }
-
-    friend std::ostream& operator<<(std::ostream& os, const Derived& c)
-    {
-        c.Serialize(os);
-        return os;
-    }
 };
 
 } // namespace solver
 } // namespace miopen
 
-#endif
+#endif // PERFORMANCE_CONFIG_HPP

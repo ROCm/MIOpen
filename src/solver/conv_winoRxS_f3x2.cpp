@@ -270,13 +270,6 @@ inline bool PerformanceConfigConvBinWinogradRxSf3x2::operator==(
     return n_groups == other.n_groups;
 }
 
-std::string PerformanceConfigConvBinWinogradRxSf3x2::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConfigConvBinWinogradRxSf3x2
 ConvBinWinogradRxSf3x2::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {

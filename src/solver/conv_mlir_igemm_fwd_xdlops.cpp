@@ -170,13 +170,6 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& /*co
     return true;
 }
 
-std::string PerformanceConvMlirIgemmXdlops::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConvMlirIgemmXdlops
 ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {

@@ -291,13 +291,6 @@ inline bool PerformanceConfigConvBinWinogradRxS::operator==(
     return n_groups == other.n_groups;
 }
 
-std::string PerformanceConfigConvBinWinogradRxS::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 template <int Winodata, int Winofilter>
 PerformanceConfigConvBinWinogradRxS
 ConvBinWinoRxS<Winodata, Winofilter>::GetDefaultPerformanceConfig(

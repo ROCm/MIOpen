@@ -37,6 +37,7 @@
 #include <miopen/type_name.hpp>
 #include <miopen/miopen.h>
 #include <miopen/buffer_info.hpp>
+#include <miopen/performance_config.hpp>
 
 #include <boost/any.hpp>
 
@@ -224,7 +225,7 @@ struct ConvTunableSolver : ConvTunableSolverBase
     }
 };
 
-struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
+struct PerformanceConfigConvAsm3x3U : PerfConfigBase<PerformanceConfigConvAsm3x3U>
 {
     int limit_wave_cnt;        // [0..9]
     int filters_per_wave;      // [1..8]
@@ -247,7 +248,6 @@ struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm3x3U& other) const;
-    std::string ToString() const;
 };
 
 struct ConvAsm3x3U final : ConvTunableSolver<PerformanceConfigConvAsm3x3U>
@@ -266,7 +266,7 @@ struct ConvAsm3x3U final : ConvTunableSolver<PerformanceConfigConvAsm3x3U>
                              const PerformanceConfigConvAsm3x3U& config) const override;
 };
 
-struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
+struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1U>
 {
     // ----------------- // Full set          Optimized       Spare
     // ----------------------------------------------------------------------------
@@ -317,7 +317,6 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
-    std::string ToString() const;
 };
 
 struct ConvAsm1x1U final : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
@@ -367,7 +366,7 @@ struct ConvBiasActivAsm1x1U final : ConvTunableSolver<PerformanceConfigConvBiasA
                              const PerformanceConfigConvBiasActivAsm1x1U& config) const override;
 };
 
-struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1UV2>
+struct PerformanceConfigConvAsm1x1UV2 : PerfConfigBase<PerformanceConfigConvAsm1x1UV2>
 {
     // ----------------- // Full set          Optimized       Spare
     // ----------------------------------------------------------------------------
@@ -424,7 +423,6 @@ struct PerformanceConfigConvAsm1x1UV2 : Serializable<PerformanceConfigConvAsm1x1
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm1x1UV2& other) const;
-    std::string ToString() const;
 };
 
 struct ConvAsm1x1UV2 final : ConvTunableSolver<PerformanceConfigConvAsm1x1UV2>
@@ -488,7 +486,7 @@ struct ConvOclDirectFwdGen : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct PerformanceImplicitGemm : Serializable<PerformanceImplicitGemm>
+struct PerformanceImplicitGemm : PerfConfigBase<PerformanceImplicitGemm>
 {
     int BPerBlock; // 2^n[8..16]
     int KPerBlock; // 2^n[32..128]
@@ -551,7 +549,6 @@ struct PerformanceImplicitGemm : Serializable<PerformanceImplicitGemm>
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemm& other) const;
-    std::string ToString() const;
 };
 
 struct PerformanceImplicitGemmV4R1 : public PerformanceImplicitGemm
@@ -588,7 +585,7 @@ struct PerformanceImplicitGemmV4R1 : public PerformanceImplicitGemm
     bool IsValid(const ConvolutionContext& ctx) const;
 };
 
-struct PerformanceImplicitGemmV4R4Fwd : Serializable<PerformanceImplicitGemmV4R4Fwd>
+struct PerformanceImplicitGemmV4R4Fwd : PerfConfigBase<PerformanceImplicitGemmV4R4Fwd>
 {
     int BlockSize;
 
@@ -641,10 +638,9 @@ struct PerformanceImplicitGemmV4R4Fwd : Serializable<PerformanceImplicitGemmV4R4
     bool IsValid(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue(const ConvolutionContext& config);
-    std::string ToString() const;
 };
 
-struct PerformanceImplicitGemmV4R4WrW : Serializable<PerformanceImplicitGemmV4R4WrW>
+struct PerformanceImplicitGemmV4R4WrW : PerfConfigBase<PerformanceImplicitGemmV4R4WrW>
 {
     int BlockSize;
 
@@ -697,10 +693,9 @@ struct PerformanceImplicitGemmV4R4WrW : Serializable<PerformanceImplicitGemmV4R4
     bool IsValid(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue(const ConvolutionContext& config);
-    std::string ToString() const;
 };
 
-struct PerformanceImplicitGemmBwdDataV1R1 : Serializable<PerformanceImplicitGemmBwdDataV1R1>
+struct PerformanceImplicitGemmBwdDataV1R1 : PerfConfigBase<PerformanceImplicitGemmBwdDataV1R1>
 {
     int BlockSize;
 
@@ -754,10 +749,9 @@ struct PerformanceImplicitGemmBwdDataV1R1 : Serializable<PerformanceImplicitGemm
     bool IsValid(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue(const ConvolutionContext& config);
-    std::string ToString() const;
 };
 
-struct PerformanceImplicitGemmBwdDataV4R1 : Serializable<PerformanceImplicitGemmBwdDataV4R1>
+struct PerformanceImplicitGemmBwdDataV4R1 : PerfConfigBase<PerformanceImplicitGemmBwdDataV4R1>
 {
     int BlockSize;
 
@@ -811,11 +805,10 @@ struct PerformanceImplicitGemmBwdDataV4R1 : Serializable<PerformanceImplicitGemm
     bool IsValid(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue(const ConvolutionContext& config);
-    std::string ToString() const;
 };
 
 struct PerformanceImplicitGemmBwdDataV4R1Xdlops
-    : Serializable<PerformanceImplicitGemmBwdDataV4R1Xdlops>
+    : PerfConfigBase<PerformanceImplicitGemmBwdDataV4R1Xdlops>
 {
     int GemmNPerBlock; // 2^n[8..16]
     int GemmMPerBlock; // 2^n[32..128]
@@ -868,7 +861,6 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     bool IsFastToBeUsedForTuning(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue(const ConvolutionContext& config);
-    std::string ToString() const;
 };
 
 struct ConvHipImplicitGemmV4R1Fwd final : ConvTunableSolver<PerformanceImplicitGemmV4R1>
@@ -910,7 +902,7 @@ struct ConvHipImplicitGemmV4R4Fwd final : ConvTunableSolver<PerformanceImplicitG
                              const PerformanceImplicitGemmV4R4Fwd& config) const override;
 };
 
-struct PerformanceConvMlirIgemm : Serializable<PerformanceConvMlirIgemm>
+struct PerformanceConvMlirIgemm : PerfConfigBase<PerformanceConvMlirIgemm>
 {
     int BlockSize;
     int GemmMPerBlock;
@@ -954,7 +946,6 @@ struct PerformanceConvMlirIgemm : Serializable<PerformanceConvMlirIgemm>
 
     bool IsValid(const ConvolutionContext& ctx) const;
     bool SetNextValue(const ConvolutionContext& config);
-    std::string ToString() const;
 
 private:
     void SetMlirHeuristicInitRequest();
@@ -976,7 +967,7 @@ struct ConvMlirIgemmFwd final : ConvTunableSolver<PerformanceConvMlirIgemm>
                              const PerformanceConvMlirIgemm& config) const override;
 };
 
-struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdlops>
+struct PerformanceConvMlirIgemmXdlops : PerfConfigBase<PerformanceConvMlirIgemmXdlops>
 {
     int GemmMPerBlock; // 2^n[32..128]
     int GemmNPerBlock; // 2^n[8..16]
@@ -1025,7 +1016,6 @@ struct PerformanceConvMlirIgemmXdlops : Serializable<PerformanceConvMlirIgemmXdl
 
     bool IsValid(const ConvolutionContext& ctx) const;
     bool SetNextValue(const ConvolutionContext& config);
-    std::string ToString() const;
 
 private:
     void SetMlirHeuristicInitRequest();
@@ -1051,7 +1041,7 @@ struct ConvMlirIgemmFwdXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
 };
 
 struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
-    : Serializable<PerformanceImplicitGemmV4R4GenXdlopsFwdFp32>
+    : PerfConfigBase<PerformanceImplicitGemmV4R4GenXdlopsFwdFp32>
 {
     int GemmMPerBlock; // 2^n[32..128]
     int GemmNPerBlock; // 2^n[8..16]
@@ -1086,7 +1076,6 @@ struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemmV4R4GenXdlopsFwdFp32& other) const;
-    std::string ToString() const;
 
     std::tuple<int, int, int, int, bool>
     CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
@@ -1150,7 +1139,7 @@ struct ConvMlirIgemmWrWXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
                              const PerformanceConvMlirIgemmXdlops& config) const override;
 };
 
-struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlops>
+struct PerformanceImplicitGemmXdlops : PerfConfigBase<PerformanceImplicitGemmXdlops>
 {
     int BPerBlock; // 2^n[8..16]
     int KPerBlock; // 2^n[32..128]
@@ -1199,11 +1188,10 @@ struct PerformanceImplicitGemmXdlops : Serializable<PerformanceImplicitGemmXdlop
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemmXdlops& other) const;
-    std::string ToString() const;
 };
 
 struct PerformanceImplicitGemmForwardV4R4Xdlops
-    : Serializable<PerformanceImplicitGemmForwardV4R4Xdlops>
+    : PerfConfigBase<PerformanceImplicitGemmForwardV4R4Xdlops>
 {
     int GemmMPerBlock;
     int GemmNPerBlock;
@@ -1234,7 +1222,6 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     }
 
     bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const;
-    std::string ToString() const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue(const ConvolutionContext& config);
@@ -1253,7 +1240,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
 };
 
 struct PerformanceImplicitGemmForwardV4R5Xdlops
-    : Serializable<PerformanceImplicitGemmForwardV4R5Xdlops>
+    : PerfConfigBase<PerformanceImplicitGemmForwardV4R5Xdlops>
 {
     int GemmMPerBlock;
     int GemmNPerBlock;
@@ -1292,7 +1279,6 @@ struct PerformanceImplicitGemmForwardV4R5Xdlops
     }
 
     bool operator==(const PerformanceImplicitGemmForwardV4R5Xdlops& other) const;
-    std::string ToString() const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue(const ConvolutionContext& config);
@@ -1311,7 +1297,7 @@ struct PerformanceImplicitGemmForwardV4R5Xdlops
 };
 
 struct PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
-    : Serializable<PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm>
+    : PerfConfigBase<PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm>
 {
     int GemmMPerBlock;
     int GemmNPerBlock;
@@ -1352,7 +1338,6 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
     }
 
     bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& other) const;
-    std::string ToString() const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue(const ConvolutionContext& config);
@@ -1370,7 +1355,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
     std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
 
-struct PerformanceImplicitGemmBwdV1R1Xdlops : Serializable<PerformanceImplicitGemmBwdV1R1Xdlops>
+struct PerformanceImplicitGemmBwdV1R1Xdlops : PerfConfigBase<PerformanceImplicitGemmBwdV1R1Xdlops>
 {
     int GemmMPerBlock;
     int GemmNPerBlock;
@@ -1399,7 +1384,6 @@ struct PerformanceImplicitGemmBwdV1R1Xdlops : Serializable<PerformanceImplicitGe
     }
 
     bool operator==(const PerformanceImplicitGemmBwdV1R1Xdlops& other) const;
-    std::string ToString() const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue(const ConvolutionContext& config);
@@ -1480,7 +1464,7 @@ struct ConvHipImplicitGemmForwardV4R5Xdlops final
 };
 
 struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
-    : Serializable<PerformanceImplicitGemmV4R4GenXdlopsWrWFp32>
+    : PerfConfigBase<PerformanceImplicitGemmV4R4GenXdlopsWrWFp32>
 {
     int GemmMPerBlock; // 2^n[32..128]
     int GemmNPerBlock; // 2^n[8..16]
@@ -1517,7 +1501,6 @@ struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemmV4R4GenXdlopsWrWFp32& other) const;
-    std::string ToString() const;
 
     std::tuple<int, int, int, int, bool>
     CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
@@ -1823,7 +1806,7 @@ struct ConvBinWinogradRxS : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct PerformanceConfigConvBinWinogradRxS : Serializable<PerformanceConfigConvBinWinogradRxS>
+struct PerformanceConfigConvBinWinogradRxS : PerfConfigBase<PerformanceConfigConvBinWinogradRxS>
 {
     int n_groups;
     PerformanceConfigConvBinWinogradRxS(int n_groups_);
@@ -1843,7 +1826,6 @@ struct PerformanceConfigConvBinWinogradRxS : Serializable<PerformanceConfigConvB
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvBinWinogradRxS& other) const;
-    std::string ToString() const;
 };
 
 template <int Winodata, int Winofilter>
@@ -2143,7 +2125,7 @@ extern template struct ConvWinograd3x3MultipassWrW<5, 4>;
 #pragma clang diagnostic pop
 #endif
 
-struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirect3x3WrW>
+struct PerformanceConfigAsmDirect3x3WrW : PerfConfigBase<PerformanceConfigAsmDirect3x3WrW>
 {
     int limit_wave_cnt;   // [0..9]
     int reverse_inout;    // [0..1], 1 is allowed for stride=1x1 only.
@@ -2183,7 +2165,6 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigAsmDirect3x3WrW& other) const;
-    std::string ToString() const;
 };
 
 struct ConvAsmBwdWrW3x3 final : ConvTunableSolver<PerformanceConfigAsmDirect3x3WrW>
@@ -2201,7 +2182,7 @@ struct ConvAsmBwdWrW3x3 final : ConvTunableSolver<PerformanceConfigAsmDirect3x3W
                              const PerformanceConfigAsmDirect3x3WrW& config) const override;
 };
 
-struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsmBwdWrW1x1>
+struct PerformanceConfigConvAsmBwdWrW1x1 : PerfConfigBase<PerformanceConfigConvAsmBwdWrW1x1>
 {
 
     int chunk_size;    // {1,2,4,8,16}
@@ -2289,7 +2270,6 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const;
-    std::string ToString() const;
 };
 
 struct ConvAsmBwdWrW1x1 final : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW1x1>
@@ -2315,7 +2295,7 @@ struct ConvAsmBwdWrW1x1 final : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW
 ///     Each Solver in the family has constant value of this parameter.
 template <int N_BATCH_LOOPS>
 struct PerformanceConfigConvOclBwdWrw2
-    : Serializable<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>
+    : PerfConfigBase<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>
 {
     // Num waves involved a workgroup.
     int n_waves = -1; // {1,2,4,8}
@@ -2367,7 +2347,6 @@ struct PerformanceConfigConvOclBwdWrw2
     bool SetNextValue(const ConvolutionContext& config);
     bool IsValid(const ConvolutionContext& params) const;
     bool operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const;
-    std::string ToString() const;
 };
 
 template <int N_BATCH_LOOPS>
@@ -2462,7 +2441,7 @@ struct fft : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& ctx) const;
 };
 
-struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGemmWrwV4R4Xdlops>
+struct PerformanceImplicitGemmWrwV4R4Xdlops : PerfConfigBase<PerformanceImplicitGemmWrwV4R4Xdlops>
 {
     int GemmMPerBlock;
     int GemmNPerBlock;
@@ -2496,7 +2475,6 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : Serializable<PerformanceImplicitGe
     }
 
     bool operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const;
-    std::string ToString() const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue(const ConvolutionContext& config);
@@ -2538,7 +2516,7 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops final
 };
 
 struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
-    : Serializable<PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm>
+    : PerfConfigBase<PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm>
 {
     int GemmMPerBlock;
     int GemmNPerBlock;
@@ -2577,7 +2555,6 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     }
 
     bool operator==(const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& other) const;
-    std::string ToString() const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
     bool SetNextValue(const ConvolutionContext& config);
@@ -2621,7 +2598,7 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm final
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const override;
 };
 
-struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : Serializable<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
+struct PerformanceConvCkIgemmFwdV6r1DlopsNchw : PerfConfigBase<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
 {
     int ck_tunable_list_id;
 
@@ -3017,7 +2994,7 @@ struct GemmWrwUniversal : GemmWrwBase
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
 };
 
-struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmImplicitGemmGTC>
+struct PerformanceConfigAsmImplicitGemmGTC : PerfConfigBase<PerformanceConfigAsmImplicitGemmGTC>
 {
     std::string direction;
     std::string tensor_layout;
@@ -3215,7 +3192,7 @@ struct PerformanceConfigAsmImplicitGemmGTC : Serializable<PerformanceConfigAsmIm
     bool IsDefaultConstructed() const;
     bool operator==(const PerformanceConfigAsmImplicitGemmGTC& other) const;
     void CopyParameters(const PerformanceConfigAsmImplicitGemmGTC& other);
-    std::string ToString() const;
+    std::string ToString() const override;
     std::string ToKernelName(const ConvolutionContext& ctx) const;
     int BlockSize() const;
 };
