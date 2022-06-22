@@ -4753,7 +4753,7 @@ MIOPEN_DECLARE_OBJECT(miopenFindOptions);
 
 miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options);
 
-miopenStatus_t miopenDestroyFindhOptions(miopenFindOptions_t options);
+miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options);
 
 miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value);
 
