@@ -274,8 +274,8 @@ PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(int chunk_s
 {
 }
 
-inline bool
-PerformanceConfigConvAsmBwdWrW1x1::operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
+bool PerformanceConfigConvAsmBwdWrW1x1::operator==(
+    const PerformanceConfigConvAsmBwdWrW1x1& other) const
 {
     // clang-format off
     return chunk_size == other.chunk_size
