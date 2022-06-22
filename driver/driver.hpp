@@ -150,7 +150,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
 {
     if(argc < 2)
     {
-        printf("Invalid Number of Input Arguments\n");
+        printf("FAILED: Invalid Number of Input Arguments\n");
         Usage();
     }
 
@@ -164,7 +164,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
        arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" && arg != "--version")
     {
-        printf("Invalid Base Input Argument\n");
+        printf("FAILED: Invalid Base Input Argument\n");
         Usage();
     }
     else if(arg == "-h" || arg == "--help" || arg == "-?")
