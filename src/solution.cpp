@@ -91,8 +91,8 @@ void Solution::RunImpl(Handle& handle,
         case miopenProblemDirectionBackward:
             problem_.SetDirection(miopenProblemDirectionForward);
             break;
-        case miopenProblemDirectionBackwardWeight:
-            problem_.SetDirection(miopenProblemDirectionBackwardWeight);
+        case miopenProblemDirectionBackwardWeights:
+            problem_.SetDirection(miopenProblemDirectionBackwardWeights);
             break;
         }
 
@@ -112,7 +112,7 @@ void Solution::RunImpl(Handle& handle,
     {
         if(problem_.GetDirection() != miopenProblemDirectionBackward)
             miopen::checkNumericsInput(handle, *x.descriptor, x.buffer);
-        if(problem_.GetDirection() != miopenProblemDirectionBackwardWeight)
+        if(problem_.GetDirection() != miopenProblemDirectionBackwardWeights)
             miopen::checkNumericsInput(handle, *w.descriptor, w.buffer);
         if(problem_.GetDirection() != miopenProblemDirectionForward)
             miopen::checkNumericsInput(handle, *y.descriptor, y.buffer);
@@ -137,7 +137,7 @@ void Solution::RunImpl(Handle& handle,
                 workspace,
                 workspace_size,
                 conv_problem.GetConv().attribute.gfx90aFp16alt.GetBwd());
-        case miopenProblemDirectionBackwardWeight:
+        case miopenProblemDirectionBackwardWeights:
             return conv::WrWInvokeParams{
                 {*y.descriptor, y.buffer, *x.descriptor, x.buffer, *w.descriptor, w.buffer},
                 workspace,
@@ -171,7 +171,7 @@ void Solution::RunImpl(Handle& handle,
         {
             if(problem_.GetDirection() == miopenProblemDirectionBackward)
                 miopen::checkNumericsOutput(handle, *x.descriptor, x.buffer);
-            if(problem_.GetDirection() == miopenProblemDirectionBackwardWeight)
+            if(problem_.GetDirection() == miopenProblemDirectionBackwardWeights)
                 miopen::checkNumericsOutput(handle, *w.descriptor, w.buffer);
             if(problem_.GetDirection() == miopenProblemDirectionForward)
                 miopen::checkNumericsOutput(handle, *y.descriptor, y.buffer);

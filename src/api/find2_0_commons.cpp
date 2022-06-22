@@ -69,19 +69,19 @@ miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
         [&] { miopen::deref(problem).RegisterTensorDescriptor(name, miopen::deref(descriptor)); });
 }
 
-miopenStatus_t miopenCreateSearchOptions(miopenSearchOptions_t* options)
+miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options)
 {
     MIOPEN_LOG_FUNCTION(options);
-    return miopen::try_([&] { miopen::deref(options) = new miopen::SearchOptions(); });
+    return miopen::try_([&] { miopen::deref(options) = new miopen::FindOptions(); });
 }
 
-miopenStatus_t miopenDestroySearchOptions(miopenSearchOptions_t options)
+miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options)
 {
     MIOPEN_LOG_FUNCTION(options);
     return miopen::try_([&] { miopen_destroy_object(options); });
 }
 
-miopenStatus_t miopenSetSearchOptionTuning(miopenSearchOptions_t options, int value)
+miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value)
 {
     MIOPEN_LOG_FUNCTION(options, value);
 
@@ -91,8 +91,8 @@ miopenStatus_t miopenSetSearchOptionTuning(miopenSearchOptions_t options, int va
     });
 }
 
-miopenStatus_t miopenSetSearchOptionResultsOrder(miopenSearchOptions_t options,
-                                                 miopenSearchResultsOrder_t value)
+miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
+                                               miopenFindResultsOrder_t value)
 {
     MIOPEN_LOG_FUNCTION(options, value);
 
@@ -102,7 +102,7 @@ miopenStatus_t miopenSetSearchOptionResultsOrder(miopenSearchOptions_t options,
     });
 }
 
-miopenStatus_t miopenSetSearchOptionWorkspaceLimit(miopenSearchOptions_t options, size_t value)
+miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, size_t value)
 {
     MIOPEN_LOG_FUNCTION(options, value);
 
@@ -114,7 +114,7 @@ miopenStatus_t miopenSetSearchOptionWorkspaceLimit(miopenSearchOptions_t options
 
 miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                    miopenProblem_t problem,
-                                   miopenSearchOptions_t options,
+                                   miopenFindOptions_t options,
                                    miopenSolution_t* solutions,
                                    size_t* numSolutions,
                                    size_t maxSolutions)
@@ -125,7 +125,7 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
         auto& handle_deref        = miopen::deref(handle);
         const auto& problem_deref = miopen::deref(problem);
         const auto& options_deref =
-            options == nullptr ? miopen::SearchOptions{} : miopen::deref(options);
+            options == nullptr ? miopen::FindOptions{} : miopen::deref(options);
 
         auto solutions_deref =
             problem_deref.FindSolutions(handle_deref, options_deref, maxSolutions);

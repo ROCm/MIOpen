@@ -91,9 +91,8 @@ void VisitType(int id, Args... args)
     detail::VisitType<Visitor, Variant>{}(id, args...);
 }
 
-std::vector<Solution> Problem::FindSolutions(Handle& handle,
-                                             const SearchOptions& options,
-                                             std::size_t max_solutions) const
+std::vector<Solution>
+Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t max_solutions) const
 {
     auto buffers = AllocatedBuffers{};
 
@@ -120,12 +119,12 @@ std::vector<Solution> Problem::FindSolutions(Handle& handle,
     const auto sorter = [&]() -> std::function<bool(const Solution&, const Solution&)> {
         switch(options.results_order)
         {
-        case miopenSearchResultsOrderByTime:
+        case miopenFindResultsOrderByTime:
             return [](auto&& l, auto&& r) { return l.GetTime() < r.GetTime(); };
-        case miopenSearchResultsOrderByMemory:
+        case miopenFindResultsOrderByMemory:
             return [](auto&& l, auto&& r) { return l.GetWorkspaceSize() < r.GetWorkspaceSize(); };
-        default: MIOPEN_THROW(miopenStatusNotImplemented);
         }
+        MIOPEN_THROW(miopenStatusNotImplemented);
     }();
 
     std::sort(ret.begin(), ret.end(), sorter);
@@ -161,7 +160,7 @@ conv::ProblemDescription Problem::AsConvolution() const
 }
 
 std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
-                                                 const SearchOptions& options,
+                                                 const FindOptions& options,
                                                  std::size_t max_solutions,
                                                  const AllocatedBuffers& buffers,
                                                  const ConvolutionDescriptor& conv_desc) const
@@ -196,7 +195,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
             if(conv_desc.mode == miopenTranspose)
                 return conv_desc.ForwardGetWorkSpaceSize(handle, w_desc, y_desc, x_desc);
             return conv_desc.BackwardDataGetWorkSpaceSize(handle, w_desc, y_desc, x_desc);
-        case miopenProblemDirectionBackwardWeight:
+        case miopenProblemDirectionBackwardWeights:
             if(conv_desc.mode == miopenTranspose)
                 return conv_desc.BackwardWeightsGetWorkSpaceSize(handle, x_desc, y_desc, w_desc);
             return conv_desc.BackwardWeightsGetWorkSpaceSize(handle, y_desc, x_desc, w_desc);
@@ -269,7 +268,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                             options.exhaustive_search);
         break;
     }
-    case miopenProblemDirectionBackwardWeight: {
+    case miopenProblemDirectionBackwardWeights: {
         decltype(auto) x_desc_ = conv_desc.mode == miopenTranspose ? y_desc : x_desc;
         decltype(auto) x_      = conv_desc.mode == miopenTranspose ? y : x;
         decltype(auto) y_desc_ = conv_desc.mode == miopenTranspose ? x_desc : y_desc;

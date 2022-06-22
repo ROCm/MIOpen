@@ -97,17 +97,17 @@ MIOPEN_DECLARE_OBJECT(miopenHandle);
  */
 typedef enum
 {
-    miopenStatusSuccess              = 0,  /*!< No errors */
-    miopenStatusNotInitialized       = 1,  /*!< Data not initialized. */
-    miopenStatusInvalidValue         = 2,  /*!< Incorrect variable value. */
-    miopenStatusBadParm              = 3,  /*!< Incorrect parameter detected. */
-    miopenStatusAllocFailed          = 4,  /*!< Memory allocation error. */
-    miopenStatusInternalError        = 5,  /*!< MIOpen failure. */
-    miopenStatusNotImplemented       = 6,  /*!< Use of unimplemented feature. */
-    miopenStatusUnknownError         = 7,  /*!< Unknown error occurred. */
-    miopenStatusUnsupportedOp        = 8,  /*!< Unsupported operator for fusion. */
-    miopenStatusGpuOperationsSkipped = 9,  /*!< This is not an error. */
-    miopenStatusVersionMismatch      = 10, /*!< Version mismatch of the supplied binary data argment. */
+    miopenStatusSuccess              = 0, /*!< No errors */
+    miopenStatusNotInitialized       = 1, /*!< Data not initialized. */
+    miopenStatusInvalidValue         = 2, /*!< Incorrect variable value. */
+    miopenStatusBadParm              = 3, /*!< Incorrect parameter detected. */
+    miopenStatusAllocFailed          = 4, /*!< Memory allocation error. */
+    miopenStatusInternalError        = 5, /*!< MIOpen failure. */
+    miopenStatusNotImplemented       = 6, /*!< Use of unimplemented feature. */
+    miopenStatusUnknownError         = 7, /*!< Unknown error occurred. */
+    miopenStatusUnsupportedOp        = 8, /*!< Unsupported operator for fusion. */
+    miopenStatusGpuOperationsSkipped = 9, /*!< This is not an error. */
+    miopenStatusVersionMismatch = 10, /*!< Version mismatch of the supplied binary data argment. */
 } miopenStatus_t;
 
 /*! @brief Get character string for an error code.
@@ -4711,9 +4711,9 @@ MIOPEN_DECLARE_OBJECT(miopenProblem);
 
 typedef enum
 {
-    miopenProblemDirectionForward        = 0,
-    miopenProblemDirectionBackward       = 1,
-    miopenProblemDirectionBackwardWeight = 2,
+    miopenProblemDirectionForward         = 0,
+    miopenProblemDirectionBackward        = 1,
+    miopenProblemDirectionBackwardWeights = 2,
 } miopenProblemDirection_t;
 
 // Enums with no meaningful default value should probably have invalid default for fool-proofing.
@@ -4727,9 +4727,9 @@ typedef enum
 
 typedef enum
 {
-    miopenSearchResultsOrderByTime   = 0,
-    miopenSearchResultsOrderByMemory = 1,
-} miopenSearchResultsOrder_t;
+    miopenFindResultsOrderByTime   = 0,
+    miopenFindResultsOrderByMemory = 1,
+} miopenFindResultsOrder_t;
 
 miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
                                        miopenConvolutionDescriptor_t operatorDesc,
@@ -4745,22 +4745,22 @@ miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
                                                 const miopenTensorDescriptor_t descriptor);
 
 /**
- * The miopenSearchOptions will allow the user to configure how search will be
+ * The miopenFindOptions will allow the user to configure how find will be
  * used. This can include things like exhaustiveSearch, and ordering. In the
  * future, this can support setting different find mode options.
  */
-MIOPEN_DECLARE_OBJECT(miopenSearchOptions);
+MIOPEN_DECLARE_OBJECT(miopenFindOptions);
 
-miopenStatus_t miopenCreateSearchOptions(miopenSearchOptions_t* options);
+miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options);
 
-miopenStatus_t miopenDestroySearchOptions(miopenSearchOptions_t options);
+miopenStatus_t miopenDestroyFindhOptions(miopenFindOptions_t options);
 
-miopenStatus_t miopenSetSearchOptionTuning(miopenSearchOptions_t options, int value);
+miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value);
 
-miopenStatus_t miopenSetSearchOptionResultsOrder(miopenSearchOptions_t options,
-                                                 miopenSearchResultsOrder_t value);
+miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
+                                               miopenFindResultsOrder_t value);
 
-miopenStatus_t miopenSetSearchOptionWorkspaceLimit(miopenSearchOptions_t options, size_t value);
+miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, size_t value);
 
 MIOPEN_DECLARE_OBJECT(miopenSolution);
 
@@ -4770,7 +4770,7 @@ MIOPEN_DECLARE_OBJECT(miopenSolution);
  */
 miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                    miopenProblem_t problem,
-                                   miopenSearchOptions_t options,
+                                   miopenFindOptions_t options,
                                    miopenSolution_t* solutions,
                                    size_t* numSolutions,
                                    size_t maxSolutions);

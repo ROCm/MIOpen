@@ -45,7 +45,7 @@ namespace miopen {
 
 struct Handle;
 struct Solution;
-struct SearchOptions;
+struct FindOptions;
 
 namespace conv {
 struct ProblemDescription;
@@ -79,7 +79,7 @@ struct Problem : miopenProblem
     const OperatorDescriptor& GetOperatorDescriptor() const { return operator_descriptor; }
 
     std::vector<Solution>
-    FindSolutions(Handle& handle, const SearchOptions& options, std::size_t max_solutions) const;
+    FindSolutions(Handle& handle, const FindOptions& options, std::size_t max_solutions) const;
 
     conv::ProblemDescription AsConvolution() const;
 
@@ -101,7 +101,7 @@ private:
     using AllocatedBuffers = std::unordered_map<miopenTensorName_t, Allocator::ManageDataPtr>;
 
     std::vector<Solution> FindSolutionsImpl(Handle& handle,
-                                            const SearchOptions& options,
+                                            const FindOptions& options,
                                             std::size_t max_solutions,
                                             const AllocatedBuffers& buffers,
                                             const ConvolutionDescriptor& conv_desc) const;
