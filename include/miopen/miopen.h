@@ -4719,11 +4719,11 @@ typedef enum
 // Enums with no meaningful default value should probably have invalid default for fool-proofing.
 typedef enum
 {
-    miopenTensorNameInvalid  = 0,
+    miopenTensorArgumentIdInvalid = 0,
     miopenTensorConvolutionX = 1,
     miopenTensorConvolutionW = 2,
     miopenTensorConvolutionY = 3,
-} miopenTensorName_t;
+} miopenTensorArgumentId_t;
 
 typedef enum
 {
@@ -4741,7 +4741,7 @@ miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
 // Previously, different directions had different input orders, which may lead to confusion.
 // Implicitly ordered fields would also lead to a whole lot of magical ids all over the internals.
 miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
-                                                miopenTensorName_t name,
+                                                miopenTensorArgumentId_t id,
                                                 const miopenTensorDescriptor_t descriptor);
 
 /**
@@ -4777,7 +4777,7 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
 
 struct miopenTensorArgument
 {
-    miopenTensorName_t name;
+    miopenTensorArgumentId_t id;
     miopenTensorDescriptor_t* descriptor;
     void* buffer;
 };

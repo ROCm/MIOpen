@@ -132,7 +132,7 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
     return ret;
 }
 
-const TensorDescriptor& Problem::GetTensorDescriptorChecked(miopenTensorName_t name,
+const TensorDescriptor& Problem::GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
                                                             const std::string& name_str) const
 {
     const auto found = tensor_descriptors.find(name);

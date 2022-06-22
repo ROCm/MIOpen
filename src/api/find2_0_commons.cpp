@@ -60,13 +60,13 @@ miopenStatus_t miopenDestroyProblem(miopenProblem_t problem)
 }
 
 miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
-                                                miopenTensorName_t name,
+                                                miopenTensorArgumentId_t id,
                                                 const miopenTensorDescriptor_t descriptor)
 {
-    MIOPEN_LOG_FUNCTION(problem, name, descriptor);
+    MIOPEN_LOG_FUNCTION(problem, id, descriptor);
 
     return miopen::try_(
-        [&] { miopen::deref(problem).RegisterTensorDescriptor(name, miopen::deref(descriptor)); });
+        [&] { miopen::deref(problem).RegisterTensorDescriptor(id, miopen::deref(descriptor)); });
 }
 
 miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options)
@@ -152,7 +152,7 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
         auto& solution_deref = miopen::deref(solution);
 
         const auto inputs_deref = [&]() {
-            auto ret = std::unordered_map<miopenTensorName_t, miopen::Solution::RunInput>{};
+            auto ret = std::unordered_map<miopenTensorArgumentId_t, miopen::Solution::RunInput>{};
 
             ret.reserve(nInputs);
             for(auto i = 0; i < nInputs; ++i)
@@ -163,7 +163,7 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                 if(tensors[i].descriptor != nullptr)
                     input.descriptor = miopen::deref(*tensors[i].descriptor);
 
-                ret.emplace(std::make_pair(tensors[i].name, std::move(input)));
+                ret.emplace(std::make_pair(tensors[i].id, std::move(input)));
             }
 
             return ret;

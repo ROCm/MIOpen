@@ -57,14 +57,14 @@ struct Problem : miopenProblem
 {
     Problem() = default;
 
-    const TensorDescriptor& GetTensorDescriptor(miopenTensorName_t name) const
+    const TensorDescriptor& GetTensorDescriptor(miopenTensorArgumentId_t name) const
     {
         return tensor_descriptors.at(name);
     }
 
     miopenProblemDirection_t GetDirection() const { return direction; }
 
-    bool RegisterTensorDescriptor(miopenTensorName_t name, TensorDescriptor descriptor)
+    bool RegisterTensorDescriptor(miopenTensorArgumentId_t name, TensorDescriptor descriptor)
     {
         return tensor_descriptors.emplace(std::make_pair(name, std::move(descriptor))).second;
     }
@@ -83,7 +83,7 @@ struct Problem : miopenProblem
 
     conv::ProblemDescription AsConvolution() const;
 
-    const TensorDescriptor& GetTensorDescriptorChecked(miopenTensorName_t name,
+    const TensorDescriptor& GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
                                                        const std::string& name_str) const;
 
     static void ValidateGroupCount(const TensorDescriptor& xDesc,
@@ -95,10 +95,10 @@ struct Problem : miopenProblem
 
 private:
     miopenProblemDirection_t direction = miopenProblemDirectionForward;
-    std::unordered_map<miopenTensorName_t, TensorDescriptor> tensor_descriptors;
+    std::unordered_map<miopenTensorArgumentId_t, TensorDescriptor> tensor_descriptors;
     OperatorDescriptor operator_descriptor;
 
-    using AllocatedBuffers = std::unordered_map<miopenTensorName_t, Allocator::ManageDataPtr>;
+    using AllocatedBuffers = std::unordered_map<miopenTensorArgumentId_t, Allocator::ManageDataPtr>;
 
     std::vector<Solution> FindSolutionsImpl(Handle& handle,
                                             const FindOptions& options,

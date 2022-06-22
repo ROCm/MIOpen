@@ -77,7 +77,7 @@ struct Solution : miopenSolution
     void SetProblem(Problem value) { problem = std::move(value); }
 
     void Run(Handle& handle,
-             const std::unordered_map<miopenTensorName_t, RunInput>& inputs,
+             const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
              Data_t workspace,
              size_t workspace_size);
 
@@ -91,7 +91,7 @@ private:
     Problem problem;
 
     void RunImpl(Handle& handle,
-                 const std::unordered_map<miopenTensorName_t, RunInput>& inputs,
+                 const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
                  Data_t workspace,
                  std::size_t workspace_size,
                  const ConvolutionDescriptor& conv_desc);
