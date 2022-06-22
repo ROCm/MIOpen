@@ -4774,6 +4774,13 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                    size_t* numSolutions,
                                    size_t maxSolutions);
 
+struct miopenTensorArgument
+{
+    miopenTensorName_t name;
+    miopenTensorDescriptor_t* descriptor;
+    void* buffer;
+};
+
 /**
  * Runs the solution using the passed in buffers. Corresponding tensor
  * descriptors are passed in so if a user would like to dynamically change
@@ -4783,9 +4790,7 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
 miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  miopenSolution_t solution,
                                  size_t nInputs,
-                                 const miopenTensorName_t* names,
-                                 const miopenTensorDescriptor_t* descriptors,
-                                 void* const* buffers,
+                                 const miopenTensorArgument* tensors,
                                  void* workspace,
                                  size_t workspaceSize);
 

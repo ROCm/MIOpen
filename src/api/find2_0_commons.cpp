@@ -141,14 +141,11 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
 miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  miopenSolution_t solution,
                                  size_t nInputs,
-                                 const miopenTensorName_t* names,
-                                 const miopenTensorDescriptor_t* descriptors,
-                                 void* const* buffers,
+                                 const miopenTensorArgument* tensors,
                                  void* workspace,
                                  size_t workspaceSize)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle, solution, nInputs, names, descriptors, buffers, workspace, workspaceSize);
+    MIOPEN_LOG_FUNCTION(handle, solution, nInputs, workspace, workspaceSize);
 
     return miopen::try_([&] {
         auto& handle_deref   = miopen::deref(handle);
@@ -162,11 +159,11 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
             {
                 auto input = miopen::Solution::RunInput{};
 
-                input.buffer = DataCast(buffers[i]);
-                if(descriptors != nullptr)
-                    input.descriptor = miopen::deref(descriptors[i]);
+                input.buffer = DataCast(tensors[i].buffer);
+                if(tensors[i].descriptor != nullptr)
+                    input.descriptor = miopen::deref(*tensors[i].descriptor);
 
-                ret.emplace(std::make_pair(names[i], std::move(input)));
+                ret.emplace(std::make_pair(tensors[i].name, std::move(input)));
             }
 
             return ret;
