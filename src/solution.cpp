@@ -232,7 +232,7 @@ void from_json(const nlohmann::json& json, Solution& solution)
                          "Invalid buffer has been passed to the solution deserialization.");
         if(header.version != check_header.version)
             MIOPEN_THROW(
-                miopenStatusInvalidValue,
+                miopenStatusVersionMismatch,
                 "Data from wrong version has been passed to the solution deserialization.");
     }
 
