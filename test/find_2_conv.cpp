@@ -153,9 +153,8 @@ private:
                 EXPECT_EQUAL(miopenCreateFindOptions(&options), miopenStatusSuccess);
 
                 EXPECT_EQUAL(miopenSetFindOptionTuning(options, search), miopenStatusSuccess);
-                EXPECT_EQUAL(
-                    miopenSetFindOptionResultsOrder(options, miopenFindResultsOrderByTime),
-                    miopenStatusSuccess);
+                EXPECT_EQUAL(miopenSetFindOptionResultsOrder(options, miopenFindResultsOrderByTime),
+                             miopenStatusSuccess);
                 EXPECT_EQUAL(miopenSetFindOptionWorkspaceLimit(options, workspace_limit),
                              miopenStatusSuccess);
 
@@ -249,11 +248,11 @@ private:
         const auto checked_run_solution = [&](miopenTensorDescriptor_t* descriptors_) {
             auto arguments = std::make_unique<miopenTensorArgument_t[]>(num_arguments);
 
-            for (auto i = 0; i < num_arguments; ++i)
+            for(auto i = 0; i < num_arguments; ++i)
             {
-                arguments[i].id = names[i];
+                arguments[i].id         = names[i];
                 arguments[i].descriptor = descriptors_ != nullptr ? &descriptors_[i] : nullptr;
-                arguments[i].buffer = buffers[i];
+                arguments[i].buffer     = buffers[i];
             }
 
             EXPECT_EQUAL(

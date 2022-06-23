@@ -4720,9 +4720,9 @@ typedef enum
 typedef enum
 {
     miopenTensorArgumentIdInvalid = 0,
-    miopenTensorConvolutionX = 1,
-    miopenTensorConvolutionW = 2,
-    miopenTensorConvolutionY = 3,
+    miopenTensorConvolutionX      = 1,
+    miopenTensorConvolutionW      = 2,
+    miopenTensorConvolutionY      = 3,
 } miopenTensorArgumentId_t;
 
 typedef enum

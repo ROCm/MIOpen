@@ -365,8 +365,7 @@ private:
     {
         auto search_options = FindOptionsWrapper{};
 
-        EXPECT_EQUAL(miopenStatusSuccess,
-                     miopenSetFindOptionTuning(search_options.get(), search));
+        EXPECT_EQUAL(miopenStatusSuccess, miopenSetFindOptionTuning(search_options.get(), search));
 
         return search_options;
     }
