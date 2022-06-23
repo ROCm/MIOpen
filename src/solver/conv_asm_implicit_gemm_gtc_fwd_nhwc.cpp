@@ -826,6 +826,9 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionC
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
 
+    if(ctx.group_counts > 1)
+        return false;
+
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx908") && (device_name != "gfx90a"))
         return false;
