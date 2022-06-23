@@ -2415,6 +2415,12 @@ protected:
 #pragma clang diagnostic ignored "-Wweak-template-vtables"
 #endif
 
+extern template struct PerformanceConfigConvOclBwdWrw2<1>;
+extern template struct PerformanceConfigConvOclBwdWrw2<2>;
+extern template struct PerformanceConfigConvOclBwdWrw2<4>;
+extern template struct PerformanceConfigConvOclBwdWrw2<8>;
+extern template struct PerformanceConfigConvOclBwdWrw2<16>;
+
 extern template struct ConvOclBwdWrW2<1>;
 extern template struct ConvOclBwdWrW2<2>;
 extern template struct ConvOclBwdWrW2<4>;
@@ -2442,6 +2448,7 @@ struct ConvOclBwdWrW2NonTunable final : ConvOclBwdWrW2<1>
 private:
     // This function dervied from ConvOclBwdWrW2 is declared private
     // so that this solver is not marked searchable/tunable.
+    using ConvOclBwdWrW2<1>::GetDefaultPerformanceConfig;
     using ConvOclBwdWrW2<1>::GetSolution;
 };
 
