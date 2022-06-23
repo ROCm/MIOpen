@@ -52,6 +52,7 @@ struct Parse
 template <char Separator = ','>
 struct SerDes
 {
+private:
     struct SerializeField
     {
         template <class T>
@@ -82,6 +83,32 @@ struct SerDes
             ok = Parse<T>::apply(part, x);
         }
     };
+
+public:
+    template <class Self>
+    static void Serialize(const Self& self, std::ostream& stream)
+    {
+        char sep = 0;
+        Self::Visit(
+            self,
+            std::bind(SerializeField{}, std::ref(stream), std::ref(sep), std::placeholders::_1));
+    }
+
+    template <class Self>
+    static bool Deserialize(Self& self, const std::string& s)
+    {
+        auto out = self;
+        bool ok  = true;
+        std::istringstream ss(s);
+        Self::Visit(
+            out, std::bind(DeserializeField{}, std::ref(ok), std::ref(ss), std::placeholders::_1));
+
+        if(!ok)
+            return false;
+
+        self = out;
+        return true;
+    }
 };
 
 template <class Derived>
@@ -89,25 +116,12 @@ struct Serializable
 {
     void Serialize(std::ostream& stream) const
     {
-        char sep = 0;
-        Derived::Visit(
-            static_cast<const Derived&>(*this),
-            std::bind(SerDes<>::SerializeField{}, std::ref(stream), std::ref(sep), std::placeholders::_1));
+        SerDes<>::Serialize(static_cast<const Derived&>(*this), stream);
     }
 
     bool Deserialize(const std::string& s)
     {
-        auto out = static_cast<const Derived&>(*this);
-        bool ok  = true;
-        std::istringstream ss(s);
-        Derived::Visit(
-            out, std::bind(SerDes<>::DeserializeField{}, std::ref(ok), std::ref(ss), std::placeholders::_1));
-
-        if(!ok)
-            return false;
-
-        static_cast<Derived&>(*this) = out;
-        return true;
+        return SerDes<>::Deserialize(static_cast<Derived&>(*this), s);
     }
 };
 

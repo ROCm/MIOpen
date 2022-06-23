@@ -54,25 +54,12 @@ struct PerfConfigBase : PerfConfig
 {
     void Serialize(std::ostream& stream) const final
     {
-        char sep = 0;
-        Derived::Visit(
-            static_cast<const Derived&>(*this),
-            std::bind(SerDes<>::SerializeField{}, std::ref(stream), std::ref(sep), std::placeholders::_1));
+        SerDes<>::Serialize(static_cast<const Derived&>(*this), stream);
     }
 
     bool Deserialize(const std::string& s) final
     {
-        auto out = static_cast<const Derived&>(*this);
-        bool ok  = true;
-        std::istringstream ss(s);
-        Derived::Visit(
-            out, std::bind(SerDes<>::DeserializeField{}, std::ref(ok), std::ref(ss), std::placeholders::_1));
-
-        if(!ok)
-            return false;
-
-        static_cast<Derived&>(*this) = out;
-        return true;
+        return SerDes<>::Deserialize(static_cast<Derived&>(*this), s);
     }
 };
 
