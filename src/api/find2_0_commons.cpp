@@ -141,7 +141,7 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
 miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  miopenSolution_t solution,
                                  size_t nInputs,
-                                 const miopenTensorArgument* tensors,
+                                 const miopenTensorArgument_t* tensors,
                                  void* workspace,
                                  size_t workspaceSize)
 {

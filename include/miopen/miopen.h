@@ -4775,7 +4775,7 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                    size_t* numSolutions,
                                    size_t maxSolutions);
 
-struct miopenTensorArgument
+struct miopenTensorArgument_t
 {
     miopenTensorArgumentId_t id;
     miopenTensorDescriptor_t* descriptor;
@@ -4791,7 +4791,7 @@ struct miopenTensorArgument
 miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  miopenSolution_t solution,
                                  size_t nInputs,
-                                 const miopenTensorArgument* tensors,
+                                 const miopenTensorArgument_t* tensors,
                                  void* workspace,
                                  size_t workspaceSize);
 

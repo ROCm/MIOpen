@@ -263,17 +263,17 @@ struct ProblemWrapper : std::unique_ptr<miopenProblem, ProblemDestructor>
     }
 };
 
-struct SearchOptionsDestructor
+struct FindOptionsDestructor
 {
-    void operator()(miopenSearchOptions_t ptr) { miopenDestroySearchOptions(ptr); }
+    void operator()(miopenFindOptions_t ptr) { miopenDestroyFindOptions(ptr); }
 };
 
-struct SearchOptionsWrapper : std::unique_ptr<miopenSearchOptions, SearchOptionsDestructor>
+struct FindOptionsWrapper : std::unique_ptr<miopenFindOptions, FindOptionsDestructor>
 {
-    SearchOptionsWrapper()
+    FindOptionsWrapper()
     {
-        miopenSearchOptions_t value;
-        EXPECT_EQUAL(miopenStatusSuccess, miopenCreateSearchOptions(&value));
+        miopenFindOptions_t value;
+        EXPECT_EQUAL(miopenStatusSuccess, miopenCreateFindOptions(&value));
         this->reset(value);
     }
 };
@@ -302,10 +302,7 @@ struct conv_base
     }
 
 protected:
-    void RunFind2_0(miopenProblem_t problem,
-                    const miopenTensorName_t* names,
-                    void* const* buffers,
-                    const miopenTensorDescriptor_t* descriptors = nullptr) const
+    void RunFind2_0(miopenProblem_t problem, const miopenTensorArgument_t* arguments) const
     {
         miopenHandle_t handle = &get_handle();
 
@@ -334,14 +331,8 @@ protected:
                                            : nullptr;
 
             EXPECT_EQUAL(miopenStatusSuccess,
-                         miopenRunSolution(handle,
-                                           solution,
-                                           3,
-                                           names,
-                                           descriptors,
-                                           buffers,
-                                           workspace_dev.get(),
-                                           workspace_size));
+                         miopenRunSolution(
+                             handle, solution, 3, arguments, workspace_dev.get(), workspace_size));
         }
 
         const auto& solution_deref = miopen::deref(solutions.front());
@@ -370,12 +361,12 @@ protected:
     }
 
 private:
-    SearchOptionsWrapper MakeOptions() const
+    FindOptionsWrapper MakeOptions() const
     {
-        auto search_options = SearchOptionsWrapper{};
+        auto search_options = FindOptionsWrapper{};
 
         EXPECT_EQUAL(miopenStatusSuccess,
-                     miopenSetSearchOptionTuning(search_options.get(), search));
+                     miopenSetFindOptionTuning(search_options.get(), search));
 
         return search_options;
     }
@@ -769,12 +760,13 @@ struct verify_forward_conv : conv_base<T, Tout>
                     const auto problem = MakeConvProblem(
                         miopenProblemDirectionForward, &in_desc, &wei_desc, &rout.desc);
 
-                    const miopenTensorName_t names[3] = {miopenTensorConvolutionX,
-                                                         miopenTensorConvolutionW,
-                                                         miopenTensorConvolutionY};
-                    void* const buffers[3]            = {in_buf, wei_buf, out_dev.get()};
+                    const miopenTensorArgument_t arguments[3] = {
+                        {miopenTensorConvolutionX, nullptr, in_buf},
+                        {miopenTensorConvolutionW, nullptr, wei_buf},
+                        {miopenTensorConvolutionY, nullptr, out_dev.get()},
+                    };
 
-                    RunFind2_0(problem.get(), names, buffers);
+                    RunFind2_0(problem.get(), arguments);
                 }
                 else
                 {
@@ -895,12 +887,13 @@ struct verify_forward_conv : conv_base<T, Tout>
                     const auto problem = MakeConvProblem(
                         miopenProblemDirectionForward, &input.desc, &weights.desc, &rout.desc);
 
-                    const miopenTensorName_t names[3] = {miopenTensorConvolutionX,
-                                                         miopenTensorConvolutionW,
-                                                         miopenTensorConvolutionY};
-                    void* const buffers[3] = {in_dev.get(), wei_dev.get(), out_dev.get()};
+                    const miopenTensorArgument_t arguments[3] = {
+                        {miopenTensorConvolutionX, nullptr, in_dev.get()},
+                        {miopenTensorConvolutionW, nullptr, wei_dev.get()},
+                        {miopenTensorConvolutionY, nullptr, out_dev.get()},
+                    };
 
-                    RunFind2_0(problem.get(), names, buffers);
+                    RunFind2_0(problem.get(), arguments);
                 }
                 else
                 {
@@ -1289,11 +1282,13 @@ struct verify_backward_conv : conv_base<T>
             const auto problem = MakeConvProblem(
                 miopenProblemDirectionBackward, &rinput.desc, &weights.desc, &out.desc);
 
-            const miopenTensorName_t names[3] = {
-                miopenTensorConvolutionX, miopenTensorConvolutionW, miopenTensorConvolutionY};
-            void* const buffers[3] = {in_dev.get(), wei_dev.get(), out_dev.get()};
+            const miopenTensorArgument_t arguments[3] = {
+                {miopenTensorConvolutionX, nullptr, in_dev.get()},
+                {miopenTensorConvolutionW, nullptr, wei_dev.get()},
+                {miopenTensorConvolutionY, nullptr, out_dev.get()},
+            };
 
-            RunFind2_0(problem.get(), names, buffers);
+            RunFind2_0(problem.get(), arguments);
             break;
         }
         case ConvApi::Invalid: MIOPEN_THROW(miopenStatusInvalidValue);
@@ -1563,13 +1558,15 @@ struct verify_backward_weights_conv : conv_base<T>
         }
         case ConvApi::Find_2_0: {
             const auto problem = MakeConvProblem(
-                miopenProblemDirectionBackwardWeight, &input.desc, &rweights.desc, &out.desc);
+                miopenProblemDirectionBackwardWeights, &input.desc, &rweights.desc, &out.desc);
 
-            const miopenTensorName_t names[3] = {
-                miopenTensorConvolutionX, miopenTensorConvolutionW, miopenTensorConvolutionY};
-            void* const buffers[3] = {in_dev.get(), wei_dev.get(), out_dev.get()};
+            const miopenTensorArgument_t arguments[3] = {
+                {miopenTensorConvolutionX, nullptr, in_dev.get()},
+                {miopenTensorConvolutionW, nullptr, wei_dev.get()},
+                {miopenTensorConvolutionY, nullptr, out_dev.get()},
+            };
 
-            RunFind2_0(problem.get(), names, buffers);
+            RunFind2_0(problem.get(), arguments);
             break;
         }
         case ConvApi::Invalid: MIOPEN_THROW(miopenStatusInvalidValue);
