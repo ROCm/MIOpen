@@ -127,7 +127,9 @@ boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
                              "Invalid value of MIOPEN_DEBUG_FIND_ONLY_SOLVER: " + kinder);
             const auto id = solver::Id{numeric_id};
             if(id.IsValid())
+            {
                 res.push_back(id);
+            }
             else
             {
                 MIOPEN_THROW(miopenStatusBadParm,
