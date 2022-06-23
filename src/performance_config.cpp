@@ -36,5 +36,11 @@ std::string PerfConfig::ToString() const
     return ss.str();
 }
 
+std::ostream& operator<<(std::ostream& os, const PerfConfig& c)
+{
+    c.Serialize(os);
+    return os;
+}
+
 } // namespace solver
 } // namespace miopen

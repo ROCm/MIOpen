@@ -37,7 +37,6 @@
 namespace miopen {
 namespace solver {
 
-// TODO: Provide specialization to use stro* functions
 template <class T>
 struct Parse
 {
@@ -50,11 +49,9 @@ struct Parse
     }
 };
 
-template <class Derived, char Seperator = ','>
-struct Serializable
+template <char Separator = ','>
+struct SerDes
 {
-    virtual ~Serializable() = default;
-
     struct SerializeField
     {
         template <class T>
@@ -63,7 +60,7 @@ struct Serializable
             if(sep != 0)
                 stream << sep;
             stream << x;
-            sep = Seperator;
+            sep = Separator;
         }
     };
 
@@ -76,7 +73,7 @@ struct Serializable
                 return;
             std::string part;
 
-            if(!std::getline(stream, part, Seperator))
+            if(!std::getline(stream, part, Separator))
             {
                 ok = false;
                 return;
@@ -85,34 +82,32 @@ struct Serializable
             ok = Parse<T>::apply(part, x);
         }
     };
+};
 
-    virtual void Serialize(std::ostream& stream) const
+template <class Derived>
+struct Serializable
+{
+    void Serialize(std::ostream& stream) const
     {
         char sep = 0;
         Derived::Visit(
             static_cast<const Derived&>(*this),
-            std::bind(SerializeField{}, std::ref(stream), std::ref(sep), std::placeholders::_1));
+            std::bind(SerDes<>::SerializeField{}, std::ref(stream), std::ref(sep), std::placeholders::_1));
     }
 
-    virtual bool Deserialize(const std::string& s)
+    bool Deserialize(const std::string& s)
     {
         auto out = static_cast<const Derived&>(*this);
         bool ok  = true;
         std::istringstream ss(s);
         Derived::Visit(
-            out, std::bind(DeserializeField{}, std::ref(ok), std::ref(ss), std::placeholders::_1));
+            out, std::bind(SerDes<>::DeserializeField{}, std::ref(ok), std::ref(ss), std::placeholders::_1));
 
         if(!ok)
             return false;
 
         static_cast<Derived&>(*this) = out;
         return true;
-    }
-
-    friend std::ostream& operator<<(std::ostream& os, const Derived& c)
-    {
-        c.Serialize(os);
-        return os;
     }
 };
 

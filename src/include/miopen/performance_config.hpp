@@ -28,7 +28,6 @@
 #define PERFORMANCE_CONFIG_HPP
 
 #include <miopen/miopen.h>
-#include <miopen/errors.hpp>
 #include <miopen/serializable.hpp>
 
 #include <iostream>
@@ -39,16 +38,16 @@
 namespace miopen {
 namespace solver {
 
-struct PerfConfig : Serializable<PerfConfig>
+struct PerfConfig
 {
-    virtual std::string ToString() const;
+    virtual ~PerfConfig() = default;
 
-    template <class Self, class F>
-    static void Visit(Self&&, F)
-    {
-        MIOPEN_THROW(miopenStatusInternalError);
-    }
+    virtual void Serialize(std::ostream& stream) const = 0;
+    virtual bool Deserialize(const std::string& s) = 0;
+    virtual std::string ToString() const;
 };
+
+std::ostream& operator<<(std::ostream& os, const PerfConfig& c);
 
 template <class Derived>
 struct PerfConfigBase : PerfConfig
@@ -58,7 +57,7 @@ struct PerfConfigBase : PerfConfig
         char sep = 0;
         Derived::Visit(
             static_cast<const Derived&>(*this),
-            std::bind(SerializeField{}, std::ref(stream), std::ref(sep), std::placeholders::_1));
+            std::bind(SerDes<>::SerializeField{}, std::ref(stream), std::ref(sep), std::placeholders::_1));
     }
 
     bool Deserialize(const std::string& s) final
@@ -67,7 +66,7 @@ struct PerfConfigBase : PerfConfig
         bool ok  = true;
         std::istringstream ss(s);
         Derived::Visit(
-            out, std::bind(DeserializeField{}, std::ref(ok), std::ref(ss), std::placeholders::_1));
+            out, std::bind(SerDes<>::DeserializeField{}, std::ref(ok), std::ref(ss), std::placeholders::_1));
 
         if(!ok)
             return false;
