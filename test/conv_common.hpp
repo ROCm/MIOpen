@@ -1829,18 +1829,12 @@ struct conv_driver : test_driver
         {
             if(fil_layout == "CHWN")
             {
+                weights = tensor<T>{type, weight_layout_t, weight_tensor_dims}.generate(
+                    tensor_elem_gen_integer{17});
                 output_channels = weight_tensor_dims.at(3);
                 std::copy(weight_tensor_dims.begin() + 1,
                           weight_tensor_dims.end() - 1,
                           filter_dims.begin());
-                std::vector<std::size_t> chwn_weight_tensor_dims{};
-                chwn_weight_tensor_dims[0] = input_channels;
-                std::copy(
-                    filter_dims.begin(), filter_dims.end(), chwn_weight_tensor_dims.begin() + 1);
-                chwn_weight_tensor_dims.push_back(output_channels);
-
-                weights = tensor<T>{type, weight_layout_t, chwn_weight_tensor_dims}.generate(
-                    tensor_elem_gen_integer{17});
             }
             else
             {
