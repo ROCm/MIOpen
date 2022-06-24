@@ -46,6 +46,14 @@ bool BnBwdTrainingSpatialSingle::IsApplicable(
     if(problem.GetDirection() != miopen::batchnorm::Direction::Backward ||
        problem.GetMode() != miopenBNSpatial)
         return false;
+    
+    if(problem.GetXDesc().GetType() == miopenHalf &&
+       problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
+    {
+        // bfp16parm = true;
+        // Unsupported kernel mode, error in kernel code
+        return false
+    }
 
     if(problem.IsLayoutNHWC())
         return true;
