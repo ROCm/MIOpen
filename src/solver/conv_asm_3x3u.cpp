@@ -70,8 +70,7 @@ PerformanceConfigConvAsm3x3U::PerformanceConfigConvAsm3x3U(int lwc, int fpw, int
 {
 }
 
-inline bool
-PerformanceConfigConvAsm3x3U::operator==(const PerformanceConfigConvAsm3x3U& other) const
+bool PerformanceConfigConvAsm3x3U::operator==(const PerformanceConfigConvAsm3x3U& other) const
 {
     return PerfFieldRules().Compare(*this, other);
 }

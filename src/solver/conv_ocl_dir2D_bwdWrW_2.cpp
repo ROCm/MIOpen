@@ -156,7 +156,7 @@ ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& par
 }
 
 template <int N_BATCH_LOOPS>
-inline bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::operator==(
+bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::operator==(
     const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
 {
     // clang-format off
@@ -745,6 +745,12 @@ ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ConvolutionContext& context,
 /// We need to instantiate required classes implicitly.
 /// The reason is that we do not define the whole template class
 /// in the header, only declaring it there.
+template struct PerformanceConfigConvOclBwdWrw2<1>;
+template struct PerformanceConfigConvOclBwdWrw2<2>;
+template struct PerformanceConfigConvOclBwdWrw2<4>;
+template struct PerformanceConfigConvOclBwdWrw2<8>;
+template struct PerformanceConfigConvOclBwdWrw2<16>;
+
 template struct ConvOclBwdWrW2<1>;
 template struct ConvOclBwdWrW2<2>;
 template struct ConvOclBwdWrW2<4>;
