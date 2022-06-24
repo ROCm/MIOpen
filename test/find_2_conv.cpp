@@ -230,7 +230,7 @@ private:
     void TestRunSolution(miopenHandle_t handle,
                          miopenSolution_t solution,
                          std::size_t num_arguments,
-                         miopenTensorArgumentId_t* names,
+                         const miopenTensorArgumentId_t* names,
                          miopenTensorDescriptor_t* descriptors,
                          void** buffers)
     {
