@@ -46,7 +46,7 @@ bool BnBwdTrainingSpatialSingle::IsApplicable(
     if(problem.GetDirection() != miopen::batchnorm::Direction::Backward ||
        problem.GetMode() != miopenBNSpatial)
         return false;
-    
+
     if(problem.GetXDesc().GetType() == miopenHalf &&
        problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
     {

@@ -46,7 +46,7 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
        problem.GetMode() != miopenBNSpatial)
         return false;
 
-     if(problem.GetXDesc().GetType() == miopenHalf &&
+    if(problem.GetXDesc().GetType() == miopenHalf &&
        problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
     {
         // bfp16parm = true;
