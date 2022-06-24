@@ -53,7 +53,7 @@ bool BnBwdTrainingSpatialSingle::IsApplicable(
         // bfp16parm = true;
         // Unsupported kernel mode, error in kernel code
         // MIOpenBatchNormBwdSpatial.cl:526 issue#1549
-        return false
+        return false;
     }
 
     if(problem.IsLayoutNHWC())
@@ -79,7 +79,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     bool bfpmixparm = false;
     bool bfp16parm  = false;
     bool bfp32parm  = true;
-    
+
     if(problem.GetXDesc().GetType() == miopenHalf &&
        problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
     {

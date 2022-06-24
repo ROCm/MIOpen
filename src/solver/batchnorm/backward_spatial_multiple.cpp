@@ -52,7 +52,7 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
         // bfp16parm = true;
         // Unsupported kernel mode, error in kernel code
         // MIOpenBatchNormBwdSpatial.cl:526 issue#1549
-        return false
+        return false;
     }
 
     return !BnBwdTrainingSpatialSingle{}.IsApplicable(context, problem);
