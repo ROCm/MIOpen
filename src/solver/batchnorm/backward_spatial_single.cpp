@@ -80,9 +80,6 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     bool bfp16parm  = false;
     bool bfp32parm  = true;
     
-    MIOPEN_LOG_E(problem.GetXDesc().GetType());
-    MIOPEN_LOG_E(problem.GetScaleBiasDiffDesc().GetType());
-
     if(problem.GetXDesc().GetType() == miopenHalf &&
        problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
     {
