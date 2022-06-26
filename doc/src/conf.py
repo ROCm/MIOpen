@@ -211,3 +211,4 @@ primary_domain = 'cpp'
 # attributes. This can for example be used when attributes have been
 # #define d for portability.
 cpp_id_attributes = ['MIOPEN_EXPORT']
+cpp_index_common_prefix = ["miopen"]
