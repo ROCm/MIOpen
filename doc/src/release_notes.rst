@@ -1,7 +1,8 @@
+MIOpen Release notes
+====================
 
-## MIOpen Release notes
-
-### 08/03/2021 [2.12.0]
+08/03/2021 [2.12.0]
+-------------------
 
  - This release includes support for Navi21 and various other bug fixes and performance improvements
 
@@ -12,7 +13,8 @@
  - Fixed an issue in reduction kernels for padded tensors
  - Various other bug fixes and performance improvements
 
-### 05/17/2021 [2.11.0]
+05/17/2021 [2.11.0]
+-------------------
 
  - This release contains various bug fixes and performance improvements.
  
@@ -21,7 +23,8 @@
  - Various bug fixes for MIOpenGEMM on the OpenCL backend
  - Various bug fixes in 3x3 assembly kernels
 
-### 03/25/2021 [2.10.0]
+03/25/2021 [2.10.0]
+-------------------
 
  - This release contains new reduction operations, Winograd algorithm performance improvements as well as bug fixes. Various host side performance improvements have been added as well.
 
@@ -32,7 +35,8 @@
  - Various host side improvements for better find and tuning performance.
  - Added support for AMD Code Object V4.
 
-### 12/01/2020 [ 2.9.0 ]
+12/01/2020 [ 2.9.0 ]
+--------------------
 
  - This release contains implicit GEMM algorithm performance updates and bug fixes. Additional performance improvements have been implemented for batch normalization.
 
@@ -46,7 +50,8 @@
  - Disabled bidirectional multi-pass Winograd kernels due to stability issues
 
 
-### 10/28/2020 [ 2.8.0 ]
+10/28/2020 [ 2.8.0 ]
+--------------------
 
 This release provides additional bug fixes and support for embedded build using MIOpen as a static library. 
 
@@ -58,30 +63,32 @@ This release provides additional bug fixes and support for embedded build using 
 - Added cmake flag for embedding system databases when building a static library
 - Added a way to disable building MIOpenDriver when building a static library
 - Added CC compiler detection in ROCm environment
-- Known issue: This release may show warnings for "obsolete configs" in the performance database. This can be fixed by rerunning tuning on a specfic network; [see tuning documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perf_database.html#miopen-find-enforce)
+- Known issue: This release may show warnings for "obsolete configs" in the performance database. This can be fixed by rerunning tuning on a specfic network; `see tuning documentation <https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perf_database.html#miopen-find-enforce>`_
 
 
 
-### 09/18/2020 [ 2.7.0 ]
+09/18/2020 [ 2.7.0 ]
+--------------------
 
-- This release contains a new reduction API; see [API documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/api_reference.html) for more information. Additional features for embedded builds have been added, and further support for 3D convolutional networks.
+- This release contains a new reduction API; see `API documentation <https://rocmsoftwareplatform.github.io/MIOpen/doc/html/api_reference.html>`_ for more information. Additional features for embedded builds have been added, and further support for 3D convolutional networks.
 
 - Added additional tunings into performance database
 - Added general reduction API
 - Added cmake flag for embedding binary database into a static MIOpen build
 - Added cmake flag for embedding system find-db text files into static MIOpen build
-- Fixed issue with GEMM workspace size calculation for backwards data convolutions [#381](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/381)
-- Fixed issue with 3D pooling indexing [#365](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/365)
+- Fixed issue with GEMM workspace size calculation for backwards data convolutions `#381 <https://github.com/ROCmSoftwarePlatform/MIOpen/issues/381>`_
+- Fixed issue with 3D pooling indexing `#365 <https://github.com/ROCmSoftwarePlatform/MIOpen/issues/365>`_
 
 
-### 08/20/2020 [ 2.6.0 ]
+08/20/2020 [ 2.6.0 ]
+--------------------
 
 - This release contains convolution performance improvements, improved multi-threading behavior, and improved stability for half precision convolutions. Initial iteration time has been reduced with the introduction of hybrid find mode. Builds for a static library have been refined for this release.
 
-- Added MIOPEN_FIND_MODE=3 as the new default convolution Find mode; see documentation [here](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/find_and_immediate.html#find-modes) for details
+- Added MIOPEN_FIND_MODE=3 as the new default convolution Find mode; see documentation `here <https://rocmsoftwareplatform.github.io/MIOpen/doc/html/find_and_immediate.html#find-modes>`_ for details
 - Added a more runtime-parameterized version of pooling to reduce the number of online compilations
 - Improved the performance of backwards spatial batch normalization for small images
-- Fixed issue with std::logic_error in SQLite deleter [#306](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/306)
+- Fixed issue with std::logic_error in SQLite deleter `#306 <https://github.com/ROCmSoftwarePlatform/MIOpen/issues/306>`_
 - Fixed issues with half precision stability for convolutions
 - Fixed issues with multi-threaded SQLite database accesses
 - Fixed issues with 3-D convolutions and incorrect parameters
@@ -90,7 +97,8 @@ This release provides additional bug fixes and support for embedded build using 
 - Removed SCGEMM convolutional algorithm from MIOpen
 
 
-### 07/10/2020 [ 2.5.0 ]
+07/10/2020 [ 2.5.0 ]
+--------------------
 
 - This release contains convolution performance improvements, various minor fixes and documentation updates.
 
@@ -103,7 +111,8 @@ This release provides additional bug fixes and support for embedded build using 
 - Fixed issue with potential infinities and NaNs appearing during low precision training on CNNs
 
 
-### 06/02/2020 [ 2.4.0 ]
+06/02/2020 [ 2.4.0 ]
+--------------------
 
 - This release contains new implementations of 3D convolutions using implicitGEMM, general performance improvements for convolutions, bug fixes, better versioning in directories, integration with the new rocclr, and dropout support in RNNs.
 
@@ -112,10 +121,11 @@ This release provides additional bug fixes and support for embedded build using 
 - Added support for AMD's rocclr runtime and compiler
 - Improved performance for implicitGEMM and Winograd algorithms
 - Improved database locking
-- Fixed issue with GPU memory segmentation fault on asymmetric padding [#142](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/142)
+- Fixed issue with GPU memory segmentation fault on asymmetric padding `#142 <https://github.com/ROCmSoftwarePlatform/MIOpen/issues/142>`_
 
 
-### 03/01/2020 [ 2.3.0 ]
+03/01/2020 [ 2.3.0 ]
+--------------------
 
 - This release contains new implementations of the implicitGEMM and Winograd algorithms, performance improvements for convolutions, further support for 3D convolutional networks, and various bug fixes.
 
@@ -125,14 +135,15 @@ This release provides additional bug fixes and support for embedded build using 
 - Added full CO v3 support for all kernels in MIOpen
 - Added new Winograd group convolution kernels
 - Added an API to query MIOpen's version
-- Added parallel compilation in initial convolutional algorithm search; partial solution to [#130](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/130)
+- Added parallel compilation in initial convolutional algorithm search; partial solution to `#130 <https://github.com/ROCmSoftwarePlatform/MIOpen/issues/130>`_
 - Added SQLite binary program cache
 - Improved logging across all layers
 - Improved MIOpen's internal design for calling convolutional solvers
 - Fixed various bugs for the implicitGEMM algorithm
 
 
-### 01/24/2020 [ 2.2.1 ]
+01/24/2020 [ 2.2.1 ]
+--------------------
 
 - This release contains bug fixes, documentation updates, and further code object version 3 support
 
@@ -141,24 +152,25 @@ Changes:
 
 - Added support for multiple ROCm installations
 - Added additional support for code object v3
-- Fixed issue with incorrect LRN calculation [#127](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/127)
+- Fixed issue with incorrect LRN calculation `#127 <https://github.com/ROCmSoftwarePlatform/MIOpen/issues/127>`_
 - Fixed incorrect performance database documentation
 - Fixed issue with incorrect workspace calculation in group convolutions
 - Fixed issue with unsupported hardware instructions used with inline assembly
 
 
-### 12/19/2019 [ 2.2.0 ]
+12/19/2019 [ 2.2.0 ]
+--------------------
 
 - This release contains bug fixes, performance improvements, and expanded applicability for specific convolutional algorithms.
-- MIOpen has posted a citable paper on ArXiv [here](https://arxiv.org/abs/1910.00078).
-- An SQLite database has been added to replace the text-based performance database. While the text file still exists, by default SQLite is used over the text-based performance database; see [documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perf_database.html) from more details.
+- MIOpen has posted a citable paper on ArXiv `here <https://arxiv.org/abs/1910.00078>`_.
+- An SQLite database has been added to replace the text-based performance database. While the text file still exists, by default SQLite is used over the text-based performance database; see `documentation <https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perf_database.html>`_ from more details.
 
 
 Changes:
 
 - Added per solution algorithm filtering environmental variable for debugging
 - Added SQLite3 database and build dependency. The text-based performance database support is deprecated and will be removed in the next release.
-- Added citation page to documentation pointing to [MIOpen's paper](https://arxiv.org/abs/1910.00078)
+- Added citation page to documentation pointing to `MIOpen's paper <https://arxiv.org/abs/1910.00078>`_
 - Added to the overall documentation
 - Fixed fusion compilation check issue
 - Fixed fusion group convolution warning
@@ -172,7 +184,8 @@ Changes:
 - Changed "hip_hcc" to "hip-hcc" for the MIOpen package requirements in CMakeLists.txt
 
 
-### 09/25/2019 [ 2.1.0 ]
+09/25/2019 [ 2.1.0 ]
+--------------------
 
 - This release contains new layers, bug fixes, and a new convolution algorithm.
 
@@ -181,17 +194,18 @@ Changes:
 - Added a dropout layer API for training
 - Added a new SCGEMM algorithm for convolutions
 - Added further support for bfp16 in convolutions
-- Added a [docker hub link](https://hub.docker.com/r/rocm/miopen/tags) for MIOpen docker images.
+- Added a `docker hub link <https://hub.docker.com/r/rocm/miopen/tags>`_ for MIOpen docker images.
 - Fixed issue with NaN appearing on batch normalization backwards pass in fp16
-- Fixed softmax kernel bug in log mode [#112](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/112)
-- Fixed ROCm gfx803 support issue [#869](https://github.com/RadeonOpenCompute/ROCm/issues/869)
+- Fixed softmax kernel bug in log mode `#112 <https://github.com/ROCmSoftwarePlatform/MIOpen/issues/112>`_
+- Fixed ROCm gfx803 support issue `#869 <https://github.com/RadeonOpenCompute/ROCm/issues/869>`_
 - Improved performance of batch normalization fp16 forward training layers
 - Improved performance of convolutions layers
 - Removed MIOpenGEMM as a requirement for the HIP backend. It is now optional.
 
 
 
-### 08/13/2019 [ 2.0.1 ]
+08/13/2019 [ 2.0.1 ]
+--------------------
 
 - This release contains bug fixes and performance improvements.
 - Additionally, the convolution algorithm Implicit GEMM is now enabled by default
@@ -211,7 +225,8 @@ Changes:
 
 
 
-### 07/08/2019 [ 2.0.0 ]
+07/08/2019 [ 2.0.0 ]
+--------------------
 
 - This release contains several new features including an immediate mode for selecting convolutions, bfloat16 support, new layers, modes, and algorithms.
 - MIOpenDriver, a tool for benchmarking and developing kernels is now shipped with MIOpen.
@@ -235,19 +250,20 @@ Changes:
 - Added a shipped System Find-Db containing offline run Find() results
 - Added an additional, faster batch norm assembly kernel for fp16
 - Added CTC loss layer
-- Added MIOpenDriver as a default component in MIOpen's build [#34](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/34)
-- Fixed C compatability for boolean types in C API [#103](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/103)
-- Fixed incorrect calculation in per-activation batch norm backwards pass [#104](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/104)
-- Fixed bug [#95](https://github.com/ROCmSoftwarePlatform/MIOpen/issues/95) with asm batch norm ISA 
+- Added MIOpenDriver as a default component in MIOpen's build `#34 <https://github.com/ROCmSoftwarePlatform/MIOpen/issues/34>`_
+- Fixed C compatability for boolean types in C API `#103 <https://github.com/ROCmSoftwarePlatform/MIOpen/issues/103>`_
+- Fixed incorrect calculation in per-activation batch norm backwards pass `#104 <https://github.com/ROCmSoftwarePlatform/MIOpen/issues/104>`_
+- Fixed bug `#95 <https://github.com/ROCmSoftwarePlatform/MIOpen/issues/95>`_ with asm batch norm ISA
 - Fixed IsApplicable bug in Conv3x3Asm for group convolutions
 - Improved performance of 1x1 stride 2 fp32 convolutions in the forward and backwards data passes
 - Improved 3-D convolution stability
 - Improved applicability of direct convolution backwards weights for 2x2, 5x10, and 5x20 filter sizes
 - Improved maintainability in kernels and cpp code
-- Updated rocBLAS minimum version to branch [master-rocm-2.6](https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.6)
+- Updated rocBLAS minimum version to branch `master-rocm-2.6 <https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.6>`_
 
 
-### 05/03/2019 [ 1.8.1 ]
+05/03/2019 [ 1.8.1 ]
+--------------------
 
 - This release contains minor bug fixes and additional performance database improvements.
 
@@ -259,7 +275,8 @@ Changes:
 - Improved support in performance database for Radeon VII
 
 
-### 04/11/2019 [ 1.8.0 ]
+04/11/2019 [ 1.8.0 ]
+--------------------
 
 - This release contaings full 3-D convolution support and int8 support for interfence. 
 - Additionally, there are major updates in the performance database for major models including those found in Torchvision. 
@@ -301,7 +318,8 @@ Known Issues:
 
 
 
-### 02/06/2019 [ 1.7.1 ]
+02/06/2019 [ 1.7.1 ]
+--------------------
 
 - This release contains minor bug fixes and performance improvements.
   
@@ -325,7 +343,8 @@ Known Issues:
 - Layer fusions for large image 1x1 convolutions may cause an exception instead of a warning during compile phase if plan is not supported
 
 
-### 12/19/2018 [ 1.7.0 ]
+12/19/2018 [ 1.7.0 ]
+--------------------
 
 - This release contains general bug fixes and an updated performance database
 - Group convolutions backwards weights performance has been improved
@@ -351,7 +370,8 @@ Known Issues:
 - Layer fusions for large image 1x1 convolutions may cause an exception instead of a warning during compile phase if plan is not supported
 
 
-### 11/18/2018 [ 1.6.0 ]
+11/18/2018 [ 1.6.0 ]
+--------------------
 
 - Training in fp16 (half precision) including mixed-precision is now fully supported
 - Batch Normalization in fp16 (half precision) including mixed-precision are now available
@@ -377,7 +397,8 @@ Known Issues:
 - Layer fusions for convolution 1x1 fp16 are not supported
 
 
-### 09/14/2018 [ 1.5.0 ]
+09/14/2018 [ 1.5.0 ]
+--------------------
 
 Notes:
 
@@ -408,7 +429,8 @@ Known Issues:
 - Training with CNNs does not support fp16
 
 
-### 07/30/2018 [ 1.4.2 ]
+07/30/2018 [ 1.4.2 ]
+--------------------
 
 Notes: 
 
@@ -418,10 +440,11 @@ Known Issues:
 
 - RNNs do not support fp16
 - Training with CNNs does not support fp16
-- Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: `MIOPEN_FIND_ENFORCE=search`
+- Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: ``MIOPEN_FIND_ENFORCE=search``
 For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perf_database.html#
 
-### 07/19/2018 [ 1.4.1 ]
+07/19/2018 [ 1.4.1 ]
+--------------------
 
 Notes: 
 
@@ -432,10 +455,11 @@ Known Issues:
 
 - RNNs do not support fp16
 - Training with CNNs does not support fp16
-- Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: `MIOPEN_FIND_ENFORCE=search`
+- Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: ``MIOPEN_FIND_ENFORCE=search``
 For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perf_database.html#
 
-### 07/06/2018 [ 1.4.0 ]
+07/06/2018 [ 1.4.0 ]
+--------------------
 
 Notes:
 
@@ -472,7 +496,8 @@ Known Issues:
 - RNNs do not support fp16
 - Training with CNNs does not support fp16
 
-### 03/30/2018 [ 1.3.0 ]
+03/30/2018 [ 1.3.0 ]
+--------------------
 
 Notes: 
 
@@ -499,14 +524,16 @@ Known Issues:
 - Training with CNNs does not support fp16
 
 
-### 03/08/2018 [ 1.2.1 ]
+03/08/2018 [ 1.2.1 ]
+--------------------
 
 Notes:
 
 - This release adds support for ROCm 1.7.1.
 
 
-### 12/15/2017 [ 1.2.0 ]
+12/15/2017 [ 1.2.0 ]
+--------------------
 
 Notes:
 
@@ -529,7 +556,8 @@ Known issues:
 - Potential issue where OpenCL resources will be exhausted for large RNN
 
 
-### 09/08/2017 [ 1.1.0 ]
+09/08/2017 [ 1.1.0 ]
+--------------------
 
 Notes: 
 
@@ -550,14 +578,16 @@ Changes:
 - Various bug fixes for Winograd convolutions 
 
 
-### 08/27/2017 [ 1.0.2 ]
+08/27/2017 [ 1.0.2 ]
+--------------------
 - Fixed 1x1 forward and backward convolutions for large input
 - Fixed pooling MIOpendriver
 - Disabled 1x1 Winograd convolution for HIP
 - Disabled asm. backward-weights convolutions for input width == 175 
  
 
-### 07/26/2017 [ 1.0.1 ] 
+07/26/2017 [ 1.0.1 ]
+--------------------
 - Added dilation support for convolutions 
 - Added unit-tests for Softmax
 - Added miopengemm as a required dependency for MIOpen build
@@ -569,5 +599,6 @@ Changes:
 - Removed GEMM interface from the MIOpen API
 
 
-### 06/30/2017 [ 1.0.0 ] Initial release 
+06/30/2017 [ 1.0.0 ] Initial release
+------------------------------------
  

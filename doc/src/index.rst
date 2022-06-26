@@ -25,11 +25,15 @@ Sources and binaries can be found at `MIOpen's GitHub site <https://github.com/R
     find_and_immediate
     intro_fusion_api
     mi200a_specifics
-    api_reference
+    api_reference/index
 
+Source Code
+-----------
+
+Sources and binaries can be found at `MIOpen's GitHub site <https://github.com/ROCmSoftwarePlatform/MIOpen>`_.
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`search`
