@@ -13,19 +13,19 @@ Sources and binaries can be found at `MIOpen's GitHub site <https://github.com/R
     :maxdepth: 8
     :caption: Contents:
 
-    releasenotes
+    release_notes
     citation
     install
     embed
     driver
-    DebugAndLogging
+    debug_and_logging
     cache
-    perfdatabase
+    perf_database
     finddb
     find_and_immediate
-    Getting_Started_FusionAPI
-    MI200AlternateImplementation
-    apireference
+    intro_fusion_api
+    mi200a_specifics
+    api_reference
 
 
 Indices and tables

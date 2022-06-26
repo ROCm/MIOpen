@@ -58,13 +58,13 @@ This release provides additional bug fixes and support for embedded build using 
 - Added cmake flag for embedding system databases when building a static library
 - Added a way to disable building MIOpenDriver when building a static library
 - Added CC compiler detection in ROCm environment
-- Known issue: This release may show warnings for "obsolete configs" in the performance database. This can be fixed by rerunning tuning on a specfic network; [see tuning documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#miopen-find-enforce)
+- Known issue: This release may show warnings for "obsolete configs" in the performance database. This can be fixed by rerunning tuning on a specfic network; [see tuning documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perf_database.html#miopen-find-enforce)
 
 
 
 ### 09/18/2020 [ 2.7.0 ]
 
-- This release contains a new reduction API; see [API documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/apireference.html) for more information. Additional features for embedded builds have been added, and further support for 3D convolutional networks. 
+- This release contains a new reduction API; see [API documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/api_reference.html) for more information. Additional features for embedded builds have been added, and further support for 3D convolutional networks.
 
 - Added additional tunings into performance database
 - Added general reduction API
@@ -151,7 +151,7 @@ Changes:
 
 - This release contains bug fixes, performance improvements, and expanded applicability for specific convolutional algorithms.
 - MIOpen has posted a citable paper on ArXiv [here](https://arxiv.org/abs/1910.00078).
-- An SQLite database has been added to replace the text-based performance database. While the text file still exists, by default SQLite is used over the text-based performance database; see [documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html) from more details. 
+- An SQLite database has been added to replace the text-based performance database. While the text file still exists, by default SQLite is used over the text-based performance database; see [documentation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perf_database.html) from more details.
 
 
 Changes:
@@ -419,7 +419,7 @@ Known Issues:
 - RNNs do not support fp16
 - Training with CNNs does not support fp16
 - Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: `MIOPEN_FIND_ENFORCE=search`
-For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#
+For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perf_database.html#
 
 ### 07/19/2018 [ 1.4.1 ]
 
@@ -433,7 +433,7 @@ Known Issues:
 - RNNs do not support fp16
 - Training with CNNs does not support fp16
 - Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: `MIOPEN_FIND_ENFORCE=search`
-For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#
+For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perf_database.html#
 
 ### 07/06/2018 [ 1.4.0 ]
 

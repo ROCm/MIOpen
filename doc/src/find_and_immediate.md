@@ -64,7 +64,7 @@ The results of Find() are returned in an array of `miopenConvAlgoPerf_t` structs
 
 This call sequence is executed once per session as it is inherently expensive. Of those, `miopenFindConvolution*()` is the most expensive call. It caches its own results on disk, so the subsequent calls during the same MIOpen session will execute faster. However, it is better to remember results of `miopenFindConvolution*()` in the application, as recommended above. 
 
-Internally MIOpen's Find calls will compile and benchmark a set of `solvers` contained in `miopenConvAlgoPerf_t` this is done in parallel per `miopenConvAlgorithm_t`. The level of parallelism can be controlled using an environment variable. See the debugging section [controlling parallel compilation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/DebugAndLogging.html#controlling-parallel-compilation) for more details.
+Internally MIOpen's Find calls will compile and benchmark a set of `solvers` contained in `miopenConvAlgoPerf_t` this is done in parallel per `miopenConvAlgorithm_t`. The level of parallelism can be controlled using an environment variable. See the debugging section [controlling parallel compilation](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/debug_and_logging.html#controlling-parallel-compilation) for more details.
 
 
 ## Immediate Mode API
