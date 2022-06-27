@@ -42,7 +42,7 @@
 
 namespace miopen {
 namespace tests {
-class TrivialTestSolver : public solver::ConvSolver
+class TrivialTestSolver final : public solver::ConvSolver
 {
 public:
     static const char* FileName() { return "TrivialTestSolver"; }
@@ -78,7 +78,7 @@ struct TestConfig : solver::Serializable<TestConfig>
     }
 };
 
-class SearchableTestSolver : public solver::ConvSolver
+class SearchableTestSolver final : public solver::ConvTunableSolver<TestConfig>
 {
 public:
     static int searches_done() { return _serches_done; }
@@ -93,19 +93,19 @@ public:
         return true;
     }
 
-    TestConfig GetPerformanceConfig(const ConvolutionContext&) const
+    TestConfig GetDefaultPerformanceConfig(const ConvolutionContext&) const override
     {
         TestConfig config{};
         config.str = NoSearchFileName();
         return config;
     }
 
-    bool IsValidPerformanceConfig(const ConvolutionContext&, const TestConfig&) const
+    bool IsValidPerformanceConfig(const ConvolutionContext&, const TestConfig&) const override
     {
         return true;
     }
 
-    TestConfig Search(const ConvolutionContext&, const AnyInvokeParams&) const
+    TestConfig Search(const ConvolutionContext&, const AnyInvokeParams&) const override
     {
         TestConfig config;
         config.str = FileName();
@@ -113,7 +113,8 @@ public:
         return config;
     }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&, const TestConfig& config) const
+    solver::ConvSolution GetSolution(const ConvolutionContext&,
+                                     const TestConfig& config) const override
     {
 
         solver::ConvSolution ret;

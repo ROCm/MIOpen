@@ -1,10 +1,10 @@
 	.text
-	.protected	naive_conv_fwd_nchw_fp32 ; -- Begin function naive_conv_fwd_nchw_fp32
-	.globl	naive_conv_fwd_nchw_fp32
+	.protected	naive_conv_fwd_nchw_float ; -- Begin function naive_conv_fwd_nchw_float
+	.globl	naive_conv_fwd_nchw_float
 	.p2align	8
-	.type	naive_conv_fwd_nchw_fp32,@function
-naive_conv_fwd_nchw_fp32:               ; @naive_conv_fwd_nchw_fp32
-naive_conv_fwd_nchw_fp32$local:
+	.type	naive_conv_fwd_nchw_float,@function
+naive_conv_fwd_nchw_float:               ; @naive_conv_fwd_nchw_float
+naive_conv_fwd_nchw_float$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -333,7 +333,7 @@ BB0_15:                                 ; %Flow65
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_fwd_nchw_fp32
+	.amdhsa_kernel naive_conv_fwd_nchw_float
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -369,7 +369,7 @@ BB0_15:                                 ; %Flow65
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end0:
-	.size	naive_conv_fwd_nchw_fp32, .Lfunc_end0-naive_conv_fwd_nchw_fp32
+	.size	naive_conv_fwd_nchw_float, .Lfunc_end0-naive_conv_fwd_nchw_float
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -394,12 +394,12 @@ BB0_15:                                 ; %Flow65
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_bwd_nchw_fp32 ; -- Begin function naive_conv_bwd_nchw_fp32
-	.globl	naive_conv_bwd_nchw_fp32
+	.protected	naive_conv_bwd_nchw_float ; -- Begin function naive_conv_bwd_nchw_float
+	.globl	naive_conv_bwd_nchw_float
 	.p2align	8
-	.type	naive_conv_bwd_nchw_fp32,@function
-naive_conv_bwd_nchw_fp32:               ; @naive_conv_bwd_nchw_fp32
-naive_conv_bwd_nchw_fp32$local:
+	.type	naive_conv_bwd_nchw_float,@function
+naive_conv_bwd_nchw_float:               ; @naive_conv_bwd_nchw_float
+naive_conv_bwd_nchw_float$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -1006,7 +1006,7 @@ BB1_26:                                 ; %Flow168
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_bwd_nchw_fp32
+	.amdhsa_kernel naive_conv_bwd_nchw_float
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -1042,7 +1042,7 @@ BB1_26:                                 ; %Flow168
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end1:
-	.size	naive_conv_bwd_nchw_fp32, .Lfunc_end1-naive_conv_bwd_nchw_fp32
+	.size	naive_conv_bwd_nchw_float, .Lfunc_end1-naive_conv_bwd_nchw_float
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -1067,12 +1067,12 @@ BB1_26:                                 ; %Flow168
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_wrw_nchw_fp32 ; -- Begin function naive_conv_wrw_nchw_fp32
-	.globl	naive_conv_wrw_nchw_fp32
+	.protected	naive_conv_wrw_nchw_float ; -- Begin function naive_conv_wrw_nchw_float
+	.globl	naive_conv_wrw_nchw_float
 	.p2align	8
-	.type	naive_conv_wrw_nchw_fp32,@function
-naive_conv_wrw_nchw_fp32:               ; @naive_conv_wrw_nchw_fp32
-naive_conv_wrw_nchw_fp32$local:
+	.type	naive_conv_wrw_nchw_float,@function
+naive_conv_wrw_nchw_float:               ; @naive_conv_wrw_nchw_float
+naive_conv_wrw_nchw_float$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -1410,7 +1410,7 @@ BB2_15:                                 ; %Flow65
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_wrw_nchw_fp32
+	.amdhsa_kernel naive_conv_wrw_nchw_float
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -1446,7 +1446,7 @@ BB2_15:                                 ; %Flow65
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end2:
-	.size	naive_conv_wrw_nchw_fp32, .Lfunc_end2-naive_conv_wrw_nchw_fp32
+	.size	naive_conv_wrw_nchw_float, .Lfunc_end2-naive_conv_wrw_nchw_float
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -1471,12 +1471,12 @@ BB2_15:                                 ; %Flow65
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_fwd_ncdhw_fp32 ; -- Begin function naive_conv_fwd_ncdhw_fp32
-	.globl	naive_conv_fwd_ncdhw_fp32
+	.protected	naive_conv_fwd_ncdhw_float ; -- Begin function naive_conv_fwd_ncdhw_float
+	.globl	naive_conv_fwd_ncdhw_float
 	.p2align	8
-	.type	naive_conv_fwd_ncdhw_fp32,@function
-naive_conv_fwd_ncdhw_fp32:              ; @naive_conv_fwd_ncdhw_fp32
-naive_conv_fwd_ncdhw_fp32$local:
+	.type	naive_conv_fwd_ncdhw_float,@function
+naive_conv_fwd_ncdhw_float:              ; @naive_conv_fwd_ncdhw_float
+naive_conv_fwd_ncdhw_float$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -1933,7 +1933,7 @@ BB3_18:                                 ; %Flow89
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_fwd_ncdhw_fp32
+	.amdhsa_kernel naive_conv_fwd_ncdhw_float
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -1969,7 +1969,7 @@ BB3_18:                                 ; %Flow89
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end3:
-	.size	naive_conv_fwd_ncdhw_fp32, .Lfunc_end3-naive_conv_fwd_ncdhw_fp32
+	.size	naive_conv_fwd_ncdhw_float, .Lfunc_end3-naive_conv_fwd_ncdhw_float
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -1994,12 +1994,12 @@ BB3_18:                                 ; %Flow89
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_bwd_ncdhw_fp32 ; -- Begin function naive_conv_bwd_ncdhw_fp32
-	.globl	naive_conv_bwd_ncdhw_fp32
+	.protected	naive_conv_bwd_ncdhw_float ; -- Begin function naive_conv_bwd_ncdhw_float
+	.globl	naive_conv_bwd_ncdhw_float
 	.p2align	8
-	.type	naive_conv_bwd_ncdhw_fp32,@function
-naive_conv_bwd_ncdhw_fp32:              ; @naive_conv_bwd_ncdhw_fp32
-naive_conv_bwd_ncdhw_fp32$local:
+	.type	naive_conv_bwd_ncdhw_float,@function
+naive_conv_bwd_ncdhw_float:              ; @naive_conv_bwd_ncdhw_float
+naive_conv_bwd_ncdhw_float$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -2867,7 +2867,7 @@ BB4_35:                                 ; %Flow247
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_bwd_ncdhw_fp32
+	.amdhsa_kernel naive_conv_bwd_ncdhw_float
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -2903,7 +2903,7 @@ BB4_35:                                 ; %Flow247
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end4:
-	.size	naive_conv_bwd_ncdhw_fp32, .Lfunc_end4-naive_conv_bwd_ncdhw_fp32
+	.size	naive_conv_bwd_ncdhw_float, .Lfunc_end4-naive_conv_bwd_ncdhw_float
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -2928,12 +2928,12 @@ BB4_35:                                 ; %Flow247
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_wrw_ncdhw_fp32 ; -- Begin function naive_conv_wrw_ncdhw_fp32
-	.globl	naive_conv_wrw_ncdhw_fp32
+	.protected	naive_conv_wrw_ncdhw_float ; -- Begin function naive_conv_wrw_ncdhw_float
+	.globl	naive_conv_wrw_ncdhw_float
 	.p2align	8
-	.type	naive_conv_wrw_ncdhw_fp32,@function
-naive_conv_wrw_ncdhw_fp32:              ; @naive_conv_wrw_ncdhw_fp32
-naive_conv_wrw_ncdhw_fp32$local:
+	.type	naive_conv_wrw_ncdhw_float,@function
+naive_conv_wrw_ncdhw_float:              ; @naive_conv_wrw_ncdhw_float
+naive_conv_wrw_ncdhw_float$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_load_dwordx2 s[24:25], s[4:5], 0x68
@@ -3399,7 +3399,7 @@ BB5_18:                                 ; %Flow89
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_wrw_ncdhw_fp32
+	.amdhsa_kernel naive_conv_wrw_ncdhw_float
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -3435,7 +3435,7 @@ BB5_18:                                 ; %Flow89
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end5:
-	.size	naive_conv_wrw_ncdhw_fp32, .Lfunc_end5-naive_conv_wrw_ncdhw_fp32
+	.size	naive_conv_wrw_ncdhw_float, .Lfunc_end5-naive_conv_wrw_ncdhw_float
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -3460,12 +3460,12 @@ BB5_18:                                 ; %Flow89
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_fwd_nchw_fp16 ; -- Begin function naive_conv_fwd_nchw_fp16
-	.globl	naive_conv_fwd_nchw_fp16
+	.protected	naive_conv_fwd_nchw_half ; -- Begin function naive_conv_fwd_nchw_half
+	.globl	naive_conv_fwd_nchw_half
 	.p2align	8
-	.type	naive_conv_fwd_nchw_fp16,@function
-naive_conv_fwd_nchw_fp16:               ; @naive_conv_fwd_nchw_fp16
-naive_conv_fwd_nchw_fp16$local:
+	.type	naive_conv_fwd_nchw_half,@function
+naive_conv_fwd_nchw_half:               ; @naive_conv_fwd_nchw_half
+naive_conv_fwd_nchw_half$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -3798,7 +3798,7 @@ BB6_15:                                 ; %Flow65
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_fwd_nchw_fp16
+	.amdhsa_kernel naive_conv_fwd_nchw_half
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -3834,7 +3834,7 @@ BB6_15:                                 ; %Flow65
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end6:
-	.size	naive_conv_fwd_nchw_fp16, .Lfunc_end6-naive_conv_fwd_nchw_fp16
+	.size	naive_conv_fwd_nchw_half, .Lfunc_end6-naive_conv_fwd_nchw_half
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -3859,12 +3859,12 @@ BB6_15:                                 ; %Flow65
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_bwd_nchw_fp16 ; -- Begin function naive_conv_bwd_nchw_fp16
-	.globl	naive_conv_bwd_nchw_fp16
+	.protected	naive_conv_bwd_nchw_half ; -- Begin function naive_conv_bwd_nchw_half
+	.globl	naive_conv_bwd_nchw_half
 	.p2align	8
-	.type	naive_conv_bwd_nchw_fp16,@function
-naive_conv_bwd_nchw_fp16:               ; @naive_conv_bwd_nchw_fp16
-naive_conv_bwd_nchw_fp16$local:
+	.type	naive_conv_bwd_nchw_half,@function
+naive_conv_bwd_nchw_half:               ; @naive_conv_bwd_nchw_half
+naive_conv_bwd_nchw_half$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -4475,7 +4475,7 @@ BB7_26:                                 ; %Flow168
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_bwd_nchw_fp16
+	.amdhsa_kernel naive_conv_bwd_nchw_half
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -4511,7 +4511,7 @@ BB7_26:                                 ; %Flow168
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end7:
-	.size	naive_conv_bwd_nchw_fp16, .Lfunc_end7-naive_conv_bwd_nchw_fp16
+	.size	naive_conv_bwd_nchw_half, .Lfunc_end7-naive_conv_bwd_nchw_half
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -4536,12 +4536,12 @@ BB7_26:                                 ; %Flow168
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_wrw_nchw_fp16 ; -- Begin function naive_conv_wrw_nchw_fp16
-	.globl	naive_conv_wrw_nchw_fp16
+	.protected	naive_conv_wrw_nchw_half ; -- Begin function naive_conv_wrw_nchw_half
+	.globl	naive_conv_wrw_nchw_half
 	.p2align	8
-	.type	naive_conv_wrw_nchw_fp16,@function
-naive_conv_wrw_nchw_fp16:               ; @naive_conv_wrw_nchw_fp16
-naive_conv_wrw_nchw_fp16$local:
+	.type	naive_conv_wrw_nchw_half,@function
+naive_conv_wrw_nchw_half:               ; @naive_conv_wrw_nchw_half
+naive_conv_wrw_nchw_half$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -4883,7 +4883,7 @@ BB8_15:                                 ; %Flow65
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_wrw_nchw_fp16
+	.amdhsa_kernel naive_conv_wrw_nchw_half
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -4919,7 +4919,7 @@ BB8_15:                                 ; %Flow65
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end8:
-	.size	naive_conv_wrw_nchw_fp16, .Lfunc_end8-naive_conv_wrw_nchw_fp16
+	.size	naive_conv_wrw_nchw_half, .Lfunc_end8-naive_conv_wrw_nchw_half
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -4944,12 +4944,12 @@ BB8_15:                                 ; %Flow65
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_fwd_ncdhw_fp16 ; -- Begin function naive_conv_fwd_ncdhw_fp16
-	.globl	naive_conv_fwd_ncdhw_fp16
+	.protected	naive_conv_fwd_ncdhw_half ; -- Begin function naive_conv_fwd_ncdhw_half
+	.globl	naive_conv_fwd_ncdhw_half
 	.p2align	8
-	.type	naive_conv_fwd_ncdhw_fp16,@function
-naive_conv_fwd_ncdhw_fp16:              ; @naive_conv_fwd_ncdhw_fp16
-naive_conv_fwd_ncdhw_fp16$local:
+	.type	naive_conv_fwd_ncdhw_half,@function
+naive_conv_fwd_ncdhw_half:              ; @naive_conv_fwd_ncdhw_half
+naive_conv_fwd_ncdhw_half$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -5410,7 +5410,7 @@ BB9_18:                                 ; %Flow89
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_fwd_ncdhw_fp16
+	.amdhsa_kernel naive_conv_fwd_ncdhw_half
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -5446,7 +5446,7 @@ BB9_18:                                 ; %Flow89
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end9:
-	.size	naive_conv_fwd_ncdhw_fp16, .Lfunc_end9-naive_conv_fwd_ncdhw_fp16
+	.size	naive_conv_fwd_ncdhw_half, .Lfunc_end9-naive_conv_fwd_ncdhw_half
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -5471,12 +5471,12 @@ BB9_18:                                 ; %Flow89
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_bwd_ncdhw_fp16 ; -- Begin function naive_conv_bwd_ncdhw_fp16
-	.globl	naive_conv_bwd_ncdhw_fp16
+	.protected	naive_conv_bwd_ncdhw_half ; -- Begin function naive_conv_bwd_ncdhw_half
+	.globl	naive_conv_bwd_ncdhw_half
 	.p2align	8
-	.type	naive_conv_bwd_ncdhw_fp16,@function
-naive_conv_bwd_ncdhw_fp16:              ; @naive_conv_bwd_ncdhw_fp16
-naive_conv_bwd_ncdhw_fp16$local:
+	.type	naive_conv_bwd_ncdhw_half,@function
+naive_conv_bwd_ncdhw_half:              ; @naive_conv_bwd_ncdhw_half
+naive_conv_bwd_ncdhw_half$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -6348,7 +6348,7 @@ BB10_35:                                ; %Flow247
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_bwd_ncdhw_fp16
+	.amdhsa_kernel naive_conv_bwd_ncdhw_half
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -6384,7 +6384,7 @@ BB10_35:                                ; %Flow247
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end10:
-	.size	naive_conv_bwd_ncdhw_fp16, .Lfunc_end10-naive_conv_bwd_ncdhw_fp16
+	.size	naive_conv_bwd_ncdhw_half, .Lfunc_end10-naive_conv_bwd_ncdhw_half
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -6409,12 +6409,12 @@ BB10_35:                                ; %Flow247
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_wrw_ncdhw_fp16 ; -- Begin function naive_conv_wrw_ncdhw_fp16
-	.globl	naive_conv_wrw_ncdhw_fp16
+	.protected	naive_conv_wrw_ncdhw_half ; -- Begin function naive_conv_wrw_ncdhw_half
+	.globl	naive_conv_wrw_ncdhw_half
 	.p2align	8
-	.type	naive_conv_wrw_ncdhw_fp16,@function
-naive_conv_wrw_ncdhw_fp16:              ; @naive_conv_wrw_ncdhw_fp16
-naive_conv_wrw_ncdhw_fp16$local:
+	.type	naive_conv_wrw_ncdhw_half,@function
+naive_conv_wrw_ncdhw_half:              ; @naive_conv_wrw_ncdhw_half
+naive_conv_wrw_ncdhw_half$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_load_dwordx2 s[24:25], s[4:5], 0x68
@@ -6884,7 +6884,7 @@ BB11_18:                                ; %Flow89
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_wrw_ncdhw_fp16
+	.amdhsa_kernel naive_conv_wrw_ncdhw_half
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -6920,7 +6920,7 @@ BB11_18:                                ; %Flow89
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end11:
-	.size	naive_conv_wrw_ncdhw_fp16, .Lfunc_end11-naive_conv_wrw_ncdhw_fp16
+	.size	naive_conv_wrw_ncdhw_half, .Lfunc_end11-naive_conv_wrw_ncdhw_half
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -6945,12 +6945,12 @@ BB11_18:                                ; %Flow89
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_fwd_nchw_bf16 ; -- Begin function naive_conv_fwd_nchw_bf16
-	.globl	naive_conv_fwd_nchw_bf16
+	.protected	naive_conv_fwd_nchw_ushort ; -- Begin function naive_conv_fwd_nchw_ushort
+	.globl	naive_conv_fwd_nchw_ushort
 	.p2align	8
-	.type	naive_conv_fwd_nchw_bf16,@function
-naive_conv_fwd_nchw_bf16:               ; @naive_conv_fwd_nchw_bf16
-naive_conv_fwd_nchw_bf16$local:
+	.type	naive_conv_fwd_nchw_ushort,@function
+naive_conv_fwd_nchw_ushort:               ; @naive_conv_fwd_nchw_ushort
+naive_conv_fwd_nchw_ushort$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -7306,7 +7306,7 @@ BB12_19:                                ; %Flow66
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_fwd_nchw_bf16
+	.amdhsa_kernel naive_conv_fwd_nchw_ushort
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -7342,7 +7342,7 @@ BB12_19:                                ; %Flow66
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end12:
-	.size	naive_conv_fwd_nchw_bf16, .Lfunc_end12-naive_conv_fwd_nchw_bf16
+	.size	naive_conv_fwd_nchw_ushort, .Lfunc_end12-naive_conv_fwd_nchw_ushort
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -7367,12 +7367,12 @@ BB12_19:                                ; %Flow66
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_bwd_nchw_bf16 ; -- Begin function naive_conv_bwd_nchw_bf16
-	.globl	naive_conv_bwd_nchw_bf16
+	.protected	naive_conv_bwd_nchw_ushort ; -- Begin function naive_conv_bwd_nchw_ushort
+	.globl	naive_conv_bwd_nchw_ushort
 	.p2align	8
-	.type	naive_conv_bwd_nchw_bf16,@function
-naive_conv_bwd_nchw_bf16:               ; @naive_conv_bwd_nchw_bf16
-naive_conv_bwd_nchw_bf16$local:
+	.type	naive_conv_bwd_nchw_ushort,@function
+naive_conv_bwd_nchw_ushort:               ; @naive_conv_bwd_nchw_ushort
+naive_conv_bwd_nchw_ushort$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -8006,7 +8006,7 @@ BB13_30:                                ; %Flow169
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_bwd_nchw_bf16
+	.amdhsa_kernel naive_conv_bwd_nchw_ushort
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -8042,7 +8042,7 @@ BB13_30:                                ; %Flow169
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end13:
-	.size	naive_conv_bwd_nchw_bf16, .Lfunc_end13-naive_conv_bwd_nchw_bf16
+	.size	naive_conv_bwd_nchw_ushort, .Lfunc_end13-naive_conv_bwd_nchw_ushort
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -8067,12 +8067,12 @@ BB13_30:                                ; %Flow169
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_wrw_nchw_bf16 ; -- Begin function naive_conv_wrw_nchw_bf16
-	.globl	naive_conv_wrw_nchw_bf16
+	.protected	naive_conv_wrw_nchw_ushort ; -- Begin function naive_conv_wrw_nchw_ushort
+	.globl	naive_conv_wrw_nchw_ushort
 	.p2align	8
-	.type	naive_conv_wrw_nchw_bf16,@function
-naive_conv_wrw_nchw_bf16:               ; @naive_conv_wrw_nchw_bf16
-naive_conv_wrw_nchw_bf16$local:
+	.type	naive_conv_wrw_nchw_ushort,@function
+naive_conv_wrw_nchw_ushort:               ; @naive_conv_wrw_nchw_ushort
+naive_conv_wrw_nchw_ushort$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -8437,7 +8437,7 @@ BB14_19:                                ; %Flow66
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_wrw_nchw_bf16
+	.amdhsa_kernel naive_conv_wrw_nchw_ushort
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -8473,7 +8473,7 @@ BB14_19:                                ; %Flow66
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end14:
-	.size	naive_conv_wrw_nchw_bf16, .Lfunc_end14-naive_conv_wrw_nchw_bf16
+	.size	naive_conv_wrw_nchw_ushort, .Lfunc_end14-naive_conv_wrw_nchw_ushort
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -8498,12 +8498,12 @@ BB14_19:                                ; %Flow66
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_fwd_ncdhw_bf16 ; -- Begin function naive_conv_fwd_ncdhw_bf16
-	.globl	naive_conv_fwd_ncdhw_bf16
+	.protected	naive_conv_fwd_ncdhw_ushort ; -- Begin function naive_conv_fwd_ncdhw_ushort
+	.globl	naive_conv_fwd_ncdhw_ushort
 	.p2align	8
-	.type	naive_conv_fwd_ncdhw_bf16,@function
-naive_conv_fwd_ncdhw_bf16:              ; @naive_conv_fwd_ncdhw_bf16
-naive_conv_fwd_ncdhw_bf16$local:
+	.type	naive_conv_fwd_ncdhw_ushort,@function
+naive_conv_fwd_ncdhw_ushort:              ; @naive_conv_fwd_ncdhw_ushort
+naive_conv_fwd_ncdhw_ushort$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -8987,7 +8987,7 @@ BB15_22:                                ; %Flow90
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_fwd_ncdhw_bf16
+	.amdhsa_kernel naive_conv_fwd_ncdhw_ushort
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -9023,7 +9023,7 @@ BB15_22:                                ; %Flow90
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end15:
-	.size	naive_conv_fwd_ncdhw_bf16, .Lfunc_end15-naive_conv_fwd_ncdhw_bf16
+	.size	naive_conv_fwd_ncdhw_ushort, .Lfunc_end15-naive_conv_fwd_ncdhw_ushort
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -9048,12 +9048,12 @@ BB15_22:                                ; %Flow90
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_bwd_ncdhw_bf16 ; -- Begin function naive_conv_bwd_ncdhw_bf16
-	.globl	naive_conv_bwd_ncdhw_bf16
+	.protected	naive_conv_bwd_ncdhw_ushort ; -- Begin function naive_conv_bwd_ncdhw_ushort
+	.globl	naive_conv_bwd_ncdhw_ushort
 	.p2align	8
-	.type	naive_conv_bwd_ncdhw_bf16,@function
-naive_conv_bwd_ncdhw_bf16:              ; @naive_conv_bwd_ncdhw_bf16
-naive_conv_bwd_ncdhw_bf16$local:
+	.type	naive_conv_bwd_ncdhw_ushort,@function
+naive_conv_bwd_ncdhw_ushort:              ; @naive_conv_bwd_ncdhw_ushort
+naive_conv_bwd_ncdhw_ushort$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_waitcnt lgkmcnt(0)
@@ -9948,7 +9948,7 @@ BB16_39:                                ; %Flow248
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_bwd_ncdhw_bf16
+	.amdhsa_kernel naive_conv_bwd_ncdhw_ushort
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -9984,7 +9984,7 @@ BB16_39:                                ; %Flow248
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end16:
-	.size	naive_conv_bwd_ncdhw_bf16, .Lfunc_end16-naive_conv_bwd_ncdhw_bf16
+	.size	naive_conv_bwd_ncdhw_ushort, .Lfunc_end16-naive_conv_bwd_ncdhw_ushort
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -10009,12 +10009,12 @@ BB16_39:                                ; %Flow248
 ; COMPUTE_PGM_RSRC2:TGID_Z_EN: 0
 ; COMPUTE_PGM_RSRC2:TIDIG_COMP_CNT: 0
 	.text
-	.protected	naive_conv_wrw_ncdhw_bf16 ; -- Begin function naive_conv_wrw_ncdhw_bf16
-	.globl	naive_conv_wrw_ncdhw_bf16
+	.protected	naive_conv_wrw_ncdhw_ushort ; -- Begin function naive_conv_wrw_ncdhw_ushort
+	.globl	naive_conv_wrw_ncdhw_ushort
 	.p2align	8
-	.type	naive_conv_wrw_ncdhw_bf16,@function
-naive_conv_wrw_ncdhw_bf16:              ; @naive_conv_wrw_ncdhw_bf16
-naive_conv_wrw_ncdhw_bf16$local:
+	.type	naive_conv_wrw_ncdhw_ushort,@function
+naive_conv_wrw_ncdhw_ushort:              ; @naive_conv_wrw_ncdhw_ushort
+naive_conv_wrw_ncdhw_ushort$local:
 ; %bb.0:
 	s_load_dwordx16 s[8:23], s[4:5], 0x18
 	s_load_dwordx2 s[24:25], s[4:5], 0x68
@@ -10507,7 +10507,7 @@ BB17_22:                                ; %Flow90
 	s_endpgm
 	.section	.rodata,#alloc
 	.p2align	6
-	.amdhsa_kernel naive_conv_wrw_ncdhw_bf16
+	.amdhsa_kernel naive_conv_wrw_ncdhw_ushort
 		.amdhsa_group_segment_fixed_size 0
 		.amdhsa_private_segment_fixed_size 0
 		.amdhsa_user_sgpr_private_segment_buffer 1
@@ -10543,7 +10543,7 @@ BB17_22:                                ; %Flow90
 	.end_amdhsa_kernel
 	.text
 .Lfunc_end17:
-	.size	naive_conv_wrw_ncdhw_bf16, .Lfunc_end17-naive_conv_wrw_ncdhw_bf16
+	.size	naive_conv_wrw_ncdhw_ushort, .Lfunc_end17-naive_conv_wrw_ncdhw_ushort
                                         ; -- End function
 	.section	.AMDGPU.csdata
 ; Kernel info:
@@ -10694,11 +10694,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_fwd_nchw_fp32
+    .name:           naive_conv_fwd_nchw_float
     .private_segment_fixed_size: 0
     .sgpr_count:     42
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_fwd_nchw_fp32.kd
+    .symbol:         naive_conv_fwd_nchw_float.kd
     .vgpr_count:     20
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -10824,11 +10824,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_bwd_nchw_fp32
+    .name:           naive_conv_bwd_nchw_float
     .private_segment_fixed_size: 0
     .sgpr_count:     41
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_bwd_nchw_fp32.kd
+    .symbol:         naive_conv_bwd_nchw_float.kd
     .vgpr_count:     41
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -10954,11 +10954,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_wrw_nchw_fp32
+    .name:           naive_conv_wrw_nchw_float
     .private_segment_fixed_size: 0
     .sgpr_count:     46
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_wrw_nchw_fp32.kd
+    .symbol:         naive_conv_wrw_nchw_float.kd
     .vgpr_count:     21
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -11108,11 +11108,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_fwd_ncdhw_fp32
+    .name:           naive_conv_fwd_ncdhw_float
     .private_segment_fixed_size: 0
     .sgpr_count:     60
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_fwd_ncdhw_fp32.kd
+    .symbol:         naive_conv_fwd_ncdhw_float.kd
     .vgpr_count:     22
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -11262,11 +11262,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_bwd_ncdhw_fp32
+    .name:           naive_conv_bwd_ncdhw_float
     .private_segment_fixed_size: 0
     .sgpr_count:     54
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_bwd_ncdhw_fp32.kd
+    .symbol:         naive_conv_bwd_ncdhw_float.kd
     .vgpr_count:     45
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -11416,11 +11416,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_wrw_ncdhw_fp32
+    .name:           naive_conv_wrw_ncdhw_float
     .private_segment_fixed_size: 0
     .sgpr_count:     64
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_wrw_ncdhw_fp32.kd
+    .symbol:         naive_conv_wrw_ncdhw_float.kd
     .vgpr_count:     23
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -11546,11 +11546,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_fwd_nchw_fp16
+    .name:           naive_conv_fwd_nchw_half
     .private_segment_fixed_size: 0
     .sgpr_count:     42
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_fwd_nchw_fp16.kd
+    .symbol:         naive_conv_fwd_nchw_half.kd
     .vgpr_count:     20
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -11676,11 +11676,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_bwd_nchw_fp16
+    .name:           naive_conv_bwd_nchw_half
     .private_segment_fixed_size: 0
     .sgpr_count:     41
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_bwd_nchw_fp16.kd
+    .symbol:         naive_conv_bwd_nchw_half.kd
     .vgpr_count:     41
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -11806,11 +11806,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_wrw_nchw_fp16
+    .name:           naive_conv_wrw_nchw_half
     .private_segment_fixed_size: 0
     .sgpr_count:     46
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_wrw_nchw_fp16.kd
+    .symbol:         naive_conv_wrw_nchw_half.kd
     .vgpr_count:     21
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -11960,11 +11960,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_fwd_ncdhw_fp16
+    .name:           naive_conv_fwd_ncdhw_half
     .private_segment_fixed_size: 0
     .sgpr_count:     60
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_fwd_ncdhw_fp16.kd
+    .symbol:         naive_conv_fwd_ncdhw_half.kd
     .vgpr_count:     22
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -12114,11 +12114,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_bwd_ncdhw_fp16
+    .name:           naive_conv_bwd_ncdhw_half
     .private_segment_fixed_size: 0
     .sgpr_count:     54
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_bwd_ncdhw_fp16.kd
+    .symbol:         naive_conv_bwd_ncdhw_half.kd
     .vgpr_count:     45
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -12268,11 +12268,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_wrw_ncdhw_fp16
+    .name:           naive_conv_wrw_ncdhw_half
     .private_segment_fixed_size: 0
     .sgpr_count:     64
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_wrw_ncdhw_fp16.kd
+    .symbol:         naive_conv_wrw_ncdhw_half.kd
     .vgpr_count:     23
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -12398,11 +12398,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_fwd_nchw_bf16
+    .name:           naive_conv_fwd_nchw_ushort
     .private_segment_fixed_size: 0
     .sgpr_count:     44
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_fwd_nchw_bf16.kd
+    .symbol:         naive_conv_fwd_nchw_ushort.kd
     .vgpr_count:     20
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -12528,11 +12528,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_bwd_nchw_bf16
+    .name:           naive_conv_bwd_nchw_ushort
     .private_segment_fixed_size: 0
     .sgpr_count:     43
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_bwd_nchw_bf16.kd
+    .symbol:         naive_conv_bwd_nchw_ushort.kd
     .vgpr_count:     41
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -12658,11 +12658,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_wrw_nchw_bf16
+    .name:           naive_conv_wrw_nchw_ushort
     .private_segment_fixed_size: 0
     .sgpr_count:     48
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_wrw_nchw_bf16.kd
+    .symbol:         naive_conv_wrw_nchw_ushort.kd
     .vgpr_count:     21
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -12812,11 +12812,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_fwd_ncdhw_bf16
+    .name:           naive_conv_fwd_ncdhw_ushort
     .private_segment_fixed_size: 0
     .sgpr_count:     62
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_fwd_ncdhw_bf16.kd
+    .symbol:         naive_conv_fwd_ncdhw_ushort.kd
     .vgpr_count:     22
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -12966,11 +12966,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_bwd_ncdhw_bf16
+    .name:           naive_conv_bwd_ncdhw_ushort
     .private_segment_fixed_size: 0
     .sgpr_count:     56
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_bwd_ncdhw_bf16.kd
+    .symbol:         naive_conv_bwd_ncdhw_ushort.kd
     .vgpr_count:     45
     .vgpr_spill_count: 0
     .wavefront_size: 64
@@ -13120,11 +13120,11 @@ amdhsa.kernels:
       - 2
       - 0
     .max_flat_workgroup_size: 256
-    .name:           naive_conv_wrw_ncdhw_bf16
+    .name:           naive_conv_wrw_ncdhw_ushort
     .private_segment_fixed_size: 0
     .sgpr_count:     66
     .sgpr_spill_count: 0
-    .symbol:         naive_conv_wrw_ncdhw_bf16.kd
+    .symbol:         naive_conv_wrw_ncdhw_ushort.kd
     .vgpr_count:     23
     .vgpr_spill_count: 0
     .wavefront_size: 64

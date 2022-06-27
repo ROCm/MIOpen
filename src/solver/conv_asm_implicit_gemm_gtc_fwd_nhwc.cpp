@@ -741,7 +741,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
 }
 
 PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
-ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetPerformanceConfig(
+ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetDefaultPerformanceConfig(
     const ConvolutionContext& params) const
 {
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC pp;
@@ -863,12 +863,10 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionC
 }
 ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
     const ConvolutionContext& ctx,
-    const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config,
-    bool disableConfigOverrideFromEnv) const
+    const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config) const
 {
     ConvSolution result;
     KernelInfo kernel;
-    (void)disableConfigOverrideFromEnv;
 
     std::string kernel_name;
     size_t block_size;
