@@ -282,7 +282,7 @@ Syntax of value:
 
 Semantics:
 
-* Sets the **_limit_** (max allowed workspace size) for Multi-pass (MP) Winograd Solutions, in bytes.
+* Sets the **limit** (max allowed workspace size) for Multi-pass (MP) Winograd Solutions, in bytes.
 * Affects all MP Winograd Solutions. If a Solution needs more workspace than the limit, then it does not apply.
 * If unset, then *the default* limit is used. Current default is ``2000000000`` (~1.862 GiB) for gfx900 and gfx906/60 (or less CUs). No default limit is set for other GPUs.
 * Special values

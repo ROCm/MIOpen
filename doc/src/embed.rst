@@ -4,7 +4,7 @@ Building MIOpen for Embedded Systems
 Install dependencies
 --------------------
 
-Install minimum dependencies (default location /usr/local)::
+Install minimum dependencies (default location ``/usr/local``)::
 
    cmake -P install_deps.cmake --minimum --prefix /some/local/dir
 
@@ -28,7 +28,7 @@ For example::
 Embedding Find-Db and Performance database
 ------------------------------------------
 
-The Find-db provides a database of known convolution inputs. This allows user to have the best tuned kernels for their network. Embedding find-db requires a semi-colon separated list of architecture CU pairs to embed on-disk DBs in the binary; e.g., gfx906_60;gfx900_56.
+The Find-db provides a database of known convolution inputs. This allows user to have the best tuned kernels for their network. Embedding find-db requires a semi-colon separated list of architecture CU pairs to embed on-disk DBs in the binary; e.g., ``gfx906_60;gfx900_56``.
 
 Example::
 
