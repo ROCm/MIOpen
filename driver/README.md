@@ -40,7 +40,7 @@ The supported base arguments:
 
 Summary of base_args meant for different datatypes and different operations:
 
-![DatatypeSupport](driverTableCrop.png)
+![DatatypeSupport](img/driverTableCrop.png)
 
 
 ## Executing MIOpenDriver

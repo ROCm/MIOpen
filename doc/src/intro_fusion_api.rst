@@ -59,7 +59,7 @@ The fusion API introduces the notion of **operators** which represent different 
 
 Notice that *Bias* is a separate operator, although it is typically only used with convolution. This list is expected to grow as support for more operators is added to the API, moreover, operators for backward passes are in the works as well.
 
-The fusion API provides calls for the creation of the supported operators, here we would describe the process for the convolution operator, details for other operators may be found in the `miopen header file <https://rocmsoftwareplatform.github.io/MIOpen/doc/html/fusion.html>`_
+The fusion API provides calls for the creation of the supported operators, here we would describe the process for the convolution operator, details for other operators may be found in the :doc:`miopen header file <api_reference/fusion>`.
 
 Once the fusion plan descriptor is created, two or more operators can be added to it by using the individual operator creation API calls. Creation of an operator might fail if the API does not support the fusion of the operations being added and report back immediately to the user. For our example we need to add the Convolution, Bias and Activation operations to our freshly minted fusion plan. This is done using the following calls for the Convolution, Bias and Activation operations respectively:
 
@@ -88,7 +88,7 @@ The following lines in the fusion example project use these API calls to create 
    miopenCreateOpBiasForward(fusePlanDesc, &biasOp, bias.desc);
    miopenCreateOpActivationForward(fusePlanDesc, &activOp, miopenActivationRELU);
 
-It may be noted that ``conv_desc`` is the regular MIOpen Convolution descriptor and is created in the standard way before it is referenced here. For more details on creating and setting the convolution descriptor please refer to the example code as well as the `MIOpen documentation <https://rocmsoftwareplatform.github.io/MIOpen/doc/html/convolution.html>`_. In the above snippet ``weights.desc`` refers to the ``miopenTensorDescriptor_t`` for the convolution operations and ``bias.desc`` refers to the object of the same type for the bias operation. The order of insertion of operators indicates the order in which the operations would be performed on the data. Therefore, the above code implies that the convolution operation would be the first operation to execute on the incoming data, followed by the bias and activation operations.
+It may be noted that ``conv_desc`` is the regular MIOpen Convolution descriptor and is created in the standard way before it is referenced here. For more details on creating and setting the convolution descriptor please refer to the example code as well as the :doc:`MIOpen documentation <api_reference/convolution>`. In the above snippet ``weights.desc`` refers to the ``miopenTensorDescriptor_t`` for the convolution operations and ``bias.desc`` refers to the object of the same type for the bias operation. The order of insertion of operators indicates the order in which the operations would be performed on the data. Therefore, the above code implies that the convolution operation would be the first operation to execute on the incoming data, followed by the bias and activation operations.
 
 During this process, it is important that the returned codes be checked to make sure that the operations as well as their order is supported. The operator insertion might fail for a number of reasons such as unsupported sequence of operations, unsupported dimensions of the input or in case of convolution unsupported dimensions for the filters. In the above example, these aspects are ignored for the sake of simplicity.
 
@@ -192,7 +192,6 @@ The following code snippet in the example accomplishes the fusion plan execution
 
 It may be noted that it is an error to attempt to execute a fusion plan that is either not compiled or has been invalidated by changing the input tensor descriptor or any of the operation parameters.
 
-
 Cleanup
 -------
 
@@ -203,7 +202,6 @@ Once the application is done with the fusion plan, the fusion plan and the fusio
    miopenStatus_t miopenDestroyFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc);
 
 Once the fusion plan object is destroyed, all the operations created are destroyed automatically and do not need any special cleanup.
-
 
 Supported Fusions
 -----------------

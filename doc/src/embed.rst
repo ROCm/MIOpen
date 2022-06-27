@@ -1,4 +1,3 @@
-
 Building MIOpen for Embedded Systems
 ====================================
 
@@ -48,7 +47,7 @@ Embedding precompiled package
 Using a package install
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-To install the precompiled kernels package use the command:
+To install the precompiled kernels package use the command::
 
    apt-get install miopenkernels-<arch>-<num cu>
 
@@ -64,7 +63,6 @@ To embed the precompiled kernels package, configure cmake using the ``MIOPEN_BIN
 Example::
 
    CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_BINCACHE_PATH=/path/to/package/install -DMIOPEN_EMBED_BUILD=On ..
-
 
 Using the URL to a kernels binary
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

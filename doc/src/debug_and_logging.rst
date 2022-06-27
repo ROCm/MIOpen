@@ -126,7 +126,6 @@ Winograd  Solutions:
 * ``MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2`` - ``ConvBinWinogradRxSf3x2``, FP32/FP16 Fwd/Bwd F(3,2) Winograd.
 * ``MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3`` - ``ConvBinWinogradRxSf2x3``, FP32/FP16 Fwd/Bwd F(2,3) Winograd, serves group convolutions only.
 * ``MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1`` - ``ConvBinWinogradRxSf2x3g1``, FP32/FP16 Fwd/Bwd F(2,3) Winograd, for non-group convolutions.
-
 * Multi-pass Winograd:
 
   * ``MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X2`` - ``ConvWinograd3x3MultipassWrW<3-2>``, WrW F(3,2), stride 2 only.
@@ -158,7 +157,7 @@ Winograd  Solutions:
   * ``MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3`` - ``ConvMPBidirectWinograd_xdlops<4-3>``, FWD/BWD F(4,3)
   * ``MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3`` - ``ConvMPBidirectWinograd_xdlops<5-3>``, FWD/BWD F(5,3)
   * ``MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3`` - ``ConvMPBidirectWinograd_xdlops<6-3>``, FWD/BWD F(6,3)
-  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM - ``ConvMPBidirectWinograd*``, FWD/BWD FP16 experemental mode. Disabled by default. This mode is experimental. Use it at your own risk.
+  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM`` - ``ConvMPBidirectWinograd*``, FWD/BWD FP16 experemental mode. Disabled by default. This mode is experimental. Use it at your own risk.
 
 * ``MIOPEN_DEBUG_AMD_FUSED_WINOGRAD`` - Fused FP32 F(3,3) Winograd, variable filter size.
 
@@ -213,7 +212,6 @@ To disable using rocBlas entirely, set the configuration flag ``-DMIOPEN_USE_ROC
 
 More information on logging with rocBlas can be found `here <https://github.com/ROCmSoftwarePlatform/rocBLAS/wiki/5.Logging>`_.
 
-
 Numerical Checking
 ------------------
 
@@ -225,6 +223,7 @@ MIOpen provides the environmental variable ``MIOPEN_CHECK_NUMERICS`` to allow us
 * ``MIOPEN_CHECK_NUMERICS=0x08``: Abort on abnormal result, this will allow users to drop into a debugging session
 * ``MIOPEN_CHECK_NUMERICS=0x10``: Print stats, this will compute and print mean/absmean/min/max (note, this is much slower)
 
+.. _controlling-parallel-compilation:
 
 Controlling Parallel Compilation
 --------------------------------
@@ -286,8 +285,10 @@ Semantics:
 * Sets the **_limit_** (max allowed workspace size) for Multi-pass (MP) Winograd Solutions, in bytes.
 * Affects all MP Winograd Solutions. If a Solution needs more workspace than the limit, then it does not apply.
 * If unset, then *the default* limit is used. Current default is ``2000000000`` (~1.862 GiB) for gfx900 and gfx906/60 (or less CUs). No default limit is set for other GPUs.
-* Special values::
+* Special values
 
-   0 - Use the default limit, as if the variable is unset.
-   1 - Completely prohibit the use of workspace.
-  -1 - Remove the default limit.
+.. code:: console
+
+    0 - Use the default limit, as if the variable is unset.
+    1 - Completely prohibit the use of workspace.
+   -1 - Remove the default limit.

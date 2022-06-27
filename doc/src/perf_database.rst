@@ -12,7 +12,7 @@ User PerfDb **always takes precedence** over System PerfDb.
 
 MIOpen also has auto-tuning functionality, which is able to find optimized kernel parameter values for a specific configuration. The auto-tune process may take a substantial amount of time, however, once the optimized values are found, they are stored in the User PerfDb. MIOpen then will automatically read and use these parameter values when needed again instead of running the expensive auto-tuning search.
 
-By default, System PerfDb resides within MIOpen's install location, while User PerfDb resides in the user's home directory. See `Setting up locations <https://rocmsoftwareplatform.github.io/MIOpen/doc/html/install.html#setting-up-locations>`_ for more information.
+By default, System PerfDb resides within MIOpen's install location, while User PerfDb resides in the user's home directory. See `Setting up locations <install.html#setting-up-locations>`_ for more information.
 
 The System PerfDb is not modified upon installation of MIOpen.
 
@@ -38,7 +38,11 @@ The latter two conditions may be overridden by *enforcing* the search by means o
 
 This variable may also be used for *removing* values from User PerfDb, see below.
 
-### MIOPEN_FIND_ENFORCE
+
+.. _miopen-find-enforce:
+
+MIOPEN_FIND_ENFORCE
+-------------------
 
 Both symbolic (case-insensitive) and numeric values are supported.
 
@@ -59,6 +63,7 @@ Both symbolic (case-insensitive) and numeric values are supported.
 
   Use with care. MIOpen **removes** optimized values related to given *problem configuration* from the User PerfDb. Auto-tune is blocked, even if it is explicitly requested. System PerfDb left intact.
 
-### Updating MIOpen and the User Db
+Updating MIOpen and the User Db
+-------------------------------
 
 It is important to note that if the user installs a new version of MIOpen, it is recommended that the user move, or delete their old user performance database file. This will prevent older database entries from poluting the configurations shipped with the newer system database. The user perf db is named ``miopen.udb`` and is located at the user perf db path.
