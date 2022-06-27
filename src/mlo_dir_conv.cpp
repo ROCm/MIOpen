@@ -55,7 +55,7 @@
 // Only select the first applicable igemm solver due to long compilation time
 // (JIRA SWDEV-227826)
 /// \todo enable all applicable solvers of igemm after fixing slow compilation
-#define WORKAROUND_SWDEV_227826 1
+#define WORKAROUND_SWDEV_227826 0
 
 #if WORKAROUND_SWDEV_227826
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
@@ -148,7 +148,8 @@ static auto GetImplicitGemmSolvers()
         miopen::solver::ConvAsmImplicitGemmGTCDynamicBwdXdlops,
         miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC,
         miopen::solver::ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC,
-        miopen::solver::ConvCkIgemmFwdV6r1DlopsNchw>{};
+        miopen::solver::ConvCkIgemmFwdV6r1DlopsNchw,
+        miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>{};
 }
 
 static auto GetWindogradSolvers()
