@@ -46,6 +46,7 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
        problem.GetMode() != miopenBNSpatial)
         return false;
 
+#if WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR
     if(problem.GetXDesc().GetType() == miopenHalf &&
        problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
     {
@@ -54,6 +55,7 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
         // MIOpenBatchNormBwdSpatial.cl:526 issue#1549
         return false;
     }
+#endif
 
     return !BnBwdTrainingSpatialSingle{}.IsApplicable(context, problem);
 }
