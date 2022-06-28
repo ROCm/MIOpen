@@ -7,12 +7,16 @@ include(GoogleTest)
 
 function(add_gtest TEST_NAME)
   message("Adding Test: " ${TEST_NAME})
-  add_executable(test_${TEST_NAME} ${TEST_NAME}.cpp)
+  add_executable(test_${TEST_NAME} ${TEST_NAME}.cpp )
   add_dependencies(tests test_${TEST_NAME})
   add_dependencies(check test_${TEST_NAME})
   target_compile_options(test_${TEST_NAME} PRIVATE -Wno-global-constructors -Wno-undef)
-  target_link_libraries(test_${TEST_NAME} gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas>)
-  gtest_discover_tests(test_${TEST_NAME})  #Enable CMake to discover the test binary
+  #Get the path for upper directory
+  get_filename_component(DIR_TWO_ABOVE ../../ ABSOLUTE)
+  #Depency on cache object file for linker, refactor absolute path?
+  target_link_libraries(test_${TEST_NAME} gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas> ${DIR_TWO_ABOVE}/build/test/CMakeFiles/test_cache.dir/cache.cpp.o)
+  #Enable CMake to discover the test binary
+  gtest_discover_tests(test_${TEST_NAME})
 endfunction()
 
 file(GLOB TESTS *.cpp)

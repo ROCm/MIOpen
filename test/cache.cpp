@@ -145,7 +145,11 @@ void check_cache_str()
     CHECK(p.filename().string() == name + ".o");
 }
 
-int main()
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern int check_cache(void)
 {
     check_cache_file();
     check_cache_str();
@@ -154,4 +158,14 @@ int main()
     check_bz2_decompress();
     check_kern_db();
 #endif
+    return 0;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+int main()
+{
+    check_cache();
 }
