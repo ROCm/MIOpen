@@ -2681,6 +2681,19 @@ MIOPEN_EXPORT miopenStatus_t miopenActivationBackward(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t
 miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 
+// Quantization APIs
+/** @addtogroup quantization
+ *
+ *  @{
+ */
+/*! @brief Creates the Quantization descriptor object
+ *
+ * @param quantiDesc Pointer to an quantization tensor descriptor type
+ * @return          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateQuantizationDescriptor(miopenQuantizationDescriptor_t* quantiDesc);
+
 /** @} */
 // CLOSEOUT ACTIVATION DOXYGEN GROUP
 
