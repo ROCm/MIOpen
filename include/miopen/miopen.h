@@ -2694,6 +2694,34 @@ miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateQuantizationDescriptor(miopenQuantizationDescriptor_t* quantiDesc);
 
+/*! @brief Sets the quantization descriptor details
+ *
+ * Sets all of the descriptor details for the quantization
+ *
+ * @param quantiDesc   Pointer to a quantization descriptor (output)
+ * @param scaler       scaler for quantization (input)
+ * @param bias         bias for quantization (input)
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenSetQuantizationDescriptor(const miopenQuantizationDescriptor_t quantiDesc,
+                                double scaler,
+                                double bias);
+
+/*! @brief Gets the quantization descriptor details
+ *
+ * Retrieves all of the descriptor details for the quantization.
+ *
+ * @param quantiDesc   Pointer to a quantization descriptor (input)
+ * @param scaler       scaler for quantization (output)
+ * @param bias         bias for quantization (output)
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetQuantizationDescriptor(const miopenQuantizationDescriptor_t quantiDesc,
+                                double* scaler,
+                                double* bias);
+
 /** @} */
 // CLOSEOUT ACTIVATION DOXYGEN GROUP
 
