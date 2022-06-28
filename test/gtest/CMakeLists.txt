@@ -11,9 +11,6 @@ function(add_gtest TEST_NAME)
   add_dependencies(tests test_${TEST_NAME})
   add_dependencies(check test_${TEST_NAME})
   target_compile_options(test_${TEST_NAME} PRIVATE -Wno-global-constructors -Wno-undef)
-  #Get the path for upper directory
-  get_filename_component(DIR_TWO_ABOVE ../../ ABSOLUTE)
-  #Depency on cache object file for linker, refactor absolute path?
   target_link_libraries(test_${TEST_NAME} gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas>)
   #Enable CMake to discover the test binary
   gtest_discover_tests(test_${TEST_NAME})
