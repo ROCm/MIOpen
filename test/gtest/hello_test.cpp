@@ -9,16 +9,6 @@
 //Todo: Include a simple task
 //TEST_F()?: use the same data configuration for multiple tests
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern int check_cache(void);
-
-#ifdef __cplusplus
-}
-#endif
-
 TEST(HelloTest, BasicAssertions)
 {
 
@@ -36,8 +26,4 @@ TEST(HelloTest, BasicAssertions)
         ++idx;
     }
     EXPECT_GT(idx, 0);
-
-    //Test Case for cache.cpp
-    EXPECT_EQ(check_cache(), 0);
 }
-

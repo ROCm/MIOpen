@@ -14,7 +14,7 @@ function(add_gtest TEST_NAME)
   #Get the path for upper directory
   get_filename_component(DIR_TWO_ABOVE ../../ ABSOLUTE)
   #Depency on cache object file for linker, refactor absolute path?
-  target_link_libraries(test_${TEST_NAME} gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas> ${DIR_TWO_ABOVE}/build/test/CMakeFiles/test_cache.dir/cache.cpp.o)
+  target_link_libraries(test_${TEST_NAME} gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas>)
   #Enable CMake to discover the test binary
   gtest_discover_tests(test_${TEST_NAME})
 endfunction()

@@ -29,8 +29,10 @@
 #include <miopen/temp_file.hpp>
 
 #include <miopen/md5.hpp>
-#include "test.hpp"
-#include "random.hpp"
+#include "../test.hpp"
+#include "../random.hpp"
+
+#include <gtest/gtest.h>
 
 #if MIOPEN_ENABLE_SQLITE
 std::string random_string(size_t length)
@@ -145,27 +147,19 @@ void check_cache_str()
     CHECK(p.filename().string() == name + ".o");
 }
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern int check_cache(void)
+//Google Test
+TEST(TestCache, BasicAssertions)
 {
+    auto marker = 0;
     check_cache_file();
     check_cache_str();
+    ++marker;
+    EXPECT_EQ(marker, 1);
 #if MIOPEN_ENABLE_SQLITE
-    check_bz2_compress();
-    check_bz2_decompress();
+    check_bz2_compress();    
+    check_bz2_decompress();    
     check_kern_db();
+    ++marker;
+    EXPECT_EQ(marker, 2);
 #endif
-    return 0;
-}
-
-#ifdef __cplusplus
-}
-#endif
-
-int main()
-{
-    check_cache();
 }
