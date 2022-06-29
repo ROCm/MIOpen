@@ -142,7 +142,7 @@ bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx) cons
 #endif
 }
 
-bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& config)
 {
     if(use_spare_set)
         return false;
@@ -155,14 +155,24 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& /*co
             break;
         if(!NextTwoPower<16, 256>(GemmNPerBlock))
             break;
-        if(!NextTwoPower<1, 8>(GemmKPerBlock))
-            break;
         if(!NextTwoPower<4, 128>(GemmMPerWave))
             break;
         if(!NextTwoPower<16, 128>(GemmNPerWave))
             break;
         if(!NextTwoPower<4, 8>(GemmKPACKSize))
             break;
+
+        if(config.IsInt8())
+        {
+            // xdlops instructions supported with in8 determines the minimum valid kPerBlock is 8
+            if(!NextTwoPower<8, 32>(GemmKPerBlock))
+                break;
+        }
+        else
+        {
+            if(!NextTwoPower<1, 8>(GemmKPerBlock))
+                break;
+        }
 
         return false;
     } while(false);
