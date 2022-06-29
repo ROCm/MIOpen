@@ -2681,6 +2681,9 @@ MIOPEN_EXPORT miopenStatus_t miopenActivationBackward(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t
 miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 
+/** @} */
+// CLOSEOUT ACTIVATION DOXYGEN GROUP
+
 // Quantization APIs
 /** @addtogroup quantization
  *
@@ -2723,7 +2726,7 @@ miopenGetQuantizationDescriptor(const miopenQuantizationDescriptor_t quantiDesc,
                                 double* bias);
 
 /** @} */
-// CLOSEOUT ACTIVATION DOXYGEN GROUP
+// CLOSEOUT QUANTIZATION DOXYGEN GROUP
 
 // Softmax APIs
 /** @addtogroup softmax
