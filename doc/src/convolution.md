@@ -1,151 +1,150 @@
 
-Convolutional Layer
-===================
+# Convolutional Layer
 
 The convolution layer API documentation
 
 
-miopenConvolutionMode_t
------------------------
+## miopenConvolutionMode_t
 
-.. doxygenenum::  miopenConvolutionMode_t
+```{doxygenenum}  miopenConvolutionMode_t
+```
 
-miopenConvFwdAlgorithm_t
-------------------------
+## miopenConvFwdAlgorithm_t
 
-.. doxygenenum::  miopenConvFwdAlgorithm_t
+```{doxygenenum}  miopenConvFwdAlgorithm_t
+```
 
-miopenConvBwdWeightsAlgorithm_t
--------------------------------
+## miopenConvBwdWeightsAlgorithm_t
 
-.. doxygenenum::  miopenConvBwdWeightsAlgorithm_t
+```{doxygenenum}  miopenConvBwdWeightsAlgorithm_t
+```
 
-miopenConvBwdDataAlgorithm_t
-----------------------------
+## miopenConvBwdDataAlgorithm_t
 
-.. doxygenenum::  miopenConvBwdDataAlgorithm_t
+```{doxygenenum}  miopenConvBwdDataAlgorithm_t
+```
 
-miopenConvAlgoPerf_t
---------------------
+## miopenConvAlgoPerf_t
 
-.. doxygenstruct::  miopenConvAlgoPerf_t
+```{doxygenstruct}  miopenConvAlgoPerf_t
+```
 
-miopenConvSolution_t
---------------------
+## miopenConvSolution_t
 
-.. doxygenstruct::  miopenConvSolution_t
+```{doxygenstruct}  miopenConvSolution_t
+```
 
-miopenCreateConvolutionDescriptor
----------------------------------
+## miopenCreateConvolutionDescriptor
 
-.. doxygenfunction::  miopenCreateConvolutionDescriptor
+```{doxygenfunction}  miopenCreateConvolutionDescriptor
+```
 
-miopenInitConvolutionDescriptor
--------------------------------
+## miopenInitConvolutionDescriptor
 
-.. doxygenfunction::  miopenInitConvolutionDescriptor
+```{doxygenfunction}  miopenInitConvolutionDescriptor
+```
 
-miopenInitConvolutionNdDescriptor
----------------------------------
+## miopenInitConvolutionNdDescriptor
 
-.. doxygenfunction::  miopenInitConvolutionNdDescriptor
+```{doxygenfunction}  miopenInitConvolutionNdDescriptor
+```
 
-miopenGetConvolutionDescriptor
-------------------------------
+## miopenGetConvolutionDescriptor
 
-.. doxygenfunction::  miopenGetConvolutionDescriptor
+```{doxygenfunction}  miopenGetConvolutionDescriptor
+```
 
-miopenGetConvolutionNdDescriptor
---------------------------------
+## miopenGetConvolutionNdDescriptor
 
-.. doxygenfunction::  miopenGetConvolutionNdDescriptor
+```{doxygenfunction}  miopenGetConvolutionNdDescriptor
+```
 
-miopenSetConvolutionGroupCount
-------------------------------
+## miopenSetConvolutionGroupCount
 
-.. doxygenfunction::  miopenSetConvolutionGroupCount
+```{doxygenfunction}  miopenSetConvolutionGroupCount
+```
 
-miopenSetTransposeConvOutputPadding
------------------------------------
+## miopenSetTransposeConvOutputPadding
 
-.. doxygenfunction::  miopenSetTransposeConvOutputPadding
-
-
-miopenSetTransposeConvNdOutputPadding
--------------------------------------
-
-.. doxygenfunction::  miopenSetTransposeConvNdOutputPadding
+```{doxygenfunction}  miopenSetTransposeConvOutputPadding
+```
 
 
-miopenGetConvolutionForwardOutputDim
-------------------------------------
+## miopenSetTransposeConvNdOutputPadding
 
-.. doxygenfunction::  miopenGetConvolutionForwardOutputDim
+```{doxygenfunction}  miopenSetTransposeConvNdOutputPadding
+```
 
-miopenGetConvolutionNdForwardOutputDim
---------------------------------------
 
-.. doxygenfunction::  miopenGetConvolutionNdForwardOutputDim
+## miopenGetConvolutionForwardOutputDim
 
-miopenConvolutionForwardGetWorkSpaceSize
-----------------------------------------
+```{doxygenfunction}  miopenGetConvolutionForwardOutputDim
+```
 
-.. doxygenfunction::  miopenConvolutionForwardGetWorkSpaceSize
+## miopenGetConvolutionNdForwardOutputDim
 
-miopenFindConvolutionForwardAlgorithm
--------------------------------------
+```{doxygenfunction}  miopenGetConvolutionNdForwardOutputDim
+```
 
-.. doxygenfunction:: miopenFindConvolutionForwardAlgorithm
+## miopenConvolutionForwardGetWorkSpaceSize
 
-miopenConvolutionForward
-------------------------
+```{doxygenfunction}  miopenConvolutionForwardGetWorkSpaceSize
+```
 
-.. doxygenfunction::  miopenConvolutionForward
+## miopenFindConvolutionForwardAlgorithm
 
-miopenConvolutionForwardBias
-----------------------------
+```{doxygenfunction} miopenFindConvolutionForwardAlgorithm
+```
 
-.. doxygenfunction::  miopenConvolutionForwardBias
+## miopenConvolutionForward
 
-miopenFindConvolutionBackwardDataAlgorithm
-------------------------------------------
+```{doxygenfunction}  miopenConvolutionForward
+```
 
-.. doxygenfunction::  miopenFindConvolutionBackwardDataAlgorithm
+## miopenConvolutionForwardBias
 
-miopenConvolutionBackwardData
------------------------------
+```{doxygenfunction}  miopenConvolutionForwardBias
+```
 
-.. doxygenfunction::  miopenConvolutionBackwardData
+## miopenFindConvolutionBackwardDataAlgorithm
 
-miopenConvolutionBackwardDataGetWorkSpaceSize
----------------------------------------------
+```{doxygenfunction}  miopenFindConvolutionBackwardDataAlgorithm
+```
 
-.. doxygenfunction::  miopenConvolutionBackwardDataGetWorkSpaceSize
+## miopenConvolutionBackwardData
 
-miopenConvolutionBackwardWeightsGetWorkSpaceSize
-------------------------------------------------
+```{doxygenfunction}  miopenConvolutionBackwardData
+```
 
-.. doxygenfunction::  miopenConvolutionBackwardWeightsGetWorkSpaceSize
+## miopenConvolutionBackwardDataGetWorkSpaceSize
 
-miopenFindConvolutionBackwardWeightsAlgorithm
----------------------------------------------
+```{doxygenfunction}  miopenConvolutionBackwardDataGetWorkSpaceSize
+```
 
-.. doxygenfunction::  miopenFindConvolutionBackwardWeightsAlgorithm
+## miopenConvolutionBackwardWeightsGetWorkSpaceSize
 
-miopenConvolutionBackwardWeights
---------------------------------
+```{doxygenfunction}  miopenConvolutionBackwardWeightsGetWorkSpaceSize
+```
 
-.. doxygenfunction::  miopenConvolutionBackwardWeights
+## miopenFindConvolutionBackwardWeightsAlgorithm
 
-miopenConvolutionBackwardBias
------------------------------
+```{doxygenfunction}  miopenFindConvolutionBackwardWeightsAlgorithm
+```
 
-.. doxygenfunction::  miopenConvolutionBackwardBias
+## miopenConvolutionBackwardWeights
 
-miopenDestroyConvolutionDescriptor
-----------------------------------
+```{doxygenfunction}  miopenConvolutionBackwardWeights
+```
 
-.. doxygenfunction::  miopenDestroyConvolutionDescriptor
+## miopenConvolutionBackwardBias
+
+```{doxygenfunction}  miopenConvolutionBackwardBias
+```
+
+## miopenDestroyConvolutionDescriptor
+
+```{doxygenfunction}  miopenDestroyConvolutionDescriptor
+```
 
 
 

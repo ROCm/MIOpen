@@ -1,42 +1,41 @@
 
 
-Softmax Layer
-=============
+# Softmax Layer
 
 Softmax type and layers
 
 
-miopenSoftmaxAlgorithm_t
-------------------------
+## miopenSoftmaxAlgorithm_t
 
-.. doxygenenum::  miopenSoftmaxAlgorithm_t
-
-
-miopenSoftmaxMode_t
--------------------
-
-.. doxygenenum::  miopenSoftmaxMode_t
+```{doxygenenum}  miopenSoftmaxAlgorithm_t
+```
 
 
-miopenSoftmaxForward
---------------------
+## miopenSoftmaxMode_t
 
-.. doxygenfunction::  miopenSoftmaxForward
-
-
-miopenSoftmaxBackward
----------------------
-
-.. doxygenfunction::  miopenSoftmaxBackward
+```{doxygenenum}  miopenSoftmaxMode_t
+```
 
 
-miopenSoftmaxForward_V2
------------------------
+## miopenSoftmaxForward
 
-.. doxygenfunction::  miopenSoftmaxForward_V2
+```{doxygenfunction}  miopenSoftmaxForward
+```
 
 
-miopenSoftmaxBackward_V2
-------------------------
+## miopenSoftmaxBackward
 
-.. doxygenfunction::  miopenSoftmaxBackward_V2
+```{doxygenfunction}  miopenSoftmaxBackward
+```
+
+
+## miopenSoftmaxForward_V2
+
+```{doxygenfunction}  miopenSoftmaxForward_V2
+```
+
+
+## miopenSoftmaxBackward_V2
+
+```{doxygenfunction}  miopenSoftmaxBackward_V2
+```

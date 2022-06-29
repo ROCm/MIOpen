@@ -1,72 +1,71 @@
 
-Reduction Layer
-===============
+# Reduction Layer
 
 The reduction layer API documentation
 
 
-miopenReduceTensorOp_t
-----------------------
+## miopenReduceTensorOp_t
 
-.. doxygenenum::  miopenReduceTensorOp_t
-
-
-miopenNanPropagation_t
-----------------------
-
-.. doxygenenum::  miopenNanPropagation_t
+```{doxygenenum}  miopenReduceTensorOp_t
+```
 
 
-miopenReduceTensorIndices_t
----------------------------
+## miopenNanPropagation_t
 
-.. doxygenenum::  miopenReduceTensorIndices_t
-
-
-miopenIndicesType_t
--------------------
-
-.. doxygenenum::  miopenIndicesType_t
+```{doxygenenum}  miopenNanPropagation_t
+```
 
 
-miopenCreateReduceTensorDescriptor
-----------------------------------
+## miopenReduceTensorIndices_t
 
-.. doxygenfunction::  miopenCreateReduceTensorDescriptor
-
-
-miopenDestroyReduceTensorDescriptor
------------------------------------
-
-.. doxygenfunction::  miopenDestroyReduceTensorDescriptor
+```{doxygenenum}  miopenReduceTensorIndices_t
+```
 
 
-miopenSetReduceTensorDescriptor
--------------------------------
+## miopenIndicesType_t
 
-.. doxygenfunction::  miopenSetReduceTensorDescriptor
-
-
-miopenGetReduceTensorDescriptor
--------------------------------
-
-.. doxygenfunction::  miopenGetReduceTensorDescriptor
+```{doxygenenum}  miopenIndicesType_t
+```
 
 
-miopenGetReductionIndicesSize
------------------------------
+## miopenCreateReduceTensorDescriptor
 
-.. doxygenfunction::  miopenGetReductionIndicesSize
-
-
-miopenGetReductionWorkspaceSize
--------------------------------
-
-.. doxygenfunction::  miopenGetReductionWorkspaceSize
+```{doxygenfunction}  miopenCreateReduceTensorDescriptor
+```
 
 
-miopenReduceTensor
-------------------
+## miopenDestroyReduceTensorDescriptor
 
-.. doxygenfunction::  miopenReduceTensor
+```{doxygenfunction}  miopenDestroyReduceTensorDescriptor
+```
+
+
+## miopenSetReduceTensorDescriptor
+
+```{doxygenfunction}  miopenSetReduceTensorDescriptor
+```
+
+
+## miopenGetReduceTensorDescriptor
+
+```{doxygenfunction}  miopenGetReduceTensorDescriptor
+```
+
+
+## miopenGetReductionIndicesSize
+
+```{doxygenfunction}  miopenGetReductionIndicesSize
+```
+
+
+## miopenGetReductionWorkspaceSize
+
+```{doxygenfunction}  miopenGetReductionWorkspaceSize
+```
+
+
+## miopenReduceTensor
+
+```{doxygenfunction}  miopenReduceTensor
+```
 

@@ -1,87 +1,86 @@
 
-Pooling Layer
-=============
+# Pooling Layer
 
 The pooling layer API documentation
 
 
-miopenPoolingMode_t
--------------------
+## miopenPoolingMode_t
 
-.. doxygenenum::  miopenPoolingMode_t
+```{doxygenenum}  miopenPoolingMode_t
+```
 
-miopenIndexType_t
------------------
+## miopenIndexType_t
 
-.. doxygenenum::  miopenIndexType_t
+```{doxygenenum}  miopenIndexType_t
+```
 
-miopenCreatePoolingDescriptor
------------------------------
+## miopenCreatePoolingDescriptor
 
-.. doxygenfunction::  miopenCreatePoolingDescriptor
+```{doxygenfunction}  miopenCreatePoolingDescriptor
+```
 
-miopenSet2dPoolingDescriptor
-----------------------------
+## miopenSet2dPoolingDescriptor
 
-.. doxygenfunction::  miopenSet2dPoolingDescriptor
+```{doxygenfunction}  miopenSet2dPoolingDescriptor
+```
 
-miopenSetNdPoolingDescriptor
-----------------------------
+## miopenSetNdPoolingDescriptor
 
-.. doxygenfunction::  miopenSetNdPoolingDescriptor
+```{doxygenfunction}  miopenSetNdPoolingDescriptor
+```
 
-miopenSetPoolingIndexType
--------------------------
+## miopenSetPoolingIndexType
 
-.. doxygenfunction::  miopenSetPoolingIndexType
+```{doxygenfunction}  miopenSetPoolingIndexType
+```
 
-miopenGetPoolingIndexType
--------------------------
+## miopenGetPoolingIndexType
 
-.. doxygenfunction::  miopenGetPoolingIndexType
+```{doxygenfunction}  miopenGetPoolingIndexType
+```
 
-miopenGet2dPoolingDescriptor
-----------------------------
+## miopenGet2dPoolingDescriptor
 
-.. doxygenfunction::  miopenGet2dPoolingDescriptor
+```{doxygenfunction}  miopenGet2dPoolingDescriptor
+```
 
-miopenGetNdPoolingDescriptor
-----------------------------
+## miopenGetNdPoolingDescriptor
 
-.. doxygenfunction::  miopenGetNdPoolingDescriptor
+```{doxygenfunction}  miopenGetNdPoolingDescriptor
+```
 
-miopenGetPoolingForwardOutputDim
---------------------------------
+## miopenGetPoolingForwardOutputDim
 
-.. doxygenfunction::  miopenGetPoolingForwardOutputDim
+```{doxygenfunction}  miopenGetPoolingForwardOutputDim
+```
 
-miopenGetPoolingNdForwardOutputDim
-----------------------------------
+## miopenGetPoolingNdForwardOutputDim
 
-.. doxygenfunction::  miopenGetPoolingNdForwardOutputDim
+```{doxygenfunction}  miopenGetPoolingNdForwardOutputDim
+```
 
-miopenPoolingGetWorkSpaceSize
------------------------------
+## miopenPoolingGetWorkSpaceSize
 
-.. doxygenfunction::  miopenPoolingGetWorkSpaceSize
+```{doxygenfunction}  miopenPoolingGetWorkSpaceSize
+```
 
-miopenPoolingGetWorkSpaceSizeV2
--------------------------------
+## miopenPoolingGetWorkSpaceSizeV2
 
-.. doxygenfunction::  miopenPoolingGetWorkSpaceSizeV2
+```{doxygenfunction}  miopenPoolingGetWorkSpaceSizeV2
+```
 
-miopenPoolingForward
---------------------
+## miopenPoolingForward
 
-.. doxygenfunction::  miopenPoolingForward
+```{doxygenfunction}  miopenPoolingForward
+```
 
-miopenPoolingBackward
----------------------
+## miopenPoolingBackward
 
-.. doxygenfunction::  miopenPoolingBackward
+```{doxygenfunction}  miopenPoolingBackward
+```
 
-miopenDestroyPoolingDescriptor
-------------------------------
+## miopenDestroyPoolingDescriptor
 
-.. doxygenfunction::  miopenDestroyPoolingDescriptor
+```{doxygenfunction}  miopenDestroyPoolingDescriptor
+```
 

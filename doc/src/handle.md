@@ -1,47 +1,46 @@
 
-Handle
-======
+# Handle
 
 Handle types and functions.
 
 
-miopenStatus_t 
---------------
+## miopenStatus_t
 
-.. doxygenenum::  miopenStatus_t 
+```{doxygenenum}  miopenStatus_t
+```
 
-miopenCreate
-------------
+## miopenCreate
 
-.. doxygenfunction::  miopenCreate
+```{doxygenfunction}  miopenCreate
+```
 
-miopenCreateWithStream
-----------------------
+## miopenCreateWithStream
 
-.. doxygenfunction::  miopenCreateWithStream
+```{doxygenfunction}  miopenCreateWithStream
+```
 
-miopenDestroy
--------------
+## miopenDestroy
 
-.. doxygenfunction::  miopenDestroy
+```{doxygenfunction}  miopenDestroy
+```
 
-miopenSetStream
----------------
+## miopenSetStream
 
-.. doxygenfunction::  miopenSetStream
+```{doxygenfunction}  miopenSetStream
+```
 
-miopenGetStream
----------------
+## miopenGetStream
 
-.. doxygenfunction::  miopenGetStream
+```{doxygenfunction}  miopenGetStream
+```
 
-miopenGetKernelTime
--------------------
+## miopenGetKernelTime
 
-.. doxygenfunction::  miopenGetKernelTime
+```{doxygenfunction}  miopenGetKernelTime
+```
 
-miopenEnableProfiling
----------------------
+## miopenEnableProfiling
 
-.. doxygenfunction:: miopenEnableProfiling
+```{doxygenfunction} miopenEnableProfiling
+```
 

@@ -1,30 +1,29 @@
 
 
-Batch Normalization Layer
-=========================
+# Batch Normalization Layer
 
 
-miopenBatchNormMode_t
----------------------
+## miopenBatchNormMode_t
 
-.. doxygenenum::  miopenBatchNormMode_t
+```{doxygenenum}  miopenBatchNormMode_t
+```
 
-miopenDeriveBNTensorDescriptor
-------------------------------
+## miopenDeriveBNTensorDescriptor
 
-.. doxygenfunction::  miopenDeriveBNTensorDescriptor
+```{doxygenfunction}  miopenDeriveBNTensorDescriptor
+```
 
-miopenBatchNormalizationForwardTraining
----------------------------------------
+## miopenBatchNormalizationForwardTraining
 
-.. doxygenfunction::  miopenBatchNormalizationForwardTraining
+```{doxygenfunction}  miopenBatchNormalizationForwardTraining
+```
 
-miopenBatchNormalizationForwardInference
-----------------------------------------
+## miopenBatchNormalizationForwardInference
 
-.. doxygenfunction::  miopenBatchNormalizationForwardInference
+```{doxygenfunction}  miopenBatchNormalizationForwardInference
+```
 
-miopenBatchNormalizationBackward
---------------------------------
+## miopenBatchNormalizationBackward
 
-.. doxygenfunction::  miopenBatchNormalizationBackward
+```{doxygenfunction}  miopenBatchNormalizationBackward
+```

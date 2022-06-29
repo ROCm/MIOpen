@@ -1,66 +1,65 @@
 
 
-Tensors
-=======
+# Tensors
 
 Tensor types and functions.
 
-miopenDataType_t
-----------------
+## miopenDataType_t
 
-.. doxygenenum::  miopenDataType_t
+```{doxygenenum}  miopenDataType_t
+```
 
-miopenTensorOp_t
-----------------
+## miopenTensorOp_t
 
-.. doxygenenum::  miopenTensorOp_t
+```{doxygenenum}  miopenTensorOp_t
+```
 
-miopenCreateTensorDescriptor
-----------------------------
+## miopenCreateTensorDescriptor
 
-.. doxygenfunction::  miopenCreateTensorDescriptor
+```{doxygenfunction}  miopenCreateTensorDescriptor
+```
 
-miopenSet4dTensorDescriptor
----------------------------
+## miopenSet4dTensorDescriptor
 
-.. doxygenfunction::  miopenSet4dTensorDescriptor
+```{doxygenfunction}  miopenSet4dTensorDescriptor
+```
 
-miopenGet4dTensorDescriptor
----------------------------
+## miopenGet4dTensorDescriptor
 
-.. doxygenfunction::  miopenGet4dTensorDescriptor
+```{doxygenfunction}  miopenGet4dTensorDescriptor
+```
 
-miopenSetTensorDescriptor
--------------------------
+## miopenSetTensorDescriptor
 
-.. doxygenfunction::  miopenSetTensorDescriptor
+```{doxygenfunction}  miopenSetTensorDescriptor
+```
 
-miopenGetTensorDescriptorSize
------------------------------
+## miopenGetTensorDescriptorSize
 
-.. doxygenfunction::  miopenGetTensorDescriptorSize
+```{doxygenfunction}  miopenGetTensorDescriptorSize
+```
 
-miopenGetTensorDescriptor
--------------------------
+## miopenGetTensorDescriptor
 
-.. doxygenfunction::  miopenGetTensorDescriptor
+```{doxygenfunction}  miopenGetTensorDescriptor
+```
 
-miopenDestroyTensorDescriptor
------------------------------
+## miopenDestroyTensorDescriptor
 
-.. doxygenfunction::  miopenDestroyTensorDescriptor
+```{doxygenfunction}  miopenDestroyTensorDescriptor
+```
 
-miopenOpTensor
---------------
+## miopenOpTensor
 
-.. doxygenfunction::  miopenOpTensor
+```{doxygenfunction}  miopenOpTensor
+```
 
-miopenSetTensor
----------------
+## miopenSetTensor
 
-.. doxygenfunction::  miopenSetTensor
+```{doxygenfunction}  miopenSetTensor
+```
 
-miopenScaleTensor
------------------
+## miopenScaleTensor
 
-.. doxygenfunction::  miopenScaleTensor
+```{doxygenfunction}  miopenScaleTensor
+```

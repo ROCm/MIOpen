@@ -1,44 +1,43 @@
 
 
-Activation Layers
-=================
+# Activation Layers
 
 Activation types and layers.
 
-miopenActivationMode_t
-----------------------
+## miopenActivationMode_t
 
-.. doxygenenum::  miopenActivationMode_t
+```{doxygenenum} miopenActivationMode_t
+```
 
-miopenCreateActivationDescriptor
---------------------------------
+## miopenCreateActivationDescriptor
 
-.. doxygenfunction::  miopenCreateActivationDescriptor
-
-
-miopenSetActivationDescriptor
------------------------------
-
-.. doxygenfunction::  miopenSetActivationDescriptor
+```{doxygenfunction} miopenCreateActivationDescriptor
+```
 
 
-miopenGetActivationDescriptor
------------------------------
+## miopenSetActivationDescriptor
 
-.. doxygenfunction::  miopenGetActivationDescriptor
+```{doxygenfunction} miopenSetActivationDescriptor
+```
 
-miopenActivationForward
------------------------
 
-.. doxygenfunction::  miopenActivationForward
+## miopenGetActivationDescriptor
 
-miopenActivationBackward
-------------------------
+```{doxygenfunction}  miopenGetActivationDescriptor
+```
 
-.. doxygenfunction::  miopenActivationBackward
+## miopenActivationForward
 
-miopenDestroyActivationDescriptor
----------------------------------
+```{doxygenfunction} miopenActivationForward
+```
 
-.. doxygenfunction::  miopenDestroyActivationDescriptor
+## miopenActivationBackward
+
+```{doxygenfunction}  miopenActivationBackward
+```
+
+## miopenDestroyActivationDescriptor
+
+```{doxygenfunction}  miopenDestroyActivationDescriptor
+```
 

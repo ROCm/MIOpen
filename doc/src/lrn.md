@@ -1,46 +1,45 @@
 
-Local Response Normalization Layer
-==================================
+# Local Response Normalization Layer
 
 Local Response Normalization types and functions.
 
-miopenLRNMode_t
----------------
+## miopenLRNMode_t
 
-.. doxygenenum::  miopenLRNMode_t
+```{doxygenenum}  miopenLRNMode_t
+```
 
-miopenCreateLRNDescriptor
--------------------------
+## miopenCreateLRNDescriptor
 
-.. doxygenfunction::  miopenCreateLRNDescriptor
+```{doxygenfunction}  miopenCreateLRNDescriptor
+```
 
-miopenSetLRNDescriptor
-----------------------
+## miopenSetLRNDescriptor
 
-.. doxygenfunction::  miopenSetLRNDescriptor
+```{doxygenfunction}  miopenSetLRNDescriptor
+```
 
-miopenGetLRNDescriptor
-----------------------
+## miopenGetLRNDescriptor
 
-.. doxygenfunction::  miopenGetLRNDescriptor
+```{doxygenfunction}  miopenGetLRNDescriptor
+```
 
-miopenLRNGetWorkSpaceSize
--------------------------
+## miopenLRNGetWorkSpaceSize
 
-.. doxygenfunction::  miopenLRNGetWorkSpaceSize
+```{doxygenfunction}  miopenLRNGetWorkSpaceSize
+```
 
-miopenLRNForward
-----------------
+## miopenLRNForward
 
-.. doxygenfunction::  miopenLRNForward
+```{doxygenfunction}  miopenLRNForward
+```
 
-miopenLRNBackward
------------------
+## miopenLRNBackward
 
-.. doxygenfunction::  miopenLRNBackward
+```{doxygenfunction}  miopenLRNBackward
+```
 
-miopenDestroyLRNDescriptor
---------------------------
+## miopenDestroyLRNDescriptor
 
-.. doxygenfunction::  miopenDestroyLRNDescriptor
+```{doxygenfunction}  miopenDestroyLRNDescriptor
+```
 

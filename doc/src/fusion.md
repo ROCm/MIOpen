@@ -1,96 +1,95 @@
 
 
-Layer Fusion
-============
+# Layer Fusion
 
 GPU kernel fusion API reference
 
-miopenFusionDirection_t
------------------------
+## miopenFusionDirection_t
 
-.. doxygenenum::  miopenFusionDirection_t
+```{doxygenenum}  miopenFusionDirection_t
+```
 
-miopenCreateFusionPlan
-----------------------
+## miopenCreateFusionPlan
 
-.. doxygenfunction::  miopenCreateFusionPlan
-
-
-miopenDestroyFusionPlan
------------------------
-
-.. doxygenfunction::  miopenDestroyFusionPlan
+```{doxygenfunction}  miopenCreateFusionPlan
+```
 
 
-miopenCompileFusionPlan
------------------------
+## miopenDestroyFusionPlan
 
-.. doxygenfunction::  miopenCompileFusionPlan
+```{doxygenfunction}  miopenDestroyFusionPlan
+```
 
-miopenFusionPlanGetOp
----------------------
 
-.. doxygenfunction::  miopenFusionPlanGetOp
+## miopenCompileFusionPlan
 
-miopenFusionPlanGetWorkSpaceSize
---------------------------------
+```{doxygenfunction}  miopenCompileFusionPlan
+```
 
-.. doxygenfunction::  miopenFusionPlanGetWorkSpaceSize
+## miopenFusionPlanGetOp
 
-miopenFusionPlanConvolutionGetAlgo
-----------------------------------
+```{doxygenfunction}  miopenFusionPlanGetOp
+```
 
-.. doxygenfunction::  miopenFusionPlanConvolutionGetAlgo
+## miopenFusionPlanGetWorkSpaceSize
 
-miopenCreateOpConvForward
--------------------------
+```{doxygenfunction}  miopenFusionPlanGetWorkSpaceSize
+```
 
-.. doxygenfunction::  miopenCreateOpConvForward
+## miopenFusionPlanConvolutionGetAlgo
 
-miopenCreateOpActivationForward
--------------------------------
+```{doxygenfunction}  miopenFusionPlanConvolutionGetAlgo
+```
 
-.. doxygenfunction::  miopenCreateOpActivationForward
+## miopenCreateOpConvForward
 
-miopenCreateOpBiasForward
--------------------------
+```{doxygenfunction}  miopenCreateOpConvForward
+```
 
-.. doxygenfunction::  miopenCreateOpBiasForward
+## miopenCreateOpActivationForward
 
-miopenCreateOpBatchNormInference
---------------------------------
+```{doxygenfunction}  miopenCreateOpActivationForward
+```
 
-.. doxygenfunction::  miopenCreateOpBatchNormInference
+## miopenCreateOpBiasForward
 
-miopenCreateOperatorArgs
-------------------------
+```{doxygenfunction}  miopenCreateOpBiasForward
+```
 
-.. doxygenfunction::  miopenCreateOperatorArgs
+## miopenCreateOpBatchNormInference
 
-miopenDestroyOperatorArgs
--------------------------
+```{doxygenfunction}  miopenCreateOpBatchNormInference
+```
 
-.. doxygenfunction::  miopenDestroyOperatorArgs
+## miopenCreateOperatorArgs
 
-miopenSetOpArgsConvForward
---------------------------
+```{doxygenfunction}  miopenCreateOperatorArgs
+```
 
-.. doxygenfunction::  miopenSetOpArgsConvForward
+## miopenDestroyOperatorArgs
 
-miopenSetOpArgsBatchNormInference
----------------------------------
+```{doxygenfunction}  miopenDestroyOperatorArgs
+```
 
-.. doxygenfunction::  miopenSetOpArgsBatchNormInference
+## miopenSetOpArgsConvForward
 
-miopenSetOpArgsBiasForward
---------------------------
+```{doxygenfunction}  miopenSetOpArgsConvForward
+```
 
-.. doxygenfunction::  miopenSetOpArgsBiasForward
+## miopenSetOpArgsBatchNormInference
 
-miopenExecuteFusionPlan
------------------------
+```{doxygenfunction}  miopenSetOpArgsBatchNormInference
+```
 
-.. doxygenfunction::  miopenExecuteFusionPlan
+## miopenSetOpArgsBiasForward
+
+```{doxygenfunction}  miopenSetOpArgsBiasForward
+```
+
+## miopenExecuteFusionPlan
+
+```{doxygenfunction}  miopenExecuteFusionPlan
+```
 
 
 

@@ -1,41 +1,40 @@
 
-Loss Function Layer
-===================
+# Loss Function Layer
 
 The loss function layer API documentation
 
 
-miopenCTCLossAlgo_t
--------------------
+## miopenCTCLossAlgo_t
 
-.. doxygenenum::  miopenCTCLossAlgo_t
+```{doxygenenum}  miopenCTCLossAlgo_t
+```
 
-miopenCreateCTCLossDescriptor
------------------------------
+## miopenCreateCTCLossDescriptor
 
-.. doxygenfunction::  miopenCreateCTCLossDescriptor
+```{doxygenfunction}  miopenCreateCTCLossDescriptor
+```
 
-miopenGetCTCLossDescriptor
---------------------------
+## miopenGetCTCLossDescriptor
 
-.. doxygenfunction::  miopenGetCTCLossDescriptor
+```{doxygenfunction}  miopenGetCTCLossDescriptor
+```
 
-miopenDestroyCTCLossDescriptor
-------------------------------
+## miopenDestroyCTCLossDescriptor
 
-.. doxygenfunction::  miopenDestroyCTCLossDescriptor
+```{doxygenfunction}  miopenDestroyCTCLossDescriptor
+```
 
-miopenSetCTCLossDescriptor
---------------------------
+## miopenSetCTCLossDescriptor
 
-.. doxygenfunction::  miopenSetCTCLossDescriptor
+```{doxygenfunction}  miopenSetCTCLossDescriptor
+```
 
-miopenGetCTCLossWorkspaceSize
------------------------------
+## miopenGetCTCLossWorkspaceSize
 
-.. doxygenfunction::  miopenGetCTCLossWorkspaceSize
+```{doxygenfunction}  miopenGetCTCLossWorkspaceSize
+```
 
-miopenCTCLoss
--------------
+## miopenCTCLoss
 
-.. doxygenfunction::  miopenCTCLoss
+```{doxygenfunction}  miopenCTCLoss
+```

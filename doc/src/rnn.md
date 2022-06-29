@@ -1,182 +1,181 @@
 
-Recurrent Neural Networks
-=========================
+# Recurrent Neural Networks
 
 
-miopenRNNMode_t
----------------
+## miopenRNNMode_t
 
-.. doxygenenum::  miopenRNNMode_t
+```{doxygenenum}  miopenRNNMode_t
+```
 
 
-miopenRNNInputMode_t
---------------------
+## miopenRNNInputMode_t
 
-.. doxygenenum::  miopenRNNInputMode_t
+```{doxygenenum}  miopenRNNInputMode_t
+```
 
 
-miopenRNNAlgo_t
----------------
+## miopenRNNAlgo_t
 
-.. doxygenenum::  miopenRNNAlgo_t
+```{doxygenenum}  miopenRNNAlgo_t
+```
 
 
-miopenRNNDirectionMode_t
-------------------------
+## miopenRNNDirectionMode_t
 
-.. doxygenenum::  miopenRNNDirectionMode_t
+```{doxygenenum}  miopenRNNDirectionMode_t
+```
 
 
-miopenRNNBiasMode_t
--------------------
+## miopenRNNBiasMode_t
 
-.. doxygenenum::  miopenRNNBiasMode_t
+```{doxygenenum}  miopenRNNBiasMode_t
+```
 
 
-miopenRNNGEMMalgoMode_t
------------------------
+## miopenRNNGEMMalgoMode_t
 
-.. doxygenenum::  miopenRNNGEMMalgoMode_t
+```{doxygenenum}  miopenRNNGEMMalgoMode_t
+```
 
 
-miopenCreateRNNDescriptor
--------------------------
+## miopenCreateRNNDescriptor
 
-.. doxygenfunction::  miopenCreateRNNDescriptor
+```{doxygenfunction}  miopenCreateRNNDescriptor
+```
 
 
-miopenGetRNNDescriptor
-----------------------
+## miopenGetRNNDescriptor
 
-.. doxygenfunction::  miopenGetRNNDescriptor
+```{doxygenfunction}  miopenGetRNNDescriptor
+```
 
 
-miopenGetRNNDescriptor_V2
--------------------------
+## miopenGetRNNDescriptor_V2
 
-.. doxygenfunction::  miopenGetRNNDescriptor_V2
+```{doxygenfunction}  miopenGetRNNDescriptor_V2
+```
 
 
-miopenDestroyRNNDescriptor
---------------------------
+## miopenDestroyRNNDescriptor
 
-.. doxygenfunction::  miopenDestroyRNNDescriptor
+```{doxygenfunction}  miopenDestroyRNNDescriptor
+```
 
 
-miopenSetRNNDescriptor
-----------------------
+## miopenSetRNNDescriptor
 
-.. doxygenfunction::  miopenSetRNNDescriptor
+```{doxygenfunction}  miopenSetRNNDescriptor
+```
 
 
-miopenSetRNNDescriptor_V2
--------------------------
+## miopenSetRNNDescriptor_V2
 
-.. doxygenfunction::  miopenSetRNNDescriptor_V2
+```{doxygenfunction}  miopenSetRNNDescriptor_V2
+```
 
 
-miopenGetRNNWorkspaceSize
--------------------------
+## miopenGetRNNWorkspaceSize
 
-.. doxygenfunction::  miopenGetRNNWorkspaceSize
+```{doxygenfunction}  miopenGetRNNWorkspaceSize
+```
 
 
-miopenGetRNNTrainingReserveSize
--------------------------------
+## miopenGetRNNTrainingReserveSize
 
-.. doxygenfunction::  miopenGetRNNTrainingReserveSize
+```{doxygenfunction}  miopenGetRNNTrainingReserveSize
+```
 
 
-miopenGetRNNParamsSize
-----------------------
+## miopenGetRNNParamsSize
 
-.. doxygenfunction::  miopenGetRNNParamsSize
+```{doxygenfunction}  miopenGetRNNParamsSize
+```
 
 
-miopenGetRNNParamsDescriptor
-----------------------------
+## miopenGetRNNParamsDescriptor
 
-.. doxygenfunction::  miopenGetRNNParamsDescriptor
+```{doxygenfunction}  miopenGetRNNParamsDescriptor
+```
 
 
-miopenGetRNNInputTensorSize
----------------------------
+## miopenGetRNNInputTensorSize
 
-.. doxygenfunction::  miopenGetRNNInputTensorSize
+```{doxygenfunction}  miopenGetRNNInputTensorSize
+```
 
 
-miopenGetRNNHiddenTensorSize
-----------------------------
+## miopenGetRNNHiddenTensorSize
 
-.. doxygenfunction::  miopenGetRNNHiddenTensorSize
+```{doxygenfunction}  miopenGetRNNHiddenTensorSize
+```
 
 
-miopenGetRNNLayerParamSize
---------------------------
+## miopenGetRNNLayerParamSize
 
-.. doxygenfunction::  miopenGetRNNLayerParamSize
+```{doxygenfunction}  miopenGetRNNLayerParamSize
+```
 
 
-miopenGetRNNLayerBiasSize
--------------------------
+## miopenGetRNNLayerBiasSize
 
-.. doxygenfunction::  miopenGetRNNLayerBiasSize
+```{doxygenfunction}  miopenGetRNNLayerBiasSize
+```
 
 
-miopenGetRNNLayerParam
-----------------------
+## miopenGetRNNLayerParam
 
-.. doxygenfunction::  miopenGetRNNLayerParam
+```{doxygenfunction}  miopenGetRNNLayerParam
+```
 
 
-miopenGetRNNLayerBias
----------------------
+## miopenGetRNNLayerBias
 
-.. doxygenfunction::  miopenGetRNNLayerBias
+```{doxygenfunction}  miopenGetRNNLayerBias
+```
 
 
-miopenSetRNNLayerParam
-----------------------
+## miopenSetRNNLayerParam
 
-.. doxygenfunction::  miopenSetRNNLayerParam
+```{doxygenfunction}  miopenSetRNNLayerParam
+```
 
 
-miopenSetRNNLayerBias
----------------------
+## miopenSetRNNLayerBias
 
-.. doxygenfunction::  miopenSetRNNLayerBias
+```{doxygenfunction}  miopenSetRNNLayerBias
+```
 
-miopenGetRNNLayerParamOffset
-----------------------------
+## miopenGetRNNLayerParamOffset
 
-.. doxygenfunction::  miopenGetRNNLayerParamOffset
+```{doxygenfunction}  miopenGetRNNLayerParamOffset
+```
 
 
-miopenGetRNNLayerBiasOffset
----------------------------
+## miopenGetRNNLayerBiasOffset
 
-.. doxygenfunction::  miopenGetRNNLayerBiasOffset
+```{doxygenfunction}  miopenGetRNNLayerBiasOffset
+```
 
-miopenRNNForwardTraining
-------------------------
+## miopenRNNForwardTraining
 
-.. doxygenfunction::  miopenRNNForwardTraining
+```{doxygenfunction}  miopenRNNForwardTraining
+```
 
 
-miopenRNNBackwardData
----------------------
+## miopenRNNBackwardData
 
-.. doxygenfunction::  miopenRNNBackwardData
+```{doxygenfunction}  miopenRNNBackwardData
+```
 
 
-miopenRNNBackwardWeights
-------------------------
+## miopenRNNBackwardWeights
 
-.. doxygenfunction::  miopenRNNBackwardWeights
+```{doxygenfunction}  miopenRNNBackwardWeights
+```
 
 
-miopenRNNForwardInference
--------------------------
+## miopenRNNForwardInference
 
-.. doxygenfunction::  miopenRNNForwardInference
+```{doxygenfunction}  miopenRNNForwardInference
+```
 
