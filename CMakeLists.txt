@@ -455,11 +455,17 @@ function(install_kdb)
         set(FILE_NAME ${PARSE_NAME})
     endif()
     STRING(REPLACE - _ FILE_NAME "${ARCH_NAME}")
-    message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
-    rocm_install(FILES
-        src/kernels/${FILE_NAME}.kdb
-     DESTINATION ${DATA_INSTALL_DIR}/db
-     COMPONENT ${PARSE_COMPONENT_NAME})
+    file(SIZE "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb" FILE_SIZE) 
+    if(FILE_SIZE LESS_EQUAL 134)
+        message(WARNING "GIT LFS Files not pulled down, skipping ${FILE_NAME}.kdb")
+        return()
+    else()
+        message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
+        rocm_install(FILES
+            src/kernels/${FILE_NAME}.kdb
+        DESTINATION ${DATA_INSTALL_DIR}/db
+        COMPONENT ${PARSE_COMPONENT_NAME})
+    endif()
 endfunction()
 
 # Both the lists below should be in sync always
