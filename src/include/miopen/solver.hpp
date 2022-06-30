@@ -3854,7 +3854,7 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC final
 };
 
 struct PerformanceConfigAsmImplicitGemmGTCvector
-    : Serializable<PerformanceConfigAsmImplicitGemmGTCvector>
+    : PerfConfigBase<PerformanceConfigAsmImplicitGemmGTCvector>
 {
     std::string direction;
     std::string tensor_layout;
@@ -4024,7 +4024,7 @@ struct PerformanceConfigAsmImplicitGemmGTCvector
     bool IsDefaultConstructed() const;
     bool operator==(const PerformanceConfigAsmImplicitGemmGTCvector& other) const;
     void CopyParameters(const PerformanceConfigAsmImplicitGemmGTCvector& other);
-    std::string ToString() const;
+    std::string ToString() const override;
     std::string ToKernelName(const ConvolutionContext& ctx) const;
     int BlockSize() const;
 };
