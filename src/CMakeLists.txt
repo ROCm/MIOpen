@@ -160,6 +160,7 @@ set( MIOpen_Source
     solver/conv_asm_implicit_gemm_gtc_bwd_nhwc.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
+    solver/conv_asm_implicit_gemm_gtc_fwd_nchwc.cpp
     solver/conv_asm_implicit_gemm_gtc_perf_config.cpp
     solver/conv_asm_implicit_gemm_gtc_wrw_nhwc.cpp
     solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
