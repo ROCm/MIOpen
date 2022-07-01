@@ -485,7 +485,7 @@ ReduceTensorDescriptor::ReduceTensorDescriptor(miopenReduceTensorOp_t reduceTens
                                                miopenReduceTensorIndices_t reduceTensorIndices,
                                                miopenIndicesType_t reduceTensorIndicesType)
     : reduceTensorOp_(reduceTensorOp),
-      reduceTensorCompType_(miopen::miopenApiToInternal(reduceTensorCompType)),
+      reduceTensorCompType_(miopen::ToInternal(reduceTensorCompType)),
       reduceTensorNanOpt_(reduceTensorNanOpt),
       reduceTensorIndices_(reduceTensorIndices),
       reduceTensorIndicesType_(reduceTensorIndicesType)
@@ -826,9 +826,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         std::string algo_name     = "generic_reduce_tensor";
         std::string network_config;
         
-        network_config = "reduce_T" + std::to_string(miopen::miopenInternalToApi(srcDataType)) + 
-                        std::to_string(miopen::miopenInternalToApi(dstDataType)) +
-                        std::to_string(miopen::miopenInternalToApi(compType)) + "IN";
+        network_config = "reduce_T" + std::to_string(miopen::ToApi(srcDataType)) + 
+                        std::to_string(miopen::ToApi(dstDataType)) +
+                        std::to_string(miopen::ToApi(compType)) + "IN";
         for(auto dimLen : inDescLengths)
             network_config += std::to_string(dimLen) + "_";
         network_config += "RED";

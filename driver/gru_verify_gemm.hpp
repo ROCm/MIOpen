@@ -121,9 +121,9 @@ void RunGRUForwardGEMMCPUVerify(miopenHandle_t handle,
         miopenCreateTensorDescriptor(&dropout_inputTensor);
         miopenCreateTensorDescriptor(&dropout_outputTensor);
         miopenSetTensorDescriptor(
-            dropout_inputTensor, miopen::miopenInternalToApi(miopenFloat), 2, drop_in_len.data(), drop_in_str.data());
+            dropout_inputTensor, miopen::ToApi(miopenFloat), 2, drop_in_len.data(), drop_in_str.data());
         miopenSetTensorDescriptor(
-            dropout_outputTensor, miopen::miopenInternalToApi(miopenFloat), 2, drop_in_len.data(), drop_out_str.data());
+            dropout_outputTensor, miopen::ToApi(miopenFloat), 2, drop_in_len.data(), drop_out_str.data());
 
         size_t reserveSpaceSizeInBytes = 0;
         miopenDropoutGetReserveSpaceSize(dropout_inputTensor, &reserveSpaceSizeInBytes);
@@ -964,7 +964,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<Tref>& din_host,
         std::array<int, 2> drop_in_str = {{hy_stride, 1}};
         miopenCreateTensorDescriptor(&dropout_inputTensor);
         miopenSetTensorDescriptor(
-            dropout_inputTensor, miopen::miopenInternalToApi(miopenFloat), 2, drop_in_len.data(), drop_in_str.data());
+            dropout_inputTensor, miopen::ToApi(miopenFloat), 2, drop_in_len.data(), drop_in_str.data());
 
         size_t reserveSpaceSizeInBytes = 0;
         miopenDropoutGetReserveSpaceSize(dropout_inputTensor, &reserveSpaceSizeInBytes);

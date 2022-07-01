@@ -823,7 +823,7 @@ bool FusionPlanDescriptor::GetEnumVal(const std::string& sym, int& val) const
 {
     if(sym == "miopenFloat")
     {
-        val = miopen::miopenInternalToApi(miopenFloat);
+        val = miopen::ToApi(miopenFloat);
         return true;
     }
     else if(sym == "miopenConvolutionFwdAlgoDirect")
@@ -945,7 +945,7 @@ bool FusionPlanDescriptor::GetTensorAttr(const std::string& sym, int& val) const
     else if(sym == "precision")
     {
         assert(input_desc.GetType() == output_desc.GetType());
-        val = miopen::miopenInternalToApi(input_desc.GetType());
+        val = miopen::ToApi(input_desc.GetType());
     }
     else
         return false;

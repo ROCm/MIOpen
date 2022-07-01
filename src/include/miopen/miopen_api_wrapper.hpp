@@ -42,20 +42,20 @@ enum class DataType
     Double = miopenDouble
 };
 
-inline DataType miopenApiToInternal(miopenDataType_t type) {
+inline DataType ToInternal(miopenDataType_t type) {
     return DataType(type);
 }
 
-inline miopenDataType_t miopenInternalToApi(DataType wrapper_type) {
+inline miopenDataType_t ToApi(DataType wrapper_type) {
     return miopenDataType_t(wrapper_type);
 }
 
 inline std::ostream& operator<<(std::ostream& os, DataType wrapper_type) {
-    return os << miopenInternalToApi(wrapper_type);
+    return os << ToApi(wrapper_type);
 }
 
 inline std::string to_string(DataType type) {
-    return std::to_string(miopenInternalToApi(type));
+    return std::to_string(ToApi(type));
 }
 
 using api_miopenDataType_t = miopenDataType_t;

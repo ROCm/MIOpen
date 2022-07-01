@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
     const int cStride = h * w;
     const int nStride = c * h * w;
     res               = miopenSet4dTensorDescriptorEx(
-        desc, miopen::miopenInternalToApi(miopenFloat), n, c, h, w, nStride, cStride, hStride, wStride);
+        desc, miopen::ToApi(miopenFloat), n, c, h, w, nStride, cStride, hStride, wStride);
     CHECK(res == miopenStatusSuccess);
     int t_nStride = 0;
     int t_cStride = 0;
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
     res = miopenGet4dTensorDescriptor(
         desc, &t_type, &t_n, &t_c, &t_h, &t_w, &t_nStride, &t_cStride, &t_hStride, &t_wStride);
     CHECK(res == miopenStatusSuccess);
-    CHECK(t_type == miopen::miopenInternalToApi(miopenFloat));
+    CHECK(t_type == miopen::ToApi(miopenFloat));
     CHECK(t_n == n);
     CHECK(t_c == c);
     CHECK(t_h == h);

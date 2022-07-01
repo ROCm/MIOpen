@@ -143,9 +143,9 @@ void RNNFwdTrainCPUVerify(miopen::Handle& handle,
         miopenCreateTensorDescriptor(&dropout_inputTensor);
         miopenCreateTensorDescriptor(&dropout_outputTensor);
         miopenSetTensorDescriptor(
-            dropout_inputTensor, miopen::miopenInternalToApi(miopenFloat), 2, drop_in_len.data(), drop_in_str.data());
+            dropout_inputTensor, miopen::ToApi(miopenFloat), 2, drop_in_len.data(), drop_in_str.data());
         miopenSetTensorDescriptor(
-            dropout_outputTensor, miopen::miopenInternalToApi(miopenFloat), 2, drop_in_len.data(), drop_out_str.data());
+            dropout_outputTensor, miopen::ToApi(miopenFloat), 2, drop_in_len.data(), drop_out_str.data());
 
         size_t reserveSpaceSizeInBytes = 0;
         miopenDropoutGetReserveSpaceSize(dropout_inputTensor, &reserveSpaceSizeInBytes);
@@ -632,7 +632,7 @@ void RNNBwdDataCPUVerify(bool use_dropout,
         std::array<int, 2> drop_in_str = {{hy_stride, 1}};
         miopenCreateTensorDescriptor(&dropout_inputTensor);
         miopenSetTensorDescriptor(
-            dropout_inputTensor, miopen::miopenInternalToApi(miopenFloat), 2, drop_in_len.data(), drop_in_str.data());
+            dropout_inputTensor, miopen::ToApi(miopenFloat), 2, drop_in_len.data(), drop_in_str.data());
 
         size_t reserveSpaceSizeInBytes = 0;
         miopenDropoutGetReserveSpaceSize(dropout_inputTensor, &reserveSpaceSizeInBytes);
@@ -2446,7 +2446,7 @@ struct rnn_basic_vanilla_driver : test_driver
                                       miopenRNNMode_t(rnnMode),
                                       miopenRNNBiasMode_t(biasMode),
                                       miopenRNNAlgo_t(algoMode),
-                                      miopen::miopenInternalToApi(type));
+                                      miopen::ToApi(type));
         }
         else
         {
@@ -2458,7 +2458,7 @@ struct rnn_basic_vanilla_driver : test_driver
                                    miopenRNNMode_t(rnnMode),
                                    miopenRNNBiasMode_t(biasMode),
                                    miopenRNNAlgo_t(algoMode),
-                                   miopen::miopenInternalToApi(type)); // defined in superclass testdriver
+                                   miopen::ToApi(type)); // defined in superclass testdriver
         }
 
         // Create input tensor
@@ -2488,7 +2488,7 @@ struct rnn_basic_vanilla_driver : test_driver
         auto firstInputDesc =
             miopen::TensorDescriptor(miopen::deref(rnnDesc).dataType, inlens.data(), 2);
         miopenGetRNNParamsSize(
-            &handle, rnnDesc, &firstInputDesc, &wei_bytes, miopen::miopenInternalToApi(miopen::deref(rnnDesc).dataType));
+            &handle, rnnDesc, &firstInputDesc, &wei_bytes, miopen::ToApi(miopen::deref(rnnDesc).dataType));
         auto wei_sz = int(wei_bytes / sizeof(T));
         std::vector<T> weights(wei_sz);
         for(std::size_t i = 0; i < wei_sz; i++)

@@ -29,7 +29,6 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/stringutils.hpp>
-//#include <miopen/miopen_api_wrapper.hpp>
 #include <vector>
 
 extern "C" miopenStatus_t miopenCreateCTCLossDescriptor(miopenCTCLossDescriptor_t* ctcLossDesc)
@@ -51,7 +50,7 @@ extern "C" miopenStatus_t miopenGetCTCLossDescriptor(miopenCTCLossDescriptor_t c
 {
     MIOPEN_LOG_FUNCTION(ctcLossDesc, dataType, blank_label_id, apply_softmax_layer);
     return miopen::try_([&] {
-        miopen::deref(dataType) = miopen::miopenInternalToApi(miopen::deref(ctcLossDesc).dataType);
+        miopen::deref(dataType) = miopen::ToApi(miopen::deref(ctcLossDesc).dataType);
         if(blank_label_id != nullptr)
             *blank_label_id = miopen::deref(ctcLossDesc).blank_label_id;
         if(apply_softmax_layer != nullptr)
@@ -66,7 +65,7 @@ extern "C" miopenStatus_t miopenSetCTCLossDescriptor(miopenCTCLossDescriptor_t c
 {
     MIOPEN_LOG_FUNCTION(ctcLossDesc, dataType, blank_label_id, apply_softmax_layer);
     return miopen::try_([&] {
-        miopen::deref(ctcLossDesc).dataType            = miopen::miopenApiToInternal(dataType);
+        miopen::deref(ctcLossDesc).dataType            = miopen::ToInternal(dataType);
         miopen::deref(ctcLossDesc).blank_label_id      = blank_label_id;
         miopen::deref(ctcLossDesc).apply_softmax_layer = apply_softmax_layer;
     });

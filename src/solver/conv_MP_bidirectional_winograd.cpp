@@ -740,7 +740,7 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
     // GNCHW -> GCNHW
     TensorDescriptor in, wei, out;
     miopenSet4dTensorDescriptor(&in,
-                                miopen::miopenInternalToApi(transform_data_type),
+                                miopen::ToApi(transform_data_type),
                                 1,
                                 wino_in.buff_info.size.c * batch_count,
                                 1,
@@ -748,14 +748,14 @@ ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
                                     wino_in.buff_info.size.nk);
 
     miopenSet4dTensorDescriptor(&wei,
-                                miopen::miopenInternalToApi(transform_data_type),
+                                miopen::ToApi(transform_data_type),
                                 wino_wei.buff_info.size.nk * batch_count,
                                 wino_wei.buff_info.size.c,
                                 wino_wei.buff_info.size.h,
                                 wino_wei.buff_info.size.w);
 
     miopenSet4dTensorDescriptor(&out,
-                                miopen::miopenInternalToApi(transform_data_type),
+                                miopen::ToApi(transform_data_type),
                                 1,
                                 wino_out.buff_info.size.c * batch_count,
                                 1,

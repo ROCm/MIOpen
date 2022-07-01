@@ -53,7 +53,7 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
 {
     size_t wei_sz = 0;
     auto&& handle = get_handle();
-    miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopen::miopenInternalToApi(miopenFloat));
+    miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopen::ToApi(miopenFloat));
 
     wei_sz = wei_sz / sizeof(float);
     std::vector<float> wei_h(wei_sz, 0);
@@ -223,7 +223,7 @@ struct verify_w_tensor_get
         int bi              = (directionMode == miopenRNNbidirection) ? 2 : 1;
 
         size_t wei_sz = 0;
-        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopen::miopenInternalToApi(miopenFloat));
+        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopen::ToApi(miopenFloat));
 
         wei_sz = wei_sz / sizeof(float);
         std::vector<float> wei_h(wei_sz, 0);
@@ -366,7 +366,7 @@ struct verify_w_tensor_set
 
         size_t wei_sz = 0;
         auto&& handle = get_handle();
-        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopen::miopenInternalToApi(miopenFloat));
+        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopen::ToApi(miopenFloat));
         wei_dev = handle.Create(wei_sz);
     }
 
@@ -383,7 +383,7 @@ struct verify_w_tensor_set
         int bi              = (directionMode == miopenRNNbidirection) ? 2 : 1;
 
         size_t wei_sz = 0;
-        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopen::miopenInternalToApi(miopenFloat));
+        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopen::ToApi(miopenFloat));
 
         for(int layer = 0; layer < num_layer * bi; layer++)
         {
@@ -562,11 +562,11 @@ struct superTensorTest : test_driver
                                mode_lookup[mode],
                                biasMode_lookup[biasMode],
                                algo,
-                               miopen::miopenInternalToApi(dataType));
+                               miopen::ToApi(dataType));
 
         std::array<int, 2> in_lens = {{batch_size, in_size}};
-        miopenSetTensorDescriptor(inputTensor, miopen::miopenInternalToApi(dataType), 2, in_lens.data(), nullptr);
-        miopenSetTensorDescriptor(weightTensor, miopen::miopenInternalToApi(dataType), 2, in_lens.data(), nullptr);
+        miopenSetTensorDescriptor(inputTensor, miopen::ToApi(dataType), 2, in_lens.data(), nullptr);
+        miopenSetTensorDescriptor(weightTensor, miopen::ToApi(dataType), 2, in_lens.data(), nullptr);
 
         verify_equals(verify_w_tensor_set(rnnDesc,
                                           mode_lookup[mode],

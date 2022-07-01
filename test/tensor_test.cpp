@@ -50,7 +50,7 @@ struct tensor_fixture_4 : tensor_base
     tensor_fixture_4()
     {
         miopenCreateTensorDescriptor(&tensor);
-        miopenSet4dTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 100, 32, 8, 8);
+        miopenSet4dTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 100, 32, 8, 8);
     }
 };
 
@@ -63,7 +63,7 @@ struct tensor_fixture_4_vector : tensor_base
         std::vector<int> lens = {100, 32, 8, 8};
 
         miopenSetNdTensorDescriptorWithLayout(
-            tensor, miopen::miopenInternalToApi(miopenHalf), miopenTensorNCHWc4, lens.data(), lens.size());
+            tensor, miopen::ToApi(miopenHalf), miopenTensorNCHWc4, lens.data(), lens.size());
     }
 };
 
@@ -74,7 +74,7 @@ struct tensor_fixture_n1d : tensor_base
     {
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 1> lens = {{100}};
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 1, lens.data(), nullptr);
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 1, lens.data(), nullptr);
     }
 };
 
@@ -85,7 +85,7 @@ struct tensor_fixture_n1d_strides : tensor_base
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 1> lens    = {{100}};
         std::array<int, 1> strides = {{1}};
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 1, lens.data(), strides.data());
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 1, lens.data(), strides.data());
     }
 };
 
@@ -103,7 +103,7 @@ struct tensor_test_suit_1d
             std::array<int, 1> strides{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), strides.data());
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 100);
             EXPECT(strides[0] == 1);
             EXPECT(this->get_tensor().IsPacked());
@@ -120,7 +120,7 @@ struct tensor_test_suit_1d
             std::array<int, 1> lens{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), nullptr);
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 100);
             EXPECT(this->get_tensor().IsPacked());
         }
@@ -137,7 +137,7 @@ struct tensor_test_suit_1d
             std::array<int, 1> strides{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, nullptr, strides.data());
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 100);
             EXPECT(strides[0] == 1);
             EXPECT(this->get_tensor().IsPacked());
@@ -160,7 +160,7 @@ struct tensor_fixture_n2d : tensor_base
     {
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 2> lens = {{100, 32}};
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 2, lens.data(), nullptr);
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 2, lens.data(), nullptr);
     }
 };
 
@@ -171,7 +171,7 @@ struct tensor_fixture_n2d_strides : tensor_base
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 2> lens    = {{100, 32}};
         std::array<int, 2> strides = {{32, 1}};
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 2, lens.data(), strides.data());
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 2, lens.data(), strides.data());
     }
 };
 
@@ -189,7 +189,7 @@ struct tensor_test_suit_2d
             std::array<int, 2> strides{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), strides.data());
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
             EXPECT(strides[0] == lens[1] * strides[1]);
@@ -208,7 +208,7 @@ struct tensor_test_suit_2d
             std::array<int, 2> lens{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), nullptr);
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
             EXPECT(this->get_tensor().IsPacked());
@@ -226,7 +226,7 @@ struct tensor_test_suit_2d
             std::array<int, 2> strides{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, nullptr, strides.data());
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
             EXPECT(strides[0] == lens[1] * strides[1]);
@@ -259,7 +259,7 @@ struct tensor_fixture_n2d_numBytes : tensor_base
         strides.back() = 1;
         std::partial_sum(
             adjLens.rbegin(), adjLens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 2, lens.data(), strides.data());
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 2, lens.data(), strides.data());
     }
 };
 
@@ -280,7 +280,7 @@ struct tensor_test_suit_2d_bytes
             std::size_t numBytes;
             miopenGetTensorNumBytes(this->tensor, &numBytes);
             EXPECT(numBytes == sizeof(miopenFloat) * 106); //+1
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 8);
             EXPECT(lens[1] == 8);
             EXPECT(strides[0] == 14);
@@ -301,7 +301,7 @@ struct tensor_fixture_n3d : tensor_base
     {
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 3> lens = {{100, 32, 8}};
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 3, lens.data(), nullptr);
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 3, lens.data(), nullptr);
     }
 };
 
@@ -313,7 +313,7 @@ struct tensor_fixture_n3d_strides : tensor_base
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 3> lens    = {{100, 32, 8}};
         std::array<int, 3> strides = {{256, 8, 1}};
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 3, lens.data(), strides.data());
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 3, lens.data(), strides.data());
     }
 };
 
@@ -331,7 +331,7 @@ struct tensor_test_suit_3d
             std::array<int, 3> strides{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), strides.data());
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
             EXPECT(lens[2] == 8);
@@ -352,7 +352,7 @@ struct tensor_test_suit_3d
             std::array<int, 3> lens{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), nullptr);
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
             EXPECT(lens[2] == 8);
@@ -371,7 +371,7 @@ struct tensor_test_suit_3d
             std::array<int, 3> strides{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, nullptr, strides.data());
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
             EXPECT(lens[2] == 8);
@@ -406,7 +406,7 @@ struct tensor_fixture_n3d_numBytes : tensor_base
         strides.back() = 1;
         std::partial_sum(
             adjLens.rbegin(), adjLens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 3, lens.data(), strides.data());
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 3, lens.data(), strides.data());
     }
 };
 
@@ -427,7 +427,7 @@ struct tensor_test_suit_3d_bytes
             std::size_t numBytes;
             miopenGetTensorNumBytes(this->tensor, &numBytes);
             EXPECT(numBytes == sizeof(miopenFloat) * 3578); //+1
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 32);
             EXPECT(lens[1] == 8);
             EXPECT(lens[2] == 8);
@@ -449,7 +449,7 @@ struct tensor_fixture_n4d : tensor_base
     {
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 4> lens = {{100, 32, 8, 8}};
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 4, lens.data(), nullptr);
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 4, lens.data(), nullptr);
     }
 };
 
@@ -460,7 +460,7 @@ struct tensor_fixture_n4d_strides : tensor_base
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 4> lens    = {{100, 32, 8, 8}};
         std::array<int, 4> strides = {{2048, 64, 8, 1}};
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 4, lens.data(), strides.data());
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 4, lens.data(), strides.data());
     }
 };
 
@@ -476,7 +476,7 @@ struct tensor_test_suit_4d
             miopen::api_miopenDataType_t dt;
             miopenGet4dTensorDescriptor(
                 this->tensor, &dt, &n, &c, &h, &w, &nStride, &cStride, &hStride, &wStride);
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(n == 100);
             EXPECT(c == 32);
             EXPECT(h == 8);
@@ -526,7 +526,7 @@ struct tensor_test_suit_4d
             std::array<int, 4> strides{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), strides.data());
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
             EXPECT(lens[2] == 8);
@@ -549,7 +549,7 @@ struct tensor_test_suit_4d
             std::array<int, 4> lens{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), nullptr);
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
             EXPECT(lens[2] == 8);
@@ -569,7 +569,7 @@ struct tensor_test_suit_4d
             std::array<int, 4> strides{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, nullptr, strides.data());
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
             EXPECT(lens[2] == 8);
@@ -619,7 +619,7 @@ struct tensor_test_suit_4d_vector
             miopen::api_miopenDataType_t dt;
             miopenGet4dTensorDescriptor(
                 this->tensor, &dt, &n, &c, &h, &w, &nStride, &cStride, &hStride, &wStride);
-            EXPECT(dt == miopen::miopenInternalToApi(miopenHalf));
+            EXPECT(dt == miopen::ToApi(miopenHalf));
             EXPECT(n == 100);
             EXPECT(c == 8);
             EXPECT(h == 8);
@@ -669,7 +669,7 @@ struct tensor_test_suit_4d_vector
             std::array<int, 4> strides{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), strides.data());
-            EXPECT(dt == miopen::miopenInternalToApi(miopenHalf));
+            EXPECT(dt == miopen::ToApi(miopenHalf));
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 8);
             EXPECT(lens[2] == 8);
@@ -692,7 +692,7 @@ struct tensor_test_suit_4d_vector
             std::array<int, 4> lens{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), nullptr);
-            EXPECT(dt == miopen::miopenInternalToApi(miopenHalf));
+            EXPECT(dt == miopen::ToApi(miopenHalf));
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 8);
             EXPECT(lens[2] == 8);
@@ -712,7 +712,7 @@ struct tensor_test_suit_4d_vector
             std::array<int, 4> strides{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, nullptr, strides.data());
-            EXPECT(dt == miopen::miopenInternalToApi(miopenHalf));
+            EXPECT(dt == miopen::ToApi(miopenHalf));
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 8);
             EXPECT(lens[2] == 8);
@@ -766,7 +766,7 @@ struct tensor_fixture_n4d_numBytes : tensor_base
         strides.back() = 1;
         std::partial_sum(
             adjLens.rbegin(), adjLens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 4, lens.data(), strides.data());
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 4, lens.data(), strides.data());
     }
 };
 
@@ -787,7 +787,7 @@ struct tensor_test_suit_4d_bytes
             std::size_t numBytes;
             miopenGetTensorNumBytes(this->tensor, &numBytes);
             EXPECT(numBytes == sizeof(miopenFloat) * 469274); //+1
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
             EXPECT(lens[2] == 8);
@@ -811,7 +811,7 @@ struct tensor_fixture_n5d : tensor_base
     {
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 5> lens = {{128, 100, 32, 8, 8}};
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 5, lens.data(), nullptr);
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 5, lens.data(), nullptr);
     }
 };
 
@@ -822,7 +822,7 @@ struct tensor_fixture_n5d_strides : tensor_base
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 5> lens    = {{128, 100, 32, 8, 8}};
         std::array<int, 5> strides = {{204800, 2048, 64, 8, 1}};
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 5, lens.data(), strides.data());
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 5, lens.data(), strides.data());
     }
 };
 
@@ -840,7 +840,7 @@ struct tensor_test_suit_5d
             std::array<int, 5> strides{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), strides.data());
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 128);
             EXPECT(lens[1] == 100);
             EXPECT(lens[2] == 32);
@@ -865,7 +865,7 @@ struct tensor_test_suit_5d
             std::array<int, 5> lens{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), nullptr);
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 128);
             EXPECT(lens[1] == 100);
             EXPECT(lens[2] == 32);
@@ -886,7 +886,7 @@ struct tensor_test_suit_5d
             std::array<int, 5> strides{};
             miopen::api_miopenDataType_t dt;
             miopenGetTensorDescriptor(this->tensor, &dt, nullptr, strides.data());
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 128);
             EXPECT(lens[1] == 100);
             EXPECT(lens[2] == 32);
@@ -925,7 +925,7 @@ struct tensor_fixture_n5d_numBytes : tensor_base
         strides.back() = 1;
         std::partial_sum(
             adjLens.rbegin(), adjLens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
-        miopenSetTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenFloat), 5, lens.data(), strides.data());
+        miopenSetTensorDescriptor(tensor, miopen::ToApi(miopenFloat), 5, lens.data(), strides.data());
     }
 };
 
@@ -946,7 +946,7 @@ struct tensor_test_suit_5d_bytes
             std::size_t numBytes;
             miopenGetTensorNumBytes(this->tensor, &numBytes);
             EXPECT(numBytes == sizeof(miopenFloat) * 63197114); //+1
-            EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+            EXPECT(dt == miopen::ToApi(miopenFloat));
             EXPECT(lens[0] == 128);
             EXPECT(lens[1] == 100);
             EXPECT(lens[2] == 32);
@@ -972,14 +972,14 @@ struct check_tensor_support : tensor_base
 
     void run()
     {
-        EXPECT(miopenSet4dTensorDescriptor(tensor, miopen::miopenInternalToApi(miopenHalf), 100, 32, 8, 8) ==
+        EXPECT(miopenSet4dTensorDescriptor(tensor, miopen::ToApi(miopenHalf), 100, 32, 8, 8) ==
                miopenStatusSuccess);
     }
 };
 
 void check_null_tensor()
 {
-    EXPECT(miopenSet4dTensorDescriptor(nullptr, miopen::miopenInternalToApi(miopenFloat), 100, 32, 8, 8) != miopenStatusSuccess);
+    EXPECT(miopenSet4dTensorDescriptor(nullptr, miopen::ToApi(miopenFloat), 100, 32, 8, 8) != miopenStatusSuccess);
 }
 
 int main()

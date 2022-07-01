@@ -1208,23 +1208,22 @@ std::unordered_map<int, std::string> enum_map(U lst)
 
 std::string any_string(const boost::any& a)
 {
-    using std::to_string;
     if(a.type() == typeid(std::string))
         return boost::any_cast<std::string>(a);
     else if(a.type() == typeid(int))
-        return to_string(boost::any_cast<int>(a));
+        return std::to_string(boost::any_cast<int>(a));
     else if(a.type() == typeid(miopenConvolutionMode_t))
-        return to_string(boost::any_cast<miopenConvolutionMode_t>(a));
+        return std::to_string(boost::any_cast<miopenConvolutionMode_t>(a));
     else if(a.type() == typeid(miopenPaddingMode_t))
-        return to_string(boost::any_cast<miopenPaddingMode_t>(a));
+        return std::to_string(boost::any_cast<miopenPaddingMode_t>(a));
     else if(a.type() == typeid(size_t))
-        return to_string(boost::any_cast<size_t>(a));
+        return std::to_string(boost::any_cast<size_t>(a));
     else if(a.type() == typeid(miopenBatchNormMode_t))
-        return to_string(boost::any_cast<miopenBatchNormMode_t>(a));
+        return std::to_string(boost::any_cast<miopenBatchNormMode_t>(a));
     else if(a.type() == typeid(miopenActivationMode_t))
-        return to_string(boost::any_cast<miopenActivationMode_t>(a));
+        return std::to_string(boost::any_cast<miopenActivationMode_t>(a));
     else if(a.type() == typeid(miopenDataType_t))
-        return to_string(boost::any_cast<miopenDataType_t>(a));
+        return miopen::to_string(boost::any_cast<miopenDataType_t>(a));
     else
         return ""; // assert(false);
 }

@@ -63,7 +63,7 @@ struct input_tensor_fixture
     input_tensor_fixture()
     {
         STATUS(miopenCreateTensorDescriptor(&inputTensor));
-        STATUS(miopenSet4dTensorDescriptor(inputTensor, miopen::miopenInternalToApi(miopenFloat), 100, 32, 8, 8));
+        STATUS(miopenSet4dTensorDescriptor(inputTensor, miopen::ToApi(miopenFloat), 100, 32, 8, 8));
     }
 
     ~input_tensor_fixture() { miopenDestroyTensorDescriptor(inputTensor); }
@@ -102,7 +102,7 @@ struct conv_filter_fixture : virtual handle_fixture
         STATUS(miopenCreateTensorDescriptor(&convFilter));
         // weights
         STATUS(miopenSet4dTensorDescriptor(convFilter,
-                                           miopen::miopenInternalToApi(miopenFloat),
+                                           miopen::ToApi(miopenFloat),
                                            64, // outputs
                                            32, // inputs
                                            5,  // kernel size
@@ -147,7 +147,7 @@ struct output_tensor_fixture : conv_filter_fixture, input_tensor_fixture
 
         STATUS(miopenCreateTensorDescriptor(&outputTensor));
 
-        STATUS(miopenSet4dTensorDescriptor(outputTensor, miopen::miopenInternalToApi(miopenFloat), x, y, z, a));
+        STATUS(miopenSet4dTensorDescriptor(outputTensor, miopen::ToApi(miopenFloat), x, y, z, a));
     }
     ~output_tensor_fixture() { miopenDestroyTensorDescriptor(outputTensor); }
 

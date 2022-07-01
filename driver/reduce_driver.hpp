@@ -298,7 +298,7 @@ int ReduceDriver<Tgpu, Tref>::SetReduceTensorDescriptorFromCmdLineArgs()
         compType = miopenDouble;
 
     return (miopenSetReduceTensorDescriptor(
-        reduceDesc, reduceOp, miopen::miopenInternalToApi(compType), nanOpt, indicesOpt, indicesType));
+        reduceDesc, reduceOp, miopen::ToApi(compType), nanOpt, indicesOpt, indicesType));
 }
 
 template <typename Tgpu, typename Tref>

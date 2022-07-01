@@ -48,7 +48,7 @@ struct deriveSpatialTensorTest
     {
         miopenCreateTensorDescriptor(&ctensor);
         miopenCreateTensorDescriptor(&derivedTensor);
-        miopenSet4dTensorDescriptor(ctensor, miopen::miopenInternalToApi(miopenFloat), 100, 32, 8, 16);
+        miopenSet4dTensorDescriptor(ctensor, miopen::ToApi(miopenFloat), 100, 32, 8, 16);
     }
 
     void run() const
@@ -58,7 +58,7 @@ struct deriveSpatialTensorTest
 
         miopenDeriveBNTensorDescriptor(derivedTensor, ctensor, miopenBNSpatial);
         miopenGetTensorDescriptor(derivedTensor, &dt, lens.data(), nullptr);
-        EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+        EXPECT(dt == miopen::ToApi(miopenFloat));
         EXPECT(lens.size() == 4);
         EXPECT(lens[0] == 1);
         EXPECT(lens[1] == 32);
@@ -83,7 +83,7 @@ struct derivePerActTensorTest
     {
         miopenCreateTensorDescriptor(&ctensor);
         miopenCreateTensorDescriptor(&derivedTensor);
-        miopenSet4dTensorDescriptor(ctensor, miopen::miopenInternalToApi(miopenFloat), 100, 32, 8, 16);
+        miopenSet4dTensorDescriptor(ctensor, miopen::ToApi(miopenFloat), 100, 32, 8, 16);
     }
 
     void run() const
@@ -93,7 +93,7 @@ struct derivePerActTensorTest
 
         miopenDeriveBNTensorDescriptor(derivedTensor, ctensor, miopenBNPerActivation);
         miopenGetTensorDescriptor(derivedTensor, &dt, lens.data(), nullptr);
-        EXPECT(dt == miopen::miopenInternalToApi(miopenFloat));
+        EXPECT(dt == miopen::ToApi(miopenFloat));
         EXPECT(lens.size() == 4);
         EXPECT(lens[0] == 1);
         EXPECT(lens[1] == 32);

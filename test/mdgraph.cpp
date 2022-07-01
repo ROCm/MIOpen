@@ -50,7 +50,7 @@ void BNAlgTest(std::vector<int> inputs,
 
     // input descriptor
     STATUS(miopenSet4dTensorDescriptor(
-        &inputTensor, miopen::miopenInternalToApi(miopenFloat), inputs[0], inputs[1], inputs[2], inputs[3]));
+        &inputTensor, miopen::ToApi(miopenFloat), inputs[0], inputs[1], inputs[2], inputs[3]));
     miopen::FusionPlanDescriptor fp(miopenVerticalFusion, inputTensor);
 
     miopenCreateOpBatchNormInference(&fp, &bNormOp, bnmode, &scaleTensor);
@@ -76,10 +76,10 @@ void ConvAlgTest(std::vector<int> inputs,
 
     // input descriptor
     STATUS(miopenSet4dTensorDescriptor(
-        &inputTensor, miopen::miopenInternalToApi(miopenFloat), inputs[0], inputs[1], inputs[2], inputs[3]));
+        &inputTensor, miopen::ToApi(miopenFloat), inputs[0], inputs[1], inputs[2], inputs[3]));
     // convolution descriptor
     STATUS(miopenSet4dTensorDescriptor(&convFilter,
-                                       miopen::miopenInternalToApi(miopenFloat),
+                                       miopen::ToApi(miopenFloat),
                                        conv_filter[0], // outputs k
                                        conv_filter[1], // inputs c
                                        conv_filter[2], // kernel size
@@ -119,10 +119,10 @@ void ConvAlgFailTest(std::vector<int> inputs,
 
     // input descriptor
     STATUS(miopenSet4dTensorDescriptor(
-        &inputTensor, miopen::miopenInternalToApi(miopenFloat), inputs[0], inputs[1], inputs[2], inputs[3]));
+        &inputTensor, miopen::ToApi(miopenFloat), inputs[0], inputs[1], inputs[2], inputs[3]));
     // convolution descriptor
     STATUS(miopenSet4dTensorDescriptor(&convFilter,
-                                       miopen::miopenInternalToApi(miopenFloat),
+                                       miopen::ToApi(miopenFloat),
                                        conv_filter[0], // outputs k
                                        conv_filter[1], // inputs c
                                        conv_filter[2], // kernel size
@@ -171,16 +171,16 @@ void ConvBiasAlgTest(std::vector<int> inputs,
 
     // input descriptor
     STATUS(miopenSet4dTensorDescriptor(
-        &inputTensor, miopen::miopenInternalToApi(miopenFloat), inputs[0], inputs[1], inputs[2], inputs[3]));
+        &inputTensor, miopen::ToApi(miopenFloat), inputs[0], inputs[1], inputs[2], inputs[3]));
     // convolution descriptor
     STATUS(miopenSet4dTensorDescriptor(&convFilter,
-                                       miopen::miopenInternalToApi(miopenFloat),
+                                       miopen::ToApi(miopenFloat),
                                        conv_filter[0], // outputs k
                                        conv_filter[1], // inputs c
                                        conv_filter[2], // kernel size
                                        conv_filter[3]));
     // bias descriptor
-    STATUS(miopenSet4dTensorDescriptor(&biasTensor, miopen::miopenInternalToApi(miopenFloat), 1, conv_filter[0], 1, 1));
+    STATUS(miopenSet4dTensorDescriptor(&biasTensor, miopen::ToApi(miopenFloat), 1, conv_filter[0], 1, 1));
 
     STATUS(miopenCreateConvolutionDescriptor(&convDesc));
     STATUS(miopenInitConvolutionDescriptor(convDesc,

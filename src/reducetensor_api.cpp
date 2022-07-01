@@ -136,7 +136,7 @@ miopenGetReduceTensorDescriptor(const miopenReduceTensorDescriptor_t reduceTenso
                         reduceTensorIndicesType);
     return miopen::try_([&] {
         miopen::deref(reduceTensorOp)       = miopen::deref(reduceTensorDesc).reduceTensorOp_;
-        miopen::deref(reduceTensorCompType) = miopen::miopenInternalToApi(miopen::deref(reduceTensorDesc).reduceTensorCompType_);
+        miopen::deref(reduceTensorCompType) = miopen::ToApi(miopen::deref(reduceTensorDesc).reduceTensorCompType_);
         miopen::deref(reduceTensorNanOpt)   = miopen::deref(reduceTensorDesc).reduceTensorNanOpt_;
         miopen::deref(reduceTensorIndices)  = miopen::deref(reduceTensorDesc).reduceTensorIndices_;
         miopen::deref(reduceTensorIndicesType) =
