@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_API_WRAPPERS_HPP_
-#define GUARD_MIOPEN_API_WRAPPERS_HPP_
+#ifndef GUARD_MIOPEN_HPP_
+#define GUARD_MIOPEN_HPP_
 
 #include <miopen/miopen.h>
 #include <iosfwd>
@@ -73,4 +73,4 @@ using api_miopenDataType_t = miopenDataType_t;
 #define miopenBFloat16  miopen::DataType::BFloat16
 #define miopenDouble    miopen::DataType::Double
 
-#endif // GUARD_MIOPEN_API_WRAPPERS_HPP_
+#endif // GUARD_MIOPEN_HPP_

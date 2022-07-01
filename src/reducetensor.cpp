@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include <miopen/config.h>
 #include <miopen/errors.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/env.hpp>
 #include <miopen/reduce_common.hpp>

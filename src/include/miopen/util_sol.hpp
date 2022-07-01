@@ -27,7 +27,7 @@
 #define MIOPEN_UTIL_SOL_HPP_
 
 #include <miopen/batched_transpose_sol.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/kernel_info.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/execution_context.hpp>

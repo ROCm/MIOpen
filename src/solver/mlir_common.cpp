@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/rocm_features.hpp>

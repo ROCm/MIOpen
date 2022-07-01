@@ -37,7 +37,7 @@
 #include <cstdlib>
 #include <float.h>
 #include <memory>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/md_graph.hpp>

@@ -28,7 +28,7 @@
 #define GUARD_MIOPEN_DROPOUT_HPP_
 
 #include <miopen/common.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/object.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>

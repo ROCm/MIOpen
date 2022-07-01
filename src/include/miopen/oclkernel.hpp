@@ -32,7 +32,7 @@
 #include <cassert>
 #include <functional>
 #include <memory>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <numeric>
 #include <sstream>
 #include <utility>

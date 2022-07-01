@@ -29,7 +29,7 @@
 #include <miopen/common.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/object.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 
 #include <vector>
 

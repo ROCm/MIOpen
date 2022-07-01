@@ -7,7 +7,7 @@
 #include <cassert>
 #include <algorithm>
 
-#include <miopen/miopen_api_wrapper.hpp>
+#include <miopen/api/miopen.hpp>
 
 #include "dropout_gpu_emulator.hpp"
 

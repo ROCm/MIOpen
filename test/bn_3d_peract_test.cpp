@@ -33,7 +33,7 @@
 #include <memory>
 
 #include <miopen/batch_norm.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
 #include <utility>
 

@@ -28,7 +28,7 @@
 #include <array>
 #include <iterator>
 #include <memory>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor_extra.hpp>
 #include <vector>
 

@@ -32,7 +32,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/tensor.hpp>

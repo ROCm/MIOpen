@@ -29,7 +29,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/datatype.hpp>
-#include <miopen/miopen_api_wrapper.hpp>
+#include <miopen/api/miopen.hpp>
 
 #include <boost/range/adaptors.hpp>
 

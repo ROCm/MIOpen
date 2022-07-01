@@ -6,7 +6,7 @@
 #include <miopen/common.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/manage_ptr.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 
 namespace miopen {
 

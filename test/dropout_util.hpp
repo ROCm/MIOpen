@@ -37,7 +37,7 @@
 #include <utility>
 
 #include <miopen/dropout.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/precalc_xorwow_skipahead_matrices.hpp>
 #include <miopen/precalc_xorwow_skipahead_sequence_matrices.hpp>

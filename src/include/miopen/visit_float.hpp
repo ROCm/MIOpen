@@ -27,7 +27,7 @@
 #ifndef GUARD_MLOPEN_VISIT_FLOAT_HPP
 #define GUARD_MLOPEN_VISIT_FLOAT_HPP
 
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <half.hpp>
 #include <miopen/bfloat16.hpp>
 

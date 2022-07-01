@@ -37,8 +37,7 @@
 #include <cfloat>
 #include <fstream>
 #include <memory>
-#include <miopen/miopen.h>
-#include <miopen/miopen_api_wrapper.hpp>
+#include <miopen/api/miopen.hpp>
 #include <miopen/env.hpp>
 #include <numeric>
 #include <sstream>

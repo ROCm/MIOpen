@@ -26,7 +26,7 @@
 #ifndef GUARD_MIOPEN_BATCHED_TRANSPOSE_SOL_HPP
 #define GUARD_MIOPEN_BATCHED_TRANSPOSE_SOL_HPP
 
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/kernel_info.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/execution_context.hpp>

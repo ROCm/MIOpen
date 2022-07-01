@@ -29,7 +29,7 @@
 #include <miopen/db_path.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/problem_description.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 
 #include <string>
 

@@ -27,7 +27,7 @@
 #define MIOPEN_FUSION_HPP_
 
 #include <miopen/common.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/solver.hpp>

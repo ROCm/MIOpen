@@ -27,7 +27,7 @@
 #ifndef GUARD_MIOPEN_RNN_UTIL_HPP_
 #define GUARD_MIOPEN_RNN_UTIL_HPP_
 
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/common.hpp>
 #include <miopen/handle.hpp>
 

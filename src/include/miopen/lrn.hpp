@@ -29,7 +29,7 @@
 #include <miopen/common.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
 #include <vector>
 

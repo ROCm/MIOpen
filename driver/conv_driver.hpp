@@ -47,7 +47,7 @@
 #include <float.h>
 #include <fstream>
 #include <memory>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/miopen_internal.h>
 #include <miopen/tensor.hpp>
 #include <miopen/env.hpp>
@@ -58,7 +58,6 @@
 #include <miopen/solver.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/problem_description.hpp>
-#include <miopen/miopen_api_wrapper.hpp>
 #include "random.hpp"
 #include <numeric>
 #include <sstream>

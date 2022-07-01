@@ -31,7 +31,7 @@
 #include <miopen/dropout.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/float_equal.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/object.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>

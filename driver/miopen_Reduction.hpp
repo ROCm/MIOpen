@@ -33,7 +33,7 @@
 #include <cassert>
 #include <cmath>
 
-#include <miopen/miopen_api_wrapper.hpp>
+#include <miopen/api/miopen.hpp>
 
 #include "../test/cpu_reduce_util.hpp"
 

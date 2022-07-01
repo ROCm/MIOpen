@@ -2,7 +2,7 @@
 #ifndef MIOPEN_GUARD_MLOPEN_FUSION_PLAN_HPP
 #define MIOPEN_GUARD_MLOPEN_FUSION_PLAN_HPP
 
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/fusion.hpp>
 #include <miopen/md_graph.hpp>

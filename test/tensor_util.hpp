@@ -28,7 +28,7 @@
 #define GUARD_TENSOR_UTIL_HPP
 
 #include <iostream>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
 #include <utility>
 #include <cstdlib>

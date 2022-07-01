@@ -24,7 +24,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 
 #include "conv_fin.hpp"
 #include "error.hpp"

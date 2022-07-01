@@ -29,9 +29,8 @@
 
 #include <cmath>
 #include <iomanip>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/miopen_api_wrapper.hpp>
 
 template <typename Tgpu, typename Tref>
 int miopenBNSpatialFwdInferHost(miopenTensorDescriptor_t& inputTensor,

@@ -28,7 +28,7 @@
 
 #include <iostream>
 #include <miopen/manage_ptr.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/target_properties.hpp>
 #include <string>
 

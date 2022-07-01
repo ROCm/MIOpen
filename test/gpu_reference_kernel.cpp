@@ -25,7 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/handle.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/problem_description.hpp>
 #include <miopen/tensor.hpp>

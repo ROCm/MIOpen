@@ -33,7 +33,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/batch_norm.hpp>
 #include <miopen/activ.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
 #include <utility>
 #include "driver.hpp"

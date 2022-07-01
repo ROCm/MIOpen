@@ -30,11 +30,10 @@
 
 #include <algorithm>
 #include <iterator>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_extra.hpp>
 #include <miopen/tensor_layout.hpp>
-#include <miopen/miopen_api_wrapper.hpp>
 #include <numeric>
 #include <vector>
 

@@ -28,7 +28,7 @@
 
 #include <exception>
 #include <iostream>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/object.hpp>
 #include <miopen/returns.hpp>
 #include <string>

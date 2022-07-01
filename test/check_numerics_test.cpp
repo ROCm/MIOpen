@@ -27,7 +27,7 @@
 #include "test.hpp"
 #include <miopen/handle.hpp>
 #include <miopen/check_numerics.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
 
 #include "driver.hpp"

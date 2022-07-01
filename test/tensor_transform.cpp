@@ -32,7 +32,7 @@
 #include <iomanip>
 #include <sys/time.h>
 #include <miopen/convolution.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <utility>

@@ -35,10 +35,9 @@
 #include <cstdlib>
 #include <float.h>
 #include <memory>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/reduce_common.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/miopen_api_wrapper.hpp>
 #include <numeric>
 #include <vector>
 #include <string>

@@ -38,7 +38,7 @@ using float16 = half_float::half;
 #include <cstdlib>
 #include <cfloat>
 #include <memory>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/bfloat16.hpp>
 #include <numeric>
 #include <vector>

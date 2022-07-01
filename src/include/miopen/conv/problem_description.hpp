@@ -31,7 +31,7 @@
 #include <miopen/names.hpp>
 #include <miopen/sqlite_db.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/miopen_api_wrapper.hpp>
+#include <miopen/api/miopen.hpp>
 
 #include <boost/any.hpp>
 

@@ -27,8 +27,7 @@
 #define GUARD_MIOPEN_GEMM_V2_HPP_
 
 #include <miopen/common.hpp>
-#include <miopen/miopen.h>
-#include <miopen/miopen_api_wrapper.hpp>
+#include <miopen/api/miopen.hpp>
 
 namespace miopen {
 

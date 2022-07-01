@@ -25,7 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/subbuffers.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 
 #if MIOPEN_BACKEND_OPENCL
 #include <miopen/handle.hpp>

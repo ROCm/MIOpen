@@ -27,7 +27,7 @@
 #define MIOPEN_UTIL_HPP_
 
 #include <miopen/common.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 
 #include <boost/range/adaptors.hpp>
 

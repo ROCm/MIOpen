@@ -30,12 +30,11 @@
 #include <miopen/env.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/object.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/names.hpp>
 #include <miopen/invoke_params.hpp>
-#include <miopen/miopen_api_wrapper.hpp>
 
 #include <boost/any.hpp>
 

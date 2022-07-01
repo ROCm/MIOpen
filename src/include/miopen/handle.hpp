@@ -31,7 +31,7 @@
 #include <miopen/common.hpp>
 #include <miopen/invoker_cache.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/names.hpp>
 #include <miopen/object.hpp>
 #include <miopen/allocator.hpp>

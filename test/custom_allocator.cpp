@@ -26,7 +26,7 @@
 
 #include "test.hpp"
 #include <miopen/handle.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 
 struct allocator_fixture
 {

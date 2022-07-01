@@ -27,7 +27,7 @@
 #ifndef MIOPEN_GUARD_MLOPEN_MD_GRAPH_HPP
 #define MIOPEN_GUARD_MLOPEN_MD_GRAPH_HPP
 
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/fusion_ops.hpp>
 #include <miopen/fusion.hpp>
 #include <miopen/any_solver.hpp>

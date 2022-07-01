@@ -27,7 +27,7 @@
 #define MIOPEN_ACTIV_HPP_
 
 #include <miopen/common.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/object.hpp>
 #include <vector>
 

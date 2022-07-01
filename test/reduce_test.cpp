@@ -30,7 +30,7 @@
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "random.hpp"
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/reducetensor.hpp>

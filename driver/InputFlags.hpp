@@ -26,8 +26,7 @@
 #ifndef MIOPEN_INPUT_FLAGS_HPP_
 #define MIOPEN_INPUT_FLAGS_HPP_
 
-#include <miopen/miopen.h>
-#include <miopen/miopen_api_wrapper.hpp>
+#include <miopen/api/miopen.hpp>
 
 #include <boost/optional.hpp>
 

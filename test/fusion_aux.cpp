@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/fusion_plan.hpp>
 

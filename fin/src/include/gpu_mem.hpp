@@ -34,7 +34,7 @@
 #include <cstdlib>
 #include <memory>
 #include <miopen/handle.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <numeric>
 #include <vector>
 

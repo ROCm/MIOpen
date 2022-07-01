@@ -34,7 +34,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/gemm_v2.hpp>
 #include <miopen/stringutils.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/invokers/impl_gemm.hpp>
 

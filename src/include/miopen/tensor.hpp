@@ -27,13 +27,12 @@
 #define GUARD_MIOPEN_TENSOR_HPP_
 
 #include <miopen/common.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/object.hpp>
 #include <miopen/each_args.hpp>
 #include <miopen/returns.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/functional.hpp>
-#include <miopen/miopen_api_wrapper.hpp>
 
 #include <algorithm>
 #include <cassert>

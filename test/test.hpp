@@ -29,7 +29,7 @@
 #include <iostream>
 #include <sstream>
 
-#include <miopen/miopen_api_wrapper.hpp>
+#include <miopen/api/miopen.hpp>
 
 #ifndef GUARD_TEST_TEST_HPP_
 #define GUARD_TEST_TEST_HPP_

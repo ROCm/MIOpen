@@ -30,7 +30,7 @@
 #include <limits>
 #include <memory>
 #include <miopen/activ.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/tensor.hpp>
 #include <utility>

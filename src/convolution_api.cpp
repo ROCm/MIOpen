@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/miopen_internal.h>
 
 #include <miopen/convolution.hpp>

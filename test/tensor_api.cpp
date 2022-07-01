@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include "test.hpp"
 
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
 
 int main(int argc, char* argv[])

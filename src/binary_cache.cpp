@@ -31,7 +31,7 @@
 #include <miopen/env.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/expanduser.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/version.h>
 #include <miopen/sqlite_db.hpp>
 #include <miopen/kern_db.hpp>

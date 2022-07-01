@@ -42,11 +42,10 @@
 #include <cfloat>
 #include <fstream>
 #include <memory>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/rnn.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/env.hpp>
-#include <miopen/miopen_api_wrapper.hpp>
 #include <numeric>
 #include <sstream>
 #include <vector>

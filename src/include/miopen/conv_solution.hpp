@@ -27,7 +27,7 @@
 #ifndef MIOPEN_GUARD_MLOPEN_CONV_SOLUTION_HPP
 #define MIOPEN_GUARD_MLOPEN_CONV_SOLUTION_HPP
 
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/kernel_info.hpp>
 #include <miopen/invoker.hpp>
 

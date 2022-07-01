@@ -32,7 +32,7 @@
 #include <limits>
 #include <memory>
 #include <miopen/convolution.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/softmax.hpp>
 #include <miopen/tensor.hpp>
 #include <utility>

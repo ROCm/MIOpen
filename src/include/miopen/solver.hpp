@@ -35,7 +35,7 @@
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/rocm_features.hpp>
 #include <miopen/type_name.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/buffer_info.hpp>
 
 #include <boost/any.hpp>

@@ -45,7 +45,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/simple_hash.hpp>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>

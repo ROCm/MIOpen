@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/conv_algo_name.hpp>
 
 #include <string>

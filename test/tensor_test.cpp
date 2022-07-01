@@ -28,7 +28,7 @@
 #include <iostream>
 #include <algorithm>
 #include <numeric>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/tensor.hpp>
 
 struct tensor_base

@@ -32,7 +32,7 @@
 #include <cassert>
 #include <stdexcept>
 #include <string>
-#include <miopen/miopen.h>
+#include <miopen/api/miopen.hpp>
 #include <miopen/reduce_common.hpp>
 
 namespace reduce {
