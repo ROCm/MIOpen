@@ -154,12 +154,12 @@ TEST(TestCache, BasicAssertions)
     check_cache_file();
     check_cache_str();
     ++marker;
-    EXPECT_EQ(marker, 1);
+    EXPECT_TRUE(marker == 1) << "Check_cache_file or check_cache_str failed ";
 #if MIOPEN_ENABLE_SQLITE
     check_bz2_compress();    
     check_bz2_decompress();    
     check_kern_db();
     ++marker;
-    EXPECT_EQ(marker, 2);
+    EXPECT_TRUE(marker == 2) << "check_bz2_compress or check_bz2_decompress or check_kern_db failed ";
 #endif
 }

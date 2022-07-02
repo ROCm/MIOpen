@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "test.hpp"
+#include "../test.hpp"
 #include <array>
 #include <iostream>
 #include <iterator>
@@ -35,10 +35,12 @@
 #include <miopen/tensor.hpp>
 #include <utility>
 
-#include "driver.hpp"
-#include "get_handle.hpp"
-#include "tensor_holder.hpp"
-#include "verify.hpp"
+#include "../driver.hpp"
+#include "../get_handle.hpp"
+#include "../tensor_holder.hpp"
+#include "../verify.hpp"
+
+#include <gtest/gtest.h>
 
 std::string to_name(miopenActivationMode_t m)
 {
@@ -315,4 +317,15 @@ struct activation_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<activation_driver>(argc, argv); }
+//GoogleTest for activation
+TEST(TestActivation, BasicAssertions)
+{
+    auto marker = 0;
+    int argc = 2;
+    const char* argv[] = {"test_activation", "--float"};
+    
+    test_drive<activation_driver>(argc, argv);
+
+    ++marker;
+    EXPECT_TRUE(marker == 1) << "test_activation failed";
+}
