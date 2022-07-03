@@ -44,7 +44,7 @@ void QuantizationDescriptor::SetScaler(double scaler) { this->parms[0] = scaler;
 
 void QuantizationDescriptor::SetBias(double bias) { this->parms[0] = bias;}
 
-std::ostream& operator<<(std::ostream& stream, const ActivationDescriptor& x)
+std::ostream& operator<<(std::ostream& stream, const QuantizationDescriptor& x)
 {
     LogRange(stream, x.parms, ", ") << ", ";
     return stream;
