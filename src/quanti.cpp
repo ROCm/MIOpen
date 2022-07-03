@@ -31,6 +31,11 @@ namespace miopen {
 
 QuantizationDescriptor::QuantizationDescriptor() {}
 
+QuantizationDescriptor::QuantizationDescriptor(const double* pparms)
+    : parms(pparms, pparms + 2)
+{
+}
+
 QuantizationDescriptor::QuantizationDescriptor(double scaler, double bias)
     :parms({scaler,bias})
 {

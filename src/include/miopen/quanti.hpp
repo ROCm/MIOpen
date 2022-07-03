@@ -39,6 +39,7 @@ struct TensorDescriptor;
 struct QuantizationDescriptor : miopenQuantizationDescriptor
 {
     QuantizationDescriptor();
+    QuantizationDescriptor(const double* pparms);   
     QuantizationDescriptor(double scaler, double bias);
 
     void SetScaler(double scaler);
