@@ -23,43 +23,30 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_QUANTI_HPP_
-#define MIOPEN_QUANTI_HPP_
-
-#include <miopen/common.hpp>
-#include <miopen/miopen.h>
-#include <miopen/object.hpp>
-#include <vector>
+#include <cassert>
+#include <miopen/quanti.hpp>
+#include <miopen/logger.hpp>
 
 namespace miopen {
 
-struct Handle;
-struct TensorDescriptor;
+QuantizationDescriptor::QuantizationDescriptor() {}
 
-struct QuantizationDescriptor : miopenQuantizationDescriptor
+QuantizationDescriptor::QuantizationDescriptor(double scaler, double bias)
+    :parms({scaler,bias})
 {
-    QuantizationDescriptor();
-    QuantizationDescriptor(double scaler, double bias);
+}
 
-    void SetScaler(double scaler);
-    void SetBias(double bias);
-    double GetScaler() const;
-    double GetBias() const;
+double QuantizationDescriptor::GetScaler() const { return this->parms[0]; }
 
-    miopenStatus_t Quantize(Handle& handle,
-                           const TensorDescriptor& inDesc,
-                           ConstData_t in,
-                           const void* scaler,                           
-                           const void* bias,
-                           const TensorDescriptor& outDesc,
-                           Data_t out);
+double QuantizationDescriptor::GetBias() const { return this->parms[1]; }
 
-    friend std::ostream& operator<<(std::ostream& stream, const QuantizationDescriptor& x);
+void QuantizationDescriptor::SetScaler(double scaler) { this->parms[0] = scaler; }
 
-private:
-    std::vector<double> parms;
-};
+void QuantizationDescriptor::SetBias(double bias) { this->parms[0] = bias;}
 
+std::ostream& operator<<(std::ostream& stream, const ActivationDescriptor& x)
+{
+    LogRange(stream, x.parms, ", ") << ", ";
+    return stream;
+}
 } // namespace miopen
-MIOPEN_DEFINE_OBJECT(miopenQuantizationDescriptor, miopen::QuantizationDescriptor);
-#endif // _MIOPEN_QUANTI_HPP_
