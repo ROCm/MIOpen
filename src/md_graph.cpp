@@ -40,8 +40,8 @@ namespace miopen {
 
 // Warning: We must guarantee that reading and incrementing of
 // running_id happens atomically.
-std::atomic<int> MDGraph_vertex::running_id{
-    0}; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+std::atomic<int> MDGraph_vertex::running_id{0};
 
 MDGraph_vertex::MDGraph_vertex(miopenFusionOp_t o,
                                std::string program_name,
