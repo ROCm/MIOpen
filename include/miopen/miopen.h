@@ -2725,6 +2725,14 @@ miopenGetQuantizationDescriptor(const miopenQuantizationDescriptor_t quantiDesc,
                                 double* scaler,
                                 double* bias);
 
+/*! @brief Destroys the quantization descriptor object
+ *
+ * @param activDesc   Quantization tensor descriptor type (input)
+ * @return            miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenDestroyQuantizationDescriptor(miopenQuantizationDescriptor_t quantiDesc);
+
 /** @} */
 // CLOSEOUT QUANTIZATION DOXYGEN GROUP
 

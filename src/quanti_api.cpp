@@ -62,3 +62,10 @@ extern "C" miopenStatus_t miopenGetQuantizationDescriptor(miopenQuantizationDesc
         *quantiBias   = miopen::deref(quantiDesc).GetBiad();
     });
 }
+
+extern "C" miopenStatus_t miopenDestroyQuantizationDescriptor(miopenQuantizationDescriptor_t quantiDesc)
+{
+
+    MIOPEN_LOG_FUNCTION(quantiDesc);
+    return miopen::try_([&] { miopen_destroy_object(quantiDesc); });
+}
