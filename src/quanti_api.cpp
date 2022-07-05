@@ -41,8 +41,8 @@ miopenCreateQuantizationDescriptor(miopenQuantizationDescriptor_t* quantiDesc)
 }
 
 extern "C" miopenStatus_t miopenSetQuantizationDescriptor(miopenQuantizationDescriptor_t quantiDesc,
-                                                     double quantiScaler,
-                                                     double quantiBias)
+                                                          double quantiScaler,
+                                                          double quantiBias)
 {
 
     MIOPEN_LOG_FUNCTION(quantiDesc, quantiScaler, quantiBias);
@@ -53,8 +53,8 @@ extern "C" miopenStatus_t miopenSetQuantizationDescriptor(miopenQuantizationDesc
 }
 
 extern "C" miopenStatus_t miopenGetQuantizationDescriptor(miopenQuantizationDescriptor_t quantiDesc,
-                                                     double* quantiScaler,
-                                                     double* quantiBias)
+                                                          double* quantiScaler,
+                                                          double* quantiBias)
 {
 
     MIOPEN_LOG_FUNCTION(quantiDesc, quantiScaler, quantiBias);
