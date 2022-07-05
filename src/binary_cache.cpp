@@ -169,7 +169,7 @@ std::string LoadBinary(const TargetProperties& target,
     auto record = db.FindRecord(cfg);
     if(record)
     {
-        MIOPEN_LOG_I2("Sucessfully loaded binary for: " << verbose_name << "; args: " << args);
+        MIOPEN_LOG_I2("Successfully loaded binary for: " << verbose_name << "; args: " << args);
         return record.get();
     }
     else
