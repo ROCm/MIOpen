@@ -59,7 +59,7 @@ extern "C" miopenStatus_t miopenGetQuantizationDescriptor(miopenQuantizationDesc
     MIOPEN_LOG_FUNCTION(quantiDesc, quantiScaler, quantiBias);
     return miopen::try_([&] {
         *quantiScaler = miopen::deref(quantiDesc).GetScaler();
-        *quantiBias   = miopen::deref(quantiDesc).GetBiad();
+        *quantiBias   = miopen::deref(quantiDesc).GetBias();
     });
 }
 

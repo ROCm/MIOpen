@@ -2727,7 +2727,7 @@ miopenGetQuantizationDescriptor(const miopenQuantizationDescriptor_t quantiDesc,
 
 /*! @brief Destroys the quantization descriptor object
  *
- * @param activDesc   Quantization tensor descriptor type (input)
+ * @param quantiDesc   Quantization tensor descriptor type (input)
  * @return            miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
