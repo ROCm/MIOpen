@@ -47,14 +47,6 @@ struct QuantizationDescriptor : miopenQuantizationDescriptor
     double GetScaler() const;
     double GetBias() const;
 
-    miopenStatus_t Quantize(Handle& handle,
-                           const TensorDescriptor& inDesc,
-                           ConstData_t in,
-                           const void* scaler,                           
-                           const void* bias,
-                           const TensorDescriptor& outDesc,
-                           Data_t out);
-
     friend std::ostream& operator<<(std::ostream& stream, const QuantizationDescriptor& x);
 
 private:

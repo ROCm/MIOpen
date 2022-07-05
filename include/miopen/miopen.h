@@ -2706,10 +2706,8 @@ miopenCreateQuantizationDescriptor(miopenQuantizationDescriptor_t* quantiDesc);
  * @param bias         bias for quantization (input)
  * @return             miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t
-miopenSetQuantizationDescriptor(const miopenQuantizationDescriptor_t quantiDesc,
-                                double scaler,
-                                double bias);
+MIOPEN_EXPORT miopenStatus_t miopenSetQuantizationDescriptor(
+    const miopenQuantizationDescriptor_t quantiDesc, double scaler, double bias);
 
 /*! @brief Gets the quantization descriptor details
  *
@@ -2720,10 +2718,8 @@ miopenSetQuantizationDescriptor(const miopenQuantizationDescriptor_t quantiDesc,
  * @param bias         bias for quantization (output)
  * @return             miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t
-miopenGetQuantizationDescriptor(const miopenQuantizationDescriptor_t quantiDesc,
-                                double* scaler,
-                                double* bias);
+MIOPEN_EXPORT miopenStatus_t miopenGetQuantizationDescriptor(
+    const miopenQuantizationDescriptor_t quantiDesc, double* scaler, double* bias);
 
 /*! @brief Destroys the quantization descriptor object
  *

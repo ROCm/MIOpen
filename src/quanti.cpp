@@ -31,13 +31,9 @@ namespace miopen {
 
 QuantizationDescriptor::QuantizationDescriptor() {}
 
-QuantizationDescriptor::QuantizationDescriptor(const double* pparms)
-    : parms(pparms, pparms + 2)
-{
-}
+QuantizationDescriptor::QuantizationDescriptor(const double* pparms) : parms(pparms, pparms + 2) {}
 
-QuantizationDescriptor::QuantizationDescriptor(double scaler, double bias)
-    :parms({scaler,bias})
+QuantizationDescriptor::QuantizationDescriptor(double scaler, double bias) : parms({scaler, bias})
 {
 }
 
@@ -47,7 +43,7 @@ double QuantizationDescriptor::GetBias() const { return this->parms[1]; }
 
 void QuantizationDescriptor::SetScaler(double scaler) { this->parms[0] = scaler; }
 
-void QuantizationDescriptor::SetBias(double bias) { this->parms[0] = bias;}
+void QuantizationDescriptor::SetBias(double bias) { this->parms[0] = bias; }
 
 std::ostream& operator<<(std::ostream& stream, const QuantizationDescriptor& x)
 {

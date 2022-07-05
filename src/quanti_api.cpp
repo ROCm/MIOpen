@@ -32,7 +32,8 @@
 #include <array>
 #include <initializer_list>
 
-extern "C" miopenStatus_t miopenCreateQuantizationDescriptor(miopenQuantizationDescriptor_t* quantiDesc)
+extern "C" miopenStatus_t 
+miopenCreateQuantizationDescriptor(miopenQuantizationDescriptor_t* quantiDesc)
 {
 
     MIOPEN_LOG_FUNCTION(quantiDesc);
@@ -40,20 +41,20 @@ extern "C" miopenStatus_t miopenCreateQuantizationDescriptor(miopenQuantizationD
 }
 
 extern "C" miopenStatus_t miopenSetQuantizationDescriptor(miopenQuantizationDescriptor_t quantiDesc,
-                                                        double quantiScaler,
-                                                        double quantiBias)
+                                                     double quantiScaler,
+                                                     double quantiBias)
 {
 
     MIOPEN_LOG_FUNCTION(quantiDesc, quantiScaler, quantiBias);
     return miopen::try_([&] {
         std::initializer_list<double> parms = {quantiScaler, quantiBias};
-        miopen::deref(quantiDesc)            = miopen::QuantizationDescriptor(parms.begin());
+        miopen::deref(quantiDesc)           = miopen::QuantizationDescriptor(parms.begin());
     });
 }
 
 extern "C" miopenStatus_t miopenGetQuantizationDescriptor(miopenQuantizationDescriptor_t quantiDesc,
-                                                        double* quantiScaler,
-                                                        double* quantiBias)
+                                                     double* quantiScaler,
+                                                     double* quantiBias)
 {
 
     MIOPEN_LOG_FUNCTION(quantiDesc, quantiScaler, quantiBias);
