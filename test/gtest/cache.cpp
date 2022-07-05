@@ -29,8 +29,8 @@
 #include <miopen/temp_file.hpp>
 
 #include <miopen/md5.hpp>
-#include "test.hpp"
-#include "random.hpp"
+#include "../test.hpp"
+#include "../random.hpp"
 
 #include <gtest/gtest.h>
 
