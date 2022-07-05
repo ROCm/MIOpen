@@ -32,7 +32,7 @@
 #include <array>
 #include <initializer_list>
 
-extern "C" miopenStatus_t 
+extern "C" miopenStatus_t
 miopenCreateQuantizationDescriptor(miopenQuantizationDescriptor_t* quantiDesc)
 {
 
@@ -64,7 +64,8 @@ extern "C" miopenStatus_t miopenGetQuantizationDescriptor(miopenQuantizationDesc
     });
 }
 
-extern "C" miopenStatus_t miopenDestroyQuantizationDescriptor(miopenQuantizationDescriptor_t quantiDesc)
+extern "C" miopenStatus_t
+miopenDestroyQuantizationDescriptor(miopenQuantizationDescriptor_t quantiDesc)
 {
 
     MIOPEN_LOG_FUNCTION(quantiDesc);
