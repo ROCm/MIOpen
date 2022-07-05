@@ -315,6 +315,8 @@ PerformanceImplicitGemmV4R4Fwd::CalculateGemmBBlockCopyPerformanceParameters(
         // GemmBBlockCopyDstDataPerWrite_GemmN also bounded by size of threadwise copy
         DstDataPerWrite_GemmN = gcd(DstDataPerWrite_GemmN, b_data_per_thread_copy_gemmn);
 
+        if(b_data_per_thread_copy_gemmk == 0)
+            MIOPEN_THROW("DIV/0 with b_data_per_thread_copy_gemmk");
         // calculate blockwise copy thread cluster lengths
         ClusterLengths_GemmK = GemmKPerBlock / b_data_per_thread_copy_gemmk;
         ClusterLengths_GemmN = GemmNPerBlock / b_data_per_thread_copy_gemmn;
@@ -612,7 +614,7 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx) con
 }
 
 PerformanceImplicitGemmV4R4Fwd
-ConvHipImplicitGemmV4R4Fwd::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmV4R4Fwd::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmV4R4Fwd>(ctx);
 }
@@ -631,9 +633,9 @@ ConvHipImplicitGemmV4R4Fwd::Search(const ConvolutionContext& context,
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-ConvSolution ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& ctx,
-                                                     const PerformanceImplicitGemmV4R4Fwd& config,
-                                                     bool) const
+ConvSolution
+ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& ctx,
+                                        const PerformanceImplicitGemmV4R4Fwd& config) const
 {
 
     ConvSolution result;

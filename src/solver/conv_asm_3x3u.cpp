@@ -70,8 +70,7 @@ PerformanceConfigConvAsm3x3U::PerformanceConfigConvAsm3x3U(int lwc, int fpw, int
 {
 }
 
-inline bool
-PerformanceConfigConvAsm3x3U::operator==(const PerformanceConfigConvAsm3x3U& other) const
+bool PerformanceConfigConvAsm3x3U::operator==(const PerformanceConfigConvAsm3x3U& other) const
 {
     return PerfFieldRules().Compare(*this, other);
 }
@@ -157,7 +156,7 @@ std::string PerformanceConfigConvAsm3x3U::ToString() const
 }
 
 PerformanceConfigConvAsm3x3U
-ConvAsm3x3U::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvAsm3x3U::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsm3x3U pp;
     pp.HeuristicInit(params);
@@ -237,14 +236,13 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 }
 
 ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
-                                      const PerformanceConfigConvAsm3x3U& config,
-                                      const bool disableConfigOverrideFromEnv) const
+                                      const PerformanceConfigConvAsm3x3U& config) const
 {
     ConvSolution result;
     // Perf tune:
     const PerformanceConfigConvAsm3x3U* pcfg = &config;
+
     PerformanceConfigConvAsm3x3U fromEnv;
-    if(!disableConfigOverrideFromEnv)
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS{});

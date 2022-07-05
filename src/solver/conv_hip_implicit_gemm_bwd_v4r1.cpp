@@ -217,6 +217,8 @@ PerformanceImplicitGemmBwdDataV4R1::CalculateGemmABlockCopyPerformanceParameters
 
         // decide threadwise copy lengths
         const auto a_data_per_thread_copy_gemmm = SrcDataPerRead_GemmM;
+        if(a_data_per_thread_copy_gemmm == 0)
+            MIOPEN_THROW("DIV/0 with a_data_per_thread_copy_gemmm");
         const auto a_data_per_thread_copy_gemmk =
             a_data_per_thread_copy / a_data_per_thread_copy_gemmm;
 
@@ -793,7 +795,7 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx)
 }
 
 PerformanceImplicitGemmBwdDataV4R1
-ConvHipImplicitGemmBwdDataV4R1::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV4R1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1>(ctx);
 }
@@ -812,8 +814,9 @@ ConvHipImplicitGemmBwdDataV4R1::Search(const ConvolutionContext& context,
     return GenericSearch(*this, context, invoke_ctx);
 }
 
-ConvSolution ConvHipImplicitGemmBwdDataV4R1::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV4R1& config, bool) const
+ConvSolution
+ConvHipImplicitGemmBwdDataV4R1::GetSolution(const ConvolutionContext& ctx,
+                                            const PerformanceImplicitGemmBwdDataV4R1& config) const
 {
     ConvSolution result;
 

@@ -46,7 +46,7 @@ bool ConvDirectNaiveConvFwd::IsApplicable(const ConvolutionContext& ctx) const
     if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
         return false;
 
-    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16() || ctx.IsInt8()))
         return false;
 
     if(!ctx.direction.IsForward())
@@ -102,7 +102,7 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx) 
 
     KernelInfo kernel;
 
-    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx);
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile();
     kernel.kernel_name = ConvDirectNaiveConvKernelName(ctx);
     kernel.g_wk.clear();
 
