@@ -112,6 +112,71 @@ def cmake_build(Map conf=[:]){
         archiveArtifacts artifacts: "build/*.deb", allowEmptyArchive: true, fingerprint: true
     }
 }
+def getDockerImageName(prefixpath)
+{
+    def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
+    def image = "${env.MIOPEN_IMAGE_URL}:miopen_ci_${branch}"
+    if(prefixpath == "/usr/local")
+    {
+        image = image + "_usr"
+    }
+    else if(prefixpath == "/opt/rocm")
+    {
+        image = image + "_opt"
+    }
+    else
+    {
+        error "Unknown prefixpath: ${prefixpath}"
+    }
+    return image
+
+}
+def getDockerImage(Map conf=[:])
+{
+    env.DOCKER_BUILDKIT=1
+    def prefixpath = conf.get("prefixpath", "/usr/local") // one image for each prefix 1: /usr/local 2:/opt/rocm
+    def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906") // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
+    def miotensile_version = conf.get("miotensile_version", "default") // deprecated
+    def target_id = conf.get("target_id", "OFF") // deprecated
+    def mlir_build = conf.get("mlir_build", "ON") // always ON
+    def build_fin = conf.get("build_fin", "OFF") // forcing this to be always on means fewer docker containers since this ensures all dependencies are present in the docker image
+    def no_cache = conf.get("no_cache", false)
+    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' --build-arg USE_FIN='${build_fin}' "
+    if(env.CCACHE_HOST)
+    {
+        def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
+        if(check_host == "+PONG")
+        {
+            echo "FOUND CCACHE SERVER: ${CCACHE_HOST}"
+        }
+        else 
+        {
+            echo "CCACHE SERVER: ${CCACHE_HOST} NOT FOUND, got ${check_host} response"
+        }
+        dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
+        env.CCACHE_DIR = """/tmp/ccache_store"""
+        env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
+    }
+    if(no_cache)
+    {
+        dockerArgs = dockerArgs + " --no-cache "
+    }
+    echo "Docker Args: ${dockerArgs}"
+    def image = getDockerImageName(prefixpath)
+    //Check if image exists 
+    def retimage
+    try 
+    {
+        echo "Pulling down image: ${image}"
+        retimage = docker.image("${image}")
+        retimage.pull()
+    }
+    catch(Exception ex)
+    {
+        error "Unable to locate image: ${image}"
+    }
+    return [retimage, image]
+}
 
 def buildHipClangJob(Map conf=[:]){
         show_node_info()
@@ -119,35 +184,10 @@ def buildHipClangJob(Map conf=[:]){
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         env.DOCKER_BUILDKIT=1
-        checkout scm
-        def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
-        def image = "miopen"
-        def prefixpath = conf.get("prefixpath", "/usr/local")
-        def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906")
-
-        def miotensile_version = conf.get("miotensile_version", "default")
-        def target_id = conf.get("target_id", "OFF")
-        def mlir_build = conf.get("mlir_build", "ON")
-        def build_fin = conf.get("build_fin", "OFF")
+        def image
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         if (conf.get("enforce_xnack_on", false)) {
             dockerOpts = dockerOpts + " --env HSA_XNACK=1"
-        }
-        def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' --build-arg USE_FIN='${build_fin}' "
-        if(env.CCACHE_HOST)
-        {
-            def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
-            if(check_host == "+PONG")
-            {
-                echo "FOUND CCACHE SERVER: ${CCACHE_HOST}"
-            }
-            else 
-            {
-                echo "CCACHE SERVER: ${CCACHE_HOST} NOT FOUND, got ${check_host} response"
-            }
-            dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
-            env.CCACHE_DIR = """/tmp/ccache_store"""
-            env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
         }
 
         def variant = env.STAGE_NAME
@@ -156,13 +196,9 @@ def buildHipClangJob(Map conf=[:]){
         def needs_gpu = conf.get("needs_gpu", true)
 
         def retimage
-        if(env.DOCKER_REPO)
-        {
-            image = "${DOCKER_REPO}/miopen_build_cache/miopen:${branch}"
-        }
-        gitStatusWrapper(credentialsId: '7126e5fe-eb51-4576-b52b-9aaf1de8f0fd', gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
+        gitStatusWrapper(credentialsId: "${env.status_wrapper_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
             try {
-                retimage = docker.build("${image}", dockerArgs + '.')
+                (retimage, image) = getDockerImage(conf)
                 if (needs_gpu) {
                     withDockerContainer(image: image, args: dockerOpts) {
                         timeout(time: 5, unit: 'MINUTES')
@@ -177,6 +213,8 @@ def buildHipClangJob(Map conf=[:]){
                 throw e
             }
             catch(Exception ex) {
+                conf.put("no_cache", true)
+                (retimage, image) = getDockerImage(conf)
                 retimage = docker.build("${image}", dockerArgs + "--no-cache .")
                 if (needs_gpu) {
                     withDockerContainer(image: image, args: dockerOpts) {
@@ -243,6 +281,44 @@ def CheckDeserializePerfDb(Map conf=[:]){
     }
 }
 
+def buildDocker(install_prefix)
+{
+    env.DOCKER_BUILDKIT=1
+    checkout scm
+    def image_name = getDockerImageName(install_prefix)
+    echo "Building Docker for ${image_name}"
+    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${install_prefix} --build-arg GPU_ARCH='gfx900;gfx906;gfx908;gfx90a;gfx90a:xnack-;gfx1030' --build-arg MIOTENSILE_VER='default' --build-arg USE_TARGETID='OFF' --build-arg USE_MLIR='ON' --build-arg USE_FIN='ON' "
+    if(env.CCACHE_HOST)
+    {
+        def check_host = sh(script:"""(printf "PING\\r\\n";) | nc  -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
+        if(check_host == "+PONG")
+        {
+            echo "FOUND CCACHE SERVER: ${CCACHE_HOST}"
+        }
+        else 
+        {
+            echo "CCACHE SERVER: ${CCACHE_HOST} NOT FOUND, got ${check_host} response"
+        }
+        dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
+        env.CCACHE_DIR = """/tmp/ccache_store"""
+        env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
+    }
+
+    echo "Build Args: ${dockerArgs}"
+    try 
+    {
+        echo "Checking for image: ${image_name}"
+        sh "docker manifest inspect --insecure ${image_name}"
+        echo "Image: ${image_name} found!! Skipping building image"
+    }
+    catch(Exception ex)
+    {
+        echo "Unable to locate image: ${image_name}. Building image now"
+        retimage = docker.build("${image_name}", dockerArgs + ' .')
+        retimage.push()
+    }
+}
+
 
 /// Stage name format:
 /// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
@@ -276,6 +352,10 @@ pipeline {
     }
     parameters {
         booleanParam(
+            name: "BUILD_DOCKER",
+            defaultValue: true,
+            description: "")
+        booleanParam(
             name: "BUILD_STATIC_CHECKS",
             defaultValue: true,
             description: "")
@@ -292,24 +372,12 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "BUILD_SMOKE_MIOPENTENSILE_LATEST",
-            defaultValue: false,
-            description: "")
-        booleanParam(
             name: "BUILD_FULL_TESTS1",
             defaultValue: true,
             description: "")
         booleanParam(
             name: "BUILD_FULL_TESTS2",
             defaultValue: true,
-            description: "")
-        booleanParam(
-            name: "BUILD_MIOPENTENSILE",
-            defaultValue: false,
-            description: "")
-        booleanParam(
-            name: "BUILD_MIOPENTENSILE_LATEST",
-            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_PACKAGES",
@@ -367,12 +435,29 @@ pipeline {
         Bf16_flags      = " -DMIOPEN_TEST_BFLOAT16=On"
         Int8_flags      = " -DMIOPEN_TEST_INT8=On"
         Full_test       = " -DMIOPEN_TEST_ALL=On"
-        Tensile_build_env = "MIOPEN_DEBUG_HIP_KERNELS=0 "
-        Tensile_setup = " -DMIOPEN_TEST_MIOTENSILE=ON -DMIOPEN_USE_MIOPENTENSILE=ON -DMIOPEN_USE_ROCBLAS=OFF"
         Smoke_targets = "check doc MIOpenDriver"
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
     }
     stages{
+        stage("Build Docker"){
+            when {
+                expression {params.BUILD_DOCKER && params.TARGET_NOGPU}
+            }
+            parallel{
+                stage('Docker /opt/rocm'){
+                    agent{ label rocmnode("nogpu") }
+                    steps{
+                        buildDocker('/opt/rocm')
+                    }
+                }
+                stage('Docker /usr/local'){
+                    agent{ label rocmnode("nogpu") }
+                    steps{
+                        buildDocker('/usr/local')
+                    }
+                }
+            }
+        }
         stage("Static checks") {
             when {
                 expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU && params.DATATYPE_NA }
@@ -715,76 +800,6 @@ pipeline {
                 }
             }
         }
-        stage("Smoke MIOpenTensile Latest") {
-            when {
-                expression { params.BUILD_SMOKE_MIOPENTENSILE_LATEST }
-            }
-            environment{
-                Tensile_version = "latest"
-            }
-            parallel{
-                stage('Fp16 Hip Tensile-Latest All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Fp16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Int8 Hip Tensile-Latest All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Int8_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Fp32 Hip Tensile-Latest All gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx908:xnack-", test_flags: ' --verbose ', miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Bf16 Hip Tensile-Latest All gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_BF16 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                // stage('Fp32 Hip Tensile-Latest All gfx90a') {
-                //     when {
-                //         beforeAgent true
-                //         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
-                //     }
-                //     agent{ label rocmnode("gfx90a") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env, build_env: Tensile_build_env + extra_log_env, gpu_arch: "gfx90a:xnack-", test_flags: ' --verbose ', miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-                // stage('Bf16 Hip Tensile-Latest All gfx90a') {
-                //     when {
-                //         beforeAgent true
-                //         expression { params.TARGET_GFX90A && params.DATATYPE_BF16 }
-                //     }
-                //     agent{ label rocmnode("gfx90a") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-            }
-        }
         stage("Full Tests I") {
             when {
                 expression { params.BUILD_FULL_TESTS1 }
@@ -968,266 +983,6 @@ pipeline {
             }
         }
 
-        stage("MIOpenTensile") {
-            when {
-                expression { params.BUILD_MIOPENTENSILE }
-            }
-            environment{
-                Tensile_version = "default"
-            }
-            parallel{
-                stage('Fp32 Hip Tensile All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Fp16 Hip Tensile All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + Fp16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Bf16 Hip Tensile All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_BF16 }
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Int8 Hip Tensile All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Fp32 Hip Tensile All gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Fp16 Hip Tensile All gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Fp16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Bf16 Hip Tensile All gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_BF16 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Int8 Hip Tensile All gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_INT8 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                // stage('Fp32 Hip Tensile All gfx90a') {
-                //     when {
-                //         beforeAgent true
-                //         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
-                //     }
-                //     agent{ label rocmnode("gfx90a") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-                // stage('Fp16 Hip Tensile All gfx90a') {
-                //     when {
-                //         beforeAgent true
-                //         expression { params.TARGET_GFX90A && params.DATATYPE_FP16 }
-                //     }
-                //     agent{ label rocmnode("gfx90a") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Fp16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-                // stage('Bf16 Hip Tensile All gfx90a') {
-                //     when {
-                //         beforeAgent true
-                //         expression { params.TARGET_GFX90A && params.DATATYPE_BF16 }
-                //     }
-                //     agent{ label rocmnode("gfx90a") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-                // stage('Int8 Hip Tensile All gfx90a') {
-                //     when {
-                //         beforeAgent true
-                //         expression { params.TARGET_GFX90A && params.DATATYPE_INT8 }
-                //     }
-                //     agent{ label rocmnode("gfx90a") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-            }
-        }
-        stage("MIOpenTensile Latest") {
-            when {
-                expression { params.BUILD_MIOPENTENSILE_LATEST  }
-            }
-            environment{
-                Tensile_version = "latest"
-            }
-            parallel{
-                stage('Fp32 Hip Tensile-Latest All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Fp16 Hip Tensile-Latest All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + Fp16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Bf16 Hip Tensile-Latest All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_BF16 }
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Int8 Hip Tensile-Latest All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env, test_flags: ' --verbose ', gpu_arch:"gfx906:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Fp32 Hip Tensile-Latest All gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Fp16 Hip Tensile-Latest All gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Fp16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Bf16 Hip Tensile-Latest All gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_BF16 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                stage('Int8 Hip Tensile-Latest All gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_INT8 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx908:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                    }
-                }
-                // stage('Fp32 Hip Tensile-Latest All gfx90a') {
-                //     when {
-                //         beforeAgent true
-                //         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
-                //     }
-                //     agent{ label rocmnode("gfx90a") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-                // stage('Fp16 Hip Tensile-Latest All gfx90a') {
-                //     when {
-                //         beforeAgent true
-                //         expression { params.TARGET_GFX90A && params.DATATYPE_FP16 }
-                //     }
-                //     agent{ label rocmnode("gfx90a") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Fp16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-                // stage('Bf16 Hip Tensile-Latest All gfx90a') {
-                //     when {
-                //         beforeAgent true
-                //         expression { params.TARGET_GFX90A && params.DATATYPE_BF16 }
-                //     }
-                //     agent{ label rocmnode("gfx90a") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Bf16_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-                // stage('Int8 Hip Tensile-Latest All gfx90a') {
-                //     when {
-                //         beforeAgent true
-                //         expression { params.TARGET_GFX90A && params.DATATYPE_INT8 }
-                //     }
-                //     agent{ label rocmnode("gfx90a") }
-                //     steps{
-                //         buildHipClangJobAndReboot( setup_flags: Tensile_setup + Full_test + extra_log_env + Int8_flags, build_env: Tensile_build_env + extra_log_env, test_flags: ' --verbose ', gpu_arch: "gfx90a:xnack-", miotensile_version: Tensile_version, target_id: "ON")
-                //     }
-                // }
-            }
-        }
         stage("Packages") {
             when {
                 expression { params.BUILD_PACKAGES && params.TARGET_NOGPU && params.DATATYPE_NA }
