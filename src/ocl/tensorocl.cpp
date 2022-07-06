@@ -305,6 +305,8 @@ void OpTensor3d(const Handle& handle,
 
         parms += GetDataTypeKernelParams(aTensorDesc.GetType());
 
+        parms += " -DMIO_BETA_ZERO=" + float_equal(miopen_beta, 0.0);
+
         parms += " -DMIOPEN_TENSOR_OP=";
         switch(tensorOp)
         {
@@ -740,6 +742,8 @@ void OpTensor4d(const Handle& handle,
 
         parms += GetDataTypeKernelParams(aTensorDesc.GetType());
 
+        parms += " -DMIO_BETA_ZERO=" + float_equal(miopen_beta, 0.0);
+
         parms += " -DMIOPEN_TENSOR_OP=";
         switch(tensorOp)
         {
@@ -1112,6 +1116,8 @@ void OpTensorOther(const Handle& handle,
                             " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
 
         parms += GetDataTypeKernelParams(aTensorDesc.GetType());
+
+        parms += " -DMIO_BETA_ZERO=" + float_equal(miopen_beta, 0.0);
 
         parms += " -DMIOPEN_TENSOR_OP=";
         switch(tensorOp)

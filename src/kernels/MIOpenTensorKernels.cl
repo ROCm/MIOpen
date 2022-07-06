@@ -105,11 +105,15 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
         // number of workgroups = c_c (b_c)
         while(lid < work_per_wg)
         {
-            int o_hw     = incr_wg == 0 ? (lid % (work_per_wg / c_n)) : lid;
-            int o_n      = incr_wg == 0 ? (lid / (work_per_wg / c_n)) : (gid / b_c);
-            int index    = o_n * c_nstride + o_c * c_cstride + o_hw;
-            c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
+            int o_hw  = incr_wg == 0 ? (lid % (work_per_wg / c_n)) : lid;
+            int o_n   = incr_wg == 0 ? (lid / (work_per_wg / c_n)) : (gid / b_c);
+            int index = o_n * c_nstride + o_c * c_cstride + o_hw;
 
+#if MIO_BETA_ZERO == 1
+            c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand);
+#else
+            c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
+#endif
             lid += get_local_size(0);
         }
     }
@@ -166,8 +170,12 @@ __kernel void OpTensorFwdBiasGeneric(global MIOPEN_TYPE* a,
             int o_w    = (incr_wg == 1) ? (lid % c_w) : ((lid / c_n) % c_w);
             int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
             int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
+#if MIO_BETA_ZERO == 1
+            c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand);
+#else
             c_off[cindex] =
                 MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+#endif
 
             lid += get_local_size(0);
         }
@@ -228,8 +236,12 @@ __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
 
         while(lid < work_per_wg)
         {
-            int index    = o_n * c_nstride + o_c * c_cstride + o_h * c_w + o_w + lid;
+            int index = o_n * c_nstride + o_c * c_cstride + o_h * c_w + o_w + lid;
+#if MIO_BETA_ZERO == 1
+            c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand);
+#else
             c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
+#endif
             lid += lcl_sz;
         }
     }
@@ -307,8 +319,12 @@ __kernel void OpTensorLeadingOnesGeneric(global MIOPEN_TYPE* a,
                              : ((bitmap & (1 << 2)) ? (lid % c_w) : ((lid / c_c) / c_h)));
             int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
             int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
+#if MIO_BETA_ZERO == 1
+            c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand);
+#else
             c_off[cindex] =
                 MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+#endif
 
             lid += lcl_sz;
         }
@@ -382,8 +398,12 @@ __kernel void Op4dTensorGeneric(global MIOPEN_TYPE* a,
 
             int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
             int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
+#if MIO_BETA_ZERO == 1
+            c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand);
+#else
             c_off[cindex] =
                 MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+#endif
 
             lid += get_local_size(0);
         }
@@ -470,8 +490,12 @@ __kernel void Op5dTensorGeneric(global MIOPEN_TYPE* a,
             int cindex =
                 o_n * c_nstride + o_c * c_cstride + o_d * c_dstride + o_h * c_hstride + o_w;
 
+#if MIO_BETA_ZERO == 1
+            c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand);
+#else
             c_off[cindex] =
                 MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+#endif
 
             lid += get_local_size(0);
         }
@@ -536,8 +560,12 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
             int aindex = o_n * a_nstride + o_c * a_cstride + o_h;
             int cindex = o_n * c_nstride + o_c * c_cstride + o_h;
 
+#if MIO_BETA_ZERO == 1
+            c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand);
+#else
             c_off[cindex] =
                 MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+#endif
 
             lid += get_local_size(0);
         }
@@ -856,8 +884,12 @@ __kernel void Op2dTensorGeneric(global MIOPEN_TYPE* a,
             int o_n    = (bitmap & (1 << 1)) ? o_n_gid_off : lid / o_n_div;
             int aindex = o_n * a_nstride + o_c;
             int cindex = o_n * c_nstride + o_c;
+#if MIO_BETA_ZERO == 1
+            c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand);
+#else
             c_off[cindex] =
                 MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+#endif
             lid += get_local_size(0);
         }
     }
@@ -898,8 +930,13 @@ __kernel void Op1dTensorGeneric(global MIOPEN_TYPE* a,
         MIOPEN_TYPE operand = b_off[bindex] * alpha1;
         while(lid < work_per_wg)
         {
-            int o_n    = (bitmap & (1 << 0)) ? o_n_gid_off : lid % c_n;
+            int o_n = (bitmap & (1 << 0)) ? o_n_gid_off : lid % c_n;
+
+#if MIO_BETA_ZERO == 1
+            c_off[o_n] = MIOPEN_TENSOR_OP(a_off[o_n] * alpha0, operand);
+#else
             c_off[o_n] = MIOPEN_TENSOR_OP(a_off[o_n] * alpha0, operand) + beta * c_off[o_n];
+#endif
             lid += get_local_size(0);
         }
     }
