@@ -357,7 +357,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_STATIC_CHECKS",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP32",
