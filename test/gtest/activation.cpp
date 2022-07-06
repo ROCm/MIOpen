@@ -320,12 +320,12 @@ struct activation_driver : test_driver
 //GoogleTest for activation
 TEST(TestActivation, BasicAssertions)
 {
-    auto marker = 0;
+    //auto marker = 0;
     int argc = 2;
     const char* argv[] = {"test_activation", "--float"};
     
     test_drive<activation_driver>(argc, argv);
 
-    ++marker;
-    EXPECT_TRUE(marker == 1) << "test_activation failed";
+    //++marker;
+    //EXPECT_TRUE(marker == 1) << "test_activation failed";
 }
