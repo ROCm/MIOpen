@@ -146,7 +146,7 @@ class SQLite::impl
         if(is_system)
         {
             if(boost::filesystem::file_size(filepath) <
-               8192) // size of a very small database, Empty MIOpen DBs are 20 kb
+               512) // size of a very small database, Empty MIOpen DBs are 20 kb
             {
                 rc = -1;
                 return rc;
