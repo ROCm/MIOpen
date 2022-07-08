@@ -1640,6 +1640,7 @@ struct conv_driver : test_driver
     bool gen_float           = false;
     bool immed               = immed_mode;
     bool enable_fdb          = true;
+    bool deterministic       = false;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution},
@@ -1937,6 +1938,8 @@ struct conv_driver : test_driver
         filter.strides.resize(spatial_dim);
         filter.dilations.resize(spatial_dim);
         filter.trans_output_pads.resize(spatial_dim);
+        if(deterministic)
+            filter.attribute.Set(MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC, 1);
 
         std::copy_n(pads_strides_dilations.begin(), spatial_dim, filter.pads.begin());
         std::copy_n(
