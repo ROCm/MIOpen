@@ -58,9 +58,12 @@ int main(int argc, char* argv[])
 #if MIOPEN_ENABLE_SQLITE
     CHECK(test_lfs_db(
         true)); // System DB should pass, since the lfs file was installed in the sys directory
-    CHECK(!throws(std::bind(
+// Embedded user dbs ignore the filename and just creates an in-memory database
+#if !MIOPEN_EMBED_DB
+    CHECK(throws(std::bind(
         test_lfs_db, false))); // User db should fail since MIOpen should not create such a file
                                // ever, if it exists its a corrupt file which should be reported.
+#endif
 #else
     return 0;
 
