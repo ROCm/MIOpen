@@ -635,6 +635,9 @@ target_include_directories(MIOpen PUBLIC
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
+if(MIOPEN_USE_MLIR)
+target_include_directories(MIOpen SYSTEM PRIVATE ${MLIRMIOpen_INCLUDE_DIR})
+endif()
 target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES})
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
