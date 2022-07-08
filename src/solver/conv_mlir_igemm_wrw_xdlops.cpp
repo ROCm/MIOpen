@@ -44,7 +44,7 @@ bool ConvMlirIgemmWrWXdlops::IsApplicable(const ConvolutionContext& ctx) const
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS{}))
         return false;
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;

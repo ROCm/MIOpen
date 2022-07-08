@@ -454,7 +454,7 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
         // clang-format off
         GemmDescriptor wino_gemm_desc{isColMajor,transA,transB,m,n,k,
             lda,ldb,ldc,batch_count,strideA,strideB,
-            strideC,alpha,beta,transform_data_type};
+            strideC,alpha,beta,transform_data_type, params.conv_problem.GetConv().attribute.deterministic };
 // clang-format on
 #else
         (void)wino_xform_w;
