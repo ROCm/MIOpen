@@ -26,27 +26,9 @@
 
 #include "test.hpp"
 #include "driver.hpp"
-
 #include <miopen/sqlite_db.hpp>
-#include <miopen/db.hpp>
-#include <miopen/db_record.hpp>
-#include <miopen/lock_file.hpp>
 #include <miopen/temp_file.hpp>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/optional.hpp>
-#include <boost/thread.hpp>
-
-#include <array>
-#include <cstdio>
-#include <cstdlib>
-#include <fstream>
-#include <mutex>
-#include <random>
-#include <string>
-#include <thread>
-#include <vector>
 #if MIOPEN_ENABLE_SQLITE
 const char* const lfs_db = R"(version https://git-lfs.github.com/spec/v1
 oid sha256:cc45c32e44560074b5e4b0c0e48472a86e6b3bb1c73c189580f950f098d2a8d7
@@ -76,7 +58,7 @@ int main(int argc, char* argv[])
 #if MIOPEN_ENABLE_SQLITE
     CHECK(test_lfs_db(
         true)); // System DB should pass, since the lfs file was installed in the sys directory
-    CHECK(throws(std::bind(
+    CHECK(!throws(std::bind(
         test_lfs_db, false))); // User db should fail since MIOpen should not create such a file
                                // ever, if it exists its a corrupt file which should be reported.
 #else
