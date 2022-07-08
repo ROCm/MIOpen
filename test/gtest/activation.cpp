@@ -190,7 +190,7 @@ struct activation_driver : test_driver
 
     template <class Forward, class Backward>
     void add_mode(miopenActivationMode_t m, Forward f, Backward b)
-    {   //hash table map to 
+    {
         lookup.emplace(transform_mode(to_name(m)), [=] { this->run(m, f, b); });
     }
 
@@ -271,7 +271,7 @@ struct activation_driver : test_driver
     }
 
     static std::string transform_mode(std::string s)
-    {   //Remove MIOPENACTIVATION from s if any
+    {
         return miopen::RemovePrefix(miopen::ToUpper(s), "MIOPENACTIVATION");
     }
 
@@ -320,12 +320,12 @@ struct activation_driver : test_driver
 //GoogleTest for activation
 TEST(TestActivation, BasicAssertions)
 {
-    auto volatile marker = 0;
+    //auto marker = 0;
     int argc = 2;
     const char* argv[] = {"test_activation", "--float"};
     
     test_drive<activation_driver>(argc, argv);
 
-    ++marker;
-    EXPECT_EQ(marker,1) << "test_activation failed";
+    //++marker;
+    //EXPECT_TRUE(marker == 1) << "test_activation failed";
 }
