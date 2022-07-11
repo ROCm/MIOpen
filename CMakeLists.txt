@@ -317,7 +317,7 @@ option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT}
 
 if(MIOPEN_USE_MLIR)
     # REQUIRED is not supported before cmake 3.18
-    find_package(MLIRMIOpen 0.202108 REQUIRED CONFIG)
+    find_package(Miir 0.202108 REQUIRED CONFIG)
     if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
         message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
     endif()
