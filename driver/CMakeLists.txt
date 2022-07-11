@@ -31,7 +31,7 @@ add_executable(MIOpenDriver main.cpp InputFlags.cpp)
 target_include_directories(MIOpenDriver PRIVATE ${MLIRMIOpen_INCLUDE_DIR})
 target_link_libraries(MIOpenDriver MIOpen)
 if(MIOPEN_USE_MLIR)
-target_link_libraries(MIOpenDriver MLIR::MLIRMIOpen)
+target_link_libraries(MIOpenDriver Miir::MLIRMIOpen)
 endif()
 
 target_link_libraries(MIOpenDriver ${CMAKE_THREAD_LIBS_INIT})
