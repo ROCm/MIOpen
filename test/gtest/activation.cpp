@@ -40,6 +40,8 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 
+#include <gtest/gtest.h>
+
 std::string to_name(miopenActivationMode_t m)
 {
 #define STRING_CASE(x) \
@@ -315,4 +317,15 @@ struct activation_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<activation_driver>(argc, argv); }
+// GoogleTest for activation
+TEST(TestActivation, BasicAssertions)
+{
+    auto marker        = 0;
+    int argc           = 2;
+    const char* argv[] = {"test_activation", "--float"};
+
+    test_drive<activation_driver>(argc, argv);
+
+    ++marker;
+    EXPECT_EQ(marker, 1);
+}
