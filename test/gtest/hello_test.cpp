@@ -2,13 +2,7 @@
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
 
-//Todo: Reduced duplicated code from cache.cpp
-//E.g. declare extern check_cache() in cache. cpp and declare dependency on cache.cpp?
-
 // Demonstrate some basic assertions.
-//Todo: Include a simple task
-//TEST_F()?: use the same data configuration for multiple tests
-
 TEST(HelloTest, BasicAssertions)
 {
 
