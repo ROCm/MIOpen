@@ -2,7 +2,7 @@
 # MIOpen Porting Guide
 
 
-## Key differences between MIOpen v1.0 and cuDNN:
+## The key differences between MIOpen and cuDNN:
 * MIOpen only supports 4-D tensors in the NCHW storage format. This means all the __“\*Nd\*”__ APIs in cuDNN do not have a corresponding API in MIOpen.
 * MIOpen only supports __`float(fp32)`__ data-type.
 * MIOpen only supports __2D Convolutions__ and __2D Pooling__.
