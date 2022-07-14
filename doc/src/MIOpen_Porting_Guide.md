@@ -2,8 +2,6 @@
 # MIOpen Porting Guide
 
 
-<!--<div style="page-break-after: always"></div>-->
-
 ## Key differences between MIOpen v1.0 and cuDNN:
 * MIOpen only supports 4-D tensors in the NCHW storage format. This means all the __“\*Nd\*”__ APIs in cuDNN do not have a corresponding API in MIOpen.
 * MIOpen only supports __`float(fp32)`__ data-type.
@@ -1634,7 +1632,7 @@ miopenActivationBackward(
 ```c++
 cudnnStatus_t 
 cudnnCreateLRNDescriptor(
-    cudnnLRNDescriptor_t *tensorDesc)
+    cudnnLRNDescriptor_t *normDesc)
 ```
 </td>
 
@@ -1644,7 +1642,7 @@ cudnnCreateLRNDescriptor(
 miopenStatus_t 
 miopenCreateLRNDescriptor(
     miopenLRNDescriptor_t  
-    *tensorDesc)
+    *lrnDesc)
 ```
 </td>
 </tr>
