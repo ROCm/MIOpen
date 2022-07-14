@@ -738,6 +738,20 @@ pipeline {
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Int8_flags, config_targets: Smoke_targets)
                     }
                 }
+                stage('Int8 Hip Debug gfx908 (ComposableKernel)') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908}
+                    }
+                    agent{ label rocmnode("gfx908") }
+                    // This stage should be removed when CK is enabled by default in MIOpen
+                    environment{
+                        Enable_CK = "-DMIOPEN_USE_COMPOSABLEKERNEL=On"
+                    }
+                    steps{
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Enable_CK + Int8_flags , build_env: extra_log_env, test_flags: ' --verbose ')
+                    }
+                }
                 stage('Fp16 Hip Vega20 /opt/rocm') {
                     when {
                         beforeAgent true

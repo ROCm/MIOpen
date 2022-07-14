@@ -1,11 +1,12 @@
 #include <vector>
 
-#include <ck/library/host/host_interface.hpp>
-
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/convolution_context_interpreter.hpp>
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#include <ck/library/host/host_interface.hpp>
+#endif
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
@@ -49,6 +50,10 @@ struct CKArgs
 void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionContext& ctx)
 {
     this->index = 0;
+#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
+    std::ignore = ctx;
+#else
+    this->index = 0;
     std::vector<DeviceConvFwdPtr_t> conv_ptrs;
     add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
     assert(!conv_ptrs.empty());
@@ -76,6 +81,7 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionC
         }
         ++this->index;
     }
+#endif
 }
 
 bool PerformanceConfigHipImplicitGemmFwdXdlops::SetNextValue(const ConvolutionContext& ctx)
@@ -96,6 +102,10 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValidValue() const { return in
 
 bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(const ConvolutionContext& ctx) const
 {
+#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
+    std::ignore = ctx;
+    return false;
+#else
     std::vector<DeviceConvFwdPtr_t> conv_ptrs;
     add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
     const auto args   = CKArgs{ctx};
@@ -113,6 +123,7 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(const ConvolutionContext
                                                                    args.lPadding,
                                                                    args.rPadding);
     return conv_ptrs[this->index].IsSupportedArgument(argument_ptr.get());
+#endif
 }
 
 bool PerformanceConfigHipImplicitGemmFwdXdlops::operator==(
@@ -150,7 +161,7 @@ size_t ConvHipImplicitGemmFwdXdlops::GetWorkspaceSize(const ConvolutionContext& 
 
 bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
-#if !MIOPEN_BACKEND_HIP
+#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
     return false;
 #else
@@ -205,7 +216,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
 ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     const ConvolutionContext& ctx, const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {
-#if !MIOPEN_BACKEND_HIP
+#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
     std::ignore = config;
     return {};
