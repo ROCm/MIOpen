@@ -36,12 +36,14 @@
 #include <utility>
 
 #include "driver.hpp"
+#include "activ_driver.hpp"
+#include "InputFlags.hpp"
 #include "get_handle.hpp"
-#include "tensor_holder.hpp"
+//#include "tensor_holder.hpp"
 #include "verify.hpp"
 
 #include <gtest/gtest.h>
-
+/*
 std::string to_name(miopenActivationMode_t m)
 {
 #define STRING_CASE(x) \
@@ -316,16 +318,32 @@ struct activation_driver : test_driver
         verify(verify_backwards_activation<T>{input, dout, out.first, desc}, b);
     }
 };
-
+*/
 // GoogleTest for activation
 TEST(TestActivation, BasicAssertions)
 {
-    auto marker        = 0;
-    int argc           = 2;
-    const char* argv[] = {"test_activation", "--float"};
+    Driver* drv;
 
-    test_drive<activation_driver>(argc, argv);
+    // Activation with float
+    drv = new ActivationDriver<float, double>();
+    // Activation with float16. to be selected by input args?
+    // drv = new ActivationDriver<float16, double>();
 
-    ++marker;
-    EXPECT_EQ(marker, 1);
+    EXPECT_TRUE(drv != nullptr);
+
+    drv->AddCmdLineArgs();
+    // int rc = drv->ParseCmdLineArgs(argc, argv);
+    int rc = miopenStatusSuccess;
+    rc     = drv->AllocateBuffersAndCopy();
+    ASSERT_EQ(rc, miopenStatusSuccess);
+
+    // Forward
+    rc = drv->RunForwardGPU();
+    drv->VerifyForward();
+    EXPECT_EQ(rc, miopenStatusSuccess);
+
+    // Backward
+    rc = drv->RunBackwardGPU();
+    drv->VerifyBackward();
+    EXPECT_EQ(rc, miopenStatusSuccess);
 }
