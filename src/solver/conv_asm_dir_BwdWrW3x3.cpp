@@ -39,6 +39,7 @@
 
 #define WORKAROUND_ISSUE_532 1 // ConvAsmBwdWrW3x3 has precision issues with some PerformanceConfigs
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
+#define WORKAROUND_SWDEV_330460 1 // ConvAsmBwdWrw3x3 has precision issues on MI200
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED)
@@ -370,6 +371,11 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 
     if(name == "gfx90a" && params.conv_problem.IsGfx90aFp16altRequired())
         return false;
+
+#if WORKAROUND_SWDEV_330460
+    if(name == "gfx90a" && params.IsFp32())
+        return false;
+#endif
 
     // clang-format off
     bool ok = params.pad_w == 1           // -q  pad_w
