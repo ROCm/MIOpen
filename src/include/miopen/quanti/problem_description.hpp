@@ -52,7 +52,7 @@ struct ProblemDescription
     const TensorDescriptor& GetOutDesc() const { return outDesc; }
 
     NetworkConfig MakeNetworkConfig() const;
-
+    /*
     void Serialize(std::ostream& stream) const;
 
     friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
@@ -60,7 +60,7 @@ struct ProblemDescription
         obj.Serialize(os);
         return os;
     }
-
+    */
 private:
     QuantizationDescriptor quantiDesc;
     TensorDescriptor in;
