@@ -14,7 +14,6 @@ MIOpen supports two programming models -
 * Base software stack, which includes:
   * HIP - 
     * HIP and HCC libraries and header files.
-    * [clang-ocl](https://github.com/RadeonOpenCompute/clang-ocl) -- **required**
   * OpenCL - OpenCL libraries and header files.
 * [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) - enable various functionalities including transposed and dilated convolutions. 
   * This is optional on the HIP backend, and required on the OpenCL backend.
