@@ -467,7 +467,7 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
                 return tmp;
             }();
 
-            const auto in_c = dxDesc.GetLengths()[1];
+            const auto in_c  = dxDesc.GetLengths()[1];
             const auto wei_k = wDesc.GetLengths()[0];
 
             const auto in_spatial = boost::adaptors::slice(dxDesc.GetLengths(), 2, 2 + spatial_dim);

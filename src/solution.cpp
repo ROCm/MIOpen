@@ -154,10 +154,10 @@ void Solution::RunImpl(Handle& handle,
     //     LogRange(std::cerr, tensor.GetStrides(), "x");
     //     std::cerr << ", " << GetDataTypeName(tensor.GetType()) << std::endl;
     // };
-    // 
+    //
     // std::cerr << "Transposed: " << (conv_desc.mode == miopenTranspose ? "true" : "false")
     //           << std::endl;
-    // 
+    //
     // std::cerr << "Conv: " << conv_desc << std::endl;
     // log_tensor("X", *x.descriptor);
     // log_tensor("W", *w.descriptor);
