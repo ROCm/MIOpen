@@ -723,6 +723,9 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescripto
  *
  * This function implements: \f$ C = op ( alpha1[0] * A, alpha2[0] * B ) + beta[0] * C \f$
  *
+ * when scaling factor beta of tensor C is zero, the input values of tensor C are not used in the
+ * calculations.
+ *
  * For Forward Bias one can also use, miopenConvolutionForwardBias()
  *
  * @param handle     MIOpen handle (input)
