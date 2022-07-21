@@ -4756,10 +4756,9 @@ typedef enum
  * @param direction    Direction of the operation
  * @return             miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenStatus_t
-miopenCreateConvProblem(miopenProblem_t* problem,
-                        miopenConvolutionDescriptor_t operatorDesc,
-                        miopenProblemDirection_t direction);
+MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
+                                                     miopenConvolutionDescriptor_t operatorDesc,
+                                                     miopenProblemDirection_t direction);
 
 /*! @brief Destroys a problem object.
  *
