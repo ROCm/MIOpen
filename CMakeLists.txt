@@ -450,7 +450,7 @@ endif()
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
     DESCRIPTION "AMD's DNN Library"
-    MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
+    MAINTAINER "MIOpen Maintainer <miopen-lib.support@amd.com>"
     LDCONFIG
     # DEPENDS rocm-opencl hip-rocclr tinygemm
 )
