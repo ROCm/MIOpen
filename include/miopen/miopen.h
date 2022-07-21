@@ -62,6 +62,7 @@
  * @defgroup fusion
  * @defgroup LossFunction
  * @defgroup TensorReduce
+ * @defgroup find2
  *
  */
 
@@ -4705,13 +4706,22 @@ miopenReduceTensor(miopenHandle_t handle,
 /** @} */
 // CLOSEOUT TensorReduce DOXYGEN GROUP
 
-/**
- * An miopenProblem will describe a problem for different miopen operations.
+// Find 2.0 API
+/** @addtogroup find2
+ *
+ *  @{
+ */
+
+/*! @brief Describes a problem for different miopen operations.
+ *
  * For now, this is only used for convolution, but could be used for other
  * operators in the future(such as GEMM, Pooling, etc)
  */
 MIOPEN_DECLARE_OBJECT(miopenProblem);
 
+/*! @enum miopenProblemDirection_t
+ * Directions of miopen operation.
+ */
 typedef enum
 {
     miopenProblemDirectionForward         = 0,
@@ -4719,7 +4729,9 @@ typedef enum
     miopenProblemDirectionBackwardWeights = 2,
 } miopenProblemDirection_t;
 
-// Enums with no meaningful default value should probably have invalid default for fool-proofing.
+/*! @enum miopenTensorArgumentId_t
+ * Identifiers for tensor arguments of problems and operations.
+ */
 typedef enum
 {
     miopenTensorArgumentIdInvalid = 0,
@@ -4728,48 +4740,103 @@ typedef enum
     miopenTensorConvolutionY      = 3,
 } miopenTensorArgumentId_t;
 
+/*! @enum miopenTensorArgumentId_t
+ * Different ways to sort results of the find call.
+ */
 typedef enum
 {
     miopenFindResultsOrderByTime   = 0,
     miopenFindResultsOrderByMemory = 1,
 } miopenFindResultsOrder_t;
 
-miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
-                                       miopenConvolutionDescriptor_t operatorDesc,
-                                       miopenProblemDirection_t direction);
+/*! @brief Initializes a problem object describing a convolution operation.
+ *
+ * @param problem      Pointer to the problem to initialize
+ * @param operatorDesc Descriptor of the operator to be used
+ * @param direction    Direction of the operation
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenStatus_t
+miopenCreateConvProblem(miopenProblem_t* problem,
+                        miopenConvolutionDescriptor_t operatorDesc,
+                        miopenProblemDirection_t direction);
 
+/*! @brief Destroys a problem object.
+ *
+ * @param problem Problem to destroy
+ * @return        miopenStatus_t
+ */
 miopenStatus_t miopenDestroyProblem(miopenProblem_t problem);
 
-// Universal problem should have named tensor fields rather than ordered.
-// Previously, different directions had different input orders, which may lead to confusion.
-// Implicitly ordered fields would also lead to a whole lot of magical ids all over the internals.
+/*! @brief Sets a tensor descriptor for the specified argument.
+ *
+ * @param problem    Problem to update
+ * @param id         Id of the argument for the descriptor
+ * @param descriptor Tensor descriptor to set
+ * @return           miopenStatus_t
+ */
 miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
                                                 miopenTensorArgumentId_t id,
                                                 const miopenTensorDescriptor_t descriptor);
 
-/**
- * The miopenFindOptions will allow the user to configure how find will be
- * used. This can include things like exhaustiveSearch, and ordering. In the
- * future, this can support setting different find mode options.
+/*! @brief The miopenFindOptions allows the user to configure how find will be used.
  */
 MIOPEN_DECLARE_OBJECT(miopenFindOptions);
 
+/*! @brief Initializes miopenFindOptions object.
+ *
+ * @param options    Pointer to options object to initialze
+ * @return           miopenStatus_t
+ */
 miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options);
 
+/*! @brief Destroys miopenFindOptions object.
+ *
+ * @param options    Options object to destroy
+ * @return           miopenStatus_t
+ */
 miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options);
 
+/*! @brief Sets the tuning find option. Default value is zero.
+ *
+ * @param options    Options object to upfate
+ * @param value      Value of zero means no tuning, value of one means tuning enabled
+ * @return           miopenStatus_t
+ */
 miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value);
 
+/*! @brief Sets the results order find option. Default value is miopenFindResultsOrderByTime.
+ *
+ * @param options    Options object to upfate
+ * @param value      Specifies what order should find results have
+ * @return           miopenStatus_t
+ */
 miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
                                                miopenFindResultsOrder_t value);
 
+/*! @brief Sets the workspace limit find option. Default value is maximum of size_t
+ *
+ * @param options    Options object to upfate
+ * @param value      Specifies the workspace limit for find call. All solvers exceeding the limit
+ * would be ignored.
+ * @return           miopenStatus_t
+ */
 miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, size_t value);
 
+/*! @brief The miopenSolution object describes a prepared solution.
+ */
 MIOPEN_DECLARE_OBJECT(miopenSolution);
 
-/**
- * Finds solutions to a problem by running different applicable solutions. Memory is automatically
- * allocated.
+/*! @brief Finds solutions to a problem by running different applicable solutions. Memory is
+ * automatically allocated.
+ *
+ * @param handle       Handle to execute the kernels
+ * @param problem      Problem to solve
+ * @param options      Find options. When null default values would be used
+ * @param solutions    Pointer to the first result. Must not be null
+ * @param numSolutions Pointer to the amount of results. Ignored if null
+ * @param maxSolutions Limits the amount of results
+ * @return             miopenStatus_t
  */
 miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                    miopenProblem_t problem,
@@ -4778,18 +4845,34 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                    size_t* numSolutions,
                                    size_t maxSolutions);
 
+/*! @brief Values of a tensor argument for the miopenRunSolution function.
+ */
 struct miopenTensorArgument_t
 {
+    /* @brief Identifier of the tensor argument.
+     */
     miopenTensorArgumentId_t id;
+    /* @brief Tensor descriptor to override the value stored in the solution.
+     *
+     * Some solvers may support overriding input and output tensor descriptors, but right now there
+     * is no way to tell from the API. Intended for the future use.
+     */
     miopenTensorDescriptor_t* descriptor;
+    /* @brief Pointer to the device memory buffer to use for the operation.
+     */
     void* buffer;
 };
 
-/**
- * Runs the solution using the passed in buffers. Corresponding tensor
- * descriptors are passed in so if a user would like to dynamically change
- * the sizes, they can do so. If dynamic changes are not supported(or are
- * invalid), we should return an error to the user.
+/*! @brief Runs the solution using the passed in buffers.
+ *
+ * @param handle        Handle to execute the kernels
+ * @param solution      Solution to execute
+ * @param nInputs       Amount to inputs for the solution
+ * @param tensors       Tensor arguments described by miopenTensorArgument_t
+ * @param workspace     Pointer to device buffer used as workspace. May be null when not required.
+ * Should not be less than expected
+ * @param workspaceSize Size of the workspace buffer
+ * @return              miopenStatus_t
  */
 miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  miopenSolution_t solution,
@@ -4798,17 +4881,56 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  void* workspace,
                                  size_t workspaceSize);
 
+/*! @brief Destroys solution object.
+ *
+ * @param solution   Solution to destroy
+ * @return           miopenStatus_t
+ */
 miopenStatus_t miopenDestroySolution(miopenSolution_t solution);
 
+/*! @brief Loads solution object from binary data.
+ *
+ * @param solution   Pointer to the solution to load
+ * @param data       Data to load the solution from
+ * @param size       Size of the solution blob
+ * @return           miopenStatus_t
+ */
 miopenStatus_t miopenLoadSolution(miopenSolution_t* solution, const char* data, size_t size);
 
+/*! @brief Saves a solution object as binary data.
+ *
+ * @param solution   Solution to save
+ * @param data       Pointer to a buffer to save soltuion to
+ * @return           miopenStatus_t
+ */
 miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data);
 
+/*! @brief Reads the expected size of a solution.
+ *
+ * @param solution   Solution to get size
+ * @param size       Pointer to a location where to write the size of the solution blob
+ * @return           miopenStatus_t
+ */
 miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size);
 
+/*! @brief Reads the amount of workspace required to exectute the solution.
+ *
+ * @param solution      Solution to get required workspace size
+ * @param workspaceSize Pointer to a location where to write the workspace size
+ * @return              miopenStatus_t
+ */
 miopenStatus_t miopenGetSolutionWorkspaceSize(miopenSolution_t solution, size_t* workspaceSize);
 
+/*! @brief Reads the time spent to execute the solution the last it was run.
+ *
+ * @param solution Solution to get exection time
+ * @param time     Pointer to a location where to write the execution time
+ * @return         miopenStatus_t
+ */
 miopenStatus_t miopenGetSolutionTime(miopenSolution_t solution, float* time);
+
+/** @} */
+// CLOSEOUT find2 DOXYGEN GROUP
 
 #ifdef __cplusplus
 }
