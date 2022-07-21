@@ -1,54 +1,53 @@
 
-Dropout Layer
-=============
+# Dropout Layer
 
 The dropout layer API documentation
 
 
-miopenRNGType_t
----------------
+## miopenRNGType_t
 
-.. doxygenenum::  miopenRNGType_t
+```{doxygenenum}  miopenRNGType_t
+```
 
-miopenCreateDropoutDescriptor
------------------------------
+## miopenCreateDropoutDescriptor
 
-.. doxygenfunction::  miopenCreateDropoutDescriptor
+```{doxygenfunction}  miopenCreateDropoutDescriptor
+```
 
-miopenGetDropoutDescriptor
---------------------------
+## miopenGetDropoutDescriptor
 
-.. doxygenfunction::  miopenGetDropoutDescriptor
+```{doxygenfunction}  miopenGetDropoutDescriptor
+```
 
-miopenRestoreDropoutDescriptor
-------------------------------
+## miopenRestoreDropoutDescriptor
 
-.. doxygenfunction::  miopenRestoreDropoutDescriptor
+```{doxygenfunction}  miopenRestoreDropoutDescriptor
+```
 
-miopenDestroyDropoutDescriptor
-------------------------------
+## miopenDestroyDropoutDescriptor
 
-.. doxygenfunction::  miopenDestroyDropoutDescriptor
+```{doxygenfunction}  miopenDestroyDropoutDescriptor
+```
 
-miopenSetDropoutDescriptor
---------------------------
+## miopenSetDropoutDescriptor
 
-.. doxygenfunction::  miopenSetDropoutDescriptor
+```{doxygenfunction}  miopenSetDropoutDescriptor
+```
 
-miopenDropoutGetReserveSpaceSize
---------------------------------
+## miopenDropoutGetReserveSpaceSize
 
-.. doxygenfunction::  miopenDropoutGetReserveSpaceSize
+```{doxygenfunction}  miopenDropoutGetReserveSpaceSize
+```
 
-miopenDropoutGetStatesSize
---------------------------
+## miopenDropoutGetStatesSize
 
-.. doxygenfunction::  miopenDropoutGetStatesSize
+```{doxygenfunction}  miopenDropoutGetStatesSize
+```
 
-miopenDropoutForward
---------------------
+## miopenDropoutForward
 
-.. doxygenfunction::  miopenDropoutForward
+```{doxygenfunction}  miopenDropoutForward
+```
 
 **Return value description:**
 
@@ -70,10 +69,10 @@ miopenDropoutForward
 
   - Memory required by dropout forward configs exceeds GPU memory range.
 
-miopenDropoutBackward
----------------------
+## miopenDropoutBackward
 
-.. doxygenfunction::  miopenDropoutBackward
+```{doxygenfunction}  miopenDropoutBackward
+```
 
 **Return value description:**
 
