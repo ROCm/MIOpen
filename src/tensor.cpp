@@ -252,6 +252,26 @@ std::size_t TensorDescriptor::GetNumBytes() const
     return typesize * this->GetElementSpace();
 }
 
+double TensorDescriptor::GetScale() const
+{
+    return this->scale;
+}
+
+double TensorDescriptor::GetBias() const
+{
+    return this->bias;
+}
+
+void TensorDescriptor::SetScale(double scale_)
+{
+    this->scale = scale_;
+}
+
+void TensorDescriptor::SetBias(double bias_)
+{
+    this->bias = bias_;
+}
+
 bool TensorDescriptor::IsPacked() const { return this->packed; }
 
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const

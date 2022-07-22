@@ -186,6 +186,11 @@ struct TensorDescriptor : miopenTensorDescriptor
         return this->GetIndex({static_cast<int>(is)...});
     }
 
+    double GetScale() const;
+    double GetBias() const;
+    void SetScale(double scale_);
+    void SetBias(double bias_);
+
     bool IsPacked() const;
 
     bool operator==(const TensorDescriptor& rhs) const;
@@ -251,6 +256,8 @@ private:
 
     miopenDataType_t type             = miopenFloat;
     miopenTensorLayout_t tensorLayout = miopenTensorNCHW;
+    double scale = 1.0;
+    double bias = 0.0;
 };
 
 template <class TElement>
