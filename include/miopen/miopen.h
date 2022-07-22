@@ -586,7 +586,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
 /*! @brief Set the quantization scale of Tensor Descriptor
  *
  * API for setting the quantization scale of tensor descriptor.
- * @param tensorDesc  Pointer to a tensor descriptor type (output)
+ * @param tensorDesc  Pointer to a tensor descriptor type
  * @param quantiScale quantization scale
  * @return            miopenStatus_t
  */
@@ -596,12 +596,32 @@ MIOPEN_EXPORT miopenStatus_t miopenSetQuantizationScale(miopenTensorDescriptor_t
 /*! @brief Set the quantization bias of Tensor Descriptor
  *
  * API for setting the quantization bias of tensor descriptor.
- * @param tensorDesc  Pointer to a tensor descriptor type (output)
+ * @param tensorDesc  Pointer to a tensor descriptor type
  * @param quantiBias  quantization bias
  * @return            miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetQuantizationBias(miopenTensorDescriptor_t tensorDesc,
                                                        double quantiBias);
+
+/*! @brief Get the quantization scale of tensor descriptor
+ *
+ * Interface for querying tensor quantization scale.
+ * @param tensorDesc   Tensor descriptor type (input)
+ * @param quantiScale  tensor quantization scale (output)
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetQuantizationScale(miopenTensorDescriptor_t tensorDesc,
+                                                        double* quantiScale);
+
+/*! @brief Get the quantization scale of tensor descriptor
+ *
+ * Interface for querying tensor quantization Bias.
+ * @param tensorDesc   Tensor descriptor type (input)
+ * @param quantiBias   tensor quantization bias (output)
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetQuantizationBias(miopenTensorDescriptor_t tensorDesc,
+                                                       double* quantiBias);
 
 /*! @brief Set shape of 4D tensor
  *
