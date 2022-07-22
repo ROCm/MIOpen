@@ -41,14 +41,14 @@ extern "C" miopenStatus_t miopenSetQuantizationScale(miopenTensorDescriptor_t te
                                                      double quantiScale)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc, quantiScale);
-    return miopen::try_([&] { miopen::deref(tensorDesc).SetScale(quantiScale); });
+    return miopen::try_([&] { miopen::deref(tensorDesc).SetQuantizationScale(quantiScale); });
 }
 
 extern "C" miopenStatus_t miopenSetQuantizationBias(miopenTensorDescriptor_t tensorDesc,
                                                     double quantiBias)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc, quantiBias);
-    return miopen::try_([&] { miopen::deref(tensorDesc).SetBias(quantiBias); });
+    return miopen::try_([&] { miopen::deref(tensorDesc).SetQuantizationBias(quantiBias); });
 }
 
 extern "C" miopenStatus_t miopenSet4dTensorDescriptor(

@@ -252,13 +252,16 @@ std::size_t TensorDescriptor::GetNumBytes() const
     return typesize * this->GetElementSpace();
 }
 
-double TensorDescriptor::GetScale() const { return this->scale; }
+double TensorDescriptor::GetQuantizationScale() const { return this->quantiScale; }
 
-double TensorDescriptor::GetBias() const { return this->bias; }
+double TensorDescriptor::GetQuantizationBias() const { return this->quantiBias; }
 
-void TensorDescriptor::SetScale(double scale_) { this->scale = scale_; }
+void TensorDescriptor::SetQuantizationScale(double quantiScale_)
+{
+    this->quantiScale = quantiScale_;
+}
 
-void TensorDescriptor::SetBias(double bias_) { this->bias = bias_; }
+void TensorDescriptor::SetQuantizationBias(double quantiBias_) { this->quantiBias = quantiBias_; }
 
 bool TensorDescriptor::IsPacked() const { return this->packed; }
 
