@@ -583,6 +583,26 @@ typedef enum
  */
 MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t* tensorDesc);
 
+/*! @brief Set the quantization scale of Tensor Descriptor
+ *
+ * API for setting the quantization scale of tensor descriptor.
+ * @param tensorDesc  Pointer to a tensor descriptor type (output)
+ * @param quantiScale quantization scale
+ * @return            miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetQuantizationScale(miopenTensorDescriptor_t* tensorDesc,
+                                                        double quantiScale);
+
+/*! @brief Set the quantization bias of Tensor Descriptor
+ *
+ * API for setting the quantization bias of tensor descriptor.
+ * @param tensorDesc  Pointer to a tensor descriptor type (output)
+ * @param quantiBias  quantization bias
+ * @return            miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetQuantizationBias(miopenTensorDescriptor_t* tensorDesc,
+                                                       double quantiBias);
+
 /*! @brief Set shape of 4D tensor
  *
  * Interface for setting 4-D tensor shape. MIOpen currently only implements NCHW layout.
