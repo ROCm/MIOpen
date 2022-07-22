@@ -256,8 +256,9 @@ private:
 
     miopenDataType_t type             = miopenFloat;
     miopenTensorLayout_t tensorLayout = miopenTensorNCHW;
+
     double scale = 1.0;
-    double bias = 0.0;
+    double bias  = 0.0;
 };
 
 template <class TElement>
