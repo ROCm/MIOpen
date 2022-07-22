@@ -303,14 +303,6 @@ MIOPEN_DECLARE_OBJECT(miopenLRNDescriptor);
  */
 MIOPEN_DECLARE_OBJECT(miopenActivationDescriptor);
 
-/*! @ingroup quantization
- * @brief Creates the miopenQuantizationDescriptor_t type
- *
- * Quantization descriptor is an object that allows the user triger quantization.
- *
- */
-MIOPEN_DECLARE_OBJECT(miopenQuantizationDescriptor);
-
 /*! @ingroup RNN
  * @brief Creates the miopenRNNDescriptor_t type
  */
