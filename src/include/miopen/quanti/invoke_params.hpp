@@ -26,45 +26,23 @@
 
 #pragma once
 
-#include <miopen/quanti.hpp>
+#include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 
-#include <string>
-
 namespace miopen {
-
-struct NetworkConfig;
-
 namespace quanti {
 
-struct ProblemDescription
+struct InvokeParams : public miopen::InvokeParams
 {
-    // constructor
-    ProblemDescription(const QuantizationDescriptor& quantiDesc_,
-                       const TensorDescriptor& inDesc_,
-                       const TensorDescriptor& outDesc_)
-        : quantiDesc(quanti), inDesc(inDesc_), outDesc(outDesc_)
-    {
-    }
-
-    const QuantizationDescriptor& GetQuantiDesc() const { return quantiDesc; }
-    const TensorDescriptor& GetInDesc() const { return inDesc; }
-    const TensorDescriptor& GetOutDesc() const { return outDesc; }
-
-    NetworkConfig MakeNetworkConfig() const;
-    /*
-    void Serialize(std::ostream& stream) const;
-
-    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
-    {
-        obj.Serialize(os);
-        return os;
-    }
-    */
-private:
-    QuantizationDescriptor quantiDesc;
+    InvokeParams() = default;
+  
     TensorDescriptor inDesc;
+    ConstData_t in = nullptr;
     TensorDescriptor outDesc;
+    Data_t out        = nullptr;
+    double scaler = 0;
+    double bias   = 0;     
+};
 
 } // namespace quanti
 

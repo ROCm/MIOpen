@@ -24,47 +24,26 @@
  *
  *******************************************************************************/
 
-#pragma once
+#include <miopen/quanti/problem_description.hpp>
+#include <miopen/names.hpp>
 
-#include <miopen/quanti.hpp>
-#include <miopen/tensor.hpp>
-
-#include <string>
+#include <sstream>
 
 namespace miopen {
 
-struct NetworkConfig;
-
 namespace quanti {
 
-struct ProblemDescription
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    // constructor
-    ProblemDescription(const QuantizationDescriptor& quantiDesc_,
-                       const TensorDescriptor& inDesc_,
-                       const TensorDescriptor& outDesc_)
-        : quantiDesc(quanti), inDesc(inDesc_), outDesc(outDesc_)
-    {
-    }
+    std::ostringstream ss;
 
-    const QuantizationDescriptor& GetQuantiDesc() const { return quantiDesc; }
-    const TensorDescriptor& GetInDesc() const { return inDesc; }
-    const TensorDescriptor& GetOutDesc() const { return outDesc; }
+    ss << "quanti-";
+    ss << inDesc.GetType();
+    ss <<"-";
+    ss << outDesc.GetType();
 
-    NetworkConfig MakeNetworkConfig() const;
-    /*
-    void Serialize(std::ostream& stream) const;
-
-    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
-    {
-        obj.Serialize(os);
-        return os;
-    }
-    */
-private:
-    QuantizationDescriptor quantiDesc;
-    TensorDescriptor inDesc;
-    TensorDescriptor outDesc;
+    return NetworkConfig{ss.str()};
+}
 
 } // namespace quanti
 
