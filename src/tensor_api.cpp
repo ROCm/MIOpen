@@ -37,6 +37,20 @@ extern "C" miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t*
     return miopen::try_([&] { miopen::deref(tensorDesc) = new miopen::TensorDescriptor(); });
 }
 
+extern "C" miopenStatus_t miopenSetQuantizationScale(miopenTensorDescriptor_t tensorDesc,
+                                                     double quantiScale)
+{
+    MIOPEN_LOG_FUNCTION(tensorDesc, quantiScale);
+    return miopen::try_([&] { miopen::deref(tensorDesc).SetScale(quantiScale); });
+}
+
+extern "C" miopenStatus_t miopenSetQuantizationBias(miopenTensorDescriptor_t tensorDesc,
+                                                    double quantiBias)
+{
+    MIOPEN_LOG_FUNCTION(tensorDesc, quantiBias);
+    return miopen::try_([&] { miopen::deref(tensorDesc).SetBias(quantiBias); });
+}
+
 extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
     miopenTensorDescriptor_t tensorDesc, miopenDataType_t dataType, int n, int c, int h, int w)
 {
