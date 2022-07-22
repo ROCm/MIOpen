@@ -27,6 +27,8 @@
 
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <cmath>
+#include <limits>
 
 int main(int argc, char* argv[])
 {
@@ -44,7 +46,8 @@ int main(int argc, char* argv[])
     const int hStride = h;
     const int cStride = h * w;
     const int nStride = c * h * w;
-    res               = miopenSet4dTensorDescriptorEx(
+
+    res = miopenSet4dTensorDescriptorEx(
         desc, miopenFloat, n, c, h, w, nStride, cStride, hStride, wStride);
     CHECK(res == miopenStatusSuccess);
     int t_nStride = 0;
@@ -68,5 +71,24 @@ int main(int argc, char* argv[])
     CHECK(t_cStride == cStride);
     CHECK(t_hStride == hStride);
     CHECK(t_wStride == wStride);
+
+    // test set/get quantization scale/bias APIs
+    double quantiScale = 2.0;
+    double quantiBias  = 0.8;
+
+    res = miopenSetQuantizationScale(desc, quantiScale);
+    CHECK(res == miopenStatusSuccess);
+    res = miopenSetQuantizationBias(desc, quantiBias);
+    CHECK(res == miopenStatusSuccess);
+
+    double t_scale = 0.0;
+    double t_bias  = 0.0;
+
+    res = miopenGetQuantizationScale(desc, &t_scale);
+    CHECK(res == miopenStatusSuccess);
+    CHECK(std::fabs(quantiScale - t_scale) < std::numeric_limits<double>::epsilon());
+    res = miopenGetQuantizationBias(desc, &t_bias);
+    CHECK(res == miopenStatusSuccess);
+    CHECK(std::fabs(quantiBias - t_bias) < std::numeric_limits<double>::epsilon());
     return 0;
 }
