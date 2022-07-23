@@ -157,13 +157,21 @@ set(MIOPEN_TEST_FLOAT_ARG)
 set(MIOPEN_TEST_FLOAT FALSE)
 if(MIOPEN_TEST_HALF)
     set(MIOPEN_TEST_FLOAT_ARG --half)
+    set(MIOPENDRIVER_MODE_CONV convfp16)
+    set(MIOPENDRIVER_MODE_BN bnormfp16)
 elseif(MIOPEN_TEST_INT8)
     set(MIOPEN_TEST_FLOAT_ARG --int8)
+    set(MIOPENDRIVER_MODE_CONV convint8)
+    set(MIOPENDRIVER_MODE_BN NOT_SUPPORTED)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
+    set(MIOPENDRIVER_MODE_CONV convbfp16)
+    set(MIOPENDRIVER_MODE_BN NOT_SUPPORTED)
 else()
     set(MIOPEN_TEST_FLOAT_ARG --float)
     set(MIOPEN_TEST_FLOAT TRUE)
+    set(MIOPENDRIVER_MODE_CONV conv)
+    set(MIOPENDRIVER_MODE_BN bnorm)
 endif()
 
 set_var_to_condition(WORKAROUND_ISSUE_1187_DEFAULT MIOPEN_TEST_GFX90A AND MIOPEN_TEST_FLOAT)
@@ -629,19 +637,19 @@ endif()
 if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     add_custom_test(test_miopendriver_half SKIP_UNLESS_ALL GFX103X_ENABLED FLOAT_DISABLED HALF_ENABLED
         # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1576
-        COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvBwd $<TARGET_FILE:MIOpenDriver> convfp16 --forw 2 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
+        COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvBwd $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} --forw 2 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
     )
 
     add_custom_test(test_miopendriver_int8 SKIP_UNLESS_ALL GFX103X_ENABLED FLOAT_DISABLED INT8_ENABLED
-        COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvFwd $<TARGET_FILE:MIOpenDriver> convint8 --forw 1 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
+        COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvFwd $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} --forw 1 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
     )
 
-    add_custom_test(test_miopendriver_half_gfx10 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED HALF_ENABLED FLOAT_DISABLED
+    add_custom_test(test_miopendriver_float_half_gfx10 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED HALF_ENABLED
         # Regression test for:
         #   [Navi21] Fixing Batchnorm backward precision issues by adjusting workgroup size (SWDEV-292187, SWDEV-319919)
         #   https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1386
-        $<TARGET_FILE:MIOpenDriver> bnormfp16 -n 256 -c 512 -H 18 -W 18 -m 1 --forw 0 -b 1 -r 1
-        $<TARGET_FILE:MIOpenDriver> bnormfp16 -n 256 -c 512 -H 28 -W 28 -m 1 --forw 0 -b 1 -r 1
+        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_BN} -n 256 -c 512 -H 18 -W 18 -m 1 --forw 0 -b 1 -r 1
+        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_BN} -n 256 -c 512 -H 28 -W 28 -m 1 --forw 0 -b 1 -r 1
     )
 endif()
 
