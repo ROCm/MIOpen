@@ -103,6 +103,12 @@ typedef float data_t;
  * }
  */
 
+#if USE_LARGE_BUFFER_INDEX
+#define index_t long
+#else
+#define index_t int
+#endif
+
 kernel void Im2d2Col(const int data_size_off,
                      global data_t* im,
                      const int im_offset,
@@ -121,6 +127,8 @@ kernel void Im2d2Col(const int data_size_off,
                      global data_t* col)
 {
 #define THREADS_PER_CH (256 / NUM_CH_PER_WG)
+/// NUM_CH_PER_WG {1;4}
+/// THREADS_PER_CH {256; 64}
 
 #if USE_IM_OFF_GUARD
 #define IM_OFF_GUARD(idx) (idx) < data_size_off ? im_off[(idx)] : 0
@@ -136,41 +144,66 @@ kernel void Im2d2Col(const int data_size_off,
 #if NUM_IM_BLKS == 1 && STRIDE_GT_1 == 0
 
     // Load image into LDS
+    /// max (LOCAL_MEM_SIZE) = 65536
     local data_t local_im[LOCAL_MEM_SIZE];
 
+    /// witem_ch [0;4)
     int witem_ch = lid / THREADS_PER_CH;
 
     int im_lid = lid;
-    while(im_lid < NUM_CH_PER_WG * h * w)
+    /// h*w < LOCAL_MEM_SIZE/witem_ch
+    int gid_stride = NUM_CH_PER_WG * h * w;
+    while(im_lid < gid_stride)
     {
-        local_im[im_lid] = IM_OFF_GUARD((gid * NUM_CH_PER_WG) * h * w + im_lid);
+        /// gid = 256 * max(1, (c_pack / NUM_CH_PER_WG)) => 256 * c
+        /// max (256 * c * LOCAL_MEM_SIZE) => 65536 * 256 * c
+        index_t im_off_id = index_t(gid) * gid_stride + im_lid;
+        local_im[im_lid] = IM_OFF_GUARD(im_off_id);
         im_lid += 256;
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // where will each thread to col
+    /// should fit in LDS size => witem_ch_offset < LOCAL_MEM_SIZE
+    /// h*w < LOCAL_MEM_SIZE/witem_ch
     int witem_ch_offset = witem_ch * h * w;
-
-    if(lid % THREADS_PER_CH < out_h * out_w)
+    /// if (NUM_IM_BLKS == 1) => (out_h < 8 && out_w < 32)
+    ///      => out_hw_stride < 256
+    int out_hw_stride = out_h * out_w;
+    if(lid % THREADS_PER_CH < out_hw_stride)
     {
+        /// lid[0, 255] % THREADS_PER_CH {256; 64} => 
+        /// max(inner_lid)=255; max(out_x)=max(out_y)=255
         int inner_lid = lid % THREADS_PER_CH;
         int out_x     = inner_lid % out_w;
         int out_y     = inner_lid / out_w;
 
+        /// out_w < 32; out_y < 255; out_x < 255
+        /// col_x < 2 080 800
         int col_x = out_y * out_w + out_x;
-        int col_y = (gid * NUM_CH_PER_WG + witem_ch) * out_h * out_w * wei_h * wei_w;
+        /// gid = 256 * c; NUM_CH_PER_WG{1,4}; out_hw_stride < 256;
+        /// EXTREME_LARGE==0 
+        /// => wei_h * wei_w * type_size * NUM_CH_PER_WG < max (LOCAL_MEM_SIZE)
+        /// gid * out_hw_stride * LOCAL_MEM_SIZE => 256 * c * 256 * 65536 
+        index_t col_y = 
+            ( index_t(gid) * NUM_CH_PER_WG + witem_ch) 
+                * out_hw_stride * wei_h * wei_w;
 
         for(int y = 0; y < wei_h; y++)
         {
             for(int x = 0; x < wei_w; x++)
             {
+                /// max(im_off_h)*w <= max(LOCAL_MEM_SIZE); max(im_off_w) <= max(LOCAL_MEM_SIZE);
                 int im_off_h = out_y * stride_h - pad_h + y * dilation_h;
                 int im_off_w = out_x * stride_w - pad_w + x * dilation_w;
+                /// y * wei_w * type_size * NUM_CH_PER_WG < max (LOCAL_MEM_SIZE)
+                int im_off_wei_hw = y * wei_w + x;
+                // col_x + (im_off_wei_hw * out_hw_stride) => 2 080 800 + 65536 * 255
+                index_t col_off = col_y + col_x + im_off_wei_hw * out_hw_stride;
                 if(im_off_h >= 0 && im_off_h < h && im_off_w >= 0 && im_off_w < w)
-                    col[col_y + col_x + (y * wei_w + x) * out_h * out_w] =
-                        local_im[witem_ch_offset + (im_off_h)*w + im_off_w];
+                    col[col_off] = local_im[witem_ch_offset + (im_off_h)*w + im_off_w];
                 else
-                    col[col_y + col_x + (y * wei_w + x) * out_h * out_w] = 0;
+                    col[col_off] = 0;
             }
         }
     }
