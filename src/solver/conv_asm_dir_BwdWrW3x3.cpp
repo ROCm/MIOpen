@@ -373,7 +373,8 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
 
 #if WORKAROUND_SWDEV_330460
-    if(name == "gfx90a" && params.IsFp32())
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3{}) && name == "gfx90a" &&
+       params.IsFp32())
         return false;
 #endif
 
