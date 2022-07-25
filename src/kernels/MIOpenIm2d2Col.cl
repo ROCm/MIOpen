@@ -127,8 +127,8 @@ kernel void Im2d2Col(const int data_size_off,
                      global data_t* col)
 {
 #define THREADS_PER_CH (256 / NUM_CH_PER_WG)
-/// NUM_CH_PER_WG {1;4}
-/// THREADS_PER_CH {256; 64}
+    /// NUM_CH_PER_WG {1;4}
+    /// THREADS_PER_CH {256; 64}
 
 #if USE_IM_OFF_GUARD
 #define IM_OFF_GUARD(idx) (idx) < data_size_off ? im_off[(idx)] : 0
@@ -158,7 +158,7 @@ kernel void Im2d2Col(const int data_size_off,
         /// gid = 256 * max(1, (c_pack / NUM_CH_PER_WG)) => 256 * c
         /// max (256 * c * LOCAL_MEM_SIZE) => 65536 * 256 * c
         index_t im_off_id = index_t(gid) * gid_stride + im_lid;
-        local_im[im_lid] = IM_OFF_GUARD(im_off_id);
+        local_im[im_lid]  = IM_OFF_GUARD(im_off_id);
         im_lid += 256;
     }
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -172,7 +172,7 @@ kernel void Im2d2Col(const int data_size_off,
     int out_hw_stride = out_h * out_w;
     if(lid % THREADS_PER_CH < out_hw_stride)
     {
-        /// lid[0, 255] % THREADS_PER_CH {256; 64} => 
+        /// lid[0, 255] % THREADS_PER_CH {256; 64} =>
         /// max(inner_lid)=255; max(out_x)=max(out_y)=255
         int inner_lid = lid % THREADS_PER_CH;
         int out_x     = inner_lid % out_w;
@@ -182,12 +182,10 @@ kernel void Im2d2Col(const int data_size_off,
         /// col_x < 2 080 800
         int col_x = out_y * out_w + out_x;
         /// gid = 256 * c; NUM_CH_PER_WG{1,4}; out_hw_stride < 256;
-        /// EXTREME_LARGE==0 
+        /// EXTREME_LARGE==0
         /// => wei_h * wei_w * type_size * NUM_CH_PER_WG < max (LOCAL_MEM_SIZE)
-        /// gid * out_hw_stride * LOCAL_MEM_SIZE => 256 * c * 256 * 65536 
-        index_t col_y = 
-            ( index_t(gid) * NUM_CH_PER_WG + witem_ch) 
-                * out_hw_stride * wei_h * wei_w;
+        /// gid * out_hw_stride * LOCAL_MEM_SIZE => 256 * c * 256 * 65536
+        index_t col_y = (index_t(gid) * NUM_CH_PER_WG + witem_ch) * out_hw_stride * wei_h * wei_w;
 
         for(int y = 0; y < wei_h; y++)
         {
