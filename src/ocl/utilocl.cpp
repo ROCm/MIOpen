@@ -200,21 +200,19 @@ float Im2d2ColGPU(const Handle& handle,
         const std::vector<size_t> vgd{global_threads, 1, 1};
 
         bool use_64bit_buffer_index = false;
-        use_64bit_buffer_index |= group_cnt > INT32_MAX
+        use_64bit_buffer_index |= group_cnt > INT32_MAX;
 
-                                  if(extreme_case > MAX_LOCAL_MEM)
+        if(extreme_case > MAX_LOCAL_MEM)
         {
             // check get_global_id
-            use_64bit_buffer_index |= global_threads > INT32_MAX
+            use_64bit_buffer_index |= global_threads > INT32_MAX;
 
-                                      const size_t out_hw =
-                                          1LL * out_h* out_w use_64bit_buffer_index |=
-                out_hw > INT32_MAX
+            const size_t out_hw = 1LL * out_h* out_w use_64bit_buffer_index |= out_hw > INT32_MAX;
 
-                const size_t col_row = 1LL * wei_w * wei_h * c_pack;
+            const size_t col_row = 1LL * wei_w * wei_h * c_pack;
 
             const size_t tid = col_row * out_hw;
-            use_64bit_buffer_index |= tid > INT32_MAX
+            use_64bit_buffer_index |= tid > INT32_MAX;
         }
         else
         {
@@ -236,7 +234,7 @@ float Im2d2ColGPU(const Handle& handle,
             }
             else
             {
-                const size_t im_off_id = 1ll * (group_cnt / num_blks) * in_h * in_w*;
+                const size_t im_off_id = 1ll * (group_cnt / num_blks) * in_h * in_w;
                 use_64bit_buffer_index |= im_off_id > INT32_MAX;
 
                 const size_t col_x = 1ll * (out_h + 256) * out_w + 256;
