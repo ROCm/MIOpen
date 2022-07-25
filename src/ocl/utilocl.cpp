@@ -207,7 +207,8 @@ float Im2d2ColGPU(const Handle& handle,
             // check get_global_id
             use_64bit_buffer_index |= global_threads > INT32_MAX;
 
-            const size_t out_hw = 1LL * out_h* out_w use_64bit_buffer_index |= out_hw > INT32_MAX;
+            const size_t out_hw = 1LL * out_h * out_w;
+            use_64bit_buffer_index |= out_hw > INT32_MAX;
 
             const size_t col_row = 1LL * wei_w * wei_h * c_pack;
 
@@ -218,7 +219,7 @@ float Im2d2ColGPU(const Handle& handle,
         {
             if(num_blks == 1 && stride_h * stride_w == 1)
             {
-                const size_t im_off_id = 1ll * group_cnt * num_ch_per_wg * in_h * in_w*;
+                const size_t im_off_id = 1ll * group_cnt * num_ch_per_wg * in_h * in_w;
                 use_64bit_buffer_index |= im_off_id > INT32_MAX;
 
                 const size_t col_y =
@@ -230,7 +231,7 @@ float Im2d2ColGPU(const Handle& handle,
                 //  = 255 / out_w * out_w + 255 % out_w;
                 int col_x            = 255 + 255;
                 const size_t col_off = col_y + col_x + (1LL * wei_h * wei_w) * out_h * out_w;
-                use_64bit_buffer_index |= col_y > INT32_MAX;
+                use_64bit_buffer_index |= col_off > INT32_MAX;
             }
             else
             {
