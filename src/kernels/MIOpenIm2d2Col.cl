@@ -103,7 +103,7 @@ typedef float data_t;
  * }
  */
 
-#if USE_LARGE_BUFFER_INDEX
+#ifdef USE_LARGE_BUFFER_INDEX
 typedef long index_t;
 #else
 typedef int index_t;
@@ -137,14 +137,16 @@ kernel void Im2d2Col(const int data_size_off,
 #endif
 
     global data_t* im_off = im + im_offset;
-    int lid               = get_local_id(0);
+
+#ifndef EXTREME_LARGE
+
+    int lid = get_local_id(0);
     /// tile_sz_x = {32,16,8,4,2,1}, tile_sz_y = {8,4,2,1}
     /// NUM_IM_BLKS_X = out_w / tile_sz_x
     /// NUM_IM_BLKS = NUM_IM_BLKS_X * out_h / tile_sz_y => out_w * out_h
     /// c * NUM_IM_BLKS => c * out_w * out_h
     index_t gid = get_group_id(0);
 
-#ifndef EXTREME_LARGE
 #if NUM_IM_BLKS == 1 && STRIDE_GT_1 == 0
 
     // Load image into LDS
@@ -218,8 +220,8 @@ kernel void Im2d2Col(const int data_size_off,
     /// TILE_SZ_X = 32, TILE_SZ_Y = 8;
     /// gid = c * NUM_IM_BLKS => im_x = NUM_IM_BLKS*TILE_SZ_X = NUM_IM_BLKS*32
     /// = NUM_IM_BLKS*32 = out_w * out_h / 8
-    int im_x = int((gid % NUM_IM_BLKS) % NUM_IM_BLKS_X) * TILE_SZ_X; /// < out_w
-    int im_y = int((gid % NUM_IM_BLKS) / NUM_IM_BLKS_X) * TILE_SZ_Y; /// < out_h
+    int im_x = ((gid % NUM_IM_BLKS) % NUM_IM_BLKS_X) * TILE_SZ_X; /// < out_w
+    int im_y = ((gid % NUM_IM_BLKS) / NUM_IM_BLKS_X) * TILE_SZ_Y; /// < out_h
 
     int out_cols_wg = (im_x + TILE_SZ_X) <= out_w ? TILE_SZ_X : (out_w - im_x); /// < out_w
     int out_rows_wg = (im_y + TILE_SZ_Y) <= out_h ? TILE_SZ_Y : (out_h - im_y); /// < out_h
@@ -287,12 +289,12 @@ kernel void Im2d2Col(const int data_size_off,
         index_t col_row = tid / ((index_t)out_h * out_w); // wei_w * wei_h * NUM_CH_TOTAL
 
         // which pixel from the image and which channel to read from
-        int im_x = int(col_row % wei_w);                    // used to compute im_off_w
-        int im_y = int((col_row / wei_w) % wei_h);          // used to compute im_off_y
-        int im_c = int(col_row / ((index_t)wei_w * wei_h)); // im_c is the img channel
+        int im_x = col_row % wei_w;                     // used to compute im_off_w
+        int im_y = (col_row / wei_w) % wei_h;           // used to compute im_off_y
+        int im_c = (col_row / ((index_t)wei_w * wei_h); // im_c is the img channel
 
-        int out_x = int(tid % out_w);
-        int out_y = int((tid / out_w) % out_h);
+        int out_x = tid % out_w;
+        int out_y = (tid / out_w) % out_h;
 
         // take the strides and padding into account while reading from the image
         int im_off_h = out_y * stride_h - pad_h + im_y * dilation_h;
@@ -302,7 +304,7 @@ kernel void Im2d2Col(const int data_size_off,
 
         if(im_off_h >= 0 && im_off_h < h && im_off_w >= 0 && im_off_w < w)
         {
-            col[col_off] = im_off[im_c * h * w + im_off_h * w + im_off_w];
+            col[col_off] = IM_OFF_GUARD((index_t)im_c * h * w + im_off_h * w + im_off_w);
         }
         else
         {
