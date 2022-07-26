@@ -305,7 +305,7 @@ void OpTensor3d(const Handle& handle,
 
         parms += GetDataTypeKernelParams(aTensorDesc.GetType());
 
-        parms += " -DMIO_BETA_ZERO=" + float_equal(miopen_beta, 0.0);
+        parms += " -DMIO_BETA_ZERO=" + static_cast<int>(float_equal(miopen_beta, 0.0));
 
         parms += " -DMIOPEN_TENSOR_OP=";
         switch(tensorOp)
@@ -742,7 +742,7 @@ void OpTensor4d(const Handle& handle,
 
         parms += GetDataTypeKernelParams(aTensorDesc.GetType());
 
-        parms += " -DMIO_BETA_ZERO=" + float_equal(miopen_beta, 0.0);
+        parms += " -DMIO_BETA_ZERO=" + static_cast<int>(float_equal(miopen_beta, 0.0));
 
         parms += " -DMIOPEN_TENSOR_OP=";
         switch(tensorOp)
@@ -1117,7 +1117,7 @@ void OpTensorOther(const Handle& handle,
 
         parms += GetDataTypeKernelParams(aTensorDesc.GetType());
 
-        parms += " -DMIO_BETA_ZERO=" + float_equal(miopen_beta, 0.0);
+        parms += " -DMIO_BETA_ZERO=" + static_cast<int>(float_equal(miopen_beta, 0.0));
 
         parms += " -DMIOPEN_TENSOR_OP=";
         switch(tensorOp)
