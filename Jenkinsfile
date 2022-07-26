@@ -310,6 +310,10 @@ def buildDocker(install_prefix)
         echo "Checking for image: ${image_name}"
         sh "docker manifest inspect --insecure ${image_name}"
         echo "Image: ${image_name} found!! Skipping building image"
+        if(parms.DEBUG_FORCE_DOCKER_BUILD)
+        {
+            throw new Exception("Docker build override via DEBUG_FORCE_DOCKER_BUILD")
+        }
     }
     catch(Exception ex)
     {
@@ -427,6 +431,11 @@ pipeline {
             name: "DATATYPE_INT8",
             defaultValue: true,
             description: "")
+        booleanParam(
+            name: "DEBUG_FORCE_DOCKER_BUILD",
+            defaultValue: false,
+            description: "Allow overriding the Docker build behavior by forcing a rebuild and push of the docker"
+        )
     }
 
     environment{
