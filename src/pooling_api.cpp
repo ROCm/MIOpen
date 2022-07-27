@@ -46,6 +46,11 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
         {
         case miopenHalf: ss << "poolfp16"; break;
         case miopenFloat: ss << "pool"; break;
+        case miopenInt32:
+        case miopenInt8:
+        case miopenInt8x4:
+        case miopenBFloat16:
+        case miopenDouble:
         default: MIOPEN_THROW(miopenStatusNotImplemented);
         }
 
