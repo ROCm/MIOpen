@@ -431,14 +431,6 @@ void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(const Convolu
 }
 
 template <int N_BATCH_LOOPS>
-std::string PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::ToString() const
-{
-    std::ostringstream ss;
-    ss << (*this);
-    return ss.str();
-}
-
-template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsValidPerformanceConfig(
     const ConvolutionContext& params,
     const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& perfConfig) const

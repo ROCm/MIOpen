@@ -588,13 +588,6 @@ bool PerformanceImplicitGemmBwdDataV1R1::SetNextValue(const ConvolutionContext& 
     return true;
 }
 
-std::string PerformanceImplicitGemmBwdDataV1R1::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 std::tuple<int, int, int>
 ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx)
 {
