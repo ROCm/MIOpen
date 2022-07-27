@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 #include <miopen/pooling.hpp>
+
+#include <miopen/datatype.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
@@ -51,7 +53,13 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
         case miopenInt8x4:
         case miopenBFloat16:
         case miopenDouble:
-        default: MIOPEN_THROW(miopenStatusNotImplemented);
+        default:
+            MIOPEN_LOG_W(
+                "Pooing cmd args logging is not implemented properly for " +
+                miopen::GetDataType(miopen::deref(tensorDesc).GetType()) +
+                " data type. Check the ./bin/MIOpenDriver --help for the correct base argument.");
+            ss << "???";
+            break;
         }
 
         ss << " -M "
