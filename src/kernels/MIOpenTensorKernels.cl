@@ -93,24 +93,52 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
 
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; gid < num_wg; gid += MAX_NUM_WG)
+
+    if(beta == (MIOPEN_TYPE)0)
     {
-
-        int lid = get_local_id(0);
-
-        int o_c             = incr_wg == 1 ? (gid % b_c) : gid;
-        MIOPEN_TYPE operand = b_off[o_c] * alpha1;
-
-        // each workgroup computes N*H*W for each C (bias-term)
-        // number of workgroups = c_c (b_c)
-        while(lid < work_per_wg)
+        for(; gid < num_wg; gid += MAX_NUM_WG)
         {
-            int o_hw     = incr_wg == 0 ? (lid % (work_per_wg / c_n)) : lid;
-            int o_n      = incr_wg == 0 ? (lid / (work_per_wg / c_n)) : (gid / b_c);
-            int index    = o_n * c_nstride + o_c * c_cstride + o_hw;
-            c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
 
-            lid += get_local_size(0);
+            int lid = get_local_id(0);
+
+            int o_c             = incr_wg == 1 ? (gid % b_c) : gid;
+            MIOPEN_TYPE operand = b_off[o_c] * alpha1;
+
+            // each workgroup computes N*H*W for each C (bias-term)
+            // number of workgroups = c_c (b_c)
+            while(lid < work_per_wg)
+            {
+                int o_hw     = incr_wg == 0 ? (lid % (work_per_wg / c_n)) : lid;
+                int o_n      = incr_wg == 0 ? (lid / (work_per_wg / c_n)) : (gid / b_c);
+                int index    = o_n * c_nstride + o_c * c_cstride + o_hw;
+                c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand);
+
+                lid += get_local_size(0);
+            }
+        }
+    }
+    else
+    {
+        for(; gid < num_wg; gid += MAX_NUM_WG)
+        {
+
+            int lid = get_local_id(0);
+
+            int o_c             = incr_wg == 1 ? (gid % b_c) : gid;
+            MIOPEN_TYPE operand = b_off[o_c] * alpha1;
+
+            // each workgroup computes N*H*W for each C (bias-term)
+            // number of workgroups = c_c (b_c)
+            while(lid < work_per_wg)
+            {
+                int o_hw  = incr_wg == 0 ? (lid % (work_per_wg / c_n)) : lid;
+                int o_n   = incr_wg == 0 ? (lid / (work_per_wg / c_n)) : (gid / b_c);
+                int index = o_n * c_nstride + o_c * c_cstride + o_hw;
+                c_off[index] =
+                    MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
+
+                lid += get_local_size(0);
+            }
         }
     }
 }
@@ -150,26 +178,53 @@ __kernel void OpTensorFwdBiasGeneric(global MIOPEN_TYPE* a,
 
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; gid < num_wg; gid += MAX_NUM_WG)
+    if(beta == (MIOPEN_TYPE)0)
     {
-        int lid = get_local_id(0);
-
-        // each workgroup computes N*H*W for each C (bias-term)
-        // number of workgroups = c_c (b_c)
-        int o_c             = (incr_wg == 1) ? (gid % b_c) : gid;
-        MIOPEN_TYPE operand = b_off[o_c * b_cstride] * alpha1;
-
-        while(lid < work_per_wg)
+        for(; gid < num_wg; gid += MAX_NUM_WG)
         {
-            int o_n    = (incr_wg == 1) ? (gid / b_c) : (lid % c_n);
-            int o_h    = (incr_wg == 1) ? (lid / c_w) : ((lid / c_n) / c_w);
-            int o_w    = (incr_wg == 1) ? (lid % c_w) : ((lid / c_n) % c_w);
-            int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
-            int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
-            c_off[cindex] =
-                MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+            int lid = get_local_id(0);
 
-            lid += get_local_size(0);
+            // each workgroup computes N*H*W for each C (bias-term)
+            // number of workgroups = c_c (b_c)
+            int o_c             = (incr_wg == 1) ? (gid % b_c) : gid;
+            MIOPEN_TYPE operand = b_off[o_c * b_cstride] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                int o_n       = (incr_wg == 1) ? (gid / b_c) : (lid % c_n);
+                int o_h       = (incr_wg == 1) ? (lid / c_w) : ((lid / c_n) / c_w);
+                int o_w       = (incr_wg == 1) ? (lid % c_w) : ((lid / c_n) % c_w);
+                int aindex    = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
+                int cindex    = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
+                c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand);
+
+                lid += get_local_size(0);
+            }
+        }
+    }
+    else
+    {
+        for(; gid < num_wg; gid += MAX_NUM_WG)
+        {
+            int lid = get_local_id(0);
+
+            // each workgroup computes N*H*W for each C (bias-term)
+            // number of workgroups = c_c (b_c)
+            int o_c             = (incr_wg == 1) ? (gid % b_c) : gid;
+            MIOPEN_TYPE operand = b_off[o_c * b_cstride] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                int o_n    = (incr_wg == 1) ? (gid / b_c) : (lid % c_n);
+                int o_h    = (incr_wg == 1) ? (lid / c_w) : ((lid / c_n) / c_w);
+                int o_w    = (incr_wg == 1) ? (lid % c_w) : ((lid / c_n) % c_w);
+                int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
+                int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
+                c_off[cindex] =
+                    MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+
+                lid += get_local_size(0);
+            }
         }
     }
 }
@@ -209,28 +264,59 @@ __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
     int gid = (bitmap == 0xF) ? get_global_id(0) : get_group_id(0);
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; gid < num_wg; gid += MAX_NUM_WG)
+    if(beta == (MIOPEN_TYPE)0)
     {
-
-        int lid             = (bitmap == 0xF) ? 0 : get_local_id(0);
-        int lcl_sz          = (bitmap == 0xF) ? work_per_wg : get_local_size(0);
-        MIOPEN_TYPE operand = b_off[gid] * alpha1;
-
-        int o_w = (bitmap & (1 << 0)) ? (gid % c_w) : 0;
-        int o_h = (bitmap & (1 << 1)) ? ((gid / ((bitmap & (1 << 0)) ? c_w : 1)) % c_h) : 0;
-        int o_c =
-            (bitmap & (1 << 2))
-                ? ((gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1))) %
-                   c_c)
-                : 0;
-        int o_n = gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1) *
-                         ((bitmap & (1 << 2)) ? c_c : 1));
-
-        while(lid < work_per_wg)
+        for(; gid < num_wg; gid += MAX_NUM_WG)
         {
-            int index    = o_n * c_nstride + o_c * c_cstride + o_h * c_w + o_w + lid;
-            c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
-            lid += lcl_sz;
+
+            int lid             = (bitmap == 0xF) ? 0 : get_local_id(0);
+            int lcl_sz          = (bitmap == 0xF) ? work_per_wg : get_local_size(0);
+            MIOPEN_TYPE operand = b_off[gid] * alpha1;
+
+            int o_w = (bitmap & (1 << 0)) ? (gid % c_w) : 0;
+            int o_h = (bitmap & (1 << 1)) ? ((gid / ((bitmap & (1 << 0)) ? c_w : 1)) % c_h) : 0;
+            int o_c =
+                (bitmap & (1 << 2))
+                    ? ((gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1))) %
+                       c_c)
+                    : 0;
+            int o_n = gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1) *
+                             ((bitmap & (1 << 2)) ? c_c : 1));
+
+            while(lid < work_per_wg)
+            {
+                int index    = o_n * c_nstride + o_c * c_cstride + o_h * c_w + o_w + lid;
+                c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand);
+                lid += lcl_sz;
+            }
+        }
+    }
+    else
+    {
+        for(; gid < num_wg; gid += MAX_NUM_WG)
+        {
+
+            int lid             = (bitmap == 0xF) ? 0 : get_local_id(0);
+            int lcl_sz          = (bitmap == 0xF) ? work_per_wg : get_local_size(0);
+            MIOPEN_TYPE operand = b_off[gid] * alpha1;
+
+            int o_w = (bitmap & (1 << 0)) ? (gid % c_w) : 0;
+            int o_h = (bitmap & (1 << 1)) ? ((gid / ((bitmap & (1 << 0)) ? c_w : 1)) % c_h) : 0;
+            int o_c =
+                (bitmap & (1 << 2))
+                    ? ((gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1))) %
+                       c_c)
+                    : 0;
+            int o_n = gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1) *
+                             ((bitmap & (1 << 2)) ? c_c : 1));
+
+            while(lid < work_per_wg)
+            {
+                int index = o_n * c_nstride + o_c * c_cstride + o_h * c_w + o_w + lid;
+                c_off[index] =
+                    MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
+                lid += lcl_sz;
+            }
         }
     }
 }
@@ -277,40 +363,83 @@ __kernel void OpTensorLeadingOnesGeneric(global MIOPEN_TYPE* a,
 
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; gid < num_wg; gid += MAX_NUM_WG)
+    if(beta == (MIOPEN_TYPE)0)
     {
-        int lid    = (bitmap == 0xF) ? 0 : get_local_id(0);
-        int lcl_sz = (bitmap == 0xF) ? work_per_wg : get_local_size(0);
-
-        int o_w = (bitmap & (1 << 0)) ? (gid % c_w) : 0;
-        int o_h = (bitmap & (1 << 1)) ? ((gid / ((bitmap & (1 << 0)) ? c_w : 1)) % c_h) : 0;
-        int o_c =
-            (bitmap & (1 << 2))
-                ? ((gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1))) %
-                   c_c)
-                : 0;
-        int o_n = gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1) *
-                         ((bitmap & (1 << 2)) ? c_c : 1));
-
-        int bindex          = o_n * b_nstride + o_c * b_cstride + o_h * b_hstride + o_w;
-        MIOPEN_TYPE operand = b_off[bindex] * alpha1;
-
-        while(lid < work_per_wg)
+        for(; gid < num_wg; gid += MAX_NUM_WG)
         {
-            o_c = (bitmap & (1 << 2)) ? o_c : (lid % c_c);
-            o_h = (bitmap & (1 << 1)) ? o_h
-                                      : ((bitmap & (1 << 2)) ? (lid / c_w) : ((lid / c_c) % c_h));
-            o_w = (bitmap & (1 << 0))
-                      ? o_w
-                      : ((bitmap & (1 << 1))
-                             ? lid
-                             : ((bitmap & (1 << 2)) ? (lid % c_w) : ((lid / c_c) / c_h)));
-            int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
-            int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
-            c_off[cindex] =
-                MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+            int lid    = (bitmap == 0xF) ? 0 : get_local_id(0);
+            int lcl_sz = (bitmap == 0xF) ? work_per_wg : get_local_size(0);
 
-            lid += lcl_sz;
+            int o_w = (bitmap & (1 << 0)) ? (gid % c_w) : 0;
+            int o_h = (bitmap & (1 << 1)) ? ((gid / ((bitmap & (1 << 0)) ? c_w : 1)) % c_h) : 0;
+            int o_c =
+                (bitmap & (1 << 2))
+                    ? ((gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1))) %
+                       c_c)
+                    : 0;
+            int o_n = gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1) *
+                             ((bitmap & (1 << 2)) ? c_c : 1));
+
+            int bindex          = o_n * b_nstride + o_c * b_cstride + o_h * b_hstride + o_w;
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                o_c = (bitmap & (1 << 2)) ? o_c : (lid % c_c);
+                o_h = (bitmap & (1 << 1))
+                          ? o_h
+                          : ((bitmap & (1 << 2)) ? (lid / c_w) : ((lid / c_c) % c_h));
+                o_w = (bitmap & (1 << 0))
+                          ? o_w
+                          : ((bitmap & (1 << 1))
+                                 ? lid
+                                 : ((bitmap & (1 << 2)) ? (lid % c_w) : ((lid / c_c) / c_h)));
+                int aindex    = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
+                int cindex    = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
+                c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand);
+
+                lid += lcl_sz;
+            }
+        }
+    }
+    else
+    {
+        for(; gid < num_wg; gid += MAX_NUM_WG)
+        {
+            int lid    = (bitmap == 0xF) ? 0 : get_local_id(0);
+            int lcl_sz = (bitmap == 0xF) ? work_per_wg : get_local_size(0);
+
+            int o_w = (bitmap & (1 << 0)) ? (gid % c_w) : 0;
+            int o_h = (bitmap & (1 << 1)) ? ((gid / ((bitmap & (1 << 0)) ? c_w : 1)) % c_h) : 0;
+            int o_c =
+                (bitmap & (1 << 2))
+                    ? ((gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1))) %
+                       c_c)
+                    : 0;
+            int o_n = gid / (((bitmap & (1 << 0)) ? c_w : 1) * ((bitmap & (1 << 1)) ? c_h : 1) *
+                             ((bitmap & (1 << 2)) ? c_c : 1));
+
+            int bindex          = o_n * b_nstride + o_c * b_cstride + o_h * b_hstride + o_w;
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                o_c = (bitmap & (1 << 2)) ? o_c : (lid % c_c);
+                o_h = (bitmap & (1 << 1))
+                          ? o_h
+                          : ((bitmap & (1 << 2)) ? (lid / c_w) : ((lid / c_c) % c_h));
+                o_w = (bitmap & (1 << 0))
+                          ? o_w
+                          : ((bitmap & (1 << 1))
+                                 ? lid
+                                 : ((bitmap & (1 << 2)) ? (lid % c_w) : ((lid / c_c) / c_h)));
+                int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
+                int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
+                c_off[cindex] =
+                    MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+
+                lid += lcl_sz;
+            }
         }
     }
 }
@@ -356,36 +485,73 @@ __kernel void Op4dTensorGeneric(global MIOPEN_TYPE* a,
     // MIOPEN_TYPE operand = b[gid + Boffset];
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; gid < num_wg; gid += MAX_NUM_WG)
+    if(beta == (MIOPEN_TYPE)0)
     {
-        int lid = get_local_id(0);
-
-        int o_h_div = bitmap & (1 << 0) ? 1 : c_w;
-        int o_c_div = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
-        int o_n_div = o_c_div * (bitmap & (1 << 2) ? 1 : c_c);
-
-        int o_w_gid_off = gid % b_w;
-        int o_h_gid_off = (gid / b_w) % b_h;
-        int o_c_gid_off = (gid / b_w / b_h) % b_c;
-        int o_n_gid_off = (gid / b_w / b_h) / b_c;
-
-        int bindex = o_n_gid_off * b_nstride + o_c_gid_off * b_cstride + o_h_gid_off * b_hstride +
-                     o_w_gid_off;
-        MIOPEN_TYPE operand = b_off[bindex] * alpha1;
-
-        while(lid < work_per_wg)
+        for(; gid < num_wg; gid += MAX_NUM_WG)
         {
-            int o_w = (bitmap & (1 << 0)) ? o_w_gid_off : lid % c_w;
-            int o_h = (bitmap & (1 << 1)) ? o_h_gid_off : (lid / o_h_div) % c_h;
-            int o_c = (bitmap & (1 << 2)) ? o_c_gid_off : (lid / o_c_div) % c_c;
-            int o_n = (bitmap & (1 << 3)) ? o_n_gid_off : lid / o_n_div;
+            int lid = get_local_id(0);
 
-            int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
-            int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
-            c_off[cindex] =
-                MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+            int o_h_div = bitmap & (1 << 0) ? 1 : c_w;
+            int o_c_div = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
+            int o_n_div = o_c_div * (bitmap & (1 << 2) ? 1 : c_c);
 
-            lid += get_local_size(0);
+            int o_w_gid_off = gid % b_w;
+            int o_h_gid_off = (gid / b_w) % b_h;
+            int o_c_gid_off = (gid / b_w / b_h) % b_c;
+            int o_n_gid_off = (gid / b_w / b_h) / b_c;
+
+            int bindex = o_n_gid_off * b_nstride + o_c_gid_off * b_cstride +
+                         o_h_gid_off * b_hstride + o_w_gid_off;
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                int o_w = (bitmap & (1 << 0)) ? o_w_gid_off : lid % c_w;
+                int o_h = (bitmap & (1 << 1)) ? o_h_gid_off : (lid / o_h_div) % c_h;
+                int o_c = (bitmap & (1 << 2)) ? o_c_gid_off : (lid / o_c_div) % c_c;
+                int o_n = (bitmap & (1 << 3)) ? o_n_gid_off : lid / o_n_div;
+
+                int aindex    = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
+                int cindex    = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
+                c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand);
+
+                lid += get_local_size(0);
+            }
+        }
+    }
+    else
+    {
+        for(; gid < num_wg; gid += MAX_NUM_WG)
+        {
+            int lid = get_local_id(0);
+
+            int o_h_div = bitmap & (1 << 0) ? 1 : c_w;
+            int o_c_div = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
+            int o_n_div = o_c_div * (bitmap & (1 << 2) ? 1 : c_c);
+
+            int o_w_gid_off = gid % b_w;
+            int o_h_gid_off = (gid / b_w) % b_h;
+            int o_c_gid_off = (gid / b_w / b_h) % b_c;
+            int o_n_gid_off = (gid / b_w / b_h) / b_c;
+
+            int bindex = o_n_gid_off * b_nstride + o_c_gid_off * b_cstride +
+                         o_h_gid_off * b_hstride + o_w_gid_off;
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                int o_w = (bitmap & (1 << 0)) ? o_w_gid_off : lid % c_w;
+                int o_h = (bitmap & (1 << 1)) ? o_h_gid_off : (lid / o_h_div) % c_h;
+                int o_c = (bitmap & (1 << 2)) ? o_c_gid_off : (lid / o_c_div) % c_c;
+                int o_n = (bitmap & (1 << 3)) ? o_n_gid_off : lid / o_n_div;
+
+                int aindex = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
+                int cindex = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
+                c_off[cindex] =
+                    MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+
+                lid += get_local_size(0);
+            }
         }
     }
 }
@@ -436,44 +602,89 @@ __kernel void Op5dTensorGeneric(global MIOPEN_TYPE* a,
 
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; gid < num_wg; gid += MAX_NUM_WG)
+    if(beta == (MIOPEN_TYPE)0)
     {
-
-        int lid = get_local_id(0);
-
-        int o_h_div = bitmap & (1 << 0) ? 1 : c_w;
-        int o_d_div = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
-        int o_c_div = o_d_div * (bitmap & (1 << 2) ? 1 : c_d);
-        int o_n_div = o_c_div * (bitmap & (1 << 3) ? 1 : c_c);
-
-        int o_w_gid_off = gid % b_w;
-        int o_h_gid_off = (gid / b_w) % b_h;
-        int o_d_gid_off = (gid / b_w / b_h) % b_d;
-        int o_c_gid_off = (gid / b_w / b_h / b_d) % b_c;
-        int o_n_gid_off = (gid / b_w / b_h / b_d) / b_c;
-
-        int bindex = o_n_gid_off * b_nstride + o_c_gid_off * b_cstride + o_d_gid_off * b_dstride +
-                     o_h_gid_off * b_hstride + o_w_gid_off;
-
-        MIOPEN_TYPE operand = b_off[bindex] * alpha1;
-
-        while(lid < work_per_wg)
+        for(; gid < num_wg; gid += MAX_NUM_WG)
         {
-            int o_w = (bitmap & (1 << 0)) ? o_w_gid_off : lid % c_w;
-            int o_h = (bitmap & (1 << 1)) ? o_h_gid_off : (lid / o_h_div) % c_h;
-            int o_d = (bitmap & (1 << 2)) ? o_d_gid_off : (lid / o_d_div) % c_d;
-            int o_c = (bitmap & (1 << 3)) ? o_c_gid_off : (lid / o_c_div) % c_c;
-            int o_n = (bitmap & (1 << 4)) ? o_n_gid_off : lid / o_n_div;
 
-            int aindex =
-                o_n * a_nstride + o_c * a_cstride + o_d * a_dstride + o_h * a_hstride + o_w;
-            int cindex =
-                o_n * c_nstride + o_c * c_cstride + o_d * c_dstride + o_h * c_hstride + o_w;
+            int lid = get_local_id(0);
 
-            c_off[cindex] =
-                MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+            int o_h_div = bitmap & (1 << 0) ? 1 : c_w;
+            int o_d_div = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
+            int o_c_div = o_d_div * (bitmap & (1 << 2) ? 1 : c_d);
+            int o_n_div = o_c_div * (bitmap & (1 << 3) ? 1 : c_c);
 
-            lid += get_local_size(0);
+            int o_w_gid_off = gid % b_w;
+            int o_h_gid_off = (gid / b_w) % b_h;
+            int o_d_gid_off = (gid / b_w / b_h) % b_d;
+            int o_c_gid_off = (gid / b_w / b_h / b_d) % b_c;
+            int o_n_gid_off = (gid / b_w / b_h / b_d) / b_c;
+
+            int bindex = o_n_gid_off * b_nstride + o_c_gid_off * b_cstride +
+                         o_d_gid_off * b_dstride + o_h_gid_off * b_hstride + o_w_gid_off;
+
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                int o_w = (bitmap & (1 << 0)) ? o_w_gid_off : lid % c_w;
+                int o_h = (bitmap & (1 << 1)) ? o_h_gid_off : (lid / o_h_div) % c_h;
+                int o_d = (bitmap & (1 << 2)) ? o_d_gid_off : (lid / o_d_div) % c_d;
+                int o_c = (bitmap & (1 << 3)) ? o_c_gid_off : (lid / o_c_div) % c_c;
+                int o_n = (bitmap & (1 << 4)) ? o_n_gid_off : lid / o_n_div;
+
+                int aindex =
+                    o_n * a_nstride + o_c * a_cstride + o_d * a_dstride + o_h * a_hstride + o_w;
+                int cindex =
+                    o_n * c_nstride + o_c * c_cstride + o_d * c_dstride + o_h * c_hstride + o_w;
+
+                c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand);
+
+                lid += get_local_size(0);
+            }
+        }
+    }
+    else
+    {
+        for(; gid < num_wg; gid += MAX_NUM_WG)
+        {
+
+            int lid = get_local_id(0);
+
+            int o_h_div = bitmap & (1 << 0) ? 1 : c_w;
+            int o_d_div = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
+            int o_c_div = o_d_div * (bitmap & (1 << 2) ? 1 : c_d);
+            int o_n_div = o_c_div * (bitmap & (1 << 3) ? 1 : c_c);
+
+            int o_w_gid_off = gid % b_w;
+            int o_h_gid_off = (gid / b_w) % b_h;
+            int o_d_gid_off = (gid / b_w / b_h) % b_d;
+            int o_c_gid_off = (gid / b_w / b_h / b_d) % b_c;
+            int o_n_gid_off = (gid / b_w / b_h / b_d) / b_c;
+
+            int bindex = o_n_gid_off * b_nstride + o_c_gid_off * b_cstride +
+                         o_d_gid_off * b_dstride + o_h_gid_off * b_hstride + o_w_gid_off;
+
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                int o_w = (bitmap & (1 << 0)) ? o_w_gid_off : lid % c_w;
+                int o_h = (bitmap & (1 << 1)) ? o_h_gid_off : (lid / o_h_div) % c_h;
+                int o_d = (bitmap & (1 << 2)) ? o_d_gid_off : (lid / o_d_div) % c_d;
+                int o_c = (bitmap & (1 << 3)) ? o_c_gid_off : (lid / o_c_div) % c_c;
+                int o_n = (bitmap & (1 << 4)) ? o_n_gid_off : lid / o_n_div;
+
+                int aindex =
+                    o_n * a_nstride + o_c * a_cstride + o_d * a_dstride + o_h * a_hstride + o_w;
+                int cindex =
+                    o_n * c_nstride + o_c * c_cstride + o_d * c_dstride + o_h * c_hstride + o_w;
+
+                c_off[cindex] =
+                    MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+
+                lid += get_local_size(0);
+            }
         }
     }
 }
@@ -513,33 +724,68 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
 
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; gid < num_wg; gid += MAX_NUM_WG)
+    if(beta == (MIOPEN_TYPE)0)
     {
-
-        int lid     = get_local_id(0);
-        int o_c_div = bitmap & (1 << 0) ? 1 : c_h;
-        int o_n_div = o_c_div * (bitmap & (1 << 1) ? 1 : c_c);
-
-        int o_h_gid_off = gid % b_h;
-        int o_c_gid_off = (gid / b_h) % b_c;
-        int o_n_gid_off = (gid / b_h) / b_c;
-
-        int bindex          = o_n_gid_off * b_nstride + o_c_gid_off * b_cstride + o_h_gid_off;
-        MIOPEN_TYPE operand = b_off[bindex] * alpha1;
-
-        while(lid < work_per_wg)
+        for(; gid < num_wg; gid += MAX_NUM_WG)
         {
-            int o_h = (bitmap & (1 << 0)) ? o_h_gid_off : lid % c_h;
-            int o_c = (bitmap & (1 << 1)) ? o_c_gid_off : (lid / o_c_div) % c_c;
-            int o_n = (bitmap & (1 << 2)) ? o_n_gid_off : lid / o_n_div;
 
-            int aindex = o_n * a_nstride + o_c * a_cstride + o_h;
-            int cindex = o_n * c_nstride + o_c * c_cstride + o_h;
+            int lid     = get_local_id(0);
+            int o_c_div = bitmap & (1 << 0) ? 1 : c_h;
+            int o_n_div = o_c_div * (bitmap & (1 << 1) ? 1 : c_c);
 
-            c_off[cindex] =
-                MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+            int o_h_gid_off = gid % b_h;
+            int o_c_gid_off = (gid / b_h) % b_c;
+            int o_n_gid_off = (gid / b_h) / b_c;
 
-            lid += get_local_size(0);
+            int bindex          = o_n_gid_off * b_nstride + o_c_gid_off * b_cstride + o_h_gid_off;
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                int o_h = (bitmap & (1 << 0)) ? o_h_gid_off : lid % c_h;
+                int o_c = (bitmap & (1 << 1)) ? o_c_gid_off : (lid / o_c_div) % c_c;
+                int o_n = (bitmap & (1 << 2)) ? o_n_gid_off : lid / o_n_div;
+
+                int aindex = o_n * a_nstride + o_c * a_cstride + o_h;
+                int cindex = o_n * c_nstride + o_c * c_cstride + o_h;
+
+                c_off[cindex] =
+                    MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+
+                lid += get_local_size(0);
+            }
+        }
+    }
+    else
+    {
+        for(; gid < num_wg; gid += MAX_NUM_WG)
+        {
+
+            int lid     = get_local_id(0);
+            int o_c_div = bitmap & (1 << 0) ? 1 : c_h;
+            int o_n_div = o_c_div * (bitmap & (1 << 1) ? 1 : c_c);
+
+            int o_h_gid_off = gid % b_h;
+            int o_c_gid_off = (gid / b_h) % b_c;
+            int o_n_gid_off = (gid / b_h) / b_c;
+
+            int bindex          = o_n_gid_off * b_nstride + o_c_gid_off * b_cstride + o_h_gid_off;
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                int o_h = (bitmap & (1 << 0)) ? o_h_gid_off : lid % c_h;
+                int o_c = (bitmap & (1 << 1)) ? o_c_gid_off : (lid / o_c_div) % c_c;
+                int o_n = (bitmap & (1 << 2)) ? o_n_gid_off : lid / o_n_div;
+
+                int aindex = o_n * a_nstride + o_c * a_cstride + o_h;
+                int cindex = o_n * c_nstride + o_c * c_cstride + o_h;
+
+                c_off[cindex] =
+                    MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+
+                lid += get_local_size(0);
+            }
         }
     }
 }
@@ -579,38 +825,77 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
             *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
         }
 
-        for(; gid1 < total_work2; gid1 += get_global_size(1))
+        if(beta == (MIOPEN_TYPE)0)
         {
-            for(int i = 0; i < RD_BLCK; ++i)
+            for(; gid1 < total_work2; gid1 += get_global_size(1))
             {
-                c_dat[i] = (MIOPEN_TYPE)0;
-            }
+                for(int i = 0; i < RD_BLCK; ++i)
+                {
+                    c_dat[i] = (MIOPEN_TYPE)0;
+                }
 
-            int a_index = gid1 * a_nstride + gid0 * RD_BLCK;
-            int c_index = gid1 * c_nstride + gid0 * RD_BLCK;
+                int a_index = gid1 * a_nstride + gid0 * RD_BLCK;
+                int c_index = gid1 * c_nstride + gid0 * RD_BLCK;
 
-            *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + Aoffset + a_index));
-            if(use_beta == 1)
-            {
-                *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + Coffset + c_index));
-            }
-
-            if(use_bias == 0)
-            {
-                int b_index          = gid1 * b_nstride + gid0 * RD_BLCK;
-                *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
-            }
-
-            for(int i = 0; i < RD_BLCK; ++i)
-            {
+                *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + Aoffset + a_index));
                 if(use_beta == 1)
                 {
-                    c_dat[i] *= beta;
+                    *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + Coffset + c_index));
                 }
-                c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1);
-            }
 
-            *((global READ_TYPE*)(c + Coffset + c_index)) = *((READ_TYPE*)c_dat);
+                if(use_bias == 0)
+                {
+                    int b_index          = gid1 * b_nstride + gid0 * RD_BLCK;
+                    *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
+                }
+
+                for(int i = 0; i < RD_BLCK; ++i)
+                {
+                    if(use_beta == 1)
+                    {
+                        c_dat[i] = (MIOPEN_TYPE)0;
+                    }
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1);
+                }
+
+                *((global READ_TYPE*)(c + Coffset + c_index)) = *((READ_TYPE*)c_dat);
+            }
+        }
+        else
+        {
+            for(; gid1 < total_work2; gid1 += get_global_size(1))
+            {
+                for(int i = 0; i < RD_BLCK; ++i)
+                {
+                    c_dat[i] = (MIOPEN_TYPE)0;
+                }
+
+                int a_index = gid1 * a_nstride + gid0 * RD_BLCK;
+                int c_index = gid1 * c_nstride + gid0 * RD_BLCK;
+
+                *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + Aoffset + a_index));
+                if(use_beta == 1)
+                {
+                    *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + Coffset + c_index));
+                }
+
+                if(use_bias == 0)
+                {
+                    int b_index          = gid1 * b_nstride + gid0 * RD_BLCK;
+                    *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
+                }
+
+                for(int i = 0; i < RD_BLCK; ++i)
+                {
+                    if(use_beta == 1)
+                    {
+                        c_dat[i] *= beta;
+                    }
+                    c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1);
+                }
+
+                *((global READ_TYPE*)(c + Coffset + c_index)) = *((READ_TYPE*)c_dat);
+            }
         }
     }
 }
@@ -695,9 +980,19 @@ __kernel void Op2dTensorSquash(const global MIOPEN_TYPE* a,
         if(use_bet == 1)
         {
             *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + Coffset + io_index));
-            for(int i = 0; i < RD_BLCK; ++i)
+            if(beta == (MIOPEN_TYPE)0)
             {
-                c_dat[i] *= beta;
+                for(int i = 0; i < RD_BLCK; ++i)
+                {
+                    c_dat[i] = 0;
+                }
+            }
+            else
+            {
+                for(int i = 0; i < RD_BLCK; ++i)
+                {
+                    c_dat[i] *= beta;
+                }
             }
         }
 
@@ -840,25 +1135,50 @@ __kernel void Op2dTensorGeneric(global MIOPEN_TYPE* a,
 
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; gid < num_wg; gid += MAX_NUM_WG)
+    if(beta == (MIOPEN_TYPE)0)
     {
-
-        int lid         = get_local_id(0);
-        int o_c_gid_off = gid % b_c;
-        int o_n_gid_off = gid / b_c;
-
-        int bindex          = o_n_gid_off * b_nstride + o_c_gid_off;
-        MIOPEN_TYPE operand = b_off[bindex] * alpha1;
-
-        while(lid < work_per_wg)
+        for(; gid < num_wg; gid += MAX_NUM_WG)
         {
-            int o_c    = (bitmap & (1 << 0)) ? o_c_gid_off : lid % c_c;
-            int o_n    = (bitmap & (1 << 1)) ? o_n_gid_off : lid / o_n_div;
-            int aindex = o_n * a_nstride + o_c;
-            int cindex = o_n * c_nstride + o_c;
-            c_off[cindex] =
-                MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
-            lid += get_local_size(0);
+
+            int lid         = get_local_id(0);
+            int o_c_gid_off = gid % b_c;
+            int o_n_gid_off = gid / b_c;
+
+            int bindex          = o_n_gid_off * b_nstride + o_c_gid_off;
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                int o_c       = (bitmap & (1 << 0)) ? o_c_gid_off : lid % c_c;
+                int o_n       = (bitmap & (1 << 1)) ? o_n_gid_off : lid / o_n_div;
+                int aindex    = o_n * a_nstride + o_c;
+                int cindex    = o_n * c_nstride + o_c;
+                c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand);
+                lid += get_local_size(0);
+            }
+        }
+    }
+    else
+    {
+        for(; gid < num_wg; gid += MAX_NUM_WG)
+        {
+            int lid         = get_local_id(0);
+            int o_c_gid_off = gid % b_c;
+            int o_n_gid_off = gid / b_c;
+
+            int bindex          = o_n_gid_off * b_nstride + o_c_gid_off;
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                int o_c    = (bitmap & (1 << 0)) ? o_c_gid_off : lid % c_c;
+                int o_n    = (bitmap & (1 << 1)) ? o_n_gid_off : lid / o_n_div;
+                int aindex = o_n * a_nstride + o_c;
+                int cindex = o_n * c_nstride + o_c;
+                c_off[cindex] =
+                    MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+                lid += get_local_size(0);
+            }
         }
     }
 }
@@ -890,17 +1210,36 @@ __kernel void Op1dTensorGeneric(global MIOPEN_TYPE* a,
 
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
-    for(; gid < num_wg; gid += MAX_NUM_WG)
+    if(beta == (MIOPEN_TYPE)0)
     {
-        int lid             = get_local_id(0);
-        int o_n_gid_off     = gid % b_n;
-        int bindex          = o_n_gid_off;
-        MIOPEN_TYPE operand = b_off[bindex] * alpha1;
-        while(lid < work_per_wg)
+        for(; gid < num_wg; gid += MAX_NUM_WG)
         {
-            int o_n    = (bitmap & (1 << 0)) ? o_n_gid_off : lid % c_n;
-            c_off[o_n] = MIOPEN_TENSOR_OP(a_off[o_n] * alpha0, operand) + beta * c_off[o_n];
-            lid += get_local_size(0);
+            int lid             = get_local_id(0);
+            int o_n_gid_off     = gid % b_n;
+            int bindex          = o_n_gid_off;
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+            while(lid < work_per_wg)
+            {
+                int o_n    = (bitmap & (1 << 0)) ? o_n_gid_off : lid % c_n;
+                c_off[o_n] = MIOPEN_TENSOR_OP(a_off[o_n] * alpha0, operand);
+                lid += get_local_size(0);
+            }
+        }
+    }
+    else
+    {
+        for(; gid < num_wg; gid += MAX_NUM_WG)
+        {
+            int lid             = get_local_id(0);
+            int o_n_gid_off     = gid % b_n;
+            int bindex          = o_n_gid_off;
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+            while(lid < work_per_wg)
+            {
+                int o_n    = (bitmap & (1 << 0)) ? o_n_gid_off : lid % c_n;
+                c_off[o_n] = MIOPEN_TENSOR_OP(a_off[o_n] * alpha0, operand) + beta * c_off[o_n];
+                lid += get_local_size(0);
+            }
         }
     }
 }
@@ -936,32 +1275,65 @@ __kernel void Op4dTensorLite(const global MIOPEN_TYPE* a,
     MIOPEN_TYPE b_dat[RD_BLCK];
     MIOPEN_TYPE c_dat[RD_BLCK];
 
-    for(; gid0 < total_work; gid0 += get_global_size(0))
+    if(beta == (MIOPEN_TYPE)0)
     {
-        int index = gid0 * RD_BLCK;
-
-        for(int i = 0; i < RD_BLCK; ++i)
+        for(; gid0 < total_work; gid0 += get_global_size(0))
         {
-            c_dat[i] = (MIOPEN_TYPE)0;
-        }
+            int index = gid0 * RD_BLCK;
 
-        *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + index + Aoffset));
-        *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + index + Boffset));
-        if(use_beta == 1)
-        {
-            *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + index + Coffset));
-        }
+            for(int i = 0; i < RD_BLCK; ++i)
+            {
+                c_dat[i] = (MIOPEN_TYPE)0;
+            }
 
-        for(int i = 0; i < RD_BLCK; ++i)
-        {
+            *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + index + Aoffset));
+            *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + index + Boffset));
             if(use_beta == 1)
             {
-                c_dat[i] *= beta;
+                *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + index + Coffset));
             }
-            c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1);
-        }
 
-        *((global READ_TYPE*)(c + index + Coffset)) = *((READ_TYPE*)c_dat);
+            for(int i = 0; i < RD_BLCK; ++i)
+            {
+                if(use_beta == 1)
+                {
+                    c_dat[i] = (MIOPEN_TYPE)0;
+                }
+                c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1);
+            }
+
+            *((global READ_TYPE*)(c + index + Coffset)) = *((READ_TYPE*)c_dat);
+        }
+    }
+    else
+    {
+        for(; gid0 < total_work; gid0 += get_global_size(0))
+        {
+            int index = gid0 * RD_BLCK;
+
+            for(int i = 0; i < RD_BLCK; ++i)
+            {
+                c_dat[i] = (MIOPEN_TYPE)0;
+            }
+
+            *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + index + Aoffset));
+            *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + index + Boffset));
+            if(use_beta == 1)
+            {
+                *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + index + Coffset));
+            }
+
+            for(int i = 0; i < RD_BLCK; ++i)
+            {
+                if(use_beta == 1)
+                {
+                    c_dat[i] *= beta;
+                }
+                c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1);
+            }
+
+            *((global READ_TYPE*)(c + index + Coffset)) = *((READ_TYPE*)c_dat);
+        }
     }
 }
 
