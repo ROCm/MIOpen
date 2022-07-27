@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "../test.hpp"
+#include "test.hpp"
 #include <array>
 #include <iostream>
 #include <iterator>
@@ -35,12 +35,10 @@
 #include <miopen/tensor.hpp>
 #include <utility>
 
-#include "../driver.hpp"
-#include "../get_handle.hpp"
-#include "../tensor_holder.hpp"
-#include "../verify.hpp"
-
-#include <gtest/gtest.h>
+#include "driver.hpp"
+#include "get_handle.hpp"
+#include "tensor_holder.hpp"
+#include "verify.hpp"
 
 std::string to_name(miopenActivationMode_t m)
 {
@@ -190,7 +188,7 @@ struct activation_driver : test_driver
 
     template <class Forward, class Backward>
     void add_mode(miopenActivationMode_t m, Forward f, Backward b)
-    {   //hash table map to 
+    {
         lookup.emplace(transform_mode(to_name(m)), [=] { this->run(m, f, b); });
     }
 
@@ -271,7 +269,7 @@ struct activation_driver : test_driver
     }
 
     static std::string transform_mode(std::string s)
-    {   //Remove MIOPENACTIVATION from s if any
+    {
         return miopen::RemovePrefix(miopen::ToUpper(s), "MIOPENACTIVATION");
     }
 
@@ -317,15 +315,4 @@ struct activation_driver : test_driver
     }
 };
 
-//GoogleTest for activation
-TEST(TestActivation, BasicAssertions)
-{
-    auto volatile marker = 0;
-    int argc = 2;
-    const char* argv[] = {"test_activation", "--float"};
-    
-    test_drive<activation_driver>(argc, argv);
-
-    ++marker;
-    EXPECT_EQ(marker,1) << "test_activation failed";
-}
+int main(int argc, const char* argv[]) { test_drive<activation_driver>(argc, argv); }
