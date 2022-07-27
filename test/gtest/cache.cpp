@@ -29,11 +29,10 @@
 #include <miopen/temp_file.hpp>
 
 #include <miopen/md5.hpp>
-#include "../test.hpp"
-#include "../random.hpp"
+#include "test.hpp"
+#include "random.hpp"
 
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
 
 #if MIOPEN_ENABLE_SQLITE
 std::string random_string(size_t length)
@@ -63,12 +62,10 @@ TEST(TestCache, check_bz2_compress)
     to_compress = random_string(4096);
     // if the following throws the test will fail
     cmprsd = miopen::compress(to_compress, nullptr);
-    ASSERT_TRUE(!(cmprsd.empty()))
-        << "Failed: TestCache at check_bz2_compress" << __FILE__ ": " << __LINE__;
+    ASSERT_TRUE(!(cmprsd.empty()));
     cmprsd = miopen::compress(to_compress, &success);
-    ASSERT_TRUE(success) << "Failed: TestCache at check_bz2_compress" << __FILE__ ": " << __LINE__;
-    ASSERT_TRUE(cmprsd.size() < to_compress.size())
-        << "Failed: TestCache at check_bz2_compress" << __FILE__ ": " << __LINE__;
+    ASSERT_TRUE(success);
+    ASSERT_TRUE(cmprsd.size() < to_compress.size());
 }
 
 TEST(TestCache, check_bz2_decompress)
@@ -86,17 +83,14 @@ TEST(TestCache, check_bz2_decompress)
     bool success  = false;
     std::string compressed_str;
     compressed_str = miopen::compress(orig_str, &success);
-    ASSERT_TRUE(success == true) << "Failed: TestCache at check_bz2_decompress" << __FILE__ ": "
-                                 << __LINE__ << std::endl;
+    ASSERT_TRUE(success);
 
     decompressed_str = miopen::decompress(compressed_str, orig_str.size());
-    ASSERT_TRUE(decompressed_str == orig_str)
-        << "Failed: TestCache at check_bz2_decompress" << __FILE__ ": " << __LINE__ << std::endl;
+    ASSERT_TRUE(decompressed_str == orig_str);
 
     EXPECT_TRUE(throws([&]() { decompressed_str = miopen::decompress(compressed_str, 10); }));
 
-    ASSERT_TRUE(decompressed_str == miopen::decompress(compressed_str, orig_str.size() + 10))
-        << "Failed: TestCache at check_bz2_decompress" << __FILE__ ": " << __LINE__ << std::endl;
+    ASSERT_TRUE(decompressed_str == miopen::decompress(compressed_str, orig_str.size() + 10));
 }
 
 TEST(TestCache, check_kern_db)
@@ -107,30 +101,20 @@ TEST(TestCache, check_kern_db)
     cfg0.kernel_blob = random_string(8192);
 
     miopen::KernDb empty_db("", false);
-    EXPECT_TRUE(empty_db.RemoveRecordUnsafe(cfg0))
-        << "Failed: TestCache at check_kern_db" << __FILE__ ": " << __LINE__
-        << std::endl; // for empty file, remove should succeed
-    EXPECT_FALSE(empty_db.FindRecordUnsafe(cfg0))
-        << "Failed: TestCache at check_kern_db" << __FILE__ ": " << __LINE__
-        << std::endl; // no record in empty database
-    EXPECT_FALSE(empty_db.StoreRecordUnsafe(cfg0))
-        << "Failed: TestCache at check_kern_db" << __FILE__ ": " << __LINE__
-        << std::endl; // storing in an empty database should fail
+    EXPECT_TRUE(empty_db.RemoveRecordUnsafe(cfg0)); // for empty file, remove should succeed
+    EXPECT_FALSE(empty_db.FindRecordUnsafe(cfg0));  // no record in empty database
+    EXPECT_FALSE(empty_db.StoreRecordUnsafe(cfg0)); // storing in an empty database should fail
 
     {
         miopen::TempFile temp_file("tmp-kerndb");
         miopen::KernDb clean_db(std::string(temp_file), false);
 
-        EXPECT_TRUE(clean_db.StoreRecordUnsafe(cfg0))
-            << "Failed: TestCache at check_kern_db" << __FILE__ ": " << __LINE__ << std::endl;
+        EXPECT_TRUE(clean_db.StoreRecordUnsafe(cfg0));
         auto readout = clean_db.FindRecordUnsafe(cfg0);
-        EXPECT_TRUE(readout) << "Failed: TestCache at check_kern_db" << __FILE__ ": " << __LINE__;
-        EXPECT_TRUE(readout.get() == cfg0.kernel_blob)
-            << "Failed: TestCache at check_kern_db" << __FILE__ ": " << __LINE__ << std::endl;
-        EXPECT_TRUE(clean_db.RemoveRecordUnsafe(cfg0))
-            << "Failed: TestCache at check_kern_db" << __FILE__ ": " << __LINE__ << std::endl;
-        EXPECT_FALSE(clean_db.FindRecordUnsafe(cfg0))
-            << "Failed: TestCache at check_kern_db" << __FILE__ ": " << __LINE__ << std::endl;
+        EXPECT_TRUE(readout);
+        EXPECT_TRUE(readout.get() == cfg0.kernel_blob);
+        EXPECT_TRUE(clean_db.RemoveRecordUnsafe(cfg0));
+        EXPECT_FALSE(clean_db.FindRecordUnsafe(cfg0));
     }
 
     {
@@ -149,13 +133,10 @@ TEST(TestCache, check_kern_db)
                 throw;
             }); // error compressing
         // Even if compression fails, it should still work
-        EXPECT_TRUE(err_db.StoreRecordUnsafe(cfg0))
-            << "Failed: TestCache at check_kern_db" << __FILE__ ": " << __LINE__ << std::endl;
+        EXPECT_TRUE(err_db.StoreRecordUnsafe(cfg0));
         // In which case decompresion should not be called
-        EXPECT_TRUE(err_db.FindRecordUnsafe(cfg0))
-            << "Failed: TestCache at check_kern_db" << __FILE__ ": " << __LINE__ << std::endl;
-        EXPECT_TRUE(err_db.RemoveRecordUnsafe(cfg0))
-            << "Failed: TestCache at check_kern_db" << __FILE__ ": " << __LINE__ << std::endl;
+        EXPECT_TRUE(err_db.FindRecordUnsafe(cfg0));
+        EXPECT_TRUE(err_db.RemoveRecordUnsafe(cfg0));
     }
 }
 #endif
@@ -163,14 +144,12 @@ TEST(TestCache, check_kern_db)
 TEST(TestCache, check_cache_file)
 {
     auto p = miopen::GetCacheFile("gfx", "base", "args", false);
-    EXPECT_TRUE(p.filename().string() == "base.o")
-        << "Failed: TestCache at check_cache_file" << __FILE__ ": " << __LINE__ << std::endl;
+    EXPECT_TRUE(p.filename().string() == "base.o");
 }
 
 TEST(TestCache, check_cache_str)
 {
     auto p    = miopen::GetCacheFile("gfx", "base", "args", true);
     auto name = miopen::md5("base");
-    EXPECT_TRUE(p.filename().string() == name + ".o")
-        << "Failed: TestCache at check_cache_str" << __FILE__ ": " << __LINE__ << std::endl;
+    EXPECT_TRUE(p.filename().string() == name + ".o");
 }
