@@ -289,8 +289,8 @@ kernel void Im2d2Col(const int data_size_off,
         index_t col_row = tid / ((index_t)out_h * out_w); // wei_w * wei_h * NUM_CH_TOTAL
 
         // which pixel from the image and which channel to read from
-        int im_x = col_row % wei_w;                     // used to compute im_off_w
-        int im_y = (col_row / wei_w) % wei_h;           // used to compute im_off_y
+        int im_x = col_row % wei_w;                    // used to compute im_off_w
+        int im_y = (col_row / wei_w) % wei_h;          // used to compute im_off_y
         int im_c = col_row / ((index_t)wei_w * wei_h); // im_c is the img channel
 
         int out_x = tid % out_w;
