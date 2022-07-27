@@ -277,13 +277,6 @@ void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::HeuristicInit(
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 std::tuple<int, bool>
 PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateBlockSize() const
 {

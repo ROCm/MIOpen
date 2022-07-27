@@ -559,13 +559,6 @@ bool PerformanceImplicitGemmV4R4WrW::SetNextValue(const ConvolutionContext& /*co
     return true;
 }
 
-std::string PerformanceImplicitGemmV4R4WrW::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 std::tuple<int, int, int>
 ConvHipImplicitGemmV4R4WrW::CalculateGemmSize(const ConvolutionContext& ctx)
 {

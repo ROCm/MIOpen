@@ -722,13 +722,6 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionCo
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceImplicitGemmBwdDataV4R1Xdlops::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 int ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(const ConvolutionContext& ctx)
 {
     const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);

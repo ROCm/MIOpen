@@ -132,13 +132,6 @@ bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*config*/
     return true;
 }
 
-std::string PerformanceConvMlirIgemm::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConvMlirIgemm
 ConvMlirIgemmFwd::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {

@@ -148,13 +148,6 @@ void PerformanceConfigConvAsm3x3U::HeuristicInit(const ConvolutionContext& confi
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceConfigConvAsm3x3U::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConfigConvAsm3x3U
 ConvAsm3x3U::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {

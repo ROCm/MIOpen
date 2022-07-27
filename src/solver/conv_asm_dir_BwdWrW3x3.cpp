@@ -316,13 +316,6 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& c
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConfigAsmDirect3x3WrW
 ConvAsmBwdWrW3x3::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {

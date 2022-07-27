@@ -607,13 +607,6 @@ bool PerformanceImplicitGemmBwdDataV4R1::SetNextValue(const ConvolutionContext& 
     return true;
 }
 
-std::string PerformanceImplicitGemmBwdDataV4R1::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 int ConvHipImplicitGemmBwdDataV4R1::CalculateNumberOfGemm(const ConvolutionContext& ctx)
 {
     const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);

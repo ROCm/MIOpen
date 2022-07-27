@@ -249,13 +249,6 @@ void PerformanceImplicitGemmWrwV4R4Xdlops::HeuristicInit(const ConvolutionContex
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceImplicitGemmWrwV4R4Xdlops::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 std::tuple<int, bool> PerformanceImplicitGemmWrwV4R4Xdlops::CalculateBlockSize() const
 {
     int block_size = 0;
