@@ -67,7 +67,7 @@ public:
     }
 };
 
-struct TestConfig : solver::Serializable<TestConfig>
+struct TestConfig : solver::PerfConfigBase<TestConfig>
 {
     std::string str;
 

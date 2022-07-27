@@ -483,13 +483,6 @@ bool PerformanceImplicitGemm::SetNextValue(const ConvolutionContext& /*config*/)
     return true;
 }
 
-std::string PerformanceImplicitGemm::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceImplicitGemm::PerformanceImplicitGemm(bool spare)
 {
     BPerBlock = spare ? 8 : 16; // constant for no-spare
