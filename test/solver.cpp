@@ -143,6 +143,18 @@ static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const st
     return solvers.SearchForAllSolutions(ctx, db, {}, 1).front();
 }
 
+template <class TInstance>
+class StaticContainer
+{
+public:
+    inline static TInstance& Instance()
+    {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+        static TInstance data{};
+        return data;
+    }
+};
+
 class SolverTest
 {
 public:
