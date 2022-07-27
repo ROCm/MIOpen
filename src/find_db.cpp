@@ -39,14 +39,19 @@
 
 namespace miopen {
 
+namespace debug {
+
 bool testing_find_db_enabled = true; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
+/// \todo Remove when #1723 is resolved.
 boost::optional<std::string>& testing_find_db_path_override()
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static boost::optional<std::string> data = boost::none;
     return data;
 }
+
+} // namespace debug
 
 #if MIOPEN_EMBED_DB
 template <class TDb>

@@ -34,30 +34,24 @@ namespace miopen {
 template <class MIOpen_Private_TypeName_>
 const std::string& get_type_name()
 {
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static std::string name;
-
-    if(name.empty())
-    {
+    static const std::string ret =
 #ifdef _MSC_VER
-        name = typeid(MIOpen_Private_TypeName_).name();
-        name = name.substr(7);
+        typeid(MIOpen_Private_TypeName_).name().substr(7);
 #else
-        const char parameter_name[] = "MIOpen_Private_TypeName_ =";
+        [](std::string name) {
+            const char parameter_name[] = "MIOpen_Private_TypeName_ =";
 
-        name = __PRETTY_FUNCTION__;
-
-        auto begin  = name.find(parameter_name) + sizeof(parameter_name);
+            auto begin  = name.find(parameter_name) + sizeof(parameter_name);
 #if(defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7)
-        auto length = name.find_last_of(",") - begin;
+            auto length = name.find_last_of(",") - begin;
 #else
-        auto length = name.find_first_of("];", begin) - begin;
+            auto length = name.find_first_of("];", begin) - begin;
 #endif
-        name        = name.substr(begin, length);
-#endif
-    }
-
-    return name;
+            name        = name.substr(begin, length);
+            return name;
+        }(__PRETTY_FUNCTION__);
+#endif // _MSC_VER
+    return ret;
 }
 
 template <class T>
