@@ -115,7 +115,7 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
            << (miopen::deref(poolDesc).mode == 0
                    ? "max"
                    : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
-           << " -F " << ((is_fwd) ? "1" : "2") << " -t 1"; // clang-format on
+           << " -F " << ((is_fwd) ? "1" : "0") << " -t 1"; // clang-format on
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
