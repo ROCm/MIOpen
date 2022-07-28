@@ -103,6 +103,12 @@ typedef float data_t;
  * }
  */
 
+#ifdef USE_LARGE_BUFFER_INDEX
+typedef long index_t;
+#else
+typedef int index_t;
+#endif
+
 kernel void Im2d2Col(const int data_size_off,
                      global data_t* im,
                      const int im_offset,
@@ -121,6 +127,8 @@ kernel void Im2d2Col(const int data_size_off,
                      global data_t* col)
 {
 #define THREADS_PER_CH (256 / NUM_CH_PER_WG)
+    /// NUM_CH_PER_WG {1;4}
+    /// THREADS_PER_CH {256; 64}
 
 #if USE_IM_OFF_GUARD
 #define IM_OFF_GUARD(idx) (idx) < data_size_off ? im_off[(idx)] : 0
@@ -129,48 +137,77 @@ kernel void Im2d2Col(const int data_size_off,
 #endif
 
     global data_t* im_off = im + im_offset;
-    int lid               = get_local_id(0);
-    int gid               = get_group_id(0);
 
 #ifndef EXTREME_LARGE
+
+    int lid = get_local_id(0);
+    /// tile_sz_x = {32,16,8,4,2,1}, tile_sz_y = {8,4,2,1}
+    /// NUM_IM_BLKS_X = out_w / tile_sz_x
+    /// NUM_IM_BLKS = NUM_IM_BLKS_X * out_h / tile_sz_y => out_w * out_h
+    /// c * NUM_IM_BLKS => c * out_w * out_h
+    index_t gid = get_group_id(0);
+
 #if NUM_IM_BLKS == 1 && STRIDE_GT_1 == 0
 
     // Load image into LDS
+    /// max (LOCAL_MEM_SIZE) = 65536
     local data_t local_im[LOCAL_MEM_SIZE];
 
+    /// witem_ch [0;4)
     int witem_ch = lid / THREADS_PER_CH;
 
     int im_lid = lid;
-    while(im_lid < NUM_CH_PER_WG * h * w)
+    /// h*w < LOCAL_MEM_SIZE/witem_ch
+    int gid_stride = NUM_CH_PER_WG * h * w;
+    while(im_lid < gid_stride)
     {
-        local_im[im_lid] = IM_OFF_GUARD((gid * NUM_CH_PER_WG) * h * w + im_lid);
+        /// gid = max(1, (c_pack / NUM_CH_PER_WG)) => c
+        /// max (c * LOCAL_MEM_SIZE) => 65536 * c
+        index_t im_off_id = gid * gid_stride + im_lid;
+        local_im[im_lid]  = IM_OFF_GUARD(im_off_id);
         im_lid += 256;
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // where will each thread to col
+    /// should fit in LDS size => witem_ch_offset < LOCAL_MEM_SIZE
+    /// h*w < LOCAL_MEM_SIZE/witem_ch
     int witem_ch_offset = witem_ch * h * w;
-
-    if(lid % THREADS_PER_CH < out_h * out_w)
+    /// if (NUM_IM_BLKS == 1) => (out_h < 8 && out_w < 32)
+    ///      => out_hw_stride < 256
+    int out_hw_stride = out_h * out_w;
+    if(lid % THREADS_PER_CH < out_hw_stride)
     {
+        /// lid[0, 255] % THREADS_PER_CH {256; 64} =>
+        /// max(inner_lid)=255; max(out_x)=max(out_y)=255
         int inner_lid = lid % THREADS_PER_CH;
         int out_x     = inner_lid % out_w;
         int out_y     = inner_lid / out_w;
 
+        /// out_w < 32; out_y < 255; out_x < 255
+        /// col_x < 2 080 800
         int col_x = out_y * out_w + out_x;
-        int col_y = (gid * NUM_CH_PER_WG + witem_ch) * out_h * out_w * wei_h * wei_w;
+        /// gid = c = group_cnt-1; NUM_CH_PER_WG{1,4}; out_hw_stride < 256;
+        /// EXTREME_LARGE==0
+        /// => wei_h * wei_w * type_size * NUM_CH_PER_WG < max (LOCAL_MEM_SIZE)
+        /// gid * out_hw_stride * LOCAL_MEM_SIZE => c * 256 * 65536
+        index_t col_y = ((index_t)gid * NUM_CH_PER_WG + witem_ch) * out_hw_stride * wei_h * wei_w;
 
         for(int y = 0; y < wei_h; y++)
         {
             for(int x = 0; x < wei_w; x++)
             {
+                /// max(im_off_h)*w <= max(LOCAL_MEM_SIZE); max(im_off_w) <= max(LOCAL_MEM_SIZE);
                 int im_off_h = out_y * stride_h - pad_h + y * dilation_h;
                 int im_off_w = out_x * stride_w - pad_w + x * dilation_w;
+                /// y * wei_w * type_size * NUM_CH_PER_WG < max (LOCAL_MEM_SIZE)
+                int im_off_wei_hw = y * wei_w + x;
+                // col_x + (im_off_wei_hw * out_hw_stride) => 2 080 800 + 65536 * 255
+                index_t col_off = col_y + col_x + im_off_wei_hw * out_hw_stride;
                 if(im_off_h >= 0 && im_off_h < h && im_off_w >= 0 && im_off_w < w)
-                    col[col_y + col_x + (y * wei_w + x) * out_h * out_w] =
-                        local_im[witem_ch_offset + (im_off_h)*w + im_off_w];
+                    col[col_off] = local_im[witem_ch_offset + (im_off_h)*w + im_off_w];
                 else
-                    col[col_y + col_x + (y * wei_w + x) * out_h * out_w] = 0;
+                    col[col_off] = 0;
             }
         }
     }
@@ -180,27 +217,38 @@ kernel void Im2d2Col(const int data_size_off,
     local data_t local_im[LOCAL_MEM_SIZE];
 
     int wg_ch = gid / NUM_IM_BLKS;
+    /// TILE_SZ_X = 32, TILE_SZ_Y = 8;
+    /// gid = c * NUM_IM_BLKS => im_x = NUM_IM_BLKS*TILE_SZ_X = NUM_IM_BLKS*32
+    /// = NUM_IM_BLKS*32 = out_w * out_h / 8
+    int im_x = ((gid % NUM_IM_BLKS) % NUM_IM_BLKS_X) * TILE_SZ_X; /// < out_w
+    int im_y = ((gid % NUM_IM_BLKS) / NUM_IM_BLKS_X) * TILE_SZ_Y; /// < out_h
 
-    int im_x = ((gid % NUM_IM_BLKS) % NUM_IM_BLKS_X) * TILE_SZ_X;
-    int im_y = ((gid % NUM_IM_BLKS) / NUM_IM_BLKS_X) * TILE_SZ_Y;
-
-    int out_cols_wg = im_x + TILE_SZ_X <= out_w ? TILE_SZ_X : out_w - im_x;
-    int out_rows_wg = im_y + TILE_SZ_Y <= out_h ? TILE_SZ_Y : out_h - im_y;
+    int out_cols_wg = (im_x + TILE_SZ_X) <= out_w ? TILE_SZ_X : (out_w - im_x); /// < out_w
+    int out_rows_wg = (im_y + TILE_SZ_Y) <= out_h ? TILE_SZ_Y : (out_h - im_y); /// < out_h
 
     int im_cols_wg = (TILE_SZ_X - 1) * stride_w + (wei_w - 1) * dilation_w + 1;
-    int inner_lid  = lid;
+
+    int inner_lid = lid;
 
     while(inner_lid < LOCAL_MEM_SIZE)
     {
+        /// < 256
         int row_to_use = inner_lid / im_cols_wg;
         int col_to_use = inner_lid % im_cols_wg;
-        int lm_offset  = row_to_use * im_cols_wg + col_to_use;
-        if(im_y * stride_h + row_to_use >= pad_h && im_y * stride_h + row_to_use < h + pad_h &&
-           im_x * stride_w + col_to_use >= pad_w && im_x * stride_w + col_to_use < w + pad_w)
+        /// max = LOCAL_MEM_SIZE + im_cols_wg
+        int lm_offset = row_to_use * im_cols_wg + col_to_use;
+
+        /// out_h*stride_h+256
+        int im_y_off = im_y * stride_h + row_to_use;
+        /// out_w*stride_w+256
+        int im_x_off = im_x * stride_w + col_to_use;
+
+        if(im_y_off >= pad_h && im_y_off < h + pad_h && im_x_off >= pad_w && im_x_off < w + pad_w)
         {
-            int im_off_h        = im_y * stride_h + row_to_use - pad_h;
-            int im_off_w        = im_x * stride_w + col_to_use - pad_w;
-            local_im[lm_offset] = IM_OFF_GUARD(wg_ch * h * w + im_off_h * w + im_off_w);
+            int im_off_h        = im_y_off - pad_h;
+            int im_off_w        = im_x_off - pad_w;
+            index_t im_off_id   = (index_t)wg_ch * h * w + im_off_h * w + im_off_w;
+            local_im[lm_offset] = IM_OFF_GUARD(im_off_id);
         }
         else
             local_im[lm_offset] = 0;
@@ -212,20 +260,21 @@ kernel void Im2d2Col(const int data_size_off,
     inner_lid = lid;
     while(inner_lid < out_cols_wg * out_rows_wg)
     {
-        int out_x = inner_lid % out_cols_wg;
-        int out_y = inner_lid / out_cols_wg;
+        int out_x = inner_lid % out_cols_wg; /// < 256
+        int out_y = inner_lid / out_cols_wg; /// < 256
 
-        int col_x = (im_y + out_y) * out_w + im_x + out_x;
-        int col_y = (gid / NUM_IM_BLKS) * out_h * out_w * wei_h * wei_w;
+        index_t col_x = (index_t)(im_y + out_y) * out_w + im_x + out_x; /// out_h * out_w
+        /// c * out_h * out_w * wei_h * wei_w
+        index_t col_y = (gid / NUM_IM_BLKS) * out_h * out_w * wei_h * wei_w;
 
         for(int y = 0; y < wei_h; y++)
         {
             for(int x = 0; x < wei_w; x++)
             {
-                int im_off_h = out_y * stride_h + y * dilation_h;
-                int im_off_w = out_x * stride_w + x * dilation_w;
-                col[col_y + col_x + (y * wei_w + x) * out_h * out_w] =
-                    local_im[(im_off_h)*im_cols_wg + im_off_w];
+                int im_off_h    = out_y * stride_h + y * dilation_h;
+                int im_off_w    = out_x * stride_w + x * dilation_w;
+                index_t col_off = col_y + col_x + ((index_t)y * wei_w + x) * out_h * out_w;
+                col[col_off]    = local_im[(im_off_h)*im_cols_wg + im_off_w];
             }
         }
         inner_lid += 256;
@@ -233,16 +282,16 @@ kernel void Im2d2Col(const int data_size_off,
 #endif // NUM_IM_BLKS && STRIDE_GT_1
 #else
 
-    int tid = get_global_id(0);
-    while(tid < out_h * out_w * wei_w * wei_h * NUM_CH_TOTAL)
+    index_t tid = get_global_id(0);
+    while(tid < (index_t)out_h * out_w * wei_w * wei_h * NUM_CH_TOTAL)
     {
         // which row of the output to write to
-        int col_row = tid / (out_h * out_w);
+        index_t col_row = tid / ((index_t)out_h * out_w); // wei_w * wei_h * NUM_CH_TOTAL
 
         // which pixel from the image and which channel to read from
-        int im_x = col_row % wei_w;           // used to compute im_off_w
-        int im_y = (col_row / wei_w) % wei_h; // used to compute im_off_y
-        int im_c = col_row / (wei_w * wei_h); // im_c is the img channel
+        int im_x = col_row % wei_w;                    // used to compute im_off_w
+        int im_y = (col_row / wei_w) % wei_h;          // used to compute im_off_y
+        int im_c = col_row / ((index_t)wei_w * wei_h); // im_c is the img channel
 
         int out_x = tid % out_w;
         int out_y = (tid / out_w) % out_h;
@@ -251,14 +300,15 @@ kernel void Im2d2Col(const int data_size_off,
         int im_off_h = out_y * stride_h - pad_h + im_y * dilation_h;
         int im_off_w = out_x * stride_w - pad_w + im_x * dilation_w;
 
+        index_t col_off = col_row * out_h * out_w + (index_t)out_y * out_w + out_x;
+
         if(im_off_h >= 0 && im_off_h < h && im_off_w >= 0 && im_off_w < w)
         {
-            col[col_row * out_h * out_w + out_y * out_w + out_x] =
-                im_off[im_c * h * w + im_off_h * w + im_off_w];
+            col[col_off] = IM_OFF_GUARD((index_t)im_c * h * w + im_off_h * w + im_off_w);
         }
         else
         {
-            col[col_row * out_h * out_w + out_y * out_w + out_x] = 0.;
+            col[col_off] = 0.;
         }
         tid += get_global_size(0);
     }
