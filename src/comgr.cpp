@@ -1028,7 +1028,7 @@ void BuildAsm(const std::string& name,
 
 #if MIOPEN_USE_HIPRTC
 
-#define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838
+#define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838 Issue #1648
 
 namespace hiprtc {
 
@@ -1290,6 +1290,8 @@ void BuildHip(const std::string& name,
 #endif
 #if WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H
         opts.push_back("-Wno-newline-eof");
+        opts.push_back("-Wno-reserved-identifier");
+        opts.push_back("-Wno-old-style-cast");
 #endif
         opts.push_back("-Wno-cuda-compat");
         opts.push_back("-fno-gpu-rdc");
