@@ -449,13 +449,6 @@ void PerformanceConfigConvAsm1x1UV2::HeuristicInit(const ConvolutionContext& con
     }
 }
 
-std::string PerformanceConfigConvAsm1x1UV2::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConfigConvAsm1x1UV2
 ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {

@@ -124,6 +124,7 @@ set( MIOpen_Source
     mdg_expr.cpp
     op_args.cpp
     operator.cpp
+    performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
     problem_description.cpp

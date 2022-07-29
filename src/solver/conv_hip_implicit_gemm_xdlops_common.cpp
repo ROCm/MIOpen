@@ -372,12 +372,5 @@ void PerformanceImplicitGemmXdlops::HeuristicInit(const ConvolutionContext& ctx)
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceImplicitGemmXdlops::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 } // namespace solver
 } // namespace miopen
