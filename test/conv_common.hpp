@@ -386,7 +386,7 @@ struct verify_forward_conv : conv_base<T, Tout>
         {
             if(filter.mode == miopenTranspose)
             {
-                if(miopen::testing_find_db_enabled)
+                if(miopen::debug::testing_find_db_enabled)
                 {
                     int ret_algo_count;
                     miopenConvAlgoPerf_t perf;
@@ -462,7 +462,7 @@ struct verify_forward_conv : conv_base<T, Tout>
             }
             else
             {
-                if(miopen::testing_find_db_enabled)
+                if(miopen::debug::testing_find_db_enabled)
                 {
                     int ret_algo_count;
                     miopenConvAlgoPerf_t perf;
@@ -860,7 +860,7 @@ struct verify_backward_conv : conv_base<T>
 
             if(filter.mode == miopenTranspose)
             {
-                if(miopen::testing_find_db_enabled)
+                if(miopen::debug::testing_find_db_enabled)
                 {
                     filter.FindConvFwdAlgorithm(handle,
                                                 out.desc,
@@ -938,7 +938,7 @@ struct verify_backward_conv : conv_base<T>
             }
             else
             {
-                if(miopen::testing_find_db_enabled)
+                if(miopen::debug::testing_find_db_enabled)
                 {
                     filter.FindConvBwdDataAlgorithm(handle,
                                                     out.desc,
@@ -1231,7 +1231,7 @@ struct verify_backward_weights_conv : conv_base<T>
             int ret_algo_count;
             miopenConvAlgoPerf_t perf;
 
-            if(miopen::testing_find_db_enabled)
+            if(miopen::debug::testing_find_db_enabled)
             {
                 filter.FindConvBwdWeightsAlgorithm(
                     handle,
@@ -1398,6 +1398,217 @@ struct verify_backward_weights_conv : conv_base<T>
         this->conv_base<T>::fail();
     }
 };
+
+template <class T>
+struct verify_forward_conv_int8 : conv_base<T>
+{
+    using conv_base<T>::input;
+    using conv_base<T>::weights;
+    using conv_base<T>::filter;
+    using conv_base<T>::bias;
+    using conv_base<T>::search;
+    using conv_base<T>::stats;
+    bool is_vect;
+
+    verify_forward_conv_int8(const tensor<T>& pinput,
+                             const tensor<T>& pweights,
+                             const miopen::ConvolutionDescriptor& pfilter,
+                             conv_stats& pstats,
+                             int pbias   = 0,
+                             int psearch = 0,
+                             bool pvect  = false)
+    {
+        input   = pinput;
+        weights = pweights;
+        filter  = pfilter;
+        bias    = pbias;
+        search  = psearch;
+        is_vect = pvect;
+        stats   = &pstats;
+    }
+
+    tensor<float> cpu() const
+    {
+        auto rout = get_output_tensor_int8(filter, input, weights);
+
+        if(filter.mode == miopenConvolution)
+        {
+            cpu_convolution_forward(filter.GetSpatialDimension(),
+                                    input,
+                                    weights,
+                                    rout,
+                                    filter.GetConvPads(),
+                                    filter.GetConvStrides(),
+                                    filter.GetConvDilations(),
+                                    filter.GetGroupCount());
+
+            rout.par_for_each(
+                [&](auto... is) { rout(is...) = double(rout(is...)) + double(this->bias); });
+        }
+
+        return rout;
+    }
+
+    tensor<float> gpu() const
+    {
+        auto&& handle = get_handle();
+        auto rout     = get_output_tensor_int8(filter, input, weights);
+
+        auto in_dev  = handle.Write(input.data);
+        auto wei_dev = handle.Write(weights.data);
+        auto out_dev = handle.Write(rout.data);
+
+        bool is_transform = (input.desc.GetLengths()[1] % 4 != 0 || is_vect);
+
+        std::vector<std::size_t> in_len(input.desc.GetLengths().begin(),
+                                        input.desc.GetLengths().end());
+        std::vector<std::size_t> wei_len(weights.desc.GetLengths().begin(),
+                                         weights.desc.GetLengths().end());
+        in_len[1]  = ((in_len[1] + 3) / 4) * 4;
+        wei_len[1] = ((wei_len[1] + 3) / 4) * 4;
+
+        miopen::TensorDescriptor input_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8, in_len);
+        miopen::TensorDescriptor weight_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8, wei_len);
+
+        auto input_vpad   = tensor<T>{in_len};
+        auto weights_vpad = tensor<T>{wei_len};
+        auto in_vpad_dev  = handle.Write(input_vpad.data);
+        auto wei_vpad_dev = handle.Write(weights_vpad.data);
+
+        if(is_transform)
+        {
+            float aph = 1.0;
+            float bta = 0.0;
+            miopen::TransformTensor(
+                handle, &aph, input.desc, in_dev.get(), &bta, input_vpad_desc, in_vpad_dev.get());
+
+            miopen::TransformTensor(handle,
+                                    &aph,
+                                    weights.desc,
+                                    wei_dev.get(),
+                                    &bta,
+                                    weight_vpad_desc,
+                                    wei_vpad_dev.get());
+        }
+
+        size_t workspace_size =
+            filter.ForwardGetWorkSpaceSize(handle,
+                                           (is_transform ? weight_vpad_desc : weights.desc),
+                                           (is_transform ? input_vpad_desc : input.desc),
+                                           rout.desc);
+
+        std::vector<char> workspace(workspace_size);
+        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+
+        int ret_algo_count;
+        miopenConvAlgoPerf_t perf;
+
+        if(miopen::debug::testing_find_db_enabled)
+        {
+            filter.FindConvFwdAlgorithm(handle,
+                                        (is_transform ? input_vpad_desc : input.desc),
+                                        (is_transform ? in_vpad_dev.get() : in_dev.get()),
+                                        (is_transform ? weight_vpad_desc : weights.desc),
+                                        (is_transform ? wei_vpad_dev.get() : wei_dev.get()),
+                                        rout.desc,
+                                        out_dev.get(),
+                                        1,
+                                        &ret_algo_count,
+                                        &perf,
+                                        workspace_dev.get(),
+                                        workspace_size,
+                                        search);
+        }
+
+        auto count =
+            filter.GetForwardSolutionCount(handle,
+                                           (is_transform ? weight_vpad_desc : weights.desc),
+                                           (is_transform ? input_vpad_desc : input.desc),
+                                           rout.desc);
+
+        if(count == 0)
+        {
+            std::cout << "FAILED: Using immediate mode error in GetSolutionCount." << std::endl;
+            exit(-1); // NOLINT (concurrency-mt-unsafe)
+        }
+
+        // std::cout << "Forward Conv solutions available: " << count << std::endl;
+        auto solutions           = std::vector<miopenConvSolution_t>(count);
+        bool fallback_path_taken = false;
+
+        filter.GetForwardSolutions(handle,
+                                   (is_transform ? weight_vpad_desc : weights.desc),
+                                   (is_transform ? input_vpad_desc : input.desc),
+                                   rout.desc,
+                                   count,
+                                   &count,
+                                   solutions.data(),
+                                   &fallback_path_taken);
+
+        if(count == 0)
+        {
+            std::cout << "FAILED: Immediate mode has no fallback for this configuration."
+                      << " Solution count: " << count << std::endl;
+            exit(-1); // NOLINT (concurrency-mt-unsafe)
+        }
+        solutions.resize(count);
+        std::sort(solutions.begin(), solutions.end(), [](const auto& l, const auto& r) {
+            return l.time < r.time;
+        });
+        auto selected = solutions.front();
+
+        std::size_t ws_size;
+
+        ws_size =
+            filter.GetForwardSolutionWorkspaceSize(handle,
+                                                   (is_transform ? weight_vpad_desc : weights.desc),
+                                                   (is_transform ? input_vpad_desc : input.desc),
+                                                   rout.desc,
+                                                   selected.solution_id);
+
+        filter.CompileForwardSolution(handle,
+                                      (is_transform ? weight_vpad_desc : weights.desc),
+                                      (is_transform ? input_vpad_desc : input.desc),
+                                      rout.desc,
+                                      selected.solution_id);
+
+        workspace_dev.reset();
+        if(selected.workspace_size > 0)
+        {
+            workspace.resize(selected.workspace_size);
+            workspace_dev = handle.Write(workspace);
+        }
+
+        filter.ConvolutionForwardImmediate(handle,
+                                           (is_transform ? weight_vpad_desc : weights.desc),
+                                           (is_transform ? wei_vpad_dev.get() : wei_dev.get()),
+                                           (is_transform ? input_vpad_desc : input.desc),
+                                           (is_transform ? in_vpad_dev.get() : in_dev.get()),
+                                           rout.desc,
+                                           out_dev.get(),
+                                           workspace_dev.get(),
+                                           ws_size,
+                                           selected.solution_id);
+
+        if(count != 0)
+        {
+            stats->algorithm   = selected.algorithm;
+            stats->solver_name = miopen::solver::Id(selected.solution_id).ToString();
+            if(fallback_path_taken)
+                stats->solver_name += "_fallback";
+        }
+        rout.data = handle.Read<float>(out_dev, rout.data.size());
+
+        return rout;
+    }
+
+    void fail(float = 0) const
+    {
+        std::cout << "Forward convolution: " << stats->solver_name << std::endl;
+        this->conv_base<T>::fail();
+    }
+};
+
 template <class T, bool immed_mode = false, class Tout = T>
 struct conv_driver : test_driver
 {
@@ -2000,7 +2211,7 @@ struct conv_driver : test_driver
 
                 if(immed)
                 {
-                    miopen::testing_find_db_enabled = enable_fdb;
+                    miopen::debug::testing_find_db_enabled = enable_fdb;
                 }
 
                 conv_stats stats;
