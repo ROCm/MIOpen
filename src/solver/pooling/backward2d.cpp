@@ -117,10 +117,10 @@ PoolingBackward2d::GetSolution(const ExecutionContext&,
         int g_wk_height =
             ((in_height + grp_tile1 * out_pix_tile1 - 1) / (grp_tile1 * out_pix_tile1));
 
-        const auto kernel_size_w   = problem.GetPooling().lens[0];
-        const auto kernel_size_h   = problem.GetPooling().lens[1];
-        const auto kernel_stride_w = problem.GetPooling().strides[0];
-        const auto kernel_stride_h = problem.GetPooling().strides[1];
+        const auto kernel_size_w   = problem.GetPooling().lens[1];
+        const auto kernel_size_h   = problem.GetPooling().lens[0];
+        const auto kernel_stride_w = problem.GetPooling().strides[1];
+        const auto kernel_stride_h = problem.GetPooling().strides[0];
 
         const auto build_params =
             KernelBuildParameters{
