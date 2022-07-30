@@ -287,3 +287,9 @@ MIOpen's paper is freely available and can be accessed on arXiv:
 }
 ```
 
+## Porting from cuDNN to MIOpen
+
+The [porting
+guide](https://github.com/ROCmSoftwarePlatform/MIOpen/tree/develop/doc/src/MIOpen_Porting_Guide.md)
+highlights the key differences between the current cuDNN and MIOpen APIs.
+
