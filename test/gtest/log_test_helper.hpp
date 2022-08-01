@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include "miopen/logger.hpp"
 #include <gtest/gtest.h>
-#include <gtest/internal/gtest-port.h>
 #include <miopen/convolution.hpp>
 
 namespace Env {
@@ -112,8 +111,8 @@ struct Conv
 
     Conv() : input(128, 3, 32, 32), output(128, 64, 32, 32), weights(64, 3, 3, 3)
     {
-        miopenCreateConvolutionDescriptor(&convDesc);
-        miopenInitConvolutionDescriptor(convDesc, miopenConvolution, 1, 1, 1, 1, 1, 1);
+        EXPECT_EQ(miopenCreateConvolutionDescriptor(&convDesc), 0);
+        EXPECT_EQ(miopenInitConvolutionDescriptor(convDesc, miopenConvolution, 1, 1, 1, 1, 1, 1), 0);
     }
     ~Conv() { miopenDestroyConvolutionDescriptor(convDesc); }
 };
