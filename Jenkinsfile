@@ -305,7 +305,6 @@ def buildDocker(install_prefix)
     }
 
     echo "Build Args: ${dockerArgs}"
-    /*Force to rebuild a docker file to include higher version of CMake, will revert shortly
     try 
     {
         echo "Checking for image: ${image_name}"
@@ -317,10 +316,7 @@ def buildDocker(install_prefix)
         echo "Unable to locate image: ${image_name}. Building image now"
         retimage = docker.build("${image_name}", dockerArgs + ' .')
         retimage.push()
-    }
-    */
-    retimage = docker.build("${image_name}", dockerArgs + ' .')
-    retimage.push()
+    } 
 }
 
 
