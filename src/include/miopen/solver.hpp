@@ -223,6 +223,12 @@ struct ConvTunableSolver : ConvTunableSolverBase
     {
         return GetSolution(ctx, boost::any_cast<const PerformanceConfig&>(config));
     }
+    virtual bool GetPerformanceConfig(const ConvolutionContext& ctx,
+                                      PerformanceConfig& config,
+                                      PerformanceDb& db) const
+    {
+        return db.Load(ctx, this->SolverDbId(), config);
+    }
 };
 
 struct PerformanceConfigConvAsm3x3U : PerfConfigBase<PerformanceConfigConvAsm3x3U>
@@ -358,6 +364,9 @@ struct ConvBiasActivAsm1x1U final : ConvTunableSolver<PerformanceConfigConvBiasA
 
     PerformanceConfigConvBiasActivAsm1x1U
     GetDefaultPerformanceConfig(const ConvolutionContext&) const override;
+    bool GetPerformanceConfig(const ConvolutionContext& ctx,
+                              PerformanceConfigConvBiasActivAsm1x1U& config,
+                              PerformanceDb& db) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const PerformanceConfigConvBiasActivAsm1x1U&) const override;
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,

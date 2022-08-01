@@ -72,7 +72,7 @@ auto FindSolutionImpl(
         {
             using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
             PerformanceConfig config{};
-            if(db.Load(context, s.SolverDbId(), config))
+            if(s.GetPerformanceConfig(context, config, db))
             {
                 MIOPEN_LOG_I2("Perf Db: record loaded: " << s.SolverDbId());
                 if(s.IsValidPerformanceConfig(context, config))
