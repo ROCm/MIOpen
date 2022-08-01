@@ -48,6 +48,11 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING)
 /// Allows to reproduce library use cases using the driver instead of the actual application.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_CMD)
 
+/// Prints driver command lines into log when Find API is called.
+/// Works from any application which uses the library.
+/// Allows to reproduce library use cases using the driver instead of the actual application.
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_CMD_FIND)
+
 /// Prefix each log line with information which allows the user
 /// to uniquiely identify log records printed from different processes
 /// or threads. Useful for debugging multi-process/multi-threaded apps.
@@ -167,6 +172,11 @@ const char* LoggingLevelToCString(const LoggingLevel level)
 bool IsLoggingCmd()
 {
     return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_CMD{}) && !IsLoggingDebugQuiet();
+}
+
+bool IsLoggingCmdFind()
+{
+    return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_CMD_FIND{}) && !IsLoggingDebugQuiet();
 }
 
 std::string LoggingPrefix()

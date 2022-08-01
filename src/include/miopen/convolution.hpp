@@ -73,6 +73,27 @@ using ExtraKernelArgs = std::tuple<int /*N*/,
 struct ConvFwdTensors;
 struct ConvWrwTensors;
 
+enum class ConvDirection
+{
+    Fwd = 1,
+    Bwd = 2,
+    WrW = 4
+};
+
+void LogCmdConvolution(const miopenTensorDescriptor_t xDesc,
+                       const miopenTensorDescriptor_t wDesc,
+                       const miopenConvolutionDescriptor_t convDesc,
+                       const miopenTensorDescriptor_t yDesc,
+                       const ConvDirection conv_dir,
+                       const bool is_immediate);
+
+void LogCmdFindConvolution(const miopenTensorDescriptor_t xDesc,
+                           const miopenTensorDescriptor_t wDesc,
+                           const miopenConvolutionDescriptor_t convDesc,
+                           const miopenTensorDescriptor_t yDesc,
+                           const ConvDirection conv_dir,
+                           const bool is_immediate);
+
 struct ConvolutionAttribute
 {
     class Gfx90aFp16alt
