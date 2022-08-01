@@ -112,7 +112,8 @@ struct Conv
     Conv() : input(128, 3, 32, 32), output(128, 64, 32, 32), weights(64, 3, 3, 3)
     {
         EXPECT_EQ(miopenCreateConvolutionDescriptor(&convDesc), 0);
-        EXPECT_EQ(miopenInitConvolutionDescriptor(convDesc, miopenConvolution, 1, 1, 1, 1, 1, 1), 0);
+        EXPECT_EQ(miopenInitConvolutionDescriptor(convDesc, miopenConvolution, 1, 1, 1, 1, 1, 1),
+                  0);
     }
     ~Conv() { miopenDestroyConvolutionDescriptor(convDesc); }
 };
@@ -150,6 +151,10 @@ inline void TestLogFun(std::function<void(const miopenTensorDescriptor_t,
     if(set_env)
     {
         Env::setEnvironmentVariable(env_var, "1");
+    }
+    else
+    {
+        Env::unSetEnvironmentVariable(env_var);
     }
 
     func(test_conv_log.input.desc,
