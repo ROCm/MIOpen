@@ -144,8 +144,19 @@ class SQLite::impl
         sqlite3* ptr_tmp = nullptr;
         int rc           = 0;
         if(is_system)
-            rc =
-                sqlite3_open_v2(filepath.string().c_str(), &ptr_tmp, SQLITE_OPEN_READONLY, nullptr);
+        {
+            if(boost::filesystem::file_size(filepath) <
+               512) // size of a very small database, Empty MIOpen DBs are 20 kb
+            {
+                rc = -1;
+                return rc;
+            }
+            else
+            {
+                rc = sqlite3_open_v2(
+                    filepath.string().c_str(), &ptr_tmp, SQLITE_OPEN_READONLY, nullptr);
+            }
+        }
         else
         {
             rc = sqlite3_open_v2(filepath.string().c_str(),
