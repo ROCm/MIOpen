@@ -84,21 +84,39 @@ private:
 struct Tensor
 {
     miopenTensorDescriptor_t desc{};
-    void* data;
     size_t data_size;
+#if MIOPEN_BACKEND_OPENCL
+    cl_mem data;
+#elif MIOPEN_BACKEND_HIP
+    void* data;
+#endif
 
     Tensor(int n, int c, int h, int w)
     {
         EXPECT_EQ(miopenCreateTensorDescriptor(&desc), 0);
         EXPECT_EQ(miopenSet4dTensorDescriptor(desc, miopenFloat, n, c, h, w), 0);
         data_size = n * c * h * w * sizeof(float);
+#if MIOPEN_BACKEND_OPENCL
+        cl_command_queue q{};
+        miopenHandle_t handle{};
+        miopenCreate(&handle);
+        miopenGetStream(handle, &q);
+        cl_context ctx;
+        clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
+        data = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_size, nullptr, nullptr); 
+#elif MIOPEN_BACKEND_HIP
         EXPECT_EQ(hipMalloc(&data, data_size), hipSuccess);
+#endif
     }
 
     ~Tensor()
     {
         miopenDestroyTensorDescriptor(desc);
+#if MIOPEN_BACKEND_OPENCL
+        clReleaseMemObject(data); 
+#elif MIOPEN_BACKEND_HIP
         hipFree(data);
+#endif
     }
 };
 
@@ -123,12 +141,18 @@ bool isSubStr(const std::string& str, const std::string& sub_str)
     return str.find(sub_str) != std::string::npos;
 }
 
-static const std::string& logConv =
-    "MIOpen(HIP): Command [LogCmdConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 -k "
+#if MIOPEN_BACKEND_OPENCL
+  #define BKEND "OpenCL"
+#elif MIOPEN_BACKEND_HIP
+  #define BKEND "HIP"
+#endif
+ static const std::string& logConv =
+    "MIOpen(" BKEND "): Command [LogCmdConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 -k "
     "64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 1 -t 1";
 static const std::string& logFindConv =
-    "MIOpen(HIP): Command [LogCmdFindConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 "
+    "MIOpen(" BKEND "): Command [LogCmdFindConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 "
     "-k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 1 -t 1";
+
 static const std::string& envConv     = "MIOPEN_ENABLE_LOGGING_CMD";
 static const std::string& envFindConv = "MIOPEN_ENABLE_LOGGING_CMD_FIND";
 
