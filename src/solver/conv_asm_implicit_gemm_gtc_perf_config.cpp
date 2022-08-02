@@ -255,6 +255,7 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToString() const
         ss << "[" << gemm_k_global_split << "]";
     return ss.str();
 }
+
 std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ConvolutionContext& ctx) const
 {
     std::ostringstream kernel_name;
