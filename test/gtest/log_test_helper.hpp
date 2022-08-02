@@ -134,12 +134,12 @@ static const std::string& envFindConv = "MIOPEN_ENABLE_LOGGING_CMD_FIND";
 
 // We capture the std::cerr that was generated from the log functions
 // into a string and use that string for assertion.
-inline void TestLogFun(std::function<void(const miopenTensorDescriptor_t,
-                                          const miopenTensorDescriptor_t,
-                                          const miopenConvolutionDescriptor_t,
-                                          const miopenTensorDescriptor_t,
-                                          const miopen::ConvDirection,
-                                          const bool)> const& func,
+inline void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
+                                          const miopenTensorDescriptor_t&,
+                                          const miopenConvolutionDescriptor_t&,
+                                          const miopenTensorDescriptor_t&,
+                                          const miopen::ConvDirection&,
+                                          bool)> const& func,
                        std::string env_var,
                        std::string sub_str,
                        bool set_env)
@@ -149,13 +149,9 @@ inline void TestLogFun(std::function<void(const miopenTensorDescriptor_t,
     // prepare tensor and convolution descriptors
     Conv test_conv_log;
     if(set_env)
-    {
         Env::setEnvironmentVariable(env_var, "1");
-    }
     else
-    {
         Env::unSetEnvironmentVariable(env_var);
-    }
 
     func(test_conv_log.input.desc,
          test_conv_log.weights.desc,

@@ -295,12 +295,12 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
     return (miopenStatusSuccess);
 }
 
-static std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
-                                           const miopenTensorDescriptor_t wDesc,
-                                           const miopenConvolutionDescriptor_t convDesc,
-                                           const miopenTensorDescriptor_t yDesc,
-                                           const miopen::ConvDirection conv_dir,
-                                           const bool is_immediate)
+static std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc,
+                                           const miopenTensorDescriptor_t& wDesc,
+                                           const miopenConvolutionDescriptor_t& convDesc,
+                                           const miopenTensorDescriptor_t& yDesc,
+                                           const miopen::ConvDirection& conv_dir,
+                                           bool is_immediate)
 {
     std::stringstream ss;
     if(miopen::deref(xDesc).GetType() == miopenHalf)
