@@ -189,7 +189,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
     MIOPEN_LOG_NQI(*this);
 }
 
-static bool OpenCLDeprecateMsg()
+static bool PrintOpenCLDeprecateMsg()
 {
     MIOPEN_LOG_W("Please note that the OpenCL backend to MIOpen is being deprecated, ");
     MIOPEN_LOG_W(
@@ -204,9 +204,9 @@ Handle::Handle() : impl(new HandleImpl())
     /////////////////////////////////////////////////////////////////
     // Create an OpenCL context
     /////////////////////////////////////////////////////////////////
-    static const auto log_msg = OpenCLDeprecateMsg();
-    std::ignore               = log_msg;
-    impl->context             = impl->create_context();
+    static const auto run_once = PrintOpenCLDeprecateMsg();
+    std::ignore                = run_once;
+    impl->context              = impl->create_context();
     /* First, get the size of device list data */
     cl_uint deviceListSize;
     if(clGetContextInfo(impl->context.get(),
