@@ -510,7 +510,7 @@ pipeline {
                       buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", build_cmd: build_cmd, build_fin: "ON", needs_gpu:false)
                   }
                 }
-                stage('Perf DB Deserialize Test') {
+                stage('Perf DB Validity Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
                         fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON"
