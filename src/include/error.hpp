@@ -19,7 +19,7 @@ struct Exception : std::exception
 
     const char* what() const noexcept override { return message.c_str(); }
 };
-}
+} // namespace fin
 #define FIN_THROW(...)                                                    \
     do                                                                    \
     {                                                                     \
