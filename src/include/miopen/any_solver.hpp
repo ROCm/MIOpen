@@ -259,9 +259,7 @@ struct AnySolver
                 MIOPEN_LOG_I2("Perf Db: Record Loaded: " << value.SolverDbId());
                 if(value.IsValidPerformanceConfig(ctx, config))
                 {
-                    std::ostringstream ss;
-                    config.Serialize(ss);
-                    return ss.str();
+                    return config.ToString();
                 }
                 MIOPEN_LOG_I2("Perf Db: Invalid Config: " << value.SolverDbId());
             }

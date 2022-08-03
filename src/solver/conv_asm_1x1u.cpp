@@ -353,13 +353,6 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& confi
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceConfigConvAsm1x1U::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConfigConvAsm1x1U
 ConvAsm1x1U::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {

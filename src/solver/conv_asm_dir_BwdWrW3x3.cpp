@@ -316,13 +316,6 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& c
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConfigAsmDirect3x3WrW
 ConvAsmBwdWrW3x3::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
@@ -373,7 +366,8 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
 
 #if WORKAROUND_SWDEV_330460
-    if(name == "gfx90a" && params.IsFp32())
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3{}) && name == "gfx90a" &&
+       params.IsFp32())
         return false;
 #endif
 
