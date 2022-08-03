@@ -26,6 +26,7 @@
 
 #include "pooling_common.hpp"
 
+#define WORKAROUND_ISSUE_1670 1
 #define TEST_GET_INPUT_TENSOR 0
 
 template <class T>
@@ -55,7 +56,7 @@ private:
                 {1, 16, 4096, 4096}};
     }
 
-    // --dataset_id 1 is intended for testing of asymmetric configs.
+    // Dataset 1 is intended for testing of asymmetric configs.
     std::vector<U> get_2d_pooling_input_shapes_minimal() { return {{1, 4, 4, 4}}; }
 
 public:
@@ -75,14 +76,24 @@ public:
             this->lens,
             "lens",
             this->template generate_multi_data<U>({{{2, 2}, {3, 3}}, {{2, 2}, {1, 2}, {2, 1}}}));
-        this->add(
-            this->strides,
-            "strides",
-            this->template generate_multi_data<U>({{{2, 2}, {1, 1}}, {{2, 2}, {2, 1}, {1, 2}}}));
-        this->add(
-            this->pads,
-            "pads",
-            this->template generate_multi_data<U>({{{0, 0}, {1, 1}}, {{0, 0}, {0, 1}, {1, 0}}}));
+        this->add(this->strides,
+                  "strides",
+                  this->template generate_multi_data<U>(
+                      {{{2, 2}, {1, 1}}, {{1, 1}, {2, 1}, {1, 2}, {2, 2}}}));
+        this->add(this->pads, "pads", this->template generate_multi_data<U>({
+            {{0, 0}, {1, 1}},
+#if WORKAROUND_ISSUE_1670
+            {
+                {
+                    0, 0
+                }
+            }
+#else
+            {
+                {0, 0}, {0, 1}, {1, 0}, { 1, 1 }
+            }
+#endif
+        }));
         this->add(this->wsidx, "wsidx", this->generate_data({0, 1}));
     }
 };

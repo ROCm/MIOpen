@@ -202,7 +202,9 @@ struct test_driver
     {
         v(full_set, {"--all"}, "Run all tests");
         v(limit_set, {"--limit"}, "Limits the number of generated test elements");
-        v(dataset_id, {"--dataset_id"}, "Identifies the data set used for testing (default=0)");
+        v(dataset_id,
+          {"--dataset"},
+          "Identifies the data set used for generation of tests (default=0)");
         v(verbose, {"--verbose", "-v"}, "Run verbose mode");
         v(tolerance, {"--tolerance", "-t"}, "Set test tolerance");
         v(time, {"--time"}, "Time the kernel on GPU");
