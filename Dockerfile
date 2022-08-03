@@ -16,7 +16,7 @@ RUN if [ "$USE_MLIR" = "ON" ] ; \
     fi && \
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ ubuntu main > /etc/apt/sources.list.d/rocm.list'
-RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu bionic main universe | tee -a /etc/apt/sources.list"
+RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu focal main universe | tee -a /etc/apt/sources.list"
 
 #Add gpg keys
 # Install dependencies
@@ -52,7 +52,6 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     python3 \
     python-dev \
     python3-dev \
-    python-pip \
     python3-pip \
     python3-distutils \
     python3-venv \
