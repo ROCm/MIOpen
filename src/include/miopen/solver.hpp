@@ -4196,6 +4196,59 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
                 const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config) const override;
 };
 
+struct PerformanceConfigHipImplicitGemmFwdXdlops
+    : Serializable<PerformanceConfigHipImplicitGemmFwdXdlops>
+{
+    int index;
+    std::string kernel_id;
+    int total_size;
+    PerformanceConfigHipImplicitGemmFwdXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id), total_size(-1)
+    {
+    }
+    PerformanceConfigHipImplicitGemmFwdXdlops() : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
+    {
+    }
+    PerformanceConfigHipImplicitGemmFwdXdlops(bool)
+        : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue(const ConvolutionContext& ctx);
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigHipImplicitGemmFwdXdlops& other) const;
+};
+
+struct ConvHipImplicitGemmFwdXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemmFwdXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemmFwdXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemmFwdXdlops
+    GetDefaultPerformanceConfig(const ConvolutionContext&) const override;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigHipImplicitGemmFwdXdlops&) const override;
+    PerformanceConfigHipImplicitGemmFwdXdlops
+    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const override;
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return false; }
+    bool IsApplicable(const ConvolutionContext& ctx) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution
+    GetSolution(const ConvolutionContext& ctx,
+                const PerformanceConfigHipImplicitGemmFwdXdlops& config) const override;
+    float GetWti(const ConvolutionContext&) const override { return 0.01f; };
+};
+
 struct AnySolver;
 
 } // namespace solver
