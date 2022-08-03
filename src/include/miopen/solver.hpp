@@ -4197,7 +4197,7 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
 };
 
 struct PerformanceConfigHipImplicitGemmFwdXdlops
-    : Serializable<PerformanceConfigHipImplicitGemmFwdXdlops>
+    : PerfConfigBase<PerformanceConfigHipImplicitGemmFwdXdlops>
 {
     int index;
     std::string kernel_id;
