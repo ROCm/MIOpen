@@ -96,9 +96,9 @@ class ConvFin : public BaseFin
         command         = job["config"];
         command["bias"] = 0;
         // timing is always enabled
-        is_fwd = (job["direction"].get<int>() == 0 || job["direction"].get<int>() & 1);
-        is_bwd = (job["direction"].get<int>() == 0 || job["direction"].get<int>() & 2);
-        is_wrw = (job["direction"].get<int>() == 0 || job["direction"].get<int>() & 4);
+        is_fwd = (job["config"]["direction"].get<std::string>().compare("F") == 0);
+        is_bwd = (job["config"]["direction"].get<std::string>().compare("B") == 0);
+        is_wrw = (job["config"]["direction"].get<std::string>().compare("W") == 0);
         SetConvDescriptor();
         // workspace_dev = nullptr; // TODO: replaced with a tensor class
         // the variable name is implementation dependent, checking size instead
@@ -109,6 +109,8 @@ class ConvFin : public BaseFin
     std::vector<int> GetWeightTensorLengths();
     std::vector<int> GetBiasTensorLengths();
     int SetConvDescriptor();
+    miopen::ConvolutionContext BuildContext(miopen::SQLite &sql, std::string config_id, miopen::ConvolutionContext &ctx);
+
     std::vector<size_t> GetOutputTensorLengths() const;
     miopenDataType_t GetOutputType() const
     {
@@ -1227,45 +1229,71 @@ class ParamString
 template <typename Tgpu, typename Tref>
 int ConvFin<Tgpu, Tref>::TestPerfDbValid()
 {
-    bool ret     = true;
-    namespace fs = boost::filesystem;
-    std::cout << miopen::GetSystemDbPath() << std::endl;
+
+    bool ret       = true;
+    namespace fs   = boost::filesystem;
+    bool spec_arch = (job["arch"].size() > 0 and job["num_cu"].size() > 0);
+    std::string db_path = miopen::GetSystemDbPath();
+
+    if(job.contains("db_path"))
+        db_path = job["db_path"];
+    std::cout << db_path << std::endl;
 
     std::vector<fs::path> contents;
-    std::copy(fs::directory_iterator(miopen::GetSystemDbPath()),
-              fs::directory_iterator(),
-              std::back_inserter(contents));
+    std::copy(fs::directory_iterator(db_path),
+          fs::directory_iterator(),
+          std::back_inserter(contents));
     for(auto const& db_file : contents)
     {
         std::string pathstr = db_file.native();
         std::string filestr = db_file.filename().native();
+        std::string db_arch;
+        size_t db_num_cu = 0;
 
-        if(job["arch"].size() > 0 and job["num_cu"].size() > 0)
+        //test if a db file
+        if(filestr.compare(filestr.size() - 3, 3, ".db") != 0)
+            continue;
+
+        std::cerr << pathstr << std::endl;
+        //get arch and num_cu from filename
+        size_t delim;
+        if((delim = filestr.find('_')) != std::string::npos)
         {
-            std::string arch = job["arch"];
-            int num_cu       = job["num_cu"];
-            std::stringstream db_name;
-            db_name << arch;
-            if(num_cu > 64)
-                db_name << std::hex << num_cu << ".db";
-            else
-                db_name << "_" << num_cu << ".db";
+          db_arch = filestr.substr(0, delim);
+          db_num_cu = static_cast<int>(std::stoi(filestr.substr(delim+1, filestr.size() - 3)));
+        }
+        else
+        {
+          //num_cu should be last 2 hex numbers before .db
+          delim = filestr.size() - 5;
+          db_arch = filestr.substr(0, delim);
+          db_num_cu = static_cast<int>(std::strtol(filestr.substr(delim, 2).c_str(), nullptr, 16));
+        }
+        std::cerr << db_arch << " " << db_num_cu << std::endl;
+        BaseFin::VerifyDevProps(db_arch, db_num_cu);
+        
+        if(spec_arch)
+        {
+            std::stringstream str_cu;
+            str_cu << job["num_cu"];
 
-            if(filestr.compare(db_name.str()) != 0)
+            if(db_arch.compare(job["arch"]) != 0)
+                continue;
+            if(db_num_cu != job["num_cu"])
                 continue;
         }
 
-        if(pathstr.compare(pathstr.size() - 3, 3, ".db") != 0)
-            continue;
+        std::cerr << "processing: " << pathstr << std::endl;
 
-        std::cout << pathstr << "/" << filestr << std::endl;
+        //setting system to false allows writing the db
+        auto sql = miopen::SQLite{pathstr, false};
 
-        auto sql = miopen::SQLite{pathstr, true};
-
-        // pull out records for all configs from perf_db
-        std::unordered_map<std::string, std::unordered_map<std::string, miopen::DbRecord>> records;
-        std::map<std::string, std::unordered_map<std::string, std::string>> perfdb_entries;
+        //cfg -> pdb_id -> values_dict
+        std::map<std::string, std::map<std::string, std::unordered_map<std::string, std::string>>> perfdb_entries;
+        //pdb_id -> record
+        std::unordered_map<std::string, miopen::DbRecord> records;
         std::vector<std::map<std::string, std::string>> err_list;
+        std::vector<std::string> pdb_id;
         auto select_query = "SELECT config, solver, params, id FROM perf_db;";
         auto stmt         = miopen::SQLite::Statement{sql, select_query};
         while(true)
@@ -1274,12 +1302,27 @@ int ConvFin<Tgpu, Tref>::TestPerfDbValid()
             if(rc == SQLITE_ROW)
             {
                 const auto config_id = stmt.ColumnText(0);
-                const auto solver_id = stmt.ColumnText(1);
+                const auto solver_nm = stmt.ColumnText(1);
                 const auto params    = stmt.ColumnText(2);
                 const auto perf_id   = stmt.ColumnText(3);
-                records[config_id][solver_id].SetValues(solver_id, ParamString(params));
-                perfdb_entries[perf_id]["config"] = config_id;
-                perfdb_entries[perf_id]["solver"] = solver_id;
+
+                auto slv_id = miopen::solver::Id(solver_nm);
+                if(!slv_id.IsValid())
+                {
+                    std::map<std::string, std::string> err;
+                    err["perfdb_id"] = perf_id;
+                    err["config"]    = config_id;
+                    err["solver"]    = solver_nm;
+                    err["params"]    = params;
+                    err_list.push_back(err);
+                    ret = false;
+                    pdb_id.push_back(perf_id);
+                    continue;
+                }
+
+                records[perf_id].SetValues(solver_nm, ParamString(params));
+                perfdb_entries[config_id][perf_id]["solver"] = solver_nm;
+                perfdb_entries[config_id][perf_id]["params"] = params;
             }
             else if(rc == SQLITE_DONE)
                 break;
@@ -1287,40 +1330,82 @@ int ConvFin<Tgpu, Tref>::TestPerfDbValid()
                 MIOPEN_THROW(miopenStatusInternalError, sql.ErrorMessage());
         }
 
+
         // iterate through each config
-        for(auto it = perfdb_entries.begin(); it != perfdb_entries.end(); it++)
+        for(auto cfg_it = perfdb_entries.begin(); cfg_it != perfdb_entries.end(); cfg_it++)
         {
-            auto solver_nm = it->second["solver"];
-            auto config_id = it->second["config"];
-            auto record    = records.find(config_id)->second.find(solver_nm)->second;
+            auto config_id = cfg_it->first;
+            miopen::ConvolutionContext ctx;
+            auto handle = miopen::Handle{};
 
-            auto slv_id = miopen::solver::Id(solver_nm);
-            if(!slv_id.IsValid())
+            BuildContext(sql, config_id, ctx);
+            //set handle to type of db under test
+            BaseFin::InitNoGpuHandle(handle, db_arch, db_num_cu);
+            ctx.SetStream(&handle);
+            ctx.DetectRocm();
+            ctx.SetupFloats();
+
+            // iterate over pdb entries
+            for(auto pdb_it = cfg_it->second.begin(); pdb_it != cfg_it->second.end(); pdb_it++)
             {
-                std::map<std::string, std::string> err;
-                err["perfdb_id"] = it->first;
-                err["config"]    = config_id;
-                err["solver"]    = solver_nm;
-                err_list.push_back(err);
-                ret = false;
-                continue;
-            }
+                auto perf_id   = pdb_it->first;
+                auto solver_nm = pdb_it->second["solver"];
+                auto params    = pdb_it->second["params"];
+                auto record    = records[perf_id];
 
-            auto solver = slv_id.GetSolver();
+                auto slv_id = miopen::solver::Id(solver_nm);
+                auto solver = slv_id.GetSolver();
+                std::stringstream stat_str;
+                stat_str << "config_id: " << config_id << ", solver_nm " << solver_nm << ", key: " << ctx;
 
-            // check if the params in the record deserialize
-            if(!solver.TestSysDbRecord(record))
-            {
+                // check if valid pdb parameters 
                 std::map<std::string, std::string> err;
-                err["perfdb_id"] = it->first;
-                err["config"]    = config_id;
-                err["solver"]    = solver_nm;
-                err_list.push_back(err);
-                ret = false;
+                bool success = false;
+                try
+                {
+                    success = solver.TestSysDbRecord(ctx, record);
+                }
+                catch(const std::exception& e)
+                {
+                    err["reason"] = e.what();
+                    std::cerr << "Error in db test: " << e.what() << std::endl;
+                }
+                if(!success)
+                {
+                    err["perfdb_id"] = perf_id;
+                    err["config"]    = config_id;
+                    err["solver"]    = solver_nm;
+                    err["params"]    = params;
+                    err_list.push_back(err);
+                    ret = false;
+                    pdb_id.push_back(perf_id);
+
+                    std::cerr << stat_str.str() << ", failed" <<std::endl;
+                }
+                else
+                    std::cerr << stat_str.str() << ", passed" <<std::endl;
             }
         }
-        std::string listing = filestr + "_errors";
-        output[listing]     = err_list;
+        output[filestr]["errors"] = err_list;
+
+
+        if(job.contains("cleanup") && job["cleanup"])
+        {
+            std::ostringstream id_str, del_query;
+            for(auto it = pdb_id.begin(); it != pdb_id.end(); it++)
+            {
+                if(it != pdb_id.begin())
+                    id_str << ",";
+                id_str << *it;
+            } 
+            del_query << "DELETE from perf_db where id in (" << id_str.str() << ");";
+            stmt = miopen::SQLite::Statement{sql, del_query.str()};
+            auto rc = stmt.Step(sql);
+            std::cerr << "delete status: " << rc << std::endl;
+
+            output[filestr]["sql_del"] = del_query.str();
+            output[filestr]["del_status"] = rc;
+        }
     }
 
     if(ret)
@@ -1841,6 +1926,66 @@ int ConvFin<Tgpu, Tref>::SetConvDescriptor()
                                              group_count};
 
     return miopenStatusSuccess;
+}
+
+template <typename Tgpu, typename Tref>
+miopen::ConvolutionContext ConvFin<Tgpu, Tref>::BuildContext(miopen::SQLite &sql, std::string config_id, miopen::ConvolutionContext &ctx)
+{
+    std::ostringstream ss;
+    ss << "SELECT in_d, in_h, in_w, fil_d, fil_h, fil_w, pad_d, pad_h, pad_w, "
+           "conv_stride_d, conv_stride_h, conv_stride_w, dilation_d, dilation_h, "
+           "dilation_w, spatial_dim, layout, data_type, direction, "
+           "out_channels, in_channels, batchsize, group_count, bias "
+           "FROM config WHERE id=";
+    ss << config_id << ";";
+    auto cfg_query = ss.str();
+    auto stmt = miopen::SQLite::Statement{sql, cfg_query};
+    stmt.Step(sql);
+
+    // initialize command with query results
+    command["in_d"] = stmt.ColumnInt64(0);
+    command["in_h"] = stmt.ColumnInt64(1);
+    command["in_w"] = stmt.ColumnInt64(2);
+    command["fil_d"] = stmt.ColumnInt64(3);
+    command["fil_h"] = stmt.ColumnInt64(4);
+    command["fil_w"] = stmt.ColumnInt64(5);
+    command["pad_d"] = stmt.ColumnInt64(6);
+    command["pad_h"] = stmt.ColumnInt64(7);
+    command["pad_w"] = stmt.ColumnInt64(8);
+    command["conv_stride_d"] = stmt.ColumnInt64(9);
+    command["conv_stride_h"] = stmt.ColumnInt64(10);
+    command["conv_stride_w"] = stmt.ColumnInt64(11);
+    command["dilation_d"] = stmt.ColumnInt64(12);
+    command["dilation_h"] = stmt.ColumnInt64(13);
+    command["dilation_w"] = stmt.ColumnInt64(14);
+    command["spatial_dim"] = stmt.ColumnInt64(15);
+    command["direction"] = stmt.ColumnText(18);
+    command["out_channels"] = stmt.ColumnInt64(19);
+    command["in_channels"] = stmt.ColumnInt64(20);
+    command["batchsize"] = stmt.ColumnInt64(21);
+    command["group_count"] = stmt.ColumnInt64(22);
+    command["bias"] = stmt.ColumnInt64(23);
+    command["conv_mode"] = "conv";
+
+    //command["layout"] = stmt.ColumnText(16);
+    //command["data_type"] = stmt.ColumnText(17);
+
+    //prepare convolution
+    is_fwd = (command["direction"].get<std::string>().compare("F") == 0);
+    is_bwd = (command["direction"].get<std::string>().compare("B") == 0);
+    is_wrw = (command["direction"].get<std::string>().compare("W") == 0);
+    SetConvDescriptor();
+
+    //set tensors with command data
+    GetandSetData();
+
+    //initialize context
+    const auto conv_dir = GetDirection();
+    const miopen::ProblemDescription problem(
+        inputTensor.desc, weightTensor.desc, outputTensor.desc, convDesc, conv_dir);
+    ctx    = miopen::ConvolutionContext{problem};
+
+    return ctx;
 }
 
 template <typename Tgpu, typename Tref>
