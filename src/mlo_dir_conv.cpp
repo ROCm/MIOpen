@@ -146,7 +146,6 @@ static auto GetImplicitGemmSolvers()
         miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC,
         miopen::solver::ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC,
         miopen::solver::ConvCkIgemmFwdV6r1DlopsNchw,
-        miopen::solver::ConvHipImplicitGemmFwdXdlops,
         miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>{};
 }
 
