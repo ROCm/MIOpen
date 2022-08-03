@@ -177,13 +177,10 @@ struct AnySolver
             using PerformanceConfig = decltype(
                 value.GetDefaultPerformanceConfig(std::declval<const ConvolutionContext&>()));
             PerformanceConfig config{};
-            bool loaded = record.GetValues(value.SolverDbId(), config);
-            std::cerr << "loaded: " << loaded << " : " << ctx << std::endl;
-            bool success = false;
-            if(loaded)
+            bool success = record.GetValues(value.SolverDbId(), config);
+            if(success)
                 success = value.IsValidPerformanceConfig(ctx, config);
 
-            std::cerr << "valid: " << success << " : " << ctx << " : " << config << std::endl;
             return success;
         }
         bool TestSysDbRecord(const ConvolutionContext& ctx,
