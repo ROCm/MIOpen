@@ -133,6 +133,7 @@ else()
     option(MIOPEN_DISABLE_SYSDB  "Disable sys database access" ${MIOPEN_EMBED_BUILD})
 endif()
 set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
+option(MIOPEN_EMBED_BINCACHE "Embed Binary Cache or KDB" Off)
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
@@ -216,6 +217,12 @@ endif()
 if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
     set(MIOPEN_hip_VERSION_PATCH "${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
     message(STATUS "MIOPEN_hip_VERSION_PATCH overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
+endif()
+
+# Depend on Composable Kernels
+option(MIOPEN_USE_COMPOSABLEKERNEL "Enable MIOpen to use composable kernels for various operations" Off)
+if(MIOPEN_USE_COMPOSABLEKERNEL)
+find_package(composable_kernel 1.0.0 COMPONENTS device_operations host_tensor)
 endif()
 
 set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
@@ -446,6 +453,48 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
+# Begin KDB component install 
+function(install_kdb)
+    set(oneValueArgs NAME COMPONENT_NAME)
+    cmake_parse_arguments(PARSE "" "${oneValueArgs}" "" ${ARGN})
+
+    if(PARSE_NAME)
+        set(FILE_NAME ${PARSE_NAME})
+    endif()
+    STRING(REPLACE - _ FILE_NAME "${ARCH_NAME}")
+    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb" FILE_CONTENTS LIMIT 7)
+    string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
+    if(FILE_CONTENTS STREQUAL "version")
+        message(WARNING "GIT LFS Files not pulled down, skipping ${FILE_NAME}.kdb")
+        set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
+        return()
+    else()
+        message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
+        rocm_install(FILES
+            src/kernels/${FILE_NAME}.kdb
+        DESTINATION ${DATA_INSTALL_DIR}/db
+        COMPONENT ${PARSE_COMPONENT_NAME})
+    endif()
+endfunction()
+
+# Both the lists below should be in sync always
+list(APPEND ARCH_LST gfx90a68 gfx90a6e gfx1030-36 gfx90878 gfx906-64 gfx906-60 gfx900-64 gfx900-56)
+list(APPEND ARCH_FILE_LST gfx90a-104kdb gfx90a-110kdb gfx1030-36kdb gfx908-120kdb gfx906-64kdb gfx906-60kdb gfx900-64kdb gfx900-56kdb)
+
+list(LENGTH ARCH_LST FULL_LEN)
+math(EXPR ARCH_LST_LEN "${FULL_LEN} - 1")
+
+foreach(IDX RANGE ${ARCH_LST_LEN})
+    list(GET ARCH_LST ${IDX} ARCH_NAME)
+    list(GET ARCH_FILE_LST ${IDX} ARCH_FILE_NAME)
+    install_kdb(
+        NAME ${ARCH_NAME}
+        COMPONENT_NAME ${ARCH_FILE_NAME}
+    )
+endforeach()
+
+set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
+#end kdb package creation
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}

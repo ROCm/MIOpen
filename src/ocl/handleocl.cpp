@@ -189,13 +189,24 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
     MIOPEN_LOG_NQI(*this);
 }
 
+static bool PrintOpenCLDeprecateMsg()
+{
+    MIOPEN_LOG_W("Please note that the OpenCL backend to MIOpen is being deprecated, ");
+    MIOPEN_LOG_W(
+        "please port your application to the better supported and functional HIP backend. ");
+    MIOPEN_LOG_W("If you have any questions, please reach out to the MIOpen developers at ");
+    MIOPEN_LOG_W("https://github.com/ROCmSoftwarePlatform/MIOpen");
+    return true;
+}
+
 Handle::Handle() : impl(new HandleImpl())
 {
     /////////////////////////////////////////////////////////////////
     // Create an OpenCL context
     /////////////////////////////////////////////////////////////////
-
-    impl->context = impl->create_context();
+    static const auto run_once = PrintOpenCLDeprecateMsg();
+    std::ignore                = run_once;
+    impl->context              = impl->create_context();
     /* First, get the size of device list data */
     cl_uint deviceListSize;
     if(clGetContextInfo(impl->context.get(),

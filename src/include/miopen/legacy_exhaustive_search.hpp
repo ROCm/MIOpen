@@ -28,13 +28,13 @@
 #define GUARD_MIOPEN_LEGACY_EXHAUSTIVE_SEARCH_HPP
 
 #include <miopen/config.h>
-#include <miopen/serializable.hpp>
+#include <miopen/performance_config.hpp>
 #include <iostream>
 
 namespace miopen {
 namespace solver {
 
-struct LegacyPerformanceConfig : Serializable<LegacyPerformanceConfig>
+struct LegacyPerformanceConfig : PerfConfigBase<LegacyPerformanceConfig>
 {
     int grp_tile1       = 0;
     int grp_tile0       = 0;

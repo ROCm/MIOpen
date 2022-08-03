@@ -65,6 +65,8 @@ bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
+    if(ctx.IsInt8())
+        return false;
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, true));
 #else
     std::ignore = ctx;
@@ -178,13 +180,6 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& conf
     } while(false);
 
     return true;
-}
-
-std::string PerformanceConvMlirIgemmXdlops::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
 }
 
 PerformanceConvMlirIgemmXdlops
