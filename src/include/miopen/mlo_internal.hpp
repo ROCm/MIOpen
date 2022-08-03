@@ -139,18 +139,6 @@ class DbTimer;
 
 struct AnyInvokeParams;
 
-template <class TInstance>
-class StaticContainer
-{
-public:
-    inline static TInstance& Instance()
-    {
-        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-        static TInstance data{};
-        return data;
-    }
-};
-
 #if MIOPEN_ENABLE_SQLITE
 using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
 #else
