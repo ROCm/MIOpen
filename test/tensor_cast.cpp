@@ -170,9 +170,8 @@ struct tensor_cast_driver : test_driver
 
     void run()
     {
-        unsigned long max_value =
-            miopen_type<T>{} == miopenHalf ? 5 : (miopen_type<T>{} == miopenInt8 ? 126 : 32767);
-        max_val = miopen_type<T>{} == miopenHalf
+        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 32767;
+        max_val                 = miopen_type<T>{} == miopenHalf
                       ? 65504.0
                       : miopen_type<T>{} == miopenInt8
                             ? 127.0
