@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 ARG USE_MLIR="OFF"
 
@@ -10,9 +10,9 @@ RUN dpkg --add-architecture i386
 # unless MLIR library is incompatible with current ROCm.
 
 RUN if [ "$USE_MLIR" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_5.1;\
+        then export ROCM_APT_VER=.apt_5.2.1;\
     else \
-        export ROCM_APT_VER=.apt_5.1;  \
+        export ROCM_APT_VER=.apt_5.2.1;  \
     fi && \
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ ubuntu main > /etc/apt/sources.list.d/rocm.list'
