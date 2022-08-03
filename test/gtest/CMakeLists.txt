@@ -1,5 +1,7 @@
 include(googletest) #include googletest.cmake
 
+find_package(rocblas)
+
 function(add_gtest TEST_NAME)
   message("Adding Test: " ${TEST_NAME})
   add_executable(test_${TEST_NAME} ${TEST_NAME}.cpp )
