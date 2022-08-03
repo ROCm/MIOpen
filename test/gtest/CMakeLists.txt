@@ -1,8 +1,4 @@
 include(googletest) #include googletest.cmake
-enable_testing()
-include(GoogleTest)
-
-find_package(rocblas)
 
 function(add_gtest TEST_NAME)
   message("Adding Test: " ${TEST_NAME})
