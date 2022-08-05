@@ -305,17 +305,28 @@ def buildDocker(install_prefix)
     }
 
     echo "Build Args: ${dockerArgs}"
-    try 
+
+    def dep_changed = sh(script:"""git diff --name-only develop... | grep -q 'requirements.txt\|Dockerfile' """, returnStdout: true).trim()
+    if (dep_changed)
     {
-        echo "Checking for image: ${image_name}"
-        sh "docker manifest inspect --insecure ${image_name}"
-        echo "Image: ${image_name} found!! Skipping building image"
-    }
-    catch(Exception ex)
-    {
-        echo "Unable to locate image: ${image_name}. Building image now"
-        retimage = docker.build("${image_name}", dockerArgs + ' .')
+        echo "At least one of requirements.txt or Dockerfile is changed. Building image now"
+        retimage = docker.build("${image_name}:latest", dockerArgs + ' .')
         retimage.push()
+    }
+    else
+    {
+        try
+        {
+            echo "Checking for image: ${image_name}"
+            sh "docker manifest inspect --insecure ${image_name}"
+            echo "Image: ${image_name} found!! Skipping building image"
+        }
+        catch(Exception ex)
+        {
+            echo "Unable to locate image: ${image_name}. Building image now"
+            retimage = docker.build("${image_name}", dockerArgs + ' .')
+            retimage.push()
+        }
     }
 }
 
