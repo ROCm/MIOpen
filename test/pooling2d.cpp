@@ -26,12 +26,15 @@
 
 #include "pooling_common.hpp"
 
+#define WORKAROUND_ISSUE_1670 1
 #define TEST_GET_INPUT_TENSOR 0
 
 template <class T>
 struct pooling2d_driver : pooling_driver<T>
 {
-    std::vector<std::vector<int>> get_2d_pooling_input_shapes()
+private:
+    using U = typename std::vector<int>;
+    std::vector<U> get_2d_pooling_input_shapes()
     {
         return {{1, 19, 1024, 2048},
                 {10, 3, 32, 32},
@@ -53,19 +56,44 @@ struct pooling2d_driver : pooling_driver<T>
                 {1, 16, 4096, 4096}};
     }
 
+    // Dataset 1 is intended for testing of asymmetric configs.
+    std::vector<U> get_2d_pooling_input_shapes_minimal() { return {{1, 4, 4, 4}}; }
+
+public:
     pooling2d_driver() : pooling_driver<T>()
     {
 #if TEST_GET_INPUT_TENSOR
-        std::set<std::vector<int>> in_dim_set = get_inputs(this->batch_factor);
-        std::vector<std::vector<int>> in_dim_vec(in_dim_set.begin(), in_dim_set.end());
+        std::set<U> in_dim_set = get_inputs(this->batch_factor);
+        std::vector<U> in_dim_vec(in_dim_set.begin(), in_dim_set.end());
         this->add(this->in_shape, "input", this->generate_data(in_dim_vec, {16, 32, 8, 8}));
 #else
-        this->add(
-            this->in_shape, "input", this->generate_data_limited(get_2d_pooling_input_shapes(), 9));
+        this->add(this->in_shape,
+                  "input",
+                  this->template generate_multi_data_limited<U>(
+                      {get_2d_pooling_input_shapes(), get_2d_pooling_input_shapes_minimal()}, 9));
 #endif
-        this->add(this->lens, "lens", this->generate_data({{2, 2}, {3, 3}}));
-        this->add(this->strides, "strides", this->generate_data({{2, 2}, {1, 1}}));
-        this->add(this->pads, "pads", this->generate_data({{0, 0}, {1, 1}}));
+        this->add(
+            this->lens,
+            "lens",
+            this->template generate_multi_data<U>({{{2, 2}, {3, 3}}, {{2, 2}, {1, 2}, {2, 1}}}));
+        this->add(this->strides,
+                  "strides",
+                  this->template generate_multi_data<U>(
+                      {{{2, 2}, {1, 1}}, {{1, 1}, {2, 1}, {1, 2}, {2, 2}}}));
+        this->add(this->pads, "pads", this->template generate_multi_data<U>({
+            {{0, 0}, {1, 1}},
+#if WORKAROUND_ISSUE_1670
+            {
+                {
+                    0, 0
+                }
+            }
+#else
+            {
+                {0, 0}, {0, 1}, {1, 0}, { 1, 1 }
+            }
+#endif
+        }));
         this->add(this->wsidx, "wsidx", this->generate_data({0, 1}));
     }
 };
