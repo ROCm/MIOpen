@@ -305,7 +305,7 @@ struct verify_forward_conv : conv_base<T, Tout>
         stats   = &pstats;
     }
 
-    tensor<Tout> ref() const
+    tensor<Tout> cpu() const
     {
         auto rout = out;
 
@@ -816,7 +816,7 @@ struct verify_backward_conv : conv_base<T>
         stats   = &pstats;
     }
 
-    tensor<T> ref() const
+    tensor<T> cpu() const
     {
         auto rinput = input;
 
@@ -1200,7 +1200,7 @@ struct verify_backward_weights_conv : conv_base<T>
         stats   = &pstats;
     }
 
-    tensor<T> ref() const
+    tensor<T> cpu() const
     {
         auto rweights = weights;
         std::fill(rweights.begin(), rweights.end(), 0);
@@ -1464,7 +1464,7 @@ struct verify_forward_conv_int8 : conv_base<T>
         stats   = &pstats;
     }
 
-    tensor<float> ref() const
+    tensor<float> cpu() const
     {
         auto rout = get_output_tensor_int8(filter, input, weights);
 
@@ -2312,7 +2312,7 @@ struct verify_backwards_bias
     tensor<T> output;
     tensor<T> bias;
 
-    tensor<T> ref() const
+    tensor<T> cpu() const
     {
         auto rbias = bias;
         cpu_bias_backward_data(output, rbias);
