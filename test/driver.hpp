@@ -86,28 +86,28 @@ struct tensor_elem_gen_checkboard_sign
 };
 
 template <class V, class... Ts>
-auto is_const_cpu(const V& v, Ts&&... xs) -> decltype(v.cpu(xs...), std::true_type{})
+auto is_const_ref(const V& v, Ts&&... xs) -> decltype(v.ref(xs...), std::true_type{})
 {
     return {};
 }
 
 template <class V, class... Ts>
-auto is_const_cpu(V& v, Ts&&... xs) -> decltype(v.cpu(xs...), std::false_type{})
+auto is_const_ref(V& v, Ts&&... xs) -> decltype(v.ref(xs...), std::false_type{})
 {
     return {};
 }
 
 // Run cpu in parallel if it can be ran as const
 template <class V, class... Ts>
-auto cpu_async(const V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
+auto cpu_async(const V& v, Ts&&... xs) -> std::future<decltype(v.ref(xs...))>
 {
-    return detach_async([&] { return v.cpu(xs...); });
+    return detach_async([&] { return v.ref(xs...); });
 }
 
 template <class V, class... Ts>
-auto cpu_async(V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
+auto cpu_async(V& v, Ts&&... xs) -> std::future<decltype(v.ref(xs...))>
 {
-    return std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
+    return std::async(std::launch::deferred, [&] { return v.ref(xs...); });
 }
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_VERIFY_CACHE_PATH)
@@ -712,10 +712,10 @@ struct test_driver
     }
 
     template <class V, class... Ts>
-    auto run_cpu(bool retry, bool& miss, V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
+    auto run_ref(bool retry, bool& miss, V& v, Ts&&... xs) -> std::future<decltype(v.ref(xs...))>
     {
-        using result_type = decltype(v.cpu(xs...));
-        if(is_cache_disabled() or not is_const_cpu(v, xs...))
+        using result_type = decltype(v.ref(xs...));
+        if(is_cache_disabled() or not is_const_ref(v, xs...))
             return cpu_async(v, xs...);
         auto key = miopen::get_type_name<V>() + "-" + miopen::md5(get_command_args());
         auto p =
@@ -766,9 +766,9 @@ struct test_driver
 
     template <class F, class V, class... Ts>
     auto verify_impl(F&& f, V&& v, Ts&&... xs)
-        -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+        -> decltype(std::make_pair(v.ref(xs...), v.gpu(xs...)))
     {
-        decltype(v.cpu(xs...)) cpu;
+        decltype(v.ref(xs...)) cpu;
         decltype(v.gpu(xs...)) gpu;
 
         if(verbose or time)
@@ -778,11 +778,11 @@ struct test_driver
         {
             auto&& h = get_handle();
             // Compute cpu
-            std::future<decltype(v.cpu(xs...))> cpuf;
+            std::future<decltype(v.ref(xs...))> cpuf;
             bool cache_miss = true;
             if(not no_validate)
             {
-                cpuf = run_cpu(false, cache_miss, v, xs...);
+                cpuf = run_ref(false, cache_miss, v, xs...);
             }
             // Compute gpu
             if(time)
@@ -825,7 +825,7 @@ struct test_driver
                     if(retry)
                     {
                         std::cout << "Warning: verify cache failed, rerunning cpu." << std::endl;
-                        cpu = run_cpu(retry, cache_miss, v, xs...).get();
+                        cpu = run_ref(retry, cache_miss, v, xs...).get();
                     }
                 }
                 if(retry)
@@ -862,7 +862,7 @@ struct test_driver
     }
 
     template <class V, class... Ts>
-    auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+    auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.ref(xs...), v.gpu(xs...)))
     {
         return verify_impl(
             [&](std::vector<double>& error, auto&& cpu, auto&& gpu) {
@@ -878,7 +878,7 @@ struct test_driver
     }
 
     template <class V, class... Ts>
-    auto verify_equals(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+    auto verify_equals(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.ref(xs...), v.gpu(xs...)))
     {
         return verify_impl(
             [&](auto&, auto&& cpu, auto&& gpu) {
