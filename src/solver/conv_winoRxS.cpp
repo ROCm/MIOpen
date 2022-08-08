@@ -291,13 +291,6 @@ bool PerformanceConfigConvBinWinogradRxS::operator==(
     return n_groups == other.n_groups;
 }
 
-std::string PerformanceConfigConvBinWinogradRxS::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 template <int Winodata, int Winofilter>
 PerformanceConfigConvBinWinogradRxS
 ConvBinWinoRxS<Winodata, Winofilter>::GetDefaultPerformanceConfig(
@@ -526,7 +519,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
         return false;
     if(IS3X2 && params.kernel_stride_w == 2) // f3x2 stride 2 not implemented yet
         return false;
-    if(IS2X3 && params.group_counts > 1)
+    if(IS2X3 && params.group_counts == 1)
         return false;
     return IsApplicableBase(params);
 }

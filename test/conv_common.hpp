@@ -386,7 +386,7 @@ struct verify_forward_conv : conv_base<T, Tout>
         {
             if(filter.mode == miopenTranspose)
             {
-                if(miopen::testing_find_db_enabled)
+                if(miopen::debug::testing_find_db_enabled)
                 {
                     int ret_algo_count;
                     miopenConvAlgoPerf_t perf;
@@ -462,7 +462,7 @@ struct verify_forward_conv : conv_base<T, Tout>
             }
             else
             {
-                if(miopen::testing_find_db_enabled)
+                if(miopen::debug::testing_find_db_enabled)
                 {
                     int ret_algo_count;
                     miopenConvAlgoPerf_t perf;
@@ -860,7 +860,7 @@ struct verify_backward_conv : conv_base<T>
 
             if(filter.mode == miopenTranspose)
             {
-                if(miopen::testing_find_db_enabled)
+                if(miopen::debug::testing_find_db_enabled)
                 {
                     filter.FindConvFwdAlgorithm(handle,
                                                 out.desc,
@@ -938,7 +938,7 @@ struct verify_backward_conv : conv_base<T>
             }
             else
             {
-                if(miopen::testing_find_db_enabled)
+                if(miopen::debug::testing_find_db_enabled)
                 {
                     filter.FindConvBwdDataAlgorithm(handle,
                                                     out.desc,
@@ -1231,7 +1231,7 @@ struct verify_backward_weights_conv : conv_base<T>
             int ret_algo_count;
             miopenConvAlgoPerf_t perf;
 
-            if(miopen::testing_find_db_enabled)
+            if(miopen::debug::testing_find_db_enabled)
             {
                 filter.FindConvBwdWeightsAlgorithm(
                     handle,
@@ -1503,7 +1503,7 @@ struct verify_forward_conv_int8 : conv_base<T>
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
 
-        if(miopen::testing_find_db_enabled)
+        if(miopen::debug::testing_find_db_enabled)
         {
             filter.FindConvFwdAlgorithm(handle,
                                         (is_transform ? input_vpad_desc : input.desc),
@@ -1640,6 +1640,7 @@ struct conv_driver : test_driver
     bool gen_float           = false;
     bool immed               = immed_mode;
     bool enable_fdb          = true;
+    bool deterministic       = false;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution},
@@ -1937,6 +1938,8 @@ struct conv_driver : test_driver
         filter.strides.resize(spatial_dim);
         filter.dilations.resize(spatial_dim);
         filter.trans_output_pads.resize(spatial_dim);
+        if(deterministic)
+            filter.attribute.Set(MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC, 1);
 
         std::copy_n(pads_strides_dilations.begin(), spatial_dim, filter.pads.begin());
         std::copy_n(
@@ -2203,7 +2206,7 @@ struct conv_driver : test_driver
 
                 if(immed)
                 {
-                    miopen::testing_find_db_enabled = enable_fdb;
+                    miopen::debug::testing_find_db_enabled = enable_fdb;
                 }
 
                 conv_stats stats;
