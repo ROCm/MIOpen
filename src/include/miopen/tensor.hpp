@@ -170,7 +170,7 @@ struct TensorDescriptor : miopenTensorDescriptor
     miopenTensorLayout_t GetLayout_t() const;
     std::string GetLayout_str() const;
 
-    int GetVectorLength() const;
+    std::size_t GetVectorLength() const;
 
     std::size_t GetElementSize() const;
 
@@ -247,7 +247,7 @@ private:
     std::vector<std::size_t> strides;
 
     bool packed;
-    int vector_length = 1;
+    std::size_t vector_length = 1;
 
     miopenDataType_t type             = miopenFloat;
     miopenTensorLayout_t tensorLayout = miopenTensorNCHW;
