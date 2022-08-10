@@ -462,17 +462,6 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
     auto solution         = ConvSolution{miopenStatusSuccess};
     solution.workspace_sz = 0;
 
-    const auto& dyDesc = problem.GetIn();
-    const auto& wDesc  = problem.GetWeights();
-    const auto& dxDesc = problem.GetOut();
-    const auto& conv   = problem.GetConv();
-
-    const auto group_count = conv.group_count;
-    const auto in_n        = dxDesc.GetLengths()[0];
-
-    auto solution         = ConvSolution{miopenStatusSuccess};
-    solution.workspace_sz = 0;
-
     // dx = transpose(w) * dy
     const auto gemm_desc = [&]() {
         auto tmp = group_count > 1
