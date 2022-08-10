@@ -310,7 +310,7 @@ def buildDocker(install_prefix)
         echo "Checking for image: ${image_name}"
         sh "docker manifest inspect --insecure ${image_name}"
         echo "Image: ${image_name} found!! Skipping building image"
-        if(parms.DEBUG_FORCE_DOCKER_BUILD)
+        if(params.DEBUG_FORCE_DOCKER_BUILD)
         {
             throw new Exception("Docker build override via DEBUG_FORCE_DOCKER_BUILD")
         }
