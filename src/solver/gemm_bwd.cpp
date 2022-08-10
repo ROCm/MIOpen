@@ -413,7 +413,7 @@ size_t GemmBwd1x1_stride1::GetWorkspaceSize(const ExecutionContext&,
 }
 
 bool GemmBwd1x1_stride1::IsApplicableBeforeWorkaround(const ExecutionContext& context,
-                                      const conv::ProblemDescription& problem) const
+                                                      const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmBwdBase::IsApplicable(context, problem))
