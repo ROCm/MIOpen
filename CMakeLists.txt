@@ -465,9 +465,7 @@ function(install_kdb)
     file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb" FILE_CONTENTS LIMIT 7)
     string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
     if(FILE_CONTENTS STREQUAL "version")
-        message(WARNING "GIT LFS Files not pulled down, skipping ${FILE_NAME}.kdb")
-        set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
-        return()
+        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb PARENT_SCOPE)
     else()
         message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
         rocm_install(FILES
@@ -484,6 +482,7 @@ list(APPEND ARCH_FILE_LST gfx90a-104kdb gfx90a-110kdb gfx1030-36kdb gfx908-120kd
 list(LENGTH ARCH_LST FULL_LEN)
 math(EXPR ARCH_LST_LEN "${FULL_LEN} - 1")
 
+
 foreach(IDX RANGE ${ARCH_LST_LEN})
     list(GET ARCH_LST ${IDX} ARCH_NAME)
     list(GET ARCH_FILE_LST ${IDX} ARCH_FILE_NAME)
@@ -492,6 +491,12 @@ foreach(IDX RANGE ${ARCH_LST_LEN})
         COMPONENT_NAME ${ARCH_FILE_NAME}
     )
 endforeach()
+
+if(LFS_MISSING_FILES)
+    string(REPLACE ";" "; " LFS_MISSING_FILES "${LFS_MISSING_FILES}")
+    message(WARNING "GIT LFS Files not pulled down, skipped: ${LFS_MISSING_FILES}")
+    set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
+endif()
 
 set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
 #end kdb package creation

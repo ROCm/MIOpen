@@ -1504,11 +1504,6 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ConvolutionConte
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
         return false;
 
-#if WORKAROUND_SWDEV_306318
-    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
-        return false;
-#endif
-
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(device_name != "gfx908")
         return false;
@@ -1535,6 +1530,11 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ConvolutionConte
     {
         return false;
     }
+
+#if WORKAROUND_SWDEV_306318
+    if((ctx.kernel_size_h == 1) && (ctx.kernel_size_w == 1) && (ctx.n_inputs % 8 != 0))
+        return false;
+#endif
 
     const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
