@@ -35,6 +35,7 @@
 #include <miopen/solver_id.hpp>
 #include <miopen/names.hpp>
 #include <miopen/invoke_params.hpp>
+#include <miopen/invoker.hpp>
 
 #include <boost/any.hpp>
 
@@ -465,6 +466,10 @@ void ConvolutionBackwardBias(const Handle& handle,
                              const void* beta,
                              const TensorDescriptor& dbDesc,
                              Data_t db);
+Invoker LoadOrPrepareInvoker(Handle& handle,
+                             ConvolutionContext& ctx,
+                             solver::Id solver_id,
+                             conv::Direction dir);
 
 std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c);
 
