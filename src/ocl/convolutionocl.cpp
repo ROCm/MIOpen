@@ -980,10 +980,10 @@ static Invoker PrepareInvoker(Handle& handle,
     return invoker; // NOLINT (performance-no-automatic-move)
 }
 
-static Invoker LoadOrPrepareInvoker(Handle& handle,
-                                    ConvolutionContext& ctx,
-                                    solver::Id solver_id,
-                                    conv::Direction dir)
+Invoker LoadOrPrepareInvoker(Handle& handle,
+                             ConvolutionContext& ctx,
+                             solver::Id solver_id,
+                             conv::Direction dir)
 {
     const auto config = ctx.BuildConfKey();
     auto invoker      = handle.GetInvoker(config, solver_id);
