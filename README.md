@@ -236,6 +236,41 @@ Also, githooks can be installed to format the code per-commit:
 ./.githooks/install
 ```
 
+## Storing large file using Git LFS
+
+Git Large File Storage (LFS) replaces large files such as audio samples, videos, datasets, and graphics with text pointers inside Git, while storing the file contents on a remote server. In MIOpen, we use git LFS to store the large files, such as the kernel database files (*.kdb) which are normally > 0.5GB. Steps:
+
+Git LFS can be installed and set up by:
+
+```
+sudo apt install git-lfs
+git lfs install
+```
+
+In the Git repository that you want to use Git LFS, track the file type that you's like by (if the file type has been tracked, this step can be skipped):
+
+```
+git lfs track "*.file_type"
+git add .gitattributes
+```
+
+Pull all or a single large file that you would like to update by:
+
+```
+git lfs pull --exclude=
+or
+git lfs pull --exclude= --include "filename"
+```
+
+Update the large files and push to the github by:
+
+```
+git add my_large_files
+git commit -m "the message"
+git push
+```
+
+
 ## Installing the dependencies manually
 
 If Ubuntu v16 is used then the `Boost` packages can also be installed by:
