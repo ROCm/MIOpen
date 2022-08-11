@@ -427,6 +427,10 @@ pipeline {
             name: "DATATYPE_INT8",
             defaultValue: true,
             description: "")
+        booleanParam(
+            name: "OPENCL_BACKEND",
+            defaultValue: false,
+            description: "Enable OpenCL backend stages")
     }
 
     environment{
@@ -554,7 +558,7 @@ pipeline {
                 stage('Fp32 OpenCL gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908  && params.OPENCL_BACKEND}
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -564,7 +568,7 @@ pipeline {
                 stage('Fp32 OpenCL gfx90a') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX90A }
+                        expression { params.TARGET_GFX90A && params.OPENCL_BACKEND}
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -594,7 +598,7 @@ pipeline {
                 stage('Fp32 OpenCL Debug gfx1030') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_NAVI21 }
+                        expression { params.TARGET_NAVI21 && params.OPENCL_BACKEND}
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
@@ -721,7 +725,7 @@ pipeline {
                 stage('Fp16 OpenCL Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 && params.OPENCL_BACKEND}
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -731,7 +735,7 @@ pipeline {
                 stage('Int8 OpenCL Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 && params.OPENCL_BACKEND}
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -818,7 +822,7 @@ pipeline {
                 stage('Fp32 OpenCL Install All') {
                     when {
                         beforeAgent true
-                        expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 }
+                        expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
                     }
                     agent{ label rocmnode("vega") }
                     steps{
@@ -848,7 +852,7 @@ pipeline {
                 stage('Fp32 OpenCL All gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -858,7 +862,7 @@ pipeline {
                 stage('Fp32 OpenCL Install All gfx90a') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
+                        expression { params.TARGET_GFX90A && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -943,7 +947,7 @@ pipeline {
                 stage('Fp32 OpenCL All gfx1030') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP32 }
+                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
