@@ -42,10 +42,13 @@
 
 namespace miopen {
 namespace tests {
-class TrivialTestSolver : public solver::ConvSolver
+class TrivialTestSolver final : public solver::ConvSolver
 {
-    public:
+public:
     static const char* FileName() { return "TrivialTestSolver"; }
+
+    const std::string& SolverDbId() const override { return GetSolverDbId<TrivialTestSolver>(); }
+
     bool IsApplicable(const ConvolutionContext& context) const override
     {
         return context.in_width == 1;
@@ -64,7 +67,7 @@ class TrivialTestSolver : public solver::ConvSolver
     }
 };
 
-struct TestConfig : solver::Serializable<TestConfig>
+struct TestConfig : solver::PerfConfigBase<TestConfig>
 {
     std::string str;
 
@@ -75,31 +78,34 @@ struct TestConfig : solver::Serializable<TestConfig>
     }
 };
 
-class SearchableTestSolver : public solver::ConvSolver
+class SearchableTestSolver final : public solver::ConvTunableSolver<TestConfig>
 {
-    public:
+public:
     static int searches_done() { return _serches_done; }
     static const char* FileName() { return "SearchableTestSolver"; }
     static const char* NoSearchFileName() { return "SearchableTestSolver.NoSearch"; }
+
+    const std::string& SolverDbId() const override { return GetSolverDbId<SearchableTestSolver>(); }
+
     bool IsApplicable(const ConvolutionContext& context) const override
     {
         std::ignore = context;
         return true;
     }
 
-    TestConfig GetPerformanceConfig(const ConvolutionContext&) const
+    TestConfig GetDefaultPerformanceConfig(const ConvolutionContext&) const override
     {
         TestConfig config{};
         config.str = NoSearchFileName();
         return config;
     }
 
-    bool IsValidPerformanceConfig(const ConvolutionContext&, const TestConfig&) const
+    bool IsValidPerformanceConfig(const ConvolutionContext&, const TestConfig&) const override
     {
         return true;
     }
 
-    TestConfig Search(const ConvolutionContext&, const AnyInvokeParams&) const
+    TestConfig Search(const ConvolutionContext&, const AnyInvokeParams&) const override
     {
         TestConfig config;
         config.str = FileName();
@@ -107,7 +113,8 @@ class SearchableTestSolver : public solver::ConvSolver
         return config;
     }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&, const TestConfig& config) const
+    solver::ConvSolution GetSolution(const ConvolutionContext&,
+                                     const TestConfig& config) const override
     {
 
         solver::ConvSolution ret;
@@ -120,7 +127,7 @@ class SearchableTestSolver : public solver::ConvSolver
         return ret;
     }
 
-    private:
+private:
     static int _serches_done; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 };
 
@@ -136,9 +143,21 @@ static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const st
     return solvers.SearchForAllSolutions(ctx, db, {}, 1).front();
 }
 
+template <class TInstance>
+class StaticContainer
+{
+public:
+    inline static TInstance& Instance()
+    {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+        static TInstance data{};
+        return data;
+    }
+};
+
 class SolverTest
 {
-    public:
+public:
     void Run() const
     {
         const TempFile db_path("miopen.tests.solver");
@@ -176,7 +195,7 @@ class SolverTest
         EXPECT_EQUAL(searches, searchable_solver.searches_done());
     }
 
-    private:
+private:
     static void ConstructTest(
         const std::string& db_path,
         const char* expected_kernel,

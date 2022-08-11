@@ -14,18 +14,26 @@ else
     return -1
 fi
 arches=$($ROCMINFO | grep -e ' gfx' -e 'Compute Unit:' | awk '/Name/{ arch= $2} /Compute Unit:/ {if(arch != "") { all_arches[(arch "-" $3)] }} END { for (a in all_arches) { print a}  }')
+backend="hip"
 
 while IFS= read -r line ; 
-do 
+do
+    arch=$(echo $line | awk -F"-" '{print $1}')
+    num_cu=$(echo $line | awk -F"-" '{print $2}')
+    if [[ $arch = gfx1* ]]; then
+        echo "using gfx1* architects ..."
+        num_cu=$((num_cu/2))
+    fi
+    package=$arch-$num_cu
     if [ -f /etc/redhat-release ]; then
-          echo sudo yum -y install "miopenkernels-${line}pkg"
-          $SUDO yum -y install --nogpgcheck "miopenkernels-${line}pkg"
+          echo sudo yum -y install "miopen-${backend}-${package}kdb"
+          $SUDO yum -y install --nogpgcheck "miopen-${backend}-${package}kdb"
     elif [ -f /etc/lsb-release ]; then
-          echo sudo apt install -y "miopenkernels-${line}pkg"
+          echo sudo apt install -y "miopen-${backend}-${package}kdb"
           $SUDO apt update
-          $SUDO apt install -y "miopenkernels-${line}pkg"
+          $SUDO apt install -y "miopen-${backend}-${package}kdb"
     else
         echo "Unknown distribution"
-        echo "Please install the miopenkernels-${line}pkg package using an appropriate package manager"
+        echo "Please install the miopen-${backend}-${package}kdb package using an appropriate package manager"
     fi
 done <<< "$arches"

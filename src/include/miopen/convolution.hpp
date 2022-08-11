@@ -35,6 +35,7 @@
 #include <miopen/solver_id.hpp>
 #include <miopen/names.hpp>
 #include <miopen/invoke_params.hpp>
+#include <miopen/invoker.hpp>
 
 #include <boost/any.hpp>
 
@@ -44,6 +45,7 @@
 #include <unordered_map>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)
 
 namespace miopen {
 
@@ -86,11 +88,30 @@ struct ConvolutionAttribute
             return value;
         }
 
-        public:
+    public:
         inline bool GetFwd() const { return Get() == 1; } // false is the default.
         inline bool GetBwd() const { return Get() != 0; } // true is the default.
         inline bool GetWrW() const { return Get() != 0; } // true is the default.
     } gfx90aFp16alt;
+
+    class Deterministic
+    {
+        int value = 0;
+        friend struct ConvolutionAttribute;
+
+    public:
+        inline int Get() const
+        {
+            if(nullptr != miopen::GetStringEnv(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+                return miopen::Value(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{});
+            return value;
+        }
+        operator bool() const
+        {
+            const auto tmp_val = this->Get(); // Make sure we read the env var
+            return tmp_val == 1;
+        }
+    } deterministic;
 
     /// Tri-state attribute values:
     /// * -1: Default (attribute-specific).
@@ -445,6 +466,10 @@ void ConvolutionBackwardBias(const Handle& handle,
                              const void* beta,
                              const TensorDescriptor& dbDesc,
                              Data_t db);
+Invoker LoadOrPrepareInvoker(Handle& handle,
+                             ConvolutionContext& ctx,
+                             solver::Id solver_id,
+                             conv::Direction dir);
 
 std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c);
 

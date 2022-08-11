@@ -53,7 +53,7 @@ std::future<typename std::result_of<Function()>::type> detach_async(Function&& f
     std::packaged_task<result_type()> task(std::forward<Function>(f));
     auto fut = task.get_future();
     std::thread(std::move(task)).detach();
-    return std::move(fut);
+    return fut;
 }
 
 template <class T, class Work>
@@ -140,7 +140,8 @@ struct par_ford_impl
         strides.fill(1);
         std::partial_sum(
             lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<std::size_t>());
-        auto size = std::accumulate(lens.begin(), lens.end(), 1, std::multiplies<std::size_t>());
+        auto size = std::accumulate(
+            lens.begin(), lens.end(), static_cast<std::size_t>(1), std::multiplies<std::size_t>());
         par_for(size, [&](std::size_t i) {
             array_type indices;
             std::transform(strides.begin(),

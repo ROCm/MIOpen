@@ -4,7 +4,7 @@
 
 namespace miopen {
 namespace solver {
-
+#if 0
 /// Base class for problem solvers.
 ///
 /// Solvers are to be instantiated as const objects and shall not have any variable
@@ -69,6 +69,6 @@ struct SolverBase
     /// ConvSolution GetSolution(const ConvolutionContext& params,
     ///                          const PerformanceConfig& config) const;
 };
-
+#endif
 } // namespace solver
 } // namespace miopen

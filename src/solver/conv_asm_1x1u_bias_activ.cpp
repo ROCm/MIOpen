@@ -48,32 +48,8 @@ namespace solver {
 
 namespace fusion {
 
-bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const ConvolutionContext& config) const
-{
-    const int sgprs = 25 + 7 + 2 * k_mult * c_mult;
-    if(!(sgprs < 102)) /// \todo This is valid for Gfx8 and Gfx9. Check for newer parts.
-        return false;
-
-    return PerformanceConfigConvAsm1x1U::IsValid(config);
-}
-
-inline bool PerformanceConfigConvBiasActivAsm1x1U::operator==(
-    const PerformanceConfigConvBiasActivAsm1x1U& other) const
-{
-    // clang-format off
-            return read_size == other.read_size
-                && k_mult == other.k_mult
-                && chunks_per_wave == other.chunks_per_wave
-                && chunk_size == other.chunk_size
-                && n_mult == other.n_mult
-                && c_mult == other.c_mult
-                && waves_c_in_group == other.waves_c_in_group
-                && waves_k_in_group == other.waves_k_in_group
-                && use_spare_set == other.use_spare_set; // clang-format on
-}
-
 PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     std::ignore = params;
 #if 0
@@ -82,6 +58,12 @@ ConvBiasActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) con
     MIOPEN_LOG_I(pp.ToString());
 #endif
     return {};
+}
+
+bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
+    const ConvolutionContext& problem, const PerformanceConfigConvBiasActivAsm1x1U& c) const
+{
+    return c.IsValidValue() && c.IsValid(problem);
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
@@ -161,7 +143,7 @@ ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ExecutionContext& context,
     auto config = PerformanceConfigConvAsm1x1U{};
     config.HeuristicInit(ctx);
 
-    auto sol = ConvAsm1x1U::GetSolution(ctx, config, false);
+    auto sol = ConvAsm1x1U::GetSolution(ctx, config);
 
     if(sol.construction_params.size() != 1)
         MIOPEN_THROW("ConvBiasActivAsm1x1U expects only one kernel");

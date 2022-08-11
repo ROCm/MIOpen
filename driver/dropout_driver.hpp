@@ -48,7 +48,7 @@
 template <typename Tgpu, typename Tref = Tgpu>
 class DropoutDriver : public Driver
 {
-    public:
+public:
     DropoutDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -83,7 +83,7 @@ class DropoutDriver : public Driver
         miopenDestroyDropoutDescriptor(DropoutDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;
@@ -451,9 +451,9 @@ int DropoutDriver<Tgpu, Tref>::VerifyForward()
     auto error = miopen::rms_range(outhost.data, out.data);
 
     const double tolerance = std::is_same<Tgpu, float16>{} ? 5e-4 : 1e-6;
-    if(!(error < tolerance))
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward Dropout Failed: " << error << std::endl;
+        std::cout << "Forward Dropout FAILED: " << error << std::endl;
     }
     else
     {
@@ -471,9 +471,9 @@ int DropoutDriver<Tgpu, Tref>::VerifyBackward()
     auto error = miopen::rms_range(din_host.data, din.data);
 
     const double tolerance = std::is_same<Tgpu, float16>{} ? 5e-4 : 1e-6;
-    if(!(error < tolerance))
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Backward Dropout Failed: " << error << std::endl;
+        std::cout << "Backward Dropout FAILED: " << error << std::endl;
     }
     else
     {

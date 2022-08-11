@@ -410,14 +410,18 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
     int b               = get_global_id(2); // batch
     MLO_READ_TYPE accum = 0;
     MLO_READ_TYPE bot_in2[MLO_LRN_KERNEL_SZ];
+    MLO_READ_TYPE bot_in[MLO_LRN_KERNEL_SZ];
     int c_i = 0, c_o = 0;
     for(int i = 0; i < MLO_LRN_KERNEL_SZ; ++i)
     {
         bot_in2[i] = 0;
+        bot_in[i]  = 0;
     }
 
-    int top_off   = 0;
-    int scale_off = 0;
+    int top_off = 0;
+#if MLO_LRN_DO_SCALE
+    int scale_off;
+#endif
 
     for(c_i = 0; c_i < MLO_LRN_PAD; c_i++)
     {
@@ -450,8 +454,9 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
         }
 
         bot_in2[c_i] = prv_in * prv_in;
+        bot_in[c_i]  = prv_in;
         accum        = accum + bot_in2[c_i];
-        //				fma(bot_in[c_i + MLO_LRN_PAD], bot_in[c_i + MLO_LRN_PAD],
+        //				fma(bot_in2[c_i + MLO_LRN_PAD], bot_in2[c_i + MLO_LRN_PAD],
         // accum);
     }
 
@@ -487,12 +492,15 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
         }
 
         bot_in2[c_i] = prv_in * prv_in;
+        bot_in[c_i]  = prv_in;
         accum        = accum + bot_in2[c_i];
 
         top_off = b * MLO_LRN_TOP_BATCH_STRIDE + c_o * MLO_LRN_TOP_CHANNEL_STRIDE +
                   (pix_id * MLO_READ_UNIT);
+#if MLO_LRN_DO_SCALE
         scale_off = b * MLO_LRN_SCALE_BATCH_STRIDE + c_o * MLO_LRN_SCALE_CHANNEL_STRIDE +
                     (pix_id * MLO_READ_UNIT);
+#endif
         MLO_READ_TYPE prv_scale = ((MLO_READ_TYPE)K + accum * (MLO_READ_TYPE)alphaoverarea);
         //				fma(accum,alphaoverarea, (_FLOAT)1.f);
 
@@ -500,8 +508,7 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
         //				pow(prv_scale,-beta);
         // bug
         //	MLO_READ_TYPE prv_out = sqrt(bot_in2[c_o]);
-        MLO_READ_TYPE prv_out = bot_in2[c_o];
-        prv_out               = sqrt(prv_out);
+        MLO_READ_TYPE prv_out = bot_in[c_o];
         MLO_READ_TYPE out_val = prv_out * exp_scale;
 #if MLO_LOW_CHNL_COUNT == 1
         if(c_o < MLO_LRN_N_OUTPUTS)
@@ -573,28 +580,31 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
         accum                     = accum + prv_bot_in2;
 
         accum = accum - bot_in2[0];
-        //				fma(-bot_in[0], bot_in[0], accum);
+        //				fma(-bot_in2[0], bot_in2[0], accum);
 
         for(int i = 0; i < MLO_LRN_KERNEL_SZ - 1; i++)
         {
             bot_in2[i] = bot_in2[i + 1];
+            bot_in[i]  = bot_in[i + 1];
         }
 
         bot_in2[MLO_LRN_KERNEL_SZ - 1] = prv_bot_in2;
+        bot_in[MLO_LRN_KERNEL_SZ - 1]  = prv_in;
 
         top_off = b * MLO_LRN_TOP_BATCH_STRIDE + c_o * MLO_LRN_TOP_CHANNEL_STRIDE +
                   (pix_id * MLO_READ_UNIT);
+#if MLO_LRN_DO_SCALE
         scale_off = b * MLO_LRN_SCALE_BATCH_STRIDE + c_o * MLO_LRN_SCALE_CHANNEL_STRIDE +
                     (pix_id * MLO_READ_UNIT);
+#endif
         MLO_READ_TYPE prv_scale = ((MLO_READ_TYPE)K + accum * (MLO_READ_TYPE)alphaoverarea);
         //				fma(accum,alphaoverarea, (_FLOAT)1.f);
 
         MLO_READ_TYPE exp_scale = exp((MLO_READ_TYPE)-beta * log(prv_scale));
         //				pow(prv_scale,-beta);
         // bug
-        //			MLO_READ_TYPE prv_out = sqrt(bot_in2[MLO_LRN_PAD]);
-        MLO_READ_TYPE prv_out = bot_in2[MLO_LRN_PRE_PAD];
-        prv_out               = sqrt(prv_out);
+        //			MLO_READ_TYPE prv_out = sqrt(bot_in2[MLO_LRN_PRE_PAD]);
+        MLO_READ_TYPE prv_out = bot_in[MLO_LRN_PRE_PAD];
         MLO_READ_TYPE out_val = prv_out * exp_scale;
 
 #if MLO_LOW_CHNL_COUNT == 1
@@ -639,26 +649,28 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
     {
 
         accum = accum - bot_in2[0];
-        //				fma(-bot_in[0], bot_in[0], accum);
+        //				fma(-bot_in2[0], bot_in2[0], accum);
 
         for(int i = 0; i < MLO_LRN_KERNEL_SZ - 1; i++)
         {
             bot_in2[i] = bot_in2[i + 1];
+            bot_in[i]  = bot_in[i + 1];
         }
 
         top_off = b * MLO_LRN_TOP_BATCH_STRIDE + c_o * MLO_LRN_TOP_CHANNEL_STRIDE +
                   (pix_id * MLO_READ_UNIT);
+#if MLO_LRN_DO_SCALE
         scale_off = b * MLO_LRN_SCALE_BATCH_STRIDE + c_o * MLO_LRN_SCALE_CHANNEL_STRIDE +
                     (pix_id * MLO_READ_UNIT);
+#endif
         MLO_READ_TYPE prv_scale = ((MLO_READ_TYPE)K + accum * (MLO_READ_TYPE)alphaoverarea);
         //				fma(accum,alphaoverarea, (_FLOAT)1.f);
 
         MLO_READ_TYPE exp_scale = exp((MLO_READ_TYPE)-beta * log(prv_scale));
         //				pow(prv_scale,-beta);
         // bug
-        //			MLO_READ_TYPE prv_out = sqrt(bot_in2[MLO_LRN_PAD]);
-        MLO_READ_TYPE prv_out = bot_in2[MLO_LRN_PRE_PAD];
-        prv_out               = sqrt(prv_out);
+        //			MLO_READ_TYPE prv_out = sqrt(bot_in2[MLO_LRN_PRE_PAD]);
+        MLO_READ_TYPE prv_out = bot_in[MLO_LRN_PRE_PAD];
 
         MLO_READ_TYPE out_val = prv_out * exp_scale;
 #if MLO_LOW_CHNL_COUNT == 1

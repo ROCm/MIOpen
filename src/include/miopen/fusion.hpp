@@ -323,7 +323,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     bool kernel_info_valid;
     std::string conv_compiler_options;
 
-    private:
+private:
     mlo_construct_direct2D_fusion ConstructParams(Handle& handle);
 };
 

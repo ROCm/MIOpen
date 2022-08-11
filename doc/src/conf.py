@@ -83,7 +83,7 @@ root_doc = 'index'
 
 # General information about the project.
 project = u'MIOpen'
-copyright = u'2021, Advanced Micro Devices, Inc'
+copyright = u'2022, Advanced Micro Devices, Inc. All rights reserved'
 author = u'Advanced Micro Devices, Inc'
 
 # The version info for the project you're documenting, acts as replacement for

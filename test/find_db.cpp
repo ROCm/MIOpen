@@ -49,7 +49,7 @@ struct TestRordbEmbedFsOverrideLock
 
     ~TestRordbEmbedFsOverrideLock() { debug::rordb_embed_fs_override() = cached; }
 
-    private:
+private:
     bool cached;
 };
 
@@ -88,7 +88,7 @@ struct FindDbTest : test_driver
         y_dev = handle.Write(y.data);
 
         const TempFile temp_file{"miopen.test.find_db"};
-        testing_find_db_path_override() = temp_file;
+        debug::testing_find_db_path_override() = temp_file;
         TestRordbEmbedFsOverrideLock rordb_embed_fs_override;
 
         TestForward();
@@ -96,7 +96,7 @@ struct FindDbTest : test_driver
         TestWeights();
     }
 
-    private:
+private:
     void TestBwdData()
     {
         MIOPEN_LOG_I("Starting backward find-db test.");
@@ -199,14 +199,14 @@ struct FindDbTest : test_driver
         const auto time0ms = std::chrono::duration_cast<mSeconds>(time0);
         MIOPEN_LOG_I("Find(), 1st call (populating kcache, updating find-db): " << time0ms.count());
 
-        testing_find_db_enabled = false;
-        const auto time1        = Duration(func);
-        const auto time1ms      = std::chrono::duration_cast<mSeconds>(time1);
+        debug::testing_find_db_enabled = false;
+        const auto time1               = Duration(func);
+        const auto time1ms             = std::chrono::duration_cast<mSeconds>(time1);
         MIOPEN_LOG_I("Find(), find-db disabled: " << time1ms.count());
 
-        testing_find_db_enabled = true;
-        const auto time2        = Duration(func);
-        const auto time2ms      = std::chrono::duration_cast<mSeconds>(time2);
+        debug::testing_find_db_enabled = true;
+        const auto time2               = Duration(func);
+        const auto time2ms             = std::chrono::duration_cast<mSeconds>(time2);
         MIOPEN_LOG_I("Find(), find-db enabled: " << time2ms.count());
 
         const auto find_db_speedup = time1ms / time2ms;

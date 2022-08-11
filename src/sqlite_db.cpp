@@ -144,8 +144,19 @@ class SQLite::impl
         sqlite3* ptr_tmp = nullptr;
         int rc           = 0;
         if(is_system)
-            rc =
-                sqlite3_open_v2(filepath.string().c_str(), &ptr_tmp, SQLITE_OPEN_READONLY, nullptr);
+        {
+            if(boost::filesystem::file_size(filepath) <
+               512) // size of a very small database, Empty MIOpen DBs are 20 kb
+            {
+                rc = -1;
+                return rc;
+            }
+            else
+            {
+                rc = sqlite3_open_v2(
+                    filepath.string().c_str(), &ptr_tmp, SQLITE_OPEN_READONLY, nullptr);
+            }
+        }
         else
         {
             rc = sqlite3_open_v2(filepath.string().c_str(),
@@ -157,7 +168,7 @@ class SQLite::impl
         return rc;
     }
 
-    public:
+public:
     impl(const std::string& filename_, bool is_system)
     {
         boost::filesystem::path filepath(filename_);
@@ -280,7 +291,7 @@ class SQLite::Statement::impl
         return sqlite3_stmt_ptr{ptr};
     }
 
-    public:
+public:
     impl(const SQLite& sql, const std::string& query) { ptrStmt = Prepare(sql, query); }
     impl(const SQLite& sql, const std::string& query, const std::vector<std::string>& vals)
     {

@@ -45,10 +45,12 @@ using OldStyleProblemDescription =
 
 using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
 
-struct ActivFwdSolver0 : OldStyleSolver
+struct ActivFwdSolver0 final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver0>(); }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
@@ -66,10 +68,12 @@ struct ActivFwdSolver0 : OldStyleSolver
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
-struct ActivFwdSolver1 : OldStyleSolver
+struct ActivFwdSolver1 final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver1>(); }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
@@ -87,10 +91,12 @@ struct ActivFwdSolver1 : OldStyleSolver
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
-struct ActivBwdSolver0 : OldStyleSolver
+struct ActivBwdSolver0 final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver0>(); }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
@@ -108,10 +114,12 @@ struct ActivBwdSolver0 : OldStyleSolver
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
-struct ActivBwdSolver1 : OldStyleSolver
+struct ActivBwdSolver1 final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver1>(); }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {

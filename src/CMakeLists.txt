@@ -46,6 +46,12 @@ configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BIN
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/version.h.in" "${PROJECT_BINARY_DIR}/include/miopen/version.h" )
 
+
+if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
+#Copy header to Build Dir for generating backward compatibility
+configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINARY_DIR}/include/miopen/miopen.h" )
+endif()
+
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 
@@ -75,210 +81,152 @@ function(add_kernels FILE_NAME VAR_PREFIX VAR_SUFFIX KERNEL_FILES)
 endfunction()
 
 set( MIOpen_Source
-    buffer_info.cpp
-    check_numerics.cpp
-    convolution.cpp
-    convolution_api.cpp
-    db.cpp
-    db_record.cpp
-    expanduser.cpp
-    find_controls.cpp
-    fusion.cpp
-    op_args.cpp
-    operator.cpp
-    fused_api.cpp
-    load_file.cpp
-    pooling_api.cpp
-    kernel_warnings.cpp
-    logger.cpp
-    lock_file.cpp
-    lrn_api.cpp
+    activ/problem_description.cpp
     activ_api.cpp
-    target_properties.cpp
-    handle_api.cpp
-    softmax_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
-    rnn.cpp
-    rnn_api.cpp
-    ctc.cpp
-    ctc_api.cpp
-    temp_file.cpp
-    problem_description.cpp
-    kernel_build_params.cpp
-    find_db.cpp
-    conv_algo_name.cpp
-    conv/problem_description.cpp
-    solver/gemm.cpp
-    solver/gemm_bwd.cpp
-    solver/gemm_wrw.cpp
-    solver/gemm_common.cpp
-    dropout.cpp
-    dropout_api.cpp
-    readonlyramdb.cpp
-    execution_context.cpp
-    reducetensor.cpp
-    reducetensor_api.cpp
-    activ/problem_description.cpp
-    solver/activ/fwd_0.cpp
-    solver/activ/fwd_1.cpp
-    solver/activ/bwd_0.cpp
-    solver/activ/bwd_1.cpp
     batchnorm/problem_description.cpp
-    pooling/problem_description.cpp
-    solver/batchnorm/forward_spatial_single.cpp
-    solver/batchnorm/forward_spatial_multiple.cpp
-    solver/batchnorm/forward_per_activation.cpp
-    solver/batchnorm/forward_inference.cpp
-    solver/batchnorm/backward_spatial_single.cpp
-    solver/batchnorm/backward_spatial_multiple.cpp
-    solver/batchnorm/backward_per_activation.cpp
-    solver/pooling/forward2d.cpp
-    solver/pooling/forwardNd.cpp
-    include/miopen/buffer_info.hpp
-    ramdb.cpp
-    include/miopen/temp_file.hpp
-    include/miopen/bfloat16.hpp
-    include/miopen/db.hpp
-    include/miopen/db_record.hpp
-    include/miopen/lock_file.hpp
-    include/miopen/find_controls.hpp
-    include/miopen/batch_norm.hpp
-    include/miopen/check_numerics.hpp
-    include/miopen/common.hpp
-    include/miopen/convolution.hpp
-    include/miopen/convolution_fft.hpp
-    include/miopen/errors.hpp
-    include/miopen/invoker.hpp
-    include/miopen/handle.hpp
-    include/miopen/target_properties.hpp
-    include/miopen/kernel_cache.hpp
-    include/miopen/solver.hpp
-    include/miopen/generic_search.hpp
-    include/miopen/problem_description.hpp
-    include/miopen/mlo_internal.hpp
-    include/miopen/mlo_utils.hpp
-    include/miopen/mlir_build.hpp
-    include/miopen/oclkernel.hpp
-    include/miopen/tensor.hpp
-    include/miopen/tensor_layout.hpp
-    include/miopen/tensor_ops.hpp
-    include/miopen/pooling.hpp
-    include/miopen/lrn.hpp
-    include/miopen/activ.hpp
-    include/miopen/softmax.hpp
-    include/miopen/rnn.hpp
-    include/miopen/ctc.hpp
-    include/miopen/md_graph.hpp
-    include/miopen/fusion_ops.hpp
-    include/miopen/fusion.hpp
-    include/miopen/mdg_expr.hpp
-    include/miopen/kernel_build_params.hpp
-    include/miopen/algorithm.hpp
-    include/miopen/finddb_kernel_cache_key.hpp
-    include/miopen/exec_utils.hpp
-    include/miopen/gcn_asm_utils.hpp
-    include/miopen/hip_build_utils.hpp
-    include/miopen/solver_id.hpp
-    include/miopen/any_solver.hpp
-    include/miopen/conv_solution.hpp
-    include/miopen/conv_algo_name.hpp
-    include/miopen/dropout.hpp
-    include/miopen/readonlyramdb.hpp
-    include/miopen/rnn_util.hpp
-    include/miopen/bz2.hpp
-    include/miopen/comgr.hpp
-    include/miopen/ramdb.hpp
-    include/miopen/reducetensor.hpp
-    include/miopen/reduce_common.hpp
-    include/miopen/sequences.hpp
-    include/miopen/rocm_features.hpp
-    include/miopen/batched_transpose_sol.hpp
-    include/miopen/magic_div.hpp
-    include/miopen/util_sol.hpp
-    include/miopen/solver/gemm_common.hpp
-    include/miopen/solver_base.hpp
-    md_graph.cpp
-    mdg_expr.cpp
+    buffer_info.cpp
+    check_numerics.cpp
     conv/invokers/gcn_asm_1x1u.cpp
     conv/invokers/gcn_asm_1x1u_ss.cpp
     conv/invokers/gcn_asm_1x1u_us.cpp
     conv/invokers/gen_x_w_y_pad.cpp
-    conv/invokers/ocl_wrw_rdc.cpp
     conv/invokers/impl_gemm.cpp
     conv/invokers/impl_gemm_dynamic.cpp
+    conv/invokers/ocl_wrw_rdc.cpp
+    conv/problem_description.cpp
+    conv_algo_name.cpp
+    convolution.cpp
+    convolution_api.cpp
+    ctc.cpp
+    ctc_api.cpp
+    db.cpp
+    db_record.cpp
+    dropout.cpp
+    dropout_api.cpp
+    execution_context.cpp
+    expanduser.cpp
+    find_controls.cpp
+    find_db.cpp
+    fused_api.cpp
+    fusion.cpp
+    handle_api.cpp
     invoker_cache.cpp
-    tensor.cpp
-    tensor_api.cpp
+    kernel_build_params.cpp
+    kernel_warnings.cpp
+    load_file.cpp
+    lock_file.cpp
+    logger.cpp
+    lrn_api.cpp
+    md_graph.cpp
+    mdg_expr.cpp
+    op_args.cpp
+    operator.cpp
+    performance_config.cpp
+    pooling/problem_description.cpp
+    pooling_api.cpp
+    problem_description.cpp
+    ramdb.cpp
+    readonlyramdb.cpp
+    reducetensor.cpp
+    reducetensor_api.cpp
+    rnn.cpp
+    rnn_api.cpp
+    softmax_api.cpp
     solver.cpp
-    solver/conv_asm_3x3u.cpp
+    solver/activ/bwd_0.cpp
+    solver/activ/bwd_1.cpp
+    solver/activ/fwd_0.cpp
+    solver/activ/fwd_1.cpp
+    solver/batchnorm/backward_per_activation.cpp
+    solver/batchnorm/backward_spatial_multiple.cpp
+    solver/batchnorm/backward_spatial_single.cpp
+    solver/batchnorm/forward_inference.cpp
+    solver/batchnorm/forward_per_activation.cpp
+    solver/batchnorm/forward_spatial_multiple.cpp
+    solver/batchnorm/forward_spatial_single.cpp
     solver/conv_asm_1x1u.cpp
-    solver/conv_asm_1x1u_stride2.cpp
     solver/conv_asm_1x1u_bias_activ.cpp
-    solver/conv_asm_5x10u2v2f1.cpp
+    solver/conv_asm_1x1u_stride2.cpp
+    solver/conv_asm_3x3u.cpp
     solver/conv_asm_5x10u2v2b1.cpp
+    solver/conv_asm_5x10u2v2f1.cpp
     solver/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
-    solver/conv_asm_dir_BwdWrW3x3.cpp
     solver/conv_asm_dir_BwdWrW1x1.cpp
-    solver/conv_multipass_wino3x3WrW.cpp
-    solver/conv_MP_bidirectional_winograd.cpp
+    solver/conv_asm_dir_BwdWrW3x3.cpp
+    solver/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
+    solver/conv_asm_implicit_gemm_gtc_bwd.cpp
+    solver/conv_asm_implicit_gemm_gtc_bwd_nhwc.cpp
+    solver/conv_asm_implicit_gemm_gtc_fwd.cpp
+    solver/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
+    solver/conv_asm_implicit_gemm_gtc_fwd_nchwc.cpp
+    solver/conv_asm_implicit_gemm_gtc_perf_config.cpp
+    solver/conv_asm_implicit_gemm_gtc_wrw_nhwc.cpp
+    solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
+    solver/conv_asm_implicit_gemm_wrw_gtc_dynamic_xdlops.cpp
+    solver/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
     solver/conv_bin_wino3x3U.cpp
     solver/conv_bin_winoRxS.cpp
-    solver/conv_winoRxS_f3x2.cpp
-    solver/conv_winoRxS_f2x3.cpp
-    solver/fft.cpp
-    solver/conv_mlir_igemm_fwd.cpp
-    solver/conv_mlir_igemm_bwd.cpp
-    solver/conv_mlir_igemm_wrw.cpp
-    solver/conv_mlir_igemm_fwd_xdlops.cpp
-    solver/conv_mlir_igemm_bwd_xdlops.cpp
-    solver/conv_mlir_igemm_wrw_xdlops.cpp
-    solver/conv_ocl_dir2D_bwdWrW_2.cpp
-    solver/conv_ocl_dir2D_bwdWrW_53.cpp
-    solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
-    solver/conv_ocl_dir2Dfwdgen.cpp
-    solver/conv_ocl_dir2D11x11.cpp
-    solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
-    solver/conv_ocl_dir2Dfwd.cpp
-    solver/conv_ocl_dir2Dfwd1x1.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r1.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
-    solver/conv_hip_implicit_gemm_xdlops_common.cpp
-    solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
+    solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
+    solver/conv_direct_naive_conv.cpp
+    solver/conv_direct_naive_conv_bwd.cpp
+    solver/conv_direct_naive_conv_fwd.cpp
+    solver/conv_direct_naive_conv_wrw.cpp
     solver/conv_hip_implicit_gemm_bwd_v1r1.cpp
+    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
     solver/conv_hip_implicit_gemm_bwd_v4r1.cpp
     solver/conv_hip_implicit_gemm_bwd_v4r1_xdlops.cpp
-    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
+    solver/conv_hip_implicit_gemm_fwd_v4r1.cpp
+    solver/conv_hip_implicit_gemm_fwd_v4r4.cpp
+    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
+    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
+    solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
+    solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
+    solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
-    solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
-    solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
-    solver/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
-    solver/conv_asm_implicit_gemm_wrw_gtc_dynamic_xdlops.cpp
-    solver/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
-    solver/conv_asm_implicit_gemm_gtc_fwd.cpp
-    solver/conv_asm_implicit_gemm_gtc_bwd.cpp
-    solver/conv_asm_implicit_gemm_gtc_perf_config.cpp
-    solver/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
-    solver/conv_asm_implicit_gemm_gtc_bwd_nhwc.cpp
-    solver/conv_asm_implicit_gemm_gtc_wrw_nhwc.cpp
-    solver/conv_direct_naive_conv_fwd.cpp
-    solver/conv_direct_naive_conv_bwd.cpp
-    solver/conv_direct_naive_conv_wrw.cpp
-    solver/conv_direct_naive_conv.cpp
+    solver/conv_hip_implicit_gemm_xdlops_common.cpp
+    solver/conv_mlir_igemm_bwd.cpp
+    solver/conv_mlir_igemm_bwd_xdlops.cpp
+    solver/conv_mlir_igemm_fwd.cpp
+    solver/conv_mlir_igemm_fwd_xdlops.cpp
+    solver/conv_mlir_igemm_wrw.cpp
+    solver/conv_mlir_igemm_wrw_xdlops.cpp
+    solver/conv_MP_bidirectional_winograd.cpp
+    solver/conv_multipass_wino3x3WrW.cpp
+    solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
+    solver/conv_ocl_dir2D_bwdWrW_2.cpp
+    solver/conv_ocl_dir2D_bwdWrW_53.cpp
+    solver/conv_ocl_dir2D11x11.cpp
+    solver/conv_ocl_dir2Dfwd.cpp
+    solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
+    solver/conv_ocl_dir2Dfwd1x1.cpp
+    solver/conv_ocl_dir2Dfwdgen.cpp
+    solver/conv_winoRxS.cpp
+    solver/fft.cpp
+    solver/gemm.cpp
+    solver/gemm_bwd.cpp
+    solver/gemm_common.cpp
+    solver/gemm_wrw.cpp
+    solver/pooling/forward2d.cpp
+    solver/pooling/forwardNd.cpp
+    solver/pooling/backward2d.cpp
+    solver/pooling/backwardNd.cpp
+    subbuffers.cpp
+    target_properties.cpp
+    temp_file.cpp
+    tensor.cpp
+    tensor_api.cpp
     )
 
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 if(MIOPEN_ENABLE_SQLITE)
-    list(APPEND MIOpen_Source sqlite_db.cpp include/miopen/sqlite_db.hpp )
+    list(APPEND MIOpen_Source sqlite_db.cpp)
 endif()
 
 if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
-    list(APPEND MIOpen_Source kern_db.cpp bz2.cpp include/miopen/kern_db.hpp)
+    list(APPEND MIOpen_Source kern_db.cpp bz2.cpp)
 endif()
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
@@ -292,11 +240,15 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     file(GLOB_RECURSE GPU_REFERENCE_KERNEL_HIP "kernels/gpu_reference_kernel/*.cpp")
     file(GLOB_RECURSE GPU_REFERENCE_KERNEL_ASM "kernels/gpu_reference_kernel/*.s")
     file(GLOB_RECURSE GPU_BATCHED_TRANSPOSE_KERNEL_HIP "kernels/gpu_batched_transpose_kernel/*.cpp")
+    file(GLOB_RECURSE GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_INCLUDE "kernels/gpu_general_tensor_reorder_kernel/*.hpp")
+    file(GLOB_RECURSE GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE "kernels/gpu_general_tensor_reorder_kernel/*.cpp")
+
 
     set(MIOPEN_KERNEL_INCLUDES
         ${STATIC_COMPOSABLE_KERNEL_INCLUDE}
         ${COMPOSABLE_KERNEL_INCLUDE}
         ${COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE}
+        ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_INCLUDE}
         include/miopen/implicitgemm_params.hpp
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.inc
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.inc
@@ -383,6 +335,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/gpr_alloc.inc
         kernels/bfloat16_dev.hpp
         kernels/float_types.h
+        kernels/workaround_issue_1431.hpp
         )
 
     set(MIOPEN_KERNELS
@@ -393,6 +346,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_REFERENCE_KERNEL_HIP}
         ${GPU_REFERENCE_KERNEL_ASM}
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
+        ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
         kernels/detect_llvm_amdgcn_buffer_atomic_fadd_f32_float.cpp
         kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormActivBwdPerAct.cl
@@ -489,10 +443,31 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_filter.s
         kernels/xform_bidirect_winograd_data.s
         kernels/xform_bidirect_winograd_filter.s
-        kernels/xform_bidirect_winograd_out.s)
+        kernels/xform_bidirect_winograd_out.s
+        kernels/UniversalTranspose.cl)
+
+    # Kernels in development lists.
+    # Should be ALWAYS empty in develop branch (at the time of PR merge)
+    # Intention: to speed up kernel development rebuild time
+    set(MIOPEN_DEVELOPMENT_KERNELS)
+
+    # Only referenced by MIOPEN_DEVELOPMENT_KERNELS
+    set(MIOPEN_DEVELOPMENT_KERNEL_INCLUDES)
+
+    LIST(LENGTH MIOPEN_DEVELOPMENT_KERNELS MIOPEN_DEVELOPMENT_KERNELS_COUNT)
+    LIST(LENGTH MIOPEN_DEVELOPMENT_KERNEL_INCLUDES MIOPEN_DEVELOPMENT_KERNEL_INCLUDES_COUNT)
 
     add_kernels("kernel.cpp" "MIOPEN_KERNEL_" "" "${MIOPEN_KERNELS}")
     add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "_INCLUDE" "${MIOPEN_KERNEL_INCLUDES}")
+
+    if(${MIOPEN_DEVELOPMENT_KERNELS_COUNT})
+        add_kernels("kernel.cpp" "MIOPEN_KERNEL_" "" "${MIOPEN_DEVELOPMENT_KERNELS}")
+    endif()
+    
+    if(${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES_COUNT})
+        add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "_INCLUDE" "${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES}")
+    endif()
+
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
@@ -506,7 +481,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/lrn_ocl.cpp
         ocl/mloNeuron.cpp
         ocl/mloNorm.cpp
-        ocl/mloPooling.cpp
         ocl/pooling_ocl.cpp
         ocl/tensorocl.cpp
         ocl/softmaxocl.cpp
@@ -518,6 +492,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/rnn_util_ocl.cpp
         hip/hip_build_utils.cpp
         hip/batched_transpose_sol.cpp
+        hip/general_tensor_reorder_sol.cpp
         pooling.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
@@ -561,7 +536,6 @@ if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
         nogpu/handle.cpp
         hipoc/hipoc_kernel.cpp
         hipoc/hipoc_program.cpp
-        include/miopen/nogpu/handle_impl.hpp
         )
 endif()
 
@@ -569,7 +543,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     set(KERNELS_SRC_BATCH_FACTOR 50 CACHE STRING "Amount of kernel source files to inline to a single object file.")
     set(KERNELS_BATCH_ID 0)
 
-    function(inline_kernels_src BATCH_FACTOR KERNELS KERNEL_INCLUDES EXTRA_OPTIONS)
+    function(inline_kernels_src BATCH_FACTOR KERNELS KERNEL_INCLUDES EXTRA_OPTIONS MESSAGE_SUFFIX)
         set(KERNELS_BATCH)
         set(KERNELS_BATCH_SIZE 0)
         set(PROCESSED 0)
@@ -589,7 +563,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                     DEPENDS addkernels ${KERNELS_BATCH} ${KERNEL_INCLUDES}
                     COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
-                    COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}"
+                    COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}${MESSAGE_SUFFIX}"
                     )
                 configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
                 list(APPEND MIOpen_Source ${KERNEL_SRC_CPP_PATH} ${KERNEL_SRC_HPP_PATH})
@@ -603,8 +577,20 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         set(MIOpen_Source ${MIOpen_Source} PARENT_SCOPE)
     endfunction()
 
-    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNELS}" "${MIOPEN_KERNEL_INCLUDES}" "")
-    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNEL_INCLUDES}" "" "-no-recurse;-mark-includes")
+    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNELS}" "${MIOPEN_KERNEL_INCLUDES}" "" "")
+    inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_KERNEL_INCLUDES}" "" "-no-recurse;-mark-includes" " (includes)")
+
+    set(MIOPEN_DEVELOPMENT_KERNELS_DEPS ${MIOPEN_KERNEL_INCLUDES})
+    list(APPEND MIOPEN_DEVELOPMENT_KERNELS_DEPS ${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES})
+
+    if(${MIOPEN_DEVELOPMENT_KERNELS_COUNT})
+        inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_DEVELOPMENT_KERNELS}" "${MIOPEN_DEVELOPMENT_KERNELS_DEPS}" "" " (dev kernels)")
+    endif()
+    
+    if(${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES_COUNT})
+        inline_kernels_src(${KERNELS_SRC_BATCH_FACTOR} "${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES}" "" "-no-recurse;-mark-includes" " (dev includes)")
+    endif()
+
 endif()
 
 if(MIOPEN_USE_COMGR)
@@ -767,12 +753,10 @@ rocm_install_targets(
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}/include
     ${MIOPEN_CXX_HEADER_PATH}
-  PREFIX ${MIOPEN_INSTALL_DIR}
 )
 
 rocm_export_targets(
   TARGETS MIOpen
-  PREFIX ${MIOPEN_INSTALL_DIR}
   DEPENDS
     ${PACKAGE_DEPENDS}
   STATIC_DEPENDS
@@ -782,6 +766,16 @@ rocm_export_targets(
 # Install db files
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
     include(embed)
+    if(MIOPEN_EMBED_BINCACHE AND MIOPEN_BINCACHE_PATH STREQUAL "")
+        if(MIOPEN_NO_LFS_PULLED)
+            message(WARNING "Binary cache files have not been pulled down from git-lfs, will not embed.")
+        else()
+            set(MIOPEN_BINCACHE_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
+            message("MIOPEN_BINCACHE_PATH: ${MIOPEN_BINCACHE_PATH}")
+        endif()
+    else()
+        message(WARNING "MIOPEN_EMBED_BINCACHE is set and MIOPEN_BINCACHE_PATH was used to override default binary cache files. Proceed at your own risk!")
+    endif()
     set(CODE_OBJECTS)
 # embed find db
     foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})
@@ -815,4 +809,21 @@ else()
 
     endif()
 endif()
-rocm_install_symlink_subdir(${MIOPEN_INSTALL_DIR})
+
+if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
+  #Generating Wrapper of each headers for backward compatibility
+  rocm_wrap_header_file(
+    export.h config.h version.h miopen.h
+    HEADER_LOCATION include/miopen
+    GUARDS WRAPPER
+    WRAPPER_LOCATIONS miopen/${CMAKE_INSTALL_INCLUDEDIR}/miopen
+    ORIGINAL_FILES ${PROJECT_BINARY_DIR}/include/miopen/version.h ${PROJECT_BINARY_DIR}/include/miopen/config.h
+  )
+
+  #Installing Wrapper Headers
+  rocm_install(
+    DIRECTORY
+       "${PROJECT_BINARY_DIR}/miopen/include"
+        DESTINATION "miopen" )
+  message( STATUS "Backward Compatible Sym Link Created for include directories" )
+endif()

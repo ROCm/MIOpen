@@ -37,25 +37,16 @@ struct FusionPlanDescriptor;
 namespace solver {
 namespace fusion {
 
-struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
-{
-    PerformanceConfigConvBiasActivAsm1x1U(bool spare) : PerformanceConfigConvAsm1x1U(spare) {}
-    PerformanceConfigConvBiasActivAsm1x1U()
-        : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, -1, false)
-    {
-    }
-    bool IsValid(const ConvolutionContext& config) const;
-    bool operator==(const PerformanceConfigConvBiasActivAsm1x1U& other) const;
-};
-
 using FusionProblemDescription =
     std::tuple<const ExecutionContext*, const miopen::FusionPlanDescriptor*>;
 
-using FusionSolverBase = SolverMixin<FusionProblemDescription>;
-
+using FusionSolverBase                      = SolverMixin<FusionProblemDescription>;
+using PerformanceConfigConvBiasActivAsm1x1U = PerformanceConfigConvAsm1x1U;
 struct ConvBiasActivAsm1x1U : FusionSolverBase, miopen::solver::ConvAsm1x1U
 {
+    const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
     using FusionSolverBase::IsApplicable;
+    using miopen::solver::ConvAsm1x1U::GetSolution;
     using miopen::solver::ConvAsm1x1U::IsApplicable;
 
     virtual bool IsApplicable(const FusionProblemDescription& problem) const override
@@ -72,10 +63,13 @@ struct ConvBiasActivAsm1x1U : FusionSolverBase, miopen::solver::ConvAsm1x1U
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::FusionPlanDescriptor& desc) const;
 
-    PerformanceConfigConvBiasActivAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
+    PerformanceConfigConvBiasActivAsm1x1U
+    GetDefaultPerformanceConfig(const ConvolutionContext&) const override;
 
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
-                                                 const AnyInvokeParams& invoke_ctx) const;
+                                                 const AnyInvokeParams& invoke_ctx) const override;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigConvBiasActivAsm1x1U&) const override;
 };
 
 } // namespace fusion

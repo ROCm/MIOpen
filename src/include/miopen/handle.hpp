@@ -52,7 +52,11 @@
 
 #if MIOPEN_USE_ROCBLAS
 #include <miopen/manage_ptr.hpp>
+#if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
+#else
+#include <rocblas/rocblas.h>
+#endif
 #endif
 
 namespace miopen {
@@ -156,10 +160,10 @@ struct Handle : miopenHandle
     std::string GetDeviceName() const;
     const TargetProperties& GetTargetProperties() const;
 
-    private:
+private:
     std::string GetDeviceNameImpl() const;
 
-    public:
+public:
     std::ostream& Print(std::ostream& os) const;
     void Copy(ConstData_t src, Data_t dest, std::size_t size) const;
 
@@ -253,11 +257,11 @@ struct Handle : miopenHandle
 #if MIOPEN_USE_ROCBLAS
     const rocblas_handle_ptr& rhandle() const { return rhandle_; }
 
-    private:
+private:
     rocblas_handle_ptr CreateRocblasHandle() const;
     rocblas_handle_ptr rhandle_;
 #else
-    private:
+private:
 #endif
     InvokerCache invokers;
 };
@@ -278,7 +282,7 @@ struct AutoEnableProfiling
         h.ResetKernelTime();
     }
 
-    private:
+private:
     const Handle& h;
     bool prev_state;
 };

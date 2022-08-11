@@ -274,8 +274,8 @@ PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(int chunk_s
 {
 }
 
-inline bool
-PerformanceConfigConvAsmBwdWrW1x1::operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
+bool PerformanceConfigConvAsmBwdWrW1x1::operator==(
+    const PerformanceConfigConvAsmBwdWrW1x1& other) const
 {
     // clang-format off
     return chunk_size == other.chunk_size
@@ -442,15 +442,8 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& 
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceConfigConvAsmBwdWrW1x1::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConfigConvAsmBwdWrW1x1
-ConvAsmBwdWrW1x1::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsmBwdWrW1x1 pp;
     pp.HeuristicInit(params);
@@ -554,8 +547,7 @@ size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext& params) cons
 }
 
 ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfigConvAsmBwdWrW1x1& config,
-                                           const bool disableConfigOverrideFromEnv) const
+                                           const PerformanceConfigConvAsmBwdWrW1x1& config) const
 {
 
     ConvSolution result;
@@ -608,7 +600,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
         result.construction_params.push_back(kernel);
     }
-    result.workspce_sz = GetWorkspaceSize(params);
+    result.workspace_sz = GetWorkspaceSize(params);
     GenerateClangDefsym(options, "stride_h", 1);
     GenerateClangDefsym(options, "stride_w", 1);
     GenerateClangDefsym(options, "img_h", AsmImgHeight(params)); // H
@@ -722,9 +714,8 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "output_buffer_size", obuf.total_byte_size);
 
     const PerformanceConfigConvAsmBwdWrW1x1* pcfg = &config;
-    PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
 
-    if(!disableConfigOverrideFromEnv)
+    PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS{});

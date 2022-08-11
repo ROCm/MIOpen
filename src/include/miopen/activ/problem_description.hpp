@@ -98,7 +98,7 @@ struct ProblemDescription : ProblemDescriptionBase
         return os;
     }
 
-    private:
+private:
     Direction direction;
     ActivationDescriptor activDesc;
     TensorDescriptor xDesc;

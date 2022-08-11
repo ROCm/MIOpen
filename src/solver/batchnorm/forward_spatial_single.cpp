@@ -28,6 +28,7 @@
 
 #include <miopen/batchnorm/invoke_params.hpp>
 #include <miopen/batchnorm/problem_description.hpp>
+#include <miopen/stringutils.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>
 
@@ -210,7 +211,7 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             {"MIO_BN_GRP0", xlocalsize},
             {"MIO_BN_GRP1", ylocalsize},
             {"MIO_BN_GRP2", zlocalsize},
-            {"MIO_BN_GFX1030", ((handle.GetDeviceName() == "gfx1030") ? "1" : "0")},
+            {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
         };
 

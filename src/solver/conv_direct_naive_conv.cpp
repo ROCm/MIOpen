@@ -41,6 +41,61 @@ bool AlwaysEnableConvDirectNaive = false;
 
 namespace solver {
 
+bool ConvDirectNaiveConvIsAssemblyKernel(const ConvolutionContext& ctx)
+{
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    return (device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
+           ctx.IsLayoutDefault() && (!ctx.IsInt8());
+}
+
+// Check tensor data type respectively
+bool IsInputFp32(const ConvolutionContext& ctx)
+{
+    return (ctx.in_data_type == miopenFloat && ctx.weights_data_type == miopenFloat) ||
+           (ctx.out_data_type == miopenFloat && ctx.weights_data_type == miopenFloat) ||
+           (ctx.in_data_type == miopenFloat && ctx.out_data_type == miopenFloat);
+}
+bool IsInputFp16(const ConvolutionContext& ctx)
+{
+    return (ctx.in_data_type == miopenHalf && ctx.weights_data_type == miopenHalf) ||
+           (ctx.out_data_type == miopenHalf && ctx.weights_data_type == miopenHalf) ||
+           (ctx.in_data_type == miopenHalf && ctx.out_data_type == miopenHalf);
+}
+bool IsInputBfp16(const ConvolutionContext& ctx)
+{
+    return (ctx.in_data_type == miopenBFloat16 && ctx.weights_data_type == miopenBFloat16) ||
+           (ctx.out_data_type == miopenBFloat16 && ctx.weights_data_type == miopenBFloat16) ||
+           (ctx.in_data_type == miopenBFloat16 && ctx.out_data_type == miopenBFloat16);
+}
+bool IsInputInt8(const ConvolutionContext& ctx)
+{
+    return (ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8) ||
+           (ctx.out_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8) ||
+           (ctx.in_data_type == miopenInt8 && ctx.out_data_type == miopenInt8);
+}
+bool IsAccFp64(const ConvolutionContext& ctx)
+{
+    return IsInputFp32(ctx) || IsInputFp16(ctx) || IsInputBfp16(ctx);
+}
+bool IsAccInt32(const ConvolutionContext& ctx) { return IsInputInt8(ctx); }
+bool IsOutputFp32(const ConvolutionContext& ctx)
+{
+    return ctx.IsFp32() || (ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8 &&
+                            ctx.out_data_type == miopenFloat);
+}
+bool IsOutputFp16(const ConvolutionContext& ctx) { return ctx.IsFp16(); }
+bool IsOutputBfp16(const ConvolutionContext& ctx) { return ctx.IsBfp16(); }
+bool IsOutputInt8(const ConvolutionContext& ctx)
+{
+    return ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8 &&
+           ctx.out_data_type == miopenInt8;
+}
+bool IsOutputInt32(const ConvolutionContext& ctx)
+{
+    return ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8 &&
+           ctx.out_data_type == miopenInt32;
+}
+
 std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
 {
     std::ostringstream kernel_name;
@@ -71,32 +126,45 @@ std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
     else
         MIOPEN_THROW("unsupported tensor layout");
 
-    if(ctx.IsFp32())
-        kernel_name << "fp32";
-    else if(ctx.IsFp16())
-        kernel_name << "fp16";
-    else if(ctx.IsBfp16())
-        kernel_name << "bf16";
+    if(IsInputFp32(ctx))
+        kernel_name << "float_";
+    else if(IsInputFp16(ctx))
+        kernel_name << "half_";
+    else if(IsInputBfp16(ctx))
+        kernel_name << "ushort_";
+    else if(IsInputInt8(ctx))
+        kernel_name << "int8_t_";
+    else
+        MIOPEN_THROW("unsupported data type:");
+
+    if(IsAccInt32(ctx))
+        kernel_name << "int32_t_";
+    else if(IsAccFp64(ctx))
+        kernel_name << "double_";
+    else
+        MIOPEN_THROW("unsupported data type:");
+
+    if(IsOutputFp32(ctx))
+        kernel_name << "float";
+    else if(IsOutputFp16(ctx))
+        kernel_name << "half";
+    else if(IsOutputBfp16(ctx))
+        kernel_name << "ushort";
+    else if(IsOutputInt8(ctx))
+        kernel_name << "int8_t";
+    else if(IsOutputInt32(ctx))
+        kernel_name << "int32_t";
     else
         MIOPEN_THROW("unsupported data type:");
 
     return kernel_name.str();
 }
 
-std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx)
-{
-    const auto device_name = ctx.GetStream().GetDeviceName();
-    if(device_name == "gfx906" || device_name == "gfx908")
-    {
-        if(ctx.rmv.IsV3() && ctx.IsLayoutDefault())
-            return "naive_conv_gcn.s";
-    }
-    return "naive_conv.cpp";
-}
+std::string ConvDirectNaiveConvKernelFile() { return "naive_conv.cpp"; }
 
 std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
 {
-    std::string filename = ConvDirectNaiveConvKernelFile(ctx);
+    std::string filename = ConvDirectNaiveConvKernelFile();
     if(miopen::EndsWith(filename, ".s"))
     {
         std::ostringstream options;
@@ -104,6 +172,21 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
         return options.str();
     }
     return ctx.general_compile_options;
+}
+
+bool ConvDirectNaiveConvIsApplicableByKernelType(const ConvolutionContext& ctx)
+{
+    if(ConvDirectNaiveConvIsAssemblyKernel(ctx))
+    {
+        if(!ctx.use_asm_kernels)
+            return false;
+    }
+    else
+    {
+        if(!ctx.use_hip_kernels)
+            return false;
+    }
+    return true;
 }
 
 } // namespace solver

@@ -78,6 +78,8 @@ struct ProblemDescription
     const PoolingDescriptor& GetPooling() const { return pooling; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
+    TensorDescriptor& GetXDesc() { return xDesc; }
+    TensorDescriptor& GetYDesc() { return yDesc; }
 
     const TensorDescriptor& GetDXDesc() const
     {
@@ -107,7 +109,7 @@ struct ProblemDescription
         return os;
     }
 
-    private:
+private:
     Direction direction;
     PoolingDescriptor pooling;
     TensorDescriptor xDesc;

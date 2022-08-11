@@ -184,7 +184,7 @@ struct ProblemDescription : ProblemDescriptionBase
         return os;
     }
 
-    private:
+private:
     Direction direction;
     miopenBatchNormMode_t bn_mode;
     TensorDescriptor xDesc;

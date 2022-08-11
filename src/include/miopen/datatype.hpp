@@ -27,6 +27,7 @@
 #define GUARD_MIOPEN_DATATYPE_HPP
 
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/visit_float.hpp>
 
 #include <sstream>
 #include <string>
@@ -68,7 +69,12 @@ inline std::string GetDataType(miopenDataType_t type)
     return type_str;
 }
 
-inline std::size_t get_data_size(miopenDataType_t) { MIOPEN_THROW("not implemented"); }
+inline std::size_t get_data_size(miopenDataType_t type)
+{
+    auto ret = std::size_t{};
+    visit_float(type, [&](auto as_float) { ret = sizeof(decltype(as_float(1.f))); });
+    return ret;
+}
 
 inline std::size_t get_data_size(miopenIndexType_t index_type)
 {
@@ -118,6 +124,8 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
 {
     // values for MIOPEN_USE_ macros
     int use_fp16               = 0;
+    int use_fp16x4             = 0;
+    int use_fp16x8             = 0;
     int use_fp32               = 0;
     int use_int8               = 0;
     int use_int8x4             = 0;
@@ -142,6 +150,8 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
 
     auto kbp = KernelBuildParameters{
         {"MIOPEN_USE_FP16", use_fp16},
+        {"MIOPEN_USE_FP16x4", use_fp16x4},
+        {"MIOPEN_USE_FP16x8", use_fp16x8},
         {"MIOPEN_USE_FP32", use_fp32},
         {"MIOPEN_USE_INT8", use_int8},
         {"MIOPEN_USE_INT8x4", use_int8x4},

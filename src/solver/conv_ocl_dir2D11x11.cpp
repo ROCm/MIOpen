@@ -30,7 +30,6 @@
 #include <miopen/visit_float.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
-#include <miopen/stringutils.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11)
 
@@ -39,11 +38,6 @@ namespace solver {
 
 bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& params) const
 {
-#if WORKAROUND_SWDEV_292187
-    if(StartsWith(params.GetStream().GetDeviceName(), "gfx10"))
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11{}))
-            return false;
-#endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11{}))
         return false;
     if(!params.use_opencl_convolutions)
@@ -139,6 +133,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
     // this one is valid only till _FLOAT8
     // but it's not an error, the kernel does not use these types at all
     static const std::string READ_TYPE =
+        // cppcheck-suppress knownConditionTrueFalse
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
     // param

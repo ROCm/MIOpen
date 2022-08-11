@@ -42,11 +42,6 @@ static bool WorkaroundSwdev168168() { return true; }
 
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
-#if WORKAROUND_SWDEV_292187
-    if(StartsWith(params.GetStream().GetDeviceName(), "gfx10"))
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53{}))
-            return false;
-#endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53{}))
         return false;
     if(!params.use_opencl_convolutions)
@@ -621,7 +616,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     }
 
     const auto ws_sz       = GetWorkspaceSize(params);
-    result.workspce_sz     = ws_sz;
+    result.workspace_sz    = ws_sz;
     result.invoker_factory = conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
 
     return result;

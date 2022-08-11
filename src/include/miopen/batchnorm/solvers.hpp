@@ -30,6 +30,10 @@
 
 #include <utility>
 
+/// W/A for build error for OCL BN kernels when datatype is FP16 and MIO_BN_VARIANT=1. See:
+/// https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1549#issuecomment-1152644636
+#define WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR 1
+
 namespace miopen {
 
 namespace batchnorm {
@@ -45,10 +49,15 @@ using OldStyleProblemDescription =
 
 using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
 
-struct BnFwdTrainingSpatialSingle : OldStyleSolver
+struct BnFwdTrainingSpatialSingle final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<BnFwdTrainingSpatialSingle>();
+    }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
@@ -66,10 +75,15 @@ struct BnFwdTrainingSpatialSingle : OldStyleSolver
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnFwdTrainingSpatialMultiple : OldStyleSolver
+struct BnFwdTrainingSpatialMultiple final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<BnFwdTrainingSpatialMultiple>();
+    }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
@@ -87,10 +101,15 @@ struct BnFwdTrainingSpatialMultiple : OldStyleSolver
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnFwdTrainingPerActivation : OldStyleSolver
+struct BnFwdTrainingPerActivation final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<BnFwdTrainingPerActivation>();
+    }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
@@ -108,10 +127,15 @@ struct BnFwdTrainingPerActivation : OldStyleSolver
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnBwdTrainingSpatialSingle : OldStyleSolver
+struct BnBwdTrainingSpatialSingle final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<BnBwdTrainingSpatialSingle>();
+    }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
@@ -129,10 +153,15 @@ struct BnBwdTrainingSpatialSingle : OldStyleSolver
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnBwdTrainingSpatialMultiple : OldStyleSolver
+struct BnBwdTrainingSpatialMultiple final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<BnBwdTrainingSpatialMultiple>();
+    }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
@@ -150,10 +179,15 @@ struct BnBwdTrainingSpatialMultiple : OldStyleSolver
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnBwdTrainingPerActivation : OldStyleSolver
+struct BnBwdTrainingPerActivation final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<BnBwdTrainingPerActivation>();
+    }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
@@ -171,10 +205,12 @@ struct BnBwdTrainingPerActivation : OldStyleSolver
                              const miopen::batchnorm::ProblemDescription& problem) const;
 };
 
-struct BnFwdInference : OldStyleSolver
+struct BnFwdInference final : OldStyleSolver
 {
     // To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
+
+    const std::string& SolverDbId() const override { return GetSolverDbId<BnFwdInference>(); }
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {

@@ -51,8 +51,6 @@ bool& rordb_embed_fs_override()
 }
 } // namespace debug
 
-extern boost::optional<std::string>&
-testing_find_db_path_override(); /// \todo Remove when #1723 is resolved.
 ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path, bool warn_if_unreadable)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
@@ -134,6 +132,7 @@ void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
         if(db_path.empty())
             return;
         constexpr bool isEmbedded = MIOPEN_EMBED_DB;
+        // cppcheck-suppress knownConditionTrueFalse
         if(!debug::rordb_embed_fs_override() && isEmbedded)
         {
 #if MIOPEN_EMBED_DB

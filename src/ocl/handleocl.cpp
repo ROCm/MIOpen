@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  *
  * MIT License
  *
@@ -189,13 +189,24 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
     MIOPEN_LOG_NQI(*this);
 }
 
+static bool PrintOpenCLDeprecateMsg()
+{
+    MIOPEN_LOG_W("Please note that the OpenCL backend to MIOpen is being deprecated, ");
+    MIOPEN_LOG_W(
+        "please port your application to the better supported and functional HIP backend. ");
+    MIOPEN_LOG_W("If you have any questions, please reach out to the MIOpen developers at ");
+    MIOPEN_LOG_W("https://github.com/ROCmSoftwarePlatform/MIOpen");
+    return true;
+}
+
 Handle::Handle() : impl(new HandleImpl())
 {
     /////////////////////////////////////////////////////////////////
     // Create an OpenCL context
     /////////////////////////////////////////////////////////////////
-
-    impl->context = impl->create_context();
+    static const auto run_once = PrintOpenCLDeprecateMsg();
+    std::ignore                = run_once;
+    impl->context              = impl->create_context();
     /* First, get the size of device list data */
     cl_uint deviceListSize;
     if(clGetContextInfo(impl->context.get(),
@@ -417,7 +428,7 @@ Program Handle::LoadProgram(const std::string& program_name,
         miopen::SaveBinary(
             path.string(), this->GetTargetProperties(), program_name, params, is_kernel_str);
 #endif
-        return std::move(p);
+        return p;
     }
     else
     {
@@ -559,6 +570,25 @@ shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::siz
     cl_int error = 0;
     auto r       = region{offset, size};
     auto mem = clCreateSubBuffer(data, CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION, &r, &error);
+
+    if(error != CL_SUCCESS)
+    {
+        auto ss = std::ostringstream{};
+        ss << "Failed to allocate a subbuffer from 0x" << std::hex
+           << reinterpret_cast<std::ptrdiff_t>(data) << " with an offset 0x" << r.origin
+           << " and size 0x" << r.size << ". ";
+
+        if(error == CL_MISALIGNED_SUB_BUFFER_OFFSET)
+        {
+            ss << "CL_DEVICE_MEM_BASE_ADDR_ALIGN: 0x" << std::hex
+               << GetDeviceInfo<CL_DEVICE_MEM_BASE_ADDR_ALIGN>(GetDevice(this->GetStream()))
+               << " bits. ";
+        }
+
+        ss << "OpenCL error:";
+        MIOPEN_THROW_CL_STATUS(error, ss.str());
+    }
+
     return {mem, manage_deleter<decltype(&clReleaseMemObject), &clReleaseMemObject>{}};
 }
 

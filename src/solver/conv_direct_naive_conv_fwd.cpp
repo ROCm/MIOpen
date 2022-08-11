@@ -40,10 +40,13 @@ bool ConvDirectNaiveConvFwd::IsApplicable(const ConvolutionContext& ctx) const
        miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD{}))
         return false;
 
+    if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx))
+        return false;
+
     if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
         return false;
 
-    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16() || ctx.IsInt8()))
         return false;
 
     if(!ctx.direction.IsForward())
@@ -99,7 +102,7 @@ ConvSolution ConvDirectNaiveConvFwd::GetSolution(const ConvolutionContext& ctx) 
 
     KernelInfo kernel;
 
-    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx);
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile();
     kernel.kernel_name = ConvDirectNaiveConvKernelName(ctx);
     kernel.g_wk.clear();
 

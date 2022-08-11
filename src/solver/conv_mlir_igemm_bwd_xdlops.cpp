@@ -43,6 +43,8 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS{}))
         return false;
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
+        return false;
     if(!IsXdlopsSupport(ctx))
         return false;
     if(!ctx.direction.IsBackwardData())
@@ -58,7 +60,7 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmBwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvMlirIgemmBwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
@@ -79,8 +81,7 @@ ConvMlirIgemmBwdXdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvMlirIgemmBwdXdlops::GetSolution(const ConvolutionContext& ctx,
-                                                 const PerformanceConvMlirIgemmXdlops& config,
-                                                 bool) const
+                                                 const PerformanceConvMlirIgemmXdlops& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
