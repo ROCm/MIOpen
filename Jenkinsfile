@@ -546,6 +546,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, codecov: true)
@@ -555,6 +558,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908  && params.OPENCL_BACKEND}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -566,6 +572,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.OPENCL_BACKEND}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', config_targets: Smoke_targets, gpu_arch: "gfx90a:xnack-")
@@ -575,6 +584,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("vega") }
                     steps{
@@ -586,6 +598,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega") }
                     steps{
                         buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
@@ -596,6 +611,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_NAVI21 && params.OPENCL_BACKEND}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("navi21") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, build_env: extra_log_env, gpu_arch: "gfx1030")
@@ -605,6 +623,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx908") }
                     environment{
@@ -619,6 +640,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     environment{
@@ -641,6 +665,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega") }
                     environment{
                         // Can be removed altogether with when WORKAROUND_SWDEV_290754.
@@ -655,6 +682,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega20") }
                     environment{
                         Embedded_flags = "-DMIOPEN_EMBED_DB='gfx906_60'"
@@ -668,6 +698,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF')
@@ -677,6 +710,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("vega") }
                     environment{
@@ -692,6 +728,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega") }
                     environment{
                         config_targets =   "test_conv2d"
@@ -705,6 +744,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("vega") }
                     steps{
@@ -723,6 +765,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 && params.OPENCL_BACKEND}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Fp16_flags, config_targets: Smoke_targets)
@@ -732,6 +777,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 && params.OPENCL_BACKEND}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -743,6 +791,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets)
@@ -752,6 +803,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_BF16 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -763,6 +817,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx908")
@@ -772,6 +829,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_BF16 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -783,6 +843,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_FP16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx90a:xnack-")
@@ -792,6 +855,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_BF16 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -816,6 +882,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Int8_flags + Full_test, prefixpath: '/opt/rocm')
@@ -825,6 +894,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("vega") }
                     steps{
@@ -836,6 +908,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_BF16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", gpu_arch: "gfx908")
@@ -845,6 +920,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_BF16 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -856,6 +934,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, gpu_arch: "gfx908")
@@ -865,6 +946,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -876,6 +960,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_NAVI21 && params.DATATYPE_FP16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("navi21") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, gpu_arch: "gfx1030")
@@ -886,6 +973,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx908")
@@ -895,6 +985,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -917,6 +1010,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true")
@@ -926,6 +1022,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP32 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -937,6 +1036,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_NAVI21 && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("navi21") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_cmd: Navi21_build_cmd, gpu_arch: "gfx1030")
@@ -946,6 +1048,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_NAVI21 && params.DATATYPE_FP32 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
@@ -957,6 +1062,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx908")
@@ -966,6 +1074,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_FP16 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
