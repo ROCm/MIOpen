@@ -1351,25 +1351,25 @@ static std::tuple<bool, // is suitable kernel found
 FindImplicitGemmGtcDynamicFwdKernel(const ConvolutionContext& ctx)
 {
     auto tunables         = GetImplicitGemmGtcDynamicFwdXdlopsTunablesList();
-    const auto& n         = ctx.batch_sz;
-    const auto& c         = ctx.n_inputs;
-    const auto& k         = ctx.n_outputs;
-    const auto& ho        = ctx.out_height;
-    const auto& wo        = ctx.out_width;
-    const auto stride_h   = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
-    const auto stride_w   = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
-    const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
-    const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
-    const auto& pad_h     = ctx.pad_h;
-    const auto& pad_w     = ctx.pad_w;
-    const auto& y         = ctx.kernel_size_h;
-    const auto& x         = ctx.kernel_size_w;
+    const auto& n         = ctx.problem.batch_sz;
+    const auto& c         = ctx.problem.n_inputs;
+    const auto& k         = ctx.problem.n_outputs;
+    const auto& ho        = ctx.problem.out_height;
+    const auto& wo        = ctx.problem.out_width;
+    const auto stride_h   = ctx.problem.in_height > 1 ? ctx.problem.kernel_stride_h : 1;
+    const auto stride_w   = ctx.problem.in_width > 1 ? ctx.problem.kernel_stride_w : 1;
+    const auto dilation_h = ctx.problem.kernel_size_h > 1 ? ctx.problem.kernel_dilation_h : 1;
+    const auto dilation_w = ctx.problem.kernel_size_w > 1 ? ctx.problem.kernel_dilation_w : 1;
+    const auto& pad_h     = ctx.problem.pad_h;
+    const auto& pad_w     = ctx.problem.pad_w;
+    const auto& y         = ctx.problem.kernel_size_h;
+    const auto& x         = ctx.problem.kernel_size_w;
 
     const auto& gemm_m = k;
     const auto gemm_n  = n * ho * wo;
     const auto gemm_k  = c * y * x;
 
-    const auto& precision = ctx.IsFp16() ? miopenHalf : miopenFloat;
+    const auto& precision = ctx.problem.IsFp16() ? miopenHalf : miopenFloat;
 
     for(const auto& cfg : tunables)
     {
@@ -1511,28 +1511,28 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ConvolutionConte
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!ctx.direction.IsForward())
+    if(!ctx.problem.direction.IsForward())
         return false;
 
-    if(!ctx.Is2d())
+    if(!ctx.problem.Is2d())
         return false;
 
-    if(!ctx.IsFp32() && !ctx.IsFp16())
+    if(!ctx.problem.IsFp32() && !ctx.problem.IsFp16())
         return false;
 
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(ctx.group_counts != 1)
+    if(ctx.problem.group_counts != 1)
         return false;
 
-    if(!ctx.IsLayoutDefault())
+    if(!ctx.problem.IsLayoutDefault())
     {
         return false;
     }
 
 #if WORKAROUND_SWDEV_306318
-    if((ctx.kernel_size_h == 1) && (ctx.kernel_size_w == 1) && (ctx.n_inputs % 8 != 0))
+    if((ctx.problem.kernel_size_h == 1) && (ctx.problem.kernel_size_w == 1) && (ctx.problem.n_inputs % 8 != 0))
         return false;
 #endif
 

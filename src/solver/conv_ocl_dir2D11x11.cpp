@@ -42,49 +42,49 @@ bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.use_opencl_convolutions)
         return false;
-    if(!params.Is2d())
+    if(!params.problem.Is2d())
         return false;
-    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
+    if(params.problem.IsAsymmetricPadH() || params.problem.IsAsymmetricPadW())
         return false;
-    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
+    if(!(params.problem.IsFp32() || params.problem.IsFp16() || params.problem.IsBfp16()))
         return false;
-    if(!params.IsLayoutDefault())
+    if(!params.problem.IsLayoutDefault())
     {
         return false;
     }
 
-    return params.direction.IsForward() && params.group_counts == 1 &&
-           params.kernel_dilation_h == 1 && params.kernel_dilation_w == 1 &&
-           params.kernel_size_h == 11 && params.kernel_size_w == 11 &&
-           params.kernel_stride_h == 4 && params.kernel_stride_w == 4;
+    return params.problem.direction.IsForward() && params.problem.group_counts == 1 &&
+           params.problem.kernel_dilation_h == 1 && params.problem.kernel_dilation_w == 1 &&
+           params.problem.kernel_size_h == 11 && params.problem.kernel_size_w == 11 &&
+           params.problem.kernel_stride_h == 4 && params.problem.kernel_stride_w == 4;
 }
 
 ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
-    const bool is_forward = params.direction.IsForward();
+    const bool is_forward = params.problem.direction.IsForward();
     // size_t localMemSize = 64 * 1024;
     auto hw_wave_sz = 64;
     // auto dev_local_mem_sz = localMemSize; // in bytes
     // major parameters
     int LG2_WAVE_SZ = mloLg2(hw_wave_sz);
-    int wei_cstride = params.kernel_size_w * params.kernel_size_h;
-    int wei_bstride = (is_forward ? params.n_inputs : params.n_outputs) * wei_cstride;
+    int wei_cstride = params.problem.kernel_size_w * params.problem.kernel_size_h;
+    int wei_bstride = (is_forward ? params.problem.n_inputs : params.problem.n_outputs) * wei_cstride;
 
     // number  of batch iterations
     result.n_stacks = 1;
-    result.n_stacks = std::min(params.batch_sz, result.n_stacks);
+    result.n_stacks = std::min(params.problem.batch_sz, result.n_stacks);
     // defines how to proceed : 1 grouop per batch or with a loop over all batches
     // loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
     // param
     int N_BATCH_LOOPS = 1; // (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : _batch_sz / _n_stacks;
     int n_batch_blks =
-        (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) / (N_BATCH_LOOPS * result.n_stacks);
+        (params.problem.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) / (N_BATCH_LOOPS * result.n_stacks);
 
     int N_FILTER_SPLITS0 =
-        ((params.kernel_size_w + params.kernel_stride_w - 1) / params.kernel_stride_w);
+        ((params.problem.kernel_size_w + params.problem.kernel_stride_w - 1) / params.problem.kernel_stride_w);
     int N_FILTER_SPLITS1 =
-        ((params.kernel_size_h + params.kernel_stride_h - 1) / params.kernel_stride_h);
+        ((params.problem.kernel_size_h + params.problem.kernel_stride_h - 1) / params.problem.kernel_stride_h);
 
     static const int data_multiplier0 =
 // win runs Catalyst right now
@@ -98,13 +98,13 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
     static const int data_multiplier1 = 1;
 
     result.out_pix_tile0 =
-        (is_forward) ? N_FILTER_SPLITS0 : data_multiplier0 * params.kernel_stride_w;
-    result.out_pix_tile1 = (is_forward) ? 1 : data_multiplier1 * params.kernel_stride_h;
+        (is_forward) ? N_FILTER_SPLITS0 : data_multiplier0 * params.problem.kernel_stride_w;
+    result.out_pix_tile1 = (is_forward) ? 1 : data_multiplier1 * params.problem.kernel_stride_h;
 
     int in_pix_tile0 =
-        (is_forward) ? 1 : (result.out_pix_tile0 / params.kernel_stride_w - 1) + N_FILTER_SPLITS0;
+        (is_forward) ? 1 : (result.out_pix_tile0 / params.problem.kernel_stride_w - 1) + N_FILTER_SPLITS0;
     int in_pix_tile1 =
-        (is_forward) ? 1 : (result.out_pix_tile1 / params.kernel_stride_h - 1) + N_FILTER_SPLITS1;
+        (is_forward) ? 1 : (result.out_pix_tile1 / params.problem.kernel_stride_h - 1) + N_FILTER_SPLITS1;
 
     result.in_tile1 = 1;
     result.in_tile0 = 1;
@@ -120,9 +120,9 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
     // processing arrangement
     // generate full output width
     // extent1 == MLO_GRP_SZ / MLO_PROCESING_WIDTH
-    int PROCESING_WIDTH = ((params.out_width + result.out_pix_tile0 - 1) / result.out_pix_tile0);
+    int PROCESING_WIDTH = ((params.problem.out_width + result.out_pix_tile0 - 1) / result.out_pix_tile0);
 
-    int OUT_EXTENT1 = std::min(params.out_height, (GRP_SZ / PROCESING_WIDTH));
+    int OUT_EXTENT1 = std::min(params.problem.out_height, (GRP_SZ / PROCESING_WIDTH));
 
     // define a special size for a specific width as a devisor to avoid dealing with out of range
     // param
@@ -142,16 +142,16 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
     // n_in_stacks input map will be written in the local memory.
     int n_in_stacks = 1;
 
-    n_in_stacks  = std::min(params.n_inputs, n_in_stacks);
-    n_out_stacks = std::min(params.n_outputs, n_out_stacks);
+    n_in_stacks  = std::min(params.problem.n_inputs, n_in_stacks);
+    n_out_stacks = std::min(params.problem.n_outputs, n_out_stacks);
 
     // param
     // 6 get us the min
     // cppcheck-suppress knownConditionTrueFalse
     static const int backwards_min_output = (data_multiplier1 > 1 || data_multiplier0 > 1) ? 1 : 4;
     result.n_out_pix_tiles                = (is_forward)
-                                 ? std::min(6, (params.n_outputs + n_out_stacks - 1) / n_out_stacks)
-                                 : std::min(params.n_outputs, backwards_min_output);
+                                 ? std::min(6, (params.problem.n_outputs + n_out_stacks - 1) / n_out_stacks)
+                                 : std::min(params.problem.n_outputs, backwards_min_output);
 
     // number of maps in a stack or number of input read blocks written into 1 wk-item (lane)
     // param
@@ -166,34 +166,34 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
     int grp_tile2    = 1;
 
     // second pass if needed
-    int n_extents           = ((params.out_height + OUT_EXTENT1 - 1) / OUT_EXTENT1);
-    int n_output_map_blocks = ((params.n_outputs + total_out_maps - 1) / total_out_maps);
+    int n_extents           = ((params.problem.out_height + OUT_EXTENT1 - 1) / OUT_EXTENT1);
+    int n_output_map_blocks = ((params.problem.n_outputs + total_out_maps - 1) / total_out_maps);
     int last_out_extent1 =
-        params.out_height - (std::max(1, params.out_height / OUT_EXTENT1) * OUT_EXTENT1);
+        params.problem.out_height - (std::max(1, params.problem.out_height / OUT_EXTENT1) * OUT_EXTENT1);
     last_out_extent1    = (last_out_extent1 < 0) ? 0 : last_out_extent1;
     int n_batches_pass2 = 1;
     bool second_pass    = false;
     if(is_forward && 0 < last_out_extent1 && last_out_extent1 <= OUT_EXTENT1 / 2)
     {
-        n_extents       = std::max(1, params.out_height / OUT_EXTENT1);
+        n_extents       = std::max(1, params.problem.out_height / OUT_EXTENT1);
         n_batches_pass2 = std::max(1, GRP_SZ / (PROCESING_WIDTH * last_out_extent1));
         second_pass     = true;
     }
 
     // calc bwd grid
     int n_out_pix_tiles1 =
-        (params.out_height + result.out_pix_tile1 - 1 + 2 * params.pad_h) / result.out_pix_tile1;
+        (params.problem.out_height + result.out_pix_tile1 - 1 + 2 * params.problem.pad_h) / result.out_pix_tile1;
     int n_out_pix_tiles0 =
-        (params.out_width + result.out_pix_tile0 - 1 + 2 * params.pad_w) / result.out_pix_tile0;
+        (params.problem.out_width + result.out_pix_tile0 - 1 + 2 * params.problem.pad_w) / result.out_pix_tile0;
     int n_out_pix_tiles = n_out_pix_tiles1 * n_out_pix_tiles0;
 
     // calculate lcl mem size for backward data
     int n_out_tiles_rows_pgrp =
         std::min(n_out_pix_tiles1, (GRP_SZ + n_out_pix_tiles0 - 1) / n_out_pix_tiles0);
     int n_out_tiles_cols_pgrp = std::min(GRP_SZ, n_out_pix_tiles0);
-    int in_data1 = ((n_out_tiles_rows_pgrp * result.out_pix_tile1) / params.kernel_stride_h - 1) +
+    int in_data1 = ((n_out_tiles_rows_pgrp * result.out_pix_tile1) / params.problem.kernel_stride_h - 1) +
                    N_FILTER_SPLITS1 + 1;
-    int in_data0 = ((n_out_tiles_cols_pgrp * result.out_pix_tile0) / params.kernel_stride_w - 1) +
+    int in_data0 = ((n_out_tiles_cols_pgrp * result.out_pix_tile0) / params.problem.kernel_stride_w - 1) +
                    N_FILTER_SPLITS0;
 
     int lcl_wei_sz = wei_cstride * result.n_out_pix_tiles;
@@ -213,30 +213,30 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
         std::to_string(result.grp_tile0) + std::string(" -DMLO_GRP_SZ1=") +
         std::to_string(result.grp_tile1) + std::string(" -DMLO_GRP_SZ2=") +
         std::to_string(grp_tile2) + std::string(" -DMLO_FILTER_SIZE0=") +
-        std::to_string(params.kernel_size_w) + std::string(" -DMLO_FILTER_SIZE1=") +
-        std::to_string(params.kernel_size_h) + std::string(" -DMLO_FILTER_PAD0=") +
-        std::to_string(params.pad_w) + std::string(" -DMLO_FILTER_PAD1=") +
-        std::to_string(params.pad_h) + std::string(" -DMLO_FILTER_STRIDE0=") +
-        std::to_string(params.kernel_stride_w) + std::string(" -DMLO_FILTER_STRIDE1=") +
-        std::to_string(params.kernel_stride_h) + std::string(" -DSTRIDE_W=") +
-        std::to_string(params.kernel_stride_w) + std::string(" -DSTRIDE_H=") +
-        std::to_string(params.kernel_stride_h) + std::string(" -DMLO_N_OUTPUTS=") +
-        std::to_string(params.n_outputs) + std::string(" -DMLO_N_INPUTS=") +
-        std::to_string(params.n_inputs) + std::string(" -DMLO_BATCH_SZ=") +
-        std::to_string(params.batch_sz) + std::string(" -DMLO_N_BATCH_LOOPS=") +
+        std::to_string(params.problem.kernel_size_w) + std::string(" -DMLO_FILTER_SIZE1=") +
+        std::to_string(params.problem.kernel_size_h) + std::string(" -DMLO_FILTER_PAD0=") +
+        std::to_string(params.problem.pad_w) + std::string(" -DMLO_FILTER_PAD1=") +
+        std::to_string(params.problem.pad_h) + std::string(" -DMLO_FILTER_STRIDE0=") +
+        std::to_string(params.problem.kernel_stride_w) + std::string(" -DMLO_FILTER_STRIDE1=") +
+        std::to_string(params.problem.kernel_stride_h) + std::string(" -DSTRIDE_W=") +
+        std::to_string(params.problem.kernel_stride_w) + std::string(" -DSTRIDE_H=") +
+        std::to_string(params.problem.kernel_stride_h) + std::string(" -DMLO_N_OUTPUTS=") +
+        std::to_string(params.problem.n_outputs) + std::string(" -DMLO_N_INPUTS=") +
+        std::to_string(params.problem.n_inputs) + std::string(" -DMLO_BATCH_SZ=") +
+        std::to_string(params.problem.batch_sz) + std::string(" -DMLO_N_BATCH_LOOPS=") +
         std::to_string(N_BATCH_LOOPS) + std::string(" -DMLO_OUT_BATCH_STRIDE=") +
-        std::to_string(params.out_batch_stride) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-        std::to_string(params.out_channel_stride) + std::string(" -DMLO_OUT_STRIDE=") +
-        std::to_string(params.out_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
-        std::to_string(params.in_batch_stride) + std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
-        std::to_string(params.in_channel_stride) + std::string(" -DMLO_IN_STRIDE=") +
-        std::to_string(params.in_stride) + std::string(" -DMLO_WEI_BATCH_STRIDE=") +
+        std::to_string(params.problem.out_batch_stride) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
+        std::to_string(params.problem.out_channel_stride) + std::string(" -DMLO_OUT_STRIDE=") +
+        std::to_string(params.problem.out_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
+        std::to_string(params.problem.in_batch_stride) + std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
+        std::to_string(params.problem.in_channel_stride) + std::string(" -DMLO_IN_STRIDE=") +
+        std::to_string(params.problem.in_stride) + std::string(" -DMLO_WEI_BATCH_STRIDE=") +
         std::to_string(wei_bstride) + std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
         std::to_string(wei_cstride) + std::string(" -DMLO_IN_WIDTH=") +
-        std::to_string(params.in_width) + std::string(" -DMLO_IN_HEIGHT=") +
-        std::to_string(params.in_height) + std::string(" -DMLO_OUT_WIDTH=") +
-        std::to_string(params.out_width) + std::string(" -DMLO_OUT_HEIGHT=") +
-        std::to_string(params.out_height) + std::string(" -DMLO_IN_TILE1=") +
+        std::to_string(params.problem.in_width) + std::string(" -DMLO_IN_HEIGHT=") +
+        std::to_string(params.problem.in_height) + std::string(" -DMLO_OUT_WIDTH=") +
+        std::to_string(params.problem.out_width) + std::string(" -DMLO_OUT_HEIGHT=") +
+        std::to_string(params.problem.out_height) + std::string(" -DMLO_IN_TILE1=") +
         std::to_string(result.in_tile1) + std::string(" -DMLO_IN_TILE0=") +
         std::to_string(result.in_tile0) + std::string(" -DMLO_N_LCL_BATCHS=") +
         std::to_string(result.n_stacks) // # of diff stacks (part of batch).
@@ -270,7 +270,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
         std::string(" -DMLO_LG2_WAVE_SZ=") + std::to_string(LG2_WAVE_SZ) +
         std::string(" -DMLO_N_WAVES_MASK=") + std::to_string(static_cast<long long>(N_WAVES_MASK))
 
-        + std::string(" -DMLO_CONV_BIAS=") + std::to_string(params.bias)
+        + std::string(" -DMLO_CONV_BIAS=") + std::to_string(params.problem.bias)
 
         + std::string(" -cl-denorms-are-zero  ") + params.general_compile_options;
 
@@ -314,7 +314,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
 
         size_t gbl_wk0 = GRP_SZ;
         size_t gbl_wk1 = n_output_map_blocks;
-        n_batch_blks   = (params.batch_sz + n_batches_pass2 - 1) / n_batches_pass2;
+        n_batch_blks   = (params.problem.batch_sz + n_batches_pass2 - 1) / n_batches_pass2;
         size_t gbl_wk2 = n_batch_blks;
 
         construction_parameters.g_wk.push_back(gbl_wk0);

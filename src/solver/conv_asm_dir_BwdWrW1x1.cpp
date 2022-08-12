@@ -46,7 +46,7 @@ namespace solver {
 
 static inline bool UseSubsample(const ConvolutionContext& c)
 {
-    return c.kernel_stride_w > 1 || c.kernel_stride_h > 1;
+    return c.problem.kernel_stride_w > 1 || c.problem.kernel_stride_h > 1;
 }
 
 /// After 2x subsampling kernel, image size on asm kernel input becomes 4x (2*2) smaller.
@@ -55,12 +55,12 @@ static inline bool UseSubsample(const ConvolutionContext& c)
 /// out_height/out_width and vice versa.
 static inline int AsmImgHeight(const ConvolutionContext& c)
 {
-    return UseSubsample(c) ? c.in_height : c.out_height;
+    return UseSubsample(c) ? c.problem.in_height : c.problem.out_height;
 }
 
 static inline int AsmImgWidth(const ConvolutionContext& c)
 {
-    return UseSubsample(c) ? c.in_width : c.out_width;
+    return UseSubsample(c) ? c.problem.in_width : c.problem.out_width;
 }
 
 inline static bool Inc_1_2_4_8_16(int& v)
@@ -320,12 +320,12 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
     if(!(c_per_gpr * n_per_gpr * GetHWPerGpr() * chunk_size == wave_size))
         return false;
-    if(config.out_data_type == miopenHalf || config.out_data_type == miopenBFloat16)
+    if(config.problem.out_data_type == miopenHalf || config.problem.out_data_type == miopenBFloat16)
     {
         if(short_store == 0)
         {
             const int sequential_channels = 2;
-            if((c_mult % sequential_channels) != 0 || (config.n_outputs % sequential_channels) != 0)
+            if((c_mult % sequential_channels) != 0 || (config.problem.n_outputs % sequential_channels) != 0)
                 return false;
         }
     }
@@ -343,7 +343,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
         bfp16_convert = 0;
     else
         bfp16_convert =
-            (config.out_data_type == miopenBFloat16) ? ((c_mult + k_mult) * read_size) : 0;
+            (config.problem.out_data_type == miopenBFloat16) ? ((c_mult + k_mult) * read_size) : 0;
 
     if(!(acc_gprs + 12 + (c_mult + k_mult) * read_size * (data_prefetch + 1) + bfp16_convert <=
          (n_part_cnt > 4 ? 128 : 256)))
@@ -362,12 +362,12 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& config)
 {
     short_store =
-        (config.out_data_type == miopenHalf || config.out_data_type == miopenBFloat16) ? 1 : 0;
+        (config.problem.out_data_type == miopenHalf || config.problem.out_data_type == miopenBFloat16) ? 1 : 0;
     read_size = 4;
     n_per_gpr =
-        (config.batch_sz >= 4 && (AsmImgHeight(config) * AsmImgWidth(config)) <= 128) ? 4 : 1;
+        (config.problem.batch_sz >= 4 && (AsmImgHeight(config) * AsmImgWidth(config)) <= 128) ? 4 : 1;
     data_prefetch      = 1;
-    const auto c_k_256 = config.n_outputs * config.n_inputs / 256; // C*K/256
+    const auto c_k_256 = config.problem.n_outputs * config.problem.n_inputs / 256; // C*K/256
     if(c_k_256 < 2)
     {
         c_per_gpr  = 1;
@@ -463,11 +463,11 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.use_asm_kernels)
         return false;
-    if(!params.Is2d())
+    if(!params.problem.Is2d())
         return false;
-    if(!params.direction.IsBackwardWrW())
+    if(!params.problem.direction.IsBackwardWrW())
         return false;
-    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
+    if(params.problem.IsAsymmetricPadH() || params.problem.IsAsymmetricPadW())
         return false;
     if(!params.rmv.IsV2orV3())
         return false;
@@ -481,43 +481,43 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    if(!params.IsLayoutDefault())
+    if(!params.problem.IsLayoutDefault())
     {
         return false;
     }
 
-    if(name == "gfx90a" && params.conv_problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && params.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     // clang-format off
-    bool ok = (params.pad_w == 0         // -q  pad_w
-        && params.pad_h == 0             // -p  pad_h
-        && params.kernel_stride_w <= 2     // -v  stride_w
-        && params.kernel_stride_h <= 2     // -u  stride_h
-        && params.kernel_stride_w == params.kernel_stride_h
-        && params.kernel_size_w == 1     // -x  S wei_w
-        && params.kernel_size_h == 1     // -y  R wei_h
-        && params.kernel_dilation_w == 1
-        && params.kernel_dilation_h == 1
-        && params.bias == 0
-        && (params.IsFp32() || params.IsFp16() || params.IsBfp16())
-        && params.in_layout == "NCHW"
-        && params.group_counts == 1);
+    bool ok = (params.problem.pad_w == 0         // -q  pad_w
+        && params.problem.pad_h == 0             // -p  pad_h
+        && params.problem.kernel_stride_w <= 2     // -v  stride_w
+        && params.problem.kernel_stride_h <= 2     // -u  stride_h
+        && params.problem.kernel_stride_w == params.problem.kernel_stride_h
+        && params.problem.kernel_size_w == 1     // -x  S wei_w
+        && params.problem.kernel_size_h == 1     // -y  R wei_h
+        && params.problem.kernel_dilation_w == 1
+        && params.problem.kernel_dilation_h == 1
+        && params.problem.bias == 0
+        && (params.problem.IsFp32() || params.problem.IsFp16() || params.problem.IsBfp16())
+        && params.problem.in_layout == "NCHW"
+        && params.problem.group_counts == 1);
     if(!ok)
     {
         return false; // Early exit to speed up the check.
     }
     // Check limits:
     const auto h_w     = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params);
-    const auto r_s     = static_cast<long>(params.kernel_size_h) * params.kernel_size_w;
-    const auto c_h_w   = static_cast<long>(params.n_outputs) * h_w;   // C*H*W
-    const auto k_h_w   = static_cast<long>(params.n_inputs) * h_w;    // K*H*W
-    const auto n_c_h_w = static_cast<long>(params.batch_sz) * c_h_w;  // N*C*H*W
-    const auto n_k_h_w = static_cast<long>(params.batch_sz) * k_h_w;  // N*K*H*W
-    const auto c_k_r_s = static_cast<long>(params.n_outputs) * params.n_inputs * r_s; // C*K*R*S
-    ok = params.batch_sz < std::pow(2, 16)      // -n   N batch_size
-         && params.n_outputs < std::pow(2, 16)  // -c   C input_channels
-         && params.n_inputs < std::pow(2, 16)   // -k   K output_channels
+    const auto r_s     = static_cast<long>(params.problem.kernel_size_h) * params.problem.kernel_size_w;
+    const auto c_h_w   = static_cast<long>(params.problem.n_outputs) * h_w;   // C*H*W
+    const auto k_h_w   = static_cast<long>(params.problem.n_inputs) * h_w;    // K*H*W
+    const auto n_c_h_w = static_cast<long>(params.problem.batch_sz) * c_h_w;  // N*C*H*W
+    const auto n_k_h_w = static_cast<long>(params.problem.batch_sz) * k_h_w;  // N*K*H*W
+    const auto c_k_r_s = static_cast<long>(params.problem.n_outputs) * params.problem.n_inputs * r_s; // C*K*R*S
+    ok = params.problem.batch_sz < std::pow(2, 16)      // -n   N batch_size
+         && params.problem.n_outputs < std::pow(2, 16)  // -c   C input_channels
+         && params.problem.n_inputs < std::pow(2, 16)   // -k   K output_channels
          && c_h_w < std::pow(2, 24)
          && k_h_w < std::pow(2, 24)
          && n_c_h_w < std::pow(2, 29)
@@ -538,9 +538,9 @@ size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext& params) cons
 {
     if(UseSubsample(params))
     {
-        int data_len        = GetTypeSize(params.out_data_type);
-        int in_batch_stride = params.in_stride * params.in_height * params.n_outputs;
-        return in_batch_stride * params.batch_sz * data_len;
+        int data_len        = GetTypeSize(params.problem.out_data_type);
+        int in_batch_stride = params.problem.in_stride * params.problem.in_height * params.problem.n_outputs;
+        return in_batch_stride * params.problem.batch_sz * data_len;
     }
     else
         return 0;
@@ -553,29 +553,29 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     ConvSolution result;
     std::ostringstream options;
 
-    assert(params.pad_h == 0 && params.pad_w == 0);
-    int data_len = GetTypeSize(params.out_data_type);
+    assert(params.problem.pad_h == 0 && params.problem.pad_w == 0);
+    int data_len = GetTypeSize(params.problem.out_data_type);
     if(UseSubsample(params))
     {
         // subsampled input, in_height equals to image size after downsampling
-        int in_batch_stride = params.in_stride * params.in_height * params.n_outputs;
-        int write_unit      = (params.in_width % 4 == 0)
+        int in_batch_stride = params.problem.in_stride * params.problem.in_height * params.problem.n_outputs;
+        int write_unit      = (params.problem.in_width % 4 == 0)
                              ? 4
-                             : (params.in_width % 3 == 0) ? 3 : (params.in_width % 2 == 0) ? 2 : 1;
+                             : (params.problem.in_width % 3 == 0) ? 3 : (params.problem.in_width % 2 == 0) ? 2 : 1;
         int n_grp0_size0 = 256;
 
         const auto subsample_kernel_compilation_options =
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
-            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride_w) +
-            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(params.kernel_stride_h) +
+            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.problem.kernel_stride_w) +
+            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(params.problem.kernel_stride_h) +
             std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
-            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(params.in_channel_stride) +
-            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(params.in_stride) +
+            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(params.problem.in_channel_stride) +
+            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(params.problem.in_stride) +
             std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
-            std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(params.out_batch_stride) +
-            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(params.out_channel_stride) +
-            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(params.out_stride) +
+            std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(params.problem.out_batch_stride) +
+            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(params.problem.out_channel_stride) +
+            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(params.problem.out_stride) +
             params.general_compile_options;
 
         KernelInfo kernel;
@@ -585,7 +585,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         kernel.l_wk.push_back(1);
         // output is number of subsampled input maps
         size_t gbl_wk0 = (in_batch_stride / write_unit);
-        size_t gbl_wk1 = params.batch_sz;
+        size_t gbl_wk1 = params.problem.batch_sz;
         size_t gbl_wk2 = 1;
 
         kernel.g_wk.push_back(gbl_wk0);
@@ -608,14 +608,14 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "out_h", AsmImgHeight(params)); // output H
     GenerateClangDefsym(options, "out_w", AsmImgWidth(params));  // output W
 
-    GenerateClangDefsym(options, "batch_size", params.batch_sz); // N
-    // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
-    GenerateClangDefsym(options, "input_channels", params.n_outputs); // C
-    GenerateClangDefsym(options, "output_channels", params.n_inputs); // K
-    GenerateClangDefsym(options, "wei_h", params.kernel_size_h);      // R
-    GenerateClangDefsym(options, "wei_w", params.kernel_size_w);      // S
-    GenerateClangDefsym(options, "pad_h", params.pad_h);
-    GenerateClangDefsym(options, "pad_w", params.pad_w);
+    GenerateClangDefsym(options, "batch_size", params.problem.batch_sz); // N
+    // Note that problem.n_outputs and problem.n_inputs are swapped for backward convolutions.
+    GenerateClangDefsym(options, "input_channels", params.problem.n_outputs); // C
+    GenerateClangDefsym(options, "output_channels", params.problem.n_inputs); // K
+    GenerateClangDefsym(options, "wei_h", params.problem.kernel_size_h);      // R
+    GenerateClangDefsym(options, "wei_w", params.problem.kernel_size_w);      // S
+    GenerateClangDefsym(options, "pad_h", params.problem.pad_h);
+    GenerateClangDefsym(options, "pad_w", params.problem.pad_w);
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
@@ -624,7 +624,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
     GenerateClangDefsym(options, "acc_type", 1);
     const unsigned int buf_type =
-        params.out_data_type == miopenHalf ? 2 : params.out_data_type == miopenFloat ? 1 : 3;
+        params.problem.out_data_type == miopenHalf ? 2 : params.problem.out_data_type == miopenFloat ? 1 : 3;
     GenerateClangDefsym(options, "buf_type", buf_type);
 
     enum class MemLayout : int
@@ -679,22 +679,22 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
     // cppcheck-suppress unreadVariable
     buff_info ibuf(MemLayout::NCHW,
-                   params.batch_sz,
-                   params.n_outputs,
+                   params.problem.batch_sz,
+                   params.problem.n_outputs,
                    AsmImgHeight(params),
                    AsmImgWidth(params),
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
     buff_info obuf(MemLayout::NCHW,
-                   params.batch_sz,
-                   params.n_inputs,
+                   params.problem.batch_sz,
+                   params.problem.n_inputs,
                    AsmImgHeight(params),
                    AsmImgWidth(params),
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
-    buff_info fbuf(MemLayout::NCHW, params.n_inputs, params.n_outputs, 1, 1, 1, data_len);
+    buff_info fbuf(MemLayout::NCHW, params.problem.n_inputs, params.problem.n_outputs, 1, 1, 1, data_len);
     GenerateClangDefsym(options, "input_n_stride", ibuf.byte_stride.nk);
     GenerateClangDefsym(options, "input_c_stride", ibuf.byte_stride.c);
     GenerateClangDefsym(options, "input_h_stride", ibuf.byte_stride.h);
@@ -763,9 +763,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     kernel.g_wk.clear(); // gridsize
     kernel.g_wk.push_back(solver::wave_size * pcfg->GetNPartCnt());
     kernel.g_wk.push_back(
-        divide_round_plus_inf(params.n_outputs, pcfg->GetCPerGpr() * pcfg->GetCMult()));
+        divide_round_plus_inf(params.problem.n_outputs, pcfg->GetCPerGpr() * pcfg->GetCMult()));
     kernel.g_wk.push_back(
-        divide_round_plus_inf(params.n_inputs, pcfg->GetKPerGpr() * pcfg->GetKMult()));
+        divide_round_plus_inf(params.problem.n_inputs, pcfg->GetKPerGpr() * pcfg->GetKMult()));
 
     kernel.kernel_file = "conv1x1wrw.s";
     kernel.kernel_name = "miopenGcnAsmConv1x1WrW";

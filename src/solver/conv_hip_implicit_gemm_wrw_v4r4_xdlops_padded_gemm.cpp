@@ -129,7 +129,7 @@ void PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::HeuristicInit(const Convo
     // GemmMFactor GemmNFactor, GemmKTotalFactor are fixed value at this moment.
     // loop over certain ranges of tuning parameter
     auto get_euristic_config = [&](auto is_valid_func) {
-        if(ctx.IsFp32())
+        if(ctx.problem.IsFp32())
         {
             tmp = {256, 256, 8, 128, 128, 4, 16, 64, 16, false, true};
 
@@ -160,7 +160,7 @@ void PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::HeuristicInit(const Convo
                     break;
             } while(!all_visited);
         }
-        else if(ctx.IsFp16())
+        else if(ctx.problem.IsFp16())
         {
             tmp              = {256, 256, 8, 128, 128, 8, 16, 64, 16, false, true};
             bool all_visited = false;
@@ -190,7 +190,7 @@ void PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::HeuristicInit(const Convo
                     break;
             } while(!all_visited);
         }
-        else if(ctx.IsBfp16())
+        else if(ctx.problem.IsBfp16())
         {
             tmp = {256, 256, 8, 128, 128, 8, 16, 64, 16, false, true};
 
@@ -316,9 +316,9 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::CalculateGemmABlockCopyPerform
     int ClusterLengths_GemmK     = -1;
     int ClusterLengths_GemmM     = -1;
     int ClusterLengths_GemmKPack = -1;
-    int SrcDataPerRead_GemmKPack = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
+    int SrcDataPerRead_GemmKPack = ctx.problem.IsFp32() ? amd_buffer_load_max_length<float>()
                                                 : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = ctx.IsFp32() ? amd_lds_write_max_length<float>()
+    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32() ? amd_lds_write_max_length<float>()
                                                  : amd_lds_write_max_length<half_float::half>();
     try
     {
@@ -413,9 +413,9 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::CalculateGemmBBlockCopyPerform
     int ClusterLengths_GemmN     = -1;
     int ClusterLengths_GemmKPack = -1;
 
-    int SrcDataPerRead_GemmKPack = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
+    int SrcDataPerRead_GemmKPack = ctx.problem.IsFp32() ? amd_buffer_load_max_length<float>()
                                                 : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = ctx.IsFp32() ? amd_lds_write_max_length<float>()
+    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32() ? amd_lds_write_max_length<float>()
                                                  : amd_lds_write_max_length<half_float::half>();
 
     try
@@ -540,7 +540,7 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::CalculateLdsNumberOfByte(
     const auto b_block_space = GemmKPerBlock * GemmNPerBlock * GemmKPack;
 
     std::size_t lds_size =
-        (a_block_space + b_block_space) * (ctx.IsFp32() ? sizeof(float) : sizeof(half_float::half));
+        (a_block_space + b_block_space) * (ctx.problem.IsFp32() ? sizeof(float) : sizeof(half_float::half));
 
     return std::make_tuple(lds_size, true);
 }
@@ -756,12 +756,12 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuning(
         const int a_data_per_thread_copy = (GemmKPerBlock * GemmMPerBlock * GemmKPack) / block_size;
         const int b_data_per_thread_copy = (GemmKPerBlock * GemmNPerBlock * GemmKPack) / block_size;
         // << "block_size: " << block_size << std::endl;
-        if(ctx.IsFp32())
+        if(ctx.problem.IsFp32())
         {
             if(a_data_per_thread_copy > 16 || b_data_per_thread_copy > 16)
                 return false;
         }
-        else if(ctx.IsFp16() || ctx.IsBfp16())
+        else if(ctx.problem.IsFp16() || ctx.problem.IsBfp16())
         {
             if(a_data_per_thread_copy > 32 || b_data_per_thread_copy > 32)
                 return false;
@@ -771,7 +771,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuning(
     // GemmKPerBlock*GemmKPack should not be too small, otherwise read performance of A matrix would
     // be bad
     {
-        if(ctx.IsFp32())
+        if(ctx.problem.IsFp32())
         {
             if(GemmKPack > 4)
                 return false;
@@ -779,7 +779,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuning(
             if(GemmKPerBlock * GemmKPack < 8)
                 return false;
         }
-        else if(ctx.IsFp16() || ctx.IsBfp16())
+        else if(ctx.problem.IsFp16() || ctx.problem.IsBfp16())
         {
             if(GemmKPerBlock * GemmKPack < 16)
                 return false;
@@ -1039,7 +1039,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
 
     result.construction_params.push_back(construction_parameters);
 
-    const auto& conv       = ctx.conv_problem.GetConv();
+    const auto& conv       = ctx.problem.conv_problem.GetConv();
     const auto& lowp_quant = conv.lowp_quant;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -1048,7 +1048,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
             auto kernel               = handle.Run(kernels[0]);
             float elapsed             = 0;
             float zero                = 0.f;
-            if(ctx.IsFp16() || ctx.IsBfp16())
+            if(ctx.problem.IsFp16() || ctx.problem.IsBfp16())
             {
                 const auto& workSpace = invoke_params.workSpace;
                 TensorDescriptor workspaceDesc(
@@ -1102,7 +1102,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const Convolutio
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 
-    if(ctx.conv_problem.GetConv().attribute.deterministic)
+    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
         return false;
 
     if(!IsXdlopsSupport(ctx))
@@ -1111,29 +1111,29 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const Convolutio
     if(!ctx.use_hip_kernels)
         return false;
 
-    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+    if(!(ctx.problem.IsFp32() || ctx.problem.IsFp16() || ctx.problem.IsBfp16()))
         return false;
 
-    if(!ctx.direction.IsBackwardWrW())
+    if(!ctx.problem.direction.IsBackwardWrW())
         return false;
 
-    if(!ctx.Is2d())
+    if(!ctx.problem.Is2d())
         return false;
 
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
 
-    if(!ctx.IsLayoutDefault())
+    if(!ctx.problem.IsLayoutDefault())
     {
         return false;
     }
 
 // this particular HeuristicInit is so comprehensive, that if it cannot predict a valid
 #if WORKAROUND_MI100_BF16_FATAL_COMPILER_ERRORS
-    if(ctx.GetStream().GetDeviceName() == "gfx908" && ctx.IsBfp16())
+    if(ctx.GetStream().GetDeviceName() == "gfx908" && ctx.problem.IsBfp16())
         return false;
 #endif
 
@@ -1183,7 +1183,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::Search(const ConvolutionContext& c
 std::size_t
 ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    if(ctx.IsFp32())
+    if(ctx.problem.IsFp32())
         return 0;
     else
     {

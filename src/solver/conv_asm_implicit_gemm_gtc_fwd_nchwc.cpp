@@ -259,18 +259,18 @@ static std::tuple<std::string, // kernel_name
 GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
     const ConvolutionContext& ctx, const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
 {
-    const auto& n     = ctx.batch_sz;
-    const auto& k     = ctx.n_outputs * config.vector_c;
-    const auto& ho    = ctx.out_height;
-    const auto& wo    = ctx.out_width;
-    const auto& group = ctx.group_counts;
+    const auto& n     = ctx.problem.batch_sz;
+    const auto& k     = ctx.problem.n_outputs * config.vector_c;
+    const auto& ho    = ctx.problem.out_height;
+    const auto& wo    = ctx.problem.out_width;
+    const auto& group = ctx.problem.group_counts;
 
-    const auto& hi = ctx.in_height;
-    const auto& wi = ctx.in_width;
-    const auto& c  = ctx.n_inputs;
+    const auto& hi = ctx.problem.in_height;
+    const auto& wi = ctx.problem.in_width;
+    const auto& c  = ctx.problem.n_inputs;
 
     auto splits_4G =
-        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.problem.in_data_type));
 
     const auto gemm_m = k / group;
     const auto gemm_n = (n / splits_4G) * ho * wo;
@@ -366,14 +366,14 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
     }
 #endif
 
-    const auto& n     = ctx.batch_sz;
-    const auto& c     = ctx.n_inputs;
-    const auto& k     = ctx.n_outputs;
-    const auto& ho    = ctx.out_height;
-    const auto& wo    = ctx.out_width;
-    const auto& y     = ctx.kernel_size_h;
-    const auto& x     = ctx.kernel_size_w;
-    const auto& group = ctx.group_counts;
+    const auto& n     = ctx.problem.batch_sz;
+    const auto& c     = ctx.problem.n_inputs;
+    const auto& k     = ctx.problem.n_outputs;
+    const auto& ho    = ctx.problem.out_height;
+    const auto& wo    = ctx.problem.out_width;
+    const auto& y     = ctx.problem.kernel_size_h;
+    const auto& x     = ctx.problem.kernel_size_w;
+    const auto& group = ctx.problem.group_counts;
 
     size_t gemm_m = n * ho * wo;
     size_t gemm_n = k / group;
@@ -385,7 +385,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
         gemm_m,
         gemm_n,
         gemm_k,
-        (ctx.IsFp16() && ctx.vectorLength == 4) ? tile_list_Halfx4 : tile_list_Halfx8);
+        (ctx.problem.IsFp16() && ctx.problem.vectorLength == 4) ? tile_list_Halfx4 : tile_list_Halfx8);
 
     auto find_with_gemm_k_pad = [&]() {
         const auto& config_list = GetFwdDlopsNCHWCConfigList();
@@ -394,12 +394,12 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
         for(size_t i = 0; i < config_list.size(); i++)
         {
             const auto& config = config_list[i];
-            if(!(((ctx.IsFp16() && ctx.vectorLength == 4) && config.precision == "Halfx4") ||
-                 ((ctx.IsFp16() && ctx.vectorLength == 8) && config.precision == "Halfx8")))
+            if(!(((ctx.problem.IsFp16() && ctx.problem.vectorLength == 4) && config.precision == "Halfx4") ||
+                 ((ctx.problem.IsFp16() && ctx.problem.vectorLength == 8) && config.precision == "Halfx8")))
                 continue;
 
-            if(!((ctx.IsNCHWc_NCHWc() && config.tensor_layout == "nchwc_kcyxc") ||
-                 (ctx.IsNCHWc_CHWNc() && config.tensor_layout == "nchwc_cyxkc")))
+            if(!((ctx.problem.IsNCHWc_NCHWc() && config.tensor_layout == "nchwc_kcyxc") ||
+                 (ctx.problem.IsNCHWc_CHWNc() && config.tensor_layout == "nchwc_cyxkc")))
                 continue;
 
             if(!(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
@@ -464,21 +464,21 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(const Convolution
     if(IsDefaultConstructed())
         return false;
 
-    if(!(((ctx.IsFp16() && ctx.vectorLength == 4) && precision == "Halfx4") ||
-         ((ctx.IsFp16() && ctx.vectorLength == 8) && precision == "Halfx8")))
+    if(!(((ctx.problem.IsFp16() && ctx.problem.vectorLength == 4) && precision == "Halfx4") ||
+         ((ctx.problem.IsFp16() && ctx.problem.vectorLength == 8) && precision == "Halfx8")))
         return false;
 
-    const auto& c         = ctx.n_inputs;
-    const auto& k         = ctx.n_outputs;
-    const auto& group     = ctx.group_counts;
-    const auto stride_h   = ctx.out_height > 1 ? ctx.kernel_stride_h : 1;
-    const auto stride_w   = ctx.out_width > 1 ? ctx.kernel_stride_w : 1;
-    const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
-    const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
-    const auto& pad_h     = ctx.pad_h;
-    const auto& pad_w     = ctx.pad_w;
-    const auto& y         = ctx.kernel_size_h;
-    const auto& x         = ctx.kernel_size_w;
+    const auto& c         = ctx.problem.n_inputs;
+    const auto& k         = ctx.problem.n_outputs;
+    const auto& group     = ctx.problem.group_counts;
+    const auto stride_h   = ctx.problem.out_height > 1 ? ctx.problem.kernel_stride_h : 1;
+    const auto stride_w   = ctx.problem.out_width > 1 ? ctx.problem.kernel_stride_w : 1;
+    const auto dilation_h = ctx.problem.kernel_size_h > 1 ? ctx.problem.kernel_dilation_h : 1;
+    const auto dilation_w = ctx.problem.kernel_size_w > 1 ? ctx.problem.kernel_dilation_w : 1;
+    const auto& pad_h     = ctx.problem.pad_h;
+    const auto& pad_w     = ctx.problem.pad_w;
+    const auto& y         = ctx.problem.kernel_size_h;
+    const auto& x         = ctx.problem.kernel_size_w;
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
@@ -543,16 +543,16 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionC
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!ctx.direction.IsForward())
+    if(!ctx.problem.direction.IsForward())
         return false;
 
-    if(!ctx.Is2d())
+    if(!ctx.problem.Is2d())
         return false;
 
-    if(!ctx.IsLayoutNCHWC())
+    if(!ctx.problem.IsLayoutNCHWC())
         return false;
 
-    if(!(ctx.IsFp16() && ctx.vectorLength == 4) && !(ctx.IsFp16() && ctx.vectorLength == 8))
+    if(!(ctx.problem.IsFp16() && ctx.problem.vectorLength == 4) && !(ctx.problem.IsFp16() && ctx.problem.vectorLength == 8))
         return false;
 
     if(!ctx.rmv.IsV3())
@@ -562,14 +562,14 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionC
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
-    if(0 == igemm_split_batch_size(ctx.in_height,
-                                   ctx.in_width,
-                                   ctx.out_height,
-                                   ctx.out_width,
-                                   ctx.batch_sz,
-                                   ctx.n_outputs,
-                                   ctx.n_inputs,
-                                   miopen::GetTypeSize(ctx.in_data_type)))
+    if(0 == igemm_split_batch_size(ctx.problem.in_height,
+                                   ctx.problem.in_width,
+                                   ctx.problem.out_height,
+                                   ctx.problem.out_width,
+                                   ctx.problem.batch_sz,
+                                   ctx.problem.n_outputs,
+                                   ctx.problem.n_inputs,
+                                   miopen::GetTypeSize(ctx.problem.in_data_type)))
         return false;
 
     return true;
@@ -601,7 +601,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    if(!ctx.IsLayoutNCHWC())
+    if(!ctx.problem.IsLayoutNCHWC())
         MIOPEN_THROW("Tensor layout is not in vectorized");
 
     result.construction_params.push_back(kernel);
