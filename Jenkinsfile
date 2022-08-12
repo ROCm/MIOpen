@@ -341,10 +341,6 @@ pipeline {
     }
     parameters {
         booleanParam(
-            name: "BUILD_DOCKER",
-            defaultValue: true,
-            description: "")
-        booleanParam(
             name: "BUILD_STATIC_CHECKS",
             defaultValue: true,
             description: "")
@@ -431,19 +427,6 @@ pipeline {
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
     }
     stages{
-        stage("Build Docker"){
-            when {
-                expression {params.BUILD_DOCKER && params.TARGET_NOGPU}
-            }
-            parallel{
-                stage('Docker /opt/rocm'){
-                    agent{ label rocmnode("nogpu") }
-                    steps{
-                        buildDocker('/opt/rocm')
-                    }
-                }
-            }
-        }
         stage("Static checks") {
             when {
                 expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU && params.DATATYPE_NA }
