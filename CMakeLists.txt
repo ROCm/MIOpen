@@ -316,12 +316,29 @@ set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND $
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
 if(MIOPEN_USE_MLIR)
-    # REQUIRED is not supported before cmake 3.18
-    find_package(Miir 0.202108 REQUIRED CONFIG)
     if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
-        message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
+      message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
     endif()
-    message(STATUS "Build with libMLIRMIOpen ${MLIRMIOpen_VERSION}")
+    # Try to find package Miir
+    # REQUIRE is omitted since we do not want cmake to abort if the package is not found
+    find_package(Miir 1.0.0 CONFIG)
+    # variable MLIRMIOpen_INCLUDE_DIR is defined in a cmake file provided by the
+    # Miir package. Its definition helps us determine whether the package is found
+    if(NOT MLIRMIOpen_INCLUDE_DIR)
+      message(STATUS "Falling back to find library libMLIRMIOpen")
+      # Backward compatibility
+      # If the Miir package is not found, try to find the library libMLIRMIOpen directly
+      # REQUIRED is not supported before cmake 3.18
+      find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
+      if(NOT LIBMLIRMIOPEN)
+        message(FATAL_ERROR "library libMLIRMIOpen not found, please reinstall dependencies. \
+        Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
+      else()
+        message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
+      endif()
+    else()
+      message(STATUS "Build with Miir::MLIRMIOpen ${MLIRMIOpen_VERSION}")
+    endif()
 endif()
 
 

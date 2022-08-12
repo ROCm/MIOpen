@@ -687,10 +687,13 @@ if(miopentensile_FOUND)
     target_link_libraries(MIOpen PRIVATE MIOpenTensile)
 endif()
 
-#if(LIBMLIRMIOPEN)
-#  target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
-#endif()
-if(MIOPEN_USE_MLIR)
+# For backward compatibility, MIOpen is able to link to the libMLIRMIOpen
+# library provided by both old and new MLIR
+if(LIBMLIRMIOPEN)
+  # Build with library libMLIRMIOpen
+  target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
+else()
+  # Build with package Miir
   target_link_libraries(MIOpen PRIVATE Miir::MLIRMIOpen)
 endif()
 
