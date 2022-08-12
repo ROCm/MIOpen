@@ -318,7 +318,8 @@ struct mlo_construct_base
     {
         if(!_search_params.problem.direction.IsKnown())
             MIOPEN_THROW("!_search_params.problem.direction.IsKnown()");
-        return _search_params.problem.direction.IsForward(); // convolutions: backward data OR wrw otherwise
+        return _search_params.problem.direction
+            .IsForward(); // convolutions: backward data OR wrw otherwise
     }
 
     /*
@@ -413,16 +414,16 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                      int w_stride)
     {
         _search_params.problem.setTopDescr(layout,
-                                   data_type,
-                                   batch,
-                                   channels,
-                                   depth,
-                                   height,
-                                   width,
-                                   batch_stride,
-                                   channel_stride,
-                                   stride,
-                                   w_stride);
+                                           data_type,
+                                           batch,
+                                           channels,
+                                           depth,
+                                           height,
+                                           width,
+                                           batch_stride,
+                                           channel_stride,
+                                           stride,
+                                           w_stride);
     }
 
     /*
@@ -441,16 +442,16 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                      int w_stride)
     {
         _search_params.problem.setBotDescr(layout,
-                                   data_type,
-                                   batch,
-                                   channels,
-                                   depth,
-                                   height,
-                                   width,
-                                   batch_stride,
-                                   channel_stride,
-                                   stride,
-                                   w_stride);
+                                           data_type,
+                                           batch,
+                                           channels,
+                                           depth,
+                                           height,
+                                           width,
+                                           batch_stride,
+                                           channel_stride,
+                                           stride,
+                                           w_stride);
     }
 
     /*
@@ -469,16 +470,16 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                        int w_stride)
     {
         _search_params.problem.setTopDfDescr(layout,
-                                     data_type,
-                                     batch,
-                                     channels,
-                                     depth,
-                                     height,
-                                     width,
-                                     batch_stride,
-                                     channel_stride,
-                                     stride,
-                                     w_stride);
+                                             data_type,
+                                             batch,
+                                             channels,
+                                             depth,
+                                             height,
+                                             width,
+                                             batch_stride,
+                                             channel_stride,
+                                             stride,
+                                             w_stride);
 
         int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
@@ -511,16 +512,16 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                        int w_stride)
     {
         _search_params.problem.setBotDfDescr(layout,
-                                     data_type,
-                                     batch,
-                                     channels,
-                                     depth,
-                                     height,
-                                     width,
-                                     batch_stride,
-                                     channel_stride,
-                                     stride,
-                                     w_stride);
+                                             data_type,
+                                             batch,
+                                             channels,
+                                             depth,
+                                             height,
+                                             width,
+                                             batch_stride,
+                                             channel_stride,
+                                             stride,
+                                             w_stride);
 
         int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")

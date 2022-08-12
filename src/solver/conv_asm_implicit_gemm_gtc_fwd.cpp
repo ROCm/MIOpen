@@ -1532,7 +1532,8 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ConvolutionConte
     }
 
 #if WORKAROUND_SWDEV_306318
-    if((ctx.problem.kernel_size_h == 1) && (ctx.problem.kernel_size_w == 1) && (ctx.problem.n_inputs % 8 != 0))
+    if((ctx.problem.kernel_size_h == 1) && (ctx.problem.kernel_size_w == 1) &&
+       (ctx.problem.n_inputs % 8 != 0))
         return false;
 #endif
 

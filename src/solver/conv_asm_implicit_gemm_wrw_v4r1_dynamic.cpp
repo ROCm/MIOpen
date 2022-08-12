@@ -270,7 +270,8 @@ size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ConvolutionCont
     else
         ele_size = 2;
 
-    gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx.problem.conv_problem, GemmKPerBlock);
+    gemmk_groups =
+        GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx.problem.conv_problem, GemmKPerBlock);
 
     if(gemmk_groups == 0)
         extra_groups = 0;
@@ -388,8 +389,9 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
         kernel_reduction.kernel_name = "wrw_reduction_hip";
         kernel_reduction.g_wk.clear();
         int block_size_reduction = 256;
-        int grid_size_redcution  = ctx.problem.n_outputs * ctx.problem.n_inputs * ctx.problem.kernel_size_h *
-                                  ctx.problem.kernel_size_w / (reduction_per_thread * block_size_reduction);
+        int grid_size_redcution  = ctx.problem.n_outputs * ctx.problem.n_inputs *
+                                  ctx.problem.kernel_size_h * ctx.problem.kernel_size_w /
+                                  (reduction_per_thread * block_size_reduction);
         kernel_reduction.g_wk.push_back(grid_size_redcution * block_size_reduction);
         kernel_reduction.g_wk.push_back(1);
         kernel_reduction.g_wk.push_back(1);

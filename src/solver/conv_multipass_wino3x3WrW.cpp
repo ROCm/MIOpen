@@ -138,7 +138,8 @@ struct InTransform
         const std::vector<size_t> g_wk{g_wk_0, 1, 1};
         std::ostringstream options;
         GenerateClangDefsym(options, "acc_type", 1);
-        GenerateClangDefsym(options, "buf_type", (params.problem.IsFp32() ? 1 : (params.problem.IsFp16() ? 2 : 3)));
+        GenerateClangDefsym(
+            options, "buf_type", (params.problem.IsFp32() ? 1 : (params.problem.IsFp16() ? 2 : 3)));
         GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
         GenerateClangDefsym(options, "xformx_o_size", WinoDataW);
         GenerateClangDefsym(options, "xformy_o_size", WinoDataH);
@@ -242,7 +243,8 @@ struct FilterTransform
 
         std::ostringstream options;
         GenerateClangDefsym(options, "acc_type", 1);
-        GenerateClangDefsym(options, "buf_type", (params.problem.IsFp32() ? 1 : (params.problem.IsFp16() ? 2 : 3)));
+        GenerateClangDefsym(
+            options, "buf_type", (params.problem.IsFp32() ? 1 : (params.problem.IsFp16() ? 2 : 3)));
         GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
         GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
         GenerateClangDefsym(options, "xformx_o_size", WinoDataW);
@@ -291,7 +293,8 @@ struct OutTransform
 {
     static bool IsApplicable(const ConvolutionContext& params)
     {
-        return (params.problem.IsFp32() || params.problem.IsFp16() || params.problem.IsBfp16()) && params.problem.Is2d();
+        return (params.problem.IsFp32() || params.problem.IsFp16() || params.problem.IsBfp16()) &&
+               params.problem.Is2d();
     }
     static KernelInfo GetKernel(const ConvolutionContext& params)
     {
@@ -314,7 +317,8 @@ struct OutTransform
 
         std::ostringstream options;
         GenerateClangDefsym(options, "acc_type", 1);
-        GenerateClangDefsym(options, "buf_type", (params.problem.IsFp32() ? 1 : (params.problem.IsFp16() ? 2 : 3)));
+        GenerateClangDefsym(
+            options, "buf_type", (params.problem.IsFp32() ? 1 : (params.problem.IsFp16() ? 2 : 3)));
         GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
         GenerateClangDefsym(options, "MIOPEN_USE_RNE_BFLOAT16", MIOPEN_USE_RNE_BFLOAT16);
         GenerateClangDefsym(options, "xformx_o_size", WinoDataW);

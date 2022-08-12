@@ -375,7 +375,7 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ConvolutionContext& config) c
     if(!(n_mult <= total_n_blocks))
         return false;
 
-    const auto c_per_wave      = (config.problem.n_inputs + waves_c_in_group - 1) / waves_c_in_group;
+    const auto c_per_wave = (config.problem.n_inputs + waves_c_in_group - 1) / waves_c_in_group;
     const auto c_per_last_wave = config.problem.n_inputs - (c_per_wave * (waves_c_in_group - 1));
 
     if(config.problem.direction.IsBackwardData() && !(config.problem.n_outputs % k_mult == 0))
@@ -399,8 +399,10 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ConvolutionContext& config) c
                        1,
                        GetTypeSize(config.problem.out_data_type));
         int n_miss = n_mult * GetNPerGpr() - 1;
-        if((static_cast<long>(config.problem.n_inputs) + n_miss) * ibuf.byte_stride.nk >= (1LL << 31) ||
-           (static_cast<long>(config.problem.n_outputs) + n_miss) * obuf.byte_stride.nk >= (1LL << 31))
+        if((static_cast<long>(config.problem.n_inputs) + n_miss) * ibuf.byte_stride.nk >=
+               (1LL << 31) ||
+           (static_cast<long>(config.problem.n_outputs) + n_miss) * obuf.byte_stride.nk >=
+               (1LL << 31))
             return false;
     }
     return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);

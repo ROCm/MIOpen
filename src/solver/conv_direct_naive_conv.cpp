@@ -51,26 +51,35 @@ bool ConvDirectNaiveConvIsAssemblyKernel(const ConvolutionContext& ctx)
 // Check tensor data type respectively
 bool IsInputFp32(const ConvolutionContext& ctx)
 {
-    return (ctx.problem.in_data_type == miopenFloat && ctx.problem.weights_data_type == miopenFloat) ||
-           (ctx.problem.out_data_type == miopenFloat && ctx.problem.weights_data_type == miopenFloat) ||
+    return (ctx.problem.in_data_type == miopenFloat &&
+            ctx.problem.weights_data_type == miopenFloat) ||
+           (ctx.problem.out_data_type == miopenFloat &&
+            ctx.problem.weights_data_type == miopenFloat) ||
            (ctx.problem.in_data_type == miopenFloat && ctx.problem.out_data_type == miopenFloat);
 }
 bool IsInputFp16(const ConvolutionContext& ctx)
 {
-    return (ctx.problem.in_data_type == miopenHalf && ctx.problem.weights_data_type == miopenHalf) ||
-           (ctx.problem.out_data_type == miopenHalf && ctx.problem.weights_data_type == miopenHalf) ||
+    return (ctx.problem.in_data_type == miopenHalf &&
+            ctx.problem.weights_data_type == miopenHalf) ||
+           (ctx.problem.out_data_type == miopenHalf &&
+            ctx.problem.weights_data_type == miopenHalf) ||
            (ctx.problem.in_data_type == miopenHalf && ctx.problem.out_data_type == miopenHalf);
 }
 bool IsInputBfp16(const ConvolutionContext& ctx)
 {
-    return (ctx.problem.in_data_type == miopenBFloat16 && ctx.problem.weights_data_type == miopenBFloat16) ||
-           (ctx.problem.out_data_type == miopenBFloat16 && ctx.problem.weights_data_type == miopenBFloat16) ||
-           (ctx.problem.in_data_type == miopenBFloat16 && ctx.problem.out_data_type == miopenBFloat16);
+    return (ctx.problem.in_data_type == miopenBFloat16 &&
+            ctx.problem.weights_data_type == miopenBFloat16) ||
+           (ctx.problem.out_data_type == miopenBFloat16 &&
+            ctx.problem.weights_data_type == miopenBFloat16) ||
+           (ctx.problem.in_data_type == miopenBFloat16 &&
+            ctx.problem.out_data_type == miopenBFloat16);
 }
 bool IsInputInt8(const ConvolutionContext& ctx)
 {
-    return (ctx.problem.in_data_type == miopenInt8 && ctx.problem.weights_data_type == miopenInt8) ||
-           (ctx.problem.out_data_type == miopenInt8 && ctx.problem.weights_data_type == miopenInt8) ||
+    return (ctx.problem.in_data_type == miopenInt8 &&
+            ctx.problem.weights_data_type == miopenInt8) ||
+           (ctx.problem.out_data_type == miopenInt8 &&
+            ctx.problem.weights_data_type == miopenInt8) ||
            (ctx.problem.in_data_type == miopenInt8 && ctx.problem.out_data_type == miopenInt8);
 }
 bool IsAccFp64(const ConvolutionContext& ctx)
@@ -80,8 +89,9 @@ bool IsAccFp64(const ConvolutionContext& ctx)
 bool IsAccInt32(const ConvolutionContext& ctx) { return IsInputInt8(ctx); }
 bool IsOutputFp32(const ConvolutionContext& ctx)
 {
-    return ctx.problem.IsFp32() || (ctx.problem.in_data_type == miopenInt8 && ctx.problem.weights_data_type == miopenInt8 &&
-                            ctx.problem.out_data_type == miopenFloat);
+    return ctx.problem.IsFp32() ||
+           (ctx.problem.in_data_type == miopenInt8 && ctx.problem.weights_data_type == miopenInt8 &&
+            ctx.problem.out_data_type == miopenFloat);
 }
 bool IsOutputFp16(const ConvolutionContext& ctx) { return ctx.problem.IsFp16(); }
 bool IsOutputBfp16(const ConvolutionContext& ctx) { return ctx.problem.IsBfp16(); }

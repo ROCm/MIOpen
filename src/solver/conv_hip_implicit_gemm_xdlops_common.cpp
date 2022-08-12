@@ -33,9 +33,9 @@ namespace solver {
 
 bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
 {
-    const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.problem.group_counts;
-    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.problem.group_counts;
+    const auto n = ConvolutionContextInterpreter::GetBatchN(ctx);
+    const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.problem.group_counts;
+    const auto c = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.problem.group_counts;
     const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
     const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
     const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
@@ -52,12 +52,13 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
         return false;
 
     // EPACKSize = 2, 4 for bfp16 fwd non-group
-    if(ctx.problem.direction.IsForward() && ctx.problem.IsBfp16() && ctx.problem.group_counts == 1 && EPACKSize != 4 &&
-       EPACKSize != 2)
+    if(ctx.problem.direction.IsForward() && ctx.problem.IsBfp16() &&
+       ctx.problem.group_counts == 1 && EPACKSize != 4 && EPACKSize != 2)
         return false;
 
     // EPACKSize = 2 for bfp16 fwd group
-    if(ctx.problem.direction.IsForward() && ctx.problem.IsBfp16() && ctx.problem.group_counts > 1 && EPACKSize != 2)
+    if(ctx.problem.direction.IsForward() && ctx.problem.IsBfp16() && ctx.problem.group_counts > 1 &&
+       EPACKSize != 2)
         return false;
 
     // EPACKSize = 2 for bfp16 bwd, wrw

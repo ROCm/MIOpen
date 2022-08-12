@@ -113,12 +113,12 @@ static inline int AlignUp(int val, unsigned step)
 ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
-    const int out_w =
-        (params.problem.in_width + params.problem.pad_w * 2 + params.problem.kernel_stride_w - params.problem.kernel_size_w) /
-        params.problem.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
-    const int out_h =
-        (params.problem.in_height + params.problem.pad_h * 2 + params.problem.kernel_stride_h - params.problem.kernel_size_h) /
-        params.problem.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
+    const int out_w = (params.problem.in_width + params.problem.pad_w * 2 +
+                       params.problem.kernel_stride_w - params.problem.kernel_size_w) /
+                      params.problem.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
+    const int out_h = (params.problem.in_height + params.problem.pad_h * 2 +
+                       params.problem.kernel_stride_h - params.problem.kernel_size_h) /
+                      params.problem.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
     GenerateClangDefsym(options, "inp_h", params.problem.in_height);
@@ -139,7 +139,8 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ConvolutionContext& params) co
 
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
     construction_params.g_wk.push_back(AlignUp(out_w, 64));
-    construction_params.g_wk.push_back(AlignUp(out_h, 4) / 4 * AlignUp(params.problem.n_outputs / 2, 8));
+    construction_params.g_wk.push_back(AlignUp(out_h, 4) / 4 *
+                                       AlignUp(params.problem.n_outputs / 2, 8));
     construction_params.g_wk.push_back(params.problem.batch_sz);
 
     construction_params.kernel_file = "conv5x10u2v2f1.s";

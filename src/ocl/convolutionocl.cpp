@@ -912,8 +912,12 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
     auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
     ctx.SetStream(&handle);
 
-    GetSolutions(
-        handle, ctx.problem, maxSolutionCount, solutionCount, solutions, StringToConvolutionFwdAlgo);
+    GetSolutions(handle,
+                 ctx.problem,
+                 maxSolutionCount,
+                 solutionCount,
+                 solutions,
+                 StringToConvolutionFwdAlgo);
 
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = (*solutionCount == 0);

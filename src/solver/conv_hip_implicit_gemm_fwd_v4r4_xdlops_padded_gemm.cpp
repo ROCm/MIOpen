@@ -335,10 +335,12 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmABlockCopyPer
     int ClusterLengths_GemmK     = -1;
     int ClusterLengths_GemmM     = -1;
     int ClusterLengths_GemmKPack = -1;
-    int SrcDataPerRead_GemmKPack = ctx.problem.IsFp32() ? amd_buffer_load_max_length<float>()
-                                                : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32() ? amd_lds_write_max_length<float>()
-                                                 : amd_lds_write_max_length<half_float::half>();
+    int SrcDataPerRead_GemmKPack = ctx.problem.IsFp32()
+                                       ? amd_buffer_load_max_length<float>()
+                                       : amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
+                                        ? amd_lds_write_max_length<float>()
+                                        : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -436,10 +438,12 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmBBlockCopyPer
     int ClusterLengths_GemmK     = -1;
     int ClusterLengths_GemmN     = -1;
     int ClusterLengths_GemmKPack = -1;
-    int SrcDataPerRead_GemmN     = ctx.problem.IsFp32() ? amd_buffer_load_max_length<float>()
-                                            : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32() ? amd_lds_write_max_length<float>()
-                                                 : amd_lds_write_max_length<half_float::half>();
+    int SrcDataPerRead_GemmN     = ctx.problem.IsFp32()
+                                   ? amd_buffer_load_max_length<float>()
+                                   : amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
+                                        ? amd_lds_write_max_length<float>()
+                                        : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -580,8 +584,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateLdsNumberOfByte(
     const auto a_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
     const auto b_block_space = GemmKPerBlock * GemmNPerBlock * GemmKPack;
 
-    std::size_t lds_size =
-        (a_block_space + b_block_space) * (ctx.problem.IsFp32() ? sizeof(float) : sizeof(half_float::half));
+    std::size_t lds_size = (a_block_space + b_block_space) *
+                           (ctx.problem.IsFp32() ? sizeof(float) : sizeof(half_float::half));
 
     return std::make_tuple(lds_size, true);
 }
@@ -1055,7 +1059,8 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     if(!ctx.problem.Is2d())
         return false;
 
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.problem.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
+       ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     if(!IsIndexRangeLargeEnough(ctx))
@@ -1087,12 +1092,14 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
 #if WORKAROUND_MI100_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS
     if(ctx.GetStream().GetDeviceName() == "gfx908" && ctx.problem.IsFp32())
     {
-        if((ctx.problem.n_inputs == 3 && ctx.problem.n_outputs == 1 && ctx.problem.in_width == 227 &&
-            ctx.problem.in_height == 227 && ctx.problem.kernel_size_w == 3 && ctx.problem.kernel_size_h == 3) //
-           || (ctx.problem.n_inputs == 64 && ctx.problem.n_outputs == 1 && ctx.problem.in_width == 112 &&
-               ctx.problem.in_height == 112 && ctx.problem.kernel_size_w == 3 && ctx.problem.kernel_size_h == 3 &&
-               ctx.problem.kernel_stride_w >= 2 && ctx.problem.kernel_stride_h >= 2 && ctx.problem.kernel_dilation_w >= 3 &&
-               ctx.problem.kernel_dilation_h >= 3))
+        if((ctx.problem.n_inputs == 3 && ctx.problem.n_outputs == 1 &&
+            ctx.problem.in_width == 227 && ctx.problem.in_height == 227 &&
+            ctx.problem.kernel_size_w == 3 && ctx.problem.kernel_size_h == 3) //
+           || (ctx.problem.n_inputs == 64 && ctx.problem.n_outputs == 1 &&
+               ctx.problem.in_width == 112 && ctx.problem.in_height == 112 &&
+               ctx.problem.kernel_size_w == 3 && ctx.problem.kernel_size_h == 3 &&
+               ctx.problem.kernel_stride_w >= 2 && ctx.problem.kernel_stride_h >= 2 &&
+               ctx.problem.kernel_dilation_w >= 3 && ctx.problem.kernel_dilation_h >= 3))
         {
             return false;
         }

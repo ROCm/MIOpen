@@ -134,12 +134,14 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
         std::min(params.problem.n_outputs / group_counts, searched_params.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 = (!params.problem.direction.IsForward() && params.problem.kernel_stride_h > 1)
-                               ? params.problem.kernel_stride_h
-                               : searched_params.out_pix_tile1;
-    result.out_pix_tile0 = (!params.problem.direction.IsForward() && params.problem.kernel_stride_w > 1)
-                               ? params.problem.kernel_stride_w
-                               : searched_params.out_pix_tile0;
+    result.out_pix_tile1 =
+        (!params.problem.direction.IsForward() && params.problem.kernel_stride_h > 1)
+            ? params.problem.kernel_stride_h
+            : searched_params.out_pix_tile1;
+    result.out_pix_tile0 =
+        (!params.problem.direction.IsForward() && params.problem.kernel_stride_w > 1)
+            ? params.problem.kernel_stride_w
+            : searched_params.out_pix_tile0;
 
     if(result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0 /* DIV/0 */)
     {
@@ -190,7 +192,7 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     // int n_out_tile_blocks1 = (problem.out_height + result.in_tile1 - 1) / (result.in_tile1);
     int n_alu_tiles_perstack = (n_alus_perstack + alu_tiles_sz - 1) / alu_tiles_sz;
     int n_out_tiles_perstack = n_alu_tiles_perstack * result.n_out_pix_tiles;
-    n_out_tiles_perstack     = std::min(n_out_tiles_perstack, params.problem.n_outputs / group_counts);
+    n_out_tiles_perstack = std::min(n_out_tiles_perstack, params.problem.n_outputs / group_counts);
 
     // const auto mlo_hw_wave_sz=hw_wave_sz;
     const auto mlo_filter_size0 = static_cast<long long>(params.problem.kernel_size_w);
@@ -295,12 +297,14 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         std::min(params.problem.n_outputs / group_counts, searched_params.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 = (!params.problem.direction.IsForward() && params.problem.kernel_stride_h > 1)
-                               ? params.problem.kernel_stride_h
-                               : searched_params.out_pix_tile1;
-    result.out_pix_tile0 = (!params.problem.direction.IsForward() && params.problem.kernel_stride_w > 1)
-                               ? params.problem.kernel_stride_w
-                               : searched_params.out_pix_tile0;
+    result.out_pix_tile1 =
+        (!params.problem.direction.IsForward() && params.problem.kernel_stride_h > 1)
+            ? params.problem.kernel_stride_h
+            : searched_params.out_pix_tile1;
+    result.out_pix_tile0 =
+        (!params.problem.direction.IsForward() && params.problem.kernel_stride_w > 1)
+            ? params.problem.kernel_stride_w
+            : searched_params.out_pix_tile0;
 
     if(result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0 /* DIV/0 */)
     {
@@ -372,9 +376,12 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         std::string(" -DMLO_FILTER_STRIDE1=") +
         std::to_string(static_cast<long long>(params.problem.kernel_stride_h)) +
         std::string(" -DMLO_N_OUTPUTS=") +
-        std::to_string(static_cast<long long>(params.problem.n_outputs)) + std::string(" -DMLO_N_INPUTS=") +
-        std::to_string(static_cast<long long>(params.problem.n_inputs)) + std::string(" -DMLO_BATCH_SZ=") +
-        std::to_string(static_cast<long long>(params.problem.batch_sz)) + std::string(" -DMLO_OUT_WIDTH=") +
+        std::to_string(static_cast<long long>(params.problem.n_outputs)) +
+        std::string(" -DMLO_N_INPUTS=") +
+        std::to_string(static_cast<long long>(params.problem.n_inputs)) +
+        std::string(" -DMLO_BATCH_SZ=") +
+        std::to_string(static_cast<long long>(params.problem.batch_sz)) +
+        std::string(" -DMLO_OUT_WIDTH=") +
         std::to_string(static_cast<long long>(params.problem.out_width)) +
         std::string(" -DMLO_OUT_HEIGHT=") +
         std::to_string(static_cast<long long>(params.problem.out_height)) +
@@ -384,7 +391,8 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         std::to_string(static_cast<long long>(params.problem.out_channel_stride)) +
         std::string(" -DMLO_OUT_STRIDE=") +
         std::to_string(static_cast<long long>(params.problem.out_stride)) +
-        std::string(" -DMLO_IN_WIDTH=") + std::to_string(static_cast<long long>(params.problem.in_width)) +
+        std::string(" -DMLO_IN_WIDTH=") +
+        std::to_string(static_cast<long long>(params.problem.in_width)) +
         std::string(" -DMLO_IN_HEIGHT=") +
         std::to_string(static_cast<long long>(params.problem.in_height)) +
         std::string(" -DMLO_IN_BATCH_STRIDE=") +
@@ -448,11 +456,12 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         MIOPEN_LOG_E("n_out_tiles_perstack == 0");
         return {miopenStatusInternalError};
     }
-    size_t gbl_wk1 = group_counts >= 2
-                         ? (((params.problem.n_outputs / group_counts + n_out_tiles_perstack - 1) /
-                             n_out_tiles_perstack) *
-                            group_counts)
-                         : ((params.problem.n_outputs + n_out_tiles_perstack - 1) / n_out_tiles_perstack);
+    size_t gbl_wk1 =
+        group_counts >= 2
+            ? (((params.problem.n_outputs / group_counts + n_out_tiles_perstack - 1) /
+                n_out_tiles_perstack) *
+               group_counts)
+            : ((params.problem.n_outputs + n_out_tiles_perstack - 1) / n_out_tiles_perstack);
     size_t gbl_wk2 = (params.problem.batch_sz + result.n_stacks - 1) / result.n_stacks;
 
     kernel_params.g_wk.push_back(gbl_wk0 * kernel_params.l_wk[0]);
@@ -479,7 +488,8 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     if(result.Succeeded())
     {
         result.construction_params[0].comp_options +=
-            std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(params.problem.bias));
+            std::string(" -DMLO_CONV_BIAS=") +
+            std::to_string(static_cast<long long>(params.problem.bias));
     }
 
     return result;

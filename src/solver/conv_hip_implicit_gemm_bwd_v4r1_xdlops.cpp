@@ -76,11 +76,13 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmM     = 0;
     int ClusterLengths_GemmKPack = 0;
-    int SrcDataPerRead_GemmM     = ctx.problem.IsFp32() ? amd_buffer_load_max_length<float>()
-                                            : amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmM     = ctx.problem.IsFp32()
+                                   ? amd_buffer_load_max_length<float>()
+                                   : amd_buffer_load_max_length<half_float::half>();
 
-    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32() ? amd_buffer_load_max_length<float>()
-                                                 : amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
+                                        ? amd_buffer_load_max_length<float>()
+                                        : amd_buffer_load_max_length<half_float::half>();
 
     try
     {
@@ -168,11 +170,13 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmN     = 0;
     int ClusterLengths_GemmKPack = 0;
-    int SrcDataPerRead_GemmN     = ctx.problem.IsFp32() ? amd_buffer_load_max_length<float>()
-                                            : amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmN     = ctx.problem.IsFp32()
+                                   ? amd_buffer_load_max_length<float>()
+                                   : amd_buffer_load_max_length<half_float::half>();
 
-    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32() ? amd_lds_write_max_length<float>()
-                                                 : amd_lds_write_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
+                                        ? amd_lds_write_max_length<float>()
+                                        : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -326,7 +330,8 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV4R1Xdlops::Calculat
             GemmKPerBlock * integer_least_multiple(GemmMPerBlock, max_lds_align);
         const auto b_block_space =
             GemmKPerBlock * integer_least_multiple(GemmNPerBlock, max_lds_align);
-        lds_size = (a_block_space + b_block_space) * GetTypeSize(ctx.problem.in_data_type) * GemmKPack;
+        lds_size =
+            (a_block_space + b_block_space) * GetTypeSize(ctx.problem.in_data_type) * GemmKPack;
     }
     catch(...)
     {
@@ -838,7 +843,8 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
         return false;
     if(!ctx.problem.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.problem.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
+       ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     bool is_applicable = true;

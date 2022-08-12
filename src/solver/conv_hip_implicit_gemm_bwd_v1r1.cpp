@@ -602,7 +602,8 @@ ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx)
     const auto gemm_m =
         c * y * x * (ctx.problem.Is3d() ? ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : 1);
     const auto gemm_n =
-        n * ho * wo * (ctx.problem.Is3d() ? ConvolutionContextInterpreter::GetOutputDepthDo(ctx) : 1);
+        n * ho * wo *
+        (ctx.problem.Is3d() ? ConvolutionContextInterpreter::GetOutputDepthDo(ctx) : 1);
     const auto gemm_k = k / GetEPackLength(ctx, false);
 
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
@@ -622,7 +623,8 @@ size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext
         std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
         std::size_t hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
         std::size_t wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-        return n * c * (ctx.problem.Is3d() ? ConvolutionContextInterpreter::GetInputDepthDi(ctx) : 1) * hi *
+        return n * c *
+               (ctx.problem.Is3d() ? ConvolutionContextInterpreter::GetInputDepthDi(ctx) : 1) * hi *
                wi * miopen::GetTypeSize(miopenFloat);
     }
 }
@@ -654,7 +656,8 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
     if(ctx.problem.IsBfp16())
         return false;
 #endif
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.problem.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
+       ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
@@ -718,8 +721,9 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
     // clang-format on
 
     construction_parameters.kernel_name =
-        ctx.problem.Is3d() ? "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"
-                   : "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw";
+        ctx.problem.Is3d()
+            ? "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"
+            : "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw";
 
     int GemmMLevel0Cluster                      = 0;
     int GemmNLevel0Cluster                      = 0;

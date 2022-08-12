@@ -87,8 +87,8 @@ inline void GetCompiledInParameters(const ConvolutionContext& ctx,
     assert(filter_size_H && filter_size_W && pad_H && pad_W);
     *filter_size_H = ctx.problem.kernel_size_h;
     *filter_size_W = ctx.problem.kernel_size_w;
-    *pad_H         = ctx.problem.direction.IsForward() ? ctx.problem.pad_h : ctx.problem.GetBackwardPadH();
-    *pad_W         = ctx.problem.direction.IsForward() ? ctx.problem.pad_w : ctx.problem.GetBackwardPadW();
+    *pad_H = ctx.problem.direction.IsForward() ? ctx.problem.pad_h : ctx.problem.GetBackwardPadH();
+    *pad_W = ctx.problem.direction.IsForward() ? ctx.problem.pad_w : ctx.problem.GetBackwardPadW();
 }
 
 } // namespace miopen

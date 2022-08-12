@@ -82,7 +82,8 @@ int mlo_construct_norm::mloConstructFwd()
                                          _search_params.problem.in_channel_stride,
                                          _search_params.problem.in_stride);
 
-    int MAP_SZ4 = _search_params.problem.in_width * (is_in_packed ? _search_params.problem.in_height : 1);
+    int MAP_SZ4 =
+        _search_params.problem.in_width * (is_in_packed ? _search_params.problem.in_height : 1);
     int read_unit;
     if(_norm_region == MLO_LRN_ACROSS_CHANNELS)
     {
@@ -118,7 +119,8 @@ int mlo_construct_norm::mloConstructFwd()
         int n_waves = (_search_params.problem.batch_sz * MAP_SZ4 + _hw_wave_sz - 1) / _hw_wave_sz;
         if(n_waves <= maxComputeUnits * 8)
         {
-            MAP_SZ4   = _search_params.problem.in_width * (is_in_packed ? _search_params.problem.in_height : 1);
+            MAP_SZ4 = _search_params.problem.in_width *
+                      (is_in_packed ? _search_params.problem.in_height : 1);
             read_unit = (MAP_SZ4 % 2 == 0) ? 2 : 1;
             MAP_SZ4 /= read_unit;
             MAP_SZ4 *= (is_in_packed ? 1 : _search_params.problem.in_height);
@@ -133,8 +135,9 @@ int mlo_construct_norm::mloConstructFwd()
         if(name.find("gfx9") != std::string::npos) // Any gfx9 device.
         {
             MIOPEN_LOG_I("Workaround for #1057: "
-                         << name << ',' << miopen::GetDataTypeName(_search_params.problem.in_data_type)
-                         << ',' << MAP_SZ4 << ',' << read_unit);
+                         << name << ','
+                         << miopen::GetDataTypeName(_search_params.problem.in_data_type) << ','
+                         << MAP_SZ4 << ',' << read_unit);
             MAP_SZ4 *= read_unit;
             read_unit = 1;
         }
@@ -157,10 +160,13 @@ int mlo_construct_norm::mloConstructFwd()
         (g_wk_width * (_grp_tile0 * _out_pix_tile0) == _search_params.problem.out_width) ? 1 : 0;
     // currently always 1
     int DIVBY4 =
-        (MAP_SZ4 * read_unit == _search_params.problem.in_width * _search_params.problem.in_height) ? 1 : 0;
-    int C1x1_PIXLEFT = (DIVBY4 == 1) ? 0
-                                     : _search_params.problem.in_width * _search_params.problem.in_height -
-                                           (MAP_SZ4 - 1) * read_unit;
+        (MAP_SZ4 * read_unit == _search_params.problem.in_width * _search_params.problem.in_height)
+            ? 1
+            : 0;
+    int C1x1_PIXLEFT = (DIVBY4 == 1)
+                           ? 0
+                           : _search_params.problem.in_width * _search_params.problem.in_height -
+                                 (MAP_SZ4 - 1) * read_unit;
 
     std::string READ_TYPE =
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
@@ -364,7 +370,8 @@ int mlo_construct_norm::mloConstructBwd()
         std::string(" -DMLO_LRN_N_INPUTS=") +
         std::to_string(static_cast<long long>(_search_params.problem.n_inputs)) +
         std::string(" -DMLO_LRN_N_OUTPUTS=") +
-        std::to_string(static_cast<long long>(_search_params.problem.n_outputs)) + getGeneralCompOptions();
+        std::to_string(static_cast<long long>(_search_params.problem.n_outputs)) +
+        getGeneralCompOptions();
 
     _kernel_file = "MIOpenLRNBwd.cl";
 

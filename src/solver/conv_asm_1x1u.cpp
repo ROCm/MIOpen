@@ -48,12 +48,14 @@ namespace solver {
 
 static inline bool UseSubsample(const ConvolutionContext& c)
 {
-    return (c.problem.kernel_stride_w > 1 || c.problem.kernel_stride_h > 1) && c.problem.direction.IsForward();
+    return (c.problem.kernel_stride_w > 1 || c.problem.kernel_stride_h > 1) &&
+           c.problem.direction.IsForward();
 }
 
 static inline bool UseUpsample(const ConvolutionContext& c)
 {
-    return (c.problem.kernel_stride_w > 1 || c.problem.kernel_stride_h > 1) && c.problem.direction.IsBackwardData();
+    return (c.problem.kernel_stride_w > 1 || c.problem.kernel_stride_h > 1) &&
+           c.problem.direction.IsBackwardData();
 }
 
 /// After 2x subsampling kernel, image size on asm kernel input becomes 4x (2*2) smaller.
@@ -464,8 +466,9 @@ size_t ConvAsm1x1U::GetWorkspaceSize(const ConvolutionContext& params) const
 {
     if(UseSubsample(params) || UseUpsample(params))
     {
-        int in_batch_stride = AsmImgWidth(params) * AsmImgHeight(params) *
-                              (UseSubsample(params) ? params.problem.n_inputs : params.problem.n_outputs);
+        int in_batch_stride =
+            AsmImgWidth(params) * AsmImgHeight(params) *
+            (UseSubsample(params) ? params.problem.n_inputs : params.problem.n_outputs);
         int data_len = GetTypeSize(params.problem.out_data_type);
         return in_batch_stride * params.problem.batch_sz * data_len;
     }
@@ -491,8 +494,9 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     if(UseSubsample(params) || UseUpsample(params))
     {
         // subsampled input, in_height equals to image size after downsampling
-        int in_batch_stride = AsmImgWidth(params) * AsmImgHeight(params) *
-                              (UseSubsample(params) ? params.problem.n_inputs : params.problem.n_outputs);
+        int in_batch_stride =
+            AsmImgWidth(params) * AsmImgHeight(params) *
+            (UseSubsample(params) ? params.problem.n_inputs : params.problem.n_outputs);
         int write_unit =
             (AsmImgWidth(params) % 4 == 0)
                 ? 4
@@ -505,18 +509,19 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
             (params.problem.in_data_type == miopenHalf ? "ushort" : "float") +
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
-            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.problem.kernel_stride_w) +
-            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(params.problem.kernel_stride_h) +
-            std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
-            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(params.problem.out_channel_stride) +
-            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(params.problem.out_stride) +
-            std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
-            std::string(" -DMLO_IN0_BATCH_STRIDE=") +
+            std::string(" -DMLO_FILTER0_STRIDE0=") +
+            std::to_string(params.problem.kernel_stride_w) +
+            std::string(" -DMLO_FILTER0_STRIDE1=") +
+            std::to_string(params.problem.kernel_stride_h) + std::string(" -DMLO_WRITE_UNIT=") +
+            std::to_string(write_unit) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
+            std::to_string(params.problem.out_channel_stride) + std::string(" -DMLO_OUT_STRIDE=") +
+            std::to_string(params.problem.out_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
+            std::to_string(in_batch_stride) + std::string(" -DMLO_IN0_BATCH_STRIDE=") +
             std::to_string(params.problem.direction.IsForward() ? params.problem.in_batch_stride
-                                                        : params.problem.out_batch_stride) +
-            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(params.problem.in_channel_stride) +
-            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(params.problem.in_stride) +
-            params.general_compile_options;
+                                                                : params.problem.out_batch_stride) +
+            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") +
+            std::to_string(params.problem.in_channel_stride) + std::string(" -DMLO_IN0_STRIDE=") +
+            std::to_string(params.problem.in_stride) + params.general_compile_options;
 
         ss_us_kernel.l_wk.push_back(n_grp0_size0);
         ss_us_kernel.l_wk.push_back(1);
@@ -708,8 +713,8 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         main_kernel.l_wk[0] *
         divide_round_plus_inf(AsmImgHeight(params) * AsmImgWidth(params), hw_per_wave));
 
-    main_kernel.g_wk.push_back(
-        divide_round_plus_inf(params.problem.n_outputs, pcfg->GetKMult() * pcfg->GetWavesKInGroup()));
+    main_kernel.g_wk.push_back(divide_round_plus_inf(params.problem.n_outputs,
+                                                     pcfg->GetKMult() * pcfg->GetWavesKInGroup()));
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     main_kernel.g_wk.push_back(divide_round_plus_inf(params.problem.batch_sz, n_images_per_wave));
 

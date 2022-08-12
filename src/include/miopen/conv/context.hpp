@@ -120,6 +120,7 @@ public:
     inline const ConvolutionUserBuffers& GetBufs() const { return _bufs; }
 
     ProblemDescription problem;
+
 private:
     ConvolutionUserBuffers _bufs;
 };

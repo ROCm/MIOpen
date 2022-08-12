@@ -329,8 +329,8 @@ GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(
     const auto& wi = ctx.problem.in_width;
     const auto& c  = ctx.problem.n_inputs;
 
-    auto splits_4G =
-        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.problem.in_data_type));
+    auto splits_4G = igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.problem.in_data_type));
 
     const auto gemm_m = (n / splits_4G) * ho * wo;
     const auto gemm_n = k / group;
@@ -493,14 +493,16 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(const Convo
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
-    bool not_support_vector_store = (ctx.problem.IsFp16() || ctx.problem.IsBfp16()) && ((k / group) % 2 != 0);
+    bool not_support_vector_store =
+        (ctx.problem.IsFp16() || ctx.problem.IsBfp16()) && ((k / group) % 2 != 0);
     int m_per_block, n_per_block, k_per_block;
 
     std::tie(m_per_block, n_per_block, k_per_block) = HeuristicInitMacroTileNoPadGemmK(
         gemm_m,
         gemm_n,
         gemm_k,
-        ctx.problem.IsFp32() ? tile_list_fp32 : (ctx.problem.IsFp16() ? tile_list_fp16 : tile_list_bfp16));
+        ctx.problem.IsFp32() ? tile_list_fp32
+                             : (ctx.problem.IsFp16() ? tile_list_fp16 : tile_list_bfp16));
 
     auto find_with_gemm_k_pad = [&]() {
         const auto& config_list = GetFwdXdlopsNHWCConfigList();
@@ -647,7 +649,8 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
     if(IsDefaultConstructed())
         return false;
 
-    if(!((ctx.problem.IsFp16() && precision == "fp16") || (ctx.problem.IsFp32() && precision == "fp32") ||
+    if(!((ctx.problem.IsFp16() && precision == "fp16") ||
+         (ctx.problem.IsFp32() && precision == "fp32") ||
          (ctx.problem.IsBfp16() && precision == "bf16")))
         return false;
 
@@ -672,8 +675,8 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(const Convolution
     const auto& wo = ctx.problem.out_width;
     const auto& hi = ctx.problem.in_height;
     const auto& wi = ctx.problem.in_width;
-    auto splits_4G =
-        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.problem.in_data_type));
+    auto splits_4G = igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.problem.in_data_type));
     if(ctx.problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
         return false;
 
@@ -839,7 +842,8 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(const ConvolutionC
     if(!ctx.problem.Is2d())
         return false;
 
-    if(!ctx.problem.IsFp32() && !ctx.problem.IsFp16() && !(ctx.problem.IsBfp16() && device_name == "gfx90a"))
+    if(!ctx.problem.IsFp32() && !ctx.problem.IsFp16() &&
+       !(ctx.problem.IsBfp16() && device_name == "gfx90a"))
         return false;
 
     if(!ctx.rmv.IsV3())
@@ -914,7 +918,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
         GenerateClangDefsym(opts_1, "igemm_fwd_fp16_alt_impl", 1);
         result.construction_params[1].comp_options = opts_1.str();
         if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", fp16_alt:" << ctx.problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
+            msg << ", fp16_alt:"
+                << ctx.problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
     }
 
     if(is_nchw)

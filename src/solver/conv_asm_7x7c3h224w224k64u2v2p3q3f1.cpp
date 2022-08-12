@@ -96,12 +96,12 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
 ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
-    const int out_w =
-        (params.problem.in_width + params.problem.pad_w * 2 + params.problem.kernel_stride_w - params.problem.kernel_size_w) /
-        params.problem.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
-    const int out_h =
-        (params.problem.in_height + params.problem.pad_h * 2 + params.problem.kernel_stride_h - params.problem.kernel_size_h) /
-        params.problem.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
+    const int out_w = (params.problem.in_width + params.problem.pad_w * 2 +
+                       params.problem.kernel_stride_w - params.problem.kernel_size_w) /
+                      params.problem.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
+    const int out_h = (params.problem.in_height + params.problem.pad_h * 2 +
+                       params.problem.kernel_stride_h - params.problem.kernel_size_h) /
+                      params.problem.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);

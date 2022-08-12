@@ -173,9 +173,11 @@ inline bool IsShaderContraintsMet(const int R,
     /// \todo Either remove WrW related code or re-use function from RxS
     if(params.problem.direction.IsBackwardData())
     {
-        if(!(0 <= params.problem.GetBackwardPadW() && params.problem.GetBackwardPadW() < std::pow(2, 16)))
+        if(!(0 <= params.problem.GetBackwardPadW() &&
+             params.problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
-        if(!(0 <= params.problem.GetBackwardPadH() && params.problem.GetBackwardPadH() < std::pow(2, 16)))
+        if(!(0 <= params.problem.GetBackwardPadH() &&
+             params.problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
     const auto grid_workgroup_count_x = params.GetStream().GetMaxHardwareComputeUnits();
@@ -229,8 +231,8 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext
                                       config.problem.in_width,
                                       config.problem.kernel_dilation_h,
                                       config.problem.kernel_dilation_w,
-                                      config.problem.batch_sz,    // N
-                                      n_inputs_per_group, // K
+                                      config.problem.batch_sz, // N
+                                      n_inputs_per_group,      // K
                                       config.problem.kernel_size_h,
                                       config.problem.kernel_size_w,
                                       config.problem.pad_w,
@@ -249,9 +251,9 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext
                                       config.problem.kernel_size_w,
                                       config.problem.kernel_stride_h,
                                       config.problem.kernel_stride_w,
-                                      n_inputs_per_group,  // C
-                                      n_outputs_per_group, // K
-                                      config.problem.out_height,   // OHxOW
+                                      n_inputs_per_group,        // C
+                                      n_outputs_per_group,       // K
+                                      config.problem.out_height, // OHxOW
                                       config.problem.out_width,
                                       config.problem.pad_w,
                                       config.problem.pad_h,
@@ -329,14 +331,14 @@ public:
         : UnifiedDescriptionConv2d(ctx.problem),
           DATATYPE_BITS(ctx.problem.IsFp16() ? 16 : 32),
           n_groups(ctx.GetStream()
-                       .GetMaxHardwareComputeUnits()),   /// \todo Take n_groups from PerfConfig.
+                       .GetMaxHardwareComputeUnits()), /// \todo Take n_groups from PerfConfig.
           out_of_model_scope(!(ctx.problem.group_counts == 1) || //
-                             !(U == 1) ||                //
-                             !(V == 1) ||                //
-                             !(input_stride_h == 1) ||   //
-                             !(input_stride_w == 1) ||   //
-                             !(filter_stride_h == 1) ||  //
-                             !(filter_stride_w == 1) ||  //
+                             !(U == 1) ||                        //
+                             !(V == 1) ||                        //
+                             !(input_stride_h == 1) ||           //
+                             !(input_stride_w == 1) ||           //
+                             !(filter_stride_h == 1) ||          //
+                             !(filter_stride_w == 1) ||          //
 #if !WTI_MODEL_ALLOW_ANY_RS
                              !(R <= 5) || //
                              !(S <= 5) || //
@@ -486,8 +488,8 @@ static bool IsApplicableBase(const ConvolutionContext& params)
             return false;
         return IsShaderContraintsMet(params.problem.in_height,
                                      params.problem.in_width,
-                                     params.problem.batch_sz,    // N
-                                     n_inputs_per_group, // K
+                                     params.problem.batch_sz, // N
+                                     n_inputs_per_group,      // K
                                      params.problem.out_height,
                                      params.problem.out_width,
                                      params.problem.kernel_size_h,
@@ -499,9 +501,9 @@ static bool IsApplicableBase(const ConvolutionContext& params)
     {
         return IsShaderContraintsMet(params.problem.kernel_size_h, // RxS
                                      params.problem.kernel_size_w,
-                                     n_inputs_per_group,  // C
-                                     n_outputs_per_group, // K
-                                     params.problem.in_height,    // HxW
+                                     n_inputs_per_group,       // C
+                                     n_outputs_per_group,      // K
+                                     params.problem.in_height, // HxW
                                      params.problem.in_width,
                                      params.problem.out_height, // OHxOW
                                      params.problem.out_width,
@@ -798,7 +800,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
             W,
             group_cnt,
             GetTypeSize(params.problem.in_data_type)),
-            o_buf(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.problem.out_layout)), false),
+            o_buf(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.problem.out_layout)),
+                                     false),
                   N,
                   K,
                   out_H,

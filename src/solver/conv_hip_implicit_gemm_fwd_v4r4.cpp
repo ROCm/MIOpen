@@ -352,8 +352,8 @@ std::tuple<int, bool> PerformanceImplicitGemmV4R4Fwd::CalculateGemmCThreadCopyPe
         const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
         DstDataPerWrite_GemmN1 =
             ctx.problem.Is3d() ? gcd(DstDataPerWrite_GemmN1,
-                             ho * wo * ConvolutionContextInterpreter::GetOutputDepthDo(ctx))
-                       : gcd(DstDataPerWrite_GemmN1, ho * wo);
+                                     ho * wo * ConvolutionContextInterpreter::GetOutputDepthDo(ctx))
+                               : gcd(DstDataPerWrite_GemmN1, ho * wo);
     }
     catch(...)
     {
@@ -571,8 +571,9 @@ ConvHipImplicitGemmV4R4Fwd::CalculateGemmSize(const ConvolutionContext& ctx)
     const auto gemm_n = ctx.problem.Is3d()
                             ? n * ho * wo * ConvolutionContextInterpreter::GetOutputDepthDo(ctx)
                             : n * ho * wo;
-    const auto gemm_k =
-        ctx.problem.Is3d() ? c * y * x * ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : c * y * x;
+    const auto gemm_k = ctx.problem.Is3d()
+                            ? c * y * x * ConvolutionContextInterpreter::GetFilterDepthZ(ctx)
+                            : c * y * x;
 
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }

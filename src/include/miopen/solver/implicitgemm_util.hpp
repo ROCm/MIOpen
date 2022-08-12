@@ -364,11 +364,12 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
     if(!IsXdlopsSupport(ctx))
         return false;
 
-    std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
-    std::size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.problem.group_counts;
-    std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.problem.group_counts;
-    std::size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    std::size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    std::size_t n = ConvolutionContextInterpreter::GetBatchN(ctx);
+    std::size_t k =
+        ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.problem.group_counts;
+    std::size_t c = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.problem.group_counts;
+    std::size_t y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    std::size_t x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
     std::size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
     std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
 
@@ -444,9 +445,9 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
 
     // Multiplied worst_case_alignment_adjustment by 2 as
     // Both A and B matrix LDS size is increased.
-    const std::size_t lds_size =
-        (BPerBlock + KPerBlock) * EPerBlock * EPACKSize * GetTypeSize(ctx.problem.in_data_type) * 2 +
-        2 * worst_case_alignment_adjustment;
+    const std::size_t lds_size = (BPerBlock + KPerBlock) * EPerBlock * EPACKSize *
+                                     GetTypeSize(ctx.problem.in_data_type) * 2 +
+                                 2 * worst_case_alignment_adjustment;
 
     return lds_size;
 }
@@ -459,7 +460,8 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
 
     // disable fp16 inline asm for <= gfx900
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if(!(StartsWith(device_name, "gfx906") || StartsWith(device_name, "gfx908")) && ctx.problem.IsFp16())
+    if(!(StartsWith(device_name, "gfx906") || StartsWith(device_name, "gfx908")) &&
+       ctx.problem.IsFp16())
         return false;
 
     return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});

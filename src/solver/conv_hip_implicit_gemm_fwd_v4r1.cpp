@@ -58,7 +58,8 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
         return false;
     if(!ctx.problem.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.problem.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
+       ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     std::size_t n         = ctx.problem.batch_sz;
@@ -94,7 +95,8 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
         return false;
     if(!ctx.problem.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.problem.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
+       ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     // retrieve dimension from ConvolutionContext
@@ -282,7 +284,8 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
     // Borrowed from non-padded version of v4
     InBlockCopySrcDataPerRead_B =
         ctx.problem.kernel_size_w > 1
-            ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(ctx.problem.kernel_dilation_w))
+            ? std::min(InBlockCopySrcDataPerRead_B,
+                       GetReadWriteVectorSize(ctx.problem.kernel_dilation_w))
             : InBlockCopySrcDataPerRead_B;
     InBlockCopySrcDataPerRead_B = ctx.problem.kernel_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
 
@@ -290,8 +293,10 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
         ctx.problem.IsFp32() ? GetReadWriteVectorSize(WeiBlockCopySubLengths_K) : 1;
     const auto InBlockCopyDstDataPerWrite_N2 =
         ctx.problem.IsFp32() ? GetReadWriteVectorSize(InBlockCopySubLengths_N2) : 1;
-    const auto WeiBlockCopyDstDataPerWrite_EPack = !ctx.problem.IsFp32() ? GetEPackLength(ctx, false) : 1;
-    const auto InBlockCopyDstDataPerWrite_EPack  = !ctx.problem.IsFp32() ? GetEPackLength(ctx, false) : 1;
+    const auto WeiBlockCopyDstDataPerWrite_EPack =
+        !ctx.problem.IsFp32() ? GetEPackLength(ctx, false) : 1;
+    const auto InBlockCopyDstDataPerWrite_EPack =
+        !ctx.problem.IsFp32() ? GetEPackLength(ctx, false) : 1;
 
     // clang-format off
     construction_parameters.comp_options =

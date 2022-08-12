@@ -117,7 +117,8 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     // fp16/bfp16: vector read of length 8 or greater is not supported
     // as vector_type<vector<half,4>, 2> is not working. So, restrict epack*gemmreada <= 4
     // and epack*gemmreadb <= 4
-    // if((ctx.problem.IsFp16()  || ctx.problem.IsBfp16()) && ((GetEPackLength(ctx, false)*GemmNPerThreadSubC > 4)
+    // if((ctx.problem.IsFp16()  || ctx.problem.IsBfp16()) && ((GetEPackLength(ctx,
+    // false)*GemmNPerThreadSubC > 4)
     // ||
     //   (GetEPackLength(ctx, false)*GemmMPerThreadSubC > 4)))
     //  return false;
@@ -220,7 +221,8 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
     // fp16/bfp16: vector read of length 8 or greater is not supported
     // as vector_type<vector<half,4>, 2> is not working. So, restrict epack*gemmreada <= 4
     // and epack*gemmreadb <= 4
-    // if((ctx.problem.IsFp16()  || ctx.problem.IsBfp16()) && ((GetEPackLength(ctx, false)*GemmNPerThreadSubC > 4)
+    // if((ctx.problem.IsFp16()  || ctx.problem.IsBfp16()) && ((GetEPackLength(ctx,
+    // false)*GemmNPerThreadSubC > 4)
     // ||
     //   (GetEPackLength(ctx, false)*GemmMPerThreadSubC > 4)))
     //  return false;

@@ -118,10 +118,12 @@ bool fft::IsApplicable(const ConvolutionContext& ctx) const
         return false;
     }
 
-    const auto is_fwd    = ctx.problem.direction.IsForward();
-    decltype(auto) conv  = ctx.problem.conv_problem.GetConv();
-    decltype(auto) xDesc = is_fwd ? ctx.problem.conv_problem.GetIn() : ctx.problem.conv_problem.GetOut();
-    decltype(auto) yDesc = is_fwd ? ctx.problem.conv_problem.GetOut() : ctx.problem.conv_problem.GetIn();
+    const auto is_fwd   = ctx.problem.direction.IsForward();
+    decltype(auto) conv = ctx.problem.conv_problem.GetConv();
+    decltype(auto) xDesc =
+        is_fwd ? ctx.problem.conv_problem.GetIn() : ctx.problem.conv_problem.GetOut();
+    decltype(auto) yDesc =
+        is_fwd ? ctx.problem.conv_problem.GetOut() : ctx.problem.conv_problem.GetIn();
     decltype(auto) wDesc = ctx.problem.conv_problem.GetWeights();
 
     if(conv.GetSpatialDimension() != 2 || conv.group_count != 1 ||
@@ -158,9 +160,11 @@ bool fft::IsApplicable(const ConvolutionContext& ctx) const
 
 size_t fft::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    const auto fwd       = ctx.problem.direction.IsForward();
-    decltype(auto) xDesc = fwd ? ctx.problem.conv_problem.GetIn() : ctx.problem.conv_problem.GetOut();
-    decltype(auto) yDesc = fwd ? ctx.problem.conv_problem.GetOut() : ctx.problem.conv_problem.GetIn();
+    const auto fwd = ctx.problem.direction.IsForward();
+    decltype(auto) xDesc =
+        fwd ? ctx.problem.conv_problem.GetIn() : ctx.problem.conv_problem.GetOut();
+    decltype(auto) yDesc =
+        fwd ? ctx.problem.conv_problem.GetOut() : ctx.problem.conv_problem.GetIn();
     decltype(auto) wDesc = ctx.problem.conv_problem.GetWeights();
 
     int in_n, in_c, in_h, in_w;
@@ -198,7 +202,8 @@ size_t fft::GetWorkspaceSize(const ConvolutionContext& ctx) const
 
 ConvSolution fft::GetSolution(const ConvolutionContext& ctx) const
 {
-    int in_n = ctx.problem.batch_sz, in_c = ctx.problem.n_inputs, in_h = ctx.problem.in_height, in_w = ctx.problem.in_width;
+    int in_n = ctx.problem.batch_sz, in_c = ctx.problem.n_inputs, in_h = ctx.problem.in_height,
+        in_w  = ctx.problem.in_width;
     int out_n = ctx.problem.batch_sz, out_c = ctx.problem.n_outputs;
 
     const int N          = FFTConvParams::TileSize(in_h, in_w);

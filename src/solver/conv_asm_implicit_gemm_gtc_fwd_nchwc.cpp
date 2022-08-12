@@ -269,8 +269,8 @@ GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
     const auto& wi = ctx.problem.in_width;
     const auto& c  = ctx.problem.n_inputs;
 
-    auto splits_4G =
-        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.problem.in_data_type));
+    auto splits_4G = igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.problem.in_data_type));
 
     const auto gemm_m = k / group;
     const auto gemm_n = (n / splits_4G) * ho * wo;
@@ -385,7 +385,8 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
         gemm_m,
         gemm_n,
         gemm_k,
-        (ctx.problem.IsFp16() && ctx.problem.vectorLength == 4) ? tile_list_Halfx4 : tile_list_Halfx8);
+        (ctx.problem.IsFp16() && ctx.problem.vectorLength == 4) ? tile_list_Halfx4
+                                                                : tile_list_Halfx8);
 
     auto find_with_gemm_k_pad = [&]() {
         const auto& config_list = GetFwdDlopsNCHWCConfigList();
@@ -394,8 +395,10 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
         for(size_t i = 0; i < config_list.size(); i++)
         {
             const auto& config = config_list[i];
-            if(!(((ctx.problem.IsFp16() && ctx.problem.vectorLength == 4) && config.precision == "Halfx4") ||
-                 ((ctx.problem.IsFp16() && ctx.problem.vectorLength == 8) && config.precision == "Halfx8")))
+            if(!(((ctx.problem.IsFp16() && ctx.problem.vectorLength == 4) &&
+                  config.precision == "Halfx4") ||
+                 ((ctx.problem.IsFp16() && ctx.problem.vectorLength == 8) &&
+                  config.precision == "Halfx8")))
                 continue;
 
             if(!((ctx.problem.IsNCHWc_NCHWc() && config.tensor_layout == "nchwc_kcyxc") ||
@@ -552,7 +555,8 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionC
     if(!ctx.problem.IsLayoutNCHWC())
         return false;
 
-    if(!(ctx.problem.IsFp16() && ctx.problem.vectorLength == 4) && !(ctx.problem.IsFp16() && ctx.problem.vectorLength == 8))
+    if(!(ctx.problem.IsFp16() && ctx.problem.vectorLength == 4) &&
+       !(ctx.problem.IsFp16() && ctx.problem.vectorLength == 8))
         return false;
 
     if(!ctx.rmv.IsV3())

@@ -2126,9 +2126,11 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
     static int GetSolverWinoXformHWSize(const miopen::ConvolutionContext& ctx, int id)
     {
         if(id == 0)
-            return WinoDataH + (WinoFilterH - 1) * (WinoDataH == 7 ? 2 : ctx.problem.kernel_stride_h);
+            return WinoDataH +
+                   (WinoFilterH - 1) * (WinoDataH == 7 ? 2 : ctx.problem.kernel_stride_h);
         else
-            return WinoDataW + (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : ctx.problem.kernel_stride_w);
+            return WinoDataW +
+                   (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : ctx.problem.kernel_stride_w);
     }
 
 private:

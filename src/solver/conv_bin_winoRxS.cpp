@@ -178,9 +178,11 @@ static inline bool IsShaderContraintsMet(const int R,
     // Padding for bwd data shall not be negative.
     if(params.problem.direction.IsBackwardData() || params.problem.direction.IsBackwardWrW())
     {
-        if(!(0 <= params.problem.GetBackwardPadW() && params.problem.GetBackwardPadW() < std::pow(2, 16)))
+        if(!(0 <= params.problem.GetBackwardPadW() &&
+             params.problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
-        if(!(0 <= params.problem.GetBackwardPadH() && params.problem.GetBackwardPadH() < std::pow(2, 16)))
+        if(!(0 <= params.problem.GetBackwardPadH() &&
+             params.problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
@@ -226,7 +228,8 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW{}))
             return false;
-        if(!(params.problem.IsFp32() && params.problem.kernel_stride_w == 1 && params.problem.kernel_stride_h == 1))
+        if(!(params.problem.IsFp32() && params.problem.kernel_stride_w == 1 &&
+             params.problem.kernel_stride_h == 1))
             return false; // WrW is only for fp32 and no stride for now.
     }
     else
