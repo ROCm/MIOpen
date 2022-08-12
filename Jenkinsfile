@@ -21,13 +21,11 @@ def cmake_build(Map conf=[:]){
     def config_targets = conf.get("config_targets","check")
     def debug_flags = "-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined -Wno-option-ignored " + conf.get("extradebugflags", "")
     def build_envs = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 " + conf.get("build_env","")
-    def prefixpath = conf.get("prefixpath","/usr/local")
+    def prefixpath = conf.get("prefixpath","/opt/rocm")
     def mlir_args = " -DMIOPEN_USE_MLIR=" + conf.get("mlir_build", "ON")
     def setup_args = mlir_args + " -DMIOPEN_GPU_SYNC=Off " + conf.get("setup_flags","")
 
-    if (prefixpath != "/usr/local"){
-        setup_args = setup_args + " -DCMAKE_PREFIX_PATH=${prefixpath} "
-    }
+    setup_args = setup_args + " -DCMAKE_PREFIX_PATH=${prefixpath} "
 
     def build_type_debug = (conf.get("build_type",'release') == 'debug')
 
@@ -115,18 +113,11 @@ def cmake_build(Map conf=[:]){
 def getDockerImageName(prefixpath)
 {
     def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
-    def image = "${env.MIOPEN_IMAGE_URL}:miopen_ci_${branch}"
-    if(prefixpath == "/usr/local")
+    def image = "${env.MIOPEN_IMAGE_URL}"
+    if(params.DOCKER_IMAGE_OVERRIDE != '')
     {
-        image = image + "_usr"
-    }
-    else if(prefixpath == "/opt/rocm")
-    {
-        image = image + "_opt"
-    }
-    else
-    {
-        error "Unknown prefixpath: ${prefixpath}"
+        echo "Overriding the base docker image with ${params.DOCKER_IMAGE_OVERRIDE}"
+        image = "${params.DOCKER_IMAGE_OVERRIDE}"
     }
     return image
 
@@ -134,7 +125,7 @@ def getDockerImageName(prefixpath)
 def getDockerImage(Map conf=[:])
 {
     env.DOCKER_BUILDKIT=1
-    def prefixpath = conf.get("prefixpath", "/usr/local") // one image for each prefix 1: /usr/local 2:/opt/rocm
+    def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
     def gpu_arch = conf.get("gpu_arch", "gfx900;gfx906") // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
     def miotensile_version = conf.get("miotensile_version", "default") // deprecated
     def target_id = conf.get("target_id", "OFF") // deprecated
@@ -313,9 +304,7 @@ def buildDocker(install_prefix)
     }
     catch(Exception ex)
     {
-        echo "Unable to locate image: ${image_name}. Building image now"
-        retimage = docker.build("${image_name}", dockerArgs + ' .')
-        retimage.push()
+        echo "Unable to locate image: ${image_name}."
     }
 }
 
@@ -427,6 +416,9 @@ pipeline {
             name: "DATATYPE_INT8",
             defaultValue: true,
             description: "")
+        string(name: "DOCKER_IMAGE_OVERRIDE",
+            defaultValue: '',
+            description: "")
     }
 
     environment{
@@ -448,12 +440,6 @@ pipeline {
                     agent{ label rocmnode("nogpu") }
                     steps{
                         buildDocker('/opt/rocm')
-                    }
-                }
-                stage('Docker /usr/local'){
-                    agent{ label rocmnode("nogpu") }
-                    steps{
-                        buildDocker('/usr/local')
                     }
                 }
             }
@@ -571,14 +557,14 @@ pipeline {
                         buildHipClangJobAndReboot(compiler: 'g++', config_targets: Smoke_targets, gpu_arch: "gfx90a:xnack-")
                     }
                 }
-                stage('Fp32 Hip /opt/rocm') {
+                stage('Fp32 Hip') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
                     }
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildHipClangJobAndReboot(prefixpath: '/opt/rocm', config_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(config_targets: Smoke_targets)
                     }
                 }
                 stage('Fp32 Hip Debug') {
@@ -601,7 +587,7 @@ pipeline {
                         buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, build_env: extra_log_env, gpu_arch: "gfx1030")
                     }
                 }
-                stage('Fp32 Hip Debug gfx908 /opt/rocm') {
+                stage('Fp32 Hip Debug gfx908') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908 }
@@ -609,13 +595,12 @@ pipeline {
                     agent{ label rocmnode("gfx908") }
                     environment{
                         gpu_arch = "gfx908"
-                        prefixpath = "/opt/rocm"
                     }
                     steps{
-                        buildHipClangJobAndReboot(prefixpath: prefixpath, build_type: 'debug', config_targets: Smoke_targets, gpu_arch: gpu_arch)
+                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets, gpu_arch: gpu_arch)
                     }
                 }
-                stage('Fp32 Hip Debug gfx90a /opt/rocm') {
+                stage('Fp32 Hip Debug gfx90a') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A }
@@ -623,10 +608,9 @@ pipeline {
                     agent{ label rocmnode("gfx90a") }
                     environment{
                         gpu_arch = "gfx90a:xnack-"
-                        prefixpath = "/opt/rocm"
                     }
                     steps{
-                        buildHipClangJobAndReboot(prefixpath: prefixpath, build_type: 'debug', config_targets: Smoke_targets, gpu_arch: gpu_arch)
+                        buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets, gpu_arch: gpu_arch)
                     }
                 }
             }
@@ -738,64 +722,64 @@ pipeline {
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Int8_flags, config_targets: Smoke_targets)
                     }
                 }
-                stage('Fp16 Hip Vega20 /opt/rocm') {
+                stage('Fp16 Hip Vega20') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets)
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, config_targets: Smoke_targets)
                     }
                 }
-                stage('Bf16 Hip Vega20 /opt/rocm') {
+                stage('Bf16 Hip Vega20') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_BF16 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, config_targets: Smoke_targets)
                     }
                 }
-                stage('Fp16 Hip gfx908 /opt/rocm') {
+                stage('Fp16 Hip gfx908') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, config_targets: Smoke_targets, gpu_arch: "gfx908")
                     }
                 }
-                stage('Bf16 Hip gfx908 /opt/rocm') {
+                stage('Bf16 Hip gfx908') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_BF16 }
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx908")
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, config_targets: Smoke_targets, gpu_arch: "gfx908")
                     }
                 }
-                stage('Fp16 Hip gfx90a /opt/rocm') {
+                stage('Fp16 Hip gfx90a') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_FP16 }
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx90a:xnack-")
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, config_targets: Smoke_targets, gpu_arch: "gfx90a:xnack-")
                     }
                 }
-                stage('Bf16 Hip gfx90a /opt/rocm') {
+                stage('Bf16 Hip gfx90a') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_BF16 }
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx90a:xnack-")
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, config_targets: Smoke_targets, gpu_arch: "gfx90a:xnack-")
                     }
                 }
             }
@@ -805,14 +789,14 @@ pipeline {
                 expression { params.BUILD_FULL_TESTS1 }
             }
             parallel{
-                stage('Int8 HIP All Vega20 /opt/rocm') {
+                stage('Int8 HIP All Vega20') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Int8_flags + Full_test, prefixpath: '/opt/rocm')
+                        buildHipClangJobAndReboot( setup_flags: Int8_flags + Full_test)
                     }
                 }
                 stage('Fp32 OpenCL Install All') {
@@ -994,10 +978,10 @@ pipeline {
                         buildHipClangJobAndReboot(compiler: 'g++', package_build: "true", gpu_arch: "gfx900;gfx906;gfx908;gfx90a", needs_gpu:false)
                     }
                 }
-                stage("HIP Package /opt/rocm") {
+                stage("HIP Package") {
                     agent{ label rocmnode("nogpu") }
                     steps{
-                        buildHipClangJobAndReboot( package_build: "true", prefixpath: '/opt/rocm', gpu_arch: "gfx900;gfx906;gfx908;gfx90a", needs_gpu:false)
+                        buildHipClangJobAndReboot( package_build: "true", gpu_arch: "gfx900;gfx906;gfx908;gfx90a", needs_gpu:false)
                     }
                 }
             }
