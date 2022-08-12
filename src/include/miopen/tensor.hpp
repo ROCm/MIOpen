@@ -186,10 +186,10 @@ struct TensorDescriptor : miopenTensorDescriptor
         return this->GetIndex({static_cast<int>(is)...});
     }
 
-    double GetQuantizationScale() const;
-    double GetQuantizationBias() const;
-    void SetQuantizationScale(double quantiScale_);
-    void SetQuantizationBias(double quantiBias_);
+    const double* GetQuantizationScales() const;
+    const double* GetQuantizationBiases() const;
+    void SetQuantizationScales(double* quantScales_, std::size_t len);
+    void SetQuantizationBiases(double* quantBiases_, std::size_t len);
 
     bool IsPacked() const;
 
@@ -257,8 +257,8 @@ private:
     miopenDataType_t type             = miopenFloat;
     miopenTensorLayout_t tensorLayout = miopenTensorNCHW;
 
-    double quantiScale = 1.0;
-    double quantiBias  = 0.0;
+    std::vector<double> quantScales{std::vector<double>(1,1.0f)};
+    std::vector<double> quantBiases{std::vector<double>(1,0.0f)};
 };
 
 template <class TElement>
