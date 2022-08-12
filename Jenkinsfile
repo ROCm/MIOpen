@@ -452,7 +452,7 @@ pipeline {
                 stage('Hip Tidy') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
+                        setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
                         build_cmd = "make -j\$(nproc) -k analyze"
                     }
                     steps{
@@ -462,7 +462,7 @@ pipeline {
                 stage('OpenCL Tidy') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        setup_cmd = "cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On .."
+                        setup_cmd = "cmake -DMIOPEN_BACKEND=OpenCL -DCMAKE_PREFIX_PATH=/opt/rocm -DBUILD_DEV=On .."
                         build_cmd = "make -j\$(nproc) -k analyze"
                     }
                     steps{
@@ -489,7 +489,7 @@ pipeline {
                 stage('Tuna Fin Build Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                      setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
+                      setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON .. "
                       build_cmd = "make -j\$(nproc) "
                     }
                     steps{
