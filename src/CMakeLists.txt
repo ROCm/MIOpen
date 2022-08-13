@@ -689,11 +689,13 @@ endif()
 
 # For backward compatibility, MIOpen is able to link to the libMLIRMIOpen
 # library provided by both old and new MLIR
+# Build with library libMLIRMIOpen
 if(LIBMLIRMIOPEN)
-  # Build with library libMLIRMIOpen
   target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
-else()
-  # Build with package Miir
+endif()
+
+# Build with package Miir
+if(MLIRMIOpen_INCLUDE_DIR)
   target_link_libraries(MIOpen PRIVATE Miir::MLIRMIOpen)
 endif()
 
