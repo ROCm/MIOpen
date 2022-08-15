@@ -265,13 +265,13 @@ const std::vector<double>& TensorDescriptor::GetQuantizationBiases() const
 void TensorDescriptor::SetQuantizationScales(double* quantScales_, std::size_t len)
 {
     this->quantScales.resize(0);
-    this->quantScales.insert(this->quantScales.begin(), quantScales_, quantScales_+len);
+    this->quantScales.insert(this->quantScales.begin(), quantScales_, quantScales_ + len);
 }
 
 void TensorDescriptor::SetQuantizationBiases(double* quantBiases_, std::size_t len)
 {
     this->quantBiases.resize(0);
-    this->quantBiases.insert(this->quantBiases.begin(), quantBiases_, quantBiases_+len);
+    this->quantBiases.insert(this->quantBiases.begin(), quantBiases_, quantBiases_ + len);
 }
 
 bool TensorDescriptor::IsPacked() const { return this->packed; }

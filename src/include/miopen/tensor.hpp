@@ -257,8 +257,8 @@ private:
     miopenDataType_t type             = miopenFloat;
     miopenTensorLayout_t tensorLayout = miopenTensorNCHW;
 
-    std::vector<double> quantScales{std::vector<double>(1,1.0f)};
-    std::vector<double> quantBiases{std::vector<double>(1,0.0f)};
+    std::vector<double> quantScales{std::vector<double>(1, 1.0f)};
+    std::vector<double> quantBiases{std::vector<double>(1, 0.0f)};
 };
 
 template <class TElement>

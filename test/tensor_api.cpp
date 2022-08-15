@@ -71,31 +71,30 @@ int main(int argc, char* argv[])
     CHECK(t_wStride == wStride);
 
     // test get quantization scales/biases APIs (default values)
-    miopen::TensorDescriptor mi_desc = miopen::deref(desc);
     double* default_scales = (double*)malloc(sizeof(double));
-    res = miopenGetQuantizationScales(desc, default_scales);
+    res                    = miopenGetQuantizationScales(desc, default_scales);
     CHECK(res == miopenStatusSuccess);
     CHECK(default_scales[0] == 1.0f);
     double* default_biases = (double*)malloc(sizeof(double));
-    res = miopenGetQuantizationBiases(desc, default_biases);
+    res                    = miopenGetQuantizationBiases(desc, default_biases);
     CHECK(res == miopenStatusSuccess);
     CHECK(default_biases[0] == 0.0f);
     free(default_scales);
     free(default_biases);
 
     // test set quantization scales/biases APIs for multiple values
-    double quantScales[] = {2.0f, 2.5f, 3.625f};   
-    res = miopenSetQuantizationScales(desc, quantScales, 3);
-    mi_desc = miopen::deref(desc);
-    const double* t_scales = &mi_desc.GetQuantizationScales()[0];
+    double quantScales[]             = {2.0f, 2.5f, 3.625f};
+    res                              = miopenSetQuantizationScales(desc, quantScales, 3);
+    miopen::TensorDescriptor mi_desc = miopen::deref(desc);
+    const double* t_scales           = &mi_desc.GetQuantizationScales()[0];
     CHECK(res == miopenStatusSuccess);
     CHECK(t_scales[0] == 2.0f);
     CHECK(t_scales[1] == 2.5f);
     CHECK(t_scales[2] == 3.625f);
 
-    double quantBiases[] = {0.0f, 0.8f, 3.5f};  
-    res = miopenSetQuantizationBiases(desc, quantBiases, 3);
-    mi_desc = miopen::deref(desc);   
+    double quantBiases[]   = {0.0f, 0.8f, 3.5f};
+    res                    = miopenSetQuantizationBiases(desc, quantBiases, 3);
+    mi_desc                = miopen::deref(desc);
     const double* t_biases = &mi_desc.GetQuantizationBiases()[0];
     CHECK(res == miopenStatusSuccess);
     CHECK(t_biases[0] == 0.0f);
