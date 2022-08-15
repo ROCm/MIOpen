@@ -71,16 +71,14 @@ int main(int argc, char* argv[])
     CHECK(t_wStride == wStride);
 
     // test get quantization scales/biases APIs (default values)
-    double* default_scales = (double*)malloc(sizeof(double));
-    res                    = miopenGetQuantizationScales(desc, default_scales);
+    std::array<double, 1> default_scales{};
+    res                    = miopenGetQuantizationScales(desc, default_scales.data());
     CHECK(res == miopenStatusSuccess);
     CHECK(default_scales[0] == 1.0f);
-    double* default_biases = (double*)malloc(sizeof(double));
-    res                    = miopenGetQuantizationBiases(desc, default_biases);
+    std::array<double, 1> default_biases{};
+    res                    = miopenGetQuantizationBiases(desc, default_biases.data());
     CHECK(res == miopenStatusSuccess);
     CHECK(default_biases[0] == 0.0f);
-    free(default_scales);
-    free(default_biases);
 
     // test set quantization scales/biases APIs for multiple values
     double quantScales[]             = {2.0f, 2.5f, 3.625f};
