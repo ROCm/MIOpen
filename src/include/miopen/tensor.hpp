@@ -186,8 +186,8 @@ struct TensorDescriptor : miopenTensorDescriptor
         return this->GetIndex({static_cast<int>(is)...});
     }
 
-    const double* GetQuantizationScales() const;
-    const double* GetQuantizationBiases() const;
+    const std::vector<double>& GetQuantizationScales() const;
+    const std::vector<double>& GetQuantizationBiases() const;
     void SetQuantizationScales(double* quantScales_, std::size_t len);
     void SetQuantizationBiases(double* quantBiases_, std::size_t len);
 

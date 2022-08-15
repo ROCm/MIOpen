@@ -613,7 +613,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetQuantizationBiases(miopenTensorDescriptor_
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetQuantizationScales(miopenTensorDescriptor_t tensorDesc,
-                                                         const double* quantScales);
+                                                         double* quantScales);
 
 /*! @brief Get the quantization scale of tensor descriptor
  *
@@ -623,7 +623,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetQuantizationScales(miopenTensorDescriptor_
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetQuantizationBiases(miopenTensorDescriptor_t tensorDesc,
-                                                         const double* quantBiases);
+                                                         double* quantBiases);
 
 /*! @brief Set shape of 4D tensor
  *

@@ -54,19 +54,31 @@ extern "C" miopenStatus_t miopenSetQuantizationBiases(miopenTensorDescriptor_t t
 }
 
 extern "C" miopenStatus_t miopenGetQuantizationScales(miopenTensorDescriptor_t tensorDesc,
-                                                      const double* quantScales)
+                                                      double* quantScales)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc, quantScales);
-    return miopen::try_(
-        [&] { quantScales = miopen::deref(tensorDesc).GetQuantizationScales(); });
+    return miopen::try_([&] {
+        if(quantScales != nullptr)
+        {
+            std::copy(miopen::deref(tensorDesc).GetQuantizationScales().begin(),
+                      miopen::deref(tensorDesc).GetQuantizationScales().end(),
+                      quantScales);
+        }
+    });
 }
 
 extern "C" miopenStatus_t miopenGetQuantizationBiases(miopenTensorDescriptor_t tensorDesc,
-                                                      const double* quantBiases)
+                                                      double* quantBiases)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc, quantBiases);
-    return miopen::try_(
-        [&] { quantBiases = miopen::deref(tensorDesc).GetQuantizationBiases(); });
+    return miopen::try_([&] {
+        if(quantBiases != nullptr)
+        {
+            std::copy(miopen::deref(tensorDesc).GetQuantizationBiases().begin(),
+                      miopen::deref(tensorDesc).GetQuantizationBiases().end(),
+                      quantBiases);
+        }
+    });
 }
 
 extern "C" miopenStatus_t miopenSet4dTensorDescriptor(

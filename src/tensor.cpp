@@ -252,14 +252,14 @@ std::size_t TensorDescriptor::GetNumBytes() const
     return typesize * this->GetElementSpace();
 }
 
-const double* TensorDescriptor::GetQuantizationScales() const
+const std::vector<double>& TensorDescriptor::GetQuantizationScales() const
 {
-    return &this->quantScales[0];
+    return this->quantScales;
 }
 
-const double* TensorDescriptor::GetQuantizationBiases() const
+const std::vector<double>& TensorDescriptor::GetQuantizationBiases() const
 {
-    return &this->quantBiases[0];
+    return this->quantBiases;
 }
 
 void TensorDescriptor::SetQuantizationScales(double* quantScales_, std::size_t len)
