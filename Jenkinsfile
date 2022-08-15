@@ -866,15 +866,9 @@ pipeline {
                 }
             }
         }
-        stage("Full Tests") {
+        stage("Full Tests I") {
             when {
-                expression { params.BUILD_FULL_TESTS}
-            }
-            environment{
-                WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"
-                // WORKAROUND_ISSUE_1148: "CTEST_PARALLEL_LEVEL=2"
-                // WORKAROUND_SWDEV_290754: "LLVM_PATH=/opt/rocm/llvm"
-                Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
+                expression { params.BUILD_FULL_TESTS1 }
             }
             parallel{
                 stage('Int8 HIP All Vega20 /opt/rocm') {
@@ -968,6 +962,20 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, gpu_arch: "gfx1030")
                     }
                 }
+            }
+        }
+
+        stage("Full Tests II") {
+            when {
+                expression { params.BUILD_FULL_TESTS2 }
+            }
+            environment{
+                WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"
+                // WORKAROUND_ISSUE_1148: "CTEST_PARALLEL_LEVEL=2"
+                // WORKAROUND_SWDEV_290754: "LLVM_PATH=/opt/rocm/llvm"
+                Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
+            }
+            parallel{
                 stage('Fp32 Hip All gfx908') {
                     when {
                         beforeAgent true
