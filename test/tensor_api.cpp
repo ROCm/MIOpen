@@ -72,11 +72,11 @@ int main(int argc, char* argv[])
 
     // test get quantization scales/biases APIs (default values)
     std::array<double, 1> default_scales{};
-    res                    = miopenGetQuantizationScales(desc, default_scales.data());
+    res = miopenGetQuantizationScales(desc, default_scales.data());
     CHECK(res == miopenStatusSuccess);
     CHECK(default_scales[0] == 1.0f);
     std::array<double, 1> default_biases{};
-    res                    = miopenGetQuantizationBiases(desc, default_biases.data());
+    res = miopenGetQuantizationBiases(desc, default_biases.data());
     CHECK(res == miopenStatusSuccess);
     CHECK(default_biases[0] == 0.0f);
 
