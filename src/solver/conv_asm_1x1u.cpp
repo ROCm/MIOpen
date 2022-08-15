@@ -430,14 +430,14 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     }
     /// \todo Ilya: The checks below look adequate but needs to be double-checked.
     {
-        const long input_line_size = 4 * params.problem.in_width;
+        const long input_line_size = 4 * static_cast<long>(params.problem.in_width);
         const long input_feature_map_size = input_line_size * params.problem.in_height;
         const long input_stack_size = input_feature_map_size * params.problem.n_inputs;
         if (! (input_stack_size < (1U << 24)))
             return false;
     }
     {
-        const long output_line_size = 4 * params.problem.out_width;
+        const long output_line_size = 4 * static_cast<long>(params.problem.out_width);
         const long output_feature_map_size = output_line_size * params.problem.out_height;
         const long output_stack_size = output_feature_map_size * params.problem.n_outputs;
         if (! (output_stack_size < (1U << 24)))
