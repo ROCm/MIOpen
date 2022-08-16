@@ -37,7 +37,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
 namespace miopen {
 namespace solver {
 
-bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
+                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2{}))
         return false;
@@ -110,15 +111,16 @@ static inline int AlignUp(int val, unsigned step)
     return static_cast<int>(((static_cast<unsigned>(val) + step - 1) / step) * step);
 }
 
-ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
+ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx,
+                                            const ProblemDescription& problem) const
 {
     ConvSolution result;
-    const int out_w = (problem.in_width + problem.pad_w * 2 +
-                       problem.kernel_stride_w - problem.kernel_size_w) /
-                      problem.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
-    const int out_h = (problem.in_height + problem.pad_h * 2 +
-                       problem.kernel_stride_h - problem.kernel_size_h) /
-                      problem.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
+    const int out_w =
+        (problem.in_width + problem.pad_w * 2 + problem.kernel_stride_w - problem.kernel_size_w) /
+        problem.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
+    const int out_h =
+        (problem.in_height + problem.pad_h * 2 + problem.kernel_stride_h - problem.kernel_size_h) /
+        problem.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
     GenerateClangDefsym(options, "inp_h", problem.in_height);
@@ -139,8 +141,7 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx, const P
 
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
     construction_params.g_wk.push_back(AlignUp(out_w, 64));
-    construction_params.g_wk.push_back(AlignUp(out_h, 4) / 4 *
-                                       AlignUp(problem.n_outputs / 2, 8));
+    construction_params.g_wk.push_back(AlignUp(out_h, 4) / 4 * AlignUp(problem.n_outputs / 2, 8));
     construction_params.g_wk.push_back(problem.batch_sz);
 
     construction_params.kernel_file = "conv5x10u2v2f1.s";
