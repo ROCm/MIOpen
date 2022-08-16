@@ -27,6 +27,8 @@
 
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <cmath>
+#include <limits>
 
 int main(int argc, char* argv[])
 {
@@ -74,11 +76,11 @@ int main(int argc, char* argv[])
     std::array<double, 1> default_scales{};
     res = miopenGetQuantizationScales(desc, default_scales.data());
     CHECK(res == miopenStatusSuccess);
-    CHECK(default_scales[0] == 1.0f);
+    CHECK(std::fabs(default_scales[0] - 1.0f) < std::numeric_limits<double>::epsilon());
     std::array<double, 1> default_biases{};
     res = miopenGetQuantizationBiases(desc, default_biases.data());
     CHECK(res == miopenStatusSuccess);
-    CHECK(default_biases[0] == 0.0f);
+    CHECK(std::fabs(default_biases[0] - 0.0f) < std::numeric_limits<double>::epsilon());
 
     // test set quantization scales/biases APIs for multiple values
     double quantScales[]             = {2.0f, 2.5f, 3.625f};
@@ -86,18 +88,18 @@ int main(int argc, char* argv[])
     miopen::TensorDescriptor mi_desc = miopen::deref(desc);
     const double* t_scales           = &mi_desc.GetQuantizationScales()[0];
     CHECK(res == miopenStatusSuccess);
-    CHECK(t_scales[0] == 2.0f);
-    CHECK(t_scales[1] == 2.5f);
-    CHECK(t_scales[2] == 3.625f);
+    CHECK(std::fabs(t_scales[0] - 2.0f) < std::numeric_limits<double>::epsilon());
+    CHECK(std::fabs(t_scales[1] - 2.5f) < std::numeric_limits<double>::epsilon());
+    CHECK(std::fabs(t_scales[2] - 3.625f) < std::numeric_limits<double>::epsilon());
 
     double quantBiases[]   = {0.0f, 0.8f, 3.5f};
     res                    = miopenSetQuantizationBiases(desc, quantBiases, 3);
     mi_desc                = miopen::deref(desc);
     const double* t_biases = &mi_desc.GetQuantizationBiases()[0];
     CHECK(res == miopenStatusSuccess);
-    CHECK(t_biases[0] == 0.0f);
-    CHECK(t_biases[1] == 0.8f);
-    CHECK(t_biases[2] == 3.5f);
+    CHECK(std::fabs(t_biases[0] - 0.0f) < std::numeric_limits<double>::epsilon());
+    CHECK(std::fabs(t_biases[1] - 0.8f) < std::numeric_limits<double>::epsilon());
+    CHECK(std::fabs(t_biases[2] - 3.5f) < std::numeric_limits<double>::epsilon());
 
     return 0;
 }
