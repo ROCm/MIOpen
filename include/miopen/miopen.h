@@ -587,7 +587,8 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
  *
  * API for setting the quantization scale of tensor descriptor.
  * @param tensorDesc  Pointer to a tensor descriptor type
- * @param quantScales quantization scales
+ * @param quantScales Quantization scales
+ * @param len         Length of quantization scales buffer
  * @return            miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetQuantizationScales(miopenTensorDescriptor_t tensorDesc,
@@ -598,7 +599,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetQuantizationScales(miopenTensorDescriptor_
  *
  * API for setting the quantization bias of tensor descriptor.
  * @param tensorDesc  Pointer to a tensor descriptor type
- * @param quantBiases  quantization biases
+ * @param quantBiases Quantization biases
+ * @param len         Length of quantization biases buffer
  * @return            miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetQuantizationBiases(miopenTensorDescriptor_t tensorDesc,
@@ -609,7 +611,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetQuantizationBiases(miopenTensorDescriptor_
  *
  * Interface for querying tensor quantization scale.
  * @param tensorDesc   Tensor descriptor type (input)
- * @param quantScales  tensor quantization scales (output)
+ * @param quantScales  Tensor quantization scales (output)
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetQuantizationScales(miopenTensorDescriptor_t tensorDesc,
@@ -619,7 +621,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetQuantizationScales(miopenTensorDescriptor_
  *
  * Interface for querying tensor quantization Bias.
  * @param tensorDesc   Tensor descriptor type (input)
- * @param quantBiases   tensor quantization biases (output)
+ * @param quantBiases  Tensor quantization biases (output)
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetQuantizationBiases(miopenTensorDescriptor_t tensorDesc,
@@ -2886,8 +2888,10 @@ MIOPEN_EXPORT miopenStatus_t miopenFusionPlanGetOp(miopenFusionPlanDescriptor_t 
 
 /*! @brief Query the workspace size required for the fusion plan
  *
+ * @param handle         MIOpen handle
  * @param fusePlanDesc   A fusion plan descriptor (input)
  * @param workSpaceSize  Pointer to memory to return size in bytes (output)
+ * @param algo           MIOpen convolution forward algorithm
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
