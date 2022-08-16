@@ -548,12 +548,12 @@ pipeline {
                stage('Fp32 OpenCL Debug + Codecov') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega || gfx908") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, codecov: true)
                     }
@@ -561,7 +561,7 @@ pipeline {
                 stage('Fp32 OpenCL gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908  && params.OPENCL_BACKEND}
+                        expression { params.TARGET_GFX908 && params.OPENCL_BACKEND}
                     }
                     options {
                         retry(2)
@@ -587,12 +587,12 @@ pipeline {
                 stage('Fp32 Hip /opt/rocm') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega || gfx908") }
                     steps{
                         buildHipClangJobAndReboot(prefixpath: '/opt/rocm', config_targets: Smoke_targets)
                     }
@@ -600,12 +600,12 @@ pipeline {
                 stage('Fp32 Hip Debug') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega || gfx908") }
                     steps{
                         buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
                     }
@@ -667,12 +667,12 @@ pipeline {
                 stage('Fp32 Hip Debug NOCOMGR') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega || gfx908") }
                     environment{
                         // Can be removed altogether with when WORKAROUND_SWDEV_290754.
                         NOCOMGR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
@@ -700,12 +700,12 @@ pipeline {
                 stage('Fp32 Hip Static') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega || gfx908") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF')
                     }
@@ -713,12 +713,12 @@ pipeline {
                 stage('Fp32 Hip Normal-Find') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega || gfx908") }
                     environment{
                         config_targets = "test_conv2d"
                         execute_cmd = "MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
@@ -730,12 +730,12 @@ pipeline {
                 stage('Fp32 Hip Fast-Find') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega || gfx908") }
                     environment{
                         config_targets =   "test_conv2d"
                         execute_cmd = "MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4  MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
@@ -747,12 +747,12 @@ pipeline {
                 stage('Fp32 Hip') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega") }
+                    agent{ label rocmnode("vega || gfx908") }
                     steps{
                         buildHipClangJobAndReboot()
                     }
