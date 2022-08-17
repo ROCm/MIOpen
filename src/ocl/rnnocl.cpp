@@ -257,22 +257,24 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             }
             else
             {
-                miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
-                                                                  false,
-                                                                  true,
-                                                                  batch_n,
-                                                                  wei_len * bi,
-                                                                  in_h,
-                                                                  in_stride,
-                                                                  in_stride,
-                                                                  hy_stride,
-                                                                  1, // batch count
-                                                                  0, // Stride A
-                                                                  0, // Stride B
-                                                                  0, // Stride C
-                                                                  1, // alpha
-                                                                  1, // beta
-                                                                  xDesc[0].GetType()};
+                miopen::GemmDescriptor gemm_desc =
+                    GemmDescriptor{false,
+                                   false,
+                                   true,
+                                   batch_n,
+                                   wei_len * bi,
+                                   in_h,
+                                   in_stride,
+                                   in_stride,
+                                   hy_stride,
+                                   1, // batch count
+                                   0, // Stride A
+                                   0, // Stride B
+                                   0, // Stride C
+                                   1, // alpha
+                                   1, // beta
+                                   xDesc[0].GetType(),
+                                   false}; // RNN does not support determinism
 
                 miopenStatus_t gemm_status = CallGemm(handle,
                                                       gemm_desc,
@@ -320,7 +322,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                               0, // Stride C
                                                               1, // alpha
                                                               1, // beta
-                                                              xDesc[0].GetType()};
+                                                              xDesc[0].GetType(),
+                                                              false};
             miopenStatus_t gemm_status       = CallGemm(handle,
                                                   gemm_desc,
                                                   workSpace,
@@ -583,7 +586,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              xDesc[0].GetType()};
+                                                                              xDesc[0].GetType(),
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -632,7 +636,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                0, // Stride C
                                                1, // alpha
                                                1, // beta
-                                               xDesc[0].GetType()};
+                                               xDesc[0].GetType(),
+                                               false};
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
                                          gemm_desc,
@@ -678,7 +683,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              xDesc[0].GetType()};
+                                                                              xDesc[0].GetType(),
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -1502,7 +1508,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                                   0, // Stride C
                                                                   1, // alpha
                                                                   1, // beta
-                                                                  xDesc[0].GetType()};
+                                                                  xDesc[0].GetType(),
+                                                                  false};
 
                 miopenStatus_t gemm_status = CallGemm(handle,
                                                       gemm_desc,
@@ -1594,7 +1601,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                               0, // Stride C
                                                               1, // alpha
                                                               1, // beta
-                                                              xDesc[0].GetType()};
+                                                              xDesc[0].GetType(),
+                                                              false};
 
             miopenStatus_t gemm_status = CallGemm(handle,
                                                   gemm_desc,
@@ -1858,7 +1866,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              xDesc[0].GetType()};
+                                                                              xDesc[0].GetType(),
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -1907,7 +1916,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                0, // Stride C
                                                1, // alpha
                                                1, // beta
-                                               xDesc[0].GetType()};
+                                               xDesc[0].GetType(),
+                                               false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -1954,7 +1964,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              xDesc[0].GetType()};
+                                                                              xDesc[0].GetType(),
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -2813,7 +2824,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                               0, // Stride C
                                                               1, // alpha
                                                               1, // beta
-                                                              yDesc[0].GetType()};
+                                                              yDesc[0].GetType(),
+                                                              false};
 
             miopenStatus_t gemm_status = CallGemm(handle,
                                                   gemm_desc,
@@ -3043,7 +3055,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              yDesc[0].GetType()};
+                                                                              yDesc[0].GetType(),
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -3827,7 +3840,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                    0, // Stride C
                                                    1, // alpha
                                                    0, // beta
-                                                   yDesc[0].GetType()};
+                                                   yDesc[0].GetType(),
+                                                   false};
 
                                 miopenStatus_t gemm_status = CallGemm(
                                     handle,
@@ -3895,7 +3909,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                0, // Stride C
                                                1, // alpha
                                                1, // beta
-                                               yDesc[0].GetType()};
+                                               yDesc[0].GetType(),
+                                               false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -4028,7 +4043,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                           0, // Stride C
                                                           1, // alpha
                                                           0, // beta
-                                                          yDesc[0].GetType()};
+                                                          yDesc[0].GetType(),
+                                                          false};
         miopenStatus_t gemm_status       = CallGemm(
             handle, gemm_desc, workSpace, 0, w, 0, dx, 0, nullptr, GemmBackend_t::miopengemm);
         if(gemm_status != miopenStatusSuccess)
@@ -4231,7 +4247,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                                   0, // Stride C
                                                                   1, // alpha
                                                                   1, // beta
-                                                                  xDesc[0].GetType()};
+                                                                  xDesc[0].GetType(),
+                                                                  false};
 
                 miopenStatus_t gemm_status = CallGemm(handle,
                                                       gemm_desc,
@@ -4284,7 +4301,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                               0, // Stride C
                                                               1, // alpha
                                                               1, // beta
-                                                              xDesc[0].GetType()};
+                                                              xDesc[0].GetType(),
+                                                              false};
 
             miopenStatus_t gemm_status = CallGemm(handle,
                                                   gemm_desc,
@@ -4531,7 +4549,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                                       0, // Stride C
                                                                       1, // alpha
                                                                       1, // beta
-                                                                      xDesc[0].GetType()};
+                                                                      xDesc[0].GetType(),
+                                                                      false};
 
                     miopenStatus_t gemm_status = CallGemm(handle,
                                                           gemm_desc,
@@ -4583,7 +4602,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                            0, // Stride C
                                            1, // alpha
                                            1, // beta
-                                           xDesc[0].GetType()};
+                                           xDesc[0].GetType(),
+                                           false};
 
                         miopenStatus_t gemm_status =
                             CallGemm(handle,
@@ -4635,7 +4655,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        0, // Stride C
                                        1, // alpha
                                        1, // beta
-                                       xDesc[0].GetType()};
+                                       xDesc[0].GetType(),
+                                       false};
 
                     miopenStatus_t gemm_status = CallGemm(handle,
                                                           gemm_desc,
@@ -4712,7 +4733,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                    0, // Stride C
                                                    1, // alpha
                                                    1, // beta
-                                                   xDesc[0].GetType()};
+                                                   xDesc[0].GetType(),
+                                                   false};
 
                                 miopenStatus_t gemm_status =
                                     CallGemm(handle,
@@ -4764,7 +4786,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                    0, // Stride C
                                                    1, // alpha
                                                    1, // beta
-                                                   xDesc[0].GetType()};
+                                                   xDesc[0].GetType(),
+                                                   false};
 
                                 miopenStatus_t gemm_status = CallGemm(
                                     handle,
@@ -4814,7 +4837,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                    0, // Stride C
                                                    1, // alpha
                                                    1, // beta
-                                                   xDesc[0].GetType()};
+                                                   xDesc[0].GetType(),
+                                                   false};
 
                                 miopenStatus_t gemm_status =
                                     CallGemm(handle,
