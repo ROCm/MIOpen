@@ -32,7 +32,6 @@
 #include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/bfloat16.hpp>
-#include <miopen/mlo_utils.hpp>
 #include <miopen/visit_float.hpp>
 
 #include <algorithm>
@@ -429,14 +428,6 @@ void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(const Convolu
         n_out_channels_per_tile = 1;
     n_out_channels_tiles = 1;
     n_out_rows_in_lcl    = params.kernel_size_h;
-}
-
-template <int N_BATCH_LOOPS>
-std::string PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::ToString() const
-{
-    std::ostringstream ss;
-    ss << (*this);
-    return ss.str();
 }
 
 template <int N_BATCH_LOOPS>
