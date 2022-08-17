@@ -531,7 +531,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
             return false;
 #if !WORKAROUND_ISSUE_1681
-        if(params.group_counts == 1)
+        if(params.problem.group_counts == 1)
             return false;
 #endif
     }
@@ -539,7 +539,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
             return false;
-        if(params.kernel_stride_w == 2) // f3x2 stride 2 not implemented yet
+        if(params.problem.kernel_stride_w == 2) // f3x2 stride 2 not implemented yet
             return false;
     }
     return IsApplicableBase(params);
