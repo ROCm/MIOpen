@@ -659,6 +659,8 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     )
     set_tests_properties(test_miopendriver_big_tensor
         PROPERTIES RUN_SERIAL On)
+    set_tests_properties(test_miopendriver_big_tensor
+        PROPERTIES TIMEOUT 600) 
 endif()
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
