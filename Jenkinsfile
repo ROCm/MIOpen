@@ -227,7 +227,7 @@ def buildHipClangJob(Map conf=[:]){
             }
 
             withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
-                timeout(time: 5, unit: 'HOURS')
+                timeout(time: 150, unit:'MINUTES')
                 {
                     cmake_build(conf)
 
@@ -372,12 +372,12 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "BUILD_FULL_TESTS1",
+            name: "BUILD_FULL_TESTS",
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "BUILD_FULL_TESTS2",
-            defaultValue: true,
+            name: "BUILD_FULL_TESTS_OCL",
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_PACKAGES",
@@ -427,6 +427,10 @@ pipeline {
             name: "DATATYPE_INT8",
             defaultValue: true,
             description: "")
+        booleanParam(
+            name: "OPENCL_BACKEND",
+            defaultValue: false,
+            description: "Enable OpenCL backend stages")
     }
 
     environment{
@@ -544,9 +548,12 @@ pipeline {
                stage('Fp32 OpenCL Debug + Codecov') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
-                    agent{ label rocmnode("vega") }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("vega || gfx908") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, codecov: true)
                     }
@@ -554,7 +561,10 @@ pipeline {
                 stage('Fp32 OpenCL gfx908') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX908 }
+                        expression { params.TARGET_GFX908 && params.OPENCL_BACKEND}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -564,7 +574,10 @@ pipeline {
                 stage('Fp32 OpenCL gfx90a') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX90A }
+                        expression { params.TARGET_GFX90A && params.OPENCL_BACKEND}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -574,9 +587,12 @@ pipeline {
                 stage('Fp32 Hip /opt/rocm') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
-                    agent{ label rocmnode("vega") }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("vega || gfx908") }
                     steps{
                         buildHipClangJobAndReboot(prefixpath: '/opt/rocm', config_targets: Smoke_targets)
                     }
@@ -584,9 +600,12 @@ pipeline {
                 stage('Fp32 Hip Debug') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
-                    agent{ label rocmnode("vega") }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("vega || gfx908") }
                     steps{
                         buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
                     }
@@ -594,7 +613,10 @@ pipeline {
                 stage('Fp32 OpenCL Debug gfx1030') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_NAVI21 }
+                        expression { params.TARGET_NAVI21 && params.OPENCL_BACKEND}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
@@ -605,6 +627,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx908") }
                     environment{
@@ -619,6 +644,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     environment{
@@ -639,9 +667,12 @@ pipeline {
                 stage('Fp32 Hip Debug NOCOMGR') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
-                    agent{ label rocmnode("vega") }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("vega || gfx908") }
                     environment{
                         // Can be removed altogether with when WORKAROUND_SWDEV_290754.
                         NOCOMGR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
@@ -655,6 +686,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega20") }
                     environment{
                         Embedded_flags = "-DMIOPEN_EMBED_DB='gfx906_60'"
@@ -666,9 +700,12 @@ pipeline {
                 stage('Fp32 Hip Static') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
-                    agent{ label rocmnode("vega") }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("vega || gfx908") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF')
                     }
@@ -676,9 +713,12 @@ pipeline {
                 stage('Fp32 Hip Normal-Find') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
-                    agent{ label rocmnode("vega") }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("vega || gfx908") }
                     environment{
                         config_targets = "test_conv2d"
                         execute_cmd = "MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
@@ -690,9 +730,12 @@ pipeline {
                 stage('Fp32 Hip Fast-Find') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
-                    agent{ label rocmnode("vega") }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("vega || gfx908") }
                     environment{
                         config_targets =   "test_conv2d"
                         execute_cmd = "MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4  MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
@@ -704,9 +747,12 @@ pipeline {
                 stage('Fp32 Hip') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
                     }
-                    agent{ label rocmnode("vega") }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("vega || gfx908") }
                     steps{
                         buildHipClangJobAndReboot()
                     }
@@ -721,7 +767,10 @@ pipeline {
                 stage('Fp16 OpenCL Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 && params.OPENCL_BACKEND}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -731,7 +780,10 @@ pipeline {
                 stage('Int8 OpenCL Vega20') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
+                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 && params.OPENCL_BACKEND}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -743,6 +795,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets)
@@ -752,6 +807,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_BF16 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
@@ -763,6 +821,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx908")
@@ -772,6 +833,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_BF16 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -783,6 +847,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_FP16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Fp16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx90a:xnack-")
@@ -793,6 +860,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_BF16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Bf16_flags, prefixpath: '/opt/rocm', config_targets: Smoke_targets, gpu_arch: "gfx90a:xnack-")
@@ -800,9 +870,15 @@ pipeline {
                 }
             }
         }
-        stage("Full Tests I") {
+        stage("Full Tests") {
             when {
-                expression { params.BUILD_FULL_TESTS1 }
+                expression { params.BUILD_FULL_TESTS}
+            }
+            environment{
+                WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"
+                // WORKAROUND_ISSUE_1148: "CTEST_PARALLEL_LEVEL=2"
+                // WORKAROUND_SWDEV_290754: "LLVM_PATH=/opt/rocm/llvm"
+                Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
             }
             parallel{
                 stage('Int8 HIP All Vega20 /opt/rocm') {
@@ -810,25 +886,21 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Int8_flags + Full_test, prefixpath: '/opt/rocm')
-                    }
-                }
-                stage('Fp32 OpenCL Install All') {
-                    when {
-                        beforeAgent true
-                        expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("vega") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true")
                     }
                 }
                 stage('Bf16 Hip Install All gfx908') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_BF16 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -840,29 +912,12 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_BF16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", gpu_arch: "gfx90a:xnack-")
-                    }
-                }
-                stage('Fp32 OpenCL All gfx908') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("gfx908") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, gpu_arch: "gfx908")
-                    }
-                }
-                stage('Fp32 OpenCL Install All gfx90a') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("gfx90a") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true", gpu_arch: "gfx90a:xnack-")
                     }
                 }
                 stage('Fp16 Hip All gfx1030') {
@@ -870,29 +925,21 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_NAVI21 && params.DATATYPE_FP16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("navi21") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, gpu_arch: "gfx1030")
                     }
                 }
-            }
-        }
-
-        stage("Full Tests II") {
-            when {
-                expression { params.BUILD_FULL_TESTS2 }
-            }
-            environment{
-                WORKAROUND_iGemm_936 = " MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0"
-                // WORKAROUND_ISSUE_1148: "CTEST_PARALLEL_LEVEL=2"
-                // WORKAROUND_SWDEV_290754: "LLVM_PATH=/opt/rocm/llvm"
-                Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
-            }
-            parallel{
                 stage('Fp32 Hip All gfx908') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_FP32 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
@@ -903,6 +950,9 @@ pipeline {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -925,6 +975,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true")
@@ -935,25 +988,21 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_VEGA20 && params.DATATYPE_FP32 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: Full_test)
-                    }
-                }
-                stage('Fp32 OpenCL All gfx1030') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("navi21") }
-                    steps{
-                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_cmd: Navi21_build_cmd, gpu_arch: "gfx1030")
                     }
                 }
                 stage('Fp32 Hip All Install gfx1030') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_NAVI21 && params.DATATYPE_FP32 }
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("navi21") }
                     steps{
@@ -965,6 +1014,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX908 && params.DATATYPE_FP16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx908") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx908")
@@ -975,6 +1027,9 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_FP16 }
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_env: WORKAROUND_iGemm_936, build_install: "true", gpu_arch: "gfx90a:xnack-")
@@ -982,7 +1037,68 @@ pipeline {
                 }
             }
         }
-
+        stage("Full Tests - OpenCL") {
+            when {
+                expression { params.BUILD_FULL_TESTS_OCL}
+            }
+            environment{
+                Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
+            }
+            parallel{
+                stage('Fp32 OpenCL Install All') {
+                    when {
+                        beforeAgent true
+                        expression { (params.TARGET_VEGA20 || params.TARGET_VEGA10) && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("vega") }
+                    steps{
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true")
+                    }
+                }
+                stage('Fp32 OpenCL All gfx908') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908 && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, gpu_arch: "gfx908")
+                    }
+                }
+                stage('Fp32 OpenCL All gfx1030') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("navi21") }
+                    steps{
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_cmd: Navi21_build_cmd, gpu_arch: "gfx1030")
+                    }
+                }
+                stage('Fp32 OpenCL Install All gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A && params.DATATYPE_FP32 && params.OPENCL_BACKEND}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Full_test, build_install: "true", gpu_arch: "gfx90a:xnack-")
+                    }
+                }
+            }
+        }
         stage("Packages") {
             when {
                 expression { params.BUILD_PACKAGES && params.TARGET_NOGPU && params.DATATYPE_NA }
