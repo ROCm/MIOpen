@@ -41,6 +41,17 @@
 
 #include <tuple>
 
+// ConvBinWinoRxS<2,3> is intended to handle group convolutions, but
+// it is able to work with non-group convolutions and shows quite good performance,
+// comparable with ConvBinWinogradRxSf2x3g1. Due to the issue in #1533 (fixed in #1634)
+// AND some inaccuracy (jitter) of benchmarking, it is often shows the "best" performance
+// with non-group convolutions, and therefore unexpected records where ConvBinWinoRxS<2,3>
+// is the "best" leaked into find-db. That is why disabling ConvBinWinoRxS<2,3> for non-group
+// convolutions leads to performance drops. Let's enable ConvBinWinoRxS<2,3> for non-group
+// in order to quickly W/A the perf issue. When find-db fix is ready,
+// we will keep ConvBinWinoRxS<2,3> for group convolutions only.
+#define WORKAROUND_ISSUE_1681 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
@@ -513,14 +524,22 @@ static bool IsApplicableBase(const ConvolutionContext& params)
 template <int Winodata, int Winofilter>
 bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& params) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}) && IS2X3)
-        return false;
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}) && IS3X2)
-        return false;
-    if(IS3X2 && params.kernel_stride_w == 2) // f3x2 stride 2 not implemented yet
-        return false;
-    if(IS2X3 && params.group_counts == 1)
-        return false;
+    if(IS2X3)
+    {
+        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
+            return false;
+#if !WORKAROUND_ISSUE_1681
+        if(params.group_counts == 1)
+            return false;
+#endif
+    }
+    if(IS3X2)
+    {
+        if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
+            return false;
+        if(params.kernel_stride_w == 2) // f3x2 stride 2 not implemented yet
+            return false;
+    }
     return IsApplicableBase(params);
 }
 
