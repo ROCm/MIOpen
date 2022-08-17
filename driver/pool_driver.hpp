@@ -45,7 +45,7 @@
 template <typename Tgpu, typename Tref, typename Index>
 class PoolDriver_impl : public Driver
 {
-    public:
+public:
     PoolDriver_impl() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -87,7 +87,7 @@ class PoolDriver_impl : public Driver
         miopenDestroyPoolingDescriptor(poolDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;
@@ -595,7 +595,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyForward()
         spatial_dim == 3 ? 1 : inflags.GetValueInt("index_position"));
 
     printf(match ? "Forward Pooling Verifies on CPU and GPU\n"
-                 : "Forward Pooling Verification Failed !!\n");
+                 : "Forward Pooling verification FAILED !!\n");
 
     return 0;
 }
@@ -707,26 +707,12 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyBackward()
                                           windowWidth,
                                           pad_w,
                                           stride_w,
+                                          dInputTensor,
+                                          dOutputTensor,
                                           // host output
                                           dinhost.data(),
                                           dout.data(),
-                                          maskhost.data(),
-                                          ndInStride,
-                                          cdInStride,
-                                          ddInStride,
-                                          hdInStride,
-                                          wIn,
-                                          hIn,
-                                          dIn,
-                                          cOut,
-                                          nOut,
-                                          ndOutStride,
-                                          cdOutStride,
-                                          ddOutStride,
-                                          hdOutStride,
-                                          wOut,
-                                          hOut,
-                                          dOut);
+                                          maskhost.data());
 
     bool match            = true;
     const Tref allowedEps = (1 << 2);
@@ -734,20 +720,8 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyBackward()
     Tref max_abs_diff     = 1. / 1000000; // 100000000;
     bool get_error_pos    = true;
 
-    match = mloVerify<Tgpu, Tref>(spatial_dim,
-                                  nIn,
-                                  cIn,
-                                  dIn,
-                                  hIn,
-                                  wIn,
-                                  ndInStride,
-                                  cdInStride,
-                                  ddInStride,
-                                  hdInStride,
-                                  ndInStride,
-                                  cdInStride,
-                                  ddInStride,
-                                  hdInStride,
+    match = mloVerify<Tgpu, Tref>(dInputTensor,
+                                  dInputTensor,
                                   dinhost.data(),
                                   din.data(),
                                   allowedEps,
@@ -764,7 +738,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::VerifyBackward()
 template <typename Tgpu, typename Tref>
 class PoolDriver : public Driver
 {
-    public:
+public:
     PoolDriver() : Driver(), pool_driver_impl(nullptr) {}
 
     int AddCmdLineArgs() override
@@ -809,7 +783,7 @@ class PoolDriver : public Driver
     int RunBackwardGPU() override { return pool_driver_impl->RunBackwardGPU(); }
     int VerifyBackward() override { return pool_driver_impl->VerifyBackward(); }
 
-    private:
+private:
     Driver* pool_driver_impl;
 
     PoolDriver_impl<Tgpu, Tref, uint8_t> pool_driver_impl_uint8;

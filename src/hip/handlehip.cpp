@@ -45,9 +45,7 @@
 #endif
 
 #include <boost/filesystem.hpp>
-#include <miopen/handle_lock.hpp>
 #include <miopen/load_file.hpp>
-#include <miopen/gemm_geometry.hpp>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -58,30 +56,19 @@
 #include <chrono>
 #include <thread>
 
-#define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS)
+#define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30 \
+    (MIOPEN_USE_COMGR && BUILD_SHARED_LIBS && (HIP_PACKAGE_VERSION_FLAT < 4003000000ULL))
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_CU)
 
 namespace miopen {
 
-#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30
 namespace {
+
+#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_30
 void toCallHipInit() __attribute__((constructor(1000)));
 void toCallHipInit() { hipInit(0); }
-} // namespace
 #endif
-
-// Get current context
-// We leak resources for now as there is no hipCtxRetain API
-hipCtx_t get_ctx()
-{
-    hipInit(0);
-    hipCtx_t ctx;
-    auto status = hipCtxGetCurrent(&ctx);
-    if(status != hipSuccess)
-        MIOPEN_THROW("No device");
-    return ctx;
-}
 
 std::size_t GetAvailableMemory()
 {
@@ -126,13 +113,7 @@ void set_device(int id)
         MIOPEN_THROW("Error setting device");
 }
 
-void set_ctx(hipCtx_t ctx)
-{
-    auto status = hipCtxSetCurrent(ctx);
-    if(status != hipSuccess)
-        MIOPEN_THROW("Error setting context");
-}
-
+#if MIOPEN_BUILD_DEV
 int set_default_device()
 {
     int n;
@@ -145,13 +126,16 @@ int set_default_device()
     set_device(pid % n);
     return (pid % n);
 }
+#endif
+
+} // namespace
 
 struct HandleImpl
 {
     // typedef MIOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
     using StreamPtr = std::shared_ptr<typename std::remove_pointer<hipStream_t>::type>;
 
-    HandleImpl() : ctx(get_ctx()) {}
+    HandleImpl() { hipInit(0); }
 
     StreamPtr create_stream()
     {
@@ -176,14 +160,7 @@ struct HandleImpl
             &HandleImpl::elapsed_time, this, std::placeholders::_1, std::placeholders::_2);
     }
 
-    void set_ctx() const
-    {
-        miopen::set_ctx(this->ctx);
-        // miopen::set_device(this->device);
-        // Check device matches
-        if(this->device != get_device_id())
-            MIOPEN_THROW("Running handle on wrong device");
-    }
+    void set_ctx() const { miopen::set_device(this->device); }
 
     std::string get_device_name() const
     {
@@ -204,14 +181,12 @@ struct HandleImpl
     int device             = -1;
     Allocator allocator{};
     KernelCache cache;
-    hipCtx_t ctx;
     TargetProperties target_properties;
 };
 
-Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
+Handle::Handle(miopenAcceleratorQueue_t stream) : impl(std::make_unique<HandleImpl>())
 {
     this->impl->device = get_device_id();
-    this->impl->ctx    = get_ctx();
 
     if(stream == nullptr)
         this->impl->stream = HandleImpl::reference_stream(nullptr);
@@ -227,15 +202,13 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
     MIOPEN_LOG_NQI(*this);
 }
 
-Handle::Handle() : impl(new HandleImpl())
+Handle::Handle() : impl(std::make_unique<HandleImpl>())
 {
 #if MIOPEN_BUILD_DEV
     this->impl->device = set_default_device();
-    this->impl->ctx    = get_ctx();
     this->impl->stream = impl->create_stream();
 #else
     this->impl->device = get_device_id();
-    this->impl->ctx = get_ctx();
     this->impl->stream = HandleImpl::reference_stream(nullptr);
 #endif
     this->SetAllocator(nullptr, nullptr, nullptr);

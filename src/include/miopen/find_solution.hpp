@@ -53,7 +53,7 @@ auto FindSolutionImpl(
     if(context.disable_perfdb_access)
     {
         MIOPEN_LOG_I(s.SolverDbId() << " (db access disabled)");
-        return s.GetSolution(context, s.GetPerformanceConfig(context));
+        return s.GetSolution(context, s.GetDefaultPerformanceConfig(context));
     }
     MIOPEN_LOG_I(s.SolverDbId());
     if(enforce.IsDbClean(context))
@@ -63,13 +63,14 @@ auto FindSolutionImpl(
     }
     else
     {
-        if((context.do_search || enforce.IsSearch(context)) && enforce.IsDbUpdate(context))
+        if((context.do_search || enforce.IsSearch(context)) &&
+           (context.db_update || enforce.IsDbUpdate(context)))
         {
             MIOPEN_LOG_W("Perf Db: load skipped: " << s.SolverDbId() << ", enforce: " << enforce);
         }
         else
         {
-            using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
+            using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
             PerformanceConfig config{};
             if(db.Load(context, s.SolverDbId(), config))
             {
@@ -103,7 +104,7 @@ auto FindSolutionImpl(
         }
     }
 
-    return s.GetSolution(context, s.GetPerformanceConfig(context));
+    return s.GetSolution(context, s.GetDefaultPerformanceConfig(context));
 }
 
 template <class Solver, class Context, class Db>
@@ -158,9 +159,13 @@ struct SolverContainer
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
                 else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
+                }
                 else if(!solver.IsApplicable(search_params))
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
+                }
                 else
                 {
                     const Solution s = FindSolution(solver, search_params, db, invoke_ctx);

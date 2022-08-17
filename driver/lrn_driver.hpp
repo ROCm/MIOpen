@@ -45,7 +45,7 @@
 template <typename Tgpu, typename Tref>
 class LRNDriver : public Driver
 {
-    public:
+public:
     LRNDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
@@ -86,7 +86,7 @@ class LRNDriver : public Driver
         miopenDestroyLRNDescriptor(lrnDesc);
     }
 
-    private:
+private:
     InputFlags inflags;
 
     miopenTensorDescriptor_t inputTensor;
@@ -265,7 +265,7 @@ int LRNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
     }
 
     Tgpu Data_scale = static_cast<Tgpu>(0.001);
@@ -474,9 +474,10 @@ int LRNDriver<Tgpu, Tref>::VerifyForward()
 
     auto error           = miopen::rms_range(outhost, out);
     const Tref tolerance = 1.5e-4; // 1e-6;
-    if(!(error < tolerance))
+
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward LRN Failed: " << error << "\n";
+        std::cout << "Forward LRN FAILED: " << error << std::endl;
     }
     else
     {
@@ -569,9 +570,10 @@ int LRNDriver<Tgpu, Tref>::VerifyBackward()
 
     auto error           = miopen::rms_range(dinhost, din);
     const Tref tolerance = 6.0e-5;
-    if(!(error < tolerance))
+
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Backward LRN Failed: " << error << "\n";
+        std::cout << "Backward LRN FAILED: " << error << std::endl;
     }
     else
     {

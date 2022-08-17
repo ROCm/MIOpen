@@ -39,6 +39,7 @@
 
 #define WORKAROUND_ISSUE_532 1 // ConvAsmBwdWrW3x3 has precision issues with some PerformanceConfigs
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
+#define WORKAROUND_SWDEV_330460 1 // ConvAsmBwdWrw3x3 has precision issues on MI200
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED)
@@ -111,8 +112,8 @@ PerformanceConfigAsmDirect3x3WrW::PerformanceConfigAsmDirect3x3WrW(
 {
 }
 
-inline bool
-PerformanceConfigAsmDirect3x3WrW::operator==(const PerformanceConfigAsmDirect3x3WrW& other) const
+bool PerformanceConfigAsmDirect3x3WrW::operator==(
+    const PerformanceConfigAsmDirect3x3WrW& other) const
 {
     // clang-format off
     return limit_wave_cnt == other.limit_wave_cnt
@@ -315,15 +316,8 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& c
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConfigAsmDirect3x3WrW
-ConvAsmBwdWrW3x3::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvAsmBwdWrW3x3::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigAsmDirect3x3WrW pp;
     pp.HeuristicInit(params);
@@ -370,6 +364,12 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 
     if(name == "gfx90a" && params.conv_problem.IsGfx90aFp16altRequired())
         return false;
+
+#if WORKAROUND_SWDEV_330460
+    if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3{}) && name == "gfx90a" &&
+       params.IsFp32())
+        return false;
+#endif
 
     // clang-format off
     bool ok = params.pad_w == 1           // -q  pad_w
@@ -421,8 +421,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 }
 
 ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfigAsmDirect3x3WrW& config,
-                                           const bool disableConfigOverrideFromEnv) const
+                                           const PerformanceConfigAsmDirect3x3WrW& config) const
 {
     ConvSolution result;
     std::ostringstream options;
@@ -444,8 +443,8 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
     // Perf tune:
     const PerformanceConfigAsmDirect3x3WrW* pcfg = &config;
+
     PerformanceConfigAsmDirect3x3WrW fromEnv;
-    if(!disableConfigOverrideFromEnv)
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS{});
@@ -468,6 +467,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
             }
         }
     }
+
     GenerateClangDefsym(options, "limit_wave_cnt", pcfg->GetLimitWaveCnt());
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "c_per_wave", pcfg->GetCPerWave());
@@ -512,7 +512,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     kernel.kernel_name = "miopenGcnAsmConv3x3WrW";
 
     result.construction_params.push_back(kernel);
-    result.workspce_sz = 0;
+    result.workspace_sz = 0;
 
     int N, C, H, W, K, n_groups;
     GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);

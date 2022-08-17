@@ -231,13 +231,6 @@ void PerformanceImplicitGemmBwdV1R1Xdlops::HeuristicInit(const ConvolutionContex
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceImplicitGemmBwdV1R1Xdlops::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 std::tuple<int, bool> PerformanceImplicitGemmBwdV1R1Xdlops::CalculateBlockSize() const
 {
     int block_size = 0;
@@ -343,6 +336,7 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmABlockCopyPerformanceParamete
         // vector write into LDS
         DstDataPerWrite_GemmKPack = gcd(DstDataPerWrite_GemmKPack, data_per_thread_copy_gemmkpack);
 
+        // NOLINTNEXTLINE
         if(!(GemmKPerBlock % data_per_thread_copy_gemmk == 0 &&
              GemmMPerBlock % data_per_thread_copy_gemmm == 0 &&
              GemmKPack % data_per_thread_copy_gemmkpack == 0))
@@ -693,7 +687,8 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::CalculateGemmSize(const ConvolutionContext
 }
 
 PerformanceImplicitGemmBwdV1R1Xdlops
-ConvHipImplicitGemmBwdDataV1R1Xdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV1R1Xdlops::GetDefaultPerformanceConfig(
+    const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdV1R1Xdlops>(ctx);
 }
@@ -751,6 +746,8 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
 #endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS{}))
         return false;
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
+        return false;
 
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
@@ -799,7 +796,7 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdV1R1Xdlops& config, bool) const
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdV1R1Xdlops& config) const
 {
     ConvSolution result;
 
@@ -819,7 +816,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
         "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw";
     // clang-format on
 
-    result.workspce_sz = GetWorkspaceSize(ctx);
+    result.workspace_sz = GetWorkspaceSize(ctx);
 
     int grid_size  = 0;
     int block_size = 0;

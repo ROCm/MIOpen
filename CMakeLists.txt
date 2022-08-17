@@ -50,7 +50,7 @@ project ( MIOpen C CXX )
 
 enable_testing()
 
-find_package(ROCM REQUIRED PATHS /opt/rocm)
+find_package(ROCM 0.7.3 REQUIRED PATHS /opt/rocm)
 
 include(ROCMInstallTargets)
 include(ROCMPackageConfigHelpers)
@@ -58,6 +58,8 @@ include(ROCMSetupVersion)
 include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
+include(ROCMHeaderWrapper)
+
 
 set(MIOPEN_ENABLE_SQLITE On CACHE BOOL "")
 # Use SQLITE for compiled kernels, when turned off this will use raw files
@@ -84,7 +86,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.16.0)
+rocm_setup_version(VERSION 2.18.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -131,6 +133,7 @@ else()
     option(MIOPEN_DISABLE_SYSDB  "Disable sys database access" ${MIOPEN_EMBED_BUILD})
 endif()
 set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
+option(MIOPEN_EMBED_BINCACHE "Embed Binary Cache or KDB" Off)
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
@@ -164,7 +167,7 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
             ${CMAKE_INSTALL_PREFIX}/llvm
     )
     if(MIOPEN_HIP_COMPILER)
-        message("hip compiler: ${MIOPEN_HIP_COMPILER}")
+        message(STATUS "hip compiler: ${MIOPEN_HIP_COMPILER}")
     else()
         message(FATAL_ERROR "hip compiler not found")
     endif()
@@ -190,9 +193,12 @@ message(STATUS "Build with HIP ${hip_VERSION}")
 target_flags(HIP_COMPILER_FLAGS hip::device)
 # Remove cuda arch flags
 string(REGEX REPLACE --cuda-gpu-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-string(REGEX REPLACE --offload-arch=[a-z0-9]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-string(REPLACE "$<LINK_LANGUAGE:CXX>" "1" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
-string(REPLACE "SHELL:" "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+string(REGEX REPLACE --offload-arch=[a-z0-9:+-]+ "" HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+# Skip library paths since hip will incorrectly treat it as a source file
+string(APPEND HIP_COMPILER_FLAGS " ")
+foreach(_unused RANGE 2)
+    string(REGEX REPLACE " /[^ ]+\\.(a|so) " " " HIP_COMPILER_FLAGS "${HIP_COMPILER_FLAGS}")
+endforeach()
 
 # Override HIP version in config.h, if necessary.
 # The variables set by find_package() can't be overwritten,
@@ -213,6 +219,18 @@ if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
     message(STATUS "MIOPEN_hip_VERSION_PATCH overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
 endif()
 
+set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
+option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
+
+# TODO: Unify MIOPEN_HIP_VERSION_FLAT in config.h with this.
+# in config.h we reserve 6 digits for patch, but here only 5 digits reserved to avoid overflow.
+# Actually 5 digits should be Ok everywhere.
+math(EXPR MIOPEN_hip_VERSION_FLAT "(${MIOPEN_hip_VERSION_MAJOR} * 1000 + ${MIOPEN_hip_VERSION_MINOR}) * 100000 + ${MIOPEN_hip_VERSION_PATCH}")
+
+# Do not enable HIPRTC by default for older ROCm versions in order to avoid
+# build time errors, because HIPRTC is a relatively new component.
+set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT ${MIOPEN_USE_COMGR} AND (${MIOPEN_hip_VERSION_FLAT} GREATER 500000000))
+option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
 
 message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
@@ -239,11 +257,11 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "OpenCL compiler: ${HIP_OC_COMPILER}")
         set(HIP_OC_COMPILER "${HIP_OC_COMPILER}")
     else()
-        message(FATAL_ERROR "OpenCL compiler not found")
+        message(STATUS "OpenCL compiler not found")
     endif()
 
-    # Hcc's clang always defines __HCC__ even when not using hcc driver
-    add_definitions(-U__HCC__)
+        # Hcc's clang always defines __HCC__ even when not using hcc driver
+        add_definitions(-U__HCC__)
 
     set(MIOPEN_HIP_COMPILER ${CMAKE_CXX_COMPILER} CACHE PATH "")
 
@@ -251,9 +269,13 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     set(MIOPEN_USE_ROCBLAS ON CACHE BOOL "")
     if(MIOPEN_USE_ROCBLAS)
         find_package(rocblas REQUIRED PATHS /opt/rocm)
-        message(STATUS "Build with rocblas")
+        message(STATUS "Build with rocblas ${rocblas_VERSION}")
     else()
         message(STATUS "Build without rocblas")
+    endif()
+else()
+    if(MIOPEN_USE_HIPRTC)
+        message(FATAL_ERROR "HIPRTC cannot be used without HIP backend")
     endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
@@ -289,9 +311,6 @@ else()
         message(FATAL_ERROR "extractkernel not found")
     endif()
 endif()
-
-set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT MIOPEN_EMBED_BUILD)
-option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
 
 set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
@@ -339,21 +358,31 @@ endif()
 # miopengemm
 if(MIOPEN_USE_MIOPENGEMM)
     find_package(miopengemm PATHS /opt/rocm)
-    if(miopengemm_FOUND)
-        message(STATUS "Build with miopengemm")
-        set(MIOPEN_USE_MIOPENGEMM 1)
-    else()
-        message(STATUS "Build without miopengemm")
+    if(NOT miopengemm_FOUND)
         set(MIOPEN_USE_MIOPENGEMM 0)
     endif()
+endif()
+
+if(MIOPEN_USE_MIOPENGEMM)
+    message(STATUS "Build with miopengemm")
 else()
+    if(MIOPEN_BACKEND_OPENCL)
+        message(FATAL_ERROR "MIOpen OpenCL backend requires MIOpenGEMM")
+    endif()
     message(STATUS "Build without miopengemm")
-    set(MIOPEN_USE_MIOPENGEMM 0)
 endif()
 
 if(MIOPEN_USE_COMGR)
     find_package(amd_comgr REQUIRED CONFIG)
     message(STATUS "Build with comgr ${amd_comgr_VERSION}")
+endif()
+
+if(MIOPEN_USE_HIPRTC)
+    if(NOT MIOPEN_USE_COMGR)
+        message(FATAL_ERROR "HIPRTC can be used only together with COMGR")
+    else()
+        message(STATUS "Build with HIPRTC")
+    endif()
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
@@ -362,12 +391,15 @@ add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 find_path(HALF_INCLUDE_DIR half.hpp)
-message("HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
+message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
+# FOR HANDLING ENABLE/DISABLE OPTIONAL BACKWARD COMPATIBILITY for FILE/FOLDER REORG
+option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" ON)
+
 set( MIOPEN_INSTALL_DIR miopen)
-set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
+set( DATA_INSTALL_DIR ${CMAKE_INSTALL_DATAROOTDIR}/miopen )
 
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
@@ -384,8 +416,8 @@ else()
 endif()
 set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix for the system find-db files")
 
+set(MIOPEN_PACKAGE_REQS "hip-rocclr")
 
-set(MIOPEN_PACKAGE_REQS "rocm-clang-ocl, hip-rocclr")
 if(MIOPEN_USE_MIOPENGEMM)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, miopengemm")
 endif()
@@ -394,22 +426,79 @@ if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
 endif()
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
-set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
-
-# Make backends explicitly conflict
 if(MIOPEN_BACKEND STREQUAL "HIP")
+    # In HIP backend, there is a posibility of COMGR disabled.
+    # In this case add the clang-ocl as dependency for runtime kernel compilation
+    if(NOT MIOPEN_USE_COMGR)
+        set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-clang-ocl")
+    endif()
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}")
+    set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}")
+
+    # Make backends explicitly conflict
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-opencl)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-opencl)
+
 elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
+    set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
+
+    # Make backends explicitly conflict
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
+# Begin KDB component install 
+function(install_kdb)
+    set(oneValueArgs NAME COMPONENT_NAME)
+    cmake_parse_arguments(PARSE "" "${oneValueArgs}" "" ${ARGN})
+
+    if(PARSE_NAME)
+        set(FILE_NAME ${PARSE_NAME})
+    endif()
+    STRING(REPLACE - _ FILE_NAME "${ARCH_NAME}")
+    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb" FILE_CONTENTS LIMIT 7)
+    string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
+    if(FILE_CONTENTS STREQUAL "version")
+        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb PARENT_SCOPE)
+    else()
+        message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
+        rocm_install(FILES
+            src/kernels/${FILE_NAME}.kdb
+        DESTINATION ${DATA_INSTALL_DIR}/db
+        COMPONENT ${PARSE_COMPONENT_NAME})
+    endif()
+endfunction()
+
+# Both the lists below should be in sync always
+list(APPEND ARCH_LST gfx90a68 gfx90a6e gfx1030-36 gfx90878 gfx906-64 gfx906-60 gfx900-64 gfx900-56)
+list(APPEND ARCH_FILE_LST gfx90a-104kdb gfx90a-110kdb gfx1030-36kdb gfx908-120kdb gfx906-64kdb gfx906-60kdb gfx900-64kdb gfx900-56kdb)
+
+list(LENGTH ARCH_LST FULL_LEN)
+math(EXPR ARCH_LST_LEN "${FULL_LEN} - 1")
+
+
+foreach(IDX RANGE ${ARCH_LST_LEN})
+    list(GET ARCH_LST ${IDX} ARCH_NAME)
+    list(GET ARCH_FILE_LST ${IDX} ARCH_FILE_NAME)
+    install_kdb(
+        NAME ${ARCH_NAME}
+        COMPONENT_NAME ${ARCH_FILE_NAME}
+    )
+endforeach()
+
+if(LFS_MISSING_FILES)
+    string(REPLACE ";" "; " LFS_MISSING_FILES "${LFS_MISSING_FILES}")
+    message(WARNING "GIT LFS Files not pulled down, skipped: ${LFS_MISSING_FILES}")
+    set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
+endif()
+
+set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
+#end kdb package creation
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
     DESCRIPTION "AMD's DNN Library"
-    MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
+    MAINTAINER "MIOpen Maintainer <miopen-lib.support@amd.com>"
     LDCONFIG
     # DEPENDS rocm-opencl hip-rocclr tinygemm
 )
@@ -515,6 +604,18 @@ enable_clang_tidy(
         -readability-qualified-auto
         -readability-redundant-string-init
         -readability-uppercase-literal-suffix
+        #TODO Code Quality WORKAROUND ROCm 5.1 update
+        -altera-id-dependent-backward-branch
+        -bugprone-easily-swappable-parameters
+        -bugprone-implicit-widening-of-multiplication-result
+        -cert-err33-c
+        -google-readability-casting
+        -hicpp-use-emplace
+        -modernize-use-emplace
+        -performance-unnecessary-copy-initialization
+        -readability-container-data-pointer
+        -readability-identifier-length
+        -readability-suspicious-call-argument
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}

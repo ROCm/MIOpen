@@ -34,6 +34,8 @@
 /// \ref https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1206.
 #define WORKAROUND_ISSUE_1206 1
 
+#define WORKAROUND_SWDEV_329642 1
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS_PERF_VALS)
 
@@ -720,13 +722,6 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionCo
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceImplicitGemmBwdDataV4R1Xdlops::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 int ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(const ConvolutionContext& ctx)
 {
     const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
@@ -815,15 +810,18 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
             return false;
     }
-    else
+#endif
+#if WORKAROUND_SWDEV_329642
+    if(ctx.IsBfp16() && ctx.GetStream().GetDeviceName() == "gfx90a")
     {
-        if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
+        if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
             return false;
     }
-#else
+#endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
         return false;
-#endif
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
+        return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!ctx.direction.IsBackwardData())
@@ -859,7 +857,8 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
 }
 
 PerformanceImplicitGemmBwdDataV4R1Xdlops
-ConvHipImplicitGemmBwdDataV4R1Xdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmBwdDataV4R1Xdlops::GetDefaultPerformanceConfig(
+    const ConvolutionContext& ctx) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1Xdlops>(ctx);
 }
@@ -878,9 +877,7 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
-    const ConvolutionContext& ctx,
-    const PerformanceImplicitGemmBwdDataV4R1Xdlops& config,
-    const bool disableConfigOverrideFromEnv) const
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
 {
     ConvSolution result;
 
@@ -891,8 +888,8 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
     }
 
     const PerformanceImplicitGemmBwdDataV4R1Xdlops* pcfg = &config;
+
     PerformanceImplicitGemmBwdDataV4R1Xdlops fromEnv;
-    if(!disableConfigOverrideFromEnv)
     {
         std::string s;
         const auto p_asciz =
@@ -962,7 +959,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
             // clang-format on
 
             // TODO: add fp16 calculation by GetWorkspaceSize(ctx);
-            result.workspce_sz = 0;
+            result.workspace_sz = 0;
 
             int GemmABlockCopySrcDataPerRead_GemmM = 1;
             int GemmBBlockCopySrcDataPerRead_GemmN = 1;

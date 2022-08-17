@@ -139,10 +139,10 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
 [[gnu::noreturn]] inline void Usage()
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
-    printf(
-        "Supported Base Arguments: conv[fp16|int8|bfp16], CBAInfer[fp16], pool[fp16], lrn[fp16], "
-        "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm, ctc, dropout[fp16], "
-        "tensorop[fp16], reduce[fp16,fp64]\n");
+    printf("Supported Base Arguments: conv[fp16|int8|bfp16], CBAInfer[fp16], "
+           "pool[fp16], lrn[fp16], "
+           "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm, ctc, dropout[fp16], "
+           "tensorop[fp16], reduce[fp16,fp64]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
@@ -150,7 +150,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
 {
     if(argc < 2)
     {
-        printf("Invalid Number of Input Arguments\n");
+        printf("FAILED: Invalid Number of Input Arguments\n");
         Usage();
     }
 
@@ -164,7 +164,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
        arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" && arg != "--version")
     {
-        printf("Invalid Base Input Argument\n");
+        printf("FAILED: Invalid Base Input Argument\n");
         Usage();
     }
     else if(arg == "-h" || arg == "--help" || arg == "-?")
@@ -175,7 +175,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
 
 class Driver
 {
-    public:
+public:
     Driver()
     {
         data_type = miopenFloat;
@@ -211,7 +211,7 @@ class Driver
     virtual int RunBackwardGPU()                         = 0;
     virtual int VerifyBackward()                         = 0;
 
-    protected:
+protected:
     template <typename Tgpu>
     void InitDataType();
     miopenHandle_t handle;

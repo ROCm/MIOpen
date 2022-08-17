@@ -249,13 +249,6 @@ void PerformanceImplicitGemmWrwV4R4Xdlops::HeuristicInit(const ConvolutionContex
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceImplicitGemmWrwV4R4Xdlops::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 std::tuple<int, bool> PerformanceImplicitGemmWrwV4R4Xdlops::CalculateBlockSize() const
 {
     int block_size = 0;
@@ -855,7 +848,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops
-ConvHipImplicitGemmWrwV4R4Xdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvHipImplicitGemmWrwV4R4Xdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     PerformanceImplicitGemmWrwV4R4Xdlops config;
     config.HeuristicInit(ctx);
@@ -864,7 +857,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops::GetPerformanceConfig(const ConvolutionContext&
 }
 
 ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
-    const ConvolutionContext& ctx, const PerformanceImplicitGemmWrwV4R4Xdlops& config, bool) const
+    const ConvolutionContext& ctx, const PerformanceImplicitGemmWrwV4R4Xdlops& config) const
 {
     ConvSolution result;
 
@@ -1027,13 +1020,16 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
             }
         };
     };
-    result.workspce_sz = GetWorkspaceSize(ctx);
+    result.workspace_sz = GetWorkspaceSize(ctx);
     return result;
 }
 
 bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS{}))
+        return false;
+
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
         return false;
 
     if(!ctx.use_hip_kernels)
