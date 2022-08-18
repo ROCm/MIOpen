@@ -36,24 +36,24 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
 namespace miopen {
 namespace solver {
 
-bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
+bool ConvAsm5x10u2v2b1::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2{}))
         return false;
-    if(!params.use_asm_kernels)
+    if(!ctx.use_asm_kernels)
         return false;
-    if(!params.problem.Is2d())
+    if(!problem.Is2d())
         return false;
-    if(params.problem.IsAsymmetricPadH() || params.problem.IsAsymmetricPadW())
+    if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
-    if(!params.rmv.IsV2orV3())
+    if(!ctx.rmv.IsV2orV3())
         return false;
 
-    const auto target = params.GetStream().GetTargetProperties();
+    const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 
-    const std::string name = params.GetStream().GetDeviceName();
+    const std::string name = ctx.GetStream().GetDeviceName();
     const bool device_is_gfx8_9_no_xnack =
         (name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804" ||
          name == "gfx900" || name == "gfx904" || name == "gfx906" || name == "gfx908");
@@ -65,11 +65,11 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    if(!params.problem.direction.IsBackwardData())
+    if(!problem.direction.IsBackwardData())
     {
         return false;
     }
-    if(!params.problem.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
@@ -82,36 +82,36 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
     const int max_out_height = 131077 - 1;
 
     // clang-format off
-    return params.problem.pad_w == 0                     // -q   pad_w   fixed
-        && params.problem.pad_h == 0                     // -p   pad_h   fixed
-        && params.problem.kernel_stride_w == 2             // -v   inp_v   fixed
-        && params.problem.kernel_stride_h == 2             // -u   inp_u   fixed
-        && params.problem.kernel_size_w == 10            // -x   wei_w   fixed
-        && params.problem.kernel_size_h == 5             // -y   wei_h   fixed
-        && params.problem.kernel_dilation_w == 1
-        && params.problem.kernel_dilation_h == 1
-        && params.problem.n_outputs % 16 == 0            // -c   wei_c   no upper limit
-        && params.problem.n_inputs >= 16                 // -k   wei_k   no upper limit
-        && params.problem.out_width >= min_out_width     // -W   inp_w
-        && params.problem.out_width <= max_out_width
-        && params.problem.out_height >= min_out_height   // -H   inp_h
-        && params.problem.out_height <= max_out_height
-        && params.problem.IsFp32()
-        && params.problem.group_counts == 1
-        && params.problem.out_layout == "NCHW";          // hardcoded
+    return problem.pad_w == 0                     // -q   pad_w   fixed
+        && problem.pad_h == 0                     // -p   pad_h   fixed
+        && problem.kernel_stride_w == 2             // -v   inp_v   fixed
+        && problem.kernel_stride_h == 2             // -u   inp_u   fixed
+        && problem.kernel_size_w == 10            // -x   wei_w   fixed
+        && problem.kernel_size_h == 5             // -y   wei_h   fixed
+        && problem.kernel_dilation_w == 1
+        && problem.kernel_dilation_h == 1
+        && problem.n_outputs % 16 == 0            // -c   wei_c   no upper limit
+        && problem.n_inputs >= 16                 // -k   wei_k   no upper limit
+        && problem.out_width >= min_out_width     // -W   inp_w
+        && problem.out_width <= max_out_width
+        && problem.out_height >= min_out_height   // -H   inp_h
+        && problem.out_height <= max_out_height
+        && problem.IsFp32()
+        && problem.group_counts == 1
+        && problem.out_layout == "NCHW";          // hardcoded
         // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
     // clang-format on
 }
 
-ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ConvolutionContext& params) const
+ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     ConvSolution result;
     std::ostringstream options;
-    GenerateClangDefsym(options, "inp_h", params.problem.out_height);
-    GenerateClangDefsym(options, "inp_w", params.problem.out_width);
-    GenerateClangDefsym(options, "wei_c", params.problem.n_outputs);
-    GenerateClangDefsym(options, "wei_k", params.problem.n_inputs);
-    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
+    GenerateClangDefsym(options, "inp_h", problem.out_height);
+    GenerateClangDefsym(options, "inp_w", problem.out_width);
+    GenerateClangDefsym(options, "wei_c", problem.n_outputs);
+    GenerateClangDefsym(options, "wei_k", problem.n_inputs);
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
 
     KernelInfo constr_params;
     constr_params.comp_options = options.str();
@@ -121,10 +121,10 @@ ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ConvolutionContext& params) co
     constr_params.l_wk.push_back(1);
 
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_c/2,8), batch_n]
-    constr_params.g_wk.push_back(AlignUp(params.problem.in_width, 64));
-    constr_params.g_wk.push_back(AlignUp(params.problem.in_height, 4) / 4 *
-                                 AlignUp(params.problem.n_outputs / 2, 8));
-    constr_params.g_wk.push_back(params.problem.batch_sz);
+    constr_params.g_wk.push_back(AlignUp(problem.in_width, 64));
+    constr_params.g_wk.push_back(AlignUp(problem.in_height, 4) / 4 *
+                                 AlignUp(problem.n_outputs / 2, 8));
+    constr_params.g_wk.push_back(problem.batch_sz);
 
     constr_params.kernel_file = "conv5x10u2v2b1.s";
     constr_params.kernel_name = "miopenConv5x10u2v2b1";
