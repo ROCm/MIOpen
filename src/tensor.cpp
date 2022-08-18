@@ -185,7 +185,7 @@ std::string TensorDescriptor::GetLayout_str() const
     }
     return "Unknown tensor layout";
 }
-int TensorDescriptor::GetVectorLength() const { return this->vector_length; }
+std::size_t TensorDescriptor::GetVectorLength() const { return this->vector_length; }
 
 std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
 {
