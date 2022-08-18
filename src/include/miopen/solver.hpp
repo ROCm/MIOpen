@@ -1044,50 +1044,6 @@ struct ConvMlirIgemmFwdXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
                              const PerformanceConvMlirIgemmXdlops& config) const override;
 };
 
-struct PerformanceImplicitGemmV4R4GenXdlopsFwdFp32
-    : PerfConfigBase<PerformanceImplicitGemmV4R4GenXdlopsFwdFp32>
-{
-    int GemmMPerBlock; // 2^n[32..128]
-    int GemmNPerBlock; // 2^n[8..16]
-    int GemmKPerBlock; // 2^n[4..16]
-
-    int GemmMPerWave; // [4, 16, 32, 64]
-    int GemmNPerWave; // [4, 16, 32, 64]
-
-    bool use_spare_set;
-
-    PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(int, int, int, int, int, bool);
-
-    PerformanceImplicitGemmV4R4GenXdlopsFwdFp32()
-        : PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(-1, -1, -1, -1, -1, false)
-    {
-    }
-
-    PerformanceImplicitGemmV4R4GenXdlopsFwdFp32(bool spare);
-
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
-    {
-        f(self.GemmMPerBlock, "GemmMPerBlock");
-        f(self.GemmNPerBlock, "GemmNPerBlock");
-        f(self.GemmKPerBlock, "GemmKPerBlock");
-        f(self.GemmMPerWave, "GemmMPerWave");
-        f(self.GemmNPerWave, "GemmNPerWave");
-    }
-
-    void HeuristicInit(const ConvolutionContext& ctx);
-    bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& config);
-    bool IsValid(const ConvolutionContext& ctx) const;
-    bool operator==(const PerformanceImplicitGemmV4R4GenXdlopsFwdFp32& other) const;
-
-    std::tuple<int, int, int, int, bool>
-    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
-    std::tuple<int, int, int, int, bool>
-    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
-};
-
 struct ConvHipImplicitGemmV4R4WrW final : ConvTunableSolver<PerformanceImplicitGemmV4R4WrW>
 {
     const std::string& SolverDbId() const override
@@ -1477,52 +1433,6 @@ struct ConvHipImplicitGemmForwardV4R5Xdlops final
                              const PerformanceImplicitGemmForwardV4R5Xdlops& config) const override;
     PerformanceImplicitGemmForwardV4R5Xdlops
     Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const override;
-};
-
-struct PerformanceImplicitGemmV4R4GenXdlopsWrWFp32
-    : PerfConfigBase<PerformanceImplicitGemmV4R4GenXdlopsWrWFp32>
-{
-    int GemmMPerBlock; // 2^n[32..128]
-    int GemmNPerBlock; // 2^n[8..16]
-    int GemmKPerBlock; // 2^n[4..16]
-    int GemmKBlocks;   // 2^n[1..64]
-
-    int GemmMPerWave; // [4, 16, 32, 64]
-    int GemmNPerWave; // [4, 16, 32, 64]
-
-    bool use_spare_set;
-
-    PerformanceImplicitGemmV4R4GenXdlopsWrWFp32(int, int, int, int, int, int, bool);
-
-    PerformanceImplicitGemmV4R4GenXdlopsWrWFp32()
-        : PerformanceImplicitGemmV4R4GenXdlopsWrWFp32(-1, -1, -1, -1, -1, -1, false)
-    {
-    }
-
-    PerformanceImplicitGemmV4R4GenXdlopsWrWFp32(bool spare);
-
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
-    {
-        f(self.GemmMPerBlock, "GemmMPerBlock");
-        f(self.GemmNPerBlock, "GemmNPerBlock");
-        f(self.GemmKPerBlock, "GemmKPerBlock");
-        f(self.GemmKBlocks, "GemmKBlocks");
-        f(self.GemmMPerWave, "GemmMPerWave");
-        f(self.GemmNPerWave, "GemmNPerWave");
-    }
-
-    void HeuristicInit(const ConvolutionContext& ctx);
-    bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& config);
-    bool IsValid(const ConvolutionContext& ctx) const;
-    bool operator==(const PerformanceImplicitGemmV4R4GenXdlopsWrWFp32& other) const;
-
-    std::tuple<int, int, int, int, bool>
-    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
-    std::tuple<int, int, int, int, bool>
-    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
 };
 
 struct ConvHipImplicitGemmV4R1WrW final : ConvTunableSolver<PerformanceImplicitGemmV4R1>
@@ -2952,6 +2862,8 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
 
 private:
     size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
+    bool IsApplicableBeforeWorkaround(const ExecutionContext&,
+                                      const conv::ProblemDescription&) const;
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
 
