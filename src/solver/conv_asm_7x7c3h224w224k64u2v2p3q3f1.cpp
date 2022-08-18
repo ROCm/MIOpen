@@ -37,7 +37,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224)
 namespace miopen {
 namespace solver {
 
-bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx,
+                                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_7X7C3H224W224{}))
         return false;
@@ -93,15 +94,16 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ExecutionContext& ctx
     // clang-format on
 }
 
-ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
+ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ExecutionContext& ctx,
+                                                            const ProblemDescription& problem) const
 {
     ConvSolution result;
-    const int out_w = (problem.in_width + problem.pad_w * 2 +
-                       problem.kernel_stride_w - problem.kernel_size_w) /
-                      problem.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
-    const int out_h = (problem.in_height + problem.pad_h * 2 +
-                       problem.kernel_stride_h - problem.kernel_size_h) /
-                      problem.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
+    const int out_w =
+        (problem.in_width + problem.pad_w * 2 + problem.kernel_stride_w - problem.kernel_size_w) /
+        problem.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
+    const int out_h =
+        (problem.in_height + problem.pad_h * 2 + problem.kernel_stride_h - problem.kernel_size_h) /
+        problem.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
