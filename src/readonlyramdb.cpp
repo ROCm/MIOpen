@@ -51,8 +51,6 @@ bool& rordb_embed_fs_override()
 }
 } // namespace debug
 
-extern boost::optional<std::string>&
-testing_find_db_path_override(); /// \todo Remove when #1723 is resolved.
 ReadonlyRamDb& ReadonlyRamDb::GetCached(const std::string& path, bool warn_if_unreadable)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)

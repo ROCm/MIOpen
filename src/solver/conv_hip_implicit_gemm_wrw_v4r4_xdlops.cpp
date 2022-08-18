@@ -249,13 +249,6 @@ void PerformanceImplicitGemmWrwV4R4Xdlops::HeuristicInit(const ConvolutionContex
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceImplicitGemmWrwV4R4Xdlops::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 std::tuple<int, bool> PerformanceImplicitGemmWrwV4R4Xdlops::CalculateBlockSize() const
 {
     int block_size = 0;
@@ -1036,7 +1029,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ct
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS{}))
         return false;
 
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
         return false;
 
     if(!ctx.use_hip_kernels)

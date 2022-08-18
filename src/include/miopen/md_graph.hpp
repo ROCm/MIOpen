@@ -32,6 +32,7 @@
 #include <miopen/fusion.hpp>
 #include <miopen/any_solver.hpp>
 
+#include <atomic>
 #include <unordered_map>
 
 namespace miopen {
@@ -60,7 +61,8 @@ struct DefaultKernelArg
 
 struct MDGraph_vertex
 {
-    static int running_id; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+    static std::atomic<int>
+        running_id; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
     MDGraph_vertex(miopenFusionOp_t o,
                    std::string program_name = "",
                    std::string kernel_name  = "",

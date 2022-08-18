@@ -249,13 +249,6 @@ void PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::HeuristicInit(const Convo
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 std::tuple<int, bool> PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::CalculateBlockSize() const
 {
     int block_size = 0;
@@ -1109,7 +1102,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const Convolutio
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
         return false;
 
     if(!IsXdlopsSupport(ctx))
