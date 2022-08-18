@@ -36,7 +36,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)
 namespace miopen {
 namespace solver {
 
-bool ConvAsm5x10u2v2b1::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsm5x10u2v2b1::IsApplicable(const ExecutionContext& ctx,
+                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2{}))
         return false;
@@ -103,7 +104,8 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ExecutionContext& ctx, const ProblemD
     // clang-format on
 }
 
-ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
+ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ExecutionContext& ctx,
+                                            const ProblemDescription& problem) const
 {
     ConvSolution result;
     std::ostringstream options;
