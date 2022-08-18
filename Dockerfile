@@ -10,9 +10,9 @@ RUN dpkg --add-architecture i386
 # unless MLIR library is incompatible with current ROCm.
 
 RUN if [ "$USE_MLIR" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_5.2.1;\
+        then export ROCM_APT_VER=.apt_5.2.3;\
     else \
-        export ROCM_APT_VER=.apt_5.2.1;  \
+        export ROCM_APT_VER=.apt_5.2.3;  \
     fi && \
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ ubuntu main > /etc/apt/sources.list.d/rocm.list'
