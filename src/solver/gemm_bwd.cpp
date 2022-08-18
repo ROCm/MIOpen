@@ -42,6 +42,8 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
+#define WORKAROUND_MIOPENGEMM_ISSUE_59 1
+
 // copy from convolution.cpp
 // Workaround for issue 1430.
 // Vega20 fails to access GPU memory larger than the return value of GetMaxMemoryAllocSize() of
@@ -410,8 +412,8 @@ size_t GemmBwd1x1_stride1::GetWorkspaceSize(const ExecutionContext&,
     return 0;
 }
 
-bool GemmBwd1x1_stride1::IsApplicable(const ExecutionContext& context,
-                                      const conv::ProblemDescription& problem) const
+bool GemmBwd1x1_stride1::IsApplicableBeforeWorkaround(const ExecutionContext& context,
+                                                      const conv::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
     if(!GemmBwdBase::IsApplicable(context, problem))
@@ -426,6 +428,18 @@ bool GemmBwd1x1_stride1::IsApplicable(const ExecutionContext& context,
     return miopen::all_of(wei_spatial, [](auto v) { return v == 1; }) &&
            miopen::all_of(conv.GetConvPads(), [](auto v) { return v == 0; }) &&
            miopen::all_of(conv.GetConvStrides(), [](auto v) { return v == 1; });
+#else
+    std::ignore = context;
+    std::ignore = problem;
+    return false;
+#endif
+}
+
+bool GemmBwd1x1_stride1::IsApplicable(const ExecutionContext& context,
+                                      const conv::ProblemDescription& problem) const
+{
+#if MIOPEN_USE_GEMM && (!MIOPEN_USE_MIOPENGEMM || !WORKAROUND_MIOPENGEMM_ISSUE_59)
+    return IsApplicableBeforeWorkaround(context, problem);
 #else
     std::ignore = context;
     std::ignore = problem;
@@ -469,7 +483,6 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
 
     std::size_t in_spatial_size = std::accumulate(
         in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         const bool time_precision = (!IsDisabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING{}));
 
@@ -623,7 +636,7 @@ bool GemmBwdRest::IsApplicable(const ExecutionContext& context,
         return false;
 
     return !GemmBwd1x1_stride2{}.IsApplicable(context, problem) &&
-           !GemmBwd1x1_stride1{}.IsApplicable(context, problem) &&
+           !GemmBwd1x1_stride1{}.IsApplicableBeforeWorkaround(context, problem) &&
            GetWorkspaceSize(context, problem) > 0;
 #else
     std::ignore = context;
