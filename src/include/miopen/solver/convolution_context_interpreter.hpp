@@ -42,149 +42,149 @@ namespace solver {
 // 4. adjust dilation to 1 if filter size is 1
 struct ConvolutionContextInterpreter
 {
-    static auto GetGroupCountG(const ConvolutionContext& c) { return c.problem.group_counts; }
+    static auto GetGroupCountG(const ConvolutionContext& c) { return c.group_counts; }
 
-    static auto GetBatchN(const ConvolutionContext& c) { return c.problem.batch_sz; }
+    static auto GetBatchN(const ConvolutionContext& c) { return c.batch_sz; }
 
     static auto GetOutputLayout(const ConvolutionContext& c)
     {
-        if(c.problem.direction.IsForward())
-            return c.problem.out_layout;
+        if(c.direction.IsForward())
+            return c.out_layout;
         else
-            return c.problem.in_layout;
+            return c.in_layout;
     }
 
     static auto GetOutputChannelK(const ConvolutionContext& c)
     {
-        if(c.problem.direction.IsForward())
-            return c.problem.n_outputs;
+        if(c.direction.IsForward())
+            return c.n_outputs;
         else
-            return c.problem.n_inputs;
+            return c.n_inputs;
     }
 
     static auto GetInputLayout(const ConvolutionContext& c)
     {
-        if(c.problem.direction.IsForward())
-            return c.problem.in_layout;
+        if(c.direction.IsForward())
+            return c.in_layout;
         else
-            return c.problem.out_layout;
+            return c.out_layout;
     }
 
     static auto GetInputChannelC(const ConvolutionContext& c)
     {
-        if(c.problem.direction.IsForward())
-            return c.problem.n_inputs;
+        if(c.direction.IsForward())
+            return c.n_inputs;
         else
-            return c.problem.n_outputs;
+            return c.n_outputs;
     }
 
     static auto GetInputDepthDi(const ConvolutionContext& c)
     {
-        if(c.problem.direction.IsForward())
-            return c.problem.in_depth;
+        if(c.direction.IsForward())
+            return c.in_depth;
         else
-            return c.problem.out_depth;
+            return c.out_depth;
     }
 
     static auto GetInputHeightHi(const ConvolutionContext& c)
     {
-        if(c.problem.direction.IsForward())
-            return c.problem.in_height;
+        if(c.direction.IsForward())
+            return c.in_height;
         else
-            return c.problem.out_height;
+            return c.out_height;
     }
 
     static auto GetInputWidthWi(const ConvolutionContext& c)
     {
-        if(c.problem.direction.IsForward())
-            return c.problem.in_width;
+        if(c.direction.IsForward())
+            return c.in_width;
         else
-            return c.problem.out_width;
+            return c.out_width;
     }
 
     static auto GetOutputDepthDo(const ConvolutionContext& c)
     {
-        if(c.problem.direction.IsForward())
-            return c.problem.out_depth;
+        if(c.direction.IsForward())
+            return c.out_depth;
         else
-            return c.problem.in_depth;
+            return c.in_depth;
     }
 
     static auto GetOutputHeightHo(const ConvolutionContext& c)
     {
-        if(c.problem.direction.IsForward())
-            return c.problem.out_height;
+        if(c.direction.IsForward())
+            return c.out_height;
         else
-            return c.problem.in_height;
+            return c.in_height;
     }
 
     static auto GetOutputWidthWo(const ConvolutionContext& c)
     {
-        if(c.problem.direction.IsForward())
-            return c.problem.out_width;
+        if(c.direction.IsForward())
+            return c.out_width;
         else
-            return c.problem.in_width;
+            return c.in_width;
     }
 
     static auto GetOutputDataType(const ConvolutionContext& c)
     {
-        return c.problem.direction.IsForward() ? c.problem.out_data_type : c.problem.in_data_type;
+        return c.direction.IsForward() ? c.out_data_type : c.in_data_type;
     }
 
     static auto GetInputDataType(const ConvolutionContext& c)
     {
-        return c.problem.direction.IsForward() ? c.problem.in_data_type : c.problem.out_data_type;
+        return c.direction.IsForward() ? c.in_data_type : c.out_data_type;
     }
 
-    static auto GetFilterDepthZ(const ConvolutionContext& c) { return c.problem.kernel_size_d; }
+    static auto GetFilterDepthZ(const ConvolutionContext& c) { return c.kernel_size_d; }
 
-    static auto GetFilterLayout(const ConvolutionContext& c) { return c.problem.weights_layout; }
+    static auto GetFilterLayout(const ConvolutionContext& c) { return c.weights_layout; }
 
-    static auto GetFilterHeightY(const ConvolutionContext& c) { return c.problem.kernel_size_h; }
+    static auto GetFilterHeightY(const ConvolutionContext& c) { return c.kernel_size_h; }
 
-    static auto GetFilterWidthX(const ConvolutionContext& c) { return c.problem.kernel_size_w; }
+    static auto GetFilterWidthX(const ConvolutionContext& c) { return c.kernel_size_w; }
 
     // adjust conv_stride_d to 1 if Do is 1
     static auto GetAdjustedConvolutionStrideD(const ConvolutionContext& c)
     {
-        return GetOutputDepthDo(c) > 1 ? c.problem.kernel_stride_d : 1;
+        return GetOutputDepthDo(c) > 1 ? c.kernel_stride_d : 1;
     }
 
     // adjust conv_stride_h to 1 if Ho is 1
     static auto GetAdjustedConvolutionStrideH(const ConvolutionContext& c)
     {
-        return GetOutputHeightHo(c) > 1 ? c.problem.kernel_stride_h : 1;
+        return GetOutputHeightHo(c) > 1 ? c.kernel_stride_h : 1;
     }
 
     // adjust conv_stride_w to 1 if Wo is 1
     static auto GetAdjustedConvolutionStrideW(const ConvolutionContext& c)
     {
-        return GetOutputWidthWo(c) > 1 ? c.problem.kernel_stride_w : 1;
+        return GetOutputWidthWo(c) > 1 ? c.kernel_stride_w : 1;
     }
 
     // adjust conv_dilation_d to 1 if Z is 1
     static auto GetAdjustedConvolutionDilationD(const ConvolutionContext& c)
     {
-        return GetFilterDepthZ(c) > 1 ? c.problem.kernel_dilation_d : 1;
+        return GetFilterDepthZ(c) > 1 ? c.kernel_dilation_d : 1;
     }
 
     // adjust conv_dilation_h to 1 if Y is 1
     static auto GetAdjustedConvolutionDilationH(const ConvolutionContext& c)
     {
-        return GetFilterHeightY(c) > 1 ? c.problem.kernel_dilation_h : 1;
+        return GetFilterHeightY(c) > 1 ? c.kernel_dilation_h : 1;
     }
 
     // adjust conv_dilation_w to 1 if X is 1
     static auto GetAdjustedConvolutionDilationW(const ConvolutionContext& c)
     {
-        return GetFilterWidthX(c) > 1 ? c.problem.kernel_dilation_w : 1;
+        return GetFilterWidthX(c) > 1 ? c.kernel_dilation_w : 1;
     }
 
-    static auto GetInputLeftPadD(const ConvolutionContext& c) { return c.problem.pad_d; }
+    static auto GetInputLeftPadD(const ConvolutionContext& c) { return c.pad_d; }
 
-    static auto GetInputLeftPadH(const ConvolutionContext& c) { return c.problem.pad_h; }
+    static auto GetInputLeftPadH(const ConvolutionContext& c) { return c.pad_h; }
 
-    static auto GetInputLeftPadW(const ConvolutionContext& c) { return c.problem.pad_w; }
+    static auto GetInputLeftPadW(const ConvolutionContext& c) { return c.pad_w; }
 
     // adjust right padding size so that filter will not move out-of-bound
     static auto GetAdjustedInputRightPadD(const ConvolutionContext& c)

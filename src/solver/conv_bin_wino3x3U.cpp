@@ -44,9 +44,9 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_3X3{}))
         return false;
-    if(!params.problem.Is2d())
+    if(!params.Is2d())
         return false;
-    if(!(params.problem.direction.IsForward() || params.problem.direction.IsBackwardData()))
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
         return false;
     if(!(params.rmv.IsV2orV3() && params.use_asm_kernels))
         return false;
@@ -63,35 +63,35 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     // and able to correctly run with given parameters.
     const auto device_is_gfx8         = StartsWith(name, "gfx8");
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
-    if(!params.problem.IsLayoutDefault())
+    if(!params.IsLayoutDefault())
     {
         return false;
     }
 
     // clang-format off
-    return params.problem.pad_w == 1
-        && params.problem.pad_h == 1
-        && params.problem.kernel_size_w == 3
-        && params.problem.kernel_size_h == 3
-        && params.problem.kernel_stride_w == 1
-        && params.problem.kernel_stride_h == 1
-        && params.problem.kernel_dilation_w == 1
-        && params.problem.kernel_dilation_h == 1
-        && params.problem.batch_sz < std::pow(2, 16)
-        && params.problem.n_inputs < std::pow(2, 16)
-        && params.problem.n_outputs < std::pow(2, 16)
-        && params.problem.in_height < std::pow(2, 16)
-        && params.problem.in_width < std::pow(2, 16)
+    return params.pad_w == 1
+        && params.pad_h == 1
+        && params.kernel_size_w == 3
+        && params.kernel_size_h == 3
+        && params.kernel_stride_w == 1
+        && params.kernel_stride_h == 1
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
+        && params.batch_sz < std::pow(2, 16)
+        && params.n_inputs < std::pow(2, 16)
+        && params.n_outputs < std::pow(2, 16)
+        && params.in_height < std::pow(2, 16)
+        && params.in_width < std::pow(2, 16)
         && grid_workgroup_count_x < std::pow(2, 16)
-        && (params.problem.n_inputs * params.problem.in_height * params.problem.in_width) <= std::pow(2, 28)
-        && (params.problem.n_outputs * params.problem.in_height * params.problem.in_width) <= std::pow(2, 28)
-        && (params.problem.n_inputs * params.problem.kernel_size_w * params.problem.kernel_size_h) <= std::pow(2, 28)
-        && (params.problem.n_outputs * params.problem.kernel_size_w * params.problem.kernel_size_h) <= std::pow(2, 28)
-        && params.problem.n_inputs % 2 == 0
-        && params.problem.n_inputs >= (device_is_gfx8 ? 16 : 18)
-        && params.problem.IsFp32()
-        && params.problem.group_counts == 1
-        && params.problem.in_layout == "NCHW";
+        && (params.n_inputs * params.in_height * params.in_width) <= std::pow(2, 28)
+        && (params.n_outputs * params.in_height * params.in_width) <= std::pow(2, 28)
+        && (params.n_inputs * params.kernel_size_w * params.kernel_size_h) <= std::pow(2, 28)
+        && (params.n_outputs * params.kernel_size_w * params.kernel_size_h) <= std::pow(2, 28)
+        && params.n_inputs % 2 == 0
+        && params.n_inputs >= (device_is_gfx8 ? 16 : 18)
+        && params.IsFp32()
+        && params.group_counts == 1
+        && params.in_layout == "NCHW";
         /// && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
         /// Actually, K<->C flpping is controlled by separate flag, so we can support either
         /// layout in both directions.
@@ -132,7 +132,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
 
     result.construction_params.push_back(kernel);
 
-    const auto is_forward = params.problem.direction.IsForward();
+    const auto is_forward = params.direction.IsForward();
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         constexpr int F_REVERSE_R = 1 << 0;

@@ -378,7 +378,7 @@ static void DirConvFindCore(Handle& handle,
     AutoEnableProfiling enableProfiling{handle};
     ValidateGroupCount(xDesc, wDesc, conv);
 
-    const auto network_config = ctx.problem.BuildConfKey();
+    const auto network_config = ctx.BuildConfKey();
     const auto invoke_ctx     = conv::DataInvokeParams{InvokeType::Evaluate,
                                                    {xDesc, x, wDesc, w, yDesc, y},
                                                    workSpace,
@@ -644,7 +644,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         auto ctx =
             ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward}; // forward
         ctx.SetStream(&handle);
-        const auto network_config = ctx.problem.BuildConfKey();
+        const auto network_config = ctx.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(invoker)
@@ -909,20 +909,16 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
     if(solutions == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "solutions cannot be nullptr");
 
-    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-    ctx.SetStream(&handle);
+    auto problem = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    problem.SetStream(&handle);
 
-    GetSolutions(handle,
-                 ctx.problem,
-                 maxSolutionCount,
-                 solutionCount,
-                 solutions,
-                 StringToConvolutionFwdAlgo);
+    GetSolutions(
+        handle, problem, maxSolutionCount, solutionCount, solutions, StringToConvolutionFwdAlgo);
 
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = (*solutionCount == 0);
     if(*solutionCount == 0)
-        GetSolutionsFallback(handle, ctx.problem, maxSolutionCount, solutionCount, solutions);
+        GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
 std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handle,
                                                                    const TensorDescriptor& wDesc,
@@ -989,7 +985,7 @@ Invoker LoadOrPrepareInvoker(Handle& handle,
                              solver::Id solver_id,
                              conv::Direction dir)
 {
-    const auto config = ctx.problem.BuildConfKey();
+    const auto config = ctx.BuildConfKey();
     auto invoker      = handle.GetInvoker(config, solver_id);
     if(invoker)
         return *invoker;
@@ -1016,7 +1012,7 @@ static void CompileSolution(Handle& handle,
         return;
     }
 
-    const FindDbRecord fdb_record{handle, ctx.problem};
+    const FindDbRecord fdb_record{handle, ctx};
     for(const auto& pair : fdb_record)
     {
         if(solver::Id{pair.second.solver_id} != solver_id)
@@ -1306,7 +1302,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
         auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
         ctx.SetStream(&handle);
-        const auto network_config = ctx.problem.BuildConfKey();
+        const auto network_config = ctx.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(!invoker)
@@ -1510,7 +1506,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             ctx.SetBufs(bufs);
             ctx.SetupFloats();
             ctx.DetectRocm();
-            const auto network_config = ctx.problem.BuildConfKey();
+            const auto network_config = ctx.BuildConfKey();
             const auto invoke_ctx     = conv::WrWInvokeParams{InvokeType::Evaluate,
                                                           {dyDesc, dy, xDesc, x, dwDesc, dw},
                                                           workSpace,

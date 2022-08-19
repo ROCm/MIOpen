@@ -82,15 +82,14 @@ bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& config) con
     if(!IsValidValue())
         return false;
     // to-do add support of uneven_outputs into grouped conv
-    bool uneven_outputs = (config.problem.n_outputs % filters_per_wave) != 0;
-    auto num_wavefronts = config.problem.n_outputs / filters_per_wave;
-    if(config.problem.group_counts > 1 &&
-       (uneven_outputs || (num_wavefronts % config.problem.group_counts != 0)))
+    bool uneven_outputs = (config.n_outputs % filters_per_wave) != 0;
+    auto num_wavefronts = config.n_outputs / filters_per_wave;
+    if(config.group_counts > 1 && (uneven_outputs || (num_wavefronts % config.group_counts != 0)))
         return false;
 
     // Count the number of VGPRs required.
-    const auto& img_width  = config.problem.in_width;
-    const auto& img_height = config.problem.in_height;
+    const auto& img_width  = config.in_width;
+    const auto& img_height = config.in_height;
     int n                  = 0;
 
     const bool enable_zero_line_padding_on_read = (img_height != output_lines_per_wave);
@@ -115,7 +114,7 @@ bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& config) con
     const int input_lines_per_wave =
         (img_height == output_lines_per_wave) ? output_lines_per_wave : (output_lines_per_wave + 2);
 
-    const int k_group_size = config.problem.n_outputs / config.problem.group_counts;
+    const int k_group_size                  = config.n_outputs / config.group_counts;
     const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
     n += (k_group_size_is_power_of_two || gprs_per_input_line * input_lines_per_wave >= 4)
              ? (gprs_per_input_line * input_lines_per_wave)
@@ -141,7 +140,7 @@ void PerformanceConfigConvAsm3x3U::HeuristicInit(const ConvolutionContext& confi
     filters_per_wave      = 2;
     output_lines_per_wave = 2;
 
-    if(config.problem.n_outputs % (filters_per_wave * config.problem.group_counts) != 0)
+    if(config.n_outputs % (filters_per_wave * config.group_counts) != 0)
     {
         filters_per_wave = 1;
     }
@@ -170,11 +169,11 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.use_asm_kernels)
         return false;
-    if(!params.problem.Is2d())
+    if(!params.Is2d())
         return false;
-    if(params.problem.IsAsymmetricPadH() || params.problem.IsAsymmetricPadW())
+    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
-    if(!(params.problem.direction.IsForward() || params.problem.direction.IsBackwardData()))
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
         return false;
     if(!params.rmv.IsV2orV3())
         return false;
@@ -186,7 +185,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
     const std::string name = params.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
         return false;
-    if(!params.problem.IsLayoutDefault())
+    if(!params.IsLayoutDefault())
     {
         return false;
     }
@@ -195,29 +194,27 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
     constexpr auto TIB                         = GIB * 1024;
     constexpr auto ELEM_SZ                     = static_cast<int64_t>(sizeof(float));
     constexpr int64_t SHADER_FEATURE_INDEX_MAX = static_cast<uint32_t>(-1);
-    const auto IN_FEATURE_COUNT =
-        static_cast<int64_t>(params.problem.batch_sz) * params.problem.n_inputs;
-    const auto OUT_FEATURE_COUNT =
-        static_cast<int64_t>(params.problem.batch_sz) * params.problem.n_outputs;
-    const auto IN_IMG_SZ  = ELEM_SZ * params.problem.in_height * params.problem.in_width;
-    const auto OUT_IMG_SZ = ELEM_SZ * params.problem.out_height * params.problem.out_width;
-    const auto IN_BUF_SZ  = IN_IMG_SZ * IN_FEATURE_COUNT;
-    const auto OUT_BUF_SZ = OUT_IMG_SZ * OUT_FEATURE_COUNT;
-    const auto WEI_BUF_SZ = ELEM_SZ * params.problem.n_inputs * params.problem.n_outputs *
-                            params.problem.kernel_size_h * params.problem.kernel_size_w;
+    const auto IN_FEATURE_COUNT  = static_cast<int64_t>(params.batch_sz) * params.n_inputs;
+    const auto OUT_FEATURE_COUNT = static_cast<int64_t>(params.batch_sz) * params.n_outputs;
+    const auto IN_IMG_SZ         = ELEM_SZ * params.in_height * params.in_width;
+    const auto OUT_IMG_SZ        = ELEM_SZ * params.out_height * params.out_width;
+    const auto IN_BUF_SZ         = IN_IMG_SZ * IN_FEATURE_COUNT;
+    const auto OUT_BUF_SZ        = OUT_IMG_SZ * OUT_FEATURE_COUNT;
+    const auto WEI_BUF_SZ =
+        ELEM_SZ * params.n_inputs * params.n_outputs * params.kernel_size_h * params.kernel_size_w;
     // clang-format off
-    return params.problem.pad_w == 1
-        && params.problem.pad_h == 1
-        && params.problem.kernel_stride_w == 1
-        && params.problem.kernel_stride_h == 1
-        && params.problem.kernel_dilation_w == 1
-        && params.problem.kernel_dilation_h == 1
-        && params.problem.kernel_size_w == 3
-        && params.problem.kernel_size_h == 3
-        && params.problem.n_inputs > 0
-        && (params.problem.n_inputs / params.problem.group_counts) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
-        && params.problem.in_width > 3
-        && params.problem.in_width <= 1000
+    return params.pad_w == 1
+        && params.pad_h == 1
+        && params.kernel_stride_w == 1
+        && params.kernel_stride_h == 1
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
+        && params.kernel_size_w == 3
+        && params.kernel_size_h == 3
+        && params.n_inputs > 0
+        && (params.n_inputs / params.group_counts) % 4 == 0 /// \todo: remove restriction that (n_inputs/group_counts) must be multiple of 4
+        && params.in_width > 3
+        && params.in_width <= 1000
         && IN_IMG_SZ  <= GIB
         && OUT_IMG_SZ <= 4 * GIB
         && IN_FEATURE_COUNT  - 1 <= SHADER_FEATURE_INDEX_MAX
@@ -225,9 +222,9 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && IN_BUF_SZ  <= 256 * TIB
         && OUT_BUF_SZ <= 256 * TIB
         && WEI_BUF_SZ <= 4 * GIB
-        && params.problem.IsFp32()
-        && params.problem.in_layout == "NCHW";
-        // && (params.problem.forward ? params.problem.weights_layout == "KCHW" : params.problem.weights_layout == "CKHW" )
+        && params.IsFp32()
+        && params.in_layout == "NCHW";
+        // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
     // clang-format on
 }
 
@@ -262,26 +259,26 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
         }
     }
 
-    const int k_group_size = params.problem.n_outputs / params.problem.group_counts;
+    const int k_group_size                  = params.n_outputs / params.group_counts;
     const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
 
-    const auto w64_chunks   = (params.problem.in_width + 63) / 64;
-    const auto active_lanes = (params.problem.in_width + w64_chunks - 1) / w64_chunks;
+    const auto w64_chunks   = (params.in_width + 63) / 64;
+    const auto active_lanes = (params.in_width + w64_chunks - 1) / w64_chunks;
 
     KernelBuildParameters options{
-        {"batch_size", params.problem.batch_sz},
-        {"img_width", params.problem.in_width},
-        {"img_height", params.problem.in_height},
-        {"input_channels", params.problem.n_inputs},
-        {"output_channels", params.problem.n_outputs},
-        {"weights_layout", params.problem.direction.IsForward() ? 0 : 1},
-        {"reverse_weights", params.problem.direction.IsForward() ? 0 : 1},
+        {"batch_size", params.batch_sz},
+        {"img_width", params.in_width},
+        {"img_height", params.in_height},
+        {"input_channels", params.n_inputs},
+        {"output_channels", params.n_outputs},
+        {"weights_layout", params.direction.IsForward() ? 0 : 1},
+        {"reverse_weights", params.direction.IsForward() ? 0 : 1},
         {"ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4},
         {"limit_wave_cnt", pcfg->limit_wave_cnt},
         {"filters_per_wave", pcfg->filters_per_wave},
         {"output_lines_per_wave", pcfg->output_lines_per_wave},
         // Debugging:
-        {"group_counts", params.problem.group_counts},
+        {"group_counts", params.group_counts},
         {"k_group_size_is_power_of_two", k_group_size_is_power_of_two},
         {"workgroup_size_x", active_lanes},
     };
@@ -294,11 +291,10 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     construction_params.l_wk.push_back(1);
 
     construction_params.g_wk.push_back(
-        active_lanes *
-        ((params.problem.n_outputs + pcfg->filters_per_wave - 1) / pcfg->filters_per_wave));
-    construction_params.g_wk.push_back(
-        (params.problem.in_height + pcfg->output_lines_per_wave - 1) / pcfg->output_lines_per_wave);
-    construction_params.g_wk.push_back(params.problem.batch_sz);
+        active_lanes * ((params.n_outputs + pcfg->filters_per_wave - 1) / pcfg->filters_per_wave));
+    construction_params.g_wk.push_back((params.in_height + pcfg->output_lines_per_wave - 1) /
+                                       pcfg->output_lines_per_wave);
+    construction_params.g_wk.push_back(params.batch_sz);
 
     construction_params.kernel_file = "conv3x3.s";
     construction_params.kernel_name = "miopenGcnAsmConv3x3U";
