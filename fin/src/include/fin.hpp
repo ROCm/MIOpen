@@ -30,6 +30,7 @@
 // using float16 = half_float::half;
 #include "config.h"
 #include "tensor.hpp"
+#include "base64.hpp"
 
 #include <nlohmann/json.hpp>
 #include <algorithm>
@@ -37,7 +38,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
+#include <miopen/kernel_cache.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/nogpu/handle_impl.hpp>
+#include <miopen/any_solver.hpp>
+#include <miopen/md5.hpp>
+#include <miopen/bz2.hpp>
+#include <miopen/binary_cache.hpp>
+#include <miopen/load_file.hpp>
 #include <numeric>
 #include <vector>
 
@@ -54,10 +62,12 @@ using json = nlohmann::json;
 #endif
 
 namespace fin {
-class Fin
+
+class BaseFin
 {
     public:
-    Fin() {}
+    BaseFin() {}
+    virtual ~BaseFin() {}
     void Usage();
     std::string ParseBaseArg(const int argc, const char* argv[]);
     miopen::Handle& GetHandle()
@@ -72,11 +82,147 @@ class Fin
 #elif FIN_BACKEND_HIP
     hipStream_t& GetStream() { return q; }
 #endif
-    virtual ~Fin() {} // TODO: do we need this
 
     virtual int ProcessStep(const std::string& step_name) = 0;
+    void
+    InitNoGpuHandle(miopen::Handle& handle, const std::string& arch, const unsigned long num_cu);
+    void VerifyDevProps(const std::string& in_arch, const unsigned long in_num_cu);
 
     json output;
+
+    int GetSolverList()
+    {
+        std::vector<std::unordered_map<std::string, std::string>> solvers;
+        for(const auto& id :
+            miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution))
+        {
+            std::unordered_map<std::string, std::string> solver;
+            solver["id"]      = std::to_string(id.Value());
+            solver["name"]    = id.ToString();
+            solver["tunable"] = "0";
+            solver["dynamic"] = "0";
+            solver["type"]    = "convolution";
+            if(id.GetSolver().IsTunable())
+                solver["tunable"] = "1";
+            if(id.GetSolver().IsDynamic())
+                solver["dynamic"] = "1";
+            solvers.push_back(solver);
+        }
+
+        for(const auto& id :
+            miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Batchnorm))
+        {
+            std::unordered_map<std::string, std::string> solver;
+            solver["id"]      = std::to_string(id.Value());
+            solver["name"]    = id.ToString();
+            solver["tunable"] = "0";
+            solver["dynamic"] = "0";
+            solver["type"]    = "batch_norm";
+            solvers.push_back(solver);
+        }
+
+        output["all_solvers"] = solvers;
+        return 0;
+    }
+
+    json BuildJsonKernelList(const miopen::Handle& handle,
+                             const std::vector<miopen::solver::KernelInfo>& kernels)
+    {
+        // Get the binary
+        json kernel_list = json::array();
+        for(const auto& kern : kernels)
+        {
+            json kernel;
+
+            std::string comp_opts = kern.comp_options;
+            if(!miopen::EndsWith(kern.kernel_file, ".mlir"))
+            {
+                comp_opts += " -mcpu=" + handle.GetDeviceName();
+            }
+            auto hsaco = miopen::LoadBinary(handle.GetTargetProperties(),
+                                            handle.GetMaxComputeUnits(),
+                                            kern.kernel_file,
+                                            comp_opts,
+                                            false);
+
+            if(hsaco.empty())
+            {
+                auto p = handle.LoadProgram(kern.kernel_file, kern.comp_options, false, "");
+                hsaco  = p.IsCodeObjectInMemory()
+                            ? p.GetCodeObjectBlob()
+                            : miopen::LoadFile(p.GetCodeObjectPathname().string());
+                if(hsaco.empty())
+                {
+                    std::cerr << "Got empty code object" << std::endl;
+                    throw std::runtime_error("Got empty code object");
+                }
+            }
+            // Compress the blob
+            auto md5_sum             = miopen::md5(hsaco);
+            auto size                = hsaco.size();
+            bool success             = false;
+            auto compressed_hsaco    = miopen::compress(hsaco, &success);
+            const auto encoded_hsaco = base64_encode(compressed_hsaco);
+            kernel["kernel_file"]    = kern.kernel_file;
+            kernel["comp_options"]   = kern.comp_options;
+
+            if(success)
+            {
+                kernel["uncompressed_size"] = size;
+                kernel["md5_sum"]           = md5_sum;
+                kernel["blob"]              = encoded_hsaco;
+            }
+            else
+            {
+                kernel["md5_sum"]           = "Failed to compress kernel";
+                kernel["uncompressed_size"] = 0;
+                kernel["blob"]              = "";
+            }
+            kernel_list.push_back(kernel);
+            std::cerr << "Successfully added new kernel to json output" << std::endl;
+        }
+        return kernel_list;
+    }
+
+    void SolutionHasProgram(const miopen::Handle& handle,
+                            const miopen::solver::ConvSolution& solution)
+    {
+        for(auto& kern : solution.construction_params)
+        {
+            std::string kernel_file = kern.kernel_file;
+            std::string comp_opts   = kern.comp_options;
+
+            if(!miopen::EndsWith(kernel_file, ".o"))
+            {
+                std::cerr << "with added extensions ";
+                if(!miopen::EndsWith(kernel_file, ".mlir"))
+                    comp_opts += " -mcpu=" + handle.GetDeviceName();
+                kernel_file += ".o";
+            }
+
+            std::cerr << "checking binary : " << kernel_file << " : " << comp_opts << std::endl;
+
+            if(!handle.HasProgram(kernel_file, comp_opts))
+            {
+                std::cerr << "Binary object check failed, either tuning params have changed or "
+                             "fin is unable to write binary to program cache"
+                          << std::endl;
+            }
+        }
+    }
+
+    void UpdateSolutionOpts(const miopen::Handle& handle, miopen::solver::ConvSolution& solution)
+    {
+        for(auto& kern : solution.construction_params)
+        {
+            if(miopen::EndsWith(kern.kernel_file, ".o"))
+                continue;
+            if(!miopen::EndsWith(kern.kernel_file, ".mlir"))
+                kern.comp_options += " -mcpu=" + handle.GetDeviceName();
+
+            kern.kernel_file += ".o";
+        }
+    }
 
     protected:
     template <typename Tgpu>
@@ -95,7 +241,7 @@ class Fin
 // which occurs when the condition does not depend in any way on the template
 // parameters.
 template <typename Tgpu>
-void Fin::InitDataType()
+void BaseFin::InitDataType()
 {
     static_assert(std::is_same<Tgpu, float>{}, "unsupported Tgpu");
 }
