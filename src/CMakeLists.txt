@@ -124,6 +124,7 @@ set( MIOpen_Source
     mdg_expr.cpp
     op_args.cpp
     operator.cpp
+    performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
     problem_description.cpp
@@ -160,6 +161,7 @@ set( MIOpen_Source
     solver/conv_asm_implicit_gemm_gtc_bwd_nhwc.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
+    solver/conv_asm_implicit_gemm_gtc_fwd_nchwc.cpp
     solver/conv_asm_implicit_gemm_gtc_perf_config.cpp
     solver/conv_asm_implicit_gemm_gtc_wrw_nhwc.cpp
     solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
@@ -765,6 +767,16 @@ rocm_export_targets(
 # Install db files
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
     include(embed)
+    if(MIOPEN_EMBED_BINCACHE AND MIOPEN_BINCACHE_PATH STREQUAL "")
+        if(MIOPEN_NO_LFS_PULLED)
+            message(WARNING "Binary cache files have not been pulled down from git-lfs, will not embed.")
+        else()
+            set(MIOPEN_BINCACHE_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
+            message("MIOPEN_BINCACHE_PATH: ${MIOPEN_BINCACHE_PATH}")
+        endif()
+    else()
+        message(WARNING "MIOPEN_EMBED_BINCACHE is set and MIOPEN_BINCACHE_PATH was used to override default binary cache files. Proceed at your own risk!")
+    endif()
     set(CODE_OBJECTS)
 # embed find db
     foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})

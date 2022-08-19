@@ -101,6 +101,7 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
                                       const TensorDescriptor& wDesc,
                                       const ConvolutionDescriptor& conv)
 {
+    ///\todo How make these validation clearly
     if(conv.group_count == 1)
     {
         if((((wDesc.GetLayout_t() == miopenTensorNCHW) ||
@@ -972,10 +973,10 @@ static Invoker PrepareInvoker(Handle& handle,
     return invoker; // NOLINT (performance-no-automatic-move)
 }
 
-static Invoker LoadOrPrepareInvoker(Handle& handle,
-                                    ConvolutionContext& ctx,
-                                    solver::Id solver_id,
-                                    conv::Direction dir)
+Invoker LoadOrPrepareInvoker(Handle& handle,
+                             ConvolutionContext& ctx,
+                             solver::Id solver_id,
+                             conv::Direction dir)
 {
     const auto config = ctx.BuildConfKey();
     auto invoker      = handle.GetInvoker(config, solver_id);

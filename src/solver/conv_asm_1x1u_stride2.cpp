@@ -287,8 +287,7 @@ PerformanceConfigConvAsm1x1UV2::PerformanceConfigConvAsm1x1UV2(int chunk_size_,
 {
 }
 
-inline bool
-PerformanceConfigConvAsm1x1UV2::operator==(const PerformanceConfigConvAsm1x1UV2& other) const
+bool PerformanceConfigConvAsm1x1UV2::operator==(const PerformanceConfigConvAsm1x1UV2& other) const
 {
     // clang-format off
     return chunk_size == other.chunk_size
@@ -448,13 +447,6 @@ void PerformanceConfigConvAsm1x1UV2::HeuristicInit(const ConvolutionContext& con
     {
         MIOPEN_LOG_I(ToString());
     }
-}
-
-std::string PerformanceConfigConvAsm1x1UV2::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
 }
 
 PerformanceConfigConvAsm1x1UV2

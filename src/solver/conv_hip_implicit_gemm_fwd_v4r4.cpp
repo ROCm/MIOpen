@@ -315,6 +315,8 @@ PerformanceImplicitGemmV4R4Fwd::CalculateGemmBBlockCopyPerformanceParameters(
         // GemmBBlockCopyDstDataPerWrite_GemmN also bounded by size of threadwise copy
         DstDataPerWrite_GemmN = gcd(DstDataPerWrite_GemmN, b_data_per_thread_copy_gemmn);
 
+        if(b_data_per_thread_copy_gemmk == 0)
+            MIOPEN_THROW("DIV/0 with b_data_per_thread_copy_gemmk");
         // calculate blockwise copy thread cluster lengths
         ClusterLengths_GemmK = GemmKPerBlock / b_data_per_thread_copy_gemmk;
         ClusterLengths_GemmN = GemmNPerBlock / b_data_per_thread_copy_gemmn;
@@ -554,13 +556,6 @@ bool PerformanceImplicitGemmV4R4Fwd::SetNextValue(const ConvolutionContext& /*co
     return true;
 }
 
-std::string PerformanceImplicitGemmV4R4Fwd::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 std::tuple<int, int, int>
 ConvHipImplicitGemmV4R4Fwd::CalculateGemmSize(const ConvolutionContext& ctx)
 {
@@ -586,7 +581,7 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ConvolutionContext& ctx) con
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4{}))
         return false;
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(!ctx.use_hip_kernels)
         return false;

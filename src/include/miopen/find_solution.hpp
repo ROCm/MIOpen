@@ -63,7 +63,8 @@ auto FindSolutionImpl(
     }
     else
     {
-        if((context.do_search || enforce.IsSearch(context)) && enforce.IsDbUpdate(context))
+        if((context.do_search || enforce.IsSearch(context)) &&
+           (context.db_update || enforce.IsDbUpdate(context)))
         {
             MIOPEN_LOG_W("Perf Db: load skipped: " << s.SolverDbId() << ", enforce: " << enforce);
         }
@@ -158,9 +159,13 @@ struct SolverContainer
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
                 else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
+                }
                 else if(!solver.IsApplicable(search_params))
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
+                }
                 else
                 {
                     const Solution s = FindSolution(solver, search_params, db, invoke_ctx);

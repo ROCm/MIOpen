@@ -70,8 +70,7 @@ PerformanceConfigConvAsm3x3U::PerformanceConfigConvAsm3x3U(int lwc, int fpw, int
 {
 }
 
-inline bool
-PerformanceConfigConvAsm3x3U::operator==(const PerformanceConfigConvAsm3x3U& other) const
+bool PerformanceConfigConvAsm3x3U::operator==(const PerformanceConfigConvAsm3x3U& other) const
 {
     return PerfFieldRules().Compare(*this, other);
 }
@@ -147,13 +146,6 @@ void PerformanceConfigConvAsm3x3U::HeuristicInit(const ConvolutionContext& confi
     }
 
     MIOPEN_LOG_I(ToString());
-}
-
-std::string PerformanceConfigConvAsm3x3U::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
 }
 
 PerformanceConfigConvAsm3x3U
