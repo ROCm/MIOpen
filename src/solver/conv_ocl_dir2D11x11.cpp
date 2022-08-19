@@ -36,7 +36,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11)
 namespace miopen {
 namespace solver {
 
-bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& ctx,
+                                         const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD11X11{}))
         return false;
@@ -59,7 +60,8 @@ bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& ctx, const Pr
            problem.kernel_stride_h == 4 && problem.kernel_stride_w == 4;
 }
 
-ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx,
+                                                const ProblemDescription& problem) const
 {
     ConvSolution result;
     const bool is_forward = problem.direction.IsForward();
@@ -69,8 +71,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx, c
     // major parameters
     int LG2_WAVE_SZ = mloLg2(hw_wave_sz);
     int wei_cstride = problem.kernel_size_w * problem.kernel_size_h;
-    int wei_bstride =
-        (is_forward ? problem.n_inputs : problem.n_outputs) * wei_cstride;
+    int wei_bstride = (is_forward ? problem.n_inputs : problem.n_outputs) * wei_cstride;
 
     // number  of batch iterations
     result.n_stacks = 1;
@@ -82,10 +83,10 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx, c
     int n_batch_blks  = (problem.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) /
                        (N_BATCH_LOOPS * result.n_stacks);
 
-    int N_FILTER_SPLITS0 = ((problem.kernel_size_w + problem.kernel_stride_w - 1) /
-                            problem.kernel_stride_w);
-    int N_FILTER_SPLITS1 = ((problem.kernel_size_h + problem.kernel_stride_h - 1) /
-                            problem.kernel_stride_h);
+    int N_FILTER_SPLITS0 =
+        ((problem.kernel_size_w + problem.kernel_stride_w - 1) / problem.kernel_stride_w);
+    int N_FILTER_SPLITS1 =
+        ((problem.kernel_size_h + problem.kernel_stride_h - 1) / problem.kernel_stride_h);
 
     static const int data_multiplier0 =
 // win runs Catalyst right now
@@ -102,12 +103,10 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx, c
         (is_forward) ? N_FILTER_SPLITS0 : data_multiplier0 * problem.kernel_stride_w;
     result.out_pix_tile1 = (is_forward) ? 1 : data_multiplier1 * problem.kernel_stride_h;
 
-    int in_pix_tile0 = (is_forward) ? 1
-                                    : (result.out_pix_tile0 / problem.kernel_stride_w - 1) +
-                                          N_FILTER_SPLITS0;
-    int in_pix_tile1 = (is_forward) ? 1
-                                    : (result.out_pix_tile1 / problem.kernel_stride_h - 1) +
-                                          N_FILTER_SPLITS1;
+    int in_pix_tile0 =
+        (is_forward) ? 1 : (result.out_pix_tile0 / problem.kernel_stride_w - 1) + N_FILTER_SPLITS0;
+    int in_pix_tile1 =
+        (is_forward) ? 1 : (result.out_pix_tile1 / problem.kernel_stride_h - 1) + N_FILTER_SPLITS1;
 
     result.in_tile1 = 1;
     result.in_tile0 = 1;
@@ -123,8 +122,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx, c
     // processing arrangement
     // generate full output width
     // extent1 == MLO_GRP_SZ / MLO_PROCESING_WIDTH
-    int PROCESING_WIDTH =
-        ((problem.out_width + result.out_pix_tile0 - 1) / result.out_pix_tile0);
+    int PROCESING_WIDTH = ((problem.out_width + result.out_pix_tile0 - 1) / result.out_pix_tile0);
 
     int OUT_EXTENT1 = std::min(problem.out_height, (GRP_SZ / PROCESING_WIDTH));
 
@@ -172,8 +170,8 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx, c
     // second pass if needed
     int n_extents           = ((problem.out_height + OUT_EXTENT1 - 1) / OUT_EXTENT1);
     int n_output_map_blocks = ((problem.n_outputs + total_out_maps - 1) / total_out_maps);
-    int last_out_extent1    = problem.out_height -
-                           (std::max(1, problem.out_height / OUT_EXTENT1) * OUT_EXTENT1);
+    int last_out_extent1 =
+        problem.out_height - (std::max(1, problem.out_height / OUT_EXTENT1) * OUT_EXTENT1);
     last_out_extent1    = (last_out_extent1 < 0) ? 0 : last_out_extent1;
     int n_batches_pass2 = 1;
     bool second_pass    = false;
@@ -186,23 +184,19 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx, c
 
     // calc bwd grid
     int n_out_pix_tiles1 =
-        (problem.out_height + result.out_pix_tile1 - 1 + 2 * problem.pad_h) /
-        result.out_pix_tile1;
+        (problem.out_height + result.out_pix_tile1 - 1 + 2 * problem.pad_h) / result.out_pix_tile1;
     int n_out_pix_tiles0 =
-        (problem.out_width + result.out_pix_tile0 - 1 + 2 * problem.pad_w) /
-        result.out_pix_tile0;
+        (problem.out_width + result.out_pix_tile0 - 1 + 2 * problem.pad_w) / result.out_pix_tile0;
     int n_out_pix_tiles = n_out_pix_tiles1 * n_out_pix_tiles0;
 
     // calculate lcl mem size for backward data
     int n_out_tiles_rows_pgrp =
         std::min(n_out_pix_tiles1, (GRP_SZ + n_out_pix_tiles0 - 1) / n_out_pix_tiles0);
     int n_out_tiles_cols_pgrp = std::min(GRP_SZ, n_out_pix_tiles0);
-    int in_data1 =
-        ((n_out_tiles_rows_pgrp * result.out_pix_tile1) / problem.kernel_stride_h - 1) +
-        N_FILTER_SPLITS1 + 1;
-    int in_data0 =
-        ((n_out_tiles_cols_pgrp * result.out_pix_tile0) / problem.kernel_stride_w - 1) +
-        N_FILTER_SPLITS0;
+    int in_data1 = ((n_out_tiles_rows_pgrp * result.out_pix_tile1) / problem.kernel_stride_h - 1) +
+                   N_FILTER_SPLITS1 + 1;
+    int in_data0 = ((n_out_tiles_cols_pgrp * result.out_pix_tile0) / problem.kernel_stride_w - 1) +
+                   N_FILTER_SPLITS0;
 
     int lcl_wei_sz = wei_cstride * result.n_out_pix_tiles;
 #ifndef _WIN32
@@ -233,8 +227,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& ctx, c
         std::to_string(problem.n_inputs) + std::string(" -DMLO_BATCH_SZ=") +
         std::to_string(problem.batch_sz) + std::string(" -DMLO_N_BATCH_LOOPS=") +
         std::to_string(N_BATCH_LOOPS) + std::string(" -DMLO_OUT_BATCH_STRIDE=") +
-        std::to_string(problem.out_batch_stride) +
-        std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
+        std::to_string(problem.out_batch_stride) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
         std::to_string(problem.out_channel_stride) + std::string(" -DMLO_OUT_STRIDE=") +
         std::to_string(problem.out_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
         std::to_string(problem.in_batch_stride) + std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
