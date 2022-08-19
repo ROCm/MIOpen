@@ -261,9 +261,9 @@ def buildHipClangJobAndReboot(Map conf=[:]){
 def CheckDeserializePerfDb(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
     pdb_image.inside(){
-        sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_deserialize_error.json"
-        archiveArtifacts "pdb_deserialize_error.json"
-        sh "grep clear pdb_deserialize_error.json"
+        sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_valid_err.json"
+        archiveArtifacts "pdb_valid_err.json"
+        sh "grep clear pdb_valid_err.json"
         def has_error = sh (
             script: "echo \$?",
             returnStdout: true
@@ -483,7 +483,7 @@ pipeline {
                       buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", build_cmd: build_cmd, build_fin: "ON", needs_gpu:false)
                   }
                 }
-                stage('Perf DB Deserialize Test') {
+                stage('Perf DB Validity Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
                         fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON"
