@@ -93,23 +93,23 @@ struct ConvolutionUserBuffers
 /// environmental context (e.g. HW/SW platform) and solver-specific state.
 ///
 /// TODO: These three entities should be made separate.
-struct ConvolutionContext : ExecutionContext
+struct ConvolutionContext : ProblemDescription, ExecutionContext
 {
     // Solution-specific
     std::string general_compile_options;
 
     ConvolutionContext() = default;
-    ConvolutionContext(conv::Direction dir) : problem(dir) {}
+    ConvolutionContext(conv::Direction dir) : ProblemDescription(dir) {}
     ConvolutionContext(const TensorDescriptor& in,
                        const TensorDescriptor& weights,
                        const TensorDescriptor& out,
                        const ConvolutionDescriptor& conv,
                        conv::Direction dir,
                        int bias_ = 0)
-        : problem(in, weights, out, conv, dir, bias_)
+        : ProblemDescription(in, weights, out, conv, dir, bias_)
     {
     }
-    ConvolutionContext(const ProblemDescription& problem_) : problem(problem_) {}
+    ConvolutionContext(const ProblemDescription& problem) : ProblemDescription(problem) {}
 
     void SetupFloats();
 
@@ -118,8 +118,6 @@ public:
 
     inline void SetBufs(const ConvolutionUserBuffers& bufs) { _bufs = bufs; }
     inline const ConvolutionUserBuffers& GetBufs() const { return _bufs; }
-
-    ProblemDescription problem;
 
 private:
     ConvolutionUserBuffers _bufs;

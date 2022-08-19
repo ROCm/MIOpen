@@ -157,9 +157,9 @@ bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD{}))
         return false;
-    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
         return false;
-    if(!ctx.problem.direction.IsForward())
+    if(!ctx.direction.IsForward())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;

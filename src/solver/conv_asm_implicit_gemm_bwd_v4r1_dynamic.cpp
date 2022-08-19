@@ -44,21 +44,21 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ct
     // TODO: add more dynamic kernel to expand support range, and update this function
     // clang-format off
     // refer to ConvolutionContextInterpreter, in bwd most dimension is reversed
-    int hi          = ctx.problem.out_height;
-    int wi          = ctx.problem.out_width;
-    int n           = ctx.problem.batch_sz;
-    int k           = ctx.problem.n_inputs;
-    int c           = ctx.problem.n_outputs;
-    int ho          = ctx.problem.in_height;
-    int wo          = ctx.problem.in_width;
-    int stride_h    = ctx.problem.in_height > 1 ? ctx.problem.kernel_stride_h : 1;
-    int stride_w    = ctx.problem.in_width > 1 ? ctx.problem.kernel_stride_w : 1;
-    int dilation_h  = ctx.problem.kernel_size_h > 1? ctx.problem.kernel_dilation_h : 1;
-    int dilation_w  = ctx.problem.kernel_size_w > 1? ctx.problem.kernel_dilation_w : 1;
-    int pad_h       = ctx.problem.pad_h;
-    int pad_w       = ctx.problem.pad_w;
-    int y           = ctx.problem.kernel_size_h;
-    int x           = ctx.problem.kernel_size_w;
+    int hi          = ctx.out_height;
+    int wi          = ctx.out_width;
+    int n           = ctx.batch_sz;
+    int k           = ctx.n_inputs;
+    int c           = ctx.n_outputs;
+    int ho          = ctx.in_height;
+    int wo          = ctx.in_width;
+    int stride_h    = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
+    int stride_w    = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
+    int dilation_h  = ctx.kernel_size_h > 1? ctx.kernel_dilation_h : 1;
+    int dilation_w  = ctx.kernel_size_w > 1? ctx.kernel_dilation_w : 1;
+    int pad_h       = ctx.pad_h;
+    int pad_w       = ctx.pad_w;
+    int y           = ctx.kernel_size_h;
+    int x           = ctx.kernel_size_w;
 
     int gcd_stride_dilation_h = gcd(stride_h, dilation_h);
     int gcd_stride_dilation_w = gcd(stride_w, dilation_w);
@@ -139,22 +139,22 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& c
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!ctx.problem.direction.IsBackwardData())
+    if(!ctx.direction.IsBackwardData())
         return false;
 
-    if(!ctx.problem.Is2d())
+    if(!ctx.Is2d())
         return false;
 
-    if(!ctx.problem.IsFp32())
+    if(!ctx.IsFp32())
         return false;
 
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(ctx.problem.group_counts != 1)
+    if(ctx.group_counts != 1)
         return false;
 
-    if(!ctx.problem.IsLayoutDefault())
+    if(!ctx.IsLayoutDefault())
     {
         return false;
     }

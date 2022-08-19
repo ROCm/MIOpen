@@ -107,11 +107,11 @@ static inline auto get_ck_convolution_problem_descriptor(const ConvolutionContex
 {
     ck::DataTypeEnum_t ck_datatype;
 
-    if(ctx.problem.IsFp32())
+    if(ctx.IsFp32())
         ck_datatype = ck::DataTypeEnum_t::Float;
-    else if(ctx.problem.IsFp16())
+    else if(ctx.IsFp16())
         ck_datatype = ck::DataTypeEnum_t::Half;
-    else if(ctx.problem.IsBfp16())
+    else if(ctx.IsBfp16())
         ck_datatype = ck::DataTypeEnum_t::BFloat16;
     else
         ck_datatype = ck::DataTypeEnum_t::Unknown;

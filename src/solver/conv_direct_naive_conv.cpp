@@ -45,42 +45,33 @@ bool ConvDirectNaiveConvIsAssemblyKernel(const ConvolutionContext& ctx)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     return (device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
-           ctx.problem.IsLayoutDefault() && (!ctx.problem.IsInt8());
+           ctx.IsLayoutDefault() && (!ctx.IsInt8());
 }
 
 // Check tensor data type respectively
 bool IsInputFp32(const ConvolutionContext& ctx)
 {
-    return (ctx.problem.in_data_type == miopenFloat &&
-            ctx.problem.weights_data_type == miopenFloat) ||
-           (ctx.problem.out_data_type == miopenFloat &&
-            ctx.problem.weights_data_type == miopenFloat) ||
-           (ctx.problem.in_data_type == miopenFloat && ctx.problem.out_data_type == miopenFloat);
+    return (ctx.in_data_type == miopenFloat && ctx.weights_data_type == miopenFloat) ||
+           (ctx.out_data_type == miopenFloat && ctx.weights_data_type == miopenFloat) ||
+           (ctx.in_data_type == miopenFloat && ctx.out_data_type == miopenFloat);
 }
 bool IsInputFp16(const ConvolutionContext& ctx)
 {
-    return (ctx.problem.in_data_type == miopenHalf &&
-            ctx.problem.weights_data_type == miopenHalf) ||
-           (ctx.problem.out_data_type == miopenHalf &&
-            ctx.problem.weights_data_type == miopenHalf) ||
-           (ctx.problem.in_data_type == miopenHalf && ctx.problem.out_data_type == miopenHalf);
+    return (ctx.in_data_type == miopenHalf && ctx.weights_data_type == miopenHalf) ||
+           (ctx.out_data_type == miopenHalf && ctx.weights_data_type == miopenHalf) ||
+           (ctx.in_data_type == miopenHalf && ctx.out_data_type == miopenHalf);
 }
 bool IsInputBfp16(const ConvolutionContext& ctx)
 {
-    return (ctx.problem.in_data_type == miopenBFloat16 &&
-            ctx.problem.weights_data_type == miopenBFloat16) ||
-           (ctx.problem.out_data_type == miopenBFloat16 &&
-            ctx.problem.weights_data_type == miopenBFloat16) ||
-           (ctx.problem.in_data_type == miopenBFloat16 &&
-            ctx.problem.out_data_type == miopenBFloat16);
+    return (ctx.in_data_type == miopenBFloat16 && ctx.weights_data_type == miopenBFloat16) ||
+           (ctx.out_data_type == miopenBFloat16 && ctx.weights_data_type == miopenBFloat16) ||
+           (ctx.in_data_type == miopenBFloat16 && ctx.out_data_type == miopenBFloat16);
 }
 bool IsInputInt8(const ConvolutionContext& ctx)
 {
-    return (ctx.problem.in_data_type == miopenInt8 &&
-            ctx.problem.weights_data_type == miopenInt8) ||
-           (ctx.problem.out_data_type == miopenInt8 &&
-            ctx.problem.weights_data_type == miopenInt8) ||
-           (ctx.problem.in_data_type == miopenInt8 && ctx.problem.out_data_type == miopenInt8);
+    return (ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8) ||
+           (ctx.out_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8) ||
+           (ctx.in_data_type == miopenInt8 && ctx.out_data_type == miopenInt8);
 }
 bool IsAccFp64(const ConvolutionContext& ctx)
 {
@@ -89,46 +80,45 @@ bool IsAccFp64(const ConvolutionContext& ctx)
 bool IsAccInt32(const ConvolutionContext& ctx) { return IsInputInt8(ctx); }
 bool IsOutputFp32(const ConvolutionContext& ctx)
 {
-    return ctx.problem.IsFp32() ||
-           (ctx.problem.in_data_type == miopenInt8 && ctx.problem.weights_data_type == miopenInt8 &&
-            ctx.problem.out_data_type == miopenFloat);
+    return ctx.IsFp32() || (ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8 &&
+                            ctx.out_data_type == miopenFloat);
 }
-bool IsOutputFp16(const ConvolutionContext& ctx) { return ctx.problem.IsFp16(); }
-bool IsOutputBfp16(const ConvolutionContext& ctx) { return ctx.problem.IsBfp16(); }
+bool IsOutputFp16(const ConvolutionContext& ctx) { return ctx.IsFp16(); }
+bool IsOutputBfp16(const ConvolutionContext& ctx) { return ctx.IsBfp16(); }
 bool IsOutputInt8(const ConvolutionContext& ctx)
 {
-    return ctx.problem.in_data_type == miopenInt8 && ctx.problem.weights_data_type == miopenInt8 &&
-           ctx.problem.out_data_type == miopenInt8;
+    return ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8 &&
+           ctx.out_data_type == miopenInt8;
 }
 bool IsOutputInt32(const ConvolutionContext& ctx)
 {
-    return ctx.problem.in_data_type == miopenInt8 && ctx.problem.weights_data_type == miopenInt8 &&
-           ctx.problem.out_data_type == miopenInt32;
+    return ctx.in_data_type == miopenInt8 && ctx.weights_data_type == miopenInt8 &&
+           ctx.out_data_type == miopenInt32;
 }
 
 std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
 {
     std::ostringstream kernel_name;
     kernel_name << "naive_conv_";
-    if(ctx.problem.direction.IsForward())
+    if(ctx.direction.IsForward())
         kernel_name << "fwd_";
-    else if(ctx.problem.direction.IsBackwardData())
+    else if(ctx.direction.IsBackwardData())
         kernel_name << "bwd_";
-    else if(ctx.problem.direction.IsBackwardWrW())
+    else if(ctx.direction.IsBackwardWrW())
         kernel_name << "wrw_";
     else
         MIOPEN_THROW("unsupported convolution direction");
 
-    if(ctx.problem.IsLayoutDefault())
+    if(ctx.IsLayoutDefault())
     {
-        if(ctx.problem.Is2d())
+        if(ctx.Is2d())
             kernel_name << "nchw_";
         else
             kernel_name << "ncdhw_";
     }
-    else if(ctx.problem.IsLayoutNHWC())
+    else if(ctx.IsLayoutNHWC())
     {
-        if(ctx.problem.Is2d())
+        if(ctx.Is2d())
             kernel_name << "nhwc_";
         else
             kernel_name << "ndhwc_";

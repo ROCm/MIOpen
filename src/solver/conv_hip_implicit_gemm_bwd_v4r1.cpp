@@ -194,7 +194,7 @@ PerformanceImplicitGemmBwdDataV4R1::CalculateGemmABlockCopyPerformanceParameters
         const auto x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
         // \todo too conservative
-        if(ctx.problem.Is3d())
+        if(ctx.Is3d())
         {
             const auto z = ConvolutionContextInterpreter::GetFilterDepthZ(ctx);
             if(!(z == 1 && y == 1 && x == 1))
@@ -266,7 +266,7 @@ PerformanceImplicitGemmBwdDataV4R1::CalculateGemmBBlockCopyPerformanceParameters
         const auto right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
         // \todo too conversative
-        if(ctx.problem.Is3d())
+        if(ctx.Is3d())
         {
             const auto z           = ConvolutionContextInterpreter::GetFilterDepthZ(ctx);
             const auto left_pad_d  = ConvolutionContextInterpreter::GetInputLeftPadD(ctx);
@@ -363,7 +363,7 @@ PerformanceImplicitGemmBwdDataV4R1::CalculateGemmCThreadCopyPerformanceParameter
         const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
         const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-        if(ctx.problem.Is3d())
+        if(ctx.Is3d())
         {
             const auto z = ConvolutionContextInterpreter::GetFilterDepthZ(ctx);
             const auto conv_stride_d =
@@ -622,7 +622,7 @@ int ConvHipImplicitGemmBwdDataV4R1::CalculateNumberOfGemm(const ConvolutionConte
     const auto ytilda = conv_stride_h / gcd_stride_dilation_h;
     const auto xtilda = conv_stride_w / gcd_stride_dilation_w;
 
-    if(ctx.problem.Is3d())
+    if(ctx.Is3d())
     {
         const auto conv_stride_d =
             ConvolutionContextInterpreter::GetAdjustedConvolutionStrideD(ctx);
@@ -684,7 +684,7 @@ ConvHipImplicitGemmBwdDataV4R1::CalculateGemmSize(const ConvolutionContext& ctx,
     const auto htilda_slice = htilda_right - htilda_left;
     const auto wtilda_slice = wtilda_right - wtilda_left;
 
-    if(ctx.problem.Is3d())
+    if(ctx.Is3d())
     {
         const auto i_ytilda   = (gemm_id % (xtilda * ytilda)) / xtilda;
         const auto i_xtilda   = (gemm_id % (xtilda * ytilda)) % xtilda;
@@ -744,28 +744,28 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx)
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1{}))
         return false;
-    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
         return false;
 
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
 
-    if(!ctx.problem.direction.IsBackwardData())
+    if(!ctx.direction.IsBackwardData())
         return false;
 
     if(!ctx.use_hip_kernels)
         return false;
 
-    if(!ctx.problem.Is2d() && !ctx.problem.Is3d())
+    if(!ctx.Is2d() && !ctx.Is3d())
         return false;
 
-    if(!ctx.problem.IsFp32())
+    if(!ctx.IsFp32())
         return false;
 
-    if(ctx.problem.group_counts != 1)
+    if(ctx.group_counts != 1)
         return false;
 
-    if(!ctx.problem.IsLayoutDefault())
+    if(!ctx.IsLayoutDefault())
     {
         return false;
     }
@@ -841,7 +841,7 @@ ConvHipImplicitGemmBwdDataV4R1::GetSolution(const ConvolutionContext& ctx,
             construction_parameters.g_wk.push_back(1);
             construction_parameters.g_wk.push_back(1);
 
-            if(ctx.problem.Is3d())
+            if(ctx.Is3d())
             {
                 // clang-format off
                 construction_parameters.kernel_file =
@@ -943,7 +943,7 @@ ConvHipImplicitGemmBwdDataV4R1::GetSolution(const ConvolutionContext& ctx,
                 ctx.general_compile_options;
             // clang-format on
 
-            if(ctx.problem.Is3d())
+            if(ctx.Is3d())
             {
                 construction_parameters.comp_options +=
                     std::string(" -DCK_PARAM_PROBLEM_DI=") +

@@ -50,25 +50,25 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.use_opencl_convolutions)
         return false;
-    if(!params.problem.Is2d())
+    if(!params.Is2d())
         return false;
-    if(!params.problem.direction.IsBackwardWrW())
+    if(!params.direction.IsBackwardWrW())
         return false;
-    if(params.problem.IsAsymmetricPadH() || params.problem.IsAsymmetricPadW())
+    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
-    if(!(params.problem.IsFp32() || params.problem.IsFp16() || params.problem.IsBfp16()))
+    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
         return false;
-    if(!params.problem.IsLayoutDefault())
+    if(!params.IsLayoutDefault())
     {
         return false;
     }
 
-    bool result = (params.problem.kernel_size_w == 1 && params.problem.kernel_size_h == 1 &&
-                   params.problem.kernel_dilation_w == 1 && params.problem.kernel_dilation_h == 1 &&
-                   params.problem.group_counts == 1);
+    bool result =
+        (params.kernel_size_w == 1 && params.kernel_size_h == 1 && params.kernel_dilation_w == 1 &&
+         params.kernel_dilation_h == 1 && params.group_counts == 1);
 
     // Does not support strides > 1 if not multiple of 16
-    if((params.problem.n_inputs & 0xF) > 0 || (params.problem.n_outputs & 0xF) > 0)
+    if((params.n_inputs & 0xF) > 0 || (params.n_outputs & 0xF) > 0)
         result = false;
 
     return result;
@@ -78,10 +78,8 @@ static inline int GetNPasses(const ConvolutionContext& params)
 {
     const int n_passes =
 #if TWO_PASSES
-        ((params.problem.batch_sz >= 16 ||
-          2 * params.problem.n_outputs > params.problem.n_inputs) &&
-         params.problem.pad_h == 0 && params.problem.pad_w == 0 &&
-         (params.problem.kernel_stride_w > 1 || params.problem.kernel_stride_h > 1))
+        ((params.batch_sz >= 16 || 2 * params.n_outputs > params.n_inputs) && params.pad_h == 0 &&
+         params.pad_w == 0 && (params.kernel_stride_w > 1 || params.kernel_stride_h > 1))
             ? 2
             :
 #endif
@@ -92,14 +90,13 @@ static inline int GetNPasses(const ConvolutionContext& params)
 size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext& params) const
 {
     const int n_passes = GetNPasses(params);
-    if(((params.problem.n_inputs & 0xF) == 0 && (params.problem.n_outputs & 0xF) == 0) &&
-       (n_passes > 1 && params.problem.pad_h == 0 && params.problem.pad_w == 0 &&
-        (params.problem.kernel_stride_w > 1 || params.problem.kernel_stride_h > 1)))
+    if(((params.n_inputs & 0xF) == 0 && (params.n_outputs & 0xF) == 0) &&
+       (n_passes > 1 && params.pad_h == 0 && params.pad_w == 0 &&
+        (params.kernel_stride_w > 1 || params.kernel_stride_h > 1)))
     {
-        const auto in_channel_stride = params.problem.in_stride * params.problem.in_height;
-        const auto in_batch_stride   = in_channel_stride * params.problem.n_outputs;
-        return in_batch_stride * params.problem.batch_sz *
-               GetTypeSize(params.problem.out_data_type);
+        const auto in_channel_stride = params.in_stride * params.in_height;
+        const auto in_batch_stride   = in_channel_stride * params.n_outputs;
+        return in_batch_stride * params.batch_sz * GetTypeSize(params.out_data_type);
     }
     else
         return 0;
@@ -112,15 +109,15 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
     // FIX ME! FIX ME! FIX ME! Does not support C, K != 16X yet
     // NON-Stride/PAD mode NON-16X will be supported by MIOpenConvBwdWrW1x1.CL
-    if((params.problem.n_inputs & 0xF) == 0 && (params.problem.n_outputs & 0xF) == 0)
+    if((params.n_inputs & 0xF) == 0 && (params.n_outputs & 0xF) == 0)
     {
-        // problem.n_inputs==> C
-        // problem.n_outputs==>K
+        // params.n_inputs==> C
+        // params.n_outputs==>K
         // Jian: following kernel uses C as input, K as output, different from original definition
         // FIX ME! FIX ME! FIX ME!
         // JIANYANG: not know the meaning of following ==>
         result.n_stacks      = 1;
-        result.n_stacks      = std::min(params.problem.batch_sz, result.n_stacks);
+        result.n_stacks      = std::min(params.batch_sz, result.n_stacks);
         result.out_pix_tile0 = 1;
         result.out_pix_tile1 = 1;
         result.in_tile1      = 1;
@@ -130,14 +127,13 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         // 8/16/64
         int n_lcl_in_maps = 8;
 
-        /*if(4 *((problem.n_outputs+63)/64) * ((problem.n_inputs+63)/64) >=512)
+        /*if(4 *((params.n_outputs+63)/64) * ((params.n_inputs+63)/64) >=512)
         {
                 n_lcl_in_maps =64;
         }
         else
         */
-        if(4 * ((params.problem.n_outputs + 15) / 16) * ((params.problem.n_inputs + 15) / 16) >=
-           512)
+        if(4 * ((params.n_outputs + 15) / 16) * ((params.n_inputs + 15) / 16) >= 512)
         {
             n_lcl_in_maps = 16;
         }
@@ -147,8 +143,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
         int n_grp_size0 = 64;
 
-        int n_out_blocks = ((params.problem.n_inputs + n_lcl_out_maps - 1) / n_lcl_out_maps);
-        int n_in_blocks  = ((params.problem.n_outputs + n_lcl_in_maps - 1) / n_lcl_in_maps);
+        int n_out_blocks = ((params.n_inputs + n_lcl_out_maps - 1) / n_lcl_out_maps);
+        int n_in_blocks  = ((params.n_outputs + n_lcl_in_maps - 1) / n_lcl_in_maps);
         int total_waves  = n_in_blocks * n_out_blocks;
 
         result.n_out_pix_tiles = n_lcl_out_maps;
@@ -215,69 +211,60 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
         int read_unit = 4;
         // subsampled input
-        int in_width  = (n_passes > 1) ? params.problem.in_width : params.problem.out_width;
-        int in_height = (n_passes > 1) ? params.problem.in_height : params.problem.out_height;
-        int in_stride = (n_passes > 1) ? params.problem.in_stride : params.problem.out_stride;
-        int in_channel_stride =
-            (n_passes > 1) ? in_stride * in_height : params.problem.out_channel_stride;
-        int in_batch_stride = (n_passes > 1) ? in_channel_stride * params.problem.n_outputs
-                                             : params.problem.out_batch_stride;
-        int out_batch_stride   = params.problem.in_batch_stride;
-        int out_channel_stride = params.problem.in_channel_stride;
-        int out_stride         = params.problem.in_stride;
-        int wei_batch_stride   = params.problem.n_inputs * params.problem.n_outputs *
-                               params.problem.kernel_size_w * params.problem.kernel_size_h;
-        int wei_channel_stride =
-            params.problem.n_outputs * params.problem.kernel_size_w * params.problem.kernel_size_h;
-        int max_loads_per_readunit = (out_channel_stride / read_unit) * params.problem.batch_sz;
+        int in_width          = (n_passes > 1) ? params.in_width : params.out_width;
+        int in_height         = (n_passes > 1) ? params.in_height : params.out_height;
+        int in_stride         = (n_passes > 1) ? params.in_stride : params.out_stride;
+        int in_channel_stride = (n_passes > 1) ? in_stride * in_height : params.out_channel_stride;
+        int in_batch_stride =
+            (n_passes > 1) ? in_channel_stride * params.n_outputs : params.out_batch_stride;
+        int out_batch_stride   = params.in_batch_stride;
+        int out_channel_stride = params.in_channel_stride;
+        int out_stride         = params.in_stride;
+        int wei_batch_stride =
+            params.n_inputs * params.n_outputs * params.kernel_size_w * params.kernel_size_h;
+        int wei_channel_stride     = params.n_outputs * params.kernel_size_w * params.kernel_size_h;
+        int max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
 
         // limited shape size shows better performance with ead_uint == 3
         /*
         if( (out_channel_stride % 3) == 1)
         {
                 read_unit              = 3;
-                max_loads_per_readunit = (out_channel_stride / read_unit) * problem.batch_sz;
+                max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
         }
         */
 
         int out_pad_min_x  = 0;
         int out_pad_min_y  = 0;
-        int out_pad_width  = params.problem.in_width;
-        int out_pad_height = params.problem.in_height;
+        int out_pad_width  = params.in_width;
+        int out_pad_height = params.in_height;
 
         int in_pad_min_x = 0;
         int in_pad_min_y = 0;
 
-        if(params.problem.pad_w > 0)
+        if(params.pad_w > 0)
         {
-            in_pad_min_x = params.problem.kernel_stride_w -
-                           (params.problem.pad_w % params.problem.kernel_stride_w);
+            in_pad_min_x = params.kernel_stride_w - (params.pad_w % params.kernel_stride_w);
             // In case PAD == STRIDE
-            in_pad_min_x = in_pad_min_x % params.problem.kernel_stride_w;
+            in_pad_min_x = in_pad_min_x % params.kernel_stride_w;
 
-            out_pad_min_x = (params.problem.pad_w + params.problem.kernel_stride_w - 1) /
-                            params.problem.kernel_stride_w;
-            out_pad_width =
-                (params.problem.out_width - in_pad_min_x + params.problem.kernel_stride_w - 1) /
-                params.problem.kernel_stride_w;
+            out_pad_min_x = (params.pad_w + params.kernel_stride_w - 1) / params.kernel_stride_w;
+            out_pad_width = (params.out_width - in_pad_min_x + params.kernel_stride_w - 1) /
+                            params.kernel_stride_w;
         }
-        if(params.problem.pad_h > 0)
+        if(params.pad_h > 0)
         {
-            in_pad_min_y = params.problem.kernel_stride_h -
-                           (params.problem.pad_h % params.problem.kernel_stride_h);
+            in_pad_min_y = params.kernel_stride_h - (params.pad_h % params.kernel_stride_h);
             // In case PAD == STRIDE
-            in_pad_min_y = in_pad_min_y % params.problem.kernel_stride_h;
+            in_pad_min_y = in_pad_min_y % params.kernel_stride_h;
 
-            out_pad_min_y = (params.problem.pad_h + params.problem.kernel_stride_h - 1) /
-                            params.problem.kernel_stride_h;
-            out_pad_height =
-                (params.problem.out_height - in_pad_min_y + params.problem.kernel_stride_h - 1) /
-                params.problem.kernel_stride_h;
+            out_pad_min_y  = (params.pad_h + params.kernel_stride_h - 1) / params.kernel_stride_h;
+            out_pad_height = (params.out_height - in_pad_min_y + params.kernel_stride_h - 1) /
+                             params.kernel_stride_h;
         }
 
-        if(params.problem.pad_w > 0 || params.problem.pad_h > 0 ||
-           (n_passes == 1 &&
-            (params.problem.kernel_stride_w > 1 || params.problem.kernel_stride_h > 1)))
+        if(params.pad_w > 0 || params.pad_h > 0 ||
+           (n_passes == 1 && (params.kernel_stride_w > 1 || params.kernel_stride_h > 1)))
         {
             read_unit = (out_pad_width % 4 == 0)
                             ? 4
@@ -285,15 +272,14 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             // read_unit = (out_pad_width % 7 == 0) ? 7 : (out_pad_width % 5 == 0) ? 5 :
             // (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2
             // == 0) ? 2 : 1;
-            max_loads_per_readunit =
-                (out_pad_width / read_unit) * out_pad_height * params.problem.batch_sz;
+            max_loads_per_readunit = (out_pad_width / read_unit) * out_pad_height * params.batch_sz;
         }
 
-        int kernel_stride_w = params.problem.kernel_stride_w;
-        int kernel_stride_h = params.problem.kernel_stride_h;
+        int kernel_stride_w = params.kernel_stride_w;
+        int kernel_stride_h = params.kernel_stride_h;
 
-        if(n_passes > 1 && params.problem.pad_h == 0 && params.problem.pad_w == 0 &&
-           (params.problem.kernel_stride_w > 1 || params.problem.kernel_stride_h > 1))
+        if(n_passes > 1 && params.pad_h == 0 && params.pad_w == 0 &&
+           (params.kernel_stride_w > 1 || params.kernel_stride_h > 1))
         {
             kernel_stride_w = 1;
             kernel_stride_h = 1;
@@ -312,32 +298,32 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
                              : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2 == 0) ? 2 : 1;
         int n_grp0_size0 = 256;
         // real input strides
-        int in0_stride         = params.problem.out_stride;
-        int in0_channel_stride = params.problem.out_channel_stride;
-        int in0_batch_stride   = params.problem.out_batch_stride;
-        int kernel0_stride0    = params.problem.kernel_stride_w;
-        int kernel0_stride1    = params.problem.kernel_stride_h;
+        int in0_stride         = params.out_stride;
+        int in0_channel_stride = params.out_channel_stride;
+        int in0_batch_stride   = params.out_batch_stride;
+        int kernel0_stride0    = params.kernel_stride_w;
+        int kernel0_stride1    = params.kernel_stride_h;
 
         const auto comp_options =
             std::string(" -DMLO_GRP_SZ0=") + std::to_string(n_grp_size0) +
             std::string(" -DMLO_GRP_SZ1=1 ") + std::string(" -DMLO_GRP_SZ2=1 ") +
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
-            std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.problem.kernel_size_w) +
-            std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.problem.kernel_size_h) +
-            std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.problem.pad_w) +
-            std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.problem.pad_h) +
+            std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.kernel_size_w) +
+            std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.kernel_size_h) +
+            std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.pad_w) +
+            std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.pad_h) +
             std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(kernel_stride_w) +
             std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(kernel_stride_h) +
             std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(kernel0_stride0) +
             std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(kernel0_stride1) +
-            std::string(" -DMLO_N_OUTPUTS=") + std::to_string(params.problem.n_inputs) +
-            std::string(" -DMLO_N_INPUTS=") + std::to_string(params.problem.n_outputs) +
-            std::string(" -DMLO_BATCH_SZ=") + std::to_string(params.problem.batch_sz) +
+            std::string(" -DMLO_N_OUTPUTS=") + std::to_string(params.n_inputs) +
+            std::string(" -DMLO_N_INPUTS=") + std::to_string(params.n_outputs) +
+            std::string(" -DMLO_BATCH_SZ=") + std::to_string(params.batch_sz) +
             std::string(" -DMLO_IN_WIDTH=") + std::to_string(in_width) +
             std::string(" -DMLO_IN_HEIGHT=") + std::to_string(in_height) +
-            std::string(" -DMLO_OUT_WIDTH=") + std::to_string(params.problem.in_width) +
-            std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(params.problem.in_height) +
+            std::string(" -DMLO_OUT_WIDTH=") + std::to_string(params.in_width) +
+            std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(params.in_height) +
             std::string(" -DMLO_N_LOAD_DWORDS_PER_MAP_ONCE=") +
             std::to_string(n_load_dwords_per_map_once) + std::string(" -DMLO_N_LCL_IN_MAPS=") +
             std::to_string(n_lcl_in_maps) + std::string(" -DMLO_N_LCL_OUT_MAPS=") +
@@ -371,8 +357,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             std::to_string(out_pad_height) + std::string(" -DMLO_TWO_PASSES=") +
             std::to_string((n_passes == 1) ? 0 : 1) + params.general_compile_options;
 
-        if(n_passes > 1 && params.problem.pad_h == 0 && params.problem.pad_w == 0 &&
-           (params.problem.kernel_stride_w > 1 || params.problem.kernel_stride_h > 1))
+        if(n_passes > 1 && params.pad_h == 0 && params.pad_w == 0 &&
+           (params.kernel_stride_w > 1 || params.kernel_stride_h > 1))
         {
             KernelInfo kernel;
 
@@ -381,7 +367,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             kernel.l_wk.push_back(1);
             // output is number of subsampled input maps
             size_t gbl_wk0 = (in_batch_stride / write_unit);
-            size_t gbl_wk1 = params.problem.batch_sz;
+            size_t gbl_wk1 = params.batch_sz;
             size_t gbl_wk2 = 1;
 
             kernel.g_wk.push_back(gbl_wk0);

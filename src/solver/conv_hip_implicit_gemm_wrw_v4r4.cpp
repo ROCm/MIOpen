@@ -249,7 +249,7 @@ PerformanceImplicitGemmV4R4WrW::CalculateGemmBBlockCopyPerformanceParameters(
         const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
         const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-        if(ctx.problem.Is3d())
+        if(ctx.Is3d())
         {
             const auto di = ConvolutionContextInterpreter::GetInputDepthDi(ctx);
             const auto z  = ConvolutionContextInterpreter::GetFilterDepthZ(ctx);
@@ -356,8 +356,7 @@ std::tuple<int, bool> PerformanceImplicitGemmV4R4WrW::CalculateGemmCThreadCopyPe
         const auto x           = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
         DstDataPerWrite_GemmN1 =
             gcd(DstDataPerWrite_GemmN1,
-                c * y * x *
-                    (ctx.problem.Is3d() ? ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : 1));
+                c * y * x * (ctx.Is3d() ? ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : 1));
     }
     catch(...)
     {
@@ -573,10 +572,9 @@ ConvHipImplicitGemmV4R4WrW::CalculateGemmSize(const ConvolutionContext& ctx)
 
     const auto gemm_m = k;
     const auto gemm_n =
-        c * y * x * (ctx.problem.Is3d() ? ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : 1);
+        c * y * x * (ctx.Is3d() ? ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : 1);
     const auto gemm_k =
-        n * ho * wo *
-        (ctx.problem.Is3d() ? ConvolutionContextInterpreter::GetOutputDepthDo(ctx) : 1);
+        n * ho * wo * (ctx.Is3d() ? ConvolutionContextInterpreter::GetOutputDepthDo(ctx) : 1);
 
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
@@ -585,21 +583,21 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ConvolutionContext& ctx) con
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4{}))
         return false;
-    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ctx.problem.IsLayoutDefault())
+    if(!ctx.IsLayoutDefault())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!ctx.problem.direction.IsBackwardWrW())
+    if(!ctx.direction.IsBackwardWrW())
         return false;
-    if(!ctx.problem.Is2d() && !ctx.problem.Is3d())
+    if(!ctx.Is2d() && !ctx.Is3d())
         return false;
-    if(!ctx.problem.IsFp32())
+    if(!ctx.IsFp32())
         return false;
-    if(ctx.problem.group_counts != 1)
+    if(ctx.group_counts != 1)
         return false;
 
     int gemm_m = 0;
@@ -652,7 +650,7 @@ ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    if(ctx.problem.Is3d())
+    if(ctx.Is3d())
     {
         // clang-format off
         construction_parameters.kernel_file =
@@ -755,7 +753,7 @@ ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& ctx,
         get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
 
-        if (ctx.problem.Is3d()){
+        if (ctx.Is3d()){
             construction_parameters.comp_options +=
                 std::string(" -DCK_PARAM_PROBLEM_DI=") + std::to_string(ConvolutionContextInterpreter::GetInputDepthDi(ctx)) +
                 std::string(" -DCK_PARAM_PROBLEM_DO=") + std::to_string(ConvolutionContextInterpreter::GetOutputDepthDo(ctx)) +

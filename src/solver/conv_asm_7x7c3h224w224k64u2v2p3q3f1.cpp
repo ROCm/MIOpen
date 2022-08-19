@@ -43,9 +43,9 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
         return false;
     if(!params.use_asm_kernels)
         return false;
-    if(!params.problem.Is2d())
+    if(!params.Is2d())
         return false;
-    if(params.problem.IsAsymmetricPadH() || params.problem.IsAsymmetricPadW())
+    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
     if(!params.rmv.IsV2orV3())
         return false;
@@ -64,31 +64,31 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
     {
         return false;
     }
-    if(!params.problem.direction.IsForward())
+    if(!params.direction.IsForward())
     {
         return false;
     }
-    if(!params.problem.IsLayoutDefault())
+    if(!params.IsLayoutDefault())
     {
         return false;
     }
 
     // clang-format off
-    return params.problem.pad_w == 3            // -q
-        && params.problem.pad_h == 3            // -p
-        && params.problem.kernel_stride_w == 2    // -v
-        && params.problem.kernel_stride_h == 2    // -u
-        && params.problem.kernel_size_w == 7    // -x
-        && params.problem.kernel_size_h == 7    // -y
-        && params.problem.kernel_dilation_w == 1
-        && params.problem.kernel_dilation_h == 1
-        && params.problem.n_inputs == 3         // -c
-        && params.problem.n_outputs == 64       // -k
-        && params.problem.in_width == 224       // -W
-        && params.problem.in_height == 224      // -H
-        && params.problem.IsFp32()
-        && params.problem.group_counts == 1
-        && params.problem.in_layout == "NCHW";
+    return params.pad_w == 3            // -q
+        && params.pad_h == 3            // -p
+        && params.kernel_stride_w == 2    // -v
+        && params.kernel_stride_h == 2    // -u
+        && params.kernel_size_w == 7    // -x
+        && params.kernel_size_h == 7    // -y
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
+        && params.n_inputs == 3         // -c
+        && params.n_outputs == 64       // -k
+        && params.in_width == 224       // -W
+        && params.in_height == 224      // -H
+        && params.IsFp32()
+        && params.group_counts == 1
+        && params.in_layout == "NCHW";
         // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
     // clang-format on
 }
@@ -96,12 +96,12 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
 ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
-    const int out_w = (params.problem.in_width + params.problem.pad_w * 2 +
-                       params.problem.kernel_stride_w - params.problem.kernel_size_w) /
-                      params.problem.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
-    const int out_h = (params.problem.in_height + params.problem.pad_h * 2 +
-                       params.problem.kernel_stride_h - params.problem.kernel_size_h) /
-                      params.problem.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
+    const int out_w =
+        (params.in_width + params.pad_w * 2 + params.kernel_stride_w - params.kernel_size_w) /
+        params.kernel_stride_w; // (inp_w + 2*pad_w + inp_v - wei_w) / inp_v
+    const int out_h =
+        (params.in_height + params.pad_h * 2 + params.kernel_stride_h - params.kernel_size_h) /
+        params.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
@@ -114,8 +114,8 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ConvolutionCon
 
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
     constr_params.g_wk.push_back(AlignUp(out_w, 64));
-    constr_params.g_wk.push_back(AlignUp(out_h, 4) / 4 * AlignUp(params.problem.n_outputs / 2, 8));
-    constr_params.g_wk.push_back(params.problem.batch_sz);
+    constr_params.g_wk.push_back(AlignUp(out_h, 4) / 4 * AlignUp(params.n_outputs / 2, 8));
+    constr_params.g_wk.push_back(params.batch_sz);
 
     constr_params.kernel_file = "conv7x7c3h224w224k64u2v2p3q3f1.s";
     constr_params.kernel_name = "miopenGcnAsmConv7x7c3h224w224k64u2v2p3q3f1";

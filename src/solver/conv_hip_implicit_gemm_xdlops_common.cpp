@@ -33,9 +33,9 @@ namespace solver {
 
 bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
 {
-    const auto n = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.problem.group_counts;
-    const auto c = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.problem.group_counts;
+    const auto n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+    const auto k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.group_counts;
+    const auto c  = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.group_counts;
     const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
     const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
     const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
@@ -44,29 +44,28 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
     std::size_t GemmM, GemmN, GemmK;
 
     // EPACKSize = 1 for fp32
-    if(ctx.problem.IsFp32() && EPACKSize != 1)
+    if(ctx.IsFp32() && EPACKSize != 1)
         return false;
 
     // EPACKSize = 4 for fp16
-    if(ctx.problem.IsFp16() && EPACKSize != 4)
+    if(ctx.IsFp16() && EPACKSize != 4)
         return false;
 
     // EPACKSize = 2, 4 for bfp16 fwd non-group
-    if(ctx.problem.direction.IsForward() && ctx.problem.IsBfp16() &&
-       ctx.problem.group_counts == 1 && EPACKSize != 4 && EPACKSize != 2)
-        return false;
-
-    // EPACKSize = 2 for bfp16 fwd group
-    if(ctx.problem.direction.IsForward() && ctx.problem.IsBfp16() && ctx.problem.group_counts > 1 &&
+    if(ctx.direction.IsForward() && ctx.IsBfp16() && ctx.group_counts == 1 && EPACKSize != 4 &&
        EPACKSize != 2)
         return false;
 
+    // EPACKSize = 2 for bfp16 fwd group
+    if(ctx.direction.IsForward() && ctx.IsBfp16() && ctx.group_counts > 1 && EPACKSize != 2)
+        return false;
+
     // EPACKSize = 2 for bfp16 bwd, wrw
-    if(!ctx.problem.direction.IsForward() && ctx.problem.IsBfp16() && EPACKSize != 2)
+    if(!ctx.direction.IsForward() && ctx.IsBfp16() && EPACKSize != 2)
         return false;
 
     // forward
-    if(ctx.problem.direction.IsForward())
+    if(ctx.direction.IsForward())
     {
         if(c % EPACKSize != 0)
             return false;
@@ -76,7 +75,7 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
         GemmK                     = static_cast<std::size_t>(nonVectorizedC) * y * x;
     }
     // backwardData
-    else if(ctx.problem.direction.IsBackwardData())
+    else if(ctx.direction.IsBackwardData())
     {
         if(k % EPACKSize != 0)
             return false;
@@ -112,7 +111,7 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
          GemmMPerBlock % GemmABlockCopyClusterLengths_GemmM == 0))
         return false;
 
-    if(!(ctx.problem.direction.IsBackwardWrW()) && GemmKBlocks > 1)
+    if(!(ctx.direction.IsBackwardWrW()) && GemmKBlocks > 1)
         return false;
 
     if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 &&
@@ -292,7 +291,7 @@ bool PerformanceImplicitGemmXdlops::SetNextValue(const ConvolutionContext& /*con
 void PerformanceImplicitGemmXdlops::HeuristicInit(const ConvolutionContext& ctx)
 {
     PerformanceImplicitGemmXdlops tmp;
-    if(ctx.problem.IsFp32())
+    if(ctx.IsFp32())
     {
         tmp = {128, 128, 16, 1, 1, 64, 64, 8, 32, 4, 64, use_spare_set};
         if(!tmp.IsValid(ctx))
@@ -314,7 +313,7 @@ void PerformanceImplicitGemmXdlops::HeuristicInit(const ConvolutionContext& ctx)
         if(!tmp.IsValid(ctx))
             tmp = {64, 8, 8, 1, 1, 8, 64, 4, 16, 8, 8, use_spare_set};
     }
-    else if(ctx.problem.IsBfp16())
+    else if(ctx.IsBfp16())
     {
         tmp = {128, 128, 16, 1, 2, 64, 64, 8, 32, 4, 64, use_spare_set};
         if(!tmp.IsValid(ctx))
@@ -336,7 +335,7 @@ void PerformanceImplicitGemmXdlops::HeuristicInit(const ConvolutionContext& ctx)
         if(!tmp.IsValid(ctx))
             tmp = {64, 8, 8, 1, 2, 8, 64, 4, 16, 8, 8, use_spare_set};
     }
-    else if(ctx.problem.IsFp16())
+    else if(ctx.IsFp16())
     {
         tmp = {128, 128, 16, 1, 4, 64, 64, 8, 32, 4, 64, use_spare_set};
         if(!tmp.IsValid(ctx))

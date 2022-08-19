@@ -61,94 +61,94 @@ namespace solver {
 // they are not supposed to be called by backward-data
 static inline std::size_t KernelFilterStrideH(const ConvolutionContext& c)
 {
-    if(c.problem.direction.IsBackwardWrW())
-        return c.problem.kernel_dilation_h;
+    if(c.direction.IsBackwardWrW())
+        return c.kernel_dilation_h;
     else
-        return c.problem.kernel_stride_h;
+        return c.kernel_stride_h;
 }
 
 static inline std::size_t KernelFilterStrideW(const ConvolutionContext& c)
 {
-    if(c.problem.direction.IsBackwardWrW())
-        return c.problem.kernel_dilation_w;
+    if(c.direction.IsBackwardWrW())
+        return c.kernel_dilation_w;
     else
-        return c.problem.kernel_stride_w;
+        return c.kernel_stride_w;
 }
 
 static inline std::size_t KernelFilterDilationH(const ConvolutionContext& c)
 {
-    if(c.problem.direction.IsBackwardWrW())
-        return c.problem.kernel_stride_h;
+    if(c.direction.IsBackwardWrW())
+        return c.kernel_stride_h;
     else
-        return c.problem.kernel_dilation_h;
+        return c.kernel_dilation_h;
 }
 
 static inline std::size_t KernelFilterDilationW(const ConvolutionContext& c)
 {
-    if(c.problem.direction.IsBackwardWrW())
-        return c.problem.kernel_stride_w;
+    if(c.direction.IsBackwardWrW())
+        return c.kernel_stride_w;
     else
-        return c.problem.kernel_dilation_w;
+        return c.kernel_dilation_w;
 }
 
 static inline std::size_t KernelOutputChannelK(const ConvolutionContext& c)
 {
-    if(c.problem.direction.IsBackwardWrW())
-        return c.problem.n_inputs;
+    if(c.direction.IsBackwardWrW())
+        return c.n_inputs;
     else
-        return c.problem.n_outputs;
+        return c.n_outputs;
 }
 
 static inline std::size_t KernelInputChannelC(const ConvolutionContext& c)
 {
-    if(c.problem.direction.IsBackwardWrW())
-        return c.problem.batch_sz;
+    if(c.direction.IsBackwardWrW())
+        return c.batch_sz;
     else
-        return c.problem.n_inputs / c.problem.group_counts;
+        return c.n_inputs / c.group_counts;
 }
 
 static inline std::size_t KernelBatchN(const ConvolutionContext& c)
 {
-    if(c.problem.direction.IsBackwardWrW())
-        return c.problem.n_outputs / c.problem.group_counts;
+    if(c.direction.IsBackwardWrW())
+        return c.n_outputs / c.group_counts;
     else
-        return c.problem.batch_sz;
+        return c.batch_sz;
 }
 
 static inline std::size_t KernelOutputHeightHo(const ConvolutionContext& c)
 {
-    if(c.problem.direction.IsForward())
-        return c.problem.out_height;
-    else if(c.problem.direction.IsBackwardWrW())
-        return c.problem.kernel_size_h;
+    if(c.direction.IsForward())
+        return c.out_height;
+    else if(c.direction.IsBackwardWrW())
+        return c.kernel_size_h;
     else
-        return c.problem.in_height;
+        return c.in_height;
 }
 
 static inline std::size_t KernelOutputWidthWo(const ConvolutionContext& c)
 {
-    if(c.problem.direction.IsForward())
-        return c.problem.out_width;
-    else if(c.problem.direction.IsBackwardWrW())
-        return c.problem.kernel_size_w;
+    if(c.direction.IsForward())
+        return c.out_width;
+    else if(c.direction.IsBackwardWrW())
+        return c.kernel_size_w;
     else
-        return c.problem.in_width;
+        return c.in_width;
 }
 
 static inline std::size_t KernelFilterWidthX(const ConvolutionContext& c)
 {
-    if(c.problem.direction.IsBackwardWrW())
-        return c.problem.in_width;
+    if(c.direction.IsBackwardWrW())
+        return c.in_width;
     else
-        return c.problem.kernel_size_w;
+        return c.kernel_size_w;
 }
 
 static inline std::size_t KernelFilterHeightY(const ConvolutionContext& c)
 {
-    if(c.problem.direction.IsBackwardWrW())
-        return c.problem.in_height;
+    if(c.direction.IsBackwardWrW())
+        return c.in_height;
     else
-        return c.problem.kernel_size_h;
+        return c.kernel_size_h;
 }
 
 /// \todo move to separate header and use in other solvers.
@@ -227,7 +227,7 @@ inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlo
 {
     // Based on data type, Es are packed
     int EPACK = 1;
-    if(ctx.problem.IsFp16()) // for fp16, either 2 or 4 Es could be packed
+    if(ctx.IsFp16()) // for fp16, either 2 or 4 Es could be packed
     {
         if(IsXdlopsSupport(ctx) && isXdlopsInvoked) // in xdlops, 4 fp16s are packed
             EPACK = 4;
@@ -235,7 +235,7 @@ inline static uint32_t GetEPackLength(const ConvolutionContext& ctx, bool isXdlo
             // EPACK = (C * Y * X % 32) == 0 ? 4 : 2;
             EPACK = 2;
     }
-    else if(ctx.problem.IsBfp16()) // for bfp16, only 2 Es could be packed
+    else if(ctx.IsBfp16()) // for bfp16, only 2 Es could be packed
     {
         EPACK = 2;
     }
@@ -282,8 +282,8 @@ static inline bool IsIndexRangeLargeEnough(const ConvolutionContext& ctx)
     // composable kernel use int32_t for memory offset, which covers 2GB of memory maximum
     const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
 
-    return ctx.problem.bot_sz < max_index_range && ctx.problem.weights_sz < max_index_range &&
-           ctx.problem.top_sz < max_index_range;
+    return ctx.bot_sz < max_index_range && ctx.weights_sz < max_index_range &&
+           ctx.top_sz < max_index_range;
 }
 
 static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
@@ -295,14 +295,14 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
                                               const int GemmKPack)
 {
 #if WORKAROUND_SWDEV_251757
-    if(ctx.problem.IsFp32() && GemmKPerBlock == 1 && GemmKPack == 8)
+    if(ctx.IsFp32() && GemmKPerBlock == 1 && GemmKPack == 8)
         return false;
 #endif
 
     // check k
-    if(ctx.problem.IsFp16() && GemmKPack % 4 != 0)
+    if(ctx.IsFp16() && GemmKPack % 4 != 0)
         return false;
-    if(ctx.problem.IsBfp16() && GemmKPack % 2 != 0)
+    if(ctx.IsBfp16() && GemmKPack % 2 != 0)
         return false;
 
     // check M, N and K
@@ -364,18 +364,17 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
     if(!IsXdlopsSupport(ctx))
         return false;
 
-    std::size_t n = ConvolutionContextInterpreter::GetBatchN(ctx);
-    std::size_t k =
-        ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.problem.group_counts;
-    std::size_t c = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.problem.group_counts;
-    std::size_t y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    std::size_t x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    std::size_t n  = ConvolutionContextInterpreter::GetBatchN(ctx);
+    std::size_t k  = ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.group_counts;
+    std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.group_counts;
+    std::size_t y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
+    std::size_t x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
     std::size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
     std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
 
     std::size_t GemmM, GemmN, GemmK;
     // forward
-    if(ctx.problem.direction.IsForward())
+    if(ctx.direction.IsForward())
     {
         // TBD/ Since bfp16/fp16 fwd kernel extracts epack from c*y*x,
         //      one could relax the following restriction for bfp16/fp16,
@@ -388,7 +387,7 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
         GemmK                     = static_cast<std::size_t>(nonVectorizedC) * y * x;
     }
     // backwardData
-    else if(ctx.problem.direction.IsBackwardData())
+    else if(ctx.direction.IsBackwardData())
     {
         if(k % GetEPackLength(ctx, true) != 0)
             return false;
@@ -435,7 +434,7 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
     // Extend lds size by to take into account alignment
     // See max_algin code inside kernel_aglorithm files
     const std::size_t worst_case_alignment_adjustment =
-        (ctx.problem.IsBfp16() || ctx.problem.IsFp16())
+        (ctx.IsBfp16() || ctx.IsFp16())
             ? std::max(
                   {GetReadWriteVectorSize(static_cast<int>(InBlockCopySubLengths_B)), EPACKSize})
             : std::max({GetReadWriteVectorSize(static_cast<int>(WeiBlockCopySubLengths_K)),
@@ -445,9 +444,9 @@ static inline size_t ComputeLDSRequiredSize(const ConvolutionContext& ctx,
 
     // Multiplied worst_case_alignment_adjustment by 2 as
     // Both A and B matrix LDS size is increased.
-    const std::size_t lds_size = (BPerBlock + KPerBlock) * EPerBlock * EPACKSize *
-                                     GetTypeSize(ctx.problem.in_data_type) * 2 +
-                                 2 * worst_case_alignment_adjustment;
+    const std::size_t lds_size =
+        (BPerBlock + KPerBlock) * EPerBlock * EPACKSize * GetTypeSize(ctx.in_data_type) * 2 +
+        2 * worst_case_alignment_adjustment;
 
     return lds_size;
 }
@@ -460,8 +459,7 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
 
     // disable fp16 inline asm for <= gfx900
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if(!(StartsWith(device_name, "gfx906") || StartsWith(device_name, "gfx908")) &&
-       ctx.problem.IsFp16())
+    if(!(StartsWith(device_name, "gfx906") || StartsWith(device_name, "gfx908")) && ctx.IsFp16())
         return false;
 
     return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});

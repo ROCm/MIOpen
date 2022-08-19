@@ -46,30 +46,29 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
         return false;
-    if(!ctx.problem.direction.IsForward())
+    if(!ctx.direction.IsForward())
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ctx.problem.Is2d())
+    if(!ctx.Is2d())
         return false;
-    if(!ctx.problem.IsFp32() && !ctx.problem.IsFp16() && !ctx.problem.IsBfp16())
+    if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
-    if(!ctx.problem.IsLayoutDefault())
+    if(!ctx.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       ctx.problem.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
-    std::size_t n         = ctx.problem.batch_sz;
-    std::size_t k         = ctx.problem.n_outputs / ctx.problem.group_counts;
-    std::size_t c         = ctx.problem.n_inputs / ctx.problem.group_counts;
-    std::size_t y         = ctx.problem.kernel_size_h;
-    std::size_t x         = ctx.problem.kernel_size_w;
-    std::size_t ho        = ctx.problem.out_height;
-    std::size_t wo        = ctx.problem.out_width;
-    std::size_t eMultiple = (ctx.problem.IsFp16() || ctx.problem.IsBfp16()) ? 16 : 8;
+    std::size_t n         = ctx.batch_sz;
+    std::size_t k         = ctx.n_outputs / ctx.group_counts;
+    std::size_t c         = ctx.n_inputs / ctx.group_counts;
+    std::size_t y         = ctx.kernel_size_h;
+    std::size_t x         = ctx.kernel_size_w;
+    std::size_t ho        = ctx.out_height;
+    std::size_t wo        = ctx.out_width;
+    std::size_t eMultiple = (ctx.IsFp16() || ctx.IsBfp16()) ? 16 : 8;
 
     // batch is divided by epack to pack 2/4 fp16/bfp16
     if(c % GetEPackLength(ctx, false) != 0)
@@ -85,30 +84,29 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!ctx.problem.direction.IsBackwardWrW())
+    if(!ctx.direction.IsBackwardWrW())
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ctx.problem.Is2d())
+    if(!ctx.Is2d())
         return false;
-    if(!ctx.problem.IsFp32() && !ctx.problem.IsFp16() && !ctx.problem.IsBfp16())
+    if(!ctx.IsFp32() && !ctx.IsFp16() && !ctx.IsBfp16())
         return false;
-    if(!ctx.problem.IsLayoutDefault())
+    if(!ctx.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       ctx.problem.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     // retrieve dimension from ConvolutionContext
     // remember: ConvolutionContext has swapped some dimensions for you!
     // undo the swap to avoid confusion
-    const auto& n  = ctx.problem.batch_sz;
-    const auto& k  = ctx.problem.n_inputs / ctx.problem.group_counts;  // unswap
-    const auto& c  = ctx.problem.n_outputs / ctx.problem.group_counts; // unswap
-    const auto& y  = ctx.problem.kernel_size_h;
-    const auto& x  = ctx.problem.kernel_size_w;
-    const auto& ho = ctx.problem.in_height; // unswap
-    const auto& wo = ctx.problem.in_width;  // unswap
+    const auto& n  = ctx.batch_sz;
+    const auto& k  = ctx.n_inputs / ctx.group_counts;  // unswap
+    const auto& c  = ctx.n_outputs / ctx.group_counts; // unswap
+    const auto& y  = ctx.kernel_size_h;
+    const auto& x  = ctx.kernel_size_w;
+    const auto& ho = ctx.in_height; // unswap
+    const auto& wo = ctx.in_width;  // unswap
 
     // equivalent dimension for bwd-wrw
     std::size_t n_eqv     = c;
@@ -118,7 +116,7 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
     std::size_t x_eqv     = wo;
     std::size_t ho_eqv    = y;
     std::size_t wo_eqv    = x;
-    std::size_t eMultiple = (ctx.problem.IsFp16() || ctx.problem.IsBfp16()) ? 16 : 8;
+    std::size_t eMultiple = (ctx.IsFp16() || ctx.IsBfp16()) ? 16 : 8;
 
     // batch is divided by epack to pack 2/4 fp16/bfp16
     if(c_eqv % GetEPackLength(ctx, false) != 0)
@@ -179,23 +177,23 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
     const auto& N2 = config.GemmNPerThreadSubC;
 
     // retrieve dimension from ConvolutionContex
-    const auto& n               = ctx.problem.batch_sz;
-    const auto& k               = ctx.problem.n_outputs;
-    const auto& c               = ctx.problem.n_inputs;
-    const auto& hi              = ctx.problem.in_height;
-    const auto& wi              = ctx.problem.in_width;
-    const auto& ho              = ctx.problem.out_height;
-    const auto& wo              = ctx.problem.out_width;
-    const auto& y               = ctx.problem.kernel_size_h;
-    const auto& x               = ctx.problem.kernel_size_w;
-    const auto& conv_stride_h   = ctx.problem.kernel_stride_h;
-    const auto& conv_stride_w   = ctx.problem.kernel_stride_w;
-    const auto& conv_dilation_h = ctx.problem.kernel_dilation_h;
-    const auto& conv_dilation_w = ctx.problem.kernel_dilation_w;
+    const auto& n               = ctx.batch_sz;
+    const auto& k               = ctx.n_outputs;
+    const auto& c               = ctx.n_inputs;
+    const auto& hi              = ctx.in_height;
+    const auto& wi              = ctx.in_width;
+    const auto& ho              = ctx.out_height;
+    const auto& wo              = ctx.out_width;
+    const auto& y               = ctx.kernel_size_h;
+    const auto& x               = ctx.kernel_size_w;
+    const auto& conv_stride_h   = ctx.kernel_stride_h;
+    const auto& conv_stride_w   = ctx.kernel_stride_w;
+    const auto& conv_dilation_h = ctx.kernel_dilation_h;
+    const auto& conv_dilation_w = ctx.kernel_dilation_w;
 
     // adjust padding size to align with the way MIOpen deal with padding
-    const auto& left_pad_h = ctx.problem.pad_h;
-    const auto& left_pad_w = ctx.problem.pad_w;
+    const auto& left_pad_h = ctx.pad_h;
+    const auto& left_pad_w = ctx.pad_w;
 
     const auto& hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
     const auto& wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
@@ -214,7 +212,7 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
 
     const auto& block_size = ThreadPerLevel1Cluster;
 
-    const auto& group_counts = ctx.problem.group_counts;
+    const auto& group_counts = ctx.group_counts;
 
     const auto& grid_size = (b / b_per_block) * (k / k_per_block);
 
@@ -259,7 +257,7 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
     const auto& WeiBlockCopySubLengths_K = k_per_block / config.WeiBlockCopyClusterLengths_K;
 
     unsigned int WeiBlockCopySrcDataPerRead_E = 1;
-    if(ctx.problem.IsFp32())
+    if(ctx.IsFp32())
     {
         WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
     }
@@ -283,20 +281,17 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
 
     // Borrowed from non-padded version of v4
     InBlockCopySrcDataPerRead_B =
-        ctx.problem.kernel_size_w > 1
-            ? std::min(InBlockCopySrcDataPerRead_B,
-                       GetReadWriteVectorSize(ctx.problem.kernel_dilation_w))
+        ctx.kernel_size_w > 1
+            ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(ctx.kernel_dilation_w))
             : InBlockCopySrcDataPerRead_B;
-    InBlockCopySrcDataPerRead_B = ctx.problem.kernel_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
+    InBlockCopySrcDataPerRead_B = ctx.kernel_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
 
     const auto WeiBlockCopyDstDataPerWrite_K =
-        ctx.problem.IsFp32() ? GetReadWriteVectorSize(WeiBlockCopySubLengths_K) : 1;
+        ctx.IsFp32() ? GetReadWriteVectorSize(WeiBlockCopySubLengths_K) : 1;
     const auto InBlockCopyDstDataPerWrite_N2 =
-        ctx.problem.IsFp32() ? GetReadWriteVectorSize(InBlockCopySubLengths_N2) : 1;
-    const auto WeiBlockCopyDstDataPerWrite_EPack =
-        !ctx.problem.IsFp32() ? GetEPackLength(ctx, false) : 1;
-    const auto InBlockCopyDstDataPerWrite_EPack =
-        !ctx.problem.IsFp32() ? GetEPackLength(ctx, false) : 1;
+        ctx.IsFp32() ? GetReadWriteVectorSize(InBlockCopySubLengths_N2) : 1;
+    const auto WeiBlockCopyDstDataPerWrite_EPack = !ctx.IsFp32() ? GetEPackLength(ctx, false) : 1;
+    const auto InBlockCopyDstDataPerWrite_EPack  = !ctx.IsFp32() ? GetEPackLength(ctx, false) : 1;
 
     // clang-format off
     construction_parameters.comp_options =
@@ -348,7 +343,7 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
         ctx.general_compile_options;
     // clang-format on
 
-    if(ctx.problem.IsFp32())
+    if(ctx.IsFp32())
     {
         construction_parameters.comp_options +=
             std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") +
@@ -384,23 +379,23 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     // retrieve dimension from ConvolutionContex
     // remember: ConvolutionContext has swapped some dimensions for you!
     // undo the swap to avoid confusion
-    const auto& n               = ctx.problem.batch_sz;
-    const auto& k               = ctx.problem.n_inputs;   // unswap
-    const auto& c               = ctx.problem.n_outputs;  // unswap
-    const auto& hi              = ctx.problem.out_height; // unswap
-    const auto& wi              = ctx.problem.out_width;  // unswap
-    const auto& ho              = ctx.problem.in_height;  // unswap
-    const auto& wo              = ctx.problem.in_width;   // unswap
-    const auto& y               = ctx.problem.kernel_size_h;
-    const auto& x               = ctx.problem.kernel_size_w;
-    const auto& conv_stride_h   = ctx.problem.kernel_stride_h;
-    const auto& conv_stride_w   = ctx.problem.kernel_stride_w;
-    const auto& conv_dilation_h = ctx.problem.kernel_dilation_h;
-    const auto& conv_dilation_w = ctx.problem.kernel_dilation_w;
+    const auto& n               = ctx.batch_sz;
+    const auto& k               = ctx.n_inputs;   // unswap
+    const auto& c               = ctx.n_outputs;  // unswap
+    const auto& hi              = ctx.out_height; // unswap
+    const auto& wi              = ctx.out_width;  // unswap
+    const auto& ho              = ctx.in_height;  // unswap
+    const auto& wo              = ctx.in_width;   // unswap
+    const auto& y               = ctx.kernel_size_h;
+    const auto& x               = ctx.kernel_size_w;
+    const auto& conv_stride_h   = ctx.kernel_stride_h;
+    const auto& conv_stride_w   = ctx.kernel_stride_w;
+    const auto& conv_dilation_h = ctx.kernel_dilation_h;
+    const auto& conv_dilation_w = ctx.kernel_dilation_w;
 
     // adjust padding size to align with the way MIOpen deal with padding
-    const auto& left_pad_h = ctx.problem.pad_h;
-    const auto& left_pad_w = ctx.problem.pad_w;
+    const auto& left_pad_h = ctx.pad_h;
+    const auto& left_pad_w = ctx.pad_w;
 
     const auto& hi_padded = 1 + (y - 1) * conv_dilation_h + (ho - 1) * conv_stride_h;
     const auto& wi_padded = 1 + (x - 1) * conv_dilation_w + (wo - 1) * conv_stride_w;
@@ -408,7 +403,7 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     const auto& right_pad_h = hi_padded > (left_pad_h + hi) ? hi_padded - (left_pad_h + hi) : 0;
     const auto& right_pad_w = wi_padded > (left_pad_w + wi) ? wi_padded - (left_pad_w + wi) : 0;
 
-    const auto& group_counts = ctx.problem.group_counts;
+    const auto& group_counts = ctx.group_counts;
 
     // equivalent dimension for bwd-wrw
     const auto& n_eqv  = c / group_counts;
@@ -444,7 +439,7 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(gbl_wk1);
     construction_parameters.g_wk.push_back(gbl_wk2);
 
-    if(ctx.problem.group_counts > 1)
+    if(ctx.group_counts > 1)
     {
         // clang-format off
         construction_parameters.kernel_file =
@@ -480,7 +475,7 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     int WeiBlockCopyDstDataPerWrite_EPack = 0;
     int InBlockCopyDstDataPerWrite_EPack  = 0;
 
-    if(ctx.problem.IsFp32())
+    if(ctx.IsFp32())
     {
         WeiBlockCopyDstDataPerWrite_K = GetReadWriteVectorSize(WeiBlockCopySubLengths_K);
         InBlockCopyDstDataPerWrite_N2 = GetReadWriteVectorSize(InBlockCopySubLengths_N2);
@@ -498,10 +493,10 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     // clang-format off
     // Borrowed from non-padded version of v4
     InBlockCopySrcDataPerRead_B =
-        ctx.problem.kernel_size_w > 1
-            ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(ctx.problem.kernel_dilation_w))
+        ctx.kernel_size_w > 1
+            ? std::min(InBlockCopySrcDataPerRead_B, GetReadWriteVectorSize(ctx.kernel_dilation_w))
             : InBlockCopySrcDataPerRead_B;
-    InBlockCopySrcDataPerRead_B = ctx.problem.kernel_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
+    InBlockCopySrcDataPerRead_B = ctx.kernel_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
 
     // clang-format off
     construction_parameters.comp_options =
@@ -553,7 +548,7 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
         ctx.general_compile_options;
     // clang-format on
 
-    if(ctx.problem.IsFp32())
+    if(ctx.IsFp32())
     {
         construction_parameters.comp_options +=
             std::string(" -DCK_PARAM_IN_BLOCK_COPY_DST_DATA_PER_WRITE_N2=") +
