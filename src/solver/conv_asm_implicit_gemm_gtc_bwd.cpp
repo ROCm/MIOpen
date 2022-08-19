@@ -756,7 +756,7 @@ GetImplicitGemmGtcDynamicBwdTunablesList(const ConvolutionContext& ctx)
     };
 
     // clang-format on
-    if(ctx.problem.IsFp16())
+    if(ctx.IsFp16())
         return tunables_fp16;
     else
         return tunables_fp32;
@@ -789,22 +789,22 @@ FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
     auto tunables = GetImplicitGemmGtcDynamicBwdTunablesList(ctx);
 
     // so far, "group" is only supported by bwd fp16 kernels
-    const auto group      = ctx.problem.IsFp16() ? ctx.problem.group_counts : 1;
-    const auto hi         = ctx.problem.out_height;
-    const auto wi         = ctx.problem.out_width;
-    const auto n          = ctx.problem.batch_sz;
-    const auto k          = ctx.problem.n_inputs / group;
-    const auto c          = ctx.problem.n_outputs / group;
-    const auto ho         = ctx.problem.in_height;
-    const auto wo         = ctx.problem.in_width;
-    const auto stride_h   = ctx.problem.out_height > 1 ? ctx.problem.kernel_stride_h : 1;
-    const auto stride_w   = ctx.problem.out_width > 1 ? ctx.problem.kernel_stride_w : 1;
-    const auto dilation_h = ctx.problem.kernel_size_h > 1 ? ctx.problem.kernel_dilation_h : 1;
-    const auto dilation_w = ctx.problem.kernel_size_w > 1 ? ctx.problem.kernel_dilation_w : 1;
-    const auto pad_h      = ctx.problem.pad_h;
-    const auto pad_w      = ctx.problem.pad_w;
-    const auto y          = ctx.problem.kernel_size_h;
-    const auto x          = ctx.problem.kernel_size_w;
+    const auto group      = ctx.IsFp16() ? ctx.group_counts : 1;
+    const auto hi         = ctx.out_height;
+    const auto wi         = ctx.out_width;
+    const auto n          = ctx.batch_sz;
+    const auto k          = ctx.n_inputs / group;
+    const auto c          = ctx.n_outputs / group;
+    const auto ho         = ctx.in_height;
+    const auto wo         = ctx.in_width;
+    const auto stride_h   = ctx.out_height > 1 ? ctx.kernel_stride_h : 1;
+    const auto stride_w   = ctx.out_width > 1 ? ctx.kernel_stride_w : 1;
+    const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
+    const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
+    const auto pad_h      = ctx.pad_h;
+    const auto pad_w      = ctx.pad_w;
+    const auto y          = ctx.kernel_size_h;
+    const auto x          = ctx.kernel_size_w;
 
     const auto gcd_stride_dilation_h = gcd(stride_h, dilation_h);
     const auto gcd_stride_dilation_w = gcd(stride_w, dilation_w);
@@ -834,10 +834,10 @@ FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
 
     for(const auto& cfg : tunables)
     {
-        const auto b = (cfg.nxe == 0 || ctx.problem.IsFp32())
+        const auto b = (cfg.nxe == 0 || ctx.IsFp32())
                            ? h_tilda_slice * w_tilda_slice
                            : ((h_tilda_slice * w_tilda_slice + cfg.nxb - 1) / cfg.nxb) * cfg.nxb;
-        const auto gemm_n_packed = ctx.problem.IsFp16() ? n * b : gemm_n;
+        const auto gemm_n_packed = ctx.IsFp16() ? n * b : gemm_n;
 
         assert((cfg.gemm_n_per_block != 0) && (cfg.gemm_m_per_block != 0) && (cfg.nxb != 0) &&
                (cfg.gemm_k_per_block != 0));
@@ -884,7 +884,7 @@ FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
             continue;
 
         // the following check is only used for bwd fp16
-        if(ctx.problem.IsFp16())
+        if(ctx.IsFp16())
         {
             // output vector load limitation, n1b
             if(cfg.nxe == 0 && cfg.tensor_b_thread_lengths[3] > 1 &&
@@ -910,7 +910,7 @@ FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
                                    integer_divide_ceil(gemm_n_packed, cfg.gemm_n_per_block));
     }
 
-    if(ctx.problem.IsFp32())
+    if(ctx.IsFp32())
     {
         // second try, try find if packed image size match
         for(const auto& cfg : tunables)
@@ -985,23 +985,23 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionConte
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!ctx.problem.direction.IsBackwardData())
+    if(!ctx.direction.IsBackwardData())
         return false;
 
-    if(!ctx.problem.Is2d())
+    if(!ctx.Is2d())
         return false;
 
-    if(!ctx.problem.IsFp32() && !ctx.problem.IsFp16())
+    if(!ctx.IsFp32() && !ctx.IsFp16())
         return false;
 
     if(!ctx.rmv.IsV3())
         return false;
 
     // So far, "group" is not supported by the bwd fp32 kernels
-    if(ctx.problem.IsFp32() && ctx.problem.group_counts != 1)
+    if(ctx.IsFp32() && ctx.group_counts != 1)
         return false;
 
-    if(!ctx.problem.IsLayoutDefault())
+    if(!ctx.IsLayoutDefault())
     {
         return false;
     }

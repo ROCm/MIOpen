@@ -88,7 +88,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
          N2 % InBlockCopyClusterLengths_N2 == 0))
         return false;
 
-    if(ctx.problem.direction.IsBackwardWrW())
+    if(ctx.direction.IsBackwardWrW())
     {
         if(!((X * Y) % (EPerBlock / WeiBlockCopyClusterLengths_E) == 0))
             return false;
@@ -104,21 +104,20 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
 #endif
 
     const auto KBlockWork = K / KPerBlock;
-    if(KBlockWork % ctx.problem.group_counts != 0)
+    if(KBlockWork % ctx.group_counts != 0)
         return false;
 
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
         return false;
 
     // fp16/bfp16: doesn't support asymmetric matrix mul
-    if((ctx.problem.IsFp16() || ctx.problem.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
+    if((ctx.IsFp16() || ctx.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
         return false;
 
     // fp16/bfp16: vector read of length 8 or greater is not supported
     // as vector_type<vector<half,4>, 2> is not working. So, restrict epack*gemmreada <= 4
     // and epack*gemmreadb <= 4
-    // if((ctx.problem.IsFp16()  || ctx.problem.IsBfp16()) && ((GetEPackLength(ctx,
-    // false)*GemmNPerThreadSubC > 4)
+    // if((ctx.IsFp16()  || ctx.IsBfp16()) && ((GetEPackLength(ctx, false)*GemmNPerThreadSubC > 4)
     // ||
     //   (GetEPackLength(ctx, false)*GemmMPerThreadSubC > 4)))
     //  return false;
@@ -208,21 +207,20 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
         return false; // wrong! cannot divice N evenly among thread
 
     const auto KBlockWork = K / KPerBlock;
-    if(KBlockWork % ctx.problem.group_counts != 0)
+    if(KBlockWork % ctx.group_counts != 0)
         return false;
 
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
         return false;
 
     // fp16/bfp16: doesn't support asymmetric matrix mul
-    if((ctx.problem.IsFp16() || ctx.problem.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
+    if((ctx.IsFp16() || ctx.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
         return false;
 
     // fp16/bfp16: vector read of length 8 or greater is not supported
     // as vector_type<vector<half,4>, 2> is not working. So, restrict epack*gemmreada <= 4
     // and epack*gemmreadb <= 4
-    // if((ctx.problem.IsFp16()  || ctx.problem.IsBfp16()) && ((GetEPackLength(ctx,
-    // false)*GemmNPerThreadSubC > 4)
+    // if((ctx.IsFp16()  || ctx.IsBfp16()) && ((GetEPackLength(ctx, false)*GemmNPerThreadSubC > 4)
     // ||
     //   (GetEPackLength(ctx, false)*GemmMPerThreadSubC > 4)))
     //  return false;

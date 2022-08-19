@@ -254,7 +254,7 @@ struct AnySolver
         {
             using PerformanceConfig = decltype(value.GetDefaultPerformanceConfig(ctx));
             PerformanceConfig config{};
-            if(db.Load(ctx.problem, value.SolverDbId(), config))
+            if(db.Load(ctx, value.SolverDbId(), config))
             {
                 MIOPEN_LOG_I2("Perf Db: Record Loaded: " << value.SolverDbId());
                 if(value.IsValidPerformanceConfig(ctx, config))

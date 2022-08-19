@@ -208,7 +208,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmABlockCopyPerformanceParameters
             a_data_per_thread_copy / a_data_per_thread_copy_gemmm;
 
         // GemmABlockCopyDstDataPerWrite_GemmM also bounded by size of threadwise copy
-        if(ctx.problem.IsFp32())
+        if(ctx.IsFp32())
         {
             DstDataPerWrite_GemmM = gcd(DstDataPerWrite_GemmM, a_data_per_thread_copy_gemmm);
         }
@@ -225,7 +225,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmABlockCopyPerformanceParameters
         return std::make_tuple(-1, -1, -1, -1, false);
     }
 
-    if(ctx.problem.IsFp32())
+    if(ctx.IsFp32())
     {
         return std::make_tuple(ClusterLengths_GemmK,
                                ClusterLengths_GemmM,
@@ -277,7 +277,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmBBlockCopyPerformanceParameters
             b_data_per_thread_copy / b_data_per_thread_copy_gemmn;
 
         // GemmBBlockCopyDstDataPerWrite_GemmN also bounded by size of threadwise copy
-        if(ctx.problem.IsFp32())
+        if(ctx.IsFp32())
         {
             DstDataPerWrite_GemmN = gcd(DstDataPerWrite_GemmN, b_data_per_thread_copy_gemmn);
         }
@@ -295,7 +295,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmBBlockCopyPerformanceParameters
         return std::make_tuple(-1, -1, -1, -1, false);
     }
 
-    if(ctx.problem.IsFp32())
+    if(ctx.IsFp32())
     {
         return std::make_tuple(ClusterLengths_GemmK,
                                ClusterLengths_GemmN,
@@ -341,7 +341,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmCThreadCopyPerformanceParameter
         const auto in_right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
         const auto in_right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
 
-        if(ctx.problem.Is3d())
+        if(ctx.Is3d())
         {
             const auto di = ConvolutionContextInterpreter::GetInputDepthDi(ctx);
             const auto z  = ConvolutionContextInterpreter::GetFilterDepthZ(ctx);
@@ -420,8 +420,8 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateLdsNumberOfByte(const ConvolutionCo
             MIOPEN_THROW("invalid performance parameter");
 
         const int epack                        = GetEPackLength(ctx, false);
-        const auto ThreadGemmDataPerRead_GemmM = ctx.problem.IsFp32() ? GemmMPerThread : epack;
-        const auto ThreadGemmDataPerRead_GemmN = ctx.problem.IsFp32() ? GemmNPerThread : epack;
+        const auto ThreadGemmDataPerRead_GemmM = ctx.IsFp32() ? GemmMPerThread : epack;
+        const auto ThreadGemmDataPerRead_GemmN = ctx.IsFp32() ? GemmNPerThread : epack;
 
         const auto max_lds_align = lcm(GemmABlockCopyDescDataPerWriteGemm,
                                        GemmBBlockCopyDescDataPerWriteGemm,
@@ -600,10 +600,9 @@ ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx)
     const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
 
     const auto gemm_m =
-        c * y * x * (ctx.problem.Is3d() ? ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : 1);
+        c * y * x * (ctx.Is3d() ? ConvolutionContextInterpreter::GetFilterDepthZ(ctx) : 1);
     const auto gemm_n =
-        n * ho * wo *
-        (ctx.problem.Is3d() ? ConvolutionContextInterpreter::GetOutputDepthDo(ctx) : 1);
+        n * ho * wo * (ctx.Is3d() ? ConvolutionContextInterpreter::GetOutputDepthDo(ctx) : 1);
     const auto gemm_k = k / GetEPackLength(ctx, false);
 
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
@@ -611,7 +610,7 @@ ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx)
 
 size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
-    if(ctx.problem.IsFp32())
+    if(ctx.IsFp32())
         return 0;
     else
     {
@@ -623,8 +622,7 @@ size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext
         std::size_t c  = ConvolutionContextInterpreter::GetInputChannelC(ctx);
         std::size_t hi = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
         std::size_t wi = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-        return n * c *
-               (ctx.problem.Is3d() ? ConvolutionContextInterpreter::GetInputDepthDi(ctx) : 1) * hi *
+        return n * c * (ctx.Is3d() ? ConvolutionContextInterpreter::GetInputDepthDi(ctx) : 1) * hi *
                wi * miopen::GetTypeSize(miopenFloat);
     }
 }
@@ -633,31 +631,30 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1{}))
         return false;
-    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ctx.problem.IsLayoutDefault())
+    if(!ctx.IsLayoutDefault())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!ctx.problem.direction.IsBackwardData())
+    if(!ctx.direction.IsBackwardData())
         return false;
-    if(!ctx.problem.Is2d() && !(ctx.problem.Is3d() && ctx.problem.IsFp32()))
+    if(!ctx.Is2d() && !(ctx.Is3d() && ctx.IsFp32()))
         return false;
 
     // TBD Renable fp16 once the root cause of
     // fp16 failures, observed in CI, is resolved.
-    if(!(ctx.problem.IsFp32() || ctx.problem.IsBfp16()))
+    if(!(ctx.IsFp32() || ctx.IsBfp16()))
         return false;
-    if(ctx.problem.group_counts != 1)
+    if(ctx.group_counts != 1)
         return false;
 #if WORKAROUND_ISSUE_309
-    if(ctx.problem.IsBfp16())
+    if(ctx.IsBfp16())
         return false;
 #endif
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
-       ctx.problem.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
@@ -715,15 +712,14 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(1);
 
     // clang-format off
-    construction_parameters.kernel_file = ctx.problem.Is3d()
+    construction_parameters.kernel_file = ctx.Is3d()
                                               ? "static_kernel_gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw.cpp"
                                               : "static_kernel_gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw.cpp";
     // clang-format on
 
     construction_parameters.kernel_name =
-        ctx.problem.Is3d()
-            ? "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"
-            : "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw";
+        ctx.Is3d() ? "gridwise_convolution_backward_data_implicit_gemm_v1r1_ncdhw_kczyx_nkdhw"
+                   : "gridwise_convolution_backward_data_implicit_gemm_v1r1_nchw_kcyx_nkhw";
 
     int GemmMLevel0Cluster                      = 0;
     int GemmNLevel0Cluster                      = 0;
@@ -747,7 +743,7 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
              GemmNLevel1Cluster,
              std::ignore) = config.CalculateBlockGemmPerformanceParameters(ctx);
 
-    if(ctx.problem.IsFp32())
+    if(ctx.IsFp32())
     {
         std::tie(GemmABlockCopyClusterLengths_GemmK,
                  GemmABlockCopyClusterLengths_GemmM,
@@ -823,7 +819,7 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
         get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on
-    if(ctx.problem.Is3d())
+    if(ctx.Is3d())
     {
         construction_parameters.comp_options +=
             std::string(" -DCK_PARAM_PROBLEM_DI=") +
@@ -842,7 +838,7 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
             std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadD(ctx));
     }
 
-    if(ctx.problem.IsFp32())
+    if(ctx.IsFp32())
     {
         construction_parameters.comp_options +=
             std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_M=") +

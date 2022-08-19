@@ -42,9 +42,9 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.use_asm_kernels)
         return false;
-    if(!params.problem.Is2d())
+    if(!params.Is2d())
         return false;
-    if(params.problem.IsAsymmetricPadH() || params.problem.IsAsymmetricPadW())
+    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
         return false;
     if(!params.rmv.IsV2orV3())
         return false;
@@ -65,11 +65,11 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    if(!params.problem.direction.IsBackwardData())
+    if(!params.direction.IsBackwardData())
     {
         return false;
     }
-    if(!params.problem.IsLayoutDefault())
+    if(!params.IsLayoutDefault())
     {
         return false;
     }
@@ -82,23 +82,23 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
     const int max_out_height = 131077 - 1;
 
     // clang-format off
-    return params.problem.pad_w == 0                     // -q   pad_w   fixed
-        && params.problem.pad_h == 0                     // -p   pad_h   fixed
-        && params.problem.kernel_stride_w == 2             // -v   inp_v   fixed
-        && params.problem.kernel_stride_h == 2             // -u   inp_u   fixed
-        && params.problem.kernel_size_w == 10            // -x   wei_w   fixed
-        && params.problem.kernel_size_h == 5             // -y   wei_h   fixed
-        && params.problem.kernel_dilation_w == 1
-        && params.problem.kernel_dilation_h == 1
-        && params.problem.n_outputs % 16 == 0            // -c   wei_c   no upper limit
-        && params.problem.n_inputs >= 16                 // -k   wei_k   no upper limit
-        && params.problem.out_width >= min_out_width     // -W   inp_w
-        && params.problem.out_width <= max_out_width
-        && params.problem.out_height >= min_out_height   // -H   inp_h
-        && params.problem.out_height <= max_out_height
-        && params.problem.IsFp32()
-        && params.problem.group_counts == 1
-        && params.problem.out_layout == "NCHW";          // hardcoded
+    return params.pad_w == 0                     // -q   pad_w   fixed
+        && params.pad_h == 0                     // -p   pad_h   fixed
+        && params.kernel_stride_w == 2             // -v   inp_v   fixed
+        && params.kernel_stride_h == 2             // -u   inp_u   fixed
+        && params.kernel_size_w == 10            // -x   wei_w   fixed
+        && params.kernel_size_h == 5             // -y   wei_h   fixed
+        && params.kernel_dilation_w == 1
+        && params.kernel_dilation_h == 1
+        && params.n_outputs % 16 == 0            // -c   wei_c   no upper limit
+        && params.n_inputs >= 16                 // -k   wei_k   no upper limit
+        && params.out_width >= min_out_width     // -W   inp_w
+        && params.out_width <= max_out_width
+        && params.out_height >= min_out_height   // -H   inp_h
+        && params.out_height <= max_out_height
+        && params.IsFp32()
+        && params.group_counts == 1
+        && params.out_layout == "NCHW";          // hardcoded
         // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
     // clang-format on
 }
@@ -107,10 +107,10 @@ ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ConvolutionContext& params) co
 {
     ConvSolution result;
     std::ostringstream options;
-    GenerateClangDefsym(options, "inp_h", params.problem.out_height);
-    GenerateClangDefsym(options, "inp_w", params.problem.out_width);
-    GenerateClangDefsym(options, "wei_c", params.problem.n_outputs);
-    GenerateClangDefsym(options, "wei_k", params.problem.n_inputs);
+    GenerateClangDefsym(options, "inp_h", params.out_height);
+    GenerateClangDefsym(options, "inp_w", params.out_width);
+    GenerateClangDefsym(options, "wei_c", params.n_outputs);
+    GenerateClangDefsym(options, "wei_k", params.n_inputs);
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
 
     KernelInfo constr_params;
@@ -121,10 +121,10 @@ ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ConvolutionContext& params) co
     constr_params.l_wk.push_back(1);
 
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_c/2,8), batch_n]
-    constr_params.g_wk.push_back(AlignUp(params.problem.in_width, 64));
-    constr_params.g_wk.push_back(AlignUp(params.problem.in_height, 4) / 4 *
-                                 AlignUp(params.problem.n_outputs / 2, 8));
-    constr_params.g_wk.push_back(params.problem.batch_sz);
+    constr_params.g_wk.push_back(AlignUp(params.in_width, 64));
+    constr_params.g_wk.push_back(AlignUp(params.in_height, 4) / 4 *
+                                 AlignUp(params.n_outputs / 2, 8));
+    constr_params.g_wk.push_back(params.batch_sz);
 
     constr_params.kernel_file = "conv5x10u2v2b1.s";
     constr_params.kernel_name = "miopenConv5x10u2v2b1";
