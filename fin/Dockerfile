@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-ARG PREFIX=/usr/local
+ARG PREFIX=/opt/rocm
 
 # Support multiarch
 RUN dpkg --add-architecture i386
@@ -74,21 +74,42 @@ RUN pip install https://github.com/pfultz2/cget/archive/57b3289000fcdb3b7e424c60
 # Install rclone
 RUN pip install https://github.com/pfultz2/rclone/archive/master.tar.gz
 
-# Install hcc from ROCm 3.0
-RUN rclone -b roc-3.0.x -c 286651a04d9c3a8e3052dd84b1822985498cd27d https://github.com/RadeonOpenCompute/hcc.git /hcc
-RUN LDFLAGS=-fuse-ld=gold cget -p $PREFIX install hcc,/hcc  && rm -rf /hcc
-
 # Make sure /opt/rcom is in the paths
 ENV PATH="/opt/rocm:${PATH}"
+# Install MIOpen
+ARG MIOPEN_DIR=/root/dMIOpen
+#Clone MIOpen
+RUN git clone https://github.com/ROCmSoftwarePlatform/MIOpen.git $MIOPEN_DIR
+WORKDIR $MIOPEN_DIR
 
-# Build using hcc
-RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14
+ARG MIOPEN_DEPS=$MIOPEN_DIR/cget
+# Install dependencies
+RUN wget --no-check-certificate -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | apt-key add -
+RUN sh -c "echo deb https://apt.kitware.com/ubuntu/ bionic main | tee -a /etc/apt/sources.list"
+RUN apt-get update && apt-get install -y --allow-unauthenticated   cmake-data=3.15.1-0kitware1 cmake=3.15.1-0kitware1
+RUN cget install pfultz2/rocm-recipes
+RUN cget install -f min-requirements.txt
+RUN CXXFLAGS='-isystem $PREFIX/include' cget install -f ./mlir-requirements.txt
+
+ARG TUNA_USER=miopenpdb
+ARG BACKEND=HIP
+# Build MIOpen
+WORKDIR $MIOPEN_DIR/build
+ARG MIOPEN_BRANCH=05169b091cf3d0b752c94ba51d63f7af6463d731
+ARG MIOPEN_CACHE_DIR=/tmp/${TUNA_USER}/cache
+ARG MIOPEN_USER_DB_PATH=/tmp/$TUNA_USER/config/miopen
+ARG MIOPEN_USE_MLIR=On
+RUN git pull && git checkout $MIOPEN_BRANCH
+RUN echo "MIOPEN: Selected $BACKEND backend."
+RUN if [ $BACKEND = "OpenCL" ]; then \
+           cmake -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_USE_COMGR=Off -DMIOPEN_USE_MLIR=${MIOPEN_USE_MLIR} -DMIOPEN_CACHE_DIR=${MIOPEN_CACHE_DIR} -DMIOPEN_USER_DB_PATH={MIOPEN_USER_DB_PATH} -DMIOPEN_BACKEND=OpenCL -DMIOPEN_HIP_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_PREFIX_PATH="$MIOPEN_DEPS" $MIOPEN_DIR ; \
+    else \
+           CXX=/opt/rocm/llvm/bin/clang++ cmake -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_USE_COMGR=Off -DMIOPEN_USE_MLIR=${MIOPEN_USE_MLIR} -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_CACHE_DIR=${MIOPEN_CACHE_DIR} -DMIOPEN_USER_DB_PATH=${MIOPEN_USER_DB_PATH} -DMIOPEN_BACKEND=$BACKEND -DCMAKE_PREFIX_PATH=$MIOPEN_DEPS $MIOPEN_DIR ; \
+    fi
+
+RUN make -j $(nproc)
+RUN make install
 
 # Install dependencies
 ADD requirements.txt /requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /requirements.txt
-
-# Install doc requirements
-#ADD doc/requirements.txt /doc-requirements.txt
-#RUN pip install -r /doc-requirements.txt
-
