@@ -24,7 +24,6 @@
 #
 ################################################################################
 # - Enable warning all for gcc/clang or use /W4 for visual studio
-
 ## Strict warning level
 if (MSVC)
     # Use the highest warning level for visual studio.

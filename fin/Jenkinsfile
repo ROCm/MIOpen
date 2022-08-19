@@ -22,9 +22,8 @@ def rocmnode(name) {
 
 def cmake_build(compiler, flags, prefixpath="/opt/rocm"){
     def workspace_dir = pwd()
-    def vcache = "/var/jenkins/.cache/miopen/vcache"
     def archive = (flags == '-DCMAKE_BUILD_TYPE=release')
-    def config_targets = "all" // "check doc MIOpenDriver"
+    def config_targets = "all" 
     def test_flags = "--disable-verification-cache"
     def debug_flags = "-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined"
     def compilerpath = ""
@@ -46,8 +45,8 @@ def cmake_build(compiler, flags, prefixpath="/opt/rocm"){
         rm -rf build
         mkdir build
         cd build
-        CXX=${compilerpath} CXXFLAGS='-Werror' cmake ${configargs} -DMIOPEN_GPU_SYNC=On -DMIOPEN_TEST_FLAGS='${test_flags}' -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}' ${flags} ..
-        MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS=1 CTEST_PARALLEL_LEVEL=4 MIOPEN_VERIFY_CACHE_PATH=${vcache} MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 dumb-init make -j\$(nproc) ${config_targets}
+        CXX=${compilerpath} cmake ${configargs}  ${flags} ..
+        dumb-init make -j\$(nproc) ${config_targets}
     """
     echo cmd
     sh cmd
@@ -110,26 +109,12 @@ pipeline {
         parallelsAlwaysFailFast()
     }
     environment{
-        image = "miopen"
+        image = "fin"
     }
     stages{
         // Run all static analysis tests
         stage("Static checks"){
             parallel{
-                stage('Clang Tidy') {
-                    agent{  label rocmnode("rocmtest") }
-                    environment{
-                        cmd = "rm -rf build; \
-                                mkdir build; \
-                                cd build; \
-                                CXX='clang++-3.9' cmake -DBUILD_DEV=On ..; \
-                                make -j\$(nproc) -k analyze;"
-                    }
-                    steps{
-                        buildJob('clang++-3.9', '-DCMAKE_BUILD_TYPE=release', image, "", cmd)
-                    }
-                }
-
                 stage('Clang Format') {
                     agent{ label rocmnode("rocmtest") }
                     environment{
@@ -155,11 +140,37 @@ pipeline {
                         cmd = "rm -rf build; \
                                 mkdir build; \
                                 cd build; \
-                                CXX=/usr/local/bin/hcc cmake -DBUILD_DEV=On ..; \
+                                CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On ..; \
                                 make -j\$(nproc) -k analyze;"
                     }
                     steps{
-                        buildJob('hcc', '-DCMAKE_BUILD_TYPE=release', image, "", cmd)
+                        buildJob('clang++', '-DCMAKE_BUILD_TYPE=release', image, "", cmd)
+                    }
+                }
+                stage('Build Fin') {
+                    agent{ label rocmnode("rocmtest") }
+                    environment{
+                        cmd = "rm -rf build; \
+                                mkdir build; \
+                                cd build; \
+                                CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_PREFIX_PATH=/root/dMIOpen/cget ..; \
+                                make -j\$(nproc) all;"
+                    }
+                    steps{
+                        buildJob('clang++', '-DCMAKE_BUILD_TYPE=release', image, "", cmd)
+                    }
+                }
+                stage('Fin Tests') {
+                    agent{ label rocmnode("rocmtest") }
+                    environment{
+                        cmd = "rm -rf build; \
+                                mkdir build; \
+                                cd build; \
+                                CXX=/opt/rocm/llvm/bin/clang++ cmake -DBUILD_DEV=On -DCMAKE_PREFIX_PATH=/root/dMIOpen/cget ..; \
+                                make -j\$(nproc) check;"
+                    }
+                    steps{
+                        buildJob('clang++', '-DCMAKE_BUILD_TYPE=release', image, "", cmd)
                     }
                 }
             }
