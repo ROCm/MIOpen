@@ -322,9 +322,7 @@ if(MIOPEN_USE_MLIR)
     # Try to find package Miir
     # REQUIRE is omitted since we do not want cmake to abort if the package is not found
     find_package(Miir 1.0.0 CONFIG)
-    # variable MLIRMIOpen_INCLUDE_DIR is defined in a cmake file provided by the
-    # Miir package. Its definition helps us determine whether the package is found
-    if(NOT MLIRMIOpen_INCLUDE_DIR)
+    if(NOT Miir_FOUND)
       message(STATUS "Falling back to find library libMLIRMIOpen")
       # Backward compatibility
       # If the Miir package is not found, try to find the library libMLIRMIOpen directly

@@ -695,7 +695,7 @@ if(LIBMLIRMIOPEN)
 endif()
 
 # Build with package Miir
-if(MLIRMIOpen_INCLUDE_DIR)
+if(Miir_FOUND)
   target_link_libraries(MIOpen PRIVATE Miir::MLIRMIOpen)
 endif()
 
