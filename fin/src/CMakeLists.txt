@@ -25,16 +25,13 @@
 ################################################################################
 cmake_minimum_required( VERSION 2.8.12 )
 list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hip /opt/rocm/hcc /opt/rocm/opencl)
-find_package(miopen)
-
-find_package(Threads REQUIRED)
 
 configure_file("${PROJECT_SOURCE_DIR}/src/include/config.h.in" "${PROJECT_BINARY_DIR}/src/include/config.h")
 
 include_directories(include "${PROJECT_BINARY_DIR}/src/include")
 add_executable(fin main.cpp fin.cpp base64.cpp)
 target_compile_definitions( fin PRIVATE -D__HIP_PLATFORM_HCC__=1 )
-target_link_libraries(fin MIOpen ${Boost_LIBRARIES})
+target_link_libraries(fin MIOpen ${Boost_LIBRARIES} hip::host)
 target_link_libraries(fin ${CMAKE_THREAD_LIBS_INIT})
 if(rocblas_FOUND)
     target_link_libraries( fin $<BUILD_INTERFACE:roc::rocblas> )

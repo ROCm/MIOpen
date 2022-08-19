@@ -1,0 +1,48 @@
+[
+    {
+        "arch":"gfx908:sram-ecc+:xnack-" ,
+        "config": {
+            "activMode": -1,
+            "batchsize": 32,
+            "cmd": "conv",
+            "conv_mode": "conv",
+            "conv_stride_d": 1,
+            "conv_stride_h": 1,
+            "conv_stride_w": 1,
+            "dilation_d": 1,
+            "dilation_h": 1,
+            "dilation_w": 1,
+            "fil_d": 1,
+            "fil_h": 3,
+            "fil_w": 3,
+            "fusion_mode": -1,
+            "group_count": 1,
+            "in_channels": 128,
+            "in_d": 1,
+            "in_h": 28,
+            "in_w": 28,
+            "out_channels": 128,
+            "pad_d": 0,
+            "pad_h": 1,
+            "pad_mode": "default",
+            "pad_w": 1,
+            "recur": 0,
+            "sources": [
+                "issue_1760"
+            ],
+            "spatial_dim": 2,
+            "tags": [
+                "resnet50"
+            ],
+            "trans_output_pad_d": 0
+        },
+        "config_tuna_id": null,
+        "direction": 2,
+        "label": "resnet_tuning",
+        "num_cu": 120,
+        "steps": [
+            "chk_pre_compiled_kernels"
+          ]
+   }
+]
+

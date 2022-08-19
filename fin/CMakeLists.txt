@@ -39,8 +39,6 @@ else()
 endif()
 
 project ( fin C CXX )
-option( BUILD_SHARED_LIBS "Build as a shared library" ON )
-enable_testing()
 
 find_package(ROCM REQUIRED PATHS /opt/rocm)
 
@@ -52,12 +50,6 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 
 option( BUILD_DEV "Build for development only" OFF)
-
-# Strip symbols for release
-if(NOT WIN32 AND NOT APPLE)
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
-endif()
 
 rocm_setup_version(VERSION 1.0.0)
 
@@ -100,7 +92,6 @@ set_property( CACHE FIN_BACKEND PROPERTY STRINGS
 
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
-find_package(rocblas REQUIRED PATHS /opt/rocm)
 
 # OpenCL 1.2
 if( FIN_BACKEND STREQUAL "OpenCL")
@@ -186,7 +177,7 @@ set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}, rocm-opencl-devel")
 rocm_create_package(
     NAME fin-${FIN_BACKEND}
     DESCRIPTION "Fin MIOpen Driver"
-    MAINTAINER "Jehandad Khan <jehandad.khan@amd.com>"
+    MAINTAINER "Tuna Devs <dl.MITunaX@amd.com>"
     LDCONFIG
     # DEPENDS rocm-opencl rocm-utils hip-hcc tinygemm
 )
@@ -327,8 +318,9 @@ else()
     message("MIOPEN_ENABLE_FIN is SET")
 endif()
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
+find_package(miopen)
+find_package(rocblas) #MIOpen depends on rocBlas
+find_package(Threads REQUIRED)
 
 add_subdirectory(src)
+add_subdirectory(tests)
