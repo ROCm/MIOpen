@@ -941,16 +941,16 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx90a:xnack-")
                     }
                 }
-                stage('Fp32 Hip All gfx90a Xnack+') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
-                    }
-                    agent{ label rocmnode("gfx90a") }
-                    steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx90a:xnack+", enforce_xnack_on: true)
-                    }
-                }
+                // stage('Fp32 Hip All gfx90a Xnack+') {
+                //     when {
+                //         beforeAgent true
+                //         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
+                //     }
+                //     agent{ label rocmnode("gfx90a") }
+                //     steps{
+                //         buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx90a:xnack+", enforce_xnack_on: true)
+                //     }
+                // }
                 stage('Fp16 Hip Install All Vega20') {
                     when {
                         beforeAgent true
