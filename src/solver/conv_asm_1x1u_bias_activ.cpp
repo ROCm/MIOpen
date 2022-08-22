@@ -67,18 +67,6 @@ bool PerformanceConfigConvBiasActivAsm1x1U::operator==(
                 && waves_k_in_group == other.waves_k_in_group
                 && use_spare_set == other.use_spare_set; // clang-format on
 }
-bool ConvBiasActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& ctx,
-                                                PerformanceConfigConvBiasActivAsm1x1U& config,
-                                                PerformanceDb& db) const
-{
-    const auto base_res =
-        ConvTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>::GetPerformanceConfig(
-            ctx, config, db);
-    if(base_res)
-        return true;
-    MIOPEN_LOG_I("Overriding Performance Config with solver:" << GetSolverDbId<ConvAsm1x1U>());
-    return db.Load(ctx, GetSolverDbId<ConvAsm1x1U>(), config);
-}
 
 PerformanceConfigConvBiasActivAsm1x1U
 ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const ConvolutionContext& params) const

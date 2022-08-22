@@ -82,6 +82,11 @@ struct SolverBase
     /// overriden to keep the name to avoid DB corruption.
     virtual const std::string& SolverDbId() const = 0;
 
+    // In some instances ( particularly fusions) the fused solver might like to
+    // fallback to the non-fused variant for performance parameters, this information
+    // is returned via AltSolverDbId
+    virtual const std::string AltSolverDbId() const { return ""; }
+
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
     ///
@@ -223,12 +228,6 @@ struct ConvTunableSolver : ConvTunableSolverBase
     {
         return GetSolution(ctx, boost::any_cast<const PerformanceConfig&>(config));
     }
-    virtual bool GetPerformanceConfig(const ConvolutionContext& ctx,
-                                      PerformanceConfig& config,
-                                      PerformanceDb& db) const
-    {
-        return db.Load(ctx, this->SolverDbId(), config);
-    }
 };
 
 struct PerformanceConfigConvAsm3x3U : PerfConfigBase<PerformanceConfigConvAsm3x3U>
@@ -357,6 +356,7 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
 struct ConvBiasActivAsm1x1U final : ConvTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
+    const std::string AltSolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
@@ -364,9 +364,6 @@ struct ConvBiasActivAsm1x1U final : ConvTunableSolver<PerformanceConfigConvBiasA
 
     PerformanceConfigConvBiasActivAsm1x1U
     GetDefaultPerformanceConfig(const ConvolutionContext&) const override;
-    bool GetPerformanceConfig(const ConvolutionContext& ctx,
-                              PerformanceConfigConvBiasActivAsm1x1U& config,
-                              PerformanceDb& db) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const PerformanceConfigConvBiasActivAsm1x1U&) const override;
     PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,

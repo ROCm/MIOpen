@@ -72,7 +72,7 @@ auto FindSolutionImpl(
         {
             using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
             PerformanceConfig config{};
-            if(s.GetPerformanceConfig(context, config, db))
+            if(db.Load(context, s.SolverDbId(), config))
             {
                 MIOPEN_LOG_I2("Perf Db: record loaded: " << s.SolverDbId());
                 if(s.IsValidPerformanceConfig(context, config))
@@ -81,6 +81,17 @@ auto FindSolutionImpl(
                 }
                 MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
+            }
+            else if(!s.AltSolverDbId().empty() && db.Load(context, s.AltSolverDbId(), config))
+            {
+                MIOPEN_LOG_I("Perf Db: alternate record loaded: " << s.AltSolverDbId());
+                if(s.IsValidPerformanceConfig(context, config))
+                {
+                    return s.GetSolution(context, config);
+                }
+                MIOPEN_LOG_WE("Invalid alternate record loaded from Perf Db: "
+                              << s.AltSolverDbId() << ": " << config
+                              << ". Performance may degrade.");
             }
             else
             {
