@@ -85,7 +85,7 @@ struct SolverBase
     // In some instances ( particularly fusions) the fused solver might like to
     // fallback to the non-fused variant for performance parameters, this information
     // is returned via AltSolverDbId
-    virtual const std::string AltSolverDbId() const { return ""; }
+    virtual std::string AltSolverDbId() const { return ""; }
 
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
@@ -356,7 +356,7 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
 struct ConvBiasActivAsm1x1U final : ConvTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
-    const std::string AltSolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
+    std::string AltSolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
 
     bool IsApplicable(const ConvolutionContext& params) const override;
     size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
