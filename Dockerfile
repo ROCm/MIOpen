@@ -8,12 +8,7 @@ RUN dpkg --add-architecture i386
 # Add rocm repository
 # Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
 # unless MLIR library is incompatible with current ROCm.
-
-RUN if [ "$USE_MLIR" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_5.2.3;\
-    else \
-        export ROCM_APT_VER=.apt_5.2.3;  \
-    fi && \
+RUN export ROCM_APT_VER=.apt_5.2.3;\
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ ubuntu main > /etc/apt/sources.list.d/rocm.list'
 RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu focal main universe | tee -a /etc/apt/sources.list"
