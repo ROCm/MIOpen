@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-
 #if !MIOPEN_USE_AMDGCN
 static inline void lds_reduce2(_FLOAT_ACCUM* x,
                                _FLOAT_ACCUM* y,
