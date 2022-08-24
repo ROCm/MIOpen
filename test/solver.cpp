@@ -51,7 +51,7 @@ public:
 
     bool IsApplicable(const ConvolutionContext& context) const override
     {
-        return context.in_width == 1;
+        return context.problem.in_width == 1;
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&) const
