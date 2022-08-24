@@ -49,23 +49,24 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
         return false;
     if(!params.use_opencl_convolutions)
         return false;
-    if(!params.Is2d())
+    if(!params.problem.Is2d())
         return false;
-    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
+    if(!(params.problem.direction.IsForward() || params.problem.direction.IsBackwardData()))
         return false;
-    if(params.IsAsymmetricPadH() || params.IsAsymmetricPadW())
+    if(params.problem.IsAsymmetricPadH() || params.problem.IsAsymmetricPadW())
         return false;
-    if(!(params.IsFp32() || params.IsFp16() || params.IsBfp16()))
+    if(!(params.problem.IsFp32() || params.problem.IsFp16() || params.problem.IsBfp16()))
         return false;
-    if(!params.IsLayoutDefault())
+    if(!params.problem.IsLayoutDefault())
     {
         return false;
     }
 
-    return params.kernel_dilation_w == 1 && params.kernel_dilation_h == 1 &&
-           params.kernel_size_w == 1 && params.kernel_size_h == 1 && params.group_counts == 1 &&
+    return params.problem.kernel_dilation_w == 1 && params.problem.kernel_dilation_h == 1 &&
+           params.problem.kernel_size_w == 1 && params.problem.kernel_size_h == 1 &&
+           params.problem.group_counts == 1 &&
            // TODO: update 1x1 fwd kernel to support padding
-           params.pad_w == 0 && params.pad_h == 0;
+           params.problem.pad_w == 0 && params.problem.pad_h == 0;
 }
 
 ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
@@ -74,13 +75,13 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
     ConvSolution result;
     searched_params.CopyTo(result);
 
-    //   if(params.n_outputs % 4 == 0 && params.n_inputs % 4 == 0)
+    //   if(problem.n_outputs % 4 == 0 && problem.n_inputs % 4 == 0)
     {
         //        int version = result.out_pix_tile1;
 
-        if((params.direction.IsForward() && params.n_inputs % 16 == 0 &&
-            params.n_outputs % 16 == 0) &&
-           (params.in_data_type == miopenFloat))
+        if((params.problem.direction.IsForward() && params.problem.n_inputs % 16 == 0 &&
+            params.problem.n_outputs % 16 == 0) &&
+           (params.problem.in_data_type == miopenFloat))
         {
 
             int N_LCL_IN_MAPS = result.n_in_data_tiles;
@@ -89,13 +90,13 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             // 0 or 1
             int CHEAT_SHADER_COMPILER = result.out_pix_tile0;
 
-            int BATCHSIZE = params.batch_sz;
-            int W         = params.in_width;
-            int H         = params.in_height;
-            int C         = params.n_inputs;
-            int K         = params.n_outputs;
-            int W_out     = params.out_width;
-            int H_out     = params.out_height;
+            int BATCHSIZE = params.problem.batch_sz;
+            int W         = params.problem.in_width;
+            int H         = params.problem.in_height;
+            int C         = params.problem.n_inputs;
+            int K         = params.problem.n_outputs;
+            int W_out     = params.problem.out_width;
+            int H_out     = params.problem.out_height;
 
             N_LCL_IN_MAPS  = std::min(N_LCL_IN_MAPS, C);
             N_LCL_OUT_MAPS = std::min(N_LCL_OUT_MAPS, K);
@@ -146,7 +147,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             int N_IN_GROUPS        = (C + N_LCL_IN_MAPS - 1) / N_LCL_IN_MAPS;
             int N_LCL_IN_MAPS_ONCE = 8;
 
-            if(params.kernel_stride_w > 1 || params.kernel_stride_h > 1)
+            if(params.problem.kernel_stride_w > 1 || params.problem.kernel_stride_h > 1)
                 N_LCL_IN_MAPS_ONCE = 4;
 
             int CLOOP0 = N_LCL_IN_MAPS / N_LCL_IN_MAPS_ONCE;
@@ -174,14 +175,15 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
                 params.general_compile_options;
 
             kernel.comp_options = std::string(" -DMLO_FILTER_STRIDE0=") +
-                                  std::to_string(params.kernel_stride_w) +
+                                  std::to_string(params.problem.kernel_stride_w) +
                                   std::string(" -DMLO_FILTER_STRIDE1=") +
-                                  std::to_string(params.kernel_stride_h) + kernel.comp_options;
+                                  std::to_string(params.problem.kernel_stride_h) +
+                                  kernel.comp_options;
 
             // std::cout << "compile options:\n"<< _comp_options << std::endl;
 
             // 1x1_Stride: FIX ME!!! NO padding support
-            if(params.kernel_stride_w > 1 || params.kernel_stride_h > 1)
+            if(params.problem.kernel_stride_w > 1 || params.problem.kernel_stride_h > 1)
             {
                 int FIXED_WORKGROUP_SIZE = 64;
 
@@ -192,7 +194,8 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
                 kernel.l_wk.push_back(local_wk1);
                 kernel.l_wk.push_back(1);
 
-                size_t imagesizeAlign = ((params.out_width * params.out_height * params.batch_sz +
+                size_t imagesizeAlign = ((params.problem.out_width * params.problem.out_height *
+                                              params.problem.batch_sz +
                                           FIXED_WORKGROUP_SIZE - 1) /
                                          FIXED_WORKGROUP_SIZE) *
                                         FIXED_WORKGROUP_SIZE;
@@ -217,10 +220,11 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
                 kernel.l_wk.push_back(1);
                 kernel.l_wk.push_back(1);
 
-                size_t imagesizeAlign = ((params.in_width * params.in_height * params.batch_sz +
-                                          FIXED_WORKGROUP_SIZE - 1) /
-                                         FIXED_WORKGROUP_SIZE) *
-                                        FIXED_WORKGROUP_SIZE;
+                size_t imagesizeAlign =
+                    ((params.problem.in_width * params.problem.in_height * params.problem.batch_sz +
+                      FIXED_WORKGROUP_SIZE - 1) /
+                     FIXED_WORKGROUP_SIZE) *
+                    FIXED_WORKGROUP_SIZE;
                 size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
 
                 size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
@@ -243,45 +247,48 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
         {
 
             // parameters
-            //	int i_sz = params.in_width * params.in_height;
+            //	int i_sz = problem.in_width * problem.in_height;
             //	_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
-            result.out_pix_tile0 = std::min(params.out_width, result.out_pix_tile0);
-            result.out_pix_tile1 = std::min(params.out_height, result.out_pix_tile1);
-            if(!params.direction.IsForward())
+            result.out_pix_tile0 = std::min(params.problem.out_width, result.out_pix_tile0);
+            result.out_pix_tile1 = std::min(params.problem.out_height, result.out_pix_tile1);
+            if(!params.problem.direction.IsForward())
             {
-                while(params.out_width % result.out_pix_tile0 != 0 && result.out_pix_tile0 > 1)
+                while(params.problem.out_width % result.out_pix_tile0 != 0 &&
+                      result.out_pix_tile0 > 1)
                 {
                     result.out_pix_tile0 /= 2;
                 }
             }
 
             int read_unit = result.out_pix_tile0;
-            while(params.in_width % read_unit != 0 && read_unit > 1)
+            while(params.problem.in_width % read_unit != 0 && read_unit > 1)
             {
                 read_unit /= 2;
             }
 
-            // params.out_width
+            // problem.out_width
             //	_n_out_pix_tiles = 16;
             //	_n_in_data_tiles = 4;
             //	_grp_tile0 = 64;
 
-            int wei_cstride = params.kernel_size_w * params.kernel_size_h;
+            int wei_cstride = params.problem.kernel_size_w * params.problem.kernel_size_h;
             // backward: inputs are forward outputs
-            const bool is_forward = params.direction.IsForward();
-            int wei_bstride       = (is_forward ? params.n_inputs : params.n_outputs) * wei_cstride;
+            const bool is_forward = params.problem.direction.IsForward();
+            int wei_bstride =
+                (is_forward ? params.problem.n_inputs : params.problem.n_outputs) * wei_cstride;
 
-            int OUT_WIDTH4 = params.out_width;
-            int MAP_SZ4    = (OUT_WIDTH4 * params.out_height + read_unit - 1) / (read_unit);
+            int OUT_WIDTH4 = params.problem.out_width;
+            int MAP_SZ4    = (OUT_WIDTH4 * params.problem.out_height + read_unit - 1) / (read_unit);
             // stride > 1 and/or apdding
-            if(params.pad_w > 0 || params.kernel_stride_w > 1 || params.pad_h > 0 ||
-               params.kernel_stride_h > 1)
+            if(params.problem.pad_w > 0 || params.problem.kernel_stride_w > 1 ||
+               params.problem.pad_h > 0 || params.problem.kernel_stride_h > 1)
             {
-                int step        = is_forward ? read_unit : read_unit * params.kernel_stride_w;
-                OUT_WIDTH4      = (params.out_width + step - 1) / (step);
-                int OUT_HEIGHT4 = is_forward ? params.out_height
-                                             : (params.out_height + params.kernel_stride_h - 1) /
-                                                   params.kernel_stride_h;
+                int step   = is_forward ? read_unit : read_unit * params.problem.kernel_stride_w;
+                OUT_WIDTH4 = (params.problem.out_width + step - 1) / (step);
+                int OUT_HEIGHT4 =
+                    is_forward ? params.problem.out_height
+                               : (params.problem.out_height + params.problem.kernel_stride_h - 1) /
+                                     params.problem.kernel_stride_h;
                 MAP_SZ4 = (OUT_WIDTH4 * OUT_HEIGHT4);
             }
 
@@ -289,26 +296,33 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             int HORIZ_ALIGNED = 1;
             if(!is_forward)
             {
-                VERT_ALIGNED =
-                    (params.out_height / params.kernel_stride_h == params.in_height) ? 1 : 0;
-                HORIZ_ALIGNED =
-                    (params.out_width / params.kernel_stride_w == params.in_width) ? 1 : 0;
+                VERT_ALIGNED = (params.problem.out_height / params.problem.kernel_stride_h ==
+                                params.problem.in_height)
+                                   ? 1
+                                   : 0;
+                HORIZ_ALIGNED = (params.problem.out_width / params.problem.kernel_stride_w ==
+                                 params.problem.in_width)
+                                    ? 1
+                                    : 0;
             }
 
             int GRP_SZ = result.grp_tile0;
 
             // number of inputs inside wk-items
-            result.n_in_data_tiles = std::min(params.n_inputs, result.n_in_data_tiles);
-            while(params.n_inputs % result.n_in_data_tiles != 0 && result.n_in_data_tiles > 1)
+            result.n_in_data_tiles = std::min(params.problem.n_inputs, result.n_in_data_tiles);
+            while(params.problem.n_inputs % result.n_in_data_tiles != 0 &&
+                  result.n_in_data_tiles > 1)
             {
                 result.n_in_data_tiles /= 2;
             }
 
-            int CLOOP0 = (params.n_inputs + result.n_in_data_tiles - 1) / result.n_in_data_tiles;
+            int CLOOP0 =
+                (params.problem.n_inputs + result.n_in_data_tiles - 1) / result.n_in_data_tiles;
 
             // number of outputs inside wk_item
-            result.n_out_pix_tiles = std::min(params.n_outputs, result.n_out_pix_tiles);
-            while(params.n_outputs % result.n_out_pix_tiles != 0 && result.n_out_pix_tiles > 1)
+            result.n_out_pix_tiles = std::min(params.problem.n_outputs, result.n_out_pix_tiles);
+            while(params.problem.n_outputs % result.n_out_pix_tiles != 0 &&
+                  result.n_out_pix_tiles > 1)
             {
                 result.n_out_pix_tiles /= 2;
             }
@@ -317,28 +331,33 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
 
             kernel.comp_options =
                 std::string(" -DMLO_DIR_FORWARD=") + (is_forward ? "1" : "0") +
-                std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.kernel_size_w) +
-                std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.kernel_size_h) +
-                std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(params.kernel_stride_w) +
-                std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(params.kernel_stride_h) +
-                std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.pad_w) +
-                std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.pad_h) +
-                std::string(" -DMLO_IN_WIDTH=") + std::to_string(params.in_width) +
-                std::string(" -DMLO_IN_HEIGHT=") + std::to_string(params.in_height) +
-                std::string(" -DMLO_OUT_WIDTH=") + std::to_string(params.out_width) +
-                std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(params.out_height) +
-                std::string(" -DMLO_N_OUTPUTS=") + std::to_string(params.n_outputs) +
-                std::string(" -DMLO_N_INPUTS=") + std::to_string(params.n_inputs) +
-                std::string(" -DMLO_BATCH_SZ=") + std::to_string(params.batch_sz) +
-                std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(params.out_batch_stride) +
+                std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.problem.kernel_size_w) +
+                std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.problem.kernel_size_h) +
+                std::string(" -DMLO_FILTER_STRIDE0=") +
+                std::to_string(params.problem.kernel_stride_w) +
+                std::string(" -DMLO_FILTER_STRIDE1=") +
+                std::to_string(params.problem.kernel_stride_h) +
+                std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.problem.pad_w) +
+                std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.problem.pad_h) +
+                std::string(" -DMLO_IN_WIDTH=") + std::to_string(params.problem.in_width) +
+                std::string(" -DMLO_IN_HEIGHT=") + std::to_string(params.problem.in_height) +
+                std::string(" -DMLO_OUT_WIDTH=") + std::to_string(params.problem.out_width) +
+                std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(params.problem.out_height) +
+                std::string(" -DMLO_N_OUTPUTS=") + std::to_string(params.problem.n_outputs) +
+                std::string(" -DMLO_N_INPUTS=") + std::to_string(params.problem.n_inputs) +
+                std::string(" -DMLO_BATCH_SZ=") + std::to_string(params.problem.batch_sz) +
+                std::string(" -DMLO_OUT_BATCH_STRIDE=") +
+                std::to_string(params.problem.out_batch_stride) +
                 std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-                std::to_string(params.out_channel_stride) + std::string(" -DMLO_OUT_STRIDE=") +
-                std::to_string(params.out_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
-                std::to_string(params.in_batch_stride) + std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
-                std::to_string(params.in_channel_stride) + std::string(" -DMLO_IN_STRIDE=") +
-                std::to_string(params.in_stride) + std::string(" -DMLO_WEI_BSTRIDE=") +
-                std::to_string(wei_bstride) + std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
-                std::to_string(wei_cstride) +
+                std::to_string(params.problem.out_channel_stride) +
+                std::string(" -DMLO_OUT_STRIDE=") + std::to_string(params.problem.out_stride) +
+                std::string(" -DMLO_IN_BATCH_STRIDE=") +
+                std::to_string(params.problem.in_batch_stride) +
+                std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
+                std::to_string(params.problem.in_channel_stride) +
+                std::string(" -DMLO_IN_STRIDE=") + std::to_string(params.problem.in_stride) +
+                std::string(" -DMLO_WEI_BSTRIDE=") + std::to_string(wei_bstride) +
+                std::string(" -DMLO_WEI_CHANNEL_STRIDE=") + std::to_string(wei_cstride) +
                 // algorithm parameters
                 std::string(" -DMLO_GRP_SZ0=") + std::to_string(GRP_SZ) +
                 std::string(" -DMLO_GRP_SZ1=") + std::to_string(1) +
@@ -357,7 +376,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
                 std::to_string(
                     result.n_in_data_tiles) + // total # of blocks of different inputs in LDS
                 std::string(" -DMLO_CONV_BIAS=") +
-                std::to_string(params.bias) +
+                std::to_string(params.problem.bias) +
 
                 std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit) +
                 std::string(" -DMLO_CLOOP0=") + std::to_string(CLOOP0) +
@@ -368,10 +387,10 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             kernel.l_wk.push_back(1);
             kernel.l_wk.push_back(1);
 
-            size_t gbl_wk0 = params.batch_sz * MAP_SZ4;
+            size_t gbl_wk0 = params.problem.batch_sz * MAP_SZ4;
 
             size_t gbl_wk1 =
-                (params.n_outputs + result.n_out_pix_tiles - 1) / result.n_out_pix_tiles;
+                (params.problem.n_outputs + result.n_out_pix_tiles - 1) / result.n_out_pix_tiles;
             size_t gbl_wk2 = 1;
 
             kernel.g_wk.push_back(gbl_wk0);
@@ -379,9 +398,10 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             kernel.g_wk.push_back(gbl_wk2);
 
             kernel.kernel_file = "MIOpenConv1x1S.cl";
-            kernel.kernel_name = (params.kernel_stride_w == 1 && params.kernel_stride_h == 1)
-                                     ? "MIOpenConv1x1"
-                                     : "MIOpenConv1x1pquv";
+            kernel.kernel_name =
+                (params.problem.kernel_stride_w == 1 && params.problem.kernel_stride_h == 1)
+                    ? "MIOpenConv1x1"
+                    : "MIOpenConv1x1pquv";
             result.construction_params.push_back(kernel);
         }
     }

@@ -43,11 +43,11 @@ bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS{}))
         return false;
-    if(ctx.conv_problem.GetConv().attribute.deterministic)
+    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
-    if(!ctx.direction.IsBackwardData())
+    if(!ctx.problem.direction.IsBackwardData())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;

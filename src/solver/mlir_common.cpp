@@ -77,12 +77,12 @@ std::string GetKernelName(const ConvolutionContext& ctx, bool is_xdlops, int ker
 {
     std::string version;
     std::string direction;
-    if(ctx.direction.IsForward())
+    if(ctx.problem.direction.IsForward())
     {
         version   = "_v4r4";
         direction = "_fwd";
     }
-    else if(ctx.direction.IsBackwardData())
+    else if(ctx.problem.direction.IsBackwardData())
     {
         version   = "_v4r1";
         direction = "_bwd";
@@ -103,11 +103,11 @@ std::string GetKernelName(const ConvolutionContext& ctx, bool is_xdlops, int ker
 
 static std::string GetOperation(const ConvolutionContext& ctx)
 {
-    if(ctx.direction.IsForward())
+    if(ctx.problem.direction.IsForward())
     {
         return "conv2d";
     }
-    else if(ctx.direction.IsBackwardData())
+    else if(ctx.problem.direction.IsBackwardData())
     {
         return "conv2d_bwd_data";
     }
@@ -139,7 +139,7 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx, bool is_xdlops,
     }
 
     const auto in_type  = CI::GetInputDataType(ctx);
-    const auto fil_type = ctx.weights_data_type;
+    const auto fil_type = ctx.problem.weights_data_type;
     auto out_type       = CI::GetOutputDataType(ctx);
 
     // In case this is int8 convolution, ignore the output type and always request int32_t as
