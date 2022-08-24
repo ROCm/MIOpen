@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-
 #ifndef MIOPEN_GUARD_MLOPEN_FUSION_PLAN_HPP
 #define MIOPEN_GUARD_MLOPEN_FUSION_PLAN_HPP
 
