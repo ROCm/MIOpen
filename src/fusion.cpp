@@ -1033,10 +1033,13 @@ OpKernelArg FusionPlanDescriptor::GetDevAttribute(const std::string& k, const Ha
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
-    const auto solvers    = solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U>{};
+    const auto solvers    = solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U,
+                                                 solver::fusion::ConvOclDirectFwdFused>{};
     auto exec_ctx         = ExecutionContext{&handle};
     exec_ctx.DetectRocm();
-    const auto sols = solvers.SearchForSolutions(exec_ctx, *this);
+    const auto fusion_desc = FusionProblemDescription{this, handle};
+    const auto sols =
+        solvers.SearchForAllSolutions(fusion_desc, miopen::GetDb(exec_ctx), AnyInvokeParams{});
     std::ostringstream ss;
     for(const auto& op : op_map)
     {
@@ -1051,8 +1054,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     }
     else
     {
-        // for(const auto& sol : sols)
-        const auto& sol = sols[0];
+        for(const auto& sol : sols)
         {
             if(!sol.invoker_factory)
                 MIOPEN_THROW(miopenStatusInternalError,
@@ -1062,8 +1064,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             network_config = NetworkConfig{ss.str()};
             handle.RegisterInvoker(invoker, network_config, sol.solver_id, {});
             solution = sol;
-            status   = miopenStatusSuccess;
         }
+        status = miopenStatusSuccess;
     }
     return status;
 }

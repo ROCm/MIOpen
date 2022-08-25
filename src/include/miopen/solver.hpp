@@ -1765,17 +1765,6 @@ protected:
     bool IsApplicableBase(const ConvolutionContext& params) const;
 };
 
-struct ConvOclDirectFwdFused final : ConvOclDirectFwd
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvOclDirectFwdFused>();
-    }
-
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& searched_params) const override;
-};
-
 struct ConvOclDirectFwd1x1 final : ConvOclDirectFwdLegacyExhaustiveSearch
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd1x1>(); }

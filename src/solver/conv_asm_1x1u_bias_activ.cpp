@@ -47,60 +47,6 @@ namespace miopen {
 namespace solver {
 
 namespace fusion {
-
-PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
-{
-    std::ignore = params;
-#if 0
-    PerformanceConfigConvBiasActivAsm1x1U pp;
-    pp.HeuristicInit(params);
-    MIOPEN_LOG_I(pp.ToString());
-#endif
-    return {};
-}
-
-bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
-    const ConvolutionContext& problem, const PerformanceConfigConvBiasActivAsm1x1U& c) const
-{
-    return c.IsValidValue() && c.IsValid(problem);
-}
-
-PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::Search(const ConvolutionContext& context, const AnyInvokeParams&) const
-{
-    std::ignore = context;
-    return {};
-#if 0
-    auto cba_context    = context;
-    cba_context.bias    = 1;
-    cba_context.bias_sz = cba_context.n_outputs * ((context.out_data_type == miopenHalf) ? 2 : 4);
-    if(!context.direction.IsForward())
-        MIOPEN_THROW("Only inference supported.");
-
-    /// Workaround: Fused conv API does not pass user-allocated buffers here,
-    /// but we need these buffers for search.
-    auto& handle        = cba_context.GetStream();
-    const auto bias_buf = handle.Create(cba_context.bias_sz);
-    const auto in_buf   = handle.Create(cba_context.bot_sz);
-    const auto wei_buf  = handle.Create(cba_context.weights_sz);
-    const auto out_buf  = handle.Create(cba_context.top_sz);
-
-    auto tensors    = FusedConvDataTensors{};
-    tensors.in      = in_buf.get();
-    tensors.w       = wei_buf.get();
-    tensors.out     = out_buf.get();
-    tensors.inDesc  = context.conv_problem.GetIn();
-    tensors.wDesc   = context.conv_problem.GetWeights();
-    tensors.outDesc = context.conv_problem.GetOut();
-    tensors.bias    = bias_buf.get();
-    PerformanceConfigConvBiasActivAsm1x1U pp;
-    pp.HeuristicInit(context);
-    return pp;
-    // return GenericSearch(*this, cba_context, fused_invoke_ctx);
-#endif
-}
-
 inline ConvolutionContext ConvOp2Ctx(const ExecutionContext& context,
                                      const ConvForwardOpDescriptor& conv_op)
 {
@@ -126,30 +72,95 @@ inline ConvolutionContext ConvOp2Ctx(const ExecutionContext& context,
     return ctx;
 }
 
-ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ExecutionContext& context,
-                                               const miopen::FusionPlanDescriptor& desc) const
-/*
-                                  const PerformanceConfigConvAsm1x1U& config,
-                                  bool disableConfigOverrideFromEnv) const
-*/
+void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionProblemDescription& problem)
 {
-    const auto& conv_op = dynamic_cast<ConvForwardOpDescriptor&>(*desc.op_map[0]);
-    auto ctx            = ConvOp2Ctx(context, conv_op);
-#if 0
-    std::ignore = config;
-    std::ignore = disableConfigOverrideFromEnv;
-#endif
+    const auto& conv_op =
+        dynamic_cast<ConvForwardOpDescriptor&>(*problem.fusion_plan_desc->op_map[0]);
+    const auto ctx = ConvOp2Ctx(problem, conv_op);
+    PerformanceConfigConvAsm1x1U::HeuristicInit(ctx);
+}
 
-    auto config = PerformanceConfigConvAsm1x1U{};
-    config.HeuristicInit(ctx);
+bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionProblemDescription& problem)
+{
+    const auto& conv_op =
+        dynamic_cast<ConvForwardOpDescriptor&>(*problem.fusion_plan_desc->op_map[0]);
+    const auto ctx = ConvOp2Ctx(problem, conv_op);
+    return PerformanceConfigConvAsm1x1U::SetNextValue(ctx);
+}
 
-    auto sol = ConvAsm1x1U::GetSolution(ctx, config);
+bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionProblemDescription& problem) const
+{
+    const auto& conv_op =
+        dynamic_cast<ConvForwardOpDescriptor&>(*problem.fusion_plan_desc->op_map[0]);
+    const auto ctx = ConvOp2Ctx(problem, conv_op);
+    return PerformanceConfigConvAsm1x1U::IsValid(ctx);
+}
+
+PerformanceConfigConvBiasActivAsm1x1U
+ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const FusionProblemDescription& desc) const
+{
+    PerformanceConfigConvBiasActivAsm1x1U pp;
+    pp.HeuristicInit(desc);
+    MIOPEN_LOG_I(pp.ToString());
+    return pp;
+}
+
+bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
+    const FusionProblemDescription& problem, const PerformanceConfigConvBiasActivAsm1x1U& c) const
+{
+    return c.IsValidValue() && c.IsValid(problem);
+}
+
+PerformanceConfigConvBiasActivAsm1x1U
+ConvBiasActivAsm1x1U::Search(const FusionProblemDescription& context, const AnyInvokeParams&) const
+{
+    const auto& conv_op =
+        dynamic_cast<ConvForwardOpDescriptor&>(*context.fusion_plan_desc->op_map[0]);
+    auto cba_context = ConvOp2Ctx(context, conv_op);
+    cba_context.bias = 1;
+    cba_context.bias_sz =
+        cba_context.n_outputs * ((cba_context.out_data_type == miopenHalf) ? 2 : 4);
+    if(!cba_context.direction.IsForward())
+        MIOPEN_THROW("Only inference supported.");
+
+    /// Workaround: Fused conv API does not pass user-allocated buffers here,
+    /// but we need these buffers for search.
+    auto& handle        = cba_context.GetStream();
+    const auto bias_buf = handle.Create(cba_context.bias_sz);
+    const auto in_buf   = handle.Create(cba_context.bot_sz);
+    const auto wei_buf  = handle.Create(cba_context.weights_sz);
+    const auto out_buf  = handle.Create(cba_context.top_sz);
+
+    auto tensors             = FusedConvDataTensors{};
+    tensors.in               = in_buf.get();
+    tensors.w                = wei_buf.get();
+    tensors.out              = out_buf.get();
+    tensors.inDesc           = cba_context.conv_problem.GetIn();
+    tensors.wDesc            = cba_context.conv_problem.GetWeights();
+    tensors.outDesc          = cba_context.conv_problem.GetOut();
+    tensors.bias             = bias_buf.get();
+    const auto gfx90aaltimpl = cba_context.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
+    const auto fused_invoke_ctx = conv::FusedDataInvokeParams(tensors, nullptr, 0, gfx90aaltimpl);
+    return GenericSearch(*this, context, fused_invoke_ctx);
+}
+
+ConvSolution
+ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionProblemDescription& problem,
+                                  const PerformanceConfigConvBiasActivAsm1x1U& config) const
+{
+    const auto& conv_op =
+        dynamic_cast<ConvForwardOpDescriptor&>(*problem.fusion_plan_desc->op_map[0]);
+    const auto ctx = ConvOp2Ctx(problem, conv_op);
+    ConvAsm1x1U base_sol{};
+
+    auto sol = base_sol.GetSolution(ctx, config);
 
     if(sol.construction_params.size() != 1)
         MIOPEN_THROW("ConvBiasActivAsm1x1U expects only one kernel");
 
     auto& kernel_info       = sol.construction_params[0];
     kernel_info.kernel_file = "conv1x1u_bias_activ.s";
+    const auto& desc        = *problem.fusion_plan_desc;
 
     const bool has_bias = [&]() {
         if(desc.op_map.size() == 3)
@@ -248,11 +259,9 @@ ConvSolution ConvBiasActivAsm1x1U::GetSolution(const ExecutionContext& context,
     return sol;
 }
 
-bool ConvBiasActivAsm1x1U::IsApplicable(const ExecutionContext& context,
-                                        const miopen::FusionPlanDescriptor& desc) const
+bool ConvBiasActivAsm1x1U::IsApplicable(const FusionProblemDescription& problem) const
 {
-    std::ignore = context;
-    std::ignore = desc;
+    const auto& desc = *problem.fusion_plan_desc;
     if(desc.op_map.empty())
     {
         MIOPEN_THROW("");
@@ -274,17 +283,12 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const ExecutionContext& context,
         if(prim != miopenFusionOpActivForward)
             return false;
     }
-    // Get the conv problem descriptor from the ops and pass it to the base class IsApplicable
-    const auto& conv_op = dynamic_cast<ConvForwardOpDescriptor&>(*desc.op_map[0]);
-    auto ctx            = ConvOp2Ctx(context, conv_op);
-
+    const auto& conv_op =
+        dynamic_cast<ConvForwardOpDescriptor&>(*problem.fusion_plan_desc->op_map[0]);
+    const auto ctx = ConvOp2Ctx(problem, conv_op);
+    ConvAsm1x1U sol{};
     // Check if the conovlution part is applicable
-    if(!ConvAsm1x1U::IsApplicable(ctx))
-        return false;
-#if 0
-    ctx.SetBufs(bufs);
-#endif
-    return true;
+    return sol.IsApplicable(ctx);
 }
 
 } // namespace fusion

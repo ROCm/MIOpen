@@ -29,6 +29,8 @@
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
+#include <miopen/fusion_plan.hpp>
+#include <miopen/fusion/solvers.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD)
 
@@ -485,12 +487,71 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-ConvSolution
-ConvOclDirectFwdFused::GetSolution(const ConvolutionContext& params,
-                                   const LegacyPerformanceConfig& searched_params) const
+namespace fusion {
+
+inline ConvolutionContext ConvOp2Ctx(const ExecutionContext& context,
+                                     const ConvForwardOpDescriptor& conv_op)
 {
-    ConvSolution result = BaseGetSolution(params, searched_params);
+    const auto dir = conv::Direction::Forward;
+    TensorDescriptor out_desc;
+    conv_op.GetOutputDesc(out_desc);
+    auto ctx = ConvolutionContext{
+        conv_op.input_desc, conv_op.filter_desc, out_desc, conv_op.base_desc /* conv desc */, dir};
+    ctx.do_search                  = context.do_search;
+    ctx.save_srch_req              = context.save_srch_req;
+    ctx.use_asm_kernels            = context.use_asm_kernels;
+    ctx.use_hip_kernels            = context.use_hip_kernels;
+    ctx.use_opencl_convolutions    = context.use_opencl_convolutions;
+    ctx.use_binaries               = context.use_binaries;
+    ctx.disable_search_enforce     = context.disable_search_enforce;
+    ctx.disable_perfdb_access      = context.disable_perfdb_access;
+    ctx.use_dynamic_solutions_only = context.use_dynamic_solutions_only;
+    ctx.general_compile_options    = "";
+
+    ctx.SetStream(&context.GetStream());
+    ctx.DetectRocm();
+    ctx.SetupFloats();
+    return ctx;
+}
+
+bool ConvOclDirectFwdFused::IsApplicable(const ExecutionContext& context,
+                                         const miopen::FusionPlanDescriptor& desc) const
+{
+    if(desc.op_map.empty())
+    {
+        MIOPEN_THROW("");
+    }
+    // check the sequence of prims
+    if(desc.op_map.size() > 3)
+        return false;
+    if(desc.op_map[0]->kind() != miopenFusionOpConvForward)
+        return false;
+    if(desc.op_map.size() >= 2)
+    {
+        const auto prim = desc.op_map[1]->kind();
+        if(!(prim == miopenFusionOpBiasForward || prim == miopenFusionOpActivForward))
+            return false;
+    }
+    if(desc.op_map.size() == 3)
+    {
+        const auto prim = desc.op_map[2]->kind();
+        if(prim != miopenFusionOpActivForward)
+            return false;
+    }
+    // Get the conv problem descriptor from the ops and pass it to the base class IsApplicable
+    const auto& conv_op = dynamic_cast<ConvForwardOpDescriptor&>(*desc.op_map[0]);
+    auto ctx            = ConvOp2Ctx(context, conv_op);
+    return ConvOclDirectFwd::IsApplicable(ctx);
+}
+ConvSolution ConvOclDirectFwdFused::GetSolution(const ExecutionContext& context,
+                                                const miopen::FusionPlanDescriptor& desc) const
+{
+    const auto& conv_op = dynamic_cast<ConvForwardOpDescriptor&>(*desc.op_map[0]);
+    auto ctx            = ConvOp2Ctx(context, conv_op);
+    auto config         = LegacyPerformanceConfig{};
+    ConvSolution result = BaseGetSolution(ctx, config);
     return result;
 }
+} // namespace fusion
 } // namespace solver
 } // namespace miopen
