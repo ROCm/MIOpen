@@ -195,8 +195,6 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
         return false;
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
-    if(!ctx.use_hip_kernels)
-        return false;
     if(!(ctx.conv_problem.GetInDataType() == miopenInt8 &&
          ctx.conv_problem.GetWeightsDataType() == miopenInt8 &&
          ctx.conv_problem.GetOutDataType() == miopenInt8))
@@ -210,12 +208,13 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
     if(!ctx.IsLayoutNHWC())
         return false;
 
-    std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-    add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
-    assert(!conv_ptrs.empty());
     const auto args = CKArgs{ctx};
     if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
         return false;
+
+    std::vector<DeviceConvFwdPtr_t> conv_ptrs;
+    add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
+    assert(!conv_ptrs.empty());
 
     for(auto& conv_ptr : conv_ptrs)
     {

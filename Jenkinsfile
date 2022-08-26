@@ -327,7 +327,7 @@ def buildDocker(install_prefix)
 ///   * The default compiler is usually not specified.
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
-///                            MLIR | Tensile | Tensile-Latest | Package | ... }
+///                            CK | MLIR | Tensile | Tensile-Latest | Package | ... }
 /// TestSet := { All | Smoke* } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
@@ -761,7 +761,7 @@ pipeline {
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Int8_flags, config_targets: Smoke_targets)
                     }
                 }
-                stage('Int8 Hip Debug gfx908 (ComposableKernel)') {
+                stage('Int8 Hip Debug CK gfx908') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX908}

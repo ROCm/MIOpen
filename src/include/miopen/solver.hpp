@@ -4158,7 +4158,17 @@ struct ConvHipImplicitGemmFwdXdlops final
     ConvSolution
     GetSolution(const ConvolutionContext& ctx,
                 const PerformanceConfigHipImplicitGemmFwdXdlops& config) const override;
-    float GetWti(const ConvolutionContext&) const override { return 0.01f; };
+    // Magic Number Alert:
+    // Naive convolutions have GetWti() that return very small value (0.01f).
+    // This allows MIOpen to use Naive Solvers if no other applicable Solvers
+    // have known WTIs. Right now this means that in case of find-db miss,
+    // the library will try to use Winograd or GEMM (whatever is faster according
+    //  to their GetWti's), but if both are not applicable, the library will
+    // use Naive Solver
+    // Since we would like to us CK before naive, and use it instead (because
+    // we do expect that CK is faster than Naive), therefore we use a
+    // value bigger than 0.01f, e.g. 0.02f.
+    float GetWti(const ConvolutionContext&) const override { return 0.02f; };
 };
 
 struct AnySolver;
