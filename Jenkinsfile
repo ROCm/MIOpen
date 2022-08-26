@@ -316,7 +316,7 @@ def buildDocker(install_prefix)
         echo "Unable to locate image: ${image_name}. Building image now"
         retimage = docker.build("${image_name}", dockerArgs + ' .')
         retimage.push()
-    } 
+    }
 }
 
 
