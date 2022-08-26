@@ -684,8 +684,7 @@ if(miopentensile_FOUND)
     target_link_libraries(MIOpen PRIVATE MIOpenTensile)
 endif()
 
-# For backward compatibility, MIOpen is able to link to the libMLIRMIOpen
-# library provided by both old and new MLIR
+# For backward compatibility with ROCm 5.3
 # Build with library libMLIRMIOpen
 if(LIBMLIRMIOPEN)
   target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})

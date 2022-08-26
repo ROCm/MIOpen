@@ -324,7 +324,7 @@ if(MIOPEN_USE_MLIR)
     find_package(Miir 1.0.0 CONFIG)
     if(NOT Miir_FOUND)
       message(STATUS "Falling back to find library libMLIRMIOpen")
-      # Backward compatibility
+      # Backward compatibility with ROCm 5.3
       # If the Miir package is not found, try to find the library libMLIRMIOpen directly
       # REQUIRED is not supported before cmake 3.18
       find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
