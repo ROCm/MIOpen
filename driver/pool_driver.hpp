@@ -42,6 +42,12 @@
 #include <vector>
 #include "random.hpp"
 
+template <typename T>
+void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems);
+
+template <typename T>
+bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName);
+
 template <typename Tgpu, typename Tref, typename Index>
 class PoolDriver_impl : public Driver
 {
@@ -117,6 +123,10 @@ private:
     std::vector<Tref> dinhost;
 
     int spatial_dim;
+
+    std::string in_filename;
+    std::string out_filename;
+    std::string dump_root;
 };
 
 template <typename Tgpu, typename Tref, typename Index>
@@ -201,6 +211,9 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AddCmdLineArgs()
                          "Index Data Type (miopenIndexUint8, miopenIndexUint16, miopenIndexUint32, "
                          "miopenIndexUint64) (Default=miopenIndexUint8)",
                          "str");
+    inflags.AddInputFlag("in_data", 'j', "", "Input data filename (Default=none)", "str");
+    inflags.AddInputFlag("out_data", 'k', "", "Output data filename for bwd (Default=none)", "str");
+    inflags.AddInputFlag("dump_root", 'l', "", "Directory to dump buffers (Default=none)", "str");
 
     return 0;
 }
@@ -279,6 +292,10 @@ int PoolDriver_impl<Tgpu, Tref, Index>::SetPoolDescriptorFromCmdLineArgs()
         exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
+    in_filename = inflags.GetValueStr("in_data");
+    out_filename = inflags.GetValueStr("out_data");
+    dump_root = inflags.GetValueStr("dump_root");
+
     std::initializer_list<int> lens    = {win_d, win_h, win_w};
     std::initializer_list<int> pads    = {pad_d, pad_h, pad_w};
     std::initializer_list<int> strides = {stride_d, stride_h, stride_w};
@@ -345,15 +362,27 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
     dout    = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     dinhost = std::vector<Tref>(in_sz, static_cast<Tref>(0));
 
-    for(int i = 0; i < in_sz; i++)
+    if(in_filename.empty() || !readBufferFromFile<Tgpu>(in.data(), in_sz, in_filename.c_str()))
     {
-        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        for(int i = 0; i < in_sz; i++)
+        {
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        }
+
+        if(!dump_root.empty())
+            dumpBufferToFile<Tgpu>(dump_root + "/dump_in.bin", in.data(), in_sz);
     }
 
-    Tgpu Data_scale = static_cast<Tgpu>(0.001);
-    for(int i = 0; i < out_sz; i++)
+    if(out_filename.empty() || !readBufferFromFile<Tgpu>(dout.data(), out_sz, out_filename.c_str()))
     {
-        dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
+        Tgpu Data_scale = static_cast<Tgpu>(0.001);
+        for(int i = 0; i < out_sz; i++)
+        {
+            dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
+        }
+
+        if(!dump_root.empty())
+            dumpBufferToFile<Tgpu>(dump_root + "/dump_dout.bin", dout.data(), out_sz);
     }
 
 #if MIOPEN_BACKEND_OPENCL
@@ -376,7 +405,6 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref, typename Index>
 int PoolDriver_impl<Tgpu, Tref, Index>::RunForwardGPU()
 {
-
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenPoolingForward(GetHandle(),
@@ -423,6 +451,12 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunForwardGPU()
 
     out_dev->FromGPU(GetStream(), out.data());
     mask_dev->FromGPU(GetStream(), mask.data());
+
+    if(!dump_root.empty())
+    {
+        dumpBufferToFile<Tgpu>(dump_root + "/dump_out.bin", out.data(), out_sz);
+        dumpBufferToFile<Index>(dump_root + "/dump_mask.bin", mask.data(), out_sz);
+    }
 
     return miopenStatusSuccess;
 }
@@ -484,6 +518,9 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunBackwardGPU()
     }
 
     din_dev->FromGPU(GetStream(), din.data());
+
+    if(!dump_root.empty())
+        dumpBufferToFile<Tgpu>(dump_root + "/dump_din.bin", din.data(), in_sz);
 
     return miopenStatusSuccess;
 }
