@@ -51,7 +51,7 @@ inline std::ostream& operator<<(std::ostream& stream, const miopen::FindOptions&
     switch(options.results_order)
     {
     case miopenFindResultsOrderByTime: stream << "by time"; break;
-    case miopenFindResultsOrderByMemory: stream << "by memory"; break;
+    case miopenFindResultsOrderByWorkspaceSize: stream << "by workspace size"; break;
     }
     stream << ", workspace limit: " << options.workspace_limit;
     stream << ")";

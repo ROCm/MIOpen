@@ -121,7 +121,7 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
         {
         case miopenFindResultsOrderByTime:
             return [](auto&& l, auto&& r) { return l.GetTime() < r.GetTime(); };
-        case miopenFindResultsOrderByMemory:
+        case miopenFindResultsOrderByWorkspaceSize:
             return [](auto&& l, auto&& r) { return l.GetWorkspaceSize() < r.GetWorkspaceSize(); };
         }
         MIOPEN_THROW(miopenStatusNotImplemented);

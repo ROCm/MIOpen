@@ -4745,8 +4745,8 @@ typedef enum
  */
 typedef enum
 {
-    miopenFindResultsOrderByTime   = 0,
-    miopenFindResultsOrderByMemory = 1,
+    miopenFindResultsOrderByTime          = 0,
+    miopenFindResultsOrderByWorkspaceSize = 1,
 } miopenFindResultsOrder_t;
 
 /*! @brief Initializes a problem object describing a convolution operation.
