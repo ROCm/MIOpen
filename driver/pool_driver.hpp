@@ -370,7 +370,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
         }
 
         if(!dump_root.empty())
-            dumpBufferToFile<Tgpu>(dump_root + "/dump_in.bin", in.data(), in_sz);
+            dumpBufferToFile<Tgpu>((dump_root + "/dump_in.bin").c_str(), in.data(), in_sz);
     }
 
     if(out_filename.empty() || !readBufferFromFile<Tgpu>(dout.data(), out_sz, out_filename.c_str()))
@@ -382,7 +382,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::AllocateBuffersAndCopy()
         }
 
         if(!dump_root.empty())
-            dumpBufferToFile<Tgpu>(dump_root + "/dump_dout.bin", dout.data(), out_sz);
+            dumpBufferToFile<Tgpu>((dump_root + "/dump_dout.bin").c_str(), dout.data(), out_sz);
     }
 
 #if MIOPEN_BACKEND_OPENCL
@@ -454,8 +454,9 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunForwardGPU()
 
     if(!dump_root.empty())
     {
-        dumpBufferToFile<Tgpu>(dump_root + "/dump_out.bin", out.data(), out_sz);
-        dumpBufferToFile<Index>(dump_root + "/dump_mask.bin", mask.data(), out_sz);
+        const auto out_sz = GetTensorSize(outputTensor);
+        dumpBufferToFile<Tgpu>((dump_root + "/dump_out.bin").c_str(), out.data(), out_sz);
+        dumpBufferToFile<Index>((dump_root + "/dump_mask.bin").c_str(), mask.data(), out_sz);
     }
 
     return miopenStatusSuccess;
@@ -520,7 +521,10 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunBackwardGPU()
     din_dev->FromGPU(GetStream(), din.data());
 
     if(!dump_root.empty())
-        dumpBufferToFile<Tgpu>(dump_root + "/dump_din.bin", din.data(), in_sz);
+    {
+        const auto in_sz = GetTensorSize(inputTensor);
+        dumpBufferToFile<Tgpu>((dump_root + "/dump_din.bin").c_str(), din.data(), in_sz);
+    }
 
     return miopenStatusSuccess;
 }
