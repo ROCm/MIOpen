@@ -402,12 +402,12 @@ static std::string ConvArgsForMIOpenDriver(const miopenTensorDescriptor_t& xDesc
     return ss.str();
 }
 
-void miopen::LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
-                               const miopenTensorDescriptor_t& wDesc,
-                               const miopenConvolutionDescriptor_t& convDesc,
-                               const miopenTensorDescriptor_t& yDesc,
-                               const miopen::ConvDirection& conv_dir,
-                               bool is_immediate)
+void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
+                       const miopenTensorDescriptor_t& wDesc,
+                       const miopenConvolutionDescriptor_t& convDesc,
+                       const miopenTensorDescriptor_t& yDesc,
+                       const miopen::ConvDirection& conv_dir,
+                       bool is_immediate)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -417,12 +417,12 @@ void miopen::LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
     }
 }
 
-void miopen::LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
-                                   const miopenTensorDescriptor_t& wDesc,
-                                   const miopenConvolutionDescriptor_t& convDesc,
-                                   const miopenTensorDescriptor_t& yDesc,
-                                   const miopen::ConvDirection& conv_dir,
-                                   bool is_immediate)
+void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
+                           const miopenTensorDescriptor_t& wDesc,
+                           const miopenConvolutionDescriptor_t& convDesc,
+                           const miopenTensorDescriptor_t& yDesc,
+                           const miopen::ConvDirection& conv_dir,
+                           bool is_immediate)
 {
     if(miopen::IsLoggingCmdFind())
     {

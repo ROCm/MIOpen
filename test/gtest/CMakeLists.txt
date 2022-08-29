@@ -7,9 +7,11 @@ include(GoogleTest)
 
 find_package(rocblas)
 
+set(SOURCES log_test_helper.cpp)
+
 function(add_gtest TEST_NAME)
   message("Adding Test: " ${TEST_NAME})
-  add_executable(test_${TEST_NAME} ${TEST_NAME}.cpp )
+  add_executable(test_${TEST_NAME} ${TEST_NAME}.cpp ${SOURCES})
   add_dependencies(tests test_${TEST_NAME})
   add_dependencies(check test_${TEST_NAME})
   target_compile_options(test_${TEST_NAME} PRIVATE -Wno-global-constructors -Wno-undef)
@@ -20,6 +22,9 @@ endfunction()
 
 file(GLOB TESTS *.cpp)
 foreach(TEST ${TESTS})
+    if("${TEST}" MATCHES "help")
+      continue()
+    endif()
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
     add_gtest(${BASE_NAME})
 endforeach()
