@@ -265,10 +265,10 @@ struct AnySolver
             }
             else if(!value.AltSolverDbId().empty() && db.Load(ctx, value.AltSolverDbId(), config))
             {
-                MIOPEN_LOG_I("Perf Db: alternate record loaded: " << s.AltSolverDbId());
+                MIOPEN_LOG_I("Perf Db: alternate record loaded: " << value.AltSolverDbId());
                 if(value.IsValidPerformanceConfig(ctx, config))
                 {
-                    return value.GetSolution(ctx, config);
+                    return config.ToString();
                 }
                 MIOPEN_LOG_WE("Invalid alternate record loaded from Perf Db: "
                               << value.AltSolverDbId() << ": " << config
