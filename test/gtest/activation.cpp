@@ -42,8 +42,8 @@
 //#include "tensor_holder.hpp"
 #include "verify.hpp"
 
-#include <gtest/gtest.h>
-/*
+#include "gtest/gtest.h"
+
 std::string to_name(miopenActivationMode_t m)
 {
 #define STRING_CASE(x) \
@@ -185,8 +185,9 @@ struct activation_driver : test_driver
     bool packed = true;
 
     template <class A>
-    struct callback
+    struct callback  
     {
+        //Function call operator
         void operator()(activation_driver* self) const { self->template run<A>(); }
     };
 
@@ -318,32 +319,41 @@ struct activation_driver : test_driver
         verify(verify_backwards_activation<T>{input, dout, out.first, desc}, b);
     }
 };
-*/
-// GoogleTest for activation
-TEST(TestActivation, BasicAssertions)
+
+class TestActivation : public ::testing::Test 
 {
-    Driver* drv;
+    protected:
+    //Only run once
+    static void SetUpTestSuite() 
+    {
+        ASSERT_GT(argc,0);
+        ASSERT_NE(argv, nullptr);
+        //const char** const_argv = argv;
+        //test_drive<activation_driver>(argc, argv);
+    }
 
-    // Activation with float
-    drv = new ActivationDriver<float, double>();
-    // Activation with float16. to be selected by input args?
-    // drv = new ActivationDriver<float16, double>();
+    public: 
+    static int argc;
+    static char** argv;
+};
 
-    EXPECT_TRUE(drv != nullptr);
+int TestActivation::argc = 0;
+char** TestActivation::argv = nullptr;
 
-    drv->AddCmdLineArgs();
-    // int rc = drv->ParseCmdLineArgs(argc, argv);
-    int rc = miopenStatusSuccess;
-    rc     = drv->AllocateBuffersAndCopy();
-    ASSERT_EQ(rc, miopenStatusSuccess);
+//Fixture for add_mode?
+//TEST_F()
 
-    // Forward
-    rc = drv->RunForwardGPU();
-    drv->VerifyForward();
-    EXPECT_EQ(rc, miopenStatusSuccess);
+int main(int argc, const char* argv[]) 
+{ 
+    testing::InitGoogleTest(&argc, const_cast<char**>(argv));
 
-    // Backward
-    rc = drv->RunBackwardGPU();
-    drv->VerifyBackward();
-    EXPECT_EQ(rc, miopenStatusSuccess);
+    //Passing command line parameters
+    //Ref: https://github.com/google/googletest/issues/765
+    //TEST_F or TEST?
+    TestActivation::argc = argc;
+    TestActivation::argv = const_cast<char**>(argv);
+    
+    test_drive<activation_driver>(argc, argv);
+
+    return RUN_ALL_TESTS();
 }
