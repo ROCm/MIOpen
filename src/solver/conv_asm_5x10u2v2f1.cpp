@@ -123,10 +123,10 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx,
         problem.kernel_stride_h; // (inp_h + 2*pad_h + inp_u - wei_h) / inp_u
 
     std::ostringstream options;
-    GenerateClangDefsym(options, "inp_h", problem.problem.in_height);
-    GenerateClangDefsym(options, "inp_w", problem.problem.in_width);
-    GenerateClangDefsym(options, "wei_c", problem.problem.n_inputs);
-    GenerateClangDefsym(options, "wei_k", problem.problem.n_outputs);
+    GenerateClangDefsym(options, "inp_h", problem.in_height);
+    GenerateClangDefsym(options, "inp_w", problem.in_width);
+    GenerateClangDefsym(options, "wei_c", problem.n_inputs);
+    GenerateClangDefsym(options, "wei_k", problem.n_outputs);
     GenerateClangDefsym(options, "wei_layout", 0); // 0: KCHW, 1: CKHW
     GenerateClangDefsym(options, "pad_w", problem.pad_w);
     GenerateClangDefsym(options, "pad_h", problem.pad_h);
