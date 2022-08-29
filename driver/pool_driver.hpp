@@ -292,9 +292,9 @@ int PoolDriver_impl<Tgpu, Tref, Index>::SetPoolDescriptorFromCmdLineArgs()
         exit(0); // NOLINT (concurrency-mt-unsafe)
     }
 
-    in_filename = inflags.GetValueStr("in_data");
+    in_filename  = inflags.GetValueStr("in_data");
     out_filename = inflags.GetValueStr("out_data");
-    dump_root = inflags.GetValueStr("dump_root");
+    dump_root    = inflags.GetValueStr("dump_root");
 
     std::initializer_list<int> lens    = {win_d, win_h, win_w};
     std::initializer_list<int> pads    = {pad_d, pad_h, pad_w};
