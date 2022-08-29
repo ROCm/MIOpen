@@ -82,9 +82,9 @@ struct SolverBase
     /// overriden to keep the name to avoid DB corruption.
     virtual const std::string& SolverDbId() const = 0;
 
-    // In some instances ( particularly fusions) the fused solver might like to
-    // fallback to the non-fused variant for performance parameters, this information
-    // is returned via AltSolverDbId
+    /// In some instances ( particularly fusions) the fused solver might like to
+    /// fallback to the non-fused variant for performance parameters, this information
+    /// is returned via AltSolverDbId
     virtual const std::string& AltSolverDbId() const
     {
         static const std::string null_id = "";
