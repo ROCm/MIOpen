@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,34 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-/**********************************************************************
-Copyright (c)2016 Advanced Micro Devices, Inc. All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification, are permitted
-provided that the following conditions are met:
-
-?	Redistributions of source code must retain the above copyright notice, this list of
-conditions and the following disclaimer.
-?	Redistributions in binary form must reproduce the above copyright notice, this list of
-conditions and the following disclaimer in the documentation and/or
- other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
-IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
-SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
- DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
-********************************************************************/
-// to share code with between CPU and GPU
-
-#define MIOPEN
 #include <miopen/mlo_internal.hpp>
-#include <miopen/mlo_utils.hpp>
 #include <miopen/logger.hpp>
 
 // KNOWN ISSUES:
@@ -59,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 void mlo_construct_norm::mloConstruct()
 {
-    if(_search_params.direction.IsForward())
+    if(_search_params.problem.direction.IsForward())
     {
         mloConstructFwd();
     }
@@ -96,36 +70,37 @@ int mlo_construct_norm::mloConstructFwd()
     int bot_df_channel_stride = 1;
     int bot_df_batch_stride   = 1;
 
-    _grp_tile0     = (_search_params.out_width <= 16) ? 8 : 16;
+    _grp_tile0     = (_search_params.problem.out_width <= 16) ? 8 : 16;
     _grp_tile1     = 8;
     _out_pix_tile0 = 1;
     _out_pix_tile1 = 1;
 
-    auto is_in_packed = is_tensor_packed(_search_params.n_inputs,
-                                         _search_params.in_height,
-                                         _search_params.in_width,
-                                         _search_params.in_batch_stride,
-                                         _search_params.in_channel_stride,
-                                         _search_params.in_stride);
+    auto is_in_packed = is_tensor_packed(_search_params.problem.n_inputs,
+                                         _search_params.problem.in_height,
+                                         _search_params.problem.in_width,
+                                         _search_params.problem.in_batch_stride,
+                                         _search_params.problem.in_channel_stride,
+                                         _search_params.problem.in_stride);
 
-    int MAP_SZ4 = _search_params.in_width * (is_in_packed ? _search_params.in_height : 1);
+    int MAP_SZ4 =
+        _search_params.problem.in_width * (is_in_packed ? _search_params.problem.in_height : 1);
     int read_unit;
     if(_norm_region == MLO_LRN_ACROSS_CHANNELS)
     {
-        _grp_tile0 = (_search_params.out_width <= 8) ? 8 : 16;
-        _grp_tile1 = (_search_params.out_height <= 8) ? 8 : 16;
+        _grp_tile0 = (_search_params.problem.out_width <= 8) ? 8 : 16;
+        _grp_tile1 = (_search_params.problem.out_height <= 8) ? 8 : 16;
         read_unit  = (MAP_SZ4 % 4 == 0) ? 4 : (MAP_SZ4 % 2 == 0) ? 2 : 1;
         MAP_SZ4 /= read_unit;
     }
     else
     {
 
-        _out_pix_tile0 = (_search_params.out_width <= 8) ? 1 : 2;
-        _out_pix_tile1 = (_search_params.out_height <= 8) ? 1 : 2;
+        _out_pix_tile0 = (_search_params.problem.out_width <= 8) ? 1 : 2;
+        _out_pix_tile1 = (_search_params.problem.out_height <= 8) ? 1 : 2;
         read_unit      = 4;
         MAP_SZ4        = (MAP_SZ4 + 3) / 4;
     }
-    MAP_SZ4 *= (is_in_packed ? 1 : _search_params.in_height);
+    MAP_SZ4 *= (is_in_packed ? 1 : _search_params.problem.in_height);
 
     assert(_out_pix_tile0 - 1 <= _norm_area && _out_pix_tile1 - 1 <= _norm_area);
 
@@ -141,52 +116,57 @@ int mlo_construct_norm::mloConstructFwd()
     {
         _grp_tile0  = 8 * 8;
         _grp_tile1  = 1;
-        int n_waves = (_search_params.batch_sz * MAP_SZ4 + _hw_wave_sz - 1) / _hw_wave_sz;
+        int n_waves = (_search_params.problem.batch_sz * MAP_SZ4 + _hw_wave_sz - 1) / _hw_wave_sz;
         if(n_waves <= maxComputeUnits * 8)
         {
-            MAP_SZ4   = _search_params.in_width * (is_in_packed ? _search_params.in_height : 1);
+            MAP_SZ4 = _search_params.problem.in_width *
+                      (is_in_packed ? _search_params.problem.in_height : 1);
             read_unit = (MAP_SZ4 % 2 == 0) ? 2 : 1;
             MAP_SZ4 /= read_unit;
-            MAP_SZ4 *= (is_in_packed ? 1 : _search_params.in_height);
+            MAP_SZ4 *= (is_in_packed ? 1 : _search_params.problem.in_height);
         }
     }
 
     // Workaround for ROCm 1.8.2 compiler issue (#1057).
-    if(_search_params.in_data_type == miopenHalf && read_unit > 1 &&
+    if(_search_params.problem.in_data_type == miopenHalf && read_unit > 1 &&
        _kernel_name == "MIOpenLRNAcrossChannels4")
     {
         const std::string name = _search_params.GetStream().GetDeviceName();
         if(name.find("gfx9") != std::string::npos) // Any gfx9 device.
         {
             MIOPEN_LOG_I("Workaround for #1057: "
-                         << name << ',' << miopen::GetDataTypeName(_search_params.in_data_type)
-                         << ',' << MAP_SZ4 << ',' << read_unit);
+                         << name << ','
+                         << miopen::GetDataTypeName(_search_params.problem.in_data_type) << ','
+                         << MAP_SZ4 << ',' << read_unit);
             MAP_SZ4 *= read_unit;
             read_unit = 1;
         }
     }
 
-    int scale_stride         = _search_params.out_stride;
-    int scale_channel_stride = _search_params.out_channel_stride;
-    int scale_batch_stride   = _search_params.out_batch_stride;
+    int scale_stride         = _search_params.problem.out_stride;
+    int scale_channel_stride = _search_params.problem.out_channel_stride;
+    int scale_batch_stride   = _search_params.problem.out_batch_stride;
     int scale                = (doBackward()) ? 1 : 0;
 
     auto g_wk_width =
-        static_cast<int>((_search_params.out_width + _grp_tile0 * _out_pix_tile0 - 1) /
+        static_cast<int>((_search_params.problem.out_width + _grp_tile0 * _out_pix_tile0 - 1) /
                          (_grp_tile0 * _out_pix_tile0));
     auto g_wk_height =
-        static_cast<int>((_search_params.out_height + _grp_tile1 * _out_pix_tile1 - 1) /
+        static_cast<int>((_search_params.problem.out_height + _grp_tile1 * _out_pix_tile1 - 1) /
                          (_grp_tile1 * _out_pix_tile1));
     int OUT_VERT_ALIGNED =
-        (g_wk_height * (_grp_tile1 * _out_pix_tile1) == _search_params.out_height) ? 1 : 0;
+        (g_wk_height * (_grp_tile1 * _out_pix_tile1) == _search_params.problem.out_height) ? 1 : 0;
     int OUT_HORIZ_ALIGNED =
-        (g_wk_width * (_grp_tile0 * _out_pix_tile0) == _search_params.out_width) ? 1 : 0;
+        (g_wk_width * (_grp_tile0 * _out_pix_tile0) == _search_params.problem.out_width) ? 1 : 0;
     // currently always 1
     int DIVBY4 =
-        (MAP_SZ4 * read_unit == _search_params.in_width * _search_params.in_height) ? 1 : 0;
-    int C1x1_PIXLEFT = (DIVBY4 == 1) ? 0
-                                     : _search_params.in_width * _search_params.in_height -
-                                           (MAP_SZ4 - 1) * read_unit;
+        (MAP_SZ4 * read_unit == _search_params.problem.in_width * _search_params.problem.in_height)
+            ? 1
+            : 0;
+    int C1x1_PIXLEFT = (DIVBY4 == 1)
+                           ? 0
+                           : _search_params.problem.in_width * _search_params.problem.in_height -
+                                 (MAP_SZ4 - 1) * read_unit;
 
     std::string READ_TYPE =
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
@@ -202,9 +182,9 @@ int mlo_construct_norm::mloConstructFwd()
         std::string(" -DMLO_LRN_PRE_PAD1=") + std::to_string(static_cast<long long>(pre_pad)) +
         std::string(" -DMLO_LRN_PRE_PAD0=") + std::to_string(static_cast<long long>(pre_pad)) +
         std::string(" -DMLO_LRN_N_OUTPUTS=") +
-        std::to_string(static_cast<long long>(_search_params.n_outputs)) +
+        std::to_string(static_cast<long long>(_search_params.problem.n_outputs)) +
         std::string(" -DMLO_LRN_N_INPUTS=") +
-        std::to_string(static_cast<long long>(_search_params.n_inputs)) +
+        std::to_string(static_cast<long long>(_search_params.problem.n_inputs)) +
         std::string(" -DMLO_LRN_N_HORIZ_OUT_PIX=") +
         std::to_string(static_cast<long long>(_out_pix_tile0)) +
         std::string(" -DMLO_LRN_N_VERT_OUT_PIX=") +
@@ -216,25 +196,25 @@ int mlo_construct_norm::mloConstructFwd()
         std::string(" -DMLO_LRN_GROUP_LG2SZ1=") +
         std::to_string(static_cast<long long>(ocl_group_lg2sz1)) +
         std::string(" -DMLO_LRN_BOT_BATCH_STRIDE=") +
-        std::to_string(static_cast<long long>(_search_params.in_batch_stride)) +
+        std::to_string(static_cast<long long>(_search_params.problem.in_batch_stride)) +
         std::string(" -DMLO_LRN_BOT_CHANNEL_STRIDE=") +
-        std::to_string(static_cast<long long>(_search_params.in_channel_stride)) +
+        std::to_string(static_cast<long long>(_search_params.problem.in_channel_stride)) +
         std::string(" -DMLO_LRN_BOT_STRIDE=") +
-        std::to_string(static_cast<long long>(_search_params.in_stride)) +
+        std::to_string(static_cast<long long>(_search_params.problem.in_stride)) +
         std::string(" -DMLO_LRN_TOP_BATCH_STRIDE=") +
-        std::to_string(static_cast<long long>(_search_params.out_batch_stride)) +
+        std::to_string(static_cast<long long>(_search_params.problem.out_batch_stride)) +
         std::string(" -DMLO_LRN_TOP_CHANNEL_STRIDE=") +
-        std::to_string(static_cast<long long>(_search_params.out_channel_stride)) +
+        std::to_string(static_cast<long long>(_search_params.problem.out_channel_stride)) +
         std::string(" -DMLO_LRN_TOP_STRIDE=") +
-        std::to_string(static_cast<long long>(_search_params.out_stride)) +
+        std::to_string(static_cast<long long>(_search_params.problem.out_stride)) +
         std::string(" -DMLO_LRN_BOT_WIDTH=") +
-        std::to_string(static_cast<long long>(_search_params.out_width)) +
+        std::to_string(static_cast<long long>(_search_params.problem.out_width)) +
         std::string(" -DMLO_LRN_BOT_HEIGHT=") +
-        std::to_string(static_cast<long long>(_search_params.out_height)) +
+        std::to_string(static_cast<long long>(_search_params.problem.out_height)) +
         std::string(" -DMLO_LRN_TOP_WIDTH=") +
-        std::to_string(static_cast<long long>(_search_params.out_width)) +
+        std::to_string(static_cast<long long>(_search_params.problem.out_width)) +
         std::string(" -DMLO_LRN_TOP_HEIGHT=") +
-        std::to_string(static_cast<long long>(_search_params.out_height)) +
+        std::to_string(static_cast<long long>(_search_params.problem.out_height)) +
         std::string(" -DMLO_LRN_SCALE_BATCH_STRIDE=") +
         std::to_string(static_cast<long long>(scale_batch_stride)) +
         std::string(" -DMLO_LRN_SCALE_CHANNEL_STRIDE=") +
@@ -254,11 +234,11 @@ int mlo_construct_norm::mloConstructFwd()
         std::string(" -DMLO_LRN_BOTDF_STRIDE=") +
         std::to_string(static_cast<long long>(bot_df_stride)) +
         std::string(" -DMLO_LRN_BATCH_SZ=") +
-        std::to_string(static_cast<long long>(_search_params.batch_sz)) +
+        std::to_string(static_cast<long long>(_search_params.problem.batch_sz)) +
         std::string(" -DMLO_LRN_N_INPUTS=") +
-        std::to_string(static_cast<long long>(_search_params.n_inputs)) +
+        std::to_string(static_cast<long long>(_search_params.problem.n_inputs)) +
         std::string(" -DMLO_LRN_N_OUTPUTS=") +
-        std::to_string(static_cast<long long>(_search_params.n_outputs)) +
+        std::to_string(static_cast<long long>(_search_params.problem.n_outputs)) +
         std::string(" -DMLO_LRN_DO_SCALE=") + std::to_string(static_cast<long long>(scale)) +
         std::string(" -DMLO_OUT_VERT_ALIGNED=") +
         std::to_string(static_cast<long long>(OUT_VERT_ALIGNED)) +
@@ -281,19 +261,19 @@ int mlo_construct_norm::mloConstructFwd()
 
         _g_wk.push_back(MAP_SZ4);
         _g_wk.push_back(1);
-        _g_wk.push_back(_search_params.batch_sz);
+        _g_wk.push_back(_search_params.problem.batch_sz);
     }
     else
     {
 
         _g_wk.push_back(g_wk_width * _grp_tile0);
         _g_wk.push_back(g_wk_height * _grp_tile1);
-        _g_wk.push_back(_search_params.n_outputs * _search_params.batch_sz);
+        _g_wk.push_back(_search_params.problem.n_outputs * _search_params.problem.batch_sz);
     }
-    int data_len = miopen::GetTypeSize(_search_params.out_data_type);
+    int data_len = miopen::GetTypeSize(_search_params.problem.out_data_type);
 
     // calculate workspace
-    size_t scale_sz = _search_params.batch_sz * scale_batch_stride * data_len;
+    size_t scale_sz = _search_params.problem.batch_sz * scale_batch_stride * data_len;
     _workspace_sz   = (doBackward()) ? scale_sz : 0;
 
     return (ret);
@@ -322,9 +302,9 @@ int mlo_construct_norm::mloConstructBwd()
 
     int pre_pad              = (_norm_area - 1) / 2;
     int pad                  = _norm_area - pre_pad - 1;
-    int scale_stride         = _search_params.out_stride;
-    int scale_channel_stride = _search_params.out_channel_stride;
-    int scale_batch_stride   = _search_params.out_batch_stride;
+    int scale_stride         = _search_params.problem.out_stride;
+    int scale_channel_stride = _search_params.problem.out_channel_stride;
+    int scale_batch_stride   = _search_params.problem.out_batch_stride;
 
     if(pre_pad < 0 || pad < 0)
         MIOPEN_THROW("Wrong LRN kernel size");
@@ -332,9 +312,9 @@ int mlo_construct_norm::mloConstructBwd()
     _comp_options =
         std::string(" -DMLO_LRN_KERNEL_SZ=") + std::to_string(static_cast<long long>(_norm_area)) +
         std::string(" -DMLO_LRN_N_OUTPUTS=") +
-        std::to_string(static_cast<long long>(_search_params.n_outputs)) +
+        std::to_string(static_cast<long long>(_search_params.problem.n_outputs)) +
         std::string(" -DMLO_LRN_N_CHANNELS=") +
-        std::to_string(static_cast<long long>(_search_params.n_inputs)) +
+        std::to_string(static_cast<long long>(_search_params.problem.n_inputs)) +
         std::string(" -DMLO_LRN_PAD=") + std::to_string(static_cast<long long>(pad)) +
         std::string(" -DMLO_LRN_PRE_PAD=") + std::to_string(static_cast<long long>(pre_pad)) +
         std::string(" -DMLO_LRN_N_HORIZ_OUT_PIX=") +
@@ -348,25 +328,25 @@ int mlo_construct_norm::mloConstructBwd()
         std::string(" -DMLO_LRN_GROUP_LG2SZ1=") +
         std::to_string(static_cast<long long>(ocl_group_lg2sz1)) +
         std::string(" -DMLO_LRN_BOT_BATCH_STRIDE=") +
-        std::to_string(static_cast<long long>(_search_params.in_batch_stride)) +
+        std::to_string(static_cast<long long>(_search_params.problem.in_batch_stride)) +
         std::string(" -DMLO_LRN_BOT_CHANNEL_STRIDE=") +
-        std::to_string(static_cast<long long>(_search_params.in_channel_stride)) +
+        std::to_string(static_cast<long long>(_search_params.problem.in_channel_stride)) +
         std::string(" -DMLO_LRN_BOT_STRIDE=") +
-        std::to_string(static_cast<long long>(_search_params.in_stride)) +
+        std::to_string(static_cast<long long>(_search_params.problem.in_stride)) +
         std::string(" -DMLO_LRN_TOP_BATCH_STRIDE=") +
-        std::to_string(static_cast<long long>(_search_params.out_batch_stride)) +
+        std::to_string(static_cast<long long>(_search_params.problem.out_batch_stride)) +
         std::string(" -DMLO_LRN_TOP_CHANNEL_STRIDE=") +
-        std::to_string(static_cast<long long>(_search_params.out_channel_stride)) +
+        std::to_string(static_cast<long long>(_search_params.problem.out_channel_stride)) +
         std::string(" -DMLO_LRN_TOP_STRIDE=") +
-        std::to_string(static_cast<long long>(_search_params.out_stride)) +
+        std::to_string(static_cast<long long>(_search_params.problem.out_stride)) +
         std::string(" -DMLO_LRN_BOT_WIDTH=") +
-        std::to_string(static_cast<long long>(_search_params.in_width)) +
+        std::to_string(static_cast<long long>(_search_params.problem.in_width)) +
         std::string(" -DMLO_LRN_BOT_HEIGHT=") +
-        std::to_string(static_cast<long long>(_search_params.in_height)) +
+        std::to_string(static_cast<long long>(_search_params.problem.in_height)) +
         std::string(" -DMLO_LRN_TOP_WIDTH=") +
-        std::to_string(static_cast<long long>(_search_params.out_width)) +
+        std::to_string(static_cast<long long>(_search_params.problem.out_width)) +
         std::string(" -DMLO_LRN_TOP_HEIGHT=") +
-        std::to_string(static_cast<long long>(_search_params.out_height)) +
+        std::to_string(static_cast<long long>(_search_params.problem.out_height)) +
         std::string(" -DMLO_LRN_SCALE_BATCH_STRIDE=") +
         std::to_string(static_cast<long long>(scale_batch_stride)) +
         std::string(" -DMLO_LRN_SCALE_CHANNEL_STRIDE=") +
@@ -386,11 +366,12 @@ int mlo_construct_norm::mloConstructBwd()
         std::string(" -DMLO_LRN_BOTDF_STRIDE=") +
         std::to_string(static_cast<long long>(_in_df_stride)) +
         std::string(" -DMLO_LRN_BATCH_SZ=") +
-        std::to_string(static_cast<long long>(_search_params.batch_sz)) +
+        std::to_string(static_cast<long long>(_search_params.problem.batch_sz)) +
         std::string(" -DMLO_LRN_N_INPUTS=") +
-        std::to_string(static_cast<long long>(_search_params.n_inputs)) +
+        std::to_string(static_cast<long long>(_search_params.problem.n_inputs)) +
         std::string(" -DMLO_LRN_N_OUTPUTS=") +
-        std::to_string(static_cast<long long>(_search_params.n_outputs)) + getGeneralCompOptions();
+        std::to_string(static_cast<long long>(_search_params.problem.n_outputs)) +
+        getGeneralCompOptions();
 
     _kernel_file = "MIOpenLRNBwd.cl";
 
@@ -404,7 +385,7 @@ int mlo_construct_norm::mloConstructBwd()
     {
         _g_wk.push_back(_in_df_width);
         _g_wk.push_back(_in_df_height);
-        _g_wk.push_back(_search_params.batch_sz);
+        _g_wk.push_back(_search_params.problem.batch_sz);
         _kernel_name = "MIOpenLRNAcrossChannelsBwd1";
     }
     else
@@ -416,7 +397,7 @@ int mlo_construct_norm::mloConstructBwd()
 
         _g_wk.push_back(g_wk_width * _grp_tile0);
         _g_wk.push_back(g_wk_height * _grp_tile1);
-        _g_wk.push_back(_search_params.n_inputs * _search_params.batch_sz);
+        _g_wk.push_back(_search_params.problem.n_inputs * _search_params.problem.batch_sz);
         _kernel_name = "MIOpenLRNWithinChannelBwd";
     }
 

@@ -30,6 +30,7 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -38,8 +39,11 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/invoke_params.hpp>
-#include <utility>
+#include <miopen/conv/tensors.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/any_solver.hpp>
 
+#include <utility>
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
@@ -48,6 +52,7 @@
 #include "tensor_util.hpp"
 #include <miopen/algorithm.hpp>
 #include "cpu_conv.hpp"
+#include "gpu_conv.hpp"
 #include "network_data.hpp"
 #include "miopen/find_db.hpp"
 #include "cpu_bias.hpp"
@@ -131,12 +136,15 @@ static inline bool skip_config(miopen::Handle& handle,
     ctx.SetupFloats();
     ctx.DetectRocm();
 
-    return ctx.GetStream().GetDeviceName() == "gfx908" && ctx.Is2d() && ctx.IsFp16() &&
-           ctx.IsLayoutDefault() && ctx.use_hip_kernels && ctx.group_counts == 1 &&
-           ctx.batch_sz == 1 && ctx.n_inputs == 192 && ctx.in_height == 28 && ctx.in_width == 28 &&
-           ctx.n_outputs == 1 && ctx.kernel_size_h == 3 && ctx.kernel_size_w == 3 &&
-           ctx.pad_w == 1 && ctx.pad_h == 1 && ctx.kernel_stride_w == 1 &&
-           ctx.kernel_stride_h == 1 && ctx.kernel_dilation_w == 1 && ctx.kernel_dilation_h == 1;
+    return ctx.GetStream().GetDeviceName() == "gfx908" && ctx.problem.Is2d() &&
+           ctx.problem.IsFp16() && ctx.problem.IsLayoutDefault() && ctx.use_hip_kernels &&
+           ctx.problem.group_counts == 1 && ctx.problem.batch_sz == 1 &&
+           ctx.problem.n_inputs == 192 && ctx.problem.in_height == 28 &&
+           ctx.problem.in_width == 28 && ctx.problem.n_outputs == 1 &&
+           ctx.problem.kernel_size_h == 3 && ctx.problem.kernel_size_w == 3 &&
+           ctx.problem.pad_w == 1 && ctx.problem.pad_h == 1 && ctx.problem.kernel_stride_w == 1 &&
+           ctx.problem.kernel_stride_h == 1 && ctx.problem.kernel_dilation_w == 1 &&
+           ctx.problem.kernel_dilation_h == 1;
 }
 #endif
 
@@ -307,25 +315,36 @@ struct verify_forward_conv : conv_base<T, Tout>
         if(filter.mode == miopenTranspose)
         {
             std::fill(rout.begin(), rout.end(), 0);
-            cpu_convolution_backward_data(filter.GetSpatialDimension(),
-                                          rout,
-                                          weights,
-                                          input,
-                                          filter.GetConvPads(),
-                                          filter.GetConvStrides(),
-                                          filter.GetConvDilations(),
-                                          filter.GetGroupCount());
+            bool gpu_ref_used = gpu_ref_convolution_bwd(rout, weights, input, filter);
+            if(!gpu_ref_used)
+            {
+                MIOPEN_LOG_W("GPU reference skipped");
+                cpu_convolution_backward_data(filter.GetSpatialDimension(),
+                                              rout,
+                                              weights,
+                                              input,
+                                              filter.GetConvPads(),
+                                              filter.GetConvStrides(),
+                                              filter.GetConvDilations(),
+                                              filter.GetGroupCount());
+            }
         }
         else
         {
-            cpu_convolution_forward(filter.GetSpatialDimension(),
-                                    input,
-                                    weights,
-                                    rout,
-                                    filter.GetConvPads(),
-                                    filter.GetConvStrides(),
-                                    filter.GetConvDilations(),
-                                    filter.GetGroupCount());
+            bool gpu_ref_used = gpu_ref_convolution_fwd(input, weights, rout, filter);
+
+            if(!gpu_ref_used)
+            {
+                MIOPEN_LOG_W("GPU reference skipped");
+                cpu_convolution_forward(filter.GetSpatialDimension(),
+                                        input,
+                                        weights,
+                                        rout,
+                                        filter.GetConvPads(),
+                                        filter.GetConvStrides(),
+                                        filter.GetConvDilations(),
+                                        filter.GetGroupCount());
+            }
 
             bool is_int8 =
                 weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4;
@@ -386,7 +405,7 @@ struct verify_forward_conv : conv_base<T, Tout>
         {
             if(filter.mode == miopenTranspose)
             {
-                if(miopen::testing_find_db_enabled)
+                if(miopen::debug::testing_find_db_enabled)
                 {
                     int ret_algo_count;
                     miopenConvAlgoPerf_t perf;
@@ -462,7 +481,7 @@ struct verify_forward_conv : conv_base<T, Tout>
             }
             else
             {
-                if(miopen::testing_find_db_enabled)
+                if(miopen::debug::testing_find_db_enabled)
                 {
                     int ret_algo_count;
                     miopenConvAlgoPerf_t perf;
@@ -803,29 +822,40 @@ struct verify_backward_conv : conv_base<T>
     tensor<T> cpu() const
     {
         auto rinput = input;
+
         std::fill(rinput.begin(), rinput.end(), 0);
 
         if(filter.mode == miopenTranspose)
         {
-            cpu_convolution_forward(filter.GetSpatialDimension(),
-                                    out,
-                                    weights,
-                                    rinput,
-                                    filter.GetConvPads(),
-                                    filter.GetConvStrides(),
-                                    filter.GetConvDilations(),
-                                    filter.GetGroupCount());
+            bool gpu_ref_used = gpu_ref_convolution_fwd(out, weights, rinput, filter);
+            if(!gpu_ref_used)
+            {
+                MIOPEN_LOG_W("GPU reference not run");
+                cpu_convolution_forward(filter.GetSpatialDimension(),
+                                        out,
+                                        weights,
+                                        rinput,
+                                        filter.GetConvPads(),
+                                        filter.GetConvStrides(),
+                                        filter.GetConvDilations(),
+                                        filter.GetGroupCount());
+            }
         }
         else
         {
-            cpu_convolution_backward_data(filter.GetSpatialDimension(),
-                                          rinput,
-                                          weights,
-                                          out,
-                                          filter.GetConvPads(),
-                                          filter.GetConvStrides(),
-                                          filter.GetConvDilations(),
-                                          filter.GetGroupCount());
+            bool gpu_ref_used = gpu_ref_convolution_bwd(rinput, weights, out, filter);
+            if(!gpu_ref_used)
+            {
+                MIOPEN_LOG_W("GPU reference not run");
+                cpu_convolution_backward_data(filter.GetSpatialDimension(),
+                                              rinput,
+                                              weights,
+                                              out,
+                                              filter.GetConvPads(),
+                                              filter.GetConvStrides(),
+                                              filter.GetConvDilations(),
+                                              filter.GetGroupCount());
+            }
         }
         return rinput;
     }
@@ -860,7 +890,7 @@ struct verify_backward_conv : conv_base<T>
 
             if(filter.mode == miopenTranspose)
             {
-                if(miopen::testing_find_db_enabled)
+                if(miopen::debug::testing_find_db_enabled)
                 {
                     filter.FindConvFwdAlgorithm(handle,
                                                 out.desc,
@@ -938,7 +968,7 @@ struct verify_backward_conv : conv_base<T>
             }
             else
             {
-                if(miopen::testing_find_db_enabled)
+                if(miopen::debug::testing_find_db_enabled)
                 {
                     filter.FindConvBwdDataAlgorithm(handle,
                                                     out.desc,
@@ -1180,25 +1210,35 @@ struct verify_backward_weights_conv : conv_base<T>
 
         if(filter.mode == miopenTranspose)
         {
-            cpu_convolution_backward_weight(filter.GetSpatialDimension(),
-                                            out,
-                                            rweights,
-                                            input,
-                                            filter.GetConvPads(),
-                                            filter.GetConvStrides(),
-                                            filter.GetConvDilations(),
-                                            filter.GetGroupCount());
+            bool gpu_ref_used = gpu_ref_convolution_wrw(out, rweights, input, filter);
+            if(!gpu_ref_used)
+            {
+                MIOPEN_LOG_W("GPU reference not run");
+                cpu_convolution_backward_weight(filter.GetSpatialDimension(),
+                                                out,
+                                                rweights,
+                                                input,
+                                                filter.GetConvPads(),
+                                                filter.GetConvStrides(),
+                                                filter.GetConvDilations(),
+                                                filter.GetGroupCount());
+            }
         }
         else
         {
-            cpu_convolution_backward_weight(filter.GetSpatialDimension(),
-                                            input,
-                                            rweights,
-                                            out,
-                                            filter.GetConvPads(),
-                                            filter.GetConvStrides(),
-                                            filter.GetConvDilations(),
-                                            filter.GetGroupCount());
+            bool gpu_ref_used = gpu_ref_convolution_wrw(input, rweights, out, filter);
+            if(!gpu_ref_used)
+            {
+                MIOPEN_LOG_W("GPU reference not run");
+                cpu_convolution_backward_weight(filter.GetSpatialDimension(),
+                                                input,
+                                                rweights,
+                                                out,
+                                                filter.GetConvPads(),
+                                                filter.GetConvStrides(),
+                                                filter.GetConvDilations(),
+                                                filter.GetGroupCount());
+            }
         }
         return rweights;
     }
@@ -1231,7 +1271,7 @@ struct verify_backward_weights_conv : conv_base<T>
             int ret_algo_count;
             miopenConvAlgoPerf_t perf;
 
-            if(miopen::testing_find_db_enabled)
+            if(miopen::debug::testing_find_db_enabled)
             {
                 filter.FindConvBwdWeightsAlgorithm(
                     handle,
@@ -1433,14 +1473,20 @@ struct verify_forward_conv_int8 : conv_base<T>
 
         if(filter.mode == miopenConvolution)
         {
-            cpu_convolution_forward(filter.GetSpatialDimension(),
-                                    input,
-                                    weights,
-                                    rout,
-                                    filter.GetConvPads(),
-                                    filter.GetConvStrides(),
-                                    filter.GetConvDilations(),
-                                    filter.GetGroupCount());
+            bool gpu_ref_used = gpu_ref_convolution_fwd(input, weights, rout, filter);
+
+            if(!gpu_ref_used)
+            {
+                MIOPEN_LOG_W("GPU reference skipped");
+                cpu_convolution_forward(filter.GetSpatialDimension(),
+                                        input,
+                                        weights,
+                                        rout,
+                                        filter.GetConvPads(),
+                                        filter.GetConvStrides(),
+                                        filter.GetConvDilations(),
+                                        filter.GetGroupCount());
+            }
 
             rout.par_for_each(
                 [&](auto... is) { rout(is...) = double(rout(is...)) + double(this->bias); });
@@ -1503,7 +1549,7 @@ struct verify_forward_conv_int8 : conv_base<T>
         int ret_algo_count;
         miopenConvAlgoPerf_t perf;
 
-        if(miopen::testing_find_db_enabled)
+        if(miopen::debug::testing_find_db_enabled)
         {
             filter.FindConvFwdAlgorithm(handle,
                                         (is_transform ? input_vpad_desc : input.desc),
@@ -1640,6 +1686,7 @@ struct conv_driver : test_driver
     bool gen_float           = false;
     bool immed               = immed_mode;
     bool enable_fdb          = true;
+    bool deterministic       = false;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution},
@@ -1829,18 +1876,12 @@ struct conv_driver : test_driver
         {
             if(fil_layout == "CHWN")
             {
+                weights = tensor<T>{type, weight_layout_t, weight_tensor_dims}.generate(
+                    tensor_elem_gen_integer{17});
                 output_channels = weight_tensor_dims.at(3);
                 std::copy(weight_tensor_dims.begin() + 1,
                           weight_tensor_dims.end() - 1,
                           filter_dims.begin());
-                std::vector<std::size_t> chwn_weight_tensor_dims{};
-                chwn_weight_tensor_dims[0] = input_channels;
-                std::copy(
-                    filter_dims.begin(), filter_dims.end(), chwn_weight_tensor_dims.begin() + 1);
-                chwn_weight_tensor_dims.push_back(output_channels);
-
-                weights = tensor<T>{type, weight_layout_t, chwn_weight_tensor_dims}.generate(
-                    tensor_elem_gen_integer{17});
             }
             else
             {
@@ -1943,6 +1984,8 @@ struct conv_driver : test_driver
         filter.strides.resize(spatial_dim);
         filter.dilations.resize(spatial_dim);
         filter.trans_output_pads.resize(spatial_dim);
+        if(deterministic)
+            filter.attribute.Set(MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC, 1);
 
         std::copy_n(pads_strides_dilations.begin(), spatial_dim, filter.pads.begin());
         std::copy_n(
@@ -2209,7 +2252,7 @@ struct conv_driver : test_driver
 
                 if(immed)
                 {
-                    miopen::testing_find_db_enabled = enable_fdb;
+                    miopen::debug::testing_find_db_enabled = enable_fdb;
                 }
 
                 conv_stats stats;

@@ -58,12 +58,13 @@ auto FindSolutionImpl(
     MIOPEN_LOG_I(s.SolverDbId());
     if(enforce.IsDbClean(context))
     {
-        if(db.Remove(context, s.SolverDbId()))
+        if(db.Remove(context.problem, s.SolverDbId()))
             MIOPEN_LOG_W("Perf Db: record removed: " << s.SolverDbId() << ", enforce: " << enforce);
     }
     else
     {
-        if((context.do_search || enforce.IsSearch(context)) && enforce.IsDbUpdate(context))
+        if((context.do_search || enforce.IsSearch(context)) &&
+           (context.db_update || enforce.IsDbUpdate(context)))
         {
             MIOPEN_LOG_W("Perf Db: load skipped: " << s.SolverDbId() << ", enforce: " << enforce);
         }
@@ -71,7 +72,7 @@ auto FindSolutionImpl(
         {
             using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
             PerformanceConfig config{};
-            if(db.Load(context, s.SolverDbId(), config))
+            if(db.Load(context.problem, s.SolverDbId(), config))
             {
                 MIOPEN_LOG_I2("Perf Db: record loaded: " << s.SolverDbId());
                 if(s.IsValidPerformanceConfig(context, config))
@@ -93,7 +94,7 @@ auto FindSolutionImpl(
             try
             {
                 auto c = s.Search(context, invoke_ctx);
-                db.Update(context, s.SolverDbId(), c);
+                db.Update(context.problem, s.SolverDbId(), c);
                 return s.GetSolution(context, c);
             }
             catch(const miopen::Exception& ex)
@@ -158,9 +159,13 @@ struct SolverContainer
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
                 else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
+                }
                 else if(!solver.IsApplicable(search_params))
+                {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
+                }
                 else
                 {
                     const Solution s = FindSolution(solver, search_params, db, invoke_ctx);
