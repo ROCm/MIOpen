@@ -23,7 +23,7 @@
 # SOFTWARE.
 #
 ################################################################################
-cmake_minimum_required( VERSION 3.11 )
+cmake_minimum_required( VERSION 3.5 )
 
 macro(set_var_to_condition var)
     if(${ARGN})
