@@ -76,11 +76,13 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmM     = 0;
     int ClusterLengths_GemmKPack = 0;
-    int SrcDataPerRead_GemmM     = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
-                                            : amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmM     = ctx.problem.IsFp32()
+                                   ? amd_buffer_load_max_length<float>()
+                                   : amd_buffer_load_max_length<half_float::half>();
 
-    int DstDataPerWrite_GemmKPack = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
-                                                 : amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
+                                        ? amd_buffer_load_max_length<float>()
+                                        : amd_buffer_load_max_length<half_float::half>();
 
     try
     {
@@ -168,11 +170,13 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmN     = 0;
     int ClusterLengths_GemmKPack = 0;
-    int SrcDataPerRead_GemmN     = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
-                                            : amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmN     = ctx.problem.IsFp32()
+                                   ? amd_buffer_load_max_length<float>()
+                                   : amd_buffer_load_max_length<half_float::half>();
 
-    int DstDataPerWrite_GemmKPack = ctx.IsFp32() ? amd_lds_write_max_length<float>()
-                                                 : amd_lds_write_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
+                                        ? amd_lds_write_max_length<float>()
+                                        : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -326,7 +330,8 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV4R1Xdlops::Calculat
             GemmKPerBlock * integer_least_multiple(GemmMPerBlock, max_lds_align);
         const auto b_block_space =
             GemmKPerBlock * integer_least_multiple(GemmNPerBlock, max_lds_align);
-        lds_size = (a_block_space + b_block_space) * GetTypeSize(ctx.in_data_type) * GemmKPack;
+        lds_size =
+            (a_block_space + b_block_space) * GetTypeSize(ctx.problem.in_data_type) * GemmKPack;
     }
     catch(...)
     {
@@ -344,10 +349,10 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ConvolutionCo
     int GemmM = 0, GemmN = 0, GemmK = 0, gemm_k_total = 0;
 
     // GemmKPACKSize = 4 for fp16
-    if(ctx.IsFp16() && GemmKPACKSize % 4 != 0)
+    if(ctx.problem.IsFp16() && GemmKPACKSize % 4 != 0)
         return false;
 
-    if(ctx.IsBfp16() && GemmKPACKSize % 2 != 0)
+    if(ctx.problem.IsBfp16() && GemmKPACKSize % 2 != 0)
         return false;
     // check blockwise GEMM size
     for(int gemm_id = 0; gemm_id < ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(ctx);
@@ -492,12 +497,12 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
         const int b_data_per_thread_copy =
             (GemmKPerBlock * GemmNPerBlock * GemmKPACKSize) / block_size;
 
-        if(ctx.IsFp32())
+        if(ctx.problem.IsFp32())
         {
             if(a_data_per_thread_copy > 16 || b_data_per_thread_copy > 16)
                 return false;
         }
-        else if(ctx.IsFp16() || ctx.IsBfp16())
+        else if(ctx.problem.IsFp16() || ctx.problem.IsBfp16())
         {
             if(a_data_per_thread_copy > 32 || b_data_per_thread_copy > 32)
                 return false;
@@ -604,7 +609,7 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionCo
     PerformanceImplicitGemmBwdDataV4R1Xdlops tmp;
 
     auto get_euristic_config = [&](auto is_valid_func) {
-        if(ctx.IsFp32())
+        if(ctx.problem.IsFp32())
         {
             tmp              = {256, 256, 8, 4, 128, 128, true, true};
             bool all_visited = false;
@@ -634,7 +639,7 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionCo
                     break;
             } while(!all_visited);
         }
-        else if(ctx.IsFp16())
+        else if(ctx.problem.IsFp16())
         {
             tmp              = {256, 256, 8, 8, 128, 128, true, true};
             bool all_visited = false;
@@ -664,7 +669,7 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionCo
                     break;
             } while(!all_visited);
         }
-        else if(ctx.IsBfp16())
+        else if(ctx.problem.IsBfp16())
         {
             tmp              = {256, 256, 8, 8, 128, 128, true, true};
             bool all_visited = false;
@@ -805,14 +810,14 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ConvolutionContext
 bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if WORKAROUND_ISSUE_1206
-    if(ctx.IsFp32())
+    if(ctx.problem.IsFp32())
     {
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
             return false;
     }
 #endif
 #if WORKAROUND_SWDEV_329642
-    if(ctx.IsBfp16() && ctx.GetStream().GetDeviceName() == "gfx90a")
+    if(ctx.problem.IsBfp16() && ctx.GetStream().GetDeviceName() == "gfx90a")
     {
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
             return false;
@@ -820,25 +825,26 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
 #endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
         return false;
-    if(ctx.conv_problem.GetConv().attribute.deterministic)
+    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!ctx.direction.IsBackwardData())
+    if(!ctx.problem.direction.IsBackwardData())
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ctx.Is2d())
+    if(!ctx.problem.Is2d())
         return false;
-    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+    if(!(ctx.problem.IsFp32() || ctx.problem.IsFp16() || ctx.problem.IsBfp16()))
         return false;
     if(!IsApplicableXdlops(ctx))
         return false;
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
-    if(!ctx.IsLayoutDefault())
+    if(!ctx.problem.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
+       ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     bool is_applicable = true;
@@ -1012,7 +1018,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_W=") + std::to_string(ConvolutionContextInterpreter::GetInputLeftPadW(ctx)) +
                 std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_H=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx)) +
                 std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_W=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(ctx.group_counts) +
+                std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(ctx.problem.group_counts) +
                 std::string(" -DCK_PARAM_TUNABLE_BLOCK_SIZE=") + std::to_string(block_size) +
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_BLOCK=") + std::to_string(GemmMPerBlock) +
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_BLOCK=") + std::to_string(GemmNPerBlock) +
