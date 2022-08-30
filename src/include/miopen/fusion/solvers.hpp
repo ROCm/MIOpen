@@ -27,12 +27,12 @@
 #pragma once
 
 #include <miopen/solver.hpp>
-
+#include <miopen/fusion.hpp>
+#include <miopen/fusion_plan.hpp>
 #include <utility>
 
 namespace miopen {
 
-struct FusionPlanDescriptor;
 struct FusionProblemDescription : miopen::ExecutionContext,
                                   SQLiteSerializable<FusionProblemDescription>
 {
@@ -42,23 +42,52 @@ struct FusionProblemDescription : miopen::ExecutionContext,
     {
         fusion_plan_desc = ptr_desc;
     }
-    static std::string table_name() { return "fusion_config"; } // revisit this
+    ConvolutionContext GetConvContext(size_t idx, conv::Direction dir) const
+    {
+        const auto& conv_op =
+            dynamic_cast<ConvForwardOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
+        if(dir == conv::Direction::Forward)
+        {
+            TensorDescriptor out_desc;
+            conv_op.GetOutputDesc(out_desc);
+            auto ctx                       = ConvolutionContext{conv_op.input_desc,
+                                          conv_op.filter_desc,
+                                          out_desc,
+                                          conv_op.base_desc /* conv desc */,
+                                          dir};
+            ctx.do_search                  = this->do_search;
+            ctx.save_srch_req              = this->save_srch_req;
+            ctx.use_asm_kernels            = this->use_asm_kernels;
+            ctx.use_hip_kernels            = this->use_hip_kernels;
+            ctx.use_opencl_convolutions    = this->use_opencl_convolutions;
+            ctx.use_binaries               = this->use_binaries;
+            ctx.disable_search_enforce     = this->disable_search_enforce;
+            ctx.disable_perfdb_access      = this->disable_perfdb_access;
+            ctx.use_dynamic_solutions_only = this->use_dynamic_solutions_only;
+            ctx.general_compile_options    = "";
+
+            ctx.SetStream(&this->GetStream());
+            ctx.DetectRocm();
+            ctx.SetupFloats();
+            return ctx;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+    }
+    static std::string table_name() { return "config"; } // revisit this
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
-        std::ignore = self;
-        std::ignore = f;
-        // Get ConvProblemDescription and call its visitor
-        // Then add the other ops as well
+        auto prob_ctx = self.GetConvContext(0, conv::Direction::Forward);
+        ProblemDescription::Visit(prob_ctx, f);
     }
     bool is_for_generic_search = false;
 };
 
 namespace solver {
 namespace fusion {
-
-// using FusionProblemDescription =
-//     std::tuple<const ExecutionContext*, const miopen::FusionPlanDescriptor*>;
 
 using FusionSolverBase = SolverMixin<FusionProblemDescription>;
 
@@ -127,6 +156,7 @@ struct FusionTunableSolver : FusionTunableSolverBase
     {
         return GetSolution(ctx, boost::any_cast<const PerformanceConfig&>(config));
     }
+    bool IsDynamic() const override { return false; }
 };
 
 struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
@@ -140,8 +170,7 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
     bool SetNextValue(const FusionProblemDescription& config);
     bool IsValid(const FusionProblemDescription& config) const;
 };
-struct ConvBiasActivAsm1x1U
-    : FusionTunableSolver<PerformanceConfigConvBiasActivAsm1x1U> /*, miopen::solver::ConvAsm1x1U*/
+struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
@@ -157,35 +186,25 @@ struct ConvBiasActivAsm1x1U
                                                  const AnyInvokeParams& invoke_ctx) const override;
     bool IsValidPerformanceConfig(const FusionProblemDescription&,
                                   const PerformanceConfigConvBiasActivAsm1x1U&) const override;
-    bool IsDynamic() const override { return false; }
 };
 
-struct ConvOclDirectFwdFused final : FusionSolverBase, ConvOclDirectFwd
+using PerformanceConfigConvOclDirectFwdFused = LegacyPerformanceConfig;
+struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig>
 {
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvOclDirectFwdFused>();
     }
-    using FusionSolverBase::IsApplicable;
-    using miopen::solver::ConvOclDirectFwd::GetSolution;
-    using miopen::solver::ConvOclDirectFwd::IsApplicable;
 
-    virtual bool IsApplicable(const FusionProblemDescription& problem) const override
-    {
-        // return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
-        return IsApplicable(problem, *problem.fusion_plan_desc);
-    }
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::FusionPlanDescriptor& desc) const;
-    virtual inline ConvSolution GetSolution(const FusionProblemDescription& problem) const
-    {
-        // return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
-        return GetSolution(problem, *problem.fusion_plan_desc);
-    }
-
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::FusionPlanDescriptor& desc) const;
-    bool IsDynamic() const override { return false; }
+    bool IsApplicable(const FusionProblemDescription& problem) const override;
+    ConvSolution GetSolution(const FusionProblemDescription& problem,
+                             const PerformanceConfigConvOclDirectFwdFused&) const override;
+    PerformanceConfigConvOclDirectFwdFused
+    GetDefaultPerformanceConfig(const FusionProblemDescription&) const override;
+    PerformanceConfigConvOclDirectFwdFused Search(const FusionProblemDescription&,
+                                                  const AnyInvokeParams& invoke_ctx) const override;
+    bool IsValidPerformanceConfig(const FusionProblemDescription&,
+                                  const PerformanceConfigConvOclDirectFwdFused&) const override;
 };
 
 } // namespace fusion

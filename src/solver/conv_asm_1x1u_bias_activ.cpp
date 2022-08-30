@@ -47,53 +47,23 @@ namespace miopen {
 namespace solver {
 
 namespace fusion {
-inline ConvolutionContext ConvOp2Ctx(const ExecutionContext& context,
-                                     const ConvForwardOpDescriptor& conv_op)
-{
-    const auto dir = conv::Direction::Forward;
-    TensorDescriptor out_desc;
-    conv_op.GetOutputDesc(out_desc);
-    auto ctx = ConvolutionContext{
-        conv_op.input_desc, conv_op.filter_desc, out_desc, conv_op.base_desc /* conv desc */, dir};
-    ctx.do_search                  = context.do_search;
-    ctx.save_srch_req              = context.save_srch_req;
-    ctx.use_asm_kernels            = context.use_asm_kernels;
-    ctx.use_hip_kernels            = context.use_hip_kernels;
-    ctx.use_opencl_convolutions    = context.use_opencl_convolutions;
-    ctx.use_binaries               = context.use_binaries;
-    ctx.disable_search_enforce     = context.disable_search_enforce;
-    ctx.disable_perfdb_access      = context.disable_perfdb_access;
-    ctx.use_dynamic_solutions_only = context.use_dynamic_solutions_only;
-    ctx.general_compile_options    = "";
-
-    ctx.SetStream(&context.GetStream());
-    ctx.DetectRocm();
-    ctx.SetupFloats();
-    return ctx;
-}
 
 void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionProblemDescription& problem)
 {
-    const auto& conv_op =
-        dynamic_cast<ConvForwardOpDescriptor&>(*problem.fusion_plan_desc->op_map[0]);
-    const auto ctx = ConvOp2Ctx(problem, conv_op);
-    PerformanceConfigConvAsm1x1U::HeuristicInit(ctx);
+    PerformanceConfigConvAsm1x1U::HeuristicInit(
+        problem.GetConvContext(0, conv::Direction::Forward));
 }
 
 bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionProblemDescription& problem)
 {
-    const auto& conv_op =
-        dynamic_cast<ConvForwardOpDescriptor&>(*problem.fusion_plan_desc->op_map[0]);
-    const auto ctx = ConvOp2Ctx(problem, conv_op);
-    return PerformanceConfigConvAsm1x1U::SetNextValue(ctx);
+    return PerformanceConfigConvAsm1x1U::SetNextValue(
+        problem.GetConvContext(0, conv::Direction::Forward));
 }
 
 bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionProblemDescription& problem) const
 {
-    const auto& conv_op =
-        dynamic_cast<ConvForwardOpDescriptor&>(*problem.fusion_plan_desc->op_map[0]);
-    const auto ctx = ConvOp2Ctx(problem, conv_op);
-    return PerformanceConfigConvAsm1x1U::IsValid(ctx);
+    return PerformanceConfigConvAsm1x1U::IsValid(
+        problem.GetConvContext(0, conv::Direction::Forward));
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
@@ -114,9 +84,7 @@ bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
 PerformanceConfigConvBiasActivAsm1x1U
 ConvBiasActivAsm1x1U::Search(const FusionProblemDescription& context, const AnyInvokeParams&) const
 {
-    const auto& conv_op =
-        dynamic_cast<ConvForwardOpDescriptor&>(*context.fusion_plan_desc->op_map[0]);
-    auto cba_context = ConvOp2Ctx(context, conv_op);
+    auto cba_context = context.GetConvContext(0, conv::Direction::Forward);
     cba_context.bias = 1;
     cba_context.bias_sz =
         cba_context.n_outputs * ((cba_context.out_data_type == miopenHalf) ? 2 : 4);
@@ -148,9 +116,7 @@ ConvSolution
 ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionProblemDescription& problem,
                                   const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
-    const auto& conv_op =
-        dynamic_cast<ConvForwardOpDescriptor&>(*problem.fusion_plan_desc->op_map[0]);
-    const auto ctx = ConvOp2Ctx(problem, conv_op);
+    const auto ctx = problem.GetConvContext(0, conv::Direction::Forward);
     ConvAsm1x1U base_sol{};
 
     auto sol = base_sol.GetSolution(ctx, config);
@@ -200,7 +166,7 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionProblemDescription& proble
             const auto& wei_ocl_buf =
                 std::dynamic_pointer_cast<miopen::fusion::ConvolutionOpInvokeParam>(
                     invoke_ctx.op_invokers[0])
-                    ->workspace;
+                    ->weights;
             const auto& top_ocl_buf  = invoke_ctx.out;
             const auto& bias_ocl_buf = [&]() -> ConstData_t {
                 if(has_bias)
@@ -283,12 +249,9 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionProblemDescription& problem)
         if(prim != miopenFusionOpActivForward)
             return false;
     }
-    const auto& conv_op =
-        dynamic_cast<ConvForwardOpDescriptor&>(*problem.fusion_plan_desc->op_map[0]);
-    const auto ctx = ConvOp2Ctx(problem, conv_op);
     ConvAsm1x1U sol{};
     // Check if the conovlution part is applicable
-    return sol.IsApplicable(ctx);
+    return sol.IsApplicable(problem.GetConvContext(0, conv::Direction::Forward));
 }
 
 } // namespace fusion

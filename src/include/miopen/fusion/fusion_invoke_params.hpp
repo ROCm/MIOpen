@@ -40,8 +40,8 @@ struct FusionOpInvokeParamBase
 struct ConvolutionOpInvokeParam : FusionOpInvokeParamBase
 {
     /* Perhaps make these refs */
-    TensorDescriptor workspaceDesc;
-    ConstData_t workspace = nullptr;
+    TensorDescriptor weightsDesc;
+    ConstData_t weights = nullptr;
 };
 
 struct BiasOpInvokeParam : FusionOpInvokeParamBase

@@ -29,6 +29,8 @@
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
+#include <miopen/fusion/fusion_invoke_params.hpp>
+#include <miopen/conv/fused_data_invoke_params.hpp>
 #include <miopen/fusion_plan.hpp>
 #include <miopen/fusion/solvers.hpp>
 
@@ -489,69 +491,192 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
 
 namespace fusion {
 
-inline ConvolutionContext ConvOp2Ctx(const ExecutionContext& context,
-                                     const ConvForwardOpDescriptor& conv_op)
+PerformanceConfigConvOclDirectFwdFused
+ConvOclDirectFwdFused::Search(const FusionProblemDescription& problem,
+                              const AnyInvokeParams& invoke_params) const
 {
-    const auto dir = conv::Direction::Forward;
-    TensorDescriptor out_desc;
-    conv_op.GetOutputDesc(out_desc);
-    auto ctx = ConvolutionContext{
-        conv_op.input_desc, conv_op.filter_desc, out_desc, conv_op.base_desc /* conv desc */, dir};
-    ctx.do_search                  = context.do_search;
-    ctx.save_srch_req              = context.save_srch_req;
-    ctx.use_asm_kernels            = context.use_asm_kernels;
-    ctx.use_hip_kernels            = context.use_hip_kernels;
-    ctx.use_opencl_convolutions    = context.use_opencl_convolutions;
-    ctx.use_binaries               = context.use_binaries;
-    ctx.disable_search_enforce     = context.disable_search_enforce;
-    ctx.disable_perfdb_access      = context.disable_perfdb_access;
-    ctx.use_dynamic_solutions_only = context.use_dynamic_solutions_only;
-    ctx.general_compile_options    = "";
-
-    ctx.SetStream(&context.GetStream());
-    ctx.DetectRocm();
-    ctx.SetupFloats();
-    return ctx;
+    const auto& conv_ctx = problem.GetConvContext(0, conv::Direction::Forward);
+    const auto legacy    = ConvOclDirectFwd{};
+    return legacy.Search(conv_ctx, invoke_params);
 }
 
-bool ConvOclDirectFwdFused::IsApplicable(const ExecutionContext& context,
-                                         const miopen::FusionPlanDescriptor& desc) const
+bool ConvOclDirectFwdFused::IsApplicable(const FusionProblemDescription& context) const
 {
+    const auto& desc = *context.fusion_plan_desc;
     if(desc.op_map.empty())
     {
-        MIOPEN_THROW("");
+        MIOPEN_THROW("No operators added to fusion plan");
     }
     // check the sequence of prims
-    if(desc.op_map.size() > 3)
+    if(desc.op_map.size() > 4)
         return false;
     if(desc.op_map[0]->kind() != miopenFusionOpConvForward)
         return false;
     if(desc.op_map.size() >= 2)
     {
         const auto prim = desc.op_map[1]->kind();
-        if(!(prim == miopenFusionOpBiasForward || prim == miopenFusionOpActivForward))
+        if(!(prim == miopenFusionOpBatchNormInference || prim == miopenFusionOpBiasForward ||
+             prim == miopenFusionOpActivForward))
             return false;
     }
-    if(desc.op_map.size() == 3)
+    if(desc.op_map.size() >= 3)
     {
         const auto prim = desc.op_map[2]->kind();
-        if(prim != miopenFusionOpActivForward)
+        if(!(prim == miopenFusionOpActivForward || prim == miopenFusionOpBatchNormInference))
             return false;
     }
-    // Get the conv problem descriptor from the ops and pass it to the base class IsApplicable
-    const auto& conv_op = dynamic_cast<ConvForwardOpDescriptor&>(*desc.op_map[0]);
-    auto ctx            = ConvOp2Ctx(context, conv_op);
-    return ConvOclDirectFwd::IsApplicable(ctx);
+    if(desc.op_map.size() == 4)
+    {
+        const auto prim = desc.op_map[3]->kind();
+        if(!(prim == miopenFusionOpActivForward))
+            return false;
+    }
+    const auto conv_context = context.GetConvContext(0, conv::Direction::Forward);
+    if(!conv_context.IsFp32())
+        return false;
+    const auto base = ConvOclDirectFwd{};
+    return base.IsApplicable(conv_context);
 }
-ConvSolution ConvOclDirectFwdFused::GetSolution(const ExecutionContext& context,
-                                                const miopen::FusionPlanDescriptor& desc) const
+inline int GetOpIdx(const std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map,
+                    miopenFusionOp_t op)
 {
-    const auto& conv_op = dynamic_cast<ConvForwardOpDescriptor&>(*desc.op_map[0]);
-    auto ctx            = ConvOp2Ctx(context, conv_op);
-    auto config         = LegacyPerformanceConfig{};
-    ConvSolution result = BaseGetSolution(ctx, config);
+    int idx = 0;
+    for(const auto& ptr : op_map)
+    {
+        if(ptr->kind() == op)
+            return idx;
+        ++idx;
+    }
+    return -1;
+}
+ConvSolution
+ConvOclDirectFwdFused::GetSolution(const FusionProblemDescription& context,
+                                   const PerformanceConfigConvOclDirectFwdFused& config) const
+{
+    ConvSolution result =
+        BaseGetSolution(context.GetConvContext(0, conv::Direction::Forward), config);
+
+    if(result.construction_params.size() != 1)
+        MIOPEN_THROW("ConvOclDirectFwdFused expects only one kernel");
+
+    auto& kernel_info       = result.construction_params[0];
+    kernel_info.kernel_file = "MIOpenConvDirBatchNormActiv.cl";
+    kernel_info.kernel_name = "MIOpenConvUniBatchNormActiv";
+    const auto& desc        = *context.fusion_plan_desc;
+
+    const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
+    const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
+    const int bn_idx    = GetOpIdx(desc.op_map, miopenFusionOpBatchNormInference);
+
+    if(bias_idx != -1)
+        kernel_info.comp_options += " -DMLO_CONV_BIAS=" + std::to_string(1);
+    if(activ_idx != -1)
+    {
+        const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
+        kernel_info.comp_options += " -DMIOPEN_YES_ACTIV=1 -DMIOPEN_NRN_OP_ID=" +
+                                    std::to_string(static_cast<int>(activ_op.activMode));
+    }
+    if(bn_idx != -1)
+    {
+        const auto& bn_op =
+            dynamic_cast<BatchNormInferenceFusionOpDescriptor&>(*desc.op_map[bn_idx]);
+
+        std::vector<size_t> vld{256, 1, 1};
+        if(bn_op.mode == miopenBNSpatial)
+            kernel_info.comp_options += " -DSPATIAL_BN";
+        else if(bn_op.mode == miopenBNPerActivation)
+            kernel_info.comp_options += " -DPERACT_BN";
+        int n, c, h, w;
+        std::tie(n, c, h, w)   = tien<4>(bn_op.input_desc.GetLengths());
+        size_t read_len        = (bn_op.mode == miopenBNSpatial) ? h * w : c * h * w;
+        const size_t read_unit = [&]() {
+            if(bn_op.mode == miopenBNSpatial && bn_op.input_desc.GetType() != miopenHalf)
+                return (read_len % 4 == 0) ? 4 : (read_len % 2) ? 2 : 1;
+            else
+                return 1;
+        }();
+        if(bn_op.input_desc.GetType() ==
+           miopenHalf) // impossible path from the fusion metadata graph
+            kernel_info.comp_options += " -DMIOPEN_USE_FPMIX=1";
+        kernel_info.comp_options +=
+            " -DMIO_BN_CHW=" + std::to_string(c * h * w) + " -DMIO_BN_HW=" + std::to_string(h * w) +
+            " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_GRP0=" + std::to_string(vld.at(0)) +
+            " -DMIO_BN_GRP1=" + std::to_string(1) + " -DMIO_BN_GRP2=" + std::to_string(1);
+        const std::string READ_TYPE =
+            (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
+        kernel_info.comp_options += " -DMIOPEN_READ_UNIT=" + std::to_string(read_unit);
+        kernel_info.comp_options += " -DMIOPEN_READ_TYPE=" + READ_TYPE;
+    }
+
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            const auto& kernel = handle.Run(kernels[0]);
+            const auto& invoke_ctx =
+                primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
+            const auto& bot_buf = invoke_ctx.in;
+            const auto& wei_buf =
+                std::dynamic_pointer_cast<miopen::fusion::ConvolutionOpInvokeParam>(
+                    invoke_ctx.op_invokers[0])
+                    ->weights;
+            const auto& top_buf = invoke_ctx.out;
+            std::vector<OpKernelArg> opArgs; // The kernel signature has a max of  12 arguments
+            if(activ_idx != -1)
+            {
+                const auto& activ_args =
+                    std::dynamic_pointer_cast<miopen::fusion::ActivationOpInvokeParam>(
+                        invoke_ctx.op_invokers[activ_idx]);
+                opArgs.emplace_back(static_cast<float>(activ_args->activAlpha));
+                opArgs.emplace_back(static_cast<float>(activ_args->activBeta));
+                opArgs.emplace_back(static_cast<float>(activ_args->activGamma));
+            }
+            if(bn_idx != -1)
+            {
+                const auto& bn_args =
+                    std::dynamic_pointer_cast<miopen::fusion::BatchNormInferenceOpInvokeParam>(
+                        invoke_ctx.op_invokers[bn_idx]);
+                opArgs.emplace_back(static_cast<double>(bn_args->epsilon));
+            }
+            opArgs.emplace_back(bot_buf);
+            opArgs.emplace_back(top_buf);
+            opArgs.emplace_back(wei_buf);
+            if(bias_idx != -1)
+            {
+                opArgs.emplace_back(std::dynamic_pointer_cast<miopen::fusion::BiasOpInvokeParam>(
+                                        invoke_ctx.op_invokers[1])
+                                        ->bdata);
+            }
+            if(bn_idx != -1)
+            {
+                const auto& bn_args =
+                    std::dynamic_pointer_cast<miopen::fusion::BatchNormInferenceOpInvokeParam>(
+                        invoke_ctx.op_invokers[bn_idx]);
+                opArgs.emplace_back(bn_args->bnBias);
+                opArgs.emplace_back(bn_args->bnScale);
+                opArgs.emplace_back(bn_args->estimatedMean);
+                opArgs.emplace_back(bn_args->estimatedVariance);
+            }
+            kernel(opArgs);
+        };
+    };
+
     return result;
 }
+
+PerformanceConfigConvOclDirectFwdFused
+ConvOclDirectFwdFused::GetDefaultPerformanceConfig(const FusionProblemDescription& desc) const
+{
+
+    const auto base = ConvOclDirectFwd{};
+    MIOPEN_LOG_I("Using Unfused class to initialize performance config");
+    return base.GetDefaultPerformanceConfig(desc.GetConvContext(0, conv::Direction::Forward));
+}
+bool ConvOclDirectFwdFused::IsValidPerformanceConfig(
+    const FusionProblemDescription& problem, const PerformanceConfigConvOclDirectFwdFused& c) const
+{
+    const auto base = ConvOclDirectFwd{};
+    return base.IsValidPerformanceConfig(problem.GetConvContext(0, conv::Direction::Forward), c);
+}
+
 } // namespace fusion
 } // namespace solver
 } // namespace miopen

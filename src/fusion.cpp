@@ -207,7 +207,7 @@ miopenStatus_t
 ConvForwardOpDescriptor::SetArgs(const void* /*alpha*/, const void* /*beta*/, ConstData_t w)
 {
     const auto& op_args = std::dynamic_pointer_cast<fusion::ConvolutionOpInvokeParam>(args);
-    op_args->workspace  = w;
+    op_args->weights    = w;
     return miopenStatusSuccess;
 }
 
