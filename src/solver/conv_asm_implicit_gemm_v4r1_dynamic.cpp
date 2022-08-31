@@ -130,10 +130,10 @@ static inline int GetImplicitGemmV4R1DynamicGridSize(const ConvolutionContext& c
     const auto& N1 = config.GemmNRepeat;
     const auto& N2 = config.GemmNPerThreadSubC;
 
-    const auto& n  = ctx.batch_sz;
-    const auto& k  = ctx.n_outputs;
-    const auto& ho = ctx.out_height;
-    const auto& wo = ctx.out_width;
+    const auto& n  = ctx.problem.batch_sz;
+    const auto& k  = ctx.problem.n_outputs;
+    const auto& ho = ctx.problem.out_height;
+    const auto& wo = ctx.problem.out_width;
 
     const auto& b = (static_cast<std::size_t>(n) * ho * wo) / (static_cast<std::size_t>(N1) * N2);
     const auto& b_per_block = config.BPerBlock;
@@ -213,14 +213,14 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ConvolutionContext& ctx) cons
         return false; // wrong! cannot divice N evenly among thread
 
     const auto KBlockWork = K / KPerBlock;
-    if(KBlockWork % ctx.group_counts != 0)
+    if(KBlockWork % ctx.problem.group_counts != 0)
         return false;
 
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
         return false;
 
     // fp16/bfp16: doesn't support asymmetric matrix mul
-    if((ctx.IsFp16() || ctx.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
+    if((ctx.problem.IsFp16() || ctx.problem.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
         return false;
 
     // sanity check
@@ -284,22 +284,22 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ConvolutionContext& c
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!ctx.direction.IsForward())
+    if(!ctx.problem.direction.IsForward())
         return false;
 
-    if(!ctx.Is2d())
+    if(!ctx.problem.Is2d())
         return false;
 
-    if(!ctx.IsFp32())
+    if(!ctx.problem.IsFp32())
         return false;
 
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(ctx.group_counts != 1)
+    if(ctx.problem.group_counts != 1)
         return false;
 
-    if(!ctx.IsLayoutDefault())
+    if(!ctx.problem.IsLayoutDefault())
     {
         return false;
     }
@@ -324,25 +324,25 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ConvolutionContex
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!ctx.direction.IsForward())
+    if(!ctx.problem.direction.IsForward())
         return false;
 
-    if(!ctx.Is2d())
+    if(!ctx.problem.Is2d())
         return false;
 
-    if(!ctx.IsFp32())
+    if(!ctx.problem.IsFp32())
         return false;
 
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(ctx.group_counts != 1)
+    if(ctx.problem.group_counts != 1)
         return false;
 
-    if((ctx.kernel_size_h != 1) || (ctx.kernel_size_w != 1))
+    if((ctx.problem.kernel_size_h != 1) || (ctx.problem.kernel_size_w != 1))
         return false;
 
-    if(!ctx.IsLayoutDefault())
+    if(!ctx.problem.IsLayoutDefault())
     {
         return false;
     }
