@@ -10,8 +10,8 @@
 #include <gtest/gtest.h>
 
 const std::string test_file_name_prefix = "dumptensortest_";
-const size_t tensor_size          = 20;
-const size_t nan_index            = 5;
+const size_t tensor_size                = 20;
+const size_t nan_index                  = 5;
 
 template <class T>
 void prettyPrintTensor(const tensor<T>& host_tensor)
@@ -132,12 +132,27 @@ void testDumpWithNan(const std::string& test_file_name)
 
 TEST(DUMP_TENSOR_TEST, testDump_float) { testDump<float>(test_file_name_prefix + "float.bin"); }
 
-TEST(DUMP_TENSOR_TEST, testDump_NAN_float) { testDumpWithNan<float>(test_file_name_prefix + "nan_float.bin"); }
+TEST(DUMP_TENSOR_TEST, testDump_NAN_float)
+{
+    testDumpWithNan<float>(test_file_name_prefix + "nan_float.bin");
+}
 
-TEST(DUMP_TENSOR_TEST, testDump_half_float) { testDump<half_float::half>(test_file_name_prefix + "half_float.bin"); }
+TEST(DUMP_TENSOR_TEST, testDump_half_float)
+{
+    testDump<half_float::half>(test_file_name_prefix + "half_float.bin");
+}
 
-TEST(DUMP_TENSOR_TEST, testDump_NAN_half_float) { testDumpWithNan<half_float::half>(test_file_name_prefix + "nan_half_float.bin"); }
+TEST(DUMP_TENSOR_TEST, testDump_NAN_half_float)
+{
+    testDumpWithNan<half_float::half>(test_file_name_prefix + "nan_half_float.bin");
+}
 
-TEST(DUMP_TENSOR_TEST, testDump_bfloat16) { testDump<bfloat16>(test_file_name_prefix + "bfloat16.bin"); }
+TEST(DUMP_TENSOR_TEST, testDump_bfloat16)
+{
+    testDump<bfloat16>(test_file_name_prefix + "bfloat16.bin");
+}
 
-TEST(DUMP_TENSOR_TEST, testDump_NAN_bfloat16) { testDumpWithNan<bfloat16>(test_file_name_prefix + "nan_bfloat16.bin"); }
+TEST(DUMP_TENSOR_TEST, testDump_NAN_bfloat16)
+{
+    testDumpWithNan<bfloat16>(test_file_name_prefix + "nan_bfloat16.bin");
+}
