@@ -138,6 +138,28 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
     });
 }
 
+inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument_t& tensor)
+{
+    switch(tensor.id)
+    {
+    case miopenTensorConvolutionW: stream << "ConvW"; break;
+    case miopenTensorConvolutionX: stream << "ConvX"; break;
+    case miopenTensorConvolutionY: stream << "ConvY"; break;
+    case miopenTensorArgumentIdInvalid: stream << "Invalid"; break;
+    }
+
+    stream << ": ";
+    if(tensor.descriptor != nullptr)
+        stream << miopen::deref(tensor.descriptor);
+    else
+        stream << "NULL";
+    stream << " -> ";
+    stream << tensor.buffer;
+    stream << ",";
+
+    return stream;
+}
+
 miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  miopenSolution_t solution,
                                  size_t nInputs,
@@ -145,7 +167,8 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
                                  void* workspace,
                                  size_t workspaceSize)
 {
-    MIOPEN_LOG_FUNCTION(handle, solution, nInputs, workspace, workspaceSize);
+    const auto tensors_vector = std::vector<miopenTensorArgument_t>{tensors, tensors + nInputs};
+    MIOPEN_LOG_FUNCTION(handle, solution, nInputs, tensors_vector, workspace, workspaceSize);
 
     return miopen::try_([&] {
         auto& handle_deref   = miopen::deref(handle);
