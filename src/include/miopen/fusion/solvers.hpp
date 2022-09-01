@@ -207,6 +207,17 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
                                   const PerformanceConfigConvOclDirectFwdFused&) const override;
 };
 
+struct ConvBinWinogradRxSFused final : FusionSolverBase
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvBinWinogradRxSFused>();
+    }
+
+    bool IsApplicable(const FusionProblemDescription& params) const override;
+    ConvSolution GetSolution(const FusionProblemDescription& params) const;
+};
+
 } // namespace fusion
 } // namespace solver
 } // namespace miopen

@@ -511,6 +511,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC{},
                        miopenConvolutionAlgoImplicitGEMM);
+    Register(
+        registry, ++id, Primitive::Fusion, solver::fusion::ConvBinWinogradRxSFused{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

@@ -32,6 +32,8 @@
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/tensors.hpp>
+#include <miopen/fusion_plan.hpp>
+#include <miopen/fusion/solvers.hpp>
 
 #include <boost/any.hpp>
 
@@ -42,6 +44,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD)
 /// \todo Detect at runtime and remove this var:
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 /// \return v rounded up (towards +inf) to the nearest multiple of m.
 /// Defined for positive values only.
@@ -492,14 +496,140 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
 
     return result;
 }
+namespace fusion {
 
-bool ConvBinWinogradRxSFused::IsApplicable(const ConvolutionContext&) const
+inline bool WinoCommonIsApplicable(const FusionProblemDescription& params)
 {
-    return true; // Actual checks moved to FusionMDGraph.
+    const auto& desc = *params.fusion_plan_desc;
+    if(desc.op_map.empty())
+    {
+        MIOPEN_THROW("");
+    }
+    // check the sequence of prims
+    if(desc.op_map.size() > 3)
+        return false;
+    if(desc.op_map[0]->kind() != miopenFusionOpConvForward)
+        return false;
+    if(desc.op_map.size() >= 2)
+    {
+        const auto prim = desc.op_map[1]->kind();
+        if(!(prim == miopenFusionOpBiasForward || prim == miopenFusionOpActivForward))
+            return false;
+    }
+    if(desc.op_map.size() == 3)
+    {
+        const auto prim = desc.op_map[2]->kind();
+        if(prim != miopenFusionOpActivForward)
+            return false;
+    }
+    const auto activ_idx = [&]() {
+        int idx = 0;
+        for(const auto& prim : desc.op_map)
+        {
+            if(prim->kind() == miopenFusionOpActivForward)
+                return idx;
+            ++idx;
+        }
+        return -1;
+    }();
+    if(activ_idx != -1)
+    {
+        const auto& activ_op  = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
+        const auto activ_mode = activ_op.activMode;
+        if(!(activ_mode == miopenActivationRELU || activ_mode == miopenActivationLEAKYRELU))
+            return false;
+    }
+    const miopen::ConvolutionContext conv_ctx =
+        params.GetConvContext(0, miopen::conv::Direction::Forward);
+
+    if(!conv_ctx.Is2d())
+        return false;
+    if(!conv_ctx.IsFp32())
+        return false;
+    if(!conv_ctx.IsLayoutDefault())
+        return false;
+    if(!conv_ctx.direction.IsForward())
+        return false;
+    const auto target = conv_ctx.GetStream().GetTargetProperties();
+    if(target.Xnack() && *target.Xnack())
+        return false;
+    const auto c           = conv_ctx.conv_problem.GetInChannels();
+    const auto k           = conv_ctx.conv_problem.GetOutChannels();
+    const auto x           = conv_ctx.conv_problem.GetWeightsWidth();
+    const auto y           = conv_ctx.conv_problem.GetWeightsHeight();
+    const auto oH          = conv_ctx.conv_problem.GetOutHeight();
+    const auto oW          = conv_ctx.conv_problem.GetOutWidth();
+    const auto iH          = conv_ctx.conv_problem.GetInHeight();
+    const auto iW          = conv_ctx.conv_problem.GetInWidth();
+    const auto pad_h       = conv_ctx.conv_problem.GetPadH();
+    const auto pad_w       = conv_ctx.conv_problem.GetPadW();
+    const auto group_count = conv_ctx.conv_problem.GetGroupCount();
+    const auto N           = conv_ctx.conv_problem.GetInBatchSize();
+
+    return conv_ctx.kernel_stride_h == conv_ctx.kernel_stride_w &&
+           conv_ctx.kernel_dilation_h == 1 && conv_ctx.kernel_dilation_w == 1 &&
+           (c * x * y) <= std::pow(2, 28) && (k * x * y) <= std::pow(2, 28) &&
+           (k * oH * oW) <= std::pow(2, 28) && (c * iH * iW) <= std::pow(2, 28) &&
+           x <= std::pow(2, 16) && y <= std::pow(2, 16) && pad_h <= std::pow(2, 16) &&
+           pad_w <= std::pow(2, 16) && oH <= std::pow(2, 16) && oW <= std::pow(2, 16) &&
+           iH <= std::pow(2, 16) && oW <= std::pow(2, 16) && c <= std::pow(2, 16) &&
+           k <= std::pow(2, 16) && N <= std::pow(2, 16) && group_count == 1;
 }
 
-ConvSolution ConvBinWinogradRxSFused::GetSolution(const ConvolutionContext& params) const
+inline int ceil(int x, int y) { return (x % y != 0) ? (x / y + 1) * y : x; }
+
+bool ConvBinWinogradRxSFused::IsApplicable(const FusionProblemDescription& params) const
 {
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
+        return false;
+    if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}))
+        return false;
+    const miopen::ConvolutionContext conv_ctx =
+        params.GetConvContext(0, miopen::conv::Direction::Forward);
+    const std::string name = conv_ctx.GetStream().GetDeviceName();
+    if(name != "gfx803")
+        return false;
+    if(!WinoCommonIsApplicable(params))
+        return false;
+    const auto c = conv_ctx.conv_problem.GetInChannels();
+    const auto x = conv_ctx.conv_problem.GetWeightsWidth();
+    const auto y = conv_ctx.conv_problem.GetWeightsHeight();
+    int padded_y = 0;
+    int padded_x = 0;
+    if(conv_ctx.kernel_stride_h == 1)
+    {
+        if(y <= 3)
+        {
+            if(!(c % 2 == 0))
+                return false;
+            padded_y = 3;
+            padded_x = ceil(x, 3);
+        }
+        else
+        {
+            padded_y = ceil(y, 6);
+            padded_x = ceil(x, 3);
+        }
+    }
+    else if(conv_ctx.kernel_stride_h == 2)
+    {
+        padded_y = ceil(y, 6);
+        if(x % 6 == 1)
+            padded_x = ceil(x, 3);
+        else
+            padded_x = ceil(x, 6);
+    }
+    else
+        return false;
+    if(!(((padded_x / 3) * (padded_y * 3) * c) >= 18))
+        return false;
+
+    return true;
+}
+
+ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionProblemDescription& plan_desc) const
+{
+    const auto params = plan_desc.GetConvContext(0, conv::Direction::Forward);
     ConvSolution result;
     KernelInfo kernel;
 
@@ -520,10 +650,12 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const ConvolutionContext& para
     // File and name are defined in FusionMDGraph, so no need (and harmful)
     // to duplicate this information here.
     kernel.kernel_name = "<name not set>";
-    kernel.kernel_file = "<file not set>";
+    kernel.kernel_file = "conv_3x3_wheel_alpha_v9_2_7.s";
     result.construction_params.push_back(kernel);
     return result;
 }
+
+} // namespace fusion
 
 } // namespace solver
 } // namespace miopen
