@@ -270,9 +270,8 @@ struct AnySolver
                 {
                     return config.ToString();
                 }
-                MIOPEN_LOG_WE("Invalid alternate record loaded from Perf Db: "
-                              << value.AltSolverDbId() << ": " << config
-                              << ". Performance may degrade.");
+                MIOPEN_LOG_I2("Perf Db: Invalid alternate record from Perf Db: "
+                              << value.AltSolverDbId() << ": " << config);
             }
             MIOPEN_LOG_I2("Perf Db: Failed Loading: " << value.SolverDbId());
             return "";
