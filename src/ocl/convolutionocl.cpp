@@ -205,7 +205,6 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     ctx.save_srch_req              = true;
     ctx.general_compile_options    = "";
     ctx.SetStream(&handle);
-    ctx.SetBufs(bufs);
     ctx.DetectRocm();
     ctx.SetupFloats();
 
@@ -241,7 +240,6 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     ctx.save_srch_req              = true;
     ctx.general_compile_options    = "";
     ctx.SetStream(&handle);
-    ctx.SetBufs(bufs);
     ctx.DetectRocm();
     ctx.SetupFloats();
 
