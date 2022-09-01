@@ -64,7 +64,7 @@ struct Solution : miopenSolution
     struct RunInput
     {
         boost::optional<TensorDescriptor> descriptor;
-        Data_t buffer;
+        Data_t buffer = nullptr;
 
         inline RunInput() = default;
 
