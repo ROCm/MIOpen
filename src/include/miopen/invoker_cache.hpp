@@ -48,8 +48,8 @@ public:
     // For find 1.0
     boost::optional<const Invoker&> GetFound1_0(const std::string& network_config,
                                                 const std::string& algorithm) const;
-    boost::optional<const std::string&> GetFound1_0Id(const std::string& network_config,
-                                                      const std::string& algorithm) const;
+    boost::optional<const std::string&> GetFound1_0SolverId(const std::string& network_config,
+                                                            const std::string& algorithm) const;
 
     void Register(const Key& key, const Invoker& invoker);
     // For find 1.0

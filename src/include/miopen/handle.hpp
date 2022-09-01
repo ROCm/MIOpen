@@ -255,10 +255,10 @@ public:
         return invokers.GetFound1_0(config, *algo);
     }
 
-    boost::optional<const std::string&> GetFound1_0Id(const NetworkConfig& config,
-                                                      const AlgorithmName& algo) const
+    boost::optional<const std::string&> GetFound1_0SolverId(const NetworkConfig& config,
+                                                            const AlgorithmName& algo) const
     {
-        return invokers.GetFound1_0Id(config, algo);
+        return invokers.GetFound1_0SolverId(config, algo);
     }
 
 #if MIOPEN_USE_ROCBLAS

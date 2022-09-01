@@ -72,8 +72,9 @@ boost::optional<const Invoker&> InvokerCache::GetFound1_0(const std::string& net
     return invoker->second;
 }
 
-boost::optional<const std::string&> InvokerCache::GetFound1_0Id(const std::string& network_config,
-                                                                const std::string& algorithm) const
+boost::optional<const std::string&>
+InvokerCache::GetFound1_0SolverId(const std::string& network_config,
+                                  const std::string& algorithm) const
 {
     const auto item = invokers.find(network_config);
     if(item == invokers.end())
