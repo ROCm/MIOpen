@@ -691,8 +691,8 @@ if(LIBMLIRMIOPEN)
 endif()
 
 # Build with package Miir
-if(rocMLIR_FOUND)
-    target_link_libraries(MIOpen PRIVATE rocMLIR::rockCompiler)
+if(Miir_FOUND)
+    target_link_libraries(MIOpen PRIVATE Miir::MLIRMIOpen)
 endif()
 
 if(WIN32 AND NOT MSVC)

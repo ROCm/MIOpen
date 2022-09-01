@@ -321,8 +321,8 @@ if(MIOPEN_USE_MLIR)
     endif()
     # Try to find package Miir
     # REQUIRE is omitted since we do not want cmake to abort if the package is not found
-    find_package(rocMLIR 1.0.0 CONFIG)
-    if(NOT rocMLIR_FOUND)
+    find_package(Miir 1.0.0 CONFIG)
+    if(NOT Miir_FOUND)
         message(STATUS "Falling back to find library libMLIRMIOpen")
         # Backward compatibility with ROCm 5.3
         # If the Miir package is not found, try to find the library libMLIRMIOpen directly
@@ -335,7 +335,7 @@ if(MIOPEN_USE_MLIR)
             message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
         endif()
     else()
-        message(STATUS "Build with rocMLIR::rockCompiler ${rockCompiler_VERSION}")
+        message(STATUS "Build with Miir::MLIRMIOpen ${MLIRMIOpen_VERSION}")
     endif()
 endif()
 
