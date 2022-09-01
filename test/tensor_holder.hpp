@@ -165,7 +165,7 @@ struct tensor
     {
         assert(rhs.GetType() == miopen_type<T>{} ||
                ((miopen_type<T>{} == miopenInt8 || miopen_type<T>{} == miopenInt8x4) &&
-                rhs.GetType() == miopenFloat));
+                (rhs.GetType() == miopenFloat || rhs.GetType() == miopenInt32)));
         data.resize(desc.GetElementSpace());
     }
 
