@@ -390,16 +390,14 @@ static void DirConvFindCore(Handle& handle,
     }();
     const auto gemm = !use_winograd_only ? conv.FindDataGemmSolutions(ctx, invoke_ctx)
                                          : std::vector<miopen::solver::ConvSolution>{};
-    const auto direct =
-        !use_winograd_only
-            ? conv.FindDataDirectSolutions(
-                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, invoke_ctx)
-            : std::vector<miopen::solver::ConvSolution>{};
-    const auto igemm =
-        !use_winograd_only
-            ? conv.FindDataImplicitGemmSolutions(
-                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, invoke_ctx)
-            : std::vector<miopen::solver::ConvSolution>{};
+    const auto direct = !use_winograd_only
+                            ? conv.FindDataDirectSolutions(
+                                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, invoke_ctx)
+                            : std::vector<miopen::solver::ConvSolution>{};
+    const auto igemm = !use_winograd_only
+                           ? conv.FindDataImplicitGemmSolutions(
+                                 handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, invoke_ctx)
+                           : std::vector<miopen::solver::ConvSolution>{};
     const auto fft = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx)
                                         : std::vector<miopen::solver::ConvSolution>{};
 
