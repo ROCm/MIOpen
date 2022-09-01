@@ -9,7 +9,7 @@
 #include <miopen/convolution.hpp>
 #include <gtest/gtest.h>
 
-static const char* test_file_name = "dumptensortest.bin";
+const std::string test_file_name_prefix = "dumptensortest_";
 const size_t tensor_size          = 20;
 const size_t nan_index            = 5;
 
@@ -58,7 +58,7 @@ void compare(const tensor<T>& host_tensor,
 }
 
 template <typename T>
-void readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
+void readBufferFromFile(T* data, size_t dataNumItems, const std::string& fileName)
 {
     std::ifstream infile(fileName, std::ios::binary);
     if(infile)
@@ -73,7 +73,7 @@ void readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
 }
 
 template <class T>
-void testDump()
+void testDump(const std::string& test_file_name)
 {
     tensor<T> host_tensor;
     populateTensor(host_tensor);
@@ -98,7 +98,7 @@ void testDump()
 }
 
 template <class T>
-void testDumpWithNan()
+void testDumpWithNan(const std::string& test_file_name)
 {
     tensor<T> host_tensor;
     populateTensor(host_tensor);
@@ -130,14 +130,14 @@ void testDumpWithNan()
     boost::filesystem::remove(test_file_name);
 }
 
-TEST(DUMP_TENSOR_TEST, testDump_float) { testDump<float>(); }
+TEST(DUMP_TENSOR_TEST, testDump_float) { testDump<float>(test_file_name_prefix + "float.bin"); }
 
-TEST(DUMP_TENSOR_TEST, testDump_NAN_float) { testDumpWithNan<float>(); }
+TEST(DUMP_TENSOR_TEST, testDump_NAN_float) { testDumpWithNan<float>(test_file_name_prefix + "nan_float.bin"); }
 
-TEST(DUMP_TENSOR_TEST, testDump_half_float) { testDump<half_float::half>(); }
+TEST(DUMP_TENSOR_TEST, testDump_half_float) { testDump<half_float::half>(test_file_name_prefix + "half_float.bin"); }
 
-TEST(DUMP_TENSOR_TEST, testDump_NAN_half_float) { testDumpWithNan<half_float::half>(); }
+TEST(DUMP_TENSOR_TEST, testDump_NAN_half_float) { testDumpWithNan<half_float::half>(test_file_name_prefix + "nan_half_float.bin"); }
 
-TEST(DUMP_TENSOR_TEST, testDump_bfloat16) { testDump<bfloat16>(); }
+TEST(DUMP_TENSOR_TEST, testDump_bfloat16) { testDump<bfloat16>(test_file_name_prefix + "bfloat16.bin"); }
 
-TEST(DUMP_TENSOR_TEST, testDump_NAN_bfloat16) { testDumpWithNan<bfloat16>(); }
+TEST(DUMP_TENSOR_TEST, testDump_NAN_bfloat16) { testDumpWithNan<bfloat16>(test_file_name_prefix + "nan_bfloat16.bin"); }
