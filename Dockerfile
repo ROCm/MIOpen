@@ -30,10 +30,13 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     apt-utils && \
 apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 9386B48A1A693C5C && \
 wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - && \
+wget --no-check-certificate -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | apt-key add - && \
+sh -c "echo deb https://apt.kitware.com/ubuntu/ bionic main | tee -a /etc/apt/sources.list" && \
 apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     build-essential \
-    cmake \
+    cmake-data=3.15.1-0kitware1 \
+    cmake=3.15.1-0kitware1 \
     comgr \
     clang-format-10 \
     doxygen \
