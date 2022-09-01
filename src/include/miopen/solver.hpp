@@ -2036,9 +2036,11 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
     static int GetSolverWinoXformHWSize(const miopen::ConvolutionContext& ctx, int id)
     {
         if(id == 0)
-            return WinoDataH + (WinoFilterH - 1) * (WinoDataH == 7 ? 2 : ctx.kernel_stride_h);
+            return WinoDataH +
+                   (WinoFilterH - 1) * (WinoDataH == 7 ? 2 : ctx.problem.kernel_stride_h);
         else
-            return WinoDataW + (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : ctx.kernel_stride_w);
+            return WinoDataW +
+                   (WinoFilterW - 1) * (WinoDataW == 7 ? 2 : ctx.problem.kernel_stride_w);
     }
 
 private:
@@ -2649,7 +2651,7 @@ struct GemmFwdBase : ConvSolver
     bool IsDynamic() const override { return true; }
     float GetWti(const ConvolutionContext& ctx) const override
     {
-        return GetWti(ctx, ctx.conv_problem);
+        return GetWti(ctx, ctx.problem.conv_problem);
     }
 
 private:
@@ -2671,18 +2673,18 @@ struct GemmFwd1x1_0_2 final : GemmFwdBase
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
-        return GetWorkspaceSize(ctx, ctx.conv_problem);
+        return GetWorkspaceSize(ctx, ctx.problem.conv_problem);
     }
     bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
-        return IsApplicable(ctx, ctx.conv_problem);
+        return IsApplicable(ctx, ctx.problem.conv_problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
-        return GetSolution(ctx, ctx.conv_problem);
+        return GetSolution(ctx, ctx.problem.conv_problem);
     }
 
 private:
@@ -2702,18 +2704,18 @@ struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
-        return GetWorkspaceSize(ctx, ctx.conv_problem);
+        return GetWorkspaceSize(ctx, ctx.problem.conv_problem);
     }
     bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
-        return IsApplicable(ctx, ctx.conv_problem);
+        return IsApplicable(ctx, ctx.problem.conv_problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
-        return GetSolution(ctx, ctx.conv_problem);
+        return GetSolution(ctx, ctx.problem.conv_problem);
     }
 
 private:
@@ -2733,18 +2735,18 @@ struct GemmFwd1x1_0_1 final : GemmFwdBase
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
-        return GetWorkspaceSize(ctx, ctx.conv_problem);
+        return GetWorkspaceSize(ctx, ctx.problem.conv_problem);
     }
     bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
-        return IsApplicable(ctx, ctx.conv_problem);
+        return IsApplicable(ctx, ctx.problem.conv_problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
-        return GetSolution(ctx, ctx.conv_problem);
+        return GetSolution(ctx, ctx.problem.conv_problem);
     }
 
 private:
@@ -2764,18 +2766,18 @@ struct GemmFwdRest final : GemmFwdBase
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
-        return GetWorkspaceSize(ctx, ctx.conv_problem);
+        return GetWorkspaceSize(ctx, ctx.problem.conv_problem);
     }
     bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
-        return IsApplicable(ctx, ctx.conv_problem);
+        return IsApplicable(ctx, ctx.problem.conv_problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
-        return GetSolution(ctx, ctx.conv_problem);
+        return GetSolution(ctx, ctx.problem.conv_problem);
     }
 
 private:
@@ -2793,7 +2795,7 @@ struct GemmBwdBase : ConvSolver
     bool IsDynamic() const override { return true; }
     float GetWti(const ConvolutionContext& ctx) const override
     {
-        return GetWti(ctx, ctx.conv_problem);
+        return GetWti(ctx, ctx.problem.conv_problem);
     }
 
 private:
@@ -2815,18 +2817,18 @@ struct GemmBwd1x1_stride2 final : GemmBwdBase
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
-        return GetWorkspaceSize(ctx, ctx.conv_problem);
+        return GetWorkspaceSize(ctx, ctx.problem.conv_problem);
     }
     bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
-        return IsApplicable(ctx, ctx.conv_problem);
+        return IsApplicable(ctx, ctx.problem.conv_problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
-        return GetSolution(ctx, ctx.conv_problem);
+        return GetSolution(ctx, ctx.problem.conv_problem);
     }
 
 private:
@@ -2846,18 +2848,18 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
-        return GetWorkspaceSize(ctx, ctx.conv_problem);
+        return GetWorkspaceSize(ctx, ctx.problem.conv_problem);
     }
     bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
-        return IsApplicable(ctx, ctx.conv_problem);
+        return IsApplicable(ctx, ctx.problem.conv_problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
-        return GetSolution(ctx, ctx.conv_problem);
+        return GetSolution(ctx, ctx.problem.conv_problem);
     }
 
 private:
@@ -2879,18 +2881,18 @@ struct GemmBwdRest final : GemmBwdBase
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
-        return GetWorkspaceSize(ctx, ctx.conv_problem);
+        return GetWorkspaceSize(ctx, ctx.problem.conv_problem);
     }
     bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
-        return IsApplicable(ctx, ctx.conv_problem);
+        return IsApplicable(ctx, ctx.problem.conv_problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
-        return GetSolution(ctx, ctx.conv_problem);
+        return GetSolution(ctx, ctx.problem.conv_problem);
     }
 
 private:
@@ -2908,7 +2910,7 @@ struct GemmWrwBase : ConvSolver
     bool IsDynamic() const override { return true; }
     float GetWti(const ConvolutionContext& ctx) const override
     {
-        return GetWti(ctx, ctx.conv_problem);
+        return GetWti(ctx, ctx.problem.conv_problem);
     }
 
 private:
@@ -2929,18 +2931,18 @@ struct GemmWrw1x1_stride1 final : GemmWrwBase
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
-        return GetWorkspaceSize(ctx, ctx.conv_problem);
+        return GetWorkspaceSize(ctx, ctx.problem.conv_problem);
     }
     bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
-        return IsApplicable(ctx, ctx.conv_problem);
+        return IsApplicable(ctx, ctx.problem.conv_problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
-        return GetSolution(ctx, ctx.conv_problem);
+        return GetSolution(ctx, ctx.problem.conv_problem);
     }
 
 private:
@@ -2960,18 +2962,18 @@ struct GemmWrwUniversal final : GemmWrwBase
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
-        return GetWorkspaceSize(ctx, ctx.conv_problem);
+        return GetWorkspaceSize(ctx, ctx.problem.conv_problem);
     }
     bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
-        return IsApplicable(ctx, ctx.conv_problem);
+        return IsApplicable(ctx, ctx.problem.conv_problem);
     }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
-        return GetSolution(ctx, ctx.conv_problem);
+        return GetSolution(ctx, ctx.problem.conv_problem);
     }
 
 private:
@@ -4106,6 +4108,69 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
     ConvSolution
     GetSolution(const ConvolutionContext& ctx,
                 const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config) const override;
+};
+
+struct PerformanceConfigHipImplicitGemmFwdXdlops
+    : PerfConfigBase<PerformanceConfigHipImplicitGemmFwdXdlops>
+{
+    int index;
+    std::string kernel_id;
+    int total_size;
+    PerformanceConfigHipImplicitGemmFwdXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id), total_size(-1)
+    {
+    }
+    PerformanceConfigHipImplicitGemmFwdXdlops() : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
+    {
+    }
+    PerformanceConfigHipImplicitGemmFwdXdlops(bool)
+        : PerformanceConfigHipImplicitGemmFwdXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue(const ConvolutionContext& ctx);
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigHipImplicitGemmFwdXdlops& other) const;
+};
+
+struct ConvHipImplicitGemmFwdXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemmFwdXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemmFwdXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemmFwdXdlops
+    GetDefaultPerformanceConfig(const ConvolutionContext&) const override;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigHipImplicitGemmFwdXdlops&) const override;
+    PerformanceConfigHipImplicitGemmFwdXdlops
+    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const override;
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return false; }
+    bool IsApplicable(const ConvolutionContext& ctx) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution
+    GetSolution(const ConvolutionContext& ctx,
+                const PerformanceConfigHipImplicitGemmFwdXdlops& config) const override;
+    // Magic Number Alert:
+    // Naive convolutions have GetWti() that return very small value (0.01f).
+    // This allows MIOpen to use Naive Solvers if no other applicable Solvers
+    // have known WTIs. Right now this means that in case of find-db miss,
+    // the library will try to use Winograd or GEMM (whatever is faster according
+    //  to their GetWti's), but if both are not applicable, the library will
+    // use Naive Solver
+    // Since we would like to us CK before naive, and use it instead (because
+    // we do expect that CK is faster than Naive), therefore we use a
+    // value bigger than 0.01f, e.g. 0.02f.
+    float GetWti(const ConvolutionContext&) const override { return 0.02f; };
 };
 
 struct AnySolver;

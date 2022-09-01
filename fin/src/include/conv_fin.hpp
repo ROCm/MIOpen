@@ -197,7 +197,7 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfCompile()
     ctx.DetectRocm();
     ctx.SetupFloats();
 
-    const auto network_config   = ctx.BuildConfKey();
+    const auto network_config   = ctx.problem.BuildConfKey();
     const bool is_winograd_only = convDesc.IsWinograd3x3SupportedAndFast(ctx);
     output["is_winograd_only"]  = is_winograd_only;
     output["network_config"]    = network_config;
@@ -330,7 +330,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFindCompile()
     ctx.DetectRocm();
     ctx.SetupFloats();
 
-    const auto network_config   = ctx.BuildConfKey();
+    const auto network_config   = ctx.problem.BuildConfKey();
     const bool is_winograd_only = convDesc.IsWinograd3x3SupportedAndFast(ctx);
     output["is_winograd_only"]  = is_winograd_only;
     output["network_config"]    = network_config;
@@ -453,7 +453,7 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfEval()
     ctx.DetectRocm();
     ctx.SetupFloats();
 
-    const auto network_config   = ctx.BuildConfKey();
+    const auto network_config   = ctx.problem.BuildConfKey();
     const bool is_winograd_only = convDesc.IsWinograd3x3SupportedAndFast(ctx);
     output["is_winograd_only"]  = is_winograd_only;
     output["network_config"]    = network_config;
@@ -697,10 +697,10 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfEval()
 
                 res_item["params"]         = params;
                 res_item["time"]           = time;
-                res_item["layout"]         = ctx.in_layout;
-                res_item["data_type"]      = ctx.in_data_type;
+                res_item["layout"]         = ctx.problem.in_layout;
+                res_item["data_type"]      = ctx.problem.in_data_type;
                 res_item["direction"]      = conv_dir;
-                res_item["bias"]           = ctx.bias;
+                res_item["bias"]           = ctx.problem.bias;
                 res_item["reason"]         = "Success";
                 res_item["kernel_objects"] = kern_objs;
             }
@@ -748,7 +748,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFindEval()
     ctx.DetectRocm();
     ctx.SetupFloats();
 
-    const auto network_config   = ctx.BuildConfKey();
+    const auto network_config   = ctx.problem.BuildConfKey();
     const bool is_winograd_only = convDesc.IsWinograd3x3SupportedAndFast(ctx);
     output["is_winograd_only"]  = is_winograd_only;
     output["network_config"]    = network_config;
@@ -979,7 +979,7 @@ int ConvFin<Tgpu, Tref>::MIOpenFind()
     ctx.DetectRocm();
     ctx.SetupFloats();
 
-    const auto network_config   = ctx.BuildConfKey();
+    const auto network_config   = ctx.problem.BuildConfKey();
     const bool is_winograd_only = convDesc.IsWinograd3x3SupportedAndFast(ctx);
     output["is_winograd_only"]  = is_winograd_only;
     output["network_config"]    = network_config;
@@ -1180,7 +1180,7 @@ int ConvFin<Tgpu, Tref>::TestApplicability()
     ctx.SetStream(&handle);
     ctx.DetectRocm();
     ctx.SetupFloats();
-    const auto network_config = ctx.BuildConfKey();
+    const auto network_config = ctx.problem.BuildConfKey();
     std::vector<std::string> app_solvers;
     for(const auto& id :
         miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution))
@@ -1358,7 +1358,7 @@ int ConvFin<Tgpu, Tref>::TestPerfDbValid()
                 auto solver = slv_id.GetSolver();
                 std::stringstream stat_str;
                 stat_str << "config_id: " << config_id << ", solver_nm " << solver_nm
-                         << ", key: " << ctx;
+                         << ", key: " << ctx.problem;
 
                 // check if valid pdb parameters
                 std::map<std::string, std::string> err;
@@ -1470,7 +1470,7 @@ int ConvFin<Tgpu, Tref>::SearchPreCompiledKernels()
         ctx.DetectRocm();
         ctx.SetupFloats();
 
-        const auto network_config = ctx.BuildConfKey();
+        const auto network_config = ctx.problem.BuildConfKey();
         std::ostringstream ss;
         problem.Serialize(ss);
 

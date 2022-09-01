@@ -146,6 +146,7 @@ static auto GetImplicitGemmSolvers()
         miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC,
         miopen::solver::ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC,
         miopen::solver::ConvCkIgemmFwdV6r1DlopsNchw,
+        miopen::solver::ConvHipImplicitGemmFwdXdlops,
         miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>{};
 }
 
@@ -360,33 +361,35 @@ AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
 
 void miopen::ConvolutionContext::SetupFloats()
 {
-    if(IsFp32() || IsFp16() || IsBfp16() || IsInt8())
+    if(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8())
     {
-        general_compile_options += GetDataTypeKernelParams(in_data_type);
+        general_compile_options += GetDataTypeKernelParams(problem.in_data_type);
     }
     else
     {
         MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(in_data_type) << "x"
-                     << miopen::GetDataTypeName(weights_data_type) << "x"
-                     << miopen::GetDataTypeName(out_data_type));
+                     << miopen::GetDataTypeName(problem.in_data_type) << "x"
+                     << miopen::GetDataTypeName(problem.weights_data_type) << "x"
+                     << miopen::GetDataTypeName(problem.out_data_type));
     }
 }
 
 void mlo_construct_activ_lrn_pooling_common::setupFloats()
 {
-    if(_search_params.in_data_type == miopenFloat && _search_params.out_data_type == miopenFloat)
+    if(_search_params.problem.in_data_type == miopenFloat &&
+       _search_params.problem.out_data_type == miopenFloat)
     {
         _search_params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     }
-    else if(_search_params.in_data_type == miopenHalf && _search_params.out_data_type == miopenHalf)
+    else if(_search_params.problem.in_data_type == miopenHalf &&
+            _search_params.problem.out_data_type == miopenHalf)
     {
         _search_params.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
     }
     else
     {
         MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(_search_params.in_data_type) << "x"
-                     << miopen::GetDataTypeName(_search_params.out_data_type));
+                     << miopen::GetDataTypeName(_search_params.problem.in_data_type) << "x"
+                     << miopen::GetDataTypeName(_search_params.problem.out_data_type));
     }
 }

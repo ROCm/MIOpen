@@ -23,7 +23,7 @@
 # SOFTWARE.
 #
 ################################################################################
-cmake_minimum_required( VERSION 3.5 )
+cmake_minimum_required( VERSION 3.11 )
 
 macro(set_var_to_condition var)
     if(${ARGN})
@@ -217,6 +217,12 @@ endif()
 if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
     set(MIOPEN_hip_VERSION_PATCH "${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
     message(STATUS "MIOPEN_hip_VERSION_PATCH overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
+endif()
+
+# Depend on Composable Kernels
+option(MIOPEN_USE_COMPOSABLEKERNEL "Enable MIOpen to use composable kernels for various operations" Off)
+if(MIOPEN_USE_COMPOSABLEKERNEL)
+find_package(composable_kernel 1.0.0 COMPONENTS device_operations host_tensor)
 endif()
 
 set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))

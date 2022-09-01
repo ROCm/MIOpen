@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:20.04 as miopen
 
 ARG USE_MLIR="OFF"
 
@@ -25,10 +25,13 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     apt-utils && \
 apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 9386B48A1A693C5C && \
 wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - && \
+wget --no-check-certificate -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | apt-key add - && \
+sh -c "echo deb https://apt.kitware.com/ubuntu/ bionic main | tee -a /etc/apt/sources.list" && \
 apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     build-essential \
-    cmake \
+    cmake-data=3.15.1-0kitware1 \
+    cmake=3.15.1-0kitware1 \
     comgr \
     clang-format-10 \
     doxygen \
@@ -122,4 +125,11 @@ RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -pa
 ARG MIOTENSILE_VER="default"
 RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
 
+ARG CK_COMMIT=91d8b7d67ae9dbf8a6e691ea3e17c0b9705c6ba7
+RUN  wget -O ck.tar.gz https://www.github.com/rocmsoftwareplatform/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
+    tar zxvf ck.tar.gz &&\
+    cd composable_kernel-${CK_COMMIT} && \
+    mkdir build && cd build && \
+    CXX=/opt/rocm/bin/hipcc cmake -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" -DCMAKE_PREFIX_PATH=/opt/rocm -D CMAKE_CXX_FLAGS=" --offload-arch=gfx900 --offload-arch=gfx906 --offload-arch=gfx908 --offload-arch=gfx90a --offload-arch=gfx1030 -O3 " .. && \
+    make -j $(nproc) install 
 RUN groupadd -f render
