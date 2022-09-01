@@ -65,6 +65,14 @@ struct Solution : miopenSolution
     {
         boost::optional<TensorDescriptor> descriptor;
         Data_t buffer;
+
+        inline RunInput() = default;
+
+        inline RunInput(miopenTensorArgument_t argument) : buffer(DataCast(argument.buffer))
+        {
+            if(argument.descriptor != nullptr)
+                descriptor = miopen::deref(*argument.descriptor);
+        }
     };
 
     float GetTime() const { return time; }

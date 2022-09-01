@@ -177,17 +177,9 @@ miopenStatus_t miopenRunSolution(miopenHandle_t handle,
         const auto inputs_deref = [&]() {
             auto ret = std::unordered_map<miopenTensorArgumentId_t, miopen::Solution::RunInput>{};
 
-            ret.reserve(nInputs);
-            for(auto i = 0; i < nInputs; ++i)
-            {
-                auto input = miopen::Solution::RunInput{};
-
-                input.buffer = DataCast(tensors[i].buffer);
-                if(tensors[i].descriptor != nullptr)
-                    input.descriptor = miopen::deref(*tensors[i].descriptor);
-
-                ret.emplace(std::make_pair(tensors[i].id, std::move(input)));
-            }
+            ret.reserve(tensors_vector.size());
+            for(auto&& tensor : tensors_vector)
+                ret.emplace(std::make_pair(tensor.id, miopen::Solution::RunInput{tensor}));
 
             return ret;
         }();
