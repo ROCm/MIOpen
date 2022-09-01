@@ -687,12 +687,12 @@ endif()
 # For backward compatibility with ROCm 5.3
 # Build with library libMLIRMIOpen
 if(LIBMLIRMIOPEN)
-  target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
+    target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
 endif()
 
 # Build with package Miir
-if(Miir_FOUND)
-  target_link_libraries(MIOpen PRIVATE Miir::MLIRMIOpen)
+if(rocMLIR_FOUND)
+    target_link_libraries(MIOpen PRIVATE rocMLIR::rockCompiler)
 endif()
 
 if(WIN32 AND NOT MSVC)
