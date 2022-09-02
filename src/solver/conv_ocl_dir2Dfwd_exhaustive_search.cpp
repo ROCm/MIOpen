@@ -296,7 +296,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     const auto bot_ocl_ptr    = invoke_params.tensors.in;
     const auto top_ocl_ptr    = invoke_params.tensors.out;
     const auto wei_ocl_ptr    = invoke_params.tensors.w;
-    // There was no place in the source, where it has been actual set to something other than
+    // There was no place in the source, where it has been actually set to something other than
     // nullptr.
     const auto bias_ocl_ptr = static_cast<Data_t>(nullptr);
 #endif
