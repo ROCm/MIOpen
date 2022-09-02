@@ -298,7 +298,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     const auto wei_ocl_ptr    = invoke_params.tensors.w;
     // There was no place in the source, where it has been actual set to something other than
     // nullptr.
-    const auto bias_ocl_ptr = (Data_t) nullptr;
+    const auto bias_ocl_ptr = static_cast<Data_t>(nullptr);
 #endif
     AutoEnableProfiling enableProfiling{profile_h};
 
