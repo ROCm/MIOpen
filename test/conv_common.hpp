@@ -2465,8 +2465,7 @@ struct conv_driver : test_driver
                                 stats,
                                 0,
                                 search,
-                                int8_vectorize,
-                                immed});
+                                int8_vectorize});
                         }
                         else if(output_type == "int32")
                         {
@@ -2478,8 +2477,7 @@ struct conv_driver : test_driver
                                 stats,
                                 0,
                                 search,
-                                int8_vectorize,
-                                immed});
+                                int8_vectorize});
                         }
                         else if(output_type == "int8")
                         {
@@ -2491,8 +2489,7 @@ struct conv_driver : test_driver
                                 stats,
                                 0,
                                 search,
-                                int8_vectorize,
-                                immed});
+                                int8_vectorize});
                         }
                     }
                     else
