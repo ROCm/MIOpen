@@ -61,8 +61,6 @@ void Solution::RunImpl(Handle& handle,
                        std::size_t workspace_size,
                        const ConvolutionDescriptor& conv_desc)
 {
-    auto problem_ = GetProblem();
-
     const auto get_input_checked = [&](auto name, const std::string& name_str) {
         const auto& found = inputs.find(name);
         if(found == inputs.end())
