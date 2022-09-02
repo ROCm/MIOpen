@@ -287,6 +287,8 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
     int bt_y  = (y + lcl_id1 * MLO_POOLBWD_N_VERT_OUT_PIX);
     int bt_x  = (x + lcl_id0 * MLO_POOLBWD_N_HORIZ_OUT_PIX);
     int b_idx = bt_y * mlo_bot_width + bt_x;
+    // Workaround Issue #1732 [-Werror,-Wunused-but-set-variable]
+    (void) b_idx;
 
     for(int k = 0; k < MLO_POOLBWD_N_VERT_OUT_PIX; k++)
     {
