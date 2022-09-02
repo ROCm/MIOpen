@@ -78,30 +78,9 @@ void Solution::RunImpl(Handle& handle,
     const auto w = get_input_checked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
     auto y       = get_input_checked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
 
-    if(conv_desc.mode == miopenTranspose)
-    {
-        problem_ = {};
-        problem_.SetOperatorDescriptor(conv_desc);
-
-        switch(GetProblem().GetDirection())
-        {
-        case miopenProblemDirectionForward:
-            problem_.SetDirection(miopenProblemDirectionBackward);
-            break;
-        case miopenProblemDirectionBackward:
-            problem_.SetDirection(miopenProblemDirectionForward);
-            break;
-        case miopenProblemDirectionBackwardWeights:
-            problem_.SetDirection(miopenProblemDirectionBackwardWeights);
-            break;
-        }
-
-        std::swap(x, y);
-
-        problem_.RegisterTensorDescriptor(miopenTensorConvolutionX, *x.descriptor);
-        problem_.RegisterTensorDescriptor(miopenTensorConvolutionW, *w.descriptor);
-        problem_.RegisterTensorDescriptor(miopenTensorConvolutionY, *y.descriptor);
-    }
+    const auto problem_ = conv_desc.mode == miopenTranspose
+                              ? Transpose(GetProblem(), conv_desc, &x, w, &y)
+                              : GetProblem();
 
     if(y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
     {
@@ -195,6 +174,41 @@ void Solution::RunImpl(Handle& handle,
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
     invoker(handle, invoke_ctx);
     checkNumericsOutput_();
+}
+
+Problem Solution::Transpose(const Problem& problem,
+                            const ConvolutionDescriptor& conv_desc,
+                            RunInput* x,
+                            const RunInput& w,
+                            RunInput* y)
+{
+    auto transposed = Problem{};
+    transposed.SetOperatorDescriptor(conv_desc);
+
+    switch(problem.GetDirection())
+    {
+    case miopenProblemDirectionForward:
+        transposed.SetDirection(miopenProblemDirectionBackward);
+        break;
+    case miopenProblemDirectionBackward:
+        transposed.SetDirection(miopenProblemDirectionForward);
+        break;
+    case miopenProblemDirectionBackwardWeights:
+        transposed.SetDirection(miopenProblemDirectionBackwardWeights);
+        break;
+    default: MIOPEN_THROW(miopenStatusNotImplemented);
+    }
+
+    std::swap(*x, *y);
+
+    if(x->descriptor)
+        transposed.RegisterTensorDescriptor(miopenTensorConvolutionX, *x->descriptor);
+    if(w.descriptor)
+        transposed.RegisterTensorDescriptor(miopenTensorConvolutionW, *w.descriptor);
+    if(y->descriptor)
+        transposed.RegisterTensorDescriptor(miopenTensorConvolutionY, *y->descriptor);
+
+    return transposed;
 }
 
 void to_json(nlohmann::json& json, const Solution::SerializationMetadata& metadata)

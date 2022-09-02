@@ -103,6 +103,12 @@ private:
                  Data_t workspace,
                  std::size_t workspace_size,
                  const ConvolutionDescriptor& conv_desc);
+
+    static Problem Transpose(const Problem& problem,
+                             const ConvolutionDescriptor& conv_desc,
+                             RunInput* x,
+                             const RunInput& w,
+                             RunInput* y);
 };
 
 } // namespace miopen
