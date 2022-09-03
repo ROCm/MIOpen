@@ -195,17 +195,17 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
         return false;
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
-    if(!(ctx.conv_problem.GetInDataType() == miopenInt8 &&
-         ctx.conv_problem.GetWeightsDataType() == miopenInt8 &&
-         ctx.conv_problem.GetOutDataType() == miopenInt8))
+    if(!(ctx.problem.conv_problem.GetInDataType() == miopenInt8 &&
+         ctx.problem.conv_problem.GetWeightsDataType() == miopenInt8 &&
+         ctx.problem.conv_problem.GetOutDataType() == miopenInt8))
         return false;
-    if(!ctx.direction.IsForward())
+    if(!ctx.problem.direction.IsForward())
         return false;
-    if(!ctx.Is2d())
+    if(!ctx.problem.Is2d())
         return false;
     if(ctx.GetStream().GetDeviceName() != "gfx908")
         return false;
-    if(!ctx.IsLayoutNHWC())
+    if(!ctx.problem.IsLayoutNHWC())
         return false;
 
     const auto args = CKArgs{ctx};
