@@ -436,9 +436,6 @@ pipeline {
     }
     stages{
         stage("Static checks") {
-            options {
-                retry(2)
-            }
             when {
                 expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU && params.DATATYPE_NA }
             }
@@ -517,9 +514,6 @@ pipeline {
             }
         }
         stage("Smoke Fp32") {
-            options {
-                retry(2)
-            }
             when {
                 expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
             }
@@ -527,7 +521,7 @@ pipeline {
                stage('Fp32 OpenCL Debug + Codecov AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
@@ -566,7 +560,7 @@ pipeline {
                 stage('Fp32 Hip AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
@@ -579,7 +573,7 @@ pipeline {
                 stage('Fp32 Hip Debug AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
@@ -637,9 +631,6 @@ pipeline {
             }
         }
         stage("Smoke Aux 1") {
-            options {
-                retry(2)
-            }
             when {
                 expression { params.BUILD_SMOKE_AUX1 && params.DATATYPE_FP32 }
             }
@@ -647,7 +638,7 @@ pipeline {
                 stage('Fp32 Hip Debug NOCOMGR AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
@@ -680,7 +671,7 @@ pipeline {
                 stage('Fp32 Hip Static AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
@@ -693,7 +684,7 @@ pipeline {
                 stage('Fp32 Hip Normal-Find AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
@@ -710,7 +701,7 @@ pipeline {
                 stage('Fp32 Hip Fast-Find AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
@@ -727,7 +718,7 @@ pipeline {
                 stage('Fp32 Hip AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
@@ -740,9 +731,6 @@ pipeline {
             }
         }
         stage("Smoke Fp16/Bf16/Int8") {
-            options {
-                retry(2)
-            }
             when {
                 expression { params.BUILD_SMOKE_FP16_BF16_INT8 }
             }
@@ -868,9 +856,6 @@ pipeline {
             }
         }
         stage("Full Tests") {
-            options {
-                retry(2)
-            }
             when {
                 expression { params.BUILD_FULL_TESTS}
             }
@@ -1099,9 +1084,6 @@ pipeline {
             }
         }
         stage("Packages") {
-            options {
-                retry(2)
-            }
             when {
                 expression { params.BUILD_PACKAGES && params.TARGET_NOGPU && params.DATATYPE_NA }
             }
