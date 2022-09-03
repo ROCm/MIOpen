@@ -284,9 +284,8 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
 
     barrier(CLK_LOCAL_MEM_FENCE);
     _FLOAT add_val;
-    int bt_y  = (y + lcl_id1 * MLO_POOLBWD_N_VERT_OUT_PIX);
-    int bt_x  = (x + lcl_id0 * MLO_POOLBWD_N_HORIZ_OUT_PIX);
-    int b_idx = bt_y * mlo_bot_width + bt_x;
+    int bt_y = (y + lcl_id1 * MLO_POOLBWD_N_VERT_OUT_PIX);
+    int bt_x = (x + lcl_id0 * MLO_POOLBWD_N_HORIZ_OUT_PIX);
 
     for(int k = 0; k < MLO_POOLBWD_N_VERT_OUT_PIX; k++)
     {
@@ -327,10 +326,6 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
                     int filter_y   = b_y - th * MLO_POOLING_STRIDE1 + mlo_pad1;
                     int filter_idx = filter_x + filter_y * MLO_POOLING_KERNEL_SZ0;
 #endif
-
-                    // note, that b_idx == b_y * mlo_bot_width + b_x
-                    // computing b_idx instead of using (b_y * mlo_bot_width + b_x) saves
-                    // VGPR
                     bool visible = (lcl_th < MLO_POOLBWD_LCL_DATA_HEIGHT) &&
                                    (lcl_tw < MLO_POOLBWD_LCL_DATA_WIDTH);
                     int lcl_idx = visible ? (lcl_th * MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw) : 0;
@@ -353,9 +348,7 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
                     }
                 }
             }
-            b_idx++;
         }
-        b_idx += mlo_bot_width - MLO_POOLBWD_N_HORIZ_OUT_PIX;
     }
 
     int bot_df_off =
