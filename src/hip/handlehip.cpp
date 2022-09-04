@@ -81,21 +81,47 @@ std::size_t GetAvailableMemory()
 
 void* default_allocator(void*, size_t sz)
 {
-    if(sz > GetAvailableMemory())
-        MIOPEN_THROW("Memory not available to allocate buffer: " + std::to_string(sz));
-    void* result;
-    auto status = hipMalloc(&result, sz);
-    if(status != hipSuccess)
+    const auto available = GetAvailableMemory();
+    MIOPEN_LOG_I2("GetAvailableMemory " << available);
+    if(sz > available)
+        MIOPEN_LOG_I("GetAvailableMemory reports unsufficient memory to allocate " << sz);
+    void* ptr;
+    const auto status = hipMalloc(&ptr, sz);
+    if(status == hipSuccess)
     {
-        status = hipHostMalloc(&result, sz);
-        if(status != hipSuccess)
-            MIOPEN_THROW_HIP_STATUS(status,
-                                    "Hip error creating buffer " + std::to_string(sz) + ": ");
+        MIOPEN_LOG_I2("hipMalloc " << sz << " at " << ptr << " Ok");
+        return ptr;
     }
-    return result;
+    const auto status_host = hipHostMalloc(&ptr, sz);
+    if(status_host == hipSuccess)
+    {
+        MIOPEN_LOG_I2("hipHostMalloc " << sz << " at " << ptr << " Ok");
+        return ptr;
+    }
+    MIOPEN_LOG_W("hipMalloc " << sz << " status: " << status);
+    MIOPEN_THROW_HIP_STATUS(status_host, "hipHostMalloc " + std::to_string(sz));
 }
 
-void default_deallocator(void*, void* mem) { hipFree(mem); }
+inline std::string to_string(void* const ptr)
+{
+    std::ostringstream oss;
+    oss << ptr;
+    return oss.str();
+}
+
+void default_deallocator(void*, void* mem)
+{
+    size_t size = 0;
+    auto status = hipMemPtrGetInfo(mem, &size);
+    if(status != hipSuccess)
+        MIOPEN_LOG_W("hipMemPtrGetInfo at " << mem << " status: " << status);
+    status = hipFree(mem);
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status,
+                                "hipFree " + std::to_string(size) + " at " + to_string(mem));
+    else
+        MIOPEN_LOG_I2("hipFree " << size << " at " << mem << " Ok");
+}
 
 int get_device_id() // Get random device
 {
