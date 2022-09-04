@@ -326,7 +326,6 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
                     int filter_y   = b_y - th * MLO_POOLING_STRIDE1 + mlo_pad1;
                     int filter_idx = filter_x + filter_y * MLO_POOLING_KERNEL_SZ0;
 #endif
-
                     bool visible = (lcl_th < MLO_POOLBWD_LCL_DATA_HEIGHT) &&
                                    (lcl_tw < MLO_POOLBWD_LCL_DATA_WIDTH);
                     int lcl_idx = visible ? (lcl_th * MLO_POOLBWD_LCL_DATA_WIDTH + lcl_tw) : 0;
