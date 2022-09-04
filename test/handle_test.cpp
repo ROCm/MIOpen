@@ -211,6 +211,7 @@ void test_warnings(kernel_type_t kern_type)
     if(kern_type == miopenOpenCLKernelType)
         EXPECT(throws([&] {
             h.AddKernel("GEMM", "", WriteNop(kern_type), "write", {1, 1, 1}, {1, 1, 1}, "");
+            MIOPEN_LOG_E("FAILED: Build of the OpenCL kernel should produce warnings");
         }));
     else if(kern_type == miopenHIPKernelType)
         EXPECT(throws([&] {
@@ -223,7 +224,8 @@ void test_warnings(kernel_type_t kern_type)
                         "",
                         0,
                         false,
-                        WriteNop(miopenHIPKernelType));
+                        WriteNop(kern_type));
+            MIOPEN_LOG_E("FAILED: Build of the HIP kernel 'nop_hip.cpp' should produce warnings");
         }));
 #else
     (void)kern_type;
