@@ -143,7 +143,7 @@ static inline bool IsShaderContraintsMet(const int R,
     {
         return false;
     }
-    const bool is_dilated_stride_2 = (params.direction.IsBackwardData() && S_stride != 1);
+    const bool is_dilated_stride_2 = (params.problem.direction.IsBackwardData() && S_stride != 1);
     if(fp16)
     {
         if(is_dilated_stride_2)
@@ -180,15 +180,17 @@ static inline bool IsShaderContraintsMet(const int R,
             return false;
     }
     // Padding for bwd data shall not be negative.
-    if(params.direction.IsBackwardData() || params.direction.IsBackwardWrW())
+    if(params.problem.direction.IsBackwardData() || params.problem.direction.IsBackwardWrW())
     {
-        if(!(0 <= params.GetBackwardPadW() && params.GetBackwardPadW() < std::pow(2, 16)))
+        if(!(0 <= params.problem.GetBackwardPadW() &&
+             params.problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
-        if(!(0 <= params.GetBackwardPadH() && params.GetBackwardPadH() < std::pow(2, 16)))
+        if(!(0 <= params.problem.GetBackwardPadH() &&
+             params.problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
-    if(!params.IsLayoutDefault())
+    if(!params.problem.IsLayoutDefault())
     {
         return false;
     }
@@ -202,8 +204,8 @@ static inline bool IsShaderContraintsMet(const int R,
         && W < std::pow(2, 16)
         && OH < std::pow(2, 16)
         && OW < std::pow(2, 16)
-        && params.pad_w < std::pow(2, 16)
-        && params.pad_h < std::pow(2, 16)
+        && params.problem.pad_w < std::pow(2, 16)
+        && params.problem.pad_h < std::pow(2, 16)
         && S < std::pow(2, 16)
         && R < std::pow(2, 16)
         && grid_workgroup_count_x < std::pow(2, 16)
@@ -220,17 +222,18 @@ namespace solver {
 
 bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!params.Is2d())
+    if(!params.problem.Is2d())
         return false;
-    if(!(params.IsFp32() || params.IsFp16()))
+    if(!(params.problem.IsFp32() || params.problem.IsFp16()))
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
         return false;
-    if(params.direction.IsBackwardWrW())
+    if(params.problem.direction.IsBackwardWrW())
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW{}))
             return false;
-        if(!(params.IsFp32() && params.kernel_stride_w == 1 && params.kernel_stride_h == 1))
+        if(!(params.problem.IsFp32() && params.problem.kernel_stride_w == 1 &&
+             params.problem.kernel_stride_h == 1))
             return false; // WrW is only for fp32 and no stride for now.
     }
     else
@@ -248,7 +251,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         return false;
 
     const auto name = params.GetStream().GetDeviceName();
-    const bool fp16 = params.IsFp16();
+    const bool fp16 = params.problem.IsFp16();
     if(fp16)
     {
         if(!(name == "gfx906" || name == "gfx908"))
@@ -256,7 +259,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     }
     else
     {
-        if(params.direction.IsBackwardWrW())
+        if(params.problem.direction.IsBackwardWrW())
         {
             if(!(name == "gfx900" || name == "gfx906" || name == "gfx908"))
                 return false;
@@ -269,46 +272,46 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     }
 
     // clang-format off
-    if (! (params.kernel_stride_w <= 2 // -u inp_u 1 or 2
-        && params.kernel_stride_w == params.kernel_stride_h
-        && params.kernel_dilation_w == 1
-        && params.kernel_dilation_h == 1
-        && params.bias == 0
-        && params.group_counts == 1
-        && params.in_layout == "NCHW"))
+    if (! (params.problem.kernel_stride_w <= 2 // -u inp_u 1 or 2
+        && params.problem.kernel_stride_w == params.problem.kernel_stride_h
+        && params.problem.kernel_dilation_w == 1
+        && params.problem.kernel_dilation_h == 1
+        && params.problem.bias == 0
+        && params.problem.group_counts == 1
+        && params.problem.in_layout == "NCHW"))
         return false;
     // clang-format on
 
-    if(params.direction.IsBackwardWrW())
+    if(params.problem.direction.IsBackwardWrW())
     {
-        return IsShaderContraintsMet(params.in_height,
-                                     params.in_width,
-                                     params.kernel_dilation_h,
-                                     params.kernel_dilation_w,
-                                     params.batch_sz, // N
-                                     params.n_inputs, // K
-                                     params.out_height,
-                                     params.out_width,
-                                     params.kernel_size_h,
-                                     params.kernel_size_w,
-                                     params.n_outputs, // C
+        return IsShaderContraintsMet(params.problem.in_height,
+                                     params.problem.in_width,
+                                     params.problem.kernel_dilation_h,
+                                     params.problem.kernel_dilation_w,
+                                     params.problem.batch_sz, // N
+                                     params.problem.n_inputs, // K
+                                     params.problem.out_height,
+                                     params.problem.out_width,
+                                     params.problem.kernel_size_h,
+                                     params.problem.kernel_size_w,
+                                     params.problem.n_outputs, // C
                                      params,
                                      fp16,
                                      2);
     }
     else
     {
-        return IsShaderContraintsMet(params.kernel_size_h, // RxS
-                                     params.kernel_size_w,
-                                     params.kernel_stride_h,
-                                     params.kernel_stride_w,
-                                     params.n_inputs,  // C
-                                     params.n_outputs, // K
-                                     params.in_height, // HxW
-                                     params.in_width,
-                                     params.out_height, // OHxOW
-                                     params.out_width,
-                                     params.batch_sz, // N
+        return IsShaderContraintsMet(params.problem.kernel_size_h, // RxS
+                                     params.problem.kernel_size_w,
+                                     params.problem.kernel_stride_h,
+                                     params.problem.kernel_stride_w,
+                                     params.problem.n_inputs,  // C
+                                     params.problem.n_outputs, // K
+                                     params.problem.in_height, // HxW
+                                     params.problem.in_width,
+                                     params.problem.out_height, // OHxOW
+                                     params.problem.out_width,
+                                     params.problem.batch_sz, // N
                                      params,
                                      fp16,
                                      3);
@@ -334,7 +337,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
-    if(params.IsFp16())
+    if(params.problem.IsFp16())
     {
         kernel.kernel_name = "miopenSp3AsmConvRxSU";
         kernel.kernel_file = "Conv_Winograd_";
@@ -344,9 +347,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
             kernel.kernel_file += "v14_3_3";
         kernel.kernel_file += "_fp16dot_stride";
 
-        if(params.kernel_stride_w == 2)
+        if(params.problem.kernel_stride_w == 2)
         {
-            if(params.direction.IsForward())
+            if(params.problem.direction.IsForward())
                 kernel.kernel_file += "2_dec";
             else
                 kernel.kernel_file += "2_dil";
@@ -356,7 +359,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
             kernel.kernel_file += "1";
         }
     }
-    else if(params.direction.IsBackwardWrW())
+    else if(params.problem.direction.IsBackwardWrW())
     {
         kernel.kernel_name = "miopenSp3AsmConvRxSf3x2";
         kernel.kernel_file = "Conv_Winograd_v16_5_0_stride1";
@@ -365,9 +368,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     {
         kernel.kernel_name = "miopenSp3AsmConvRxSU";
         kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
-        if(params.kernel_stride_w == 2)
+        if(params.problem.kernel_stride_w == 2)
         {
-            if(params.direction.IsForward())
+            if(params.problem.direction.IsForward())
                 kernel.kernel_file += "_stride_2_dec";
             else
                 kernel.kernel_file += "_stride_2_dil";
@@ -377,7 +380,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
 
     result.construction_params.push_back(kernel);
 
-    if(params.direction.IsBackwardWrW())
+    if(params.problem.direction.IsBackwardWrW())
     {
         int unused = 0;
         int N, C, H, W, K, out_H, out_W, R, S, n_groups_;
@@ -389,8 +392,8 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
         int reserved                = 0;
         int* reserved_ptr           = nullptr;
         using dataType              = float;
-        int pad_H                   = params.pad_h;
-        int pad_W                   = params.pad_w;
+        int pad_H                   = params.problem.pad_h;
+        int pad_W                   = params.problem.pad_w;
         int d_N_stride              = H * W * static_cast<int>(sizeof(dataType));
         int d_C_stride              = C * d_N_stride;
         int f_K_stride              = out_H * out_W * static_cast<int>(sizeof(dataType));
@@ -440,7 +443,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     }
     else
     {
-        const auto is_forward     = params.direction.IsForward();
+        const auto is_forward     = params.problem.direction.IsForward();
         constexpr int F_REVERSE_R = 1 << 0;
         constexpr int F_REVERSE_S = 1 << 1;
         constexpr int F_FLIP_K_C  = 1 << 2;

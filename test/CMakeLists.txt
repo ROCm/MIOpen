@@ -618,7 +618,6 @@ function(add_custom_test NAME)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
 endfunction()
-
 if(${CODECOV_TEST})
     add_custom_test(test_conv3d_codecov
         COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 4 4 4 4 --weights 2 4 1 1 1 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -652,10 +651,15 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_BN} -n 256 -c 512 -H 28 -W 28 -m 1 --forw 0 -b 1 -r 1
     )
 
-    add_custom_test(test_miopendriver_big_tensor SKIP_UNLESS_ALL GFX103X_ENABLED
+    add_custom_test(test_miopendriver_big_tensor GFX900_DISABLED GFX906_DISABLED SKIP_UNLESS_ALL GFX103X_ENABLED
         # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1661
+        # Issue #1697: this is large test which has to run in serial and not enabled on gfx900/gfx906
         COMMAND MIOPEN_DRIVER_USE_GPU_REFERENCE=1 $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -W 5078 -H 4903 -c 24 -n 5 -k 1 --fil_w 3 --fil_h 3 --pad_w 6 --pad_h 4 -F 1
     )
+    set_tests_properties(test_miopendriver_big_tensor
+        PROPERTIES RUN_SERIAL On)
+    set_tests_properties(test_miopendriver_big_tensor
+        PROPERTIES TIMEOUT 600) 
 endif()
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
@@ -769,6 +773,15 @@ add_custom_test(test_conv_igemm_mlir_xdlops_fwd SKIP_UNLESS_ALL HALF_ENABLED INT
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
     COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_F} --input 256 256  56 56 --weights 256  64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
 )
+
+if(MIOPEN_USE_COMPOSABLEKERNEL)
+add_custom_test(test_conv_hip_igemm_xdlops SKIP_UNLESS_ALL OCL_DISABLED HALF_DISABLED FLOAT_DISABLED INT8_ENABLED GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED
+    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 128  28 28 --weights 128  128  3 3 --output_type int8 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 512  7  7  --weights 512  512  3 3 --output_type int8 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 64   56 56 --weights 64   64   1 1 --output_type int8 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 256  56 56 --weights 256  64   1 1 --output_type int8 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
+)
+endif()
 
 add_custom_test(test_conv_igemm_mlir_xdlops_bwd_wrw SKIP_UNLESS_ALL HALF_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX906_DISABLED
     COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_MLIR_ARGS_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
@@ -1893,3 +1906,4 @@ add_custom_test(test_regression_half_mi200 GFX900_DISABLED GFX906_DISABLED GFX90
     # Issue-internal #4
     COMMAND	${ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --input 120 64 75 75 --weights 128 64 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_ENABLE_FORWARD_ONLY}
 )
+add_subdirectory(gtest)

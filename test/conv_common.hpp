@@ -136,12 +136,15 @@ static inline bool skip_config(miopen::Handle& handle,
     ctx.SetupFloats();
     ctx.DetectRocm();
 
-    return ctx.GetStream().GetDeviceName() == "gfx908" && ctx.Is2d() && ctx.IsFp16() &&
-           ctx.IsLayoutDefault() && ctx.use_hip_kernels && ctx.group_counts == 1 &&
-           ctx.batch_sz == 1 && ctx.n_inputs == 192 && ctx.in_height == 28 && ctx.in_width == 28 &&
-           ctx.n_outputs == 1 && ctx.kernel_size_h == 3 && ctx.kernel_size_w == 3 &&
-           ctx.pad_w == 1 && ctx.pad_h == 1 && ctx.kernel_stride_w == 1 &&
-           ctx.kernel_stride_h == 1 && ctx.kernel_dilation_w == 1 && ctx.kernel_dilation_h == 1;
+    return ctx.GetStream().GetDeviceName() == "gfx908" && ctx.problem.Is2d() &&
+           ctx.problem.IsFp16() && ctx.problem.IsLayoutDefault() && ctx.use_hip_kernels &&
+           ctx.problem.group_counts == 1 && ctx.problem.batch_sz == 1 &&
+           ctx.problem.n_inputs == 192 && ctx.problem.in_height == 28 &&
+           ctx.problem.in_width == 28 && ctx.problem.n_outputs == 1 &&
+           ctx.problem.kernel_size_h == 3 && ctx.problem.kernel_size_w == 3 &&
+           ctx.problem.pad_w == 1 && ctx.problem.pad_h == 1 && ctx.problem.kernel_stride_w == 1 &&
+           ctx.problem.kernel_stride_h == 1 && ctx.problem.kernel_dilation_w == 1 &&
+           ctx.problem.kernel_dilation_h == 1;
 }
 #endif
 
@@ -239,9 +242,9 @@ tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
         input.desc,
         weights.desc,
         yLayout,
-        weights.desc.GetType() == miopenInt8 || weights.desc.GetType() == miopenInt8x4
+        weights.desc.GetType() == miopenInt8x4
             ? (std::is_same<Tout, int>{} ? miopenInt32 : miopenFloat)
-            : weights.desc.GetType())};
+            : miopen_type<Tout>{})};
 }
 
 // Convolution test base class
@@ -1652,7 +1655,7 @@ struct verify_forward_conv_int8 : conv_base<T>
     }
 };
 
-template <class T, bool immed_mode = false>
+template <class T, bool immed_mode = false, class Tout = T>
 struct conv_driver : test_driver
 {
     tensor<T> input;
@@ -1683,6 +1686,8 @@ struct conv_driver : test_driver
     bool gen_float           = false;
     bool immed               = immed_mode;
     bool enable_fdb          = true;
+    std::string output_type  = "";
+    bool int8_vectorize      = false;
     bool deterministic       = false;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
@@ -1828,6 +1833,7 @@ struct conv_driver : test_driver
             filter.spatialDim = get_spatial_dim();
         else
             filter.spatialDim = filter_dims.size();
+        bool is_int8 = (input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4);
 
         filter.mode             = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode      = pmode_lookup[miopen::ToUpper(pad_mode)];
@@ -2007,8 +2013,6 @@ struct conv_driver : test_driver
             wei_k_len          = weights.desc.GetLengths()[3];
         }
 
-        bool is_int8 = (input.desc.GetType() == miopenInt8 || input.desc.GetType() == miopenInt8x4);
-
         // lack of transposeConv or groupConv for int8 type
         if(is_int8 && filter.mode == miopenTranspose)
         {
@@ -2118,7 +2122,8 @@ struct conv_driver : test_driver
                  (filter.group_count > 1 &&
                   (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(0) == 0)))))
             {
-                auto output             = get_output_tensor(filter, input, weights, out_layout);
+                auto output = get_output_tensor<T, Tout>(filter, input, weights, out_layout);
+
                 auto gen_positive_value = [=](auto...) {
                     auto data_type    = input.desc.GetType();
                     std::size_t v_max = is_int8 ? 16 : (data_type == miopenHalf) ? 4 : 16;
@@ -2143,7 +2148,8 @@ struct conv_driver : test_driver
                                                       miopen::conv::Direction::Forward);
                 ctx.SetStream(&get_handle());
 
-                bool skip_forward = (input.desc.GetType() == miopenInt8x4 && !IsGemmAplicable(ctx));
+                bool skip_forward = false;
+
                 bool skip_backward_data    = is_int8;
                 bool skip_backward_weights = is_int8;
 
@@ -2194,8 +2200,9 @@ struct conv_driver : test_driver
                 size_t total_mem;
                 if(is_int8)
                 {
+                    // TODO: Tout here was float which should have been int32
                     auto output_int8 =
-                        get_output_tensor<T, float>(filter, input, weights, out_layout);
+                        get_output_tensor<T, Tout>(filter, input, weights, out_layout);
                     size_t workspace_size = filter.ForwardGetWorkSpaceSize(
                         handle, weights.desc, input.desc, output_int8.desc);
 
@@ -2258,26 +2265,45 @@ struct conv_driver : test_driver
                 {
                     if(is_int8)
                     {
-                        verify(verify_forward_conv<T, float>{
-                            input,
-                            weights,
-                            get_output_tensor<T, float>(filter, input, weights, out_layout),
-                            filter,
-                            stats,
-                            0,
-                            search,
-                            false,
-                            immed});
-                        verify(verify_forward_conv<T, int>{
-                            input,
-                            weights,
-                            get_output_tensor<T, int>(filter, input, weights, out_layout),
-                            filter,
-                            stats,
-                            0,
-                            search,
-                            false,
-                            immed});
+                        if(output_type == "float")
+                        {
+                            verify(verify_forward_conv<T, float>{
+                                input,
+                                weights,
+                                get_output_tensor<T, float>(filter, input, weights, out_layout),
+                                filter,
+                                stats,
+                                0,
+                                search,
+                                int8_vectorize,
+                                immed});
+                        }
+                        else if(output_type == "int32")
+                        {
+                            verify(verify_forward_conv<T, int>{
+                                input,
+                                weights,
+                                get_output_tensor<T, int>(filter, input, weights, out_layout),
+                                filter,
+                                stats,
+                                0,
+                                search,
+                                int8_vectorize,
+                                immed});
+                        }
+                        else if(output_type == "int8")
+                        {
+                            verify(verify_forward_conv<T, int8_t>{
+                                input,
+                                weights,
+                                get_output_tensor<T, int8_t>(filter, input, weights, out_layout),
+                                filter,
+                                stats,
+                                0,
+                                search,
+                                int8_vectorize,
+                                immed});
+                        }
                     }
                     else
                     {

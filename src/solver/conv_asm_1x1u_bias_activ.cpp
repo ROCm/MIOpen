@@ -84,30 +84,32 @@ bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
 PerformanceConfigConvBiasActivAsm1x1U
 ConvBiasActivAsm1x1U::Search(const FusionProblemDescription& context, const AnyInvokeParams&) const
 {
-    auto cba_context = context.GetConvContext(0, conv::Direction::Forward);
-    cba_context.bias = 1;
-    cba_context.bias_sz =
-        cba_context.n_outputs * ((cba_context.out_data_type == miopenHalf) ? 2 : 4);
-    if(!cba_context.direction.IsForward())
+    auto cba_context         = context.GetConvContext(0, conv::Direction::Forward);
+    cba_context.problem.bias = 1;
+    cba_context.problem.bias_sz =
+        cba_context.problem.n_outputs * ((cba_context.problem.out_data_type == miopenHalf) ? 2 : 4);
+    if(!cba_context.problem.direction.IsForward())
         MIOPEN_THROW("Only inference supported.");
 
     /// Workaround: Fused conv API does not pass user-allocated buffers here,
     /// but we need these buffers for search.
-    auto& handle        = cba_context.GetStream();
-    const auto bias_buf = handle.Create(cba_context.bias_sz);
-    const auto in_buf   = handle.Create(cba_context.bot_sz);
-    const auto wei_buf  = handle.Create(cba_context.weights_sz);
-    const auto out_buf  = handle.Create(cba_context.top_sz);
+    auto& handle = cba_context.GetStream();
 
-    auto tensors             = FusedConvDataTensors{};
-    tensors.in               = in_buf.get();
-    tensors.w                = wei_buf.get();
-    tensors.out              = out_buf.get();
-    tensors.inDesc           = cba_context.conv_problem.GetIn();
-    tensors.wDesc            = cba_context.conv_problem.GetWeights();
-    tensors.outDesc          = cba_context.conv_problem.GetOut();
-    tensors.bias             = bias_buf.get();
-    const auto gfx90aaltimpl = cba_context.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
+    const auto bias_buf = handle.Create(cba_context.problem.bias_sz);
+    const auto in_buf   = handle.Create(cba_context.problem.bot_sz);
+    const auto wei_buf  = handle.Create(cba_context.problem.weights_sz);
+    const auto out_buf  = handle.Create(cba_context.problem.top_sz);
+
+    auto tensors    = FusedConvDataTensors{};
+    tensors.in      = in_buf.get();
+    tensors.w       = wei_buf.get();
+    tensors.out     = out_buf.get();
+    tensors.inDesc  = cba_context.problem.conv_problem.GetIn();
+    tensors.wDesc   = cba_context.problem.conv_problem.GetWeights();
+    tensors.outDesc = cba_context.problem.conv_problem.GetOut();
+    tensors.bias    = bias_buf.get();
+    const auto gfx90aaltimpl =
+        cba_context.problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
     const auto fused_invoke_ctx = conv::FusedDataInvokeParams(tensors, nullptr, 0, gfx90aaltimpl);
     return GenericSearch(*this, context, fused_invoke_ctx);
 }
@@ -155,7 +157,7 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionProblemDescription& proble
     }
     kernel_info.comp_options += cba_options.str();
 
-    const auto out_data_type = ctx.conv_problem.GetOutDataType();
+    const auto out_data_type = ctx.problem.conv_problem.GetOutDataType();
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
