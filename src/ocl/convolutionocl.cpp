@@ -378,7 +378,7 @@ static void DirConvFindCore(Handle& handle,
     AutoEnableProfiling enableProfiling{handle};
     ValidateGroupCount(xDesc, wDesc, conv);
 
-    const auto network_config = ctx.BuildConfKey();
+    const auto network_config = ctx.problem.BuildConfKey();
     const auto invoke_ctx     = conv::DataInvokeParams{InvokeType::Evaluate,
                                                    {xDesc, x, wDesc, w, yDesc, y},
                                                    workSpace,
@@ -566,10 +566,6 @@ void ValidateConvTensors(const ConvTensors& tensors)
     const auto trivial_tensor_types_not_matched =
         tensors.xDesc.GetType() != tensors.yDesc.GetType() &&
         tensors.xDesc.GetType() != miopenInt8 && tensors.xDesc.GetType() != miopenInt8x4;
-    const auto int8_in8x4_tensor_not_matched =
-        (tensors.xDesc.GetType() == miopenInt8 && tensors.yDesc.GetType() != miopenInt32 &&
-         tensors.yDesc.GetType() != miopenFloat) ||
-        (tensors.xDesc.GetType() == miopenInt8x4 && tensors.yDesc.GetType() != miopenInt32);
 
     // if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
     //    MIOPEN_THROW(miopenStatusBadParm);
@@ -578,8 +574,7 @@ void ValidateConvTensors(const ConvTensors& tensors)
     const auto x_tensor_invalid = tensors.xDesc.GetSize() < 3;
 
     const auto bad_parameters = invalid_buffers || tensor_sizes_not_matched ||
-                                trivial_tensor_types_not_matched || int8_in8x4_tensor_not_matched ||
-                                x_tensor_invalid;
+                                trivial_tensor_types_not_matched || x_tensor_invalid;
 
     if(bad_parameters)
         MIOPEN_THROW(miopenStatusBadParm);
@@ -644,7 +639,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         auto ctx =
             ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward}; // forward
         ctx.SetStream(&handle);
-        const auto network_config = ctx.BuildConfKey();
+        const auto network_config = ctx.problem.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(invoker)
@@ -909,16 +904,20 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
     if(solutions == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "solutions cannot be nullptr");
 
-    auto problem = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-    problem.SetStream(&handle);
+    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    ctx.SetStream(&handle);
 
-    GetSolutions(
-        handle, problem, maxSolutionCount, solutionCount, solutions, StringToConvolutionFwdAlgo);
+    GetSolutions(handle,
+                 ctx.problem,
+                 maxSolutionCount,
+                 solutionCount,
+                 solutions,
+                 StringToConvolutionFwdAlgo);
 
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = (*solutionCount == 0);
     if(*solutionCount == 0)
-        GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
+        GetSolutionsFallback(handle, ctx.problem, maxSolutionCount, solutionCount, solutions);
 }
 std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handle,
                                                                    const TensorDescriptor& wDesc,
@@ -985,7 +984,7 @@ Invoker LoadOrPrepareInvoker(Handle& handle,
                              solver::Id solver_id,
                              conv::Direction dir)
 {
-    const auto config = ctx.BuildConfKey();
+    const auto config = ctx.problem.BuildConfKey();
     auto invoker      = handle.GetInvoker(config, solver_id);
     if(invoker)
         return *invoker;
@@ -1012,7 +1011,7 @@ static void CompileSolution(Handle& handle,
         return;
     }
 
-    const FindDbRecord fdb_record{handle, ctx};
+    const FindDbRecord fdb_record{handle, ctx.problem};
     for(const auto& pair : fdb_record)
     {
         if(solver::Id{pair.second.solver_id} != solver_id)
@@ -1302,7 +1301,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
         auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
         ctx.SetStream(&handle);
-        const auto network_config = ctx.BuildConfKey();
+        const auto network_config = ctx.problem.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(!invoker)
@@ -1506,7 +1505,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             ctx.SetBufs(bufs);
             ctx.SetupFloats();
             ctx.DetectRocm();
-            const auto network_config = ctx.BuildConfKey();
+            const auto network_config = ctx.problem.BuildConfKey();
             const auto invoke_ctx     = conv::WrWInvokeParams{InvokeType::Evaluate,
                                                           {dyDesc, dy, xDesc, x, dwDesc, dw},
                                                           workSpace,

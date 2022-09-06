@@ -261,9 +261,9 @@ def buildHipClangJobAndReboot(Map conf=[:]){
 def CheckDeserializePerfDb(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
     pdb_image.inside(){
-        sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_deserialize_error.json"
-        archiveArtifacts "pdb_deserialize_error.json"
-        sh "grep clear pdb_deserialize_error.json"
+        sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_valid_err.json"
+        archiveArtifacts "pdb_valid_err.json"
+        sh "grep clear pdb_valid_err.json"
         def has_error = sh (
             script: "echo \$?",
             returnStdout: true
@@ -301,6 +301,10 @@ def buildDocker(install_prefix)
         echo "Checking for image: ${image_name}"
         sh "docker manifest inspect --insecure ${image_name}"
         echo "Image: ${image_name} found!! Skipping building image"
+        if(params.DEBUG_FORCE_DOCKER_BUILD)
+        {
+            throw new Exception("Docker build override via DEBUG_FORCE_DOCKER_BUILD")
+        }
     }
     catch(Exception ex)
     {
@@ -323,7 +327,7 @@ def buildDocker(install_prefix)
 ///   * The default compiler is usually not specified.
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
-///                            MLIR | Tensile | Tensile-Latest | Package | ... }
+///                            CK | MLIR | Tensile | Tensile-Latest | Package | ... }
 /// TestSet := { All | Smoke* } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
@@ -483,7 +487,7 @@ pipeline {
                       buildHipClangJobAndReboot(setup_cmd: setup_cmd, execute_cmd: "", build_cmd: build_cmd, build_fin: "ON", needs_gpu:false)
                   }
                 }
-                stage('Perf DB Deserialize Test') {
+                stage('Perf DB Validity Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
                         fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON"
@@ -755,6 +759,20 @@ pipeline {
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Int8_flags, config_targets: Smoke_targets)
+                    }
+                }
+                stage('Int8 Hip Debug CK gfx908') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908}
+                    }
+                    agent{ label rocmnode("gfx908") }
+                    // This stage should be removed when CK is enabled by default in MIOpen
+                    environment{
+                        Enable_CK = "-DMIOPEN_USE_COMPOSABLEKERNEL=On"
+                    }
+                    steps{
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Enable_CK + Int8_flags , build_env: extra_log_env, test_flags: ' --verbose ')
                     }
                 }
                 stage('Fp16 Hip Vega20') {
