@@ -82,7 +82,7 @@ auto FindSolutionImpl(
                 MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
             }
-            else if(!s.AltSolverDbId().empty() && db.Load(context, s.AltSolverDbId(), config))
+            else if(!s.AltSolverDbId().empty() && db.Load(context.problem, s.AltSolverDbId(), config))
             {
                 MIOPEN_LOG_I("Perf Db: alternate record loaded: " << s.AltSolverDbId());
                 if(s.IsValidPerformanceConfig(context, config))
