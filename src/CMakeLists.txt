@@ -697,7 +697,7 @@ if(LIBMLIRMIOPEN)
   target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
 endif()
 
-target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/thirdparty/nlohmann/include>)
+target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)
 
 if(WIN32 AND NOT MSVC)
     if(BUILD_DEV)
