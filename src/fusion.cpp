@@ -1037,9 +1037,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                                                  solver::fusion::ConvOclDirectFwdFused>{};
     auto exec_ctx         = ExecutionContext{&handle};
     exec_ctx.DetectRocm();
-    const auto fusion_desc = FusionProblemDescription{this, handle};
+    const auto fusion_ctx = FusionContext{this, handle};
     const auto sols =
-        solvers.SearchForAllSolutions(fusion_desc, miopen::GetDb(exec_ctx), AnyInvokeParams{});
+        solvers.SearchForAllSolutions(fusion_ctx, miopen::GetDb(exec_ctx), AnyInvokeParams{});
     std::ostringstream ss;
     for(const auto& op : op_map)
     {

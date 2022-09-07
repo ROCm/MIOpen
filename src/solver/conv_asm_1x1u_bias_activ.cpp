@@ -48,26 +48,26 @@ namespace solver {
 
 namespace fusion {
 
-void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionProblemDescription& problem)
+void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& problem)
 {
     PerformanceConfigConvAsm1x1U::HeuristicInit(
         problem.GetConvContext(0, conv::Direction::Forward));
 }
 
-bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionProblemDescription& problem)
+bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionContext& problem)
 {
     return PerformanceConfigConvAsm1x1U::SetNextValue(
         problem.GetConvContext(0, conv::Direction::Forward));
 }
 
-bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionProblemDescription& problem) const
+bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionContext& problem) const
 {
     return PerformanceConfigConvAsm1x1U::IsValid(
         problem.GetConvContext(0, conv::Direction::Forward));
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const FusionProblemDescription& desc) const
+ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const FusionContext& desc) const
 {
     PerformanceConfigConvBiasActivAsm1x1U pp;
     pp.HeuristicInit(desc);
@@ -76,13 +76,13 @@ ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const FusionProblemDescription
 }
 
 bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
-    const FusionProblemDescription& problem, const PerformanceConfigConvBiasActivAsm1x1U& c) const
+    const FusionContext& problem, const PerformanceConfigConvBiasActivAsm1x1U& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
 }
 
-PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::Search(const FusionProblemDescription& context, const AnyInvokeParams&) const
+PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionContext& context,
+                                                                   const AnyInvokeParams&) const
 {
     auto cba_context         = context.GetConvContext(0, conv::Direction::Forward);
     cba_context.problem.bias = 1;
@@ -115,7 +115,7 @@ ConvBiasActivAsm1x1U::Search(const FusionProblemDescription& context, const AnyI
 }
 
 ConvSolution
-ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionProblemDescription& problem,
+ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& problem,
                                   const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
     const auto ctx = problem.GetConvContext(0, conv::Direction::Forward);
@@ -128,7 +128,7 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionProblemDescription& proble
 
     auto& kernel_info       = sol.construction_params[0];
     kernel_info.kernel_file = "conv1x1u_bias_activ.s";
-    const auto& desc        = *problem.fusion_plan_desc;
+    const auto& desc        = *problem.problem.fusion_plan_desc;
 
     const bool has_bias = [&]() {
         if(desc.op_map.size() == 3)
@@ -227,9 +227,9 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionProblemDescription& proble
     return sol;
 }
 
-bool ConvBiasActivAsm1x1U::IsApplicable(const FusionProblemDescription& problem) const
+bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& problem) const
 {
-    const auto& desc = *problem.fusion_plan_desc;
+    const auto& desc = *problem.problem.fusion_plan_desc;
     if(desc.op_map.empty())
     {
         MIOPEN_THROW("");

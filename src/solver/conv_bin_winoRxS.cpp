@@ -501,9 +501,9 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
 }
 namespace fusion {
 
-inline bool WinoCommonIsApplicable(const FusionProblemDescription& params)
+inline bool WinoCommonIsApplicable(const FusionContext& params)
 {
-    const auto& desc = *params.fusion_plan_desc;
+    const auto& desc = *params.problem.fusion_plan_desc;
     if(desc.op_map.empty())
     {
         MIOPEN_THROW("");
@@ -545,32 +545,32 @@ inline bool WinoCommonIsApplicable(const FusionProblemDescription& params)
     const miopen::ConvolutionContext conv_ctx =
         params.GetConvContext(0, miopen::conv::Direction::Forward);
 
-    if(!conv_ctx.Is2d())
+    if(!conv_ctx.problem.Is2d())
         return false;
-    if(!conv_ctx.IsFp32())
+    if(!conv_ctx.problem.IsFp32())
         return false;
-    if(!conv_ctx.IsLayoutDefault())
+    if(!conv_ctx.problem.IsLayoutDefault())
         return false;
-    if(!conv_ctx.direction.IsForward())
+    if(!conv_ctx.problem.direction.IsForward())
         return false;
     const auto target = conv_ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
-    const auto c           = conv_ctx.conv_problem.GetInChannels();
-    const auto k           = conv_ctx.conv_problem.GetOutChannels();
-    const auto x           = conv_ctx.conv_problem.GetWeightsWidth();
-    const auto y           = conv_ctx.conv_problem.GetWeightsHeight();
-    const auto oH          = conv_ctx.conv_problem.GetOutHeight();
-    const auto oW          = conv_ctx.conv_problem.GetOutWidth();
-    const auto iH          = conv_ctx.conv_problem.GetInHeight();
-    const auto iW          = conv_ctx.conv_problem.GetInWidth();
-    const auto pad_h       = conv_ctx.conv_problem.GetPadH();
-    const auto pad_w       = conv_ctx.conv_problem.GetPadW();
-    const auto group_count = conv_ctx.conv_problem.GetGroupCount();
-    const auto N           = conv_ctx.conv_problem.GetInBatchSize();
+    const auto c           = conv_ctx.problem.conv_problem.GetInChannels();
+    const auto k           = conv_ctx.problem.conv_problem.GetOutChannels();
+    const auto x           = conv_ctx.problem.conv_problem.GetWeightsWidth();
+    const auto y           = conv_ctx.problem.conv_problem.GetWeightsHeight();
+    const auto oH          = conv_ctx.problem.conv_problem.GetOutHeight();
+    const auto oW          = conv_ctx.problem.conv_problem.GetOutWidth();
+    const auto iH          = conv_ctx.problem.conv_problem.GetInHeight();
+    const auto iW          = conv_ctx.problem.conv_problem.GetInWidth();
+    const auto pad_h       = conv_ctx.problem.conv_problem.GetPadH();
+    const auto pad_w       = conv_ctx.problem.conv_problem.GetPadW();
+    const auto group_count = conv_ctx.problem.conv_problem.GetGroupCount();
+    const auto N           = conv_ctx.problem.conv_problem.GetInBatchSize();
 
-    return conv_ctx.kernel_stride_h == conv_ctx.kernel_stride_w &&
-           conv_ctx.kernel_dilation_h == 1 && conv_ctx.kernel_dilation_w == 1 &&
+    return conv_ctx.problem.kernel_stride_h == conv_ctx.problem.kernel_stride_w &&
+           conv_ctx.problem.kernel_dilation_h == 1 && conv_ctx.problem.kernel_dilation_w == 1 &&
            (c * x * y) <= std::pow(2, 28) && (k * x * y) <= std::pow(2, 28) &&
            (k * oH * oW) <= std::pow(2, 28) && (c * iH * iW) <= std::pow(2, 28) &&
            x <= std::pow(2, 16) && y <= std::pow(2, 16) && pad_h <= std::pow(2, 16) &&
@@ -581,7 +581,7 @@ inline bool WinoCommonIsApplicable(const FusionProblemDescription& params)
 
 inline int ceil(int x, int y) { return (x % y != 0) ? (x / y + 1) * y : x; }
 
-bool ConvBinWinogradRxSFused::IsApplicable(const FusionProblemDescription& params) const
+bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& params) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
         return false;
@@ -594,12 +594,12 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionProblemDescription& param
         return false;
     if(!WinoCommonIsApplicable(params))
         return false;
-    const auto c = conv_ctx.conv_problem.GetInChannels();
-    const auto x = conv_ctx.conv_problem.GetWeightsWidth();
-    const auto y = conv_ctx.conv_problem.GetWeightsHeight();
+    const auto c = conv_ctx.problem.conv_problem.GetInChannels();
+    const auto x = conv_ctx.problem.conv_problem.GetWeightsWidth();
+    const auto y = conv_ctx.problem.conv_problem.GetWeightsHeight();
     int padded_y = 0;
     int padded_x = 0;
-    if(conv_ctx.kernel_stride_h == 1)
+    if(conv_ctx.problem.kernel_stride_h == 1)
     {
         if(y <= 3)
         {
@@ -614,7 +614,7 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionProblemDescription& param
             padded_x = ceil(x, 3);
         }
     }
-    else if(conv_ctx.kernel_stride_h == 2)
+    else if(conv_ctx.problem.kernel_stride_h == 2)
     {
         padded_y = ceil(y, 6);
         if(x % 6 == 1)
@@ -630,7 +630,7 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionProblemDescription& param
     return true;
 }
 
-ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionProblemDescription& plan_desc) const
+ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& plan_desc) const
 {
     const auto params = plan_desc.GetConvContext(0, conv::Direction::Forward);
     ConvSolution result;

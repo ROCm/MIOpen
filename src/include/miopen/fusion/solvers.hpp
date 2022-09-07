@@ -33,16 +33,18 @@
 
 namespace miopen {
 
-struct FusionProblemDescription : miopen::ExecutionContext,
-                                  SQLiteSerializable<FusionProblemDescription>
+struct FusionDescription : SQLiteSerializable<FusionDescription>
 {
     const miopen::FusionPlanDescriptor* fusion_plan_desc;
-    FusionProblemDescription(FusionPlanDescriptor* ptr_desc, Handle& handle)
-        : ExecutionContext(&handle)
+    FusionDescription(const miopen::FusionPlanDescriptor* ptr_desc) : fusion_plan_desc(ptr_desc) {}
+    static std::string table_name() { return "config"; } // revisit this
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
     {
-        fusion_plan_desc = ptr_desc;
+        auto conv_prob = self.GetConvProblem(0, conv::Direction::Forward);
+        ProblemDescription::Visit(conv_prob, f);
     }
-    ConvolutionContext GetConvContext(size_t idx, conv::Direction dir) const
+    miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir) const
     {
         const auto& conv_op =
             dynamic_cast<ConvForwardOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
@@ -50,11 +52,33 @@ struct FusionProblemDescription : miopen::ExecutionContext,
         {
             TensorDescriptor out_desc;
             conv_op.GetOutputDesc(out_desc);
-            auto ctx                       = ConvolutionContext{conv_op.input_desc,
-                                          conv_op.filter_desc,
-                                          out_desc,
-                                          conv_op.base_desc /* conv desc */,
-                                          dir};
+            return miopen::ProblemDescription{conv_op.input_desc,
+                                              conv_op.filter_desc,
+                                              out_desc,
+                                              conv_op.base_desc /* conv desc */,
+                                              dir};
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+        return {};
+    }
+};
+
+struct FusionContext : miopen::ExecutionContext
+{
+    FusionDescription problem;
+    FusionContext(FusionPlanDescriptor* ptr_desc, Handle& handle)
+        : ExecutionContext(&handle), problem(ptr_desc)
+    {
+    }
+    ConvolutionContext GetConvContext(size_t idx, conv::Direction dir) const
+    {
+        const auto conv_prob = problem.GetConvProblem(idx, dir);
+        if(dir == conv::Direction::Forward)
+        {
+            auto ctx                       = ConvolutionContext{conv_prob};
             ctx.do_search                  = this->do_search;
             ctx.save_srch_req              = this->save_srch_req;
             ctx.use_asm_kernels            = this->use_asm_kernels;
@@ -76,20 +100,13 @@ struct FusionProblemDescription : miopen::ExecutionContext,
             MIOPEN_THROW(miopenStatusNotImplemented);
         }
     }
-    static std::string table_name() { return "config"; } // revisit this
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
-    {
-        auto prob_ctx = self.GetConvContext(0, conv::Direction::Forward);
-        ProblemDescription::Visit(prob_ctx, f);
-    }
     bool is_for_generic_search = false;
 };
 
 namespace solver {
 namespace fusion {
 
-using FusionSolverBase = SolverMixin<FusionProblemDescription>;
+using FusionSolverBase = SolverMixin<FusionContext>;
 
 struct FusionTunableSolverBase : FusionSolverBase
 {
@@ -102,12 +119,11 @@ struct FusionTunableSolverBase : FusionSolverBase
     /// The int parameter is needed only to not change the name of the
     /// function in the derived class. Function declarations that differ
     /// only by its return type cannot be overloaded.
-    virtual boost::any GetDefaultPerformanceConfig(const FusionProblemDescription& ctx,
-                                                   int) const = 0;
+    virtual boost::any GetDefaultPerformanceConfig(const FusionContext& ctx, int) const = 0;
 
     /// Should return false if performance config is wrong for a problem.
     /// Main use is validation of values read from the perf db.
-    virtual bool IsValidPerformanceConfig(const FusionProblemDescription& ctx,
+    virtual bool IsValidPerformanceConfig(const FusionContext& ctx,
                                           const boost::any& config) const = 0;
 
     /// Search
@@ -116,43 +132,35 @@ struct FusionTunableSolverBase : FusionSolverBase
     /// function in the derived class. Function declarations that differ
     /// only by its return type cannot be overloaded.
     virtual boost::any
-    Search(const FusionProblemDescription& ctx, const AnyInvokeParams& invoke_ctx, int) const = 0;
+    Search(const FusionContext& ctx, const AnyInvokeParams& invoke_ctx, int) const = 0;
 
     /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
-    virtual ConvSolution GetSolution(const FusionProblemDescription& ctx,
-                                     const boost::any& config) const = 0;
+    virtual ConvSolution GetSolution(const FusionContext& ctx, const boost::any& config) const = 0;
 };
 template <class PerformanceConfig>
 struct FusionTunableSolver : FusionTunableSolverBase
 {
-    virtual PerformanceConfig
-    GetDefaultPerformanceConfig(const FusionProblemDescription&) const    = 0;
-    virtual bool IsValidPerformanceConfig(const FusionProblemDescription&,
-                                          const PerformanceConfig&) const = 0;
-    virtual PerformanceConfig Search(const FusionProblemDescription&,
-                                     const AnyInvokeParams&) const        = 0;
-    virtual ConvSolution GetSolution(const FusionProblemDescription&,
-                                     const PerformanceConfig&) const      = 0;
+    virtual PerformanceConfig GetDefaultPerformanceConfig(const FusionContext&) const           = 0;
+    virtual bool IsValidPerformanceConfig(const FusionContext&, const PerformanceConfig&) const = 0;
+    virtual PerformanceConfig Search(const FusionContext&, const AnyInvokeParams&) const        = 0;
+    virtual ConvSolution GetSolution(const FusionContext&, const PerformanceConfig&) const      = 0;
 
-    boost::any GetDefaultPerformanceConfig(const FusionProblemDescription& ctx, int) const final
+    boost::any GetDefaultPerformanceConfig(const FusionContext& ctx, int) const final
     {
         return GetDefaultPerformanceConfig(ctx);
     }
 
-    bool IsValidPerformanceConfig(const FusionProblemDescription& ctx,
-                                  const boost::any& config) const final
+    bool IsValidPerformanceConfig(const FusionContext& ctx, const boost::any& config) const final
     {
         return IsValidPerformanceConfig(ctx, boost::any_cast<const PerformanceConfig&>(config));
     }
 
-    boost::any
-    Search(const FusionProblemDescription& ctx, const AnyInvokeParams& invoke_ctx, int) const final
+    boost::any Search(const FusionContext& ctx, const AnyInvokeParams& invoke_ctx, int) const final
     {
         return Search(ctx, invoke_ctx);
     }
 
-    ConvSolution GetSolution(const FusionProblemDescription& ctx,
-                             const boost::any& config) const final
+    ConvSolution GetSolution(const FusionContext& ctx, const boost::any& config) const final
     {
         return GetSolution(ctx, boost::any_cast<const PerformanceConfig&>(config));
     }
@@ -166,25 +174,25 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
         : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, -1, false)
     {
     }
-    void HeuristicInit(const FusionProblemDescription& config);
-    bool SetNextValue(const FusionProblemDescription& config);
-    bool IsValid(const FusionProblemDescription& config) const;
+    void HeuristicInit(const FusionContext& config);
+    bool SetNextValue(const FusionContext& config);
+    bool IsValid(const FusionContext& config) const;
 };
 struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
-    bool IsApplicable(const FusionProblemDescription& desc) const override;
+    bool IsApplicable(const FusionContext& desc) const override;
     ConvSolution
-    GetSolution(const FusionProblemDescription& problem,
+    GetSolution(const FusionContext& problem,
                 const PerformanceConfigConvBiasActivAsm1x1U& /*config*/) const override;
 
     PerformanceConfigConvBiasActivAsm1x1U
-    GetDefaultPerformanceConfig(const FusionProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const FusionContext&) const override;
 
-    PerformanceConfigConvBiasActivAsm1x1U Search(const FusionProblemDescription&,
+    PerformanceConfigConvBiasActivAsm1x1U Search(const FusionContext&,
                                                  const AnyInvokeParams& invoke_ctx) const override;
-    bool IsValidPerformanceConfig(const FusionProblemDescription&,
+    bool IsValidPerformanceConfig(const FusionContext&,
                                   const PerformanceConfigConvBiasActivAsm1x1U&) const override;
 };
 
@@ -196,14 +204,14 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
         return GetSolverDbId<ConvOclDirectFwdFused>();
     }
 
-    bool IsApplicable(const FusionProblemDescription& problem) const override;
-    ConvSolution GetSolution(const FusionProblemDescription& problem,
+    bool IsApplicable(const FusionContext& problem) const override;
+    ConvSolution GetSolution(const FusionContext& problem,
                              const PerformanceConfigConvOclDirectFwdFused&) const override;
     PerformanceConfigConvOclDirectFwdFused
-    GetDefaultPerformanceConfig(const FusionProblemDescription&) const override;
-    PerformanceConfigConvOclDirectFwdFused Search(const FusionProblemDescription&,
+    GetDefaultPerformanceConfig(const FusionContext&) const override;
+    PerformanceConfigConvOclDirectFwdFused Search(const FusionContext&,
                                                   const AnyInvokeParams& invoke_ctx) const override;
-    bool IsValidPerformanceConfig(const FusionProblemDescription&,
+    bool IsValidPerformanceConfig(const FusionContext&,
                                   const PerformanceConfigConvOclDirectFwdFused&) const override;
 };
 
@@ -214,8 +222,8 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
         return GetSolverDbId<ConvBinWinogradRxSFused>();
     }
 
-    bool IsApplicable(const FusionProblemDescription& params) const override;
-    ConvSolution GetSolution(const FusionProblemDescription& params) const;
+    bool IsApplicable(const FusionContext& params) const override;
+    ConvSolution GetSolution(const FusionContext& params) const;
 };
 
 } // namespace fusion

@@ -502,7 +502,7 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
 namespace fusion {
 
 PerformanceConfigConvOclDirectFwdFused
-ConvOclDirectFwdFused::Search(const FusionProblemDescription& problem,
+ConvOclDirectFwdFused::Search(const FusionContext& problem,
                               const AnyInvokeParams& invoke_params) const
 {
     const auto& conv_ctx = problem.GetConvContext(0, conv::Direction::Forward);
@@ -510,9 +510,9 @@ ConvOclDirectFwdFused::Search(const FusionProblemDescription& problem,
     return legacy.Search(conv_ctx, invoke_params);
 }
 
-bool ConvOclDirectFwdFused::IsApplicable(const FusionProblemDescription& context) const
+bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context) const
 {
-    const auto& desc = *context.fusion_plan_desc;
+    const auto& desc = *context.problem.fusion_plan_desc;
     if(desc.op_map.empty())
     {
         MIOPEN_THROW("No operators added to fusion plan");
@@ -541,11 +541,11 @@ bool ConvOclDirectFwdFused::IsApplicable(const FusionProblemDescription& context
         if(!(prim == miopenFusionOpActivForward))
             return false;
     }
-    const auto conv_context = context.GetConvContext(0, conv::Direction::Forward);
-    if(!conv_context.IsFp32())
+    const auto conv_prob = context.problem.GetConvProblem(0, conv::Direction::Forward);
+    if(!conv_prob.IsFp32())
         return false;
     const auto base = ConvOclDirectFwd{};
-    return base.IsApplicable(conv_context);
+    return base.IsApplicable(context.GetConvContext(0, conv::Direction::Forward));
 }
 inline int GetOpIdx(const std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map,
                     miopenFusionOp_t op)
@@ -560,7 +560,7 @@ inline int GetOpIdx(const std::vector<std::shared_ptr<FusionOpDescriptor>>& op_m
     return -1;
 }
 ConvSolution
-ConvOclDirectFwdFused::GetSolution(const FusionProblemDescription& context,
+ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
                                    const PerformanceConfigConvOclDirectFwdFused& config) const
 {
     ConvSolution result =
@@ -572,7 +572,7 @@ ConvOclDirectFwdFused::GetSolution(const FusionProblemDescription& context,
     auto& kernel_info       = result.construction_params[0];
     kernel_info.kernel_file = "MIOpenConvDirBatchNormActiv.cl";
     kernel_info.kernel_name = "MIOpenConvUniBatchNormActiv";
-    const auto& desc        = *context.fusion_plan_desc;
+    const auto& desc        = *context.problem.fusion_plan_desc;
 
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
@@ -673,7 +673,7 @@ ConvOclDirectFwdFused::GetSolution(const FusionProblemDescription& context,
 }
 
 PerformanceConfigConvOclDirectFwdFused
-ConvOclDirectFwdFused::GetDefaultPerformanceConfig(const FusionProblemDescription& desc) const
+ConvOclDirectFwdFused::GetDefaultPerformanceConfig(const FusionContext& desc) const
 {
 
     const auto base = ConvOclDirectFwd{};
@@ -681,7 +681,7 @@ ConvOclDirectFwdFused::GetDefaultPerformanceConfig(const FusionProblemDescriptio
     return base.GetDefaultPerformanceConfig(desc.GetConvContext(0, conv::Direction::Forward));
 }
 bool ConvOclDirectFwdFused::IsValidPerformanceConfig(
-    const FusionProblemDescription& problem, const PerformanceConfigConvOclDirectFwdFused& c) const
+    const FusionContext& problem, const PerformanceConfigConvOclDirectFwdFused& c) const
 {
     const auto base = ConvOclDirectFwd{};
     return base.IsValidPerformanceConfig(problem.GetConvContext(0, conv::Direction::Forward), c);
