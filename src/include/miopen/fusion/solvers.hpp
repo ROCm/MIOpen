@@ -226,6 +226,17 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
     ConvSolution GetSolution(const FusionContext& params) const;
 };
 
+struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvBinWinogradRxSf2x3g1Fused>();
+    }
+
+    bool IsApplicable(const FusionContext& params) const override;
+    ConvSolution GetSolution(const FusionContext& params) const;
+};
+
 } // namespace fusion
 } // namespace solver
 } // namespace miopen

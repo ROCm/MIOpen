@@ -35,6 +35,8 @@
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/sequences.hpp>
 #include <miopen/stringutils.hpp>
+#include <miopen/fusion/solvers.hpp>
+#include <miopen/fusion/utils.hpp>
 
 #include <boost/any.hpp>
 #include <boost/optional.hpp>
@@ -927,19 +929,43 @@ ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& par
     return tunable.GetSolution(params, tunable.GetDefaultPerformanceConfig(params));
 }
 
-bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const ConvolutionContext&) const
+namespace fusion {
+
+bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context) const
 {
-    return true; // Actual checks moved to FusionMDGraph.
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
+        return false;
+    if(!WinoCommonIsApplicable(context))
+        return false;
+    const miopen::ConvolutionContext conv_ctx =
+        context.GetConvContext(0, miopen::conv::Direction::Forward);
+    const std::string name = conv_ctx.GetStream().GetDeviceName();
+    if(name == "gfx900" || name == "gfx906" || name == "gfx908" || name == "gfx90a" ||
+       name == "gfx1011" || name == "gfx1012" || name == "gfx1030" || name == "gfx1031")
+    {
+        const auto oH = conv_ctx.problem.conv_problem.GetOutHeight();
+        const auto oW = conv_ctx.problem.conv_problem.GetOutWidth();
+        if(oH * oW > std::pow(2, 23))
+            return false;
+    }
+    else
+        return false;
+    if(conv_ctx.problem.kernel_stride_h > 2)
+        return false;
+    return true;
 }
 
-ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const ConvolutionContext& params) const
+ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& params) const
 {
     ConvSolution result;
     KernelInfo kernel;
 
-    const auto n_groups = params.GetStream().GetMaxHardwareComputeUnits();
-    const auto name     = params.GetStream().GetDeviceName();
+    const auto conv_ctx = params.GetConvContext(0, miopen::conv::Direction::Forward);
+
+    const auto n_groups = conv_ctx.GetStream().GetMaxHardwareComputeUnits();
+    const auto name     = conv_ctx.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
+    const auto is_gfx10 = StartsWith(name, "gfx10");
     size_t wg_size      = is_gfx9 ? 512 : 256;
     kernel.g_wk.push_back(wg_size * n_groups);
     kernel.g_wk.push_back(1);
@@ -955,14 +981,80 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const ConvolutionContext
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     if(!is_gfx9)
         kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
-
-    // File and name are defined in FusionMDGraph, so no need (and harmful)
-    // to duplicate this information here.
-    kernel.kernel_name = "<name not set>";
-    kernel.kernel_file = "<file not set>";
+    const auto kernel_postfix = "_fp32_stride" + std::to_string(conv_ctx.problem.kernel_stride_h);
+    kernel.kernel_file        = "Conv_Winograd_v21_1_3" + kernel_postfix + ".s";
+    const std::string family  = [&]() {
+        if(is_gfx9)
+            return "gfx9";
+        else if(is_gfx10)
+            return "gfx10";
+        return "";
+    }();
+    kernel.kernel_name = "miopenSp3AsmConv_v21_1_3_" + family + kernel_postfix;
     result.construction_params.push_back(kernel);
+    const auto x = conv_ctx.problem.conv_problem.GetWeightsWidth();
+    const auto y = conv_ctx.problem.conv_problem.GetWeightsHeight();
+    if(x == 3 && y == 3)
+        result.weight = 100;
+    else
+        result.weight = 5;
+    const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
+    const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
+
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            const auto& kernel = handle.Run(kernels[0]);
+            const auto& invoke_ctx =
+                primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
+            const auto& bot_buf = invoke_ctx.in;
+            const auto& wei_buf =
+                std::dynamic_pointer_cast<miopen::fusion::ConvolutionOpInvokeParam>(
+                    invoke_ctx.op_invokers[0])
+                    ->weights;
+            const auto& top_buf = invoke_ctx.out;
+            std::vector<OpKernelArg> opArgs; // The kernel signature has a max of  12 arguments
+            if(activ_idx != -1)
+            {
+                const auto& activ_args =
+                    std::dynamic_pointer_cast<miopen::fusion::ActivationOpInvokeParam>(
+                        invoke_ctx.op_invokers[activ_idx]);
+                opArgs.emplace_back(static_cast<float>(activ_args->activAlpha));
+                opArgs.emplace_back(static_cast<float>(activ_args->activBeta));
+                opArgs.emplace_back(static_cast<float>(activ_args->activGamma));
+            }
+            if(bn_idx != -1)
+            {
+                const auto& bn_args =
+                    std::dynamic_pointer_cast<miopen::fusion::BatchNormInferenceOpInvokeParam>(
+                        invoke_ctx.op_invokers[bn_idx]);
+                opArgs.emplace_back(static_cast<double>(bn_args->epsilon));
+            }
+            opArgs.emplace_back(bot_buf);
+            opArgs.emplace_back(top_buf);
+            opArgs.emplace_back(wei_buf);
+            if(bias_idx != -1)
+            {
+                opArgs.emplace_back(std::dynamic_pointer_cast<miopen::fusion::BiasOpInvokeParam>(
+                                        invoke_ctx.op_invokers[1])
+                                        ->bdata);
+            }
+            if(bn_idx != -1)
+            {
+                const auto& bn_args =
+                    std::dynamic_pointer_cast<miopen::fusion::BatchNormInferenceOpInvokeParam>(
+                        invoke_ctx.op_invokers[bn_idx]);
+                opArgs.emplace_back(bn_args->bnBias);
+                opArgs.emplace_back(bn_args->bnScale);
+                opArgs.emplace_back(bn_args->estimatedMean);
+                opArgs.emplace_back(bn_args->estimatedVariance);
+            }
+            kernel(opArgs);
+        };
+    };
     return result;
 }
+
+} // namespace fusion
 
 template struct ConvBinWinoRxS<2, 3>;
 template struct ConvBinWinoRxS<3, 2>;

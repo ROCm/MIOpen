@@ -1797,17 +1797,6 @@ struct ConvBinWinogradRxSf2x3g1 final : ConvSolver
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct ConvBinWinogradRxSf2x3g1Fused final : ConvSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvBinWinogradRxSf2x3g1Fused>();
-    }
-
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params) const;
-};
-
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
 struct ConvMPBidirectWinograd final : ConvSolver
 {

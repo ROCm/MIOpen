@@ -1034,7 +1034,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
     const auto solvers    = solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U,
-                                                 solver::fusion::ConvOclDirectFwdFused>{};
+                                                 solver::fusion::ConvOclDirectFwdFused,
+                                                 solver::fusion::ConvBinWinogradRxSFused,
+                                                 solver::fusion::ConvBinWinogradRxSf2x3g1Fused>{};
     auto exec_ctx         = ExecutionContext{&handle};
     exec_ctx.DetectRocm();
     const auto fusion_ctx = FusionContext{this, handle};
@@ -1063,8 +1065,13 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                 *sol.invoker_factory, sol.construction_params); // force compilation
             network_config = NetworkConfig{ss.str()};
             handle.RegisterInvoker(invoker, network_config, sol.solver_id, {});
-            solution = sol;
+            solutions.push_back(sol);
         }
+        std::sort(solutions.begin(),
+                  solutions.end(),
+                  [](const solver::ConvSolution& a, const solver::ConvSolution& b) -> bool {
+                      return a.weight < b.weight;
+                  });
         status = miopenStatusSuccess;
     }
     return status;
@@ -1085,7 +1092,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm, "The input descriptors dont match.");
     }
-
+    const auto& solution = solutions[0];
     if(!solution.Succeeded())
     {
         MIOPEN_THROW(miopenStatusBadParm, "The Fusion Plan was not compiled");

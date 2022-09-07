@@ -34,6 +34,7 @@
 #include <miopen/conv/tensors.hpp>
 #include <miopen/fusion_plan.hpp>
 #include <miopen/fusion/solvers.hpp>
+#include <miopen/fusion/utils.hpp>
 
 #include <boost/any.hpp>
 
@@ -501,86 +502,6 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
 }
 namespace fusion {
 
-inline bool WinoCommonIsApplicable(const FusionContext& params)
-{
-    const auto& desc = *params.problem.fusion_plan_desc;
-    if(desc.op_map.empty())
-    {
-        MIOPEN_THROW("");
-    }
-    // check the sequence of prims
-    if(desc.op_map.size() > 3)
-        return false;
-    if(desc.op_map[0]->kind() != miopenFusionOpConvForward)
-        return false;
-    if(desc.op_map.size() >= 2)
-    {
-        const auto prim = desc.op_map[1]->kind();
-        if(!(prim == miopenFusionOpBiasForward || prim == miopenFusionOpActivForward))
-            return false;
-    }
-    if(desc.op_map.size() == 3)
-    {
-        const auto prim = desc.op_map[2]->kind();
-        if(prim != miopenFusionOpActivForward)
-            return false;
-    }
-    const auto activ_idx = [&]() {
-        int idx = 0;
-        for(const auto& prim : desc.op_map)
-        {
-            if(prim->kind() == miopenFusionOpActivForward)
-                return idx;
-            ++idx;
-        }
-        return -1;
-    }();
-    if(activ_idx != -1)
-    {
-        const auto& activ_op  = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
-        const auto activ_mode = activ_op.activMode;
-        if(!(activ_mode == miopenActivationRELU || activ_mode == miopenActivationLEAKYRELU))
-            return false;
-    }
-    const miopen::ConvolutionContext conv_ctx =
-        params.GetConvContext(0, miopen::conv::Direction::Forward);
-
-    if(!conv_ctx.problem.Is2d())
-        return false;
-    if(!conv_ctx.problem.IsFp32())
-        return false;
-    if(!conv_ctx.problem.IsLayoutDefault())
-        return false;
-    if(!conv_ctx.problem.direction.IsForward())
-        return false;
-    const auto target = conv_ctx.GetStream().GetTargetProperties();
-    if(target.Xnack() && *target.Xnack())
-        return false;
-    const auto c           = conv_ctx.problem.conv_problem.GetInChannels();
-    const auto k           = conv_ctx.problem.conv_problem.GetOutChannels();
-    const auto x           = conv_ctx.problem.conv_problem.GetWeightsWidth();
-    const auto y           = conv_ctx.problem.conv_problem.GetWeightsHeight();
-    const auto oH          = conv_ctx.problem.conv_problem.GetOutHeight();
-    const auto oW          = conv_ctx.problem.conv_problem.GetOutWidth();
-    const auto iH          = conv_ctx.problem.conv_problem.GetInHeight();
-    const auto iW          = conv_ctx.problem.conv_problem.GetInWidth();
-    const auto pad_h       = conv_ctx.problem.conv_problem.GetPadH();
-    const auto pad_w       = conv_ctx.problem.conv_problem.GetPadW();
-    const auto group_count = conv_ctx.problem.conv_problem.GetGroupCount();
-    const auto N           = conv_ctx.problem.conv_problem.GetInBatchSize();
-
-    return conv_ctx.problem.kernel_stride_h == conv_ctx.problem.kernel_stride_w &&
-           conv_ctx.problem.kernel_dilation_h == 1 && conv_ctx.problem.kernel_dilation_w == 1 &&
-           (c * x * y) <= std::pow(2, 28) && (k * x * y) <= std::pow(2, 28) &&
-           (k * oH * oW) <= std::pow(2, 28) && (c * iH * iW) <= std::pow(2, 28) &&
-           x <= std::pow(2, 16) && y <= std::pow(2, 16) && pad_h <= std::pow(2, 16) &&
-           pad_w <= std::pow(2, 16) && oH <= std::pow(2, 16) && oW <= std::pow(2, 16) &&
-           iH <= std::pow(2, 16) && oW <= std::pow(2, 16) && c <= std::pow(2, 16) &&
-           k <= std::pow(2, 16) && N <= std::pow(2, 16) && group_count == 1;
-}
-
-inline int ceil(int x, int y) { return (x % y != 0) ? (x / y + 1) * y : x; }
-
 bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& params) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
@@ -606,21 +527,21 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& params) const
             if(!(c % 2 == 0))
                 return false;
             padded_y = 3;
-            padded_x = ceil(x, 3);
+            padded_x = Ceil(x, 3);
         }
         else
         {
-            padded_y = ceil(y, 6);
-            padded_x = ceil(x, 3);
+            padded_y = Ceil(y, 6);
+            padded_x = Ceil(x, 3);
         }
     }
     else if(conv_ctx.problem.kernel_stride_h == 2)
     {
-        padded_y = ceil(y, 6);
+        padded_y = Ceil(y, 6);
         if(x % 6 == 1)
-            padded_x = ceil(x, 3);
+            padded_x = Ceil(x, 3);
         else
-            padded_x = ceil(x, 6);
+            padded_x = Ceil(x, 6);
     }
     else
         return false;
@@ -649,12 +570,95 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& plan_desc
         {"ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
+    const auto x        = params.problem.conv_problem.GetWeightsWidth();
+    const auto y        = params.problem.conv_problem.GetWeightsHeight();
 
-    // File and name are defined in FusionMDGraph, so no need (and harmful)
-    // to duplicate this information here.
-    kernel.kernel_name = "<name not set>";
-    kernel.kernel_file = "conv_3x3_wheel_alpha_v9_2_7.s";
+    kernel.kernel_name = "miopenSp3AsmConvRxSU_CBA";
+    if(params.problem.kernel_stride_h == 1)
+    {
+        kernel.kernel_file = "conv_3x3_wheel_alpha_v9_2_7.s";
+    }
+    else if(params.problem.kernel_stride_h == 2)
+    {
+        kernel.kernel_file = "conv_3x3_wheel_alpha_v9_2_7_stride_2.s";
+    }
     result.construction_params.push_back(kernel);
+    if(x == 3 && y == 3)
+        result.weight = 100;
+    else
+        result.weight = 5;
+    const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
+    const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
+    int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
+    GetCompiledInParameters(
+        params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            const auto& kernel = handle.Run(kernels[0]);
+            const auto& invoke_ctx =
+                primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
+            const auto& bot_buf = invoke_ctx.in;
+            const auto& wei_buf =
+                std::dynamic_pointer_cast<miopen::fusion::ConvolutionOpInvokeParam>(
+                    invoke_ctx.op_invokers[0])
+                    ->weights;
+            const auto& top_buf = invoke_ctx.out;
+            const auto bias_ptr = [&]() {
+                if(bias_idx != -1)
+                {
+                    return std::dynamic_pointer_cast<miopen::fusion::BiasOpInvokeParam>(
+                               invoke_ctx.op_invokers[1])
+                        ->bdata;
+                }
+                else
+                    return nullptr;
+            }();
+            const int zero = 0;
+            int flags      = [&]() {
+                if(bias_idx != -1 && activ_idx != -1)
+                    return (1 << 7) + (1 << 8);
+                else if(bias_idx != -1)
+                    return (1 << 7);
+                else
+                    return zero;
+            }();
+            float activ_alpha = [&]() {
+                if(activ_idx != -1)
+                {
+                    const auto& activ_op =
+                        dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
+                    const auto& activ_args =
+                        std::dynamic_pointer_cast<miopen::fusion::ActivationOpInvokeParam>(
+                            invoke_ctx.op_invokers[activ_idx]);
+                    if(activ_op.activMode == miopenActivationLEAKYRELU)
+                        return (static_cast<float>(activ_args->activAlpha));
+                }
+                return static_cast<float>(0.0);
+            }();
+            kernel(N,
+                   C,
+                   H,
+                   W,
+                   K,
+                   n_groups_, // Not related to group convolutions
+                   flags,     // flags
+                   zero,      // reserved
+                   bot_buf,
+                   wei_buf,
+                   top_buf,
+                   nullptr, // return_addr
+                   R,
+                   S,
+                   pad_H,
+                   pad_W,
+                   out_H,
+                   out_W,
+                   bias_ptr,
+                   activ_alpha // leaky relu alpha
+            );
+        };
+    };
     return result;
 }
 

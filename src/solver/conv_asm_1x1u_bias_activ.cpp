@@ -43,6 +43,8 @@
 
 using half_float::half;
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
+
 namespace miopen {
 namespace solver {
 
@@ -158,6 +160,7 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& problem,
     kernel_info.comp_options += cba_options.str();
 
     const auto out_data_type = ctx.problem.conv_problem.GetOutDataType();
+    sol.weight               = 50.0f;
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -234,6 +237,8 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& problem) const
     {
         MIOPEN_THROW("");
     }
+    if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}))
+        return false;
     // check the sequence of prims
     if(desc.op_map.size() > 3)
         return false;

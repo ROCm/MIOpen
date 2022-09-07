@@ -91,7 +91,7 @@ protected:
     miopenDataType_t data_type;
     std::vector<Exec_arg_t> arg_list;
     bool use_fall_back_path;
-    solver::ConvSolution solution;
+    std::vector<solver::ConvSolution> solutions;
     NetworkConfig network_config;
 };
 

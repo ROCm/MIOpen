@@ -33,6 +33,7 @@
 #include <miopen/conv/fused_data_invoke_params.hpp>
 #include <miopen/fusion_plan.hpp>
 #include <miopen/fusion/solvers.hpp>
+#include <miopen/fusion/utils.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD)
 
@@ -547,18 +548,7 @@ bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context) const
     const auto base = ConvOclDirectFwd{};
     return base.IsApplicable(context.GetConvContext(0, conv::Direction::Forward));
 }
-inline int GetOpIdx(const std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map,
-                    miopenFusionOp_t op)
-{
-    int idx = 0;
-    for(const auto& ptr : op_map)
-    {
-        if(ptr->kind() == op)
-            return idx;
-        ++idx;
-    }
-    return -1;
-}
+
 ConvSolution
 ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
                                    const PerformanceConfigConvOclDirectFwdFused& config) const
@@ -617,6 +607,11 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
         kernel_info.comp_options += " -DMIOPEN_READ_UNIT=" + std::to_string(read_unit);
         kernel_info.comp_options += " -DMIOPEN_READ_TYPE=" + READ_TYPE;
     }
+
+    if(bn_idx != -1)
+        result.weight = 0.0f;
+    else
+        result.weight = 10.0f;
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
