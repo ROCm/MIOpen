@@ -359,19 +359,10 @@ AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
     return GetFFTSolvers().GetWorkspaceSizes(ctx);
 }
 
-void miopen::ConvolutionContext::SetupFloats()
+miopen::ConvolutionContext& miopen::ConvolutionContext::SetupFloats()
 {
-    if(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8())
-    {
-        general_compile_options += GetDataTypeKernelParams(problem.in_data_type);
-    }
-    else
-    {
-        MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(problem.in_data_type) << "x"
-                     << miopen::GetDataTypeName(problem.weights_data_type) << "x"
-                     << miopen::GetDataTypeName(problem.out_data_type));
-    }
+    ExecutionContext::SetupFloats(problem.conv_problem);
+    return *this;
 }
 
 void mlo_construct_activ_lrn_pooling_common::setupFloats()

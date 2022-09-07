@@ -95,9 +95,6 @@ struct ConvolutionUserBuffers
 /// TODO: These three entities should be made separate.
 struct ConvolutionContext : ExecutionContext
 {
-    // Solution-specific
-    std::string general_compile_options;
-
     ConvolutionContext() = default;
     ConvolutionContext(conv::Direction dir) : problem(dir) {}
     ConvolutionContext(const TensorDescriptor& in,
@@ -109,9 +106,13 @@ struct ConvolutionContext : ExecutionContext
         : problem(in, weights, out, conv, dir, bias_)
     {
     }
+    ConvolutionContext(const ExecutionContext& exec_ctx, const ProblemDescription& problem_)
+        : ExecutionContext(exec_ctx), problem(problem_)
+    {
+    }
     ConvolutionContext(const ProblemDescription& problem_) : problem(problem_) {}
 
-    void SetupFloats();
+    ConvolutionContext& SetupFloats();
 
 public:
     bool is_for_generic_search = false;
