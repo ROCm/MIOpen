@@ -272,6 +272,20 @@ def CheckDeserializePerfDb(Map conf=[:]){
     }
 }
 
+def CheckPreCompiledKernelsInCache(Map conf=[:]){
+    def cache_image = buildHipClangJob(conf)
+    cache_image.inside(){
+        sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/src/tests/fin_input_find_kernel.json -o kernel_cache_chk_result.json"
+        archiveArtifacts "kernel_cache_chk_result.json"
+        sh "grep clear kernel_cache_chk_result.json"
+        def has_error = sh (
+            script: "echo \$?",
+            returnStdout: true
+        ).trim()
+        assert has_error.toInteger() == 0
+    }
+}
+
 def buildDocker(install_prefix)
 {
     env.DOCKER_BUILDKIT=1
@@ -509,6 +523,16 @@ pipeline {
                     }
                     steps{
                         buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd, needs_gpu:false)
+                    }
+                }
+                stage('Search Precompiled Kernels Test') {
+                    agent{ label rocmnode("nogpu") }
+                    environment{
+                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON"
+
+                    }
+                    steps{
+                        CheckPreCompiledKernelsInCache(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
                     }
                 }
             }
