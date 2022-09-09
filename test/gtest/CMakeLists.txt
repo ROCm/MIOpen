@@ -7,7 +7,7 @@ include(GoogleTest)
 
 find_package(rocblas)
 
-set(SOURCES log_test_helper.cpp)
+set(SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/log_test_helper.cpp")
 
 function(add_gtest TEST_NAME)
   message("Adding Test: " ${TEST_NAME})
@@ -21,10 +21,10 @@ function(add_gtest TEST_NAME)
 endfunction()
 
 file(GLOB TESTS *.cpp)
+# this is the file I want to exclude / remove from the TESTS
+list(REMOVE_ITEM TESTS "${SOURCES}")
+
 foreach(TEST ${TESTS})
-    if("${TEST}" MATCHES "help")
-      continue()
-    endif()
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
     add_gtest(${BASE_NAME})
 endforeach()
