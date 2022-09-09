@@ -86,9 +86,9 @@ static float CallImplGemmDynamicForward1x1(const miopen::Handle& handle,
     return elapsed;
 }
 
-InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionContext& ctx)
+InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const miopen::ProblemDescription& problem)
 {
-    const auto& conv_problem = ctx.problem.conv_problem;
+    const auto& conv_problem = problem.conv_problem;
     return [conv_problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();

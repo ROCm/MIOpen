@@ -186,7 +186,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmABlockCopyPerformanceParameters
     int ClusterLengths_GemmM      = 0;
     int SrcDataPerRead_GemmM      = amd_buffer_load_max_length<float>();
     int DstDataPerWrite_GemmM     = amd_lds_write_max_length<float>();
-    int DstDataPerWrite_GemmKPACK = GetEPackLength(ctx, false);
+    int DstDataPerWrite_GemmKPACK = GetEPackLength(ctx, ctx.problem, false);
 
     try
     {
@@ -251,7 +251,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateGemmBBlockCopyPerformanceParameters
     int ClusterLengths_GemmN      = 0;
     int SrcDataPerRead_GemmN      = amd_buffer_load_max_length<float>();
     int DstDataPerWrite_GemmN     = amd_lds_write_max_length<float>();
-    int DstDataPerWrite_GemmKPACK = GetEPackLength(ctx, false);
+    int DstDataPerWrite_GemmKPACK = GetEPackLength(ctx, ctx.problem, false);
 
     try
     {
@@ -419,7 +419,7 @@ PerformanceImplicitGemmBwdDataV1R1::CalculateLdsNumberOfByte(const ConvolutionCo
         if(!valid)
             MIOPEN_THROW("invalid performance parameter");
 
-        const int epack                        = GetEPackLength(ctx, false);
+        const int epack                        = GetEPackLength(ctx, ctx.problem, false);
         const auto ThreadGemmDataPerRead_GemmM = ctx.problem.IsFp32() ? GemmMPerThread : epack;
         const auto ThreadGemmDataPerRead_GemmN = ctx.problem.IsFp32() ? GemmNPerThread : epack;
 
@@ -604,7 +604,7 @@ ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx)
     const auto gemm_n =
         n * ho * wo *
         (ctx.problem.Is3d() ? ConvolutionContextInterpreter::GetOutputDepthDo(ctx) : 1);
-    const auto gemm_k = k / GetEPackLength(ctx, false);
+    const auto gemm_k = k / GetEPackLength(ctx, ctx.problem, false);
 
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
@@ -661,7 +661,7 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ConvolutionContext& ctx)
         return false;
 
     const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    if(k % GetEPackLength(ctx, false) != 0)
+    if(k % GetEPackLength(ctx, ctx.problem, false) != 0)
         return false;
 
     int gemm_m = 0;
@@ -853,7 +853,7 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
     else
     {
         construction_parameters.comp_options +=
-            std::string(" -DCK_PARAM_KPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) +
+            std::string(" -DCK_PARAM_KPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, ctx.problem, false)) +
             std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") +
             std::to_string(GemmABlockCopyDstDataPerWrite_GemmKPACK) +
             std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") +

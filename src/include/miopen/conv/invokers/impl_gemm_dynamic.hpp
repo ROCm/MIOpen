@@ -185,10 +185,10 @@ ComputeDynamicIGemmForwardKernelArgs<solver::TunableImplicitGemmGTCDynamic_t>(
 }
 
 template <typename T>
-static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext& ctx,
+static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const miopen::ProblemDescription& problem,
                                                                       const T& cfg)
 {
-    const auto& conv_problem = ctx.problem.conv_problem;
+    const auto& conv_problem = problem.conv_problem;
     auto opArgs              = ComputeDynamicIGemmForwardKernelArgs<T>(conv_problem, cfg);
     return [opArgs](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
@@ -205,7 +205,7 @@ static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const Conv
     };
 }
 
-InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionContext& ctx);
+InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const miopen::ProblemDescription& problem);
 
 template <typename T = int>
 InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionContext& ctx,

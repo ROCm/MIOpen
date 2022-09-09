@@ -72,7 +72,7 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx) con
     std::size_t eMultiple = (ctx.problem.IsFp16() || ctx.problem.IsBfp16()) ? 16 : 8;
 
     // batch is divided by epack to pack 2/4 fp16/bfp16
-    if(c % GetEPackLength(ctx, false) != 0)
+    if(c % GetEPackLength(ctx, ctx.problem, false) != 0)
         return false;
 
     return n % 8 == 0 && (n * ho * wo) % 32 == 0 && (n * ho * wo * k) % 1024 == 0 &&
@@ -121,7 +121,7 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx) con
     std::size_t eMultiple = (ctx.problem.IsFp16() || ctx.problem.IsBfp16()) ? 16 : 8;
 
     // batch is divided by epack to pack 2/4 fp16/bfp16
-    if(c_eqv % GetEPackLength(ctx, false) != 0)
+    if(c_eqv % GetEPackLength(ctx, ctx.problem, false) != 0)
         return false;
 
     return n_eqv % 8 == 0 && (n_eqv * ho_eqv * wo_eqv) % 64 == 0 &&
@@ -269,11 +269,11 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
         // For fp16, E = C/EPack * Y * X
         // Since C/EPack are not in contiguous memory along with Y*X, vector length
         // can' be more than Y*X
-        if(KernelFilterHeightY(ctx) * KernelFilterWidthX(ctx) >= WeiBlockCopySubLengths_E)
+        if(KernelFilterHeightY(ctx.problem) * KernelFilterWidthX(ctx.problem) >= WeiBlockCopySubLengths_E)
             WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
         else
             WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(
-                static_cast<int>(KernelFilterHeightY(ctx) * KernelFilterWidthX(ctx)));
+                static_cast<int>(KernelFilterHeightY(ctx.problem) * KernelFilterWidthX(ctx.problem)));
     }
 
     const auto& InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
@@ -294,9 +294,9 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
     const auto InBlockCopyDstDataPerWrite_N2 =
         ctx.problem.IsFp32() ? GetReadWriteVectorSize(InBlockCopySubLengths_N2) : 1;
     const auto WeiBlockCopyDstDataPerWrite_EPack =
-        !ctx.problem.IsFp32() ? GetEPackLength(ctx, false) : 1;
+        !ctx.problem.IsFp32() ? GetEPackLength(ctx, ctx.problem, false) : 1;
     const auto InBlockCopyDstDataPerWrite_EPack =
-        !ctx.problem.IsFp32() ? GetEPackLength(ctx, false) : 1;
+        !ctx.problem.IsFp32() ? GetEPackLength(ctx, ctx.problem, false) : 1;
 
     // clang-format off
     construction_parameters.comp_options =
@@ -341,7 +341,7 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) +
-        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) +
+        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, ctx.problem, false)) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         get_static_ck_common_compiler_flag(ctx) +
@@ -489,8 +489,8 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
     }
     else
     {
-        WeiBlockCopyDstDataPerWrite_EPack = GetEPackLength(ctx, false);
-        InBlockCopyDstDataPerWrite_EPack  = GetEPackLength(ctx, false);
+        WeiBlockCopyDstDataPerWrite_EPack = GetEPackLength(ctx, ctx.problem, false);
+        InBlockCopyDstDataPerWrite_EPack  = GetEPackLength(ctx, ctx.problem, false);
         (void)WeiBlockCopyDstDataPerWrite_K;
         (void)InBlockCopyDstDataPerWrite_N2;
     }
@@ -546,7 +546,7 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_E=") + std::to_string(config.WeiBlockCopyClusterLengths_E) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) +
-        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, false)) +
+        std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, ctx.problem, false)) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx)? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
         get_static_ck_common_compiler_flag(ctx) +
