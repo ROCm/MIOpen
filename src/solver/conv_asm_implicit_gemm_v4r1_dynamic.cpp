@@ -177,7 +177,8 @@ TunableImplicitGemmV4R1Dynamic::TunableImplicitGemmV4R1Dynamic(int BPerBlock_,
 {
 }
 
-bool TunableImplicitGemmV4R1Dynamic::IsValid(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool TunableImplicitGemmV4R1Dynamic::IsValid(const ExecutionContext& ctx,
+                                             const ProblemDescription& problem) const
 {
     std::size_t N = KernelBatchN(problem);
     std::size_t K = KernelOutputChannelK(problem);
@@ -272,7 +273,8 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ExecutionContext& ctx, const 
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
 }
 
-bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx,
+                                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1{}))
         return false;
@@ -308,11 +310,13 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx
     if(target.Xnack() && *target.Xnack())
         return false;
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
-    return !std::none_of(
-        tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx, problem); });
+    return !std::none_of(tunables.begin(), tunables.end(), [&](auto tunable) {
+        return tunable.IsValid(ctx, problem);
+    });
 }
 
-bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext& ctx,
+                                                         const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1{}))
         return false;
@@ -351,8 +355,9 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext&
     if(target.Xnack() && *target.Xnack())
         return false;
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
-    return !std::none_of(
-        tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx, problem); });
+    return !std::none_of(tunables.begin(), tunables.end(), [&](auto tunable) {
+        return tunable.IsValid(ctx, problem);
+    });
 }
 
 static inline ConvSolution GetSolutionBase(const ExecutionContext& ctx,
@@ -404,11 +409,13 @@ static inline ConvSolution GetSolutionBase(const ExecutionContext& ctx,
     return result;
 }
 
-ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
+ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd::GetSolution(const ExecutionContext& ctx,
+                                                            const ProblemDescription& problem) const
 {
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
-    auto it       = std::find_if(
-        tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx, problem); });
+    auto it       = std::find_if(tunables.begin(), tunables.end(), [&](auto tunable) {
+        return tunable.IsValid(ctx, problem);
+    });
 
     if(it == tunables.end())
         MIOPEN_THROW(
@@ -418,11 +425,14 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd::GetSolution(const ExecutionConte
     return GetSolutionBase(ctx, problem, *it, AsmImplicitGemmV4R1);
 }
 
-ConvSolution ConvAsmImplicitGemmV4R1DynamicFwd_1x1::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
+ConvSolution
+ConvAsmImplicitGemmV4R1DynamicFwd_1x1::GetSolution(const ExecutionContext& ctx,
+                                                   const ProblemDescription& problem) const
 {
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
-    auto it       = std::find_if(
-        tunables.begin(), tunables.end(), [&](auto tunable) { return tunable.IsValid(ctx, problem); });
+    auto it       = std::find_if(tunables.begin(), tunables.end(), [&](auto tunable) {
+        return tunable.IsValid(ctx, problem);
+    });
 
     if(it == tunables.end())
         MIOPEN_THROW(

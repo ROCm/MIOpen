@@ -223,7 +223,8 @@ inline static uint32_t GetReadWriteVectorSize(const int v)
 }
 
 ///\todo remove
-inline static uint32_t GetEPackLength(const ExecutionContext& ctx, const ProblemDescription& problem, bool isXdlopsInvoked)
+inline static uint32_t
+GetEPackLength(const ExecutionContext& ctx, const ProblemDescription& problem, bool isXdlopsInvoked)
 {
     // Based on data type, Es are packed
     int EPACK = 1;
@@ -445,9 +446,9 @@ static inline size_t ComputeLDSRequiredSize(const ProblemDescription& problem,
 
     // Multiplied worst_case_alignment_adjustment by 2 as
     // Both A and B matrix LDS size is increased.
-    const std::size_t lds_size = (BPerBlock + KPerBlock) * EPerBlock * EPACKSize *
-                                     GetTypeSize(problem.in_data_type) * 2 +
-                                 2 * worst_case_alignment_adjustment;
+    const std::size_t lds_size =
+        (BPerBlock + KPerBlock) * EPerBlock * EPACKSize * GetTypeSize(problem.in_data_type) * 2 +
+        2 * worst_case_alignment_adjustment;
 
     return lds_size;
 }

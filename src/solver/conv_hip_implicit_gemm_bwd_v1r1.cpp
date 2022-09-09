@@ -853,7 +853,8 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
     else
     {
         construction_parameters.comp_options +=
-            std::string(" -DCK_PARAM_KPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, ctx.problem, false)) +
+            std::string(" -DCK_PARAM_KPACK_LENGTH=") +
+            std::to_string(GetEPackLength(ctx, ctx.problem, false)) +
             std::string(" -DCK_PARAM_TUNABLE_GEMM_A_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") +
             std::to_string(GemmABlockCopyDstDataPerWrite_GemmKPACK) +
             std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_KPACK=") +

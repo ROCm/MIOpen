@@ -1583,7 +1583,8 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ConvolutionContext& ct
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
     result.invoker_factory =
-        conv::MakeImplGemmDynamicForwardInvokerFactory<TunableImplicitGemmGTCDynamic_t>(ctx.problem, cfg);
+        conv::MakeImplGemmDynamicForwardInvokerFactory<TunableImplicitGemmGTCDynamic_t>(ctx.problem,
+                                                                                        cfg);
     result.construction_params.push_back(kernel);
     return result;
 }
