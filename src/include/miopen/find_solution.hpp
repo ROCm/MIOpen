@@ -82,6 +82,18 @@ auto FindSolutionImpl(
                 MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
             }
+            else if(!s.AltSolverDbId().empty() &&
+                    db.Load(context.problem, s.AltSolverDbId(), config))
+            {
+                MIOPEN_LOG_I("Perf Db: alternate record loaded: " << s.AltSolverDbId());
+                if(s.IsValidPerformanceConfig(context, config))
+                {
+                    return s.GetSolution(context, config);
+                }
+                MIOPEN_LOG_WE("Invalid alternate record loaded from Perf Db: "
+                              << s.AltSolverDbId() << ": " << config
+                              << ". Performance may degrade.");
+            }
             else
             {
                 MIOPEN_LOG_I("Perf Db: record not found for: " << s.SolverDbId());
