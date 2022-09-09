@@ -1251,8 +1251,7 @@ private:
                 return {error_handling ? "warning: HIPRTC error log empty" : ""};
             std::vector<char> buffer(n);
             HIPRTC_CALL_INFO_THROW(hiprtcGetProgramLog(prog.get(), buffer.data()), n);
-            // TODO: WORKAROUND Issue #1648
-            // assert(buffer.back() == 0);
+            assert(buffer.back() == 0 || buffer.back() == '\n' || buffer.back() == '\0');
             return {buffer.begin(), buffer.end() - 1};
         }
         catch(Error&)
