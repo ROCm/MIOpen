@@ -7,7 +7,9 @@ include(GoogleTest)
 
 find_package(rocblas)
 
-set(SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/log_test_helper.cpp")
+set(SOURCES ${SOURCES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/log_test_helper.cpp"
+    )
 
 function(add_gtest TEST_NAME)
   message("Adding Test: " ${TEST_NAME})

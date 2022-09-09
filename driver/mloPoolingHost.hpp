@@ -42,25 +42,25 @@
 template<typename _T>
 double CalcErr( _T c_val, _T g_val)
 {
-	double err = 0;
-	if (sizeof(_T) == 4)
-	{
-		int * c_uval = (int *)&c_val;
-		int * g_uval = (int *)&g_val;
-		err = (double)std::abs(*c_uval - *g_uval);
-	}
-	else if (sizeof(_T) == 8)
-	{
-		int64_t * c_uval = (int64_t *)&c_val;
-		int64_t * g_uval = (int64_t *)&g_val;
-		err = (double)std::abs(*c_uval - *g_uval);
+    double err = 0;
+    if (sizeof(_T) == 4)
+    {
+        int * c_uval = (int *)&c_val;
+        int * g_uval = (int *)&g_val;
+        err = (double)std::abs(*c_uval - *g_uval);
+    }
+    else if (sizeof(_T) == 8)
+    {
+        int64_t * c_uval = (int64_t *)&c_val;
+        int64_t * g_uval = (int64_t *)&g_val;
+        err = (double)std::abs(*c_uval - *g_uval);
 
-	}
+    }
 
-	//		double delta = abs(c_val - g_val);
-	//	double nextafter_delta = nextafterf(min(abs(c_val), abs(g_val)), (_T)INFINITY) - min(abs(c_val), abs(g_val));
-	//		err = delta / nextafter_delta;
-	return err;
+    //		double delta = abs(c_val - g_val);
+    //	double nextafter_delta = nextafterf(min(abs(c_val), abs(g_val)), (_T)INFINITY) - min(abs(c_val), abs(g_val));
+    //		err = delta / nextafter_delta;
+    return err;
 }
 #endif
 
@@ -101,6 +101,8 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
     const miopen::TensorDescriptor& bot = miopen::deref(bot_);
     const miopen::TensorDescriptor& top = miopen::deref(top_);
 
+    const auto spatial_dim = bot.GetLengths().size() - 2;
+
     int n_batchs, n_outputs, bot_depth, bot_height, bot_width;
     int bot_w_stride, bot_h_stride, bot_d_stride, bot_c_stride, bot_n_stride;
 
@@ -108,14 +110,14 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
     int top_w_stride, top_h_stride, top_d_stride, top_c_stride, top_n_stride;
 
     std::tie(n_batchs, n_outputs, bot_depth, bot_height, bot_width) =
-        miopen::GetNCDHW(bot.GetSize(), bot.GetLengths());
+        miopen::GetNCDHW(spatial_dim, bot.GetLengths());
     std::tie(bot_n_stride, bot_c_stride, bot_d_stride, bot_h_stride, bot_w_stride) =
-        miopen::GetNCDHW(bot.GetSize(), bot.GetStrides());
+        miopen::GetNCDHW(spatial_dim, bot.GetStrides());
 
     std::tie(std::ignore, std::ignore, top_depth, top_height, top_width) =
-        miopen::GetNCDHW(top.GetSize(), top.GetLengths());
+        miopen::GetNCDHW(spatial_dim, top.GetLengths());
     std::tie(top_n_stride, top_c_stride, top_d_stride, top_h_stride, top_w_stride) =
-        miopen::GetNCDHW(top.GetSize(), top.GetStrides());
+        miopen::GetNCDHW(spatial_dim, top.GetStrides());
 
     // Mask data is always NCDHW
     constexpr const int mask_w_stride = 1;
@@ -311,15 +313,17 @@ int mloPoolingBackwardRunHost(
     int top_w, top_h, top_d;
     int top_df_n_stride, top_df_c_stride, top_df_d_stride, top_df_h_stride, top_df_w_stride;
 
+    const auto spatial_dim = bot_df.GetLengths().size() - 2;
+
     std::tie(n_batchs, n_outputs, bot_d, bot_h, bot_w) =
-        miopen::GetNCDHW(bot_df.GetSize(), bot_df.GetLengths());
+        miopen::GetNCDHW(spatial_dim, bot_df.GetLengths());
     std::tie(bot_df_n_stride, bot_df_c_stride, bot_df_d_stride, bot_df_h_stride, bot_df_w_stride) =
-        miopen::GetNCDHW(bot_df.GetSize(), bot_df.GetStrides());
+        miopen::GetNCDHW(spatial_dim, bot_df.GetStrides());
 
     std::tie(std::ignore, std::ignore, top_d, top_h, top_w) =
-        miopen::GetNCDHW(top_df.GetSize(), top_df.GetLengths());
+        miopen::GetNCDHW(spatial_dim, top_df.GetLengths());
     std::tie(top_df_n_stride, top_df_c_stride, top_df_d_stride, top_df_h_stride, top_df_w_stride) =
-        miopen::GetNCDHW(top_df.GetSize(), top_df.GetStrides());
+        miopen::GetNCDHW(spatial_dim, top_df.GetStrides());
 
     int ret = 0;
 

@@ -301,6 +301,10 @@ def buildDocker(install_prefix)
         echo "Checking for image: ${image_name}"
         sh "docker manifest inspect --insecure ${image_name}"
         echo "Image: ${image_name} found!! Skipping building image"
+        if(params.DEBUG_FORCE_DOCKER_BUILD)
+        {
+            throw new Exception("Docker build override via DEBUG_FORCE_DOCKER_BUILD")
+        }
     }
     catch(Exception ex)
     {
@@ -323,7 +327,7 @@ def buildDocker(install_prefix)
 ///   * The default compiler is usually not specified.
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
-///                            MLIR | Tensile | Tensile-Latest | Package | ... }
+///                            CK | MLIR | Tensile | Tensile-Latest | Package | ... }
 /// TestSet := { All | Smoke* } [ Codecov ]
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
@@ -514,15 +518,15 @@ pipeline {
                 expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
             }
             parallel{
-               stage('Fp32 OpenCL Debug + Codecov') {
+               stage('Fp32 OpenCL Debug + Codecov AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega || gfx908") }
+                    agent{ label rocmnode("vega || gfx908 || gfx90a") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', build_type: 'debug', config_targets: Smoke_targets, codecov: true)
                     }
@@ -553,28 +557,28 @@ pipeline {
                         buildHipClangJobAndReboot(compiler: 'g++', config_targets: Smoke_targets, gpu_arch: "gfx90a:xnack-")
                     }
                 }
-                stage('Fp32 Hip') {
+                stage('Fp32 Hip AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega || gfx908") }
+                    agent{ label rocmnode("vega || gfx908 || gfx90a") }
                     steps{
                         buildHipClangJobAndReboot(config_targets: Smoke_targets)
                     }
                 }
-                stage('Fp32 Hip Debug') {
+                stage('Fp32 Hip Debug AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega || gfx908") }
+                    agent{ label rocmnode("vega || gfx908 || gfx90a") }
                     steps{
                         buildHipClangJobAndReboot(build_type: 'debug', config_targets: Smoke_targets)
                     }
@@ -631,15 +635,15 @@ pipeline {
                 expression { params.BUILD_SMOKE_AUX1 && params.DATATYPE_FP32 }
             }
             parallel{
-                stage('Fp32 Hip Debug NOCOMGR') {
+                stage('Fp32 Hip Debug NOCOMGR AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega || gfx908") }
+                    agent{ label rocmnode("vega || gfx908 || gfx90a") }
                     environment{
                         // Can be removed altogether with when WORKAROUND_SWDEV_290754.
                         NOCOMGR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
@@ -664,28 +668,28 @@ pipeline {
                         buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ')
                     }
                 }
-                stage('Fp32 Hip Static') {
+                stage('Fp32 Hip Static AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega || gfx908") }
+                    agent{ label rocmnode("vega || gfx908 || gfx90a") }
                     steps{
                         buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF')
                     }
                 }
-                stage('Fp32 Hip Normal-Find') {
+                stage('Fp32 Hip Normal-Find AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega || gfx908") }
+                    agent{ label rocmnode("vega || gfx908 || gfx90a") }
                     environment{
                         config_targets = "test_conv2d"
                         execute_cmd = "MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
@@ -694,15 +698,15 @@ pipeline {
                         buildHipClangJobAndReboot(config_targets: config_targets, execute_cmd: execute_cmd, find_mode: "Normal")
                     }
                 }
-                stage('Fp32 Hip Fast-Find') {
+                stage('Fp32 Hip Fast-Find AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega || gfx908") }
+                    agent{ label rocmnode("vega || gfx908 || gfx90a") }
                     environment{
                         config_targets =   "test_conv2d"
                         execute_cmd = "MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4  MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 bin/test_conv2d --disable-verification-cache"
@@ -711,15 +715,15 @@ pipeline {
                         buildHipClangJobAndReboot( config_targets: config_targets, execute_cmd: execute_cmd)
                     }
                 }
-                stage('Fp32 Hip') {
+                stage('Fp32 Hip AnyGPU') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 }
+                        expression { params.TARGET_VEGA20 || params.TARGET_VEGA10 || params.TARGET_GFX908 || params.TARGET_GFX90A || params.TARGET_NAVI21 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("vega || gfx908") }
+                    agent{ label rocmnode("vega || gfx908 || gfx90a") }
                     steps{
                         buildHipClangJobAndReboot()
                     }
@@ -755,6 +759,20 @@ pipeline {
                     agent{ label rocmnode("vega20") }
                     steps{
                         buildHipClangJobAndReboot(compiler: 'g++', setup_flags: Int8_flags, config_targets: Smoke_targets)
+                    }
+                }
+                stage('Int8 Hip Debug CK gfx908') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908}
+                    }
+                    agent{ label rocmnode("gfx908") }
+                    // This stage should be removed when CK is enabled by default in MIOpen
+                    environment{
+                        Enable_CK = "-DMIOPEN_USE_COMPOSABLEKERNEL=On"
+                    }
+                    steps{
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Enable_CK + Int8_flags , build_env: extra_log_env, test_flags: ' --verbose ')
                     }
                 }
                 stage('Fp16 Hip Vega20') {
@@ -926,7 +944,6 @@ pipeline {
                         buildHipClangJobAndReboot(setup_flags: Full_test, gpu_arch: "gfx90a:xnack-")
                     }
                 }
-                // #TODO Code Quality WORKAROUND ROCm 5.1 update
                 // stage('Fp32 Hip All gfx90a Xnack+') {
                 //     when {
                 //         beforeAgent true
