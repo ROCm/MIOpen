@@ -1,4 +1,4 @@
-FROM ubuntu:18.04 as miopen
+FROM ubuntu:20.04 as miopen
 
 ARG USE_MLIR="OFF"
 
@@ -8,18 +8,10 @@ RUN dpkg --add-architecture i386
 # Add rocm repository
 # Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
 # unless MLIR library is incompatible with current ROCm.
-RUN apt-get update
-RUN apt-get install -y wget gnupg
-RUN if [ "$USE_MLIR" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_5.1;\
-    else \
-        export ROCM_APT_VER=.apt_5.1;  \
-    fi && \
+RUN export ROCM_APT_VER=.apt_5.2.3;\
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ ubuntu main > /etc/apt/sources.list.d/rocm.list'
-RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu bionic main universe | tee -a /etc/apt/sources.list"
-RUN wget --no-check-certificate -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | apt-key add -
-RUN sh -c "echo deb https://apt.kitware.com/ubuntu/ bionic main | tee -a /etc/apt/sources.list"
+RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu focal main universe | tee -a /etc/apt/sources.list"
 
 #Add gpg keys
 # Install dependencies
@@ -58,7 +50,6 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     python3 \
     python-dev \
     python3-dev \
-    python-pip \
     python3-pip \
     python3-distutils \
     python3-venv \
