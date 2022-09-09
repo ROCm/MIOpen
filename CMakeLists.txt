@@ -340,7 +340,7 @@ if(MIOPEN_USE_MLIR)
             message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
         endif()
     else()
-        message(STATUS "Build with rocMLIR::rockCompiler ${rockCompiler_VERSION}")
+        message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION}")
     endif()
 endif()
 
