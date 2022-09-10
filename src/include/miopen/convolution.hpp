@@ -62,7 +62,6 @@ struct ExecutionContext;
 struct ConvolutionContext;
 struct Handle;
 struct TensorDescriptor;
-struct ConvolutionUserBuffers;
 struct ProblemDescription;
 struct ConvFwdTensors;
 struct ConvWrwTensors;
@@ -199,7 +198,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   const TensorDescriptor& yDesc,
                                   bool exhaustiveSearch,
                                   bool isForward,
-                                  const ConvolutionUserBuffers& bufs,
                                   const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
