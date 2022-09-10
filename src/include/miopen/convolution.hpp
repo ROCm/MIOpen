@@ -59,7 +59,6 @@ struct ExecutionContext;
 struct ConvolutionContext;
 struct Handle;
 struct TensorDescriptor;
-struct ConvolutionUserBuffers;
 struct ProblemDescription;
 
 using ExtraKernelArgs = std::tuple<int /*N*/,
@@ -204,7 +203,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             const TensorDescriptor& yDesc,
                             bool exhaustiveSearch,
                             bool isForward,
-                            const ConvolutionUserBuffers& bufs,
                             const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
@@ -220,7 +218,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   const TensorDescriptor& yDesc,
                                   bool exhaustiveSearch,
                                   bool isForward,
-                                  const ConvolutionUserBuffers& bufs,
                                   const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
