@@ -1697,7 +1697,8 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : ConvTunableSolver<LegacyPerforma
 
 private:
     template <typename Tgpu>
-    LegacyPerformanceConfig SearchImpl(const ConvolutionContext&) const;
+    LegacyPerformanceConfig SearchImpl(const ConvolutionContext&,
+                                       const AnyInvokeParams& invoke_ctx) const;
 };
 
 struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch

@@ -24,11 +24,13 @@
  *
  *******************************************************************************/
 
+#include <miopen/solver.hpp>
+
 #include <miopen/allocator.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/bfloat16.hpp>
 
 #include <half.hpp>
@@ -209,14 +211,14 @@ static int MeasurePerfConfig(const Handle& handle,
 
 LegacyPerformanceConfig
 ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params,
-                                               const AnyInvokeParams&) const
+                                               const AnyInvokeParams& invoke_ctx) const
 {
     if(params.problem.IsFp16())
-        return SearchImpl<half_float::half>(params);
+        return SearchImpl<half_float::half>(params, invoke_ctx);
     else if(params.problem.IsFp32())
-        return SearchImpl<float>(params);
+        return SearchImpl<float>(params, invoke_ctx);
     else if(params.problem.IsBfp16())
-        return SearchImpl<bfloat16>(params);
+        return SearchImpl<bfloat16>(params, invoke_ctx);
     else
     {
         MIOPEN_THROW("Unsupported float_size");
@@ -225,7 +227,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params,
 
 template <typename Tgpu>
 LegacyPerformanceConfig
-ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& params) const
+ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& params,
+                                                   const AnyInvokeParams& invoke_ctx) const
 {
     LegacyPerformanceConfig result;
     bool is_passed = false;
@@ -288,14 +291,14 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     }
     auto bias_ocl_ptr = bias_ocl_buf.get();
 #else
-    auto& profile_h  = params.GetStream();
-    auto bot_ocl_ptr = params.problem.direction.IsForward() ? params.GetBufs().io.fwd.x
-                                                            : params.GetBufs().io.bwd.dy;
-    auto top_ocl_ptr = params.problem.direction.IsForward() ? params.GetBufs().io.fwd.y
-                                                            : params.GetBufs().io.bwd.dx;
-    auto wei_ocl_ptr = params.problem.direction.IsForward() ? params.GetBufs().io.fwd.w
-                                                            : params.GetBufs().io.bwd.w;
-    auto bias_ocl_ptr = params.GetBufs().bias;
+    auto& profile_h           = params.GetStream();
+    const auto& invoke_params = invoke_ctx.CastTo<conv::DataInvokeParams>();
+    const auto bot_ocl_ptr    = invoke_params.tensors.in;
+    const auto top_ocl_ptr    = invoke_params.tensors.out;
+    const auto wei_ocl_ptr    = invoke_params.tensors.w;
+    // There was no place in the source, where it has been actually set to something other than
+    // nullptr.
+    const auto bias_ocl_ptr = static_cast<Data_t>(nullptr);
 #endif
     AutoEnableProfiling enableProfiling{profile_h};
 
