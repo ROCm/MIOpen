@@ -348,9 +348,9 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
 
     MIOPEN_LOG_FUNCTION(handle, wDesc, yDesc, convDesc, workSpaceSize);
     miopen::try_([&] {
-        auto ctx               = miopen::ExecutionContext{};
-        auto problem           = miopen::conv::ProblemDescription{};
-        std::tie(ctx, problem) = MakeFwdCtxAndProblem(handle, xDesc, wDesc, convDesc, yDesc);
+        auto ctx                     = miopen::ExecutionContext{};
+        auto problem                 = miopen::conv::ProblemDescription{};
+        std::tie(ctx, problem)       = MakeFwdCtxAndProblem(handle, xDesc, wDesc, convDesc, yDesc);
         miopen::deref(workSpaceSize) = miopen::deref(convDesc).GetWorkSpaceSize(ctx, problem);
     });
 
@@ -913,8 +913,8 @@ miopenConvolutionBackwardWeightsGetSolutionCount(miopenHandle_t handle,
     return miopen::try_([&] {
         using namespace miopen;
 
-        auto ctx           = ExecutionContext{};
-        auto problem       = conv::ProblemDescription{};
+        auto ctx               = ExecutionContext{};
+        auto problem           = conv::ProblemDescription{};
         std::tie(ctx, problem) = MakeWrWCtxAndProblem(handle, dyDesc, xDesc, convDesc, dwDesc);
 
         *solutionCount = deref(convDesc).GetSolutionCount(ctx, problem);

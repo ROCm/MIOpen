@@ -143,7 +143,7 @@ miopenStatus_t FusionPlanDescriptor::GetWorkspaceSizeImmed(Handle& handle,
             auto& ptr = dynamic_cast<ConvForwardOpDescriptor&>(*op);
             TensorDescriptor opd;
             ptr.GetOutputDesc(opd);
-            const auto ctx = ExecutionContext{&handle};
+            const auto ctx     = ExecutionContext{&handle};
             const auto problem = conv::ProblemDescription{
                 ptr.input_desc, ptr.filter_desc, opd, ptr.base_desc, conv::Direction::Forward};
             const auto tmp_sz = ptr.base_desc.GetWorkSpaceSize(ctx, problem);

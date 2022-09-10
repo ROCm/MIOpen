@@ -57,7 +57,6 @@ namespace solver {
 struct ConvSolution;
 } // namespace solver
 
-
 struct AnyInvokeParams;
 struct ExecutionContext;
 struct ConvolutionContext;

@@ -107,14 +107,14 @@ struct ExecutionContext
 
     inline ExecutionContext WithPerfdbAccess(bool flag) const
     {
-        auto ret      = *this;
+        auto ret                  = *this;
         ret.disable_perfdb_access = !flag;
         return ret;
     }
 
     inline ExecutionContext WithDinamicSolutionsOnly(bool flag) const
     {
-        auto ret                  = *this;
+        auto ret                       = *this;
         ret.use_dynamic_solutions_only = !flag;
         return ret;
     }

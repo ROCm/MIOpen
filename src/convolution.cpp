@@ -425,7 +425,7 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
 {
     MIOPEN_LOG_I("");
 
-    ctx.do_search = false;
+    ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 
     while(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))

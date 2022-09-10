@@ -141,8 +141,10 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
     }
 }
 
-static Invoker
-PrepareInvoker(ExecutionContext ctx, const conv::ProblemDescription& problem, const NetworkConfig& config, solver::Id solver_id)
+static Invoker PrepareInvoker(ExecutionContext ctx,
+                              const conv::ProblemDescription& problem,
+                              const NetworkConfig& config,
+                              solver::Id solver_id)
 {
     ctx.DetectRocm();
     ctx.SetupFloats(problem);
@@ -150,9 +152,9 @@ PrepareInvoker(ExecutionContext ctx, const conv::ProblemDescription& problem, co
 
     const auto solver = solver_id.GetSolver();
     auto db           = GetDb(ctx);
-    auto solution   = solver.FindSolution({ctx, problem}, db, {}); // auto tune is not expected here
-    auto& handle      = ctx.GetStream();
-    auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
+    auto solution = solver.FindSolution({ctx, problem}, db, {}); // auto tune is not expected here
+    auto& handle  = ctx.GetStream();
+    auto invoker  = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
     const auto algo = AlgorithmName{solver_id.GetAlgo(problem.GetDirection())};
 
     handle.RegisterInvoker(invoker, config, solver_id.ToString(), algo);
@@ -171,7 +173,8 @@ Invoker LoadOrPrepareInvoker(const ExecutionContext& ctx,
     return PrepareInvoker(ctx, problem, config, solver_id);
 }
 
-static void CompileSolution(solver::Id solver_id, ExecutionContext ctx, const conv::ProblemDescription& problem)
+static void
+CompileSolution(solver::Id solver_id, ExecutionContext ctx, const conv::ProblemDescription& problem)
 {
     if(!solver_id.IsValid())
         MIOPEN_THROW(miopenStatusBadParm, "solver_id = " + solver_id.ToString());
@@ -191,8 +194,8 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
 
     if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
-        auto fallback   = bool{};
-        auto sols          = conv.GetSolutions(ctx, problem, 1, &fallback);
+        auto fallback = bool{};
+        auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback);
         if(!sols.empty() && !(findMode.IsHybrid(ctx) && fallback))
             sol = std::move(sols.front());
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
@@ -210,15 +213,15 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     else
     {
         results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&](DbRecord& record) {
-                auto conv_ctx                       = ConvolutionContext{ctx, problem};
-                conv_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
+            auto conv_ctx                       = ConvolutionContext{ctx, problem};
+            conv_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
 
-                ConvFindCore(invoke_ctx,
-                             record,
-                             conv_ctx,
-                             conv.IsWinograd3x3SupportedAndFast(conv_ctx),
-                             GetConvSolverFinders());
-            });
+            ConvFindCore(invoke_ctx,
+                         record,
+                         conv_ctx,
+                         conv.IsWinograd3x3SupportedAndFast(conv_ctx),
+                         GetConvSolverFinders());
+        });
     }
 
     if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
@@ -398,8 +401,9 @@ static std::size_t GetSolutionCount(Handle& handle, const conv::ProblemDescripti
 static const char immFallbackFailed[] =
     "Requested convolution is not supported or Immediate mode Fallback unsuccessful.";
 
-std::size_t ConvolutionDescriptor::GetSolutionCountFallback(const ExecutionContext& exec_ctx,
-                                                            const conv::ProblemDescription& problem) const
+std::size_t
+ConvolutionDescriptor::GetSolutionCountFallback(const ExecutionContext& exec_ctx,
+                                                const conv::ProblemDescription& problem) const
 {
     const auto maxSolutionCount = solver::GetSolversByPrimitive(solver::Primitive::Convolution)
                                       .size(); // Simple and guarantees to provide enough space.
@@ -462,7 +466,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
 
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
-    const auto ctx          = ConvolutionContext{exec_ctx, problem};
+    const auto ctx = ConvolutionContext{exec_ctx, problem};
     const auto& inDesc =
         (problem.GetDirection() == conv::Direction::Forward) ? problem.GetIn() : problem.GetOut();
     const auto& weightsDesc = problem.GetWeights();
@@ -512,10 +516,9 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
     return interim;
 }
 
-std::vector<miopenConvSolution_t>
-GetSolutions(const ExecutionContext& exec_ctx,
-             const conv::ProblemDescription& problem,
-             const size_t maxSolutionCount)
+std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
+                                               const conv::ProblemDescription& problem,
+                                               const size_t maxSolutionCount)
 {
     auto algo_resolver = std::function<int(const std::string&)>{};
 
@@ -523,7 +526,9 @@ GetSolutions(const ExecutionContext& exec_ctx,
     {
     case conv::Direction::Forward: algo_resolver = &StringToConvolutionFwdAlgo; break;
     case conv::Direction::BackwardData: algo_resolver = &StringToConvolutionBwdDataAlgo; break;
-    case conv::Direction::BackwardWeights: algo_resolver = &StringToConvolutionBwdWeightsAlgo; break;
+    case conv::Direction::BackwardWeights:
+        algo_resolver = &StringToConvolutionBwdWeightsAlgo;
+        break;
     }
 
     const FindDbRecord fdb_record{exec_ctx.GetStream(), problem};

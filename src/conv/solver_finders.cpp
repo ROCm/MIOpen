@@ -264,13 +264,14 @@ void ConvFindCore(const AnyInvokeParams& invoke_ctx,
                   bool use_winograd_only,
                   const std::vector<std::unique_ptr<SolversFinder>>& finders)
 {
-    auto& handle     = ctx.GetStream();
+    auto& handle = ctx.GetStream();
 
     // Find
     auto solutions = std::map<AlgorithmName, std::vector<solver::ConvSolution>>{};
     std::transform(
         finders.begin(), finders.end(), std::inserter(solutions, solutions.end()), [&](auto&& f) {
-            return std::make_pair(f->GetAlgorithmName(ctx), f->Find(ctx, invoke_ctx, use_winograd_only));
+            return std::make_pair(f->GetAlgorithmName(ctx),
+                                  f->Find(ctx, invoke_ctx, use_winograd_only));
         });
 
     // Precompile
