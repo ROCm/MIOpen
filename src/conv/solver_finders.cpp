@@ -26,6 +26,7 @@
 
 #include <miopen/conv/solver_finders.hpp>
 
+#include <miopen/conv_algo_name.hpp>
 #include <miopen/config.h>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/perf_field.hpp>
@@ -45,15 +46,8 @@ class DataDirectSolverFinder : public SolversFinder
 public:
     AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const
     {
-        switch(ctx.problem.conv_problem.GetDirection())
-        {
-        case conv::Direction::Forward: return AlgorithmName{"miopenConvolutionFwdAlgoDirect"};
-        case conv::Direction::BackwardData:
-            return AlgorithmName{"miopenConvolutionBwdDataAlgoDirect"};
-        case conv::Direction::BackwardWeights:
-            return AlgorithmName{"miopenConvolutionBwdWeightsAlgoDirect"};
-        }
-        MIOPEN_THROW(miopenStatusNotImplemented);
+        return AlgorithmName{ConvolutionAlgoToDirectionalString(
+            miopenConvolutionAlgoDirect, ctx.problem.conv_problem.GetDirection())};
     }
 
 protected:
@@ -75,15 +69,8 @@ class ImplicitGemmSolverFinder : public SolversFinder
 public:
     AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const
     {
-        switch(ctx.problem.conv_problem.GetDirection())
-        {
-        case conv::Direction::Forward: return AlgorithmName{"miopenConvolutionFwdAlgoImplicitGEMM"};
-        case conv::Direction::BackwardData:
-            return AlgorithmName{"miopenConvolutionBwdDataAlgoImplicitGEMM"};
-        case conv::Direction::BackwardWeights:
-            return AlgorithmName{"miopenConvolutionBwdWeightsAlgoImplicitGEMM"};
-        }
-        MIOPEN_THROW(miopenStatusNotImplemented);
+        return AlgorithmName{ConvolutionAlgoToDirectionalString(
+            miopenConvolutionAlgoImplicitGEMM, ctx.problem.conv_problem.GetDirection())};
     }
 
 protected:
@@ -105,14 +92,8 @@ class FftSolverFinder : public SolversFinder
 public:
     AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const
     {
-        switch(ctx.problem.conv_problem.GetDirection())
-        {
-        case conv::Direction::Forward: return AlgorithmName{"miopenConvolutionFwdAlgoFFT"};
-        case conv::Direction::BackwardData: return AlgorithmName{"miopenConvolutionBwdDataAlgoFFT"};
-        case conv::Direction::BackwardWeights:
-            return AlgorithmName{"miopenConvolutionBwdWeightsAlgoFFT"};
-        }
-        MIOPEN_THROW(miopenStatusNotImplemented);
+        return AlgorithmName{ConvolutionAlgoToDirectionalString(
+            miopenConvolutionAlgoFFT, ctx.problem.conv_problem.GetDirection())};
     }
 
 protected:
@@ -136,15 +117,8 @@ class GemmSolverFinder : public SolversFinder
 public:
     AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const
     {
-        switch(ctx.problem.conv_problem.GetDirection())
-        {
-        case conv::Direction::Forward: return AlgorithmName{"miopenConvolutionFwdAlgoGEMM"};
-        case conv::Direction::BackwardData:
-            return AlgorithmName{"miopenConvolutionBwdDataAlgoGEMM"};
-        case conv::Direction::BackwardWeights:
-            return AlgorithmName{"miopenConvolutionBwdWeightsAlgoGEMM"};
-        }
-        MIOPEN_THROW(miopenStatusNotImplemented);
+        return AlgorithmName{ConvolutionAlgoToDirectionalString(
+            miopenConvolutionAlgoGEMM, ctx.problem.conv_problem.GetDirection())};
     }
 
 protected:
@@ -166,15 +140,8 @@ class WinogradSolverFinder : public SolversFinder
 public:
     AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const
     {
-        switch(ctx.problem.conv_problem.GetDirection())
-        {
-        case conv::Direction::Forward: return AlgorithmName{"miopenConvolutionFwdAlgoWinograd"};
-        case conv::Direction::BackwardData:
-            return AlgorithmName{"miopenConvolutionBwdDataAlgoWinograd"};
-        case conv::Direction::BackwardWeights:
-            return AlgorithmName{"miopenConvolutionBwdWeightsAlgoWinograd"};
-        }
-        MIOPEN_THROW(miopenStatusNotImplemented);
+        return AlgorithmName{ConvolutionAlgoToDirectionalString(
+            miopenConvolutionAlgoWinograd, ctx.problem.conv_problem.GetDirection())};
     }
 
 protected:
