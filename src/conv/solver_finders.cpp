@@ -44,7 +44,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 class DataDirectSolverFinder : public SolversFinder
 {
 public:
-    AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const
+    AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const override
     {
         return AlgorithmName{ConvolutionAlgoToDirectionalString(
             miopenConvolutionAlgoDirect, ctx.problem.conv_problem.GetDirection())};
@@ -67,7 +67,7 @@ protected:
 class ImplicitGemmSolverFinder : public SolversFinder
 {
 public:
-    AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const
+    AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const override
     {
         return AlgorithmName{ConvolutionAlgoToDirectionalString(
             miopenConvolutionAlgoImplicitGEMM, ctx.problem.conv_problem.GetDirection())};
@@ -90,7 +90,7 @@ protected:
 class FftSolverFinder : public SolversFinder
 {
 public:
-    AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const
+    AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const override
     {
         return AlgorithmName{ConvolutionAlgoToDirectionalString(
             miopenConvolutionAlgoFFT, ctx.problem.conv_problem.GetDirection())};
@@ -115,7 +115,7 @@ protected:
 class GemmSolverFinder : public SolversFinder
 {
 public:
-    AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const
+    AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const override
     {
         return AlgorithmName{ConvolutionAlgoToDirectionalString(
             miopenConvolutionAlgoGEMM, ctx.problem.conv_problem.GetDirection())};
@@ -138,7 +138,7 @@ protected:
 class WinogradSolverFinder : public SolversFinder
 {
 public:
-    AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const
+    AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const override
     {
         return AlgorithmName{ConvolutionAlgoToDirectionalString(
             miopenConvolutionAlgoWinograd, ctx.problem.conv_problem.GetDirection())};

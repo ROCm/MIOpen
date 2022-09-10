@@ -35,11 +35,13 @@
 
 namespace miopen {
 
-struct DbRecord;
+class DbRecord;
 
 class SolversFinder
 {
 public:
+    virtual ~SolversFinder() = default;
+
     virtual AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const = 0;
 
     inline std::vector<solver::ConvSolution> Find(const ConvolutionContext& ctx,
