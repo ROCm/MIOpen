@@ -66,40 +66,6 @@ size_t GetKernelGlobalWorkDim(const KernelInvoke& kernel, int dim) { return kern
 
 size_t GetKernelLocalWorkDim(const KernelInvoke& kernel, int dim) { return kernel.ldims[dim]; }
 
-static inline void AddKernels(const Handle& handle,
-                              const std::string& algorithm_name,
-                              const std::string& network_config,
-                              const miopen::solver::ConvSolution& s,
-                              std::vector<KernelInvoke>* const kernels)
-{
-    if(!algorithm_name.empty() && !network_config.empty())
-    {
-        handle.ClearKernels(algorithm_name, network_config);
-    }
-    else
-    {
-        assert(algorithm_name.empty() && network_config.empty());
-    }
-    int i = 0;
-    for(auto& k : s.construction_params)
-    {
-        MIOPEN_LOG_I2(k.kernel_name);
-        auto kernel = handle.AddKernel(algorithm_name,
-                                       network_config,
-                                       k.kernel_file,
-                                       k.kernel_name,
-                                       k.l_wk,
-                                       k.g_wk,
-                                       k.comp_options,
-                                       i);
-        if(kernels != nullptr)
-        {
-            kernels->push_back(kernel);
-        }
-        ++i;
-    }
-}
-
 static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
                                       const TensorDescriptor& wDesc,
                                       const ConvolutionDescriptor& conv)
