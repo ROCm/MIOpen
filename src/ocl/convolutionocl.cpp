@@ -648,8 +648,9 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
 
     ConvForwardCheckNumerics(handle, tensors, [&]() {
-        auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-        ctx.SetStream(&handle);
+        const auto problem =
+            conv::ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+        const auto ctx = ExecutionContext{&handle};
 
         if(!CheckInvokerSupport(solver_id, conv::Direction::Forward))
         {
@@ -657,7 +658,7 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
             MIOPEN_THROW("Conv forward algorithm " + algo_name + " must implement invokers.");
         }
 
-        const auto invoker = LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::Forward);
+        const auto invoker    = LoadOrPrepareInvoker(ctx, problem, solver_id);
         const auto invoke_ctx = conv::DataInvokeParams{
             tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetFwd()};
         invoker(handle, invoke_ctx);
@@ -837,8 +838,9 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
         }
         ValidateGroupCount(dxDesc, wDesc, *this);
 
-        auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
-        ctx.SetStream(&handle);
+        const auto problem =
+            conv::ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+        const auto ctx = ExecutionContext{&handle};
 
         if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardData))
         {
@@ -846,8 +848,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
             MIOPEN_THROW("Conv backward algorithm " + algo_name + " must implement invokers.");
         }
 
-        const auto invoker =
-            LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardData);
+        const auto invoker    = LoadOrPrepareInvoker(ctx, problem, solver_id);
         const auto invoke_ctx = conv::DataInvokeParams{
             tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetBwd()};
         invoker(handle, invoke_ctx);
@@ -962,8 +963,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
         decltype(auto) direction      = conv::Direction::BackwardWeights;
         decltype(auto) algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), direction)};
-        decltype(auto) ctx = conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, direction};
-        decltype(auto) network_config = ctx.BuildConfKey();
+        decltype(auto) problem = conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, direction};
+        decltype(auto) network_config = problem.BuildConfKey();
         decltype(auto) invoker = handle.GetInvoker(network_config, boost::none, algorithm_name);
 
         if(!invoker)
@@ -1032,9 +1033,9 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
     ConvWrwCheckNumerics(handle, tensors, &beta, [&]() {
         ValidateGroupCount(xDesc, dwDesc, *this);
 
-        auto ctx =
-            ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-        ctx.SetStream(&handle);
+        const auto problem = conv::ProblemDescription{
+            xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
+        const auto ctx = ExecutionContext{&handle};
 
         if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardWeights))
         {
@@ -1042,8 +1043,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
                          " requested in immediate WrW, which is not supported.");
         }
 
-        const auto invoker =
-            LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardWeights);
+        const auto invoker    = LoadOrPrepareInvoker(ctx, problem, solver_id);
         const auto invoke_ctx = conv::WrWInvokeParams{
             tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetWrW()};
         invoker(handle, invoke_ctx);
