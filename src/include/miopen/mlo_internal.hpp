@@ -394,10 +394,6 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
 
     void setupFloats();
 
-    inline void setBufs(const miopen::ConvolutionUserBuffers& bufs)
-    {
-        _search_params.SetBufs(bufs);
-    }
     /*
      * set top tensor
      */
