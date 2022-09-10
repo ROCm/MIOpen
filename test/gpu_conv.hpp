@@ -61,8 +61,8 @@ bool gpu_ref_convolution_fwd(const tensor<Tin>& input,
             gpu_ref_used          = true;
             const auto invoke_ctx = miopen::conv::DataInvokeParams{
                 tensors, nullptr, 0, filter.attribute.gfx90aFp16alt.GetFwd()};
-            const auto invoker = miopen::LoadOrPrepareInvoker(
-                handle, ctx, naive_conv_id.Value(), miopen::conv::Direction::Forward);
+            const auto invoker =
+                miopen::LoadOrPrepareInvoker(ctx, ctx.problem.conv_problem, naive_conv_id.Value());
             invoker(handle, invoke_ctx);
             rout.data = handle.Read<Tout>(out_dev, rout.data.size());
         }
@@ -97,8 +97,8 @@ bool gpu_ref_convolution_bwd(tensor<Tin>& input,
             gpu_ref_used          = true;
             const auto invoke_ctx = miopen::conv::DataInvokeParams{
                 tensors, nullptr, 0, filter.attribute.gfx90aFp16alt.GetBwd()};
-            const auto invoker = miopen::LoadOrPrepareInvoker(
-                handle, ctx, naive_conv_id.Value(), miopen::conv::Direction::BackwardData);
+            const auto invoker =
+                miopen::LoadOrPrepareInvoker(ctx, ctx.problem.conv_problem, naive_conv_id.Value());
             invoker(handle, invoke_ctx);
             input.data = handle.Read<Tin>(in_dev, input.data.size());
         }
@@ -136,8 +136,8 @@ bool gpu_ref_convolution_wrw(const tensor<Tin>& input,
             gpu_ref_used          = true;
             const auto invoke_ctx = miopen::conv::WrWInvokeParams{
                 tensors, nullptr, 0, filter.attribute.gfx90aFp16alt.GetWrW()};
-            const auto invoker = miopen::LoadOrPrepareInvoker(
-                handle, ctx, naive_conv_id.Value(), miopen::conv::Direction::BackwardWeights);
+            const auto invoker =
+                miopen::LoadOrPrepareInvoker(ctx, ctx.problem.conv_problem, naive_conv_id.Value());
             invoker(handle, invoke_ctx);
             weights.data = handle.Read<Twei>(wei_dev, weights.data.size());
         }

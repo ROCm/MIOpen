@@ -28,8 +28,11 @@
 
 #include <miopen/config.h>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/perf_field.hpp>
 
 namespace miopen {
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
@@ -54,14 +57,14 @@ public:
     }
 
 protected:
-    bool IsEnabled(bool use_winograd_only) const override
+    bool IsEnabled(const ConvolutionContext& /*ctx*/, bool use_winograd_only) const override
     {
         return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{});
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
                                                const AnyInvokeParams& invoke_ctx,
-                                               bool use_winograd_only) const override
+                                               bool /*use_winograd_only*/) const override
     {
         return FindAllDirectSolutions(ctx, invoke_ctx);
     }
@@ -84,14 +87,14 @@ public:
     }
 
 protected:
-    bool IsEnabled(bool use_winograd_only) const override
+    bool IsEnabled(const ConvolutionContext& /*ctx*/, bool use_winograd_only) const override
     {
         return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{});
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
                                                const AnyInvokeParams& invoke_ctx,
-                                               bool use_winograd_only) const override
+                                               bool /*use_winograd_only*/) const override
     {
         return FindAllImplicitGemmSolutions(ctx, invoke_ctx);
     }
@@ -122,7 +125,7 @@ protected:
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
                                                const AnyInvokeParams& invoke_ctx,
-                                               bool use_winograd_only) const override
+                                               bool /*use_winograd_only*/) const override
     {
         return FindAllFFTSolutions(ctx, invoke_ctx);
     }
@@ -145,14 +148,14 @@ public:
     }
 
 protected:
-    bool IsEnabled(bool use_winograd_only) const override
+    bool IsEnabled(const ConvolutionContext& /*ctx*/, bool use_winograd_only) const override
     {
         return !use_winograd_only && !IsDisabled(MIOPEN_DEBUG_CONV_GEMM{});
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ConvolutionContext& ctx,
                                                const AnyInvokeParams& invoke_ctx,
-                                               bool use_winograd_only) const override
+                                               bool /*use_winograd_only*/) const override
     {
         return FindAllGemmSolutions(ctx, invoke_ctx);
     }
@@ -175,7 +178,7 @@ public:
     }
 
 protected:
-    bool IsEnabled(bool use_winograd_only) const override
+    bool IsEnabled(const ConvolutionContext& /*ctx*/, bool /*use_winograd_only*/) const override
     {
         return !IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{});
     }
@@ -193,13 +196,16 @@ protected:
 
 const std::vector<std::unique_ptr<SolversFinder>>& GetConvSolverFinders()
 {
-    static const auto finders = std::vector<std::unique_ptr<SolversFinder>>{
-        std::make_unique<WinogradSolverFinder>(),
-        std::make_unique<DataDirectSolverFinder>(),
-        std::make_unique<ImplicitGemmSolverFinder>(),
-        std::make_unique<GemmSolverFinder>(),
-        std::make_unique<FftSolverFinder>(),
-    };
+    static const auto finders = []() {
+        auto tmp = std::vector<std::unique_ptr<SolversFinder>>{};
+        tmp.emplace_back(std::make_unique<WinogradSolverFinder>());
+        tmp.emplace_back(std::make_unique<DataDirectSolverFinder>());
+        tmp.emplace_back(std::make_unique<ImplicitGemmSolverFinder>());
+        tmp.emplace_back(std::make_unique<GemmSolverFinder>());
+        tmp.emplace_back(std::make_unique<FftSolverFinder>());
+        return tmp;
+    }();
+
     return finders;
 }
 
@@ -233,18 +239,18 @@ static void EvaluateInvokers(Handle& handle,
     {
         if(sol.workspace_sz > 0)
         {
-            if(invoke_ctx.workSpace == nullptr)
+            if(invoke_ctx.GetWorkspace() == nullptr)
             {
                 MIOPEN_LOG_I("Warning: skipping solver <" << sol.solver_id
                                                           << "> due to no workspace provided ("
                                                           << sol.workspace_sz << " required)");
                 continue;
             }
-            if(invoke_ctx.workSpaceSize < sol.workspace_sz)
+            if(invoke_ctx.GetWorkspaceSize() < sol.workspace_sz)
             {
                 MIOPEN_LOG_I("Warning: skipping solver <"
                              << sol.solver_id << "> due to insufficient workspace ("
-                             << invoke_ctx.workSpaceSize << " < " << sol.workspace_sz << ")");
+                             << invoke_ctx.GetWorkspaceSize() << " < " << sol.workspace_sz << ")");
                 continue;
             }
         }
@@ -292,13 +298,12 @@ void ConvFindCore(const AnyInvokeParams& invoke_ctx,
                   const std::vector<std::unique_ptr<SolversFinder>>& finders)
 {
     auto& handle     = ctx.GetStream();
-    const auto& conv = ctx.problem.conv_problem.GetConv();
 
     // Find
     auto solutions = std::map<AlgorithmName, std::vector<solver::ConvSolution>>{};
     std::transform(
         finders.begin(), finders.end(), std::inserter(solutions, solutions.end()), [&](auto&& f) {
-            return std::make_pair(f.GetAlgorithmName(), f.Find(ctx, invoke_ctx, use_winograd_only));
+            return std::make_pair(f->GetAlgorithmName(ctx), f->Find(ctx, invoke_ctx, use_winograd_only));
         });
 
     // Precompile

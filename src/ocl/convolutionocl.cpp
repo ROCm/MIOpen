@@ -59,7 +59,6 @@
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 
@@ -142,23 +141,60 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
     }
 }
 
-static inline std::vector<PerfField>
-FindConvolution(const FindMode& findMode,
-                ConvolutionContext ctx,
-                const AnyInvokeParams& invoke_ctx,
-                const std::function<std::tuple<boost::optional<miopenConvSolution_t>, bool>()>&
-                    getImmediateSolution,
-                const std::function<void(solver::Id)>& compile)
+static Invoker
+PrepareInvoker(ExecutionContext ctx, const conv::ProblemDescription& problem, const NetworkConfig& config, solver::Id solver_id)
 {
-    auto perf_db                = std::vector<PerfField>{};
-    auto sol                    = boost::optional<miopenConvSolution_t>{};
+    ctx.DetectRocm();
+    ctx.SetupFloats(problem);
+    ctx.do_search = false;
+
+    const auto solver = solver_id.GetSolver();
+    auto db           = GetDb(ctx);
+    auto solution   = solver.FindSolution({ctx, problem}, db, {}); // auto tune is not expected here
+    auto& handle      = ctx.GetStream();
+    auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
+    const auto algo = AlgorithmName{solver_id.GetAlgo(problem.GetDirection())};
+
+    handle.RegisterInvoker(invoker, config, solver_id.ToString(), algo);
+    return invoker;
+}
+
+Invoker LoadOrPrepareInvoker(const ExecutionContext& ctx,
+                             const conv::ProblemDescription& problem,
+                             solver::Id solver_id)
+{
+    const auto& handle = ctx.GetStream();
+    const auto config  = problem.BuildConfKey();
+    auto invoker       = handle.GetInvoker(config, solver_id);
+    if(invoker)
+        return *invoker;
+    return PrepareInvoker(ctx, problem, config, solver_id);
+}
+
+static void CompileSolution(solver::Id solver_id, ExecutionContext ctx, const conv::ProblemDescription& problem)
+{
+    if(!solver_id.IsValid())
+        MIOPEN_THROW(miopenStatusBadParm, "solver_id = " + solver_id.ToString());
+
+    ctx.disable_search_enforce = true;
+    LoadOrPrepareInvoker(ctx, problem, solver_id);
+}
+
+static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx,
+                                                     const conv::ProblemDescription& problem,
+                                                     const AnyInvokeParams& invoke_ctx)
+{
+    auto results         = std::vector<PerfField>{};
+    auto sol             = boost::optional<miopenConvSolution_t>{};
+    const auto& conv     = problem.GetConv();
+    const auto& findMode = conv.findMode;
 
     if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
-        bool fallback;
-        std::tie(sol, fallback) = getImmediateSolution();
-        if(sol.has_value() && !(findMode.IsHybrid(ctx) && fallback))
-            sol = boost::none;
+        auto fallback   = bool{};
+        auto sols          = conv.GetSolutions(ctx, problem, 1, &fallback);
+        if(!sols.empty() && !(findMode.IsHybrid(ctx) && fallback))
+            sol = std::move(sols.front());
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
     }
 
@@ -167,23 +203,22 @@ FindConvolution(const FindMode& findMode,
         /// It is possible to measure actual execution time and return it to the caller.
         /// \todo Consider if we need (and want to spend time) for this.
         const auto id = solver::Id{sol->solution_id};
-        compile(id);
-        perf_db.push_back(
+        CompileSolution(id, ctx, problem);
+        results.push_back(
             {id.GetAlgo(conv::Direction::Forward), id.ToString(), sol->time, sol->workspace_size});
     }
     else
     {
-        const auto& conv = ctx.problem.conv_problem.GetConv();
+        results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&](DbRecord& record) {
+                auto conv_ctx                       = ConvolutionContext{ctx, problem};
+                conv_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
 
-        perf_db = UserFindDbRecord::TryLoad(ctx.GetStream(), ctx.problem, [&](DbRecord& record) {
-            ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
-
-            ConvFindCore(invoke_ctx,
-                         record,
-                         ctx,
-                         conv.IsWinograd3x3SupportedAndFast(ctx),
-                         GetConvSolverFinders());
-        });
+                ConvFindCore(invoke_ctx,
+                             record,
+                             conv_ctx,
+                             conv.IsWinograd3x3SupportedAndFast(conv_ctx),
+                             GetConvSolverFinders());
+            });
     }
 
     if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
@@ -191,13 +226,12 @@ FindConvolution(const FindMode& findMode,
             miopenStatusGpuOperationsSkipped,
             "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping forward convolution. Search skipped.");
 
-    if(perf_db.empty())
-        MIOPEN_THROW("Forward Convolution cannot be executed due to incorrect params");
+    std::sort(begin(results), end(results));
 
-    std::sort(begin(perf_db), end(perf_db));
-
-    for(const auto& entry : perf_db)
+    for(const auto& entry : results)
         MIOPEN_LOG_I(entry.name << "\t" << entry.time << "\t" << entry.workspace);
+
+    return results;
 }
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
@@ -226,11 +260,10 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     *returnedAlgoCount = 0;
 
-    const auto problem = ProblemDescription(xDesc, wDesc, yDesc, *this, conv::Direction::Forward);
-    auto ctx = ConvolutionContext{problem};
-    ctx.SetStream(&handle);
-    ctx.SetupFloats();
-    ctx.DetectRocm();
+    const auto problem =
+        conv::ProblemDescription(xDesc, wDesc, yDesc, *this, conv::Direction::Forward);
+    const auto ctx =
+        ExecutionContext{&handle}.SetupFloats(problem).DetectRocm().WithTuning(exhaustiveSearch);
 
     const auto invoke_ctx = conv::DataInvokeParams{InvokeType::Evaluate,
                                                    {xDesc, x, wDesc, w, yDesc, y},
@@ -238,29 +271,22 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                    workSpaceSize,
                                                    attribute.gfx90aFp16alt.GetFwd()};
 
-    const auto perf_db = FindConvolution(
-        findMode,
-        ctx,
-        invoke_ctx,
-        [&]() {
-            auto fallback = bool{};
-            const auto sols = GetSolutions(ctx, problem.conv_problem, 1, &fallback);
-            const auto use  = !sols.empty() && !(findMode.IsHybrid(ctx) && fallback);
-            return std::make_tuple(boost::make_optional(use, std::move(sols[0])), use);
-        },
-        [&](auto&& id) { CompileForwardSolution(handle, wDesc, xDesc, yDesc, id); });
+    const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
-    *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
+    if(results.empty())
+        MIOPEN_THROW("Forward Convolution cannot be executed due to incorrect params");
+
+    *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
 
     for(int i = 0; i < *returnedAlgoCount; i++)
     {
-        perfResults[i].fwd_algo = StringToConvolutionFwdAlgo(perf_db[i].name);
-        perfResults[i].time     = perf_db[i].time;
-        perfResults[i].memory   = perf_db[i].workspace;
+        perfResults[i].fwd_algo = StringToConvolutionFwdAlgo(results[i].name);
+        perfResults[i].time     = results[i].time;
+        perfResults[i].memory   = results[i].workspace;
     }
 
-    MIOPEN_LOG_I("FW Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
-                                         << ", " << perf_db[0].time);
+    MIOPEN_LOG_I("FW Chosen Algorithm: " << results[0].solver_id << " , " << results[0].workspace
+                                         << ", " << results[0].time);
 }
 
 void ValidateConvTensors(const ConvTensors& tensors)
@@ -471,7 +497,8 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& exec_ctx,
         if(wti < 0.0f) // Skip unknown WTIs.
             continue;
 
-        interim.emplace_back(wti2time(wti), s.GetWorkspaceSize(ctx), solver_id.Value(), algo);
+        interim.emplace_back(
+            miopenConvSolution_t{wti2time(wti), s.GetWorkspaceSize(ctx), solver_id.Value(), algo});
     }
 
     MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
@@ -531,7 +558,8 @@ GetSolutions(const ExecutionContext& exec_ctx,
         }
 
         if(solver_id.GetSolver().IsApplicable(ctx))
-            interim.emplace_back(pair.second.time, pair.second.workspace, solver_id.Value(), algo);
+            interim.emplace_back(miopenConvSolution_t{
+                pair.second.time, pair.second.workspace, solver_id.Value(), algo});
     }
 
     std::sort(begin(interim), end(interim), SolutionTimeComparator{});
@@ -582,109 +610,18 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
                      " is not applicable to the current problem");
 }
 
-// Todo: remove when all immediate mode calls will support invokers
-static std::vector<KernelInvoke> CompileSolver(const Handle& handle,
-                                               ConvolutionContext& ctx,
-                                               solver::Id solver_id,
-                                               const FindDbKCacheKey& key)
-{
-    ctx.DetectRocm();
-    ctx.SetupFloats();
-
-    const auto solver   = solver_id.GetSolver();
-    auto db             = GetDb(ctx);
-    const auto solution = solver.FindSolution(ctx, db, {}); // auto tune is not expected here
-
-    std::vector<KernelInvoke> kernels;
-    AddKernels(handle, key.algorithm_name, key.network_config, solution, &kernels);
-    return kernels;
-}
-
-static Invoker PrepareInvoker(Handle& handle,
-                              ConvolutionContext& ctx,
-                              const NetworkConfig& config,
-                              solver::Id solver_id,
-                              conv::Direction dir)
-{
-    ctx.DetectRocm();
-    ctx.SetupFloats();
-
-    const auto solver = solver_id.GetSolver();
-    auto db           = GetDb(ctx);
-    auto solution     = solver.FindSolution(ctx, db, {}); // auto tune is not expected here
-    const auto invoker =
-        handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
-
-    handle.RegisterInvoker(
-        invoker, config, solver_id.ToString(), AlgorithmName(solver_id.GetAlgo(dir)));
-    return invoker; // NOLINT (performance-no-automatic-move)
-}
-
-Invoker LoadOrPrepareInvoker(Handle& handle,
-                             ConvolutionContext& ctx,
-                             solver::Id solver_id,
-                             conv::Direction dir)
-{
-    const auto config = ctx.problem.BuildConfKey();
-    auto invoker      = handle.GetInvoker(config, solver_id);
-    if(invoker)
-        return *invoker;
-    return PrepareInvoker(handle, ctx, config, solver_id, dir);
-}
-
 static bool CheckInvokerSupport(const solver::Id solver_id, conv::Direction dir)
 {
     const auto& algo = solver_id.GetAlgo(dir);
     return CheckInvokerSupport(algo);
 }
 
-static void CompileSolution(Handle& handle,
-                            const solver::Id solver_id,
-                            ConvolutionContext& ctx,
-                            conv::Direction dir)
-{
-    if(!solver_id.IsValid())
-        MIOPEN_THROW(miopenStatusBadParm, "solver_id = " + solver_id.ToString());
-
-    if(CheckInvokerSupport(solver_id, dir))
-    {
-        LoadOrPrepareInvoker(handle, ctx, solver_id, dir);
-        return;
-    }
-
-    const FindDbRecord fdb_record{handle, ctx.problem};
-    for(const auto& pair : fdb_record)
-    {
-        if(solver::Id{pair.second.solver_id} != solver_id)
-            continue;
-
-        const auto&& kernels = handle.GetKernels(pair.second.kcache_key.algorithm_name,
-                                                 pair.second.kcache_key.network_config);
-
-        if(!kernels.empty())
-            return;
-
-        CompileSolver(handle, ctx, solver_id, pair.second.kcache_key);
-        return;
-    }
-
-    // Todo: solver not found in find-db.
-    MIOPEN_THROW(miopenStatusNotImplemented);
-}
-
-void ConvolutionDescriptor::CompileForwardSolution(Handle& handle,
-                                                   const TensorDescriptor& wDesc,
-                                                   const TensorDescriptor& xDesc,
-                                                   const TensorDescriptor& yDesc,
-                                                   const solver::Id solver_id) const
+void ConvolutionDescriptor::CompileSolution(const ExecutionContext& ctx,
+                                            const conv::ProblemDescription& problem,
+                                            solver::Id solver_id) const
 {
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
-
-    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-    ctx.SetStream(&handle);
-    ctx.disable_search_enforce = true;
-
-    CompileSolution(handle, solver_id, ctx, conv::Direction::Forward);
+    miopen::CompileSolution(solver_id, ctx, problem);
 }
 
 void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
@@ -750,83 +687,37 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     *returnedAlgoCount = 0;
 
-    AutoEnableProfiling enableProfiling{handle};
     ValidateGroupCount(dxDesc, wDesc, *this);
 
-    const ProblemDescription problem(dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData);
-    std::vector<PerfField> perf_db;
+    const auto problem =
+        conv::ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
 
-    bool use_immediate_solution = false;
-    miopenConvSolution_t imm_sol;
-    auto conv_ctx = ConvolutionContext{problem};
-    if(findMode.IsFast(conv_ctx) || findMode.IsHybrid(conv_ctx))
-    {
-        size_t count;
-        bool fallback;
-        GetBackwardSolutions(handle, dyDesc, wDesc, dxDesc, 1, &count, &imm_sol, &fallback);
-        use_immediate_solution = (count > 0) && !(findMode.IsHybrid(conv_ctx) && fallback);
-    }
+    auto ctx =
+        ExecutionContext{&handle}.DetectRocm().SetupFloats(problem).WithTuning(exhaustiveSearch);
 
-    if(use_immediate_solution)
-    {
-        CompileBackwardSolution(handle, dyDesc, wDesc, dxDesc, imm_sol.solution_id);
-        const auto id = solver::Id(imm_sol.solution_id);
-        perf_db.push_back({id.GetAlgo(conv::Direction::BackwardData),
-                           id.ToString(),
-                           imm_sol.time,
-                           imm_sol.workspace_size});
-    }
-    else
-    {
-        conv_ctx.SetStream(&handle);
-        conv_ctx.DetectRocm();
-        conv_ctx.SetupFloats();
+    const auto invoke_ctx = conv::DataInvokeParams{InvokeType::Evaluate,
+                                                   {dyDesc, dy, wDesc, w, dxDesc, dx},
+                                                   workSpace,
+                                                   workSpaceSize,
+                                                   this->attribute.gfx90aFp16alt.GetBwd()};
 
-        perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
-            const auto network_config      = problem.BuildConfKey();
-            const auto invoke_ctx          = conv::DataInvokeParams{InvokeType::Evaluate,
-                                                           {dyDesc, dy, wDesc, w, dxDesc, dx},
-                                                           workSpace,
-                                                           workSpaceSize,
-                                                           this->attribute.gfx90aFp16alt.GetBwd()};
-            const auto tune_ctx =
-                conv_ctx.WithDinamicSolutionsOnly(findMode.IsDynamicHybrid(conv_ctx))
-                                      .WithTuning(exhaustiveSearch);
-            const auto tune_conv_ctx = ConvolutionContext{tune_ctx, problem};
+    const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
-            ConvFindCore(invoke_ctx,
-                         record,
-                         tune_conv_ctx,
-                         IsWinograd3x3SupportedAndFast(tune_conv_ctx),
-                         GetConvSolverFinders());
-        });
-    }
-
-    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
-        MIOPEN_THROW(
-            miopenStatusGpuOperationsSkipped,
-            "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping bwd convolution. Search skipped.");
-
-    if(perf_db.empty())
+    if(results.empty())
         MIOPEN_THROW(miopenStatusUnknownError,
                      "Backward Data Convolution cannot be executed due to incorrect params");
 
-    std::sort(begin(perf_db), end(perf_db));
-
-    for(const auto& entry : perf_db)
-        MIOPEN_LOG_I(entry.name << "\t" << entry.time << "\t" << entry.workspace);
-
-    *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
+    *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
 
     for(int i = 0; i < *returnedAlgoCount; i++)
     {
-        perfResults[i].bwd_data_algo = StringToConvolutionBwdDataAlgo(perf_db[i].name);
-        perfResults[i].time          = perf_db[i].time;
-        perfResults[i].memory        = perf_db[i].workspace;
+        perfResults[i].bwd_data_algo = StringToConvolutionBwdDataAlgo(results[i].name);
+        perfResults[i].time          = results[i].time;
+        perfResults[i].memory        = results[i].workspace;
     }
 
-    MIOPEN_LOG_I("BWD Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
-                                          << ", " << perf_db[0].time);
+    MIOPEN_LOG_I("BWD Chosen Algorithm: " << results[0].solver_id << " , " << results[0].workspace
+                                          << ", " << results[0].time);
 }
 static void ConvBwdCheckNumerics(const Handle& handle,
                                  const ConvBwdTensors& tensors,
@@ -891,51 +782,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetBwd()};
         (*invoker)(handle, invoke_ctx);
     });
-}
-
-void ConvolutionDescriptor::GetBackwardSolutions(Handle& handle,
-                                                 const TensorDescriptor& dyDesc,
-                                                 const TensorDescriptor& wDesc,
-                                                 const TensorDescriptor& dxDesc,
-                                                 size_t maxSolutionCount,
-                                                 size_t* solutionCount,
-                                                 miopenConvSolution_t* solutions,
-                                                 bool* const fallbackPathTaken) const
-{
-    MIOPEN_LOG_I("");
-    if(solutionCount == nullptr)
-        MIOPEN_THROW(miopenStatusBadParm, "solutionCount cannot be nullptr");
-    if(solutions == nullptr)
-        MIOPEN_THROW(miopenStatusBadParm, "solutions cannot be nullptr");
-
-    const auto problem =
-        ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
-    GetSolutions(handle,
-                 problem,
-                 maxSolutionCount,
-                 solutionCount,
-                 solutions,
-                 StringToConvolutionBwdDataAlgo);
-
-    if(fallbackPathTaken != nullptr)
-        *fallbackPathTaken = (*solutionCount == 0);
-    if(*solutionCount == 0)
-        GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
-}
-
-void ConvolutionDescriptor::CompileBackwardSolution(Handle& handle,
-                                                    const TensorDescriptor& dyDesc,
-                                                    const TensorDescriptor& wDesc,
-                                                    const TensorDescriptor& dxDesc,
-                                                    solver::Id solver_id) const
-{
-    MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
-
-    auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
-    ctx.SetStream(&handle);
-    ctx.disable_search_enforce = true;
-
-    CompileSolution(handle, solver_id, ctx, conv::Direction::BackwardData);
 }
 
 std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& handle,
@@ -1034,81 +880,32 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     *returnedAlgoCount = 0;
 
-    AutoEnableProfiling enableProfiling{handle};
-
     auto problem =
-        ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-    auto ctx = ConvolutionContext{problem};
+        conv::ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
+    auto ctx =
+        ExecutionContext{&handle}.DetectRocm().SetupFloats(problem).WithTuning(exhaustiveSearch);
 
-    std::vector<PerfField> perf_db;
-    bool use_immediate_solution = false;
-    miopenConvSolution_t imm_sol;
-    if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
-    {
-        size_t count;
-        bool fallback;
-        GetWrwSolutions(handle, dyDesc, xDesc, dwDesc, 1, &count, &imm_sol, &fallback);
-        use_immediate_solution = (count > 0) && !(findMode.IsHybrid(ctx) && fallback);
-    }
+    const auto invoke_ctx = conv::WrWInvokeParams{InvokeType::Evaluate,
+                                                  {dyDesc, dy, xDesc, x, dwDesc, dw},
+                                                  workSpace,
+                                                  workSpaceSize,
+                                                  attribute.gfx90aFp16alt.GetWrW()};
 
-    if(use_immediate_solution)
-    {
-        CompileWrwSolution(handle, dyDesc, xDesc, dwDesc, imm_sol.solution_id);
-        const auto id = solver::Id(imm_sol.solution_id);
-        perf_db.push_back({id.GetAlgo(conv::Direction::BackwardWeights),
-                           id.ToString(),
-                           imm_sol.time,
-                           imm_sol.workspace_size});
-    }
-    else
-    {
-        ctx.SetStream(&handle);
-        ctx.DetectRocm();
-        ctx.SetupFloats();
+    const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
-        perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
-            ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
-            ctx.do_search                  = exhaustiveSearch;
-
-            const auto network_config = ctx.problem.BuildConfKey();
-            const auto invoke_ctx     = conv::WrWInvokeParams{InvokeType::Evaluate,
-                                                          {dyDesc, dy, xDesc, x, dwDesc, dw},
-                                                          workSpace,
-                                                          workSpaceSize,
-                                                          this->attribute.gfx90aFp16alt.GetWrW()};
-
-            ConvFindCore(invoke_ctx,
-                         record,
-                         ctx,
-                         IsWinograd3x3SupportedAndFast(ctx),
-                         GetConvSolverFinders());
-        });
-    }
-
-    if(IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
-        MIOPEN_THROW(miopenStatusGpuOperationsSkipped,
-                     "MIOPEN_DEBUG_COMPILE_ONLY is enabled, "
-                     "escaping backwards convolution. Search "
-                     "skipped.");
-
-    if(perf_db.empty())
+    if(results.empty())
         MIOPEN_THROW("Backward Weights Convolution cannot be executed due to incorrect params");
 
-    std::sort(begin(perf_db), end(perf_db));
-
-    for(const auto& entry : perf_db)
-        MIOPEN_LOG_I(entry.name << "\t" << entry.time << "\t" << entry.workspace);
-
-    *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
+    *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(results.size()));
 
     for(int i = 0; i < *returnedAlgoCount; i++)
     {
-        perfResults[i].bwd_weights_algo = StringToConvolutionBwdWeightsAlgo(perf_db[i].name);
-        perfResults[i].time             = perf_db[i].time;
-        perfResults[i].memory           = perf_db[i].workspace;
+        perfResults[i].bwd_weights_algo = StringToConvolutionBwdWeightsAlgo(results[i].name);
+        perfResults[i].time             = results[i].time;
+        perfResults[i].memory           = results[i].workspace;
     }
-    MIOPEN_LOG_I("BWrW Chosen Algorithm: " << perf_db[0].solver_id << " , " << perf_db[0].workspace
-                                           << ", " << perf_db[0].time);
+    MIOPEN_LOG_I("BWrW Chosen Algorithm: " << results[0].solver_id << " , " << results[0].workspace
+                                           << ", " << results[0].time);
 }
 
 static void ConvWrwCheckNumerics(const Handle& handle,
@@ -1180,49 +977,6 @@ ProblemDescription ConvolutionDescriptor::MakeWrwProblem(const TensorDescriptor&
     auto problem =
         ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
     return problem;
-}
-
-void ConvolutionDescriptor::GetWrwSolutions(Handle& handle,
-                                            const TensorDescriptor& dyDesc,
-                                            const TensorDescriptor& xDesc,
-                                            const TensorDescriptor& dwDesc,
-                                            size_t maxSolutionCount,
-                                            size_t* solutionCount,
-                                            miopenConvSolution_t* solutions,
-                                            bool* const fallbackPathTaken) const
-{
-    MIOPEN_LOG_I("");
-    if(solutionCount == nullptr)
-        MIOPEN_THROW(miopenStatusBadParm, "solutionCount cannot be nullptr");
-    if(solutions == nullptr)
-        MIOPEN_THROW(miopenStatusBadParm, "solutions cannot be nullptr");
-
-    const auto problem = MakeWrwProblem(dyDesc, xDesc, dwDesc);
-    GetSolutions(handle,
-                 problem,
-                 maxSolutionCount,
-                 solutionCount,
-                 solutions,
-                 StringToConvolutionBwdWeightsAlgo);
-
-    if(fallbackPathTaken != nullptr)
-        *fallbackPathTaken = (*solutionCount == 0);
-    if(*solutionCount == 0)
-        GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
-}
-
-void ConvolutionDescriptor::CompileWrwSolution(Handle& handle,
-                                               const TensorDescriptor& dyDesc,
-                                               const TensorDescriptor& xDesc,
-                                               const TensorDescriptor& dwDesc,
-                                               solver::Id solver_id) const
-{
-    MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
-    auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-    ctx.SetStream(&handle);
-    ctx.disable_search_enforce = true;
-
-    CompileSolution(handle, solver_id, ctx, conv::Direction::BackwardWeights);
 }
 
 std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,

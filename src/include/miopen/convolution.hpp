@@ -170,7 +170,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                              const TensorDescriptor& xDesc,
                                              const TensorDescriptor& dwDesc) const;
 
-    std::size_t GetWorkSpaceSize(const ExecutionContext& handle,
+    std::size_t GetWorkSpaceSize(ExecutionContext ctx,
                                  const conv::ProblemDescription& problem) const;
 
     void FindConvFwdAlgorithm(Handle& handle,
@@ -227,11 +227,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                    const size_t maxSolutionCount,
                                                    bool* const fallbackPathTaken) const;
 
-    void CompileForwardSolution(Handle& handle,
-                                const TensorDescriptor& wDesc,
-                                const TensorDescriptor& xDesc,
-                                const TensorDescriptor& yDesc,
-                                solver::Id solver_id) const;
+    void CompileSolution(const ExecutionContext& ctx,
+                         const conv::ProblemDescription& problem,
+                         solver::Id solver_id) const;
 
     std::size_t GetForwardSolutionWorkspaceSize(Handle& handle,
                                                 const TensorDescriptor& wDesc,
@@ -277,12 +275,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                  Data_t workSpace,
                                  std::size_t workSpaceSize) const;
 
-    void CompileBackwardSolution(Handle& handle,
-                                 const TensorDescriptor& dyDesc,
-                                 const TensorDescriptor& wDesc,
-                                 const TensorDescriptor& dxDesc,
-                                 solver::Id solver_id) const;
-
     std::size_t GetBackwardSolutionWorkspaceSize(Handle& handle,
                                                  const TensorDescriptor& dyDesc,
                                                  const TensorDescriptor& wDesc,
@@ -299,12 +291,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                       Data_t workSpace,
                                       std::size_t workSpaceSize,
                                       solver::Id solver_id) const;
-
-    void CompileWrwSolution(Handle& handle,
-                            const TensorDescriptor& dyDesc,
-                            const TensorDescriptor& xDesc,
-                            const TensorDescriptor& dwDesc,
-                            solver::Id solver_id) const;
 
     std::size_t GetWrwSolutionWorkspaceSize(Handle& handle,
                                             const TensorDescriptor& dyDesc,
@@ -393,10 +379,10 @@ void ConvolutionBackwardBias(const Handle& handle,
                              const void* beta,
                              const TensorDescriptor& dbDesc,
                              Data_t db);
-Invoker LoadOrPrepareInvoker(Handle& handle,
-                             ConvolutionContext& ctx,
-                             solver::Id solver_id,
-                             conv::Direction dir);
+
+Invoker LoadOrPrepareInvoker(const ExecutionContext& ctx,
+                             const conv::ProblemDescription& problem,
+                             solver::Id solver_id);
 
 std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c);
 

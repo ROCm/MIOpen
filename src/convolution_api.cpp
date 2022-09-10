@@ -40,6 +40,71 @@
 // TODO: Make miopenConvAlgoPerf_t loggable
 inline std::ostream& operator<<(std::ostream& os, miopenConvAlgoPerf_t) { return os; }
 
+static inline auto MakeFwdCtxAndProblem(miopenHandle_t handle,
+                                        const miopenTensorDescriptor_t xDesc,
+                                        const miopenTensorDescriptor_t wDesc,
+                                        const miopenConvolutionDescriptor_t convDesc,
+                                        const miopenTensorDescriptor_t yDesc)
+{
+    using namespace miopen;
+
+    const auto& conv = deref(convDesc);
+    const auto direction =
+        (conv.mode != miopenTranspose) ? conv::Direction::Forward : conv::Direction::BackwardData;
+
+    auto problem =
+        (conv.mode != miopenTranspose)
+            ? conv::ProblemDescription{deref(xDesc), deref(wDesc), deref(yDesc), conv, direction}
+            : conv::ProblemDescription{deref(yDesc), deref(wDesc), deref(xDesc), conv, direction};
+
+    auto ctx = ExecutionContext{&deref(handle)}.DetectRocm().SetupFloats(problem);
+
+    return std::make_tuple(std::move(ctx), std::move(problem));
+}
+
+static inline auto MakeBwdCtxAndProblem(miopenHandle_t handle,
+                                        const miopenTensorDescriptor_t dyDesc,
+                                        const miopenTensorDescriptor_t wDesc,
+                                        const miopenConvolutionDescriptor_t convDesc,
+                                        const miopenTensorDescriptor_t dxDesc)
+{
+    using namespace miopen;
+
+    const auto& conv = deref(convDesc);
+    const auto direction =
+        (conv.mode != miopenTranspose) ? conv::Direction::BackwardData : conv::Direction::Forward;
+
+    auto problem =
+        (conv.mode != miopenTranspose)
+            ? conv::ProblemDescription{deref(dyDesc), deref(wDesc), deref(dxDesc), conv, direction}
+            : conv::ProblemDescription{deref(dxDesc), deref(wDesc), deref(dyDesc), conv, direction};
+
+    auto ctx = ExecutionContext{&deref(handle)}.DetectRocm().SetupFloats(problem);
+
+    return std::make_tuple(std::move(ctx), std::move(problem));
+}
+
+static inline auto MakeWrWCtxAndProblem(miopenHandle_t handle,
+                                        const miopenTensorDescriptor_t dyDesc,
+                                        const miopenTensorDescriptor_t xDesc,
+                                        const miopenConvolutionDescriptor_t convDesc,
+                                        const miopenTensorDescriptor_t dwDesc)
+{
+    using namespace miopen;
+
+    const auto direction = conv::Direction::BackwardWeights;
+    const auto& conv     = deref(convDesc);
+
+    auto problem =
+        (conv.mode == miopenTranspose)
+            ? conv::ProblemDescription{deref(xDesc), deref(dwDesc), deref(dyDesc), conv, direction}
+            : conv::ProblemDescription{deref(dyDesc), deref(dwDesc), deref(xDesc), conv, direction};
+
+    auto ctx = ExecutionContext{&deref(handle)}.DetectRocm().SetupFloats(problem);
+
+    return std::make_tuple(std::move(ctx), std::move(problem));
+}
+
 extern "C" miopenStatus_t miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t* convDesc)
 {
     MIOPEN_LOG_FUNCTION(convDesc);
@@ -283,16 +348,10 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
 
     MIOPEN_LOG_FUNCTION(handle, wDesc, yDesc, convDesc, workSpaceSize);
     miopen::try_([&] {
-        miopen::deref(workSpaceSize) =
-            miopen::deref(convDesc).mode == miopenTranspose
-                ? miopen::deref(convDesc).BackwardDataGetWorkSpaceSize(miopen::deref(handle),
-                                                                       miopen::deref(wDesc),
-                                                                       miopen::deref(xDesc),
-                                                                       miopen::deref(yDesc))
-                : miopen::deref(convDesc).ForwardGetWorkSpaceSize(miopen::deref(handle),
-                                                                  miopen::deref(wDesc),
-                                                                  miopen::deref(xDesc),
-                                                                  miopen::deref(yDesc));
+        auto ctx               = miopen::ExecutionContext{};
+        auto problem           = miopen::conv::ProblemDescription{};
+        std::tie(ctx, problem) = MakeFwdCtxAndProblem(handle, xDesc, wDesc, convDesc, yDesc);
+        miopen::deref(workSpaceSize) = miopen::deref(convDesc).GetWorkSpaceSize(ctx, problem);
     });
 
     return (miopenStatusSuccess);
@@ -572,28 +631,6 @@ extern "C" miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
     });
 }
 
-static inline auto MakeFwdCtxAndProblem(miopenHandle_t handle,
-                                        const miopenTensorDescriptor_t xDesc,
-                                        const miopenTensorDescriptor_t wDesc,
-                                        const miopenConvolutionDescriptor_t convDesc,
-                                        const miopenTensorDescriptor_t yDesc)
-{
-    using namespace miopen;
-
-    const auto& conv     = deref(convDesc);
-    const auto direction =
-        (conv.mode != miopenTranspose) ? conv::Direction::Forward : conv::Direction::BackwardData;
-
-    auto problem =
-        (conv.mode != miopenTranspose)
-            ? conv::ProblemDescription{deref(xDesc), deref(wDesc), deref(yDesc), conv, direction}
-            : conv::ProblemDescription{deref(yDesc), deref(wDesc), deref(xDesc), conv, direction};
-
-    auto ctx = ExecutionContext{&deref(handle)}.DetectRocm().SetupFloats(problem);
-
-    return std::make_tuple(std::move(ctx), std::move(problem));
-}
-
 extern "C" miopenStatus_t
 miopenConvolutionForwardGetSolutionCount(miopenHandle_t handle,
                                          const miopenTensorDescriptor_t wDesc,
@@ -685,18 +722,10 @@ miopenConvolutionForwardCompileSolution(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, wDesc, xDesc, convDesc, yDesc, solution_id);
     return miopen::try_([&] {
-        if(miopen::deref(convDesc).mode == miopenTranspose)
-            miopen::deref(convDesc).CompileBackwardSolution(miopen::deref(handle),
-                                                            miopen::deref(xDesc),
-                                                            miopen::deref(wDesc),
-                                                            miopen::deref(yDesc),
-                                                            solution_id);
-        else
-            miopen::deref(convDesc).CompileForwardSolution(miopen::deref(handle),
-                                                           miopen::deref(wDesc),
-                                                           miopen::deref(xDesc),
-                                                           miopen::deref(yDesc),
-                                                           solution_id);
+        auto ctx               = miopen::ExecutionContext{};
+        auto problem           = miopen::conv::ProblemDescription{};
+        std::tie(ctx, problem) = MakeFwdCtxAndProblem(handle, xDesc, wDesc, convDesc, yDesc);
+        miopen::deref(convDesc).CompileSolution(ctx, problem, solution_id);
     });
 }
 
@@ -741,28 +770,6 @@ miopenConvolutionForwardImmediate(miopenHandle_t handle,
                                                                 workSpaceSize,
                                                                 solution_id);
     });
-}
-
-static inline auto MakeBwdCtxAndProblem(miopenHandle_t handle,
-                                        const miopenTensorDescriptor_t dyDesc,
-                                        const miopenTensorDescriptor_t wDesc,
-                                        const miopenConvolutionDescriptor_t convDesc,
-                                        const miopenTensorDescriptor_t dxDesc)
-{
-    using namespace miopen;
-
-    const auto& conv     = deref(convDesc);
-    const auto direction =
-        (conv.mode != miopenTranspose) ? conv::Direction::BackwardData : conv::Direction::Forward;
-
-    auto problem =
-        (conv.mode != miopenTranspose)
-            ? conv::ProblemDescription{deref(dyDesc), deref(wDesc), deref(dxDesc), conv, direction}
-            : conv::ProblemDescription{deref(dxDesc), deref(wDesc), deref(dyDesc), conv, direction};
-
-    auto ctx = ExecutionContext{&deref(handle)}.DetectRocm().SetupFloats(problem);
-
-    return std::make_tuple(std::move(ctx), std::move(problem));
 }
 
 extern "C" miopenStatus_t
@@ -845,18 +852,10 @@ miopenConvolutionBackwardDataCompileSolution(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, dyDesc, wDesc, convDesc, dxDesc, solution_id);
     return miopen::try_([&] {
-        if(miopen::deref(convDesc).mode == miopenTranspose)
-            miopen::deref(convDesc).CompileForwardSolution(miopen::deref(handle),
-                                                           miopen::deref(wDesc),
-                                                           miopen::deref(dyDesc),
-                                                           miopen::deref(dxDesc),
-                                                           solution_id);
-        else
-            miopen::deref(convDesc).CompileBackwardSolution(miopen::deref(handle),
-                                                            miopen::deref(dyDesc),
-                                                            miopen::deref(wDesc),
-                                                            miopen::deref(dxDesc),
-                                                            solution_id);
+        auto ctx               = miopen::ExecutionContext{};
+        auto problem           = miopen::conv::ProblemDescription{};
+        std::tie(ctx, problem) = MakeBwdCtxAndProblem(handle, dyDesc, wDesc, convDesc, dxDesc);
+        miopen::deref(convDesc).CompileSolution(ctx, problem, solution_id);
     });
 }
 
@@ -900,27 +899,6 @@ miopenConvolutionBackwardDataImmediate(miopenHandle_t handle,
                                                                  workSpaceSize,
                                                                  solution_id);
     });
-}
-
-static inline auto MakeWrWCtxAndProblem(miopenHandle_t handle,
-                                        const miopenTensorDescriptor_t dyDesc,
-                                        const miopenTensorDescriptor_t xDesc,
-                                        const miopenConvolutionDescriptor_t convDesc,
-                                        const miopenTensorDescriptor_t dwDesc)
-{
-    using namespace miopen;
-
-    const auto direction = conv::Direction::BackwardWeights;
-    const auto& conv     = deref(convDesc);
-
-    auto problem =
-        (conv.mode == miopenTranspose)
-            ? conv::ProblemDescription{deref(xDesc), deref(dwDesc), deref(dyDesc), conv, direction}
-            : conv::ProblemDescription{deref(dyDesc), deref(dwDesc), deref(xDesc), conv, direction};
-
-    auto ctx = ExecutionContext{&deref(handle)}.DetectRocm().SetupFloats(problem);
-
-    return std::make_tuple(std::move(ctx), std::move(problem));
 }
 
 extern "C" miopenStatus_t
@@ -1007,18 +985,10 @@ miopenConvolutionBackwardWeightsCompileSolution(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, solution_id);
     return miopen::try_([&] {
-        if(miopen::deref(convDesc).mode == miopenTranspose)
-            miopen::deref(convDesc).CompileWrwSolution(miopen::deref(handle),
-                                                       miopen::deref(xDesc),
-                                                       miopen::deref(dyDesc),
-                                                       miopen::deref(dwDesc),
-                                                       solution_id);
-        else
-            miopen::deref(convDesc).CompileWrwSolution(miopen::deref(handle),
-                                                       miopen::deref(dyDesc),
-                                                       miopen::deref(xDesc),
-                                                       miopen::deref(dwDesc),
-                                                       solution_id);
+        auto ctx               = miopen::ExecutionContext{};
+        auto problem           = miopen::conv::ProblemDescription{};
+        std::tie(ctx, problem) = MakeWrWCtxAndProblem(handle, dyDesc, xDesc, convDesc, dwDesc);
+        miopen::deref(convDesc).CompileSolution(ctx, problem, solution_id);
     });
 }
 
@@ -1215,16 +1185,10 @@ miopenConvolutionBackwardDataGetWorkSpaceSize(miopenHandle_t handle,
 
     MIOPEN_LOG_FUNCTION(handle, dyDesc, wDesc, convDesc, dxDesc, workSpaceSize);
     return miopen::try_([&] {
-        miopen::deref(workSpaceSize) =
-            miopen::deref(convDesc).mode == miopenTranspose
-                ? miopen::deref(convDesc).ForwardGetWorkSpaceSize(miopen::deref(handle),
-                                                                  miopen::deref(wDesc),
-                                                                  miopen::deref(dyDesc),
-                                                                  miopen::deref(dxDesc))
-                : miopen::deref(convDesc).BackwardDataGetWorkSpaceSize(miopen::deref(handle),
-                                                                       miopen::deref(wDesc),
-                                                                       miopen::deref(dyDesc),
-                                                                       miopen::deref(dxDesc));
+        auto ctx               = miopen::ExecutionContext{};
+        auto problem           = miopen::conv::ProblemDescription{};
+        std::tie(ctx, problem) = MakeBwdCtxAndProblem(handle, dyDesc, wDesc, convDesc, dxDesc);
+        miopen::deref(workSpaceSize) = miopen::deref(convDesc).GetWorkSpaceSize(ctx, problem);
     });
 }
 
@@ -1239,13 +1203,10 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
 
     MIOPEN_LOG_FUNCTION(handle, dyDesc, xDesc, convDesc, dwDesc, workSpaceSize);
     return miopen::try_([&] {
-        miopen::deref(workSpaceSize) = miopen::deref(convDesc).BackwardWeightsGetWorkSpaceSize(
-            miopen::deref(handle),
-            miopen::deref(convDesc).mode == miopenTranspose ? miopen::deref(xDesc)
-                                                            : miopen::deref(dyDesc),
-            miopen::deref(convDesc).mode == miopenTranspose ? miopen::deref(dyDesc)
-                                                            : miopen::deref(xDesc),
-            miopen::deref(dwDesc));
+        auto ctx               = miopen::ExecutionContext{};
+        auto problem           = miopen::conv::ProblemDescription{};
+        std::tie(ctx, problem) = MakeWrWCtxAndProblem(handle, dyDesc, xDesc, convDesc, dwDesc);
+        miopen::deref(workSpaceSize) = miopen::deref(convDesc).GetWorkSpaceSize(ctx, problem);
     });
 }
 

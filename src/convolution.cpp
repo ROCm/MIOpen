@@ -109,8 +109,7 @@ std::size_t GetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx)
 
 std::size_t GetWorkSpaceSizeFFT(const miopen::ConvolutionContext& ctx)
 {
-    if(ctx.problem.conv_problem.GetDirection() == conv::Direction::BackwardWeights ||
-       miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
         return 0;
     return GetMaxWorkSpaceSize(AllFFTForwardBackwardDataWorkspaceSize(ctx));
 }
@@ -119,24 +118,24 @@ std::size_t GetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return 0;
-    GetMaxWorkSpaceSize(FindAllWinogradWorkspaceSizes(ctx));
+    return GetMaxWorkSpaceSize(FindAllWinogradWorkspaceSizes(ctx));
 }
 
-std::size_t GetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx)
+std::size_t GetWorkSpaceSizeDirectWrW(const miopen::ConvolutionContext& ctx)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return 0;
     return GetMaxWorkSpaceSize(AllDirectBwdWrW2DWorkspaceSize(ctx));
 }
 
-std::size_t GetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx)
+std::size_t GetWorkSpaceSizeWinogradWrW(const miopen::ConvolutionContext& ctx)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return 0;
     return GetMaxWorkSpaceSize(FindWinogradWrWWorkspaceSizes(ctx));
 }
 
-std::size_t GetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx)
+std::size_t GetWorkSpaceSizeImplicitGemmWrW(const miopen::ConvolutionContext& ctx)
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{}))
         return 0;
@@ -421,12 +420,13 @@ ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDe
     return 0;
 }
 
-std::size_t ConvolutionDescriptor::GetWorkSpaceSize(const ExecutionContext& ctx_,
+std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
                                                     const conv::ProblemDescription& problem) const
 {
     MIOPEN_LOG_I("");
 
-    auto ctx = ctx_.WithTuning(false).WithPerfdbAccess(false);
+    ctx.do_search = false;
+    ctx.disable_perfdb_access = true;
 
     while(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
@@ -455,51 +455,28 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(const ExecutionContext& ctx_
     const auto conv_ctx = ConvolutionContext{ctx, problem};
     size_t workspace_size;
 
-    if(problem.GetDirection() == conv::Direction::BackwardWeights)
-    {
-        workspace_size = std::max({GetWorkSpaceSizeImplicitGemm(conv_ctx),
-                                   GetWorkSpaceSizeWinograd(conv_ctx),
-                                   GetWorkSpaceSizeDirect(conv_ctx),
-                                   BackwardWeightsGetWorkSpaceSizeGEMM(conv_ctx)});
-    }
-    else
+    if(problem.GetDirection() != conv::Direction::BackwardWeights)
     {
         if(IsWinograd3x3SupportedAndFast(conv_ctx))
         {
             const auto dynamic_ctx = ctx.WithDinamicSolutionsOnly(true);
-            const auto ws = GetWorkSpaceSizeWinograd({dynamic_ctx, problem});
-            MIOPEN_LOG_I2(ws);
-            return ws;
+            workspace_size         = GetWorkSpaceSizeWinograd({dynamic_ctx, problem});
         }
-        size_t workspace_size_gemm = 0;
-#if MIOPEN_USE_GEMM
-        if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
+        else
         {
-            decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(conv_ctx);
-
-            if(!gemm_ws_sz_pairs.empty())
-            {
-                decltype(auto) gemm_ws_szs =
-                    gemm_ws_sz_pairs |
-                    boost::adaptors::transformed([](const auto& p) { return p.second; });
-                workspace_size_gemm = *std::max_element(gemm_ws_szs.begin(), gemm_ws_szs.end());
-            }
-
-            if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
-            {
-                return std::max({workspace_size_gemm,
-                                 direct_workspace,
-                                 implicit_gemm_workspace,
-                                 workspace_size_winograd});
-            }
+            workspace_size = std::max({GetWorkSpaceSizeFFT(conv_ctx),
+                                       GetWorkSpaceSizeGEMM(conv_ctx),
+                                       GetWorkSpaceSizeDirect(conv_ctx),
+                                       GetWorkSpaceSizeImplicitGemm(conv_ctx),
+                                       GetWorkSpaceSizeWinograd(conv_ctx)});
         }
-#endif
-
-        workspace_size = std::max({GetWorkSpaceSizeFFT(conv_ctx),
-                                   GetWorkSpaceSizeGEMM(conv_ctx),
-                                   GetWorkSpaceSizeDirect(conv_ctx),
-                                   GetWorkSpaceSizeImplicitGemm(conv_ctx),
-                                   GetWorkSpaceSizeWinograd(conv_ctx)});
+    }
+    else
+    {
+        workspace_size = std::max({GetWorkSpaceSizeGEMM(conv_ctx),
+                                   GetWorkSpaceSizeDirectWrW(conv_ctx),
+                                   GetWorkSpaceSizeImplicitGemmWrW(conv_ctx),
+                                   GetWorkSpaceSizeWinogradWrW(conv_ctx)});
     }
 
     MIOPEN_LOG_I2(workspace_size);

@@ -73,6 +73,9 @@ struct TransposeInvokeParams : InvokeParams
         : in(in_), out(out_), in_desc(in_desc_), out_desc(out_desc_)
     {
     }
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 struct TransposePseudoSolver
