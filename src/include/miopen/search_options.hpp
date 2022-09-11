@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,49 +26,36 @@
 
 #pragma once
 
-#include <miopen/errors.hpp>
-#include <miopen/invoker.hpp>
+#include <miopen/miopen.h>
 
-#include <boost/optional.hpp>
+#include <miopen/object.hpp>
 
-#include <map>
-#include <memory>
-#include <string>
-#include <utility>
+#include <limits>
 
 namespace miopen {
 
-class InvokerCache
+struct FindOptions : miopenFindOptions
 {
-public:
-    // network_config, solver_id
-    using Key = std::pair<std::string, std::string>;
-
-    boost::optional<const Invoker&> operator[](const Key& key) const;
-    // For find 1.0
-    boost::optional<const Invoker&> GetFound1_0(const std::string& network_config,
-                                                const std::string& algorithm) const;
-    boost::optional<const std::string&> GetFound1_0SolverId(const std::string& network_config,
-                                                            const std::string& algorithm) const;
-
-    void Register(const Key& key, const Invoker& invoker);
-    // For find 1.0
-    void SetAsFound1_0(const std::string& network_config,
-                       const std::string& algorithm,
-                       const std::string& solver_id);
-
-private:
-    struct Item
-    {
-        // algorithm -> solver_id
-        // for find 1.0
-        std::map<std::string, std::string> found_1_0;
-        // solver_id -> invoker
-        std::map<std::string, Invoker> invokers;
-    };
-
-    // network_config -> Item
-    std::map<std::string, Item> invokers;
+    bool exhaustive_search                 = false;
+    miopenFindResultsOrder_t results_order = miopenFindResultsOrderByTime;
+    std::size_t workspace_limit            = std::numeric_limits<std::size_t>::max();
 };
 
 } // namespace miopen
+
+inline std::ostream& operator<<(std::ostream& stream, const miopen::FindOptions& options)
+{
+    stream << "options(";
+    stream << "exhaustive search: " << (options.exhaustive_search ? " true" : "false");
+    stream << ", results order: ";
+    switch(options.results_order)
+    {
+    case miopenFindResultsOrderByTime: stream << "by time"; break;
+    case miopenFindResultsOrderByWorkspaceSize: stream << "by workspace size"; break;
+    }
+    stream << ", workspace limit: " << options.workspace_limit;
+    stream << ")";
+    return stream;
+}
+
+MIOPEN_DEFINE_OBJECT(miopenFindOptions, miopen::FindOptions);
