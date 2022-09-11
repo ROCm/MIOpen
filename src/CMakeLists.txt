@@ -83,6 +83,7 @@ endfunction()
 set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
+    api/find2_0_commons.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -127,6 +128,7 @@ set( MIOpen_Source
     pooling/problem_description.cpp
     pooling_api.cpp
     problem_description.cpp
+    problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
     reducetensor.cpp
@@ -134,6 +136,7 @@ set( MIOpen_Source
     rnn.cpp
     rnn_api.cpp
     softmax_api.cpp
+    solution.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
@@ -693,6 +696,8 @@ endif()
 if(LIBMLIRMIOPEN)
   target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
 endif()
+
+target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)
 
 if(WIN32 AND NOT MSVC)
     if(BUILD_DEV)
