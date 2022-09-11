@@ -247,6 +247,11 @@ if(MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908)
     list(APPEND SKIP_TESTS test_bn_3d_spatial_test)
 endif()
 
+#TODO WORKAROUND_ISSUE_1743: issue with GemmFwdRest
+if(MIOPEN_TEST_GFX90A AND MIOPEN_TEST_HALF)
+    list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d)
+endif()
+
 # The usage is non-trivial, see function add_test_command.
 if(SKIP_TESTS)
     list(REMOVE_DUPLICATES SKIP_TESTS)

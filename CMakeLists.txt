@@ -254,7 +254,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     # miopentensile default off
     set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
 
-    find_program(HIP_OC_COMPILER clang-ocl
+    find_program(HIP_OC_COMPILER clang
         PATH_SUFFIXES bin
         PATHS
             /opt/rocm
@@ -434,11 +434,6 @@ if(MIOPEN_USE_ROCBLAS)
 endif()
 
 if(MIOPEN_BACKEND STREQUAL "HIP")
-    # In HIP backend, there is a posibility of COMGR disabled.
-    # In this case add the clang-ocl as dependency for runtime kernel compilation
-    if(NOT MIOPEN_USE_COMGR)
-        set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-clang-ocl")
-    endif()
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}")
     set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}")
 
