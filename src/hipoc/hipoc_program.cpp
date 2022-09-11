@@ -254,7 +254,12 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
         if(miopen::IsEnabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP{}))
             params += " -mwavefrontsize64 -mcumode";
         WriteFile(src, dir->path / filename);
-        dir->Execute(HIP_OC_COMPILER, params + " " + filename + " -o " + hsaco_file.string());
+        params += " -target amdgcn-amd-amdhsa -x cl -D__AMD__=1  -O3";
+        params += " -cl-kernel-arg-info -cl-denorms-are-zero";
+        params += " -cl-std=CL1.2 -mllvm -amdgpu-early-inline-all";
+        params += " -mllvm -amdgpu-internalize-symbols ";
+        params += " " + filename + " -o " + hsaco_file.string();
+        dir->Execute(HIP_OC_COMPILER, params);
     }
     if(!boost::filesystem::exists(hsaco_file))
         MIOPEN_THROW("Cant find file: " + hsaco_file.string());
