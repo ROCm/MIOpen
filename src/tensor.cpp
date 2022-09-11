@@ -23,12 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <algorithm>
-#include <cassert>
+#include <miopen/tensor.hpp>
+
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/tensor.hpp>
 #include <miopen/tensor_layout.hpp>
+
+#include <nlohmann/json.hpp>
+
+#include <algorithm>
+#include <cassert>
 #include <numeric>
 #include <string>
 
@@ -289,6 +293,24 @@ std::string TensorDescriptor::ToString() const
 std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t)
 {
     return LogRange(stream, t.lens, ", ");
+}
+
+void to_json(nlohmann::json& j, const TensorDescriptor& descriptor)
+{
+    j = nlohmann::json{
+        {"lengths", descriptor.lens},
+        {"strides", descriptor.strides},
+        {"packed", descriptor.packed},
+        {"type", descriptor.type},
+    };
+}
+
+void from_json(const nlohmann::json& j, TensorDescriptor& descriptor)
+{
+    j.at("lengths").get_to(descriptor.lens);
+    j.at("strides").get_to(descriptor.strides);
+    j.at("packed").get_to(descriptor.packed);
+    j.at("type").get_to(descriptor.type);
 }
 
 } // namespace miopen
