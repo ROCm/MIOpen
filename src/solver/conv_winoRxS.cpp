@@ -998,12 +998,34 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& par
         result.weight = 100;
     else
         result.weight = 5;
+    const auto& desc    = *params.problem.fusion_plan_desc;
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
+    int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
+    GetCompiledInParameters(
+        params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+    const int zero = 0;
+    int flags      = [&]() {
+        if(bias_idx != -1 && activ_idx != -1)
+            return (1 << 7) + (1 << 8);
+        else if(bias_idx != -1)
+            return (1 << 7);
+        else
+            return zero;
+    }();
+    const miopenActivationMode_t activ_mode = [&]() {
+        if(activ_idx != -1)
+        {
+            const auto& activ_op =
+                dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
+            return activ_op.activMode;
+        }
+        return miopenActivationPASTHRU;
+    }();
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            const auto& kernel = handle.Run(kernels[0]);
+            const auto& launch_kernel = handle.Run(kernels[0]);
             const auto& invoke_ctx =
                 primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
             const auto& bot_buf = invoke_ctx.in;
@@ -1012,43 +1034,48 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& par
                     invoke_ctx.op_invokers[0])
                     ->weights;
             const auto& top_buf = invoke_ctx.out;
-            std::vector<OpKernelArg> opArgs; // The kernel signature has a max of  12 arguments
-            if(activ_idx != -1)
-            {
-                const auto& activ_args =
-                    std::dynamic_pointer_cast<miopen::fusion::ActivationOpInvokeParam>(
-                        invoke_ctx.op_invokers[activ_idx]);
-                opArgs.emplace_back(static_cast<float>(activ_args->activAlpha));
-                opArgs.emplace_back(static_cast<float>(activ_args->activBeta));
-                opArgs.emplace_back(static_cast<float>(activ_args->activGamma));
-            }
-            if(bn_idx != -1)
-            {
-                const auto& bn_args =
-                    std::dynamic_pointer_cast<miopen::fusion::BatchNormInferenceOpInvokeParam>(
-                        invoke_ctx.op_invokers[bn_idx]);
-                opArgs.emplace_back(static_cast<double>(bn_args->epsilon));
-            }
-            opArgs.emplace_back(bot_buf);
-            opArgs.emplace_back(top_buf);
-            opArgs.emplace_back(wei_buf);
-            if(bias_idx != -1)
-            {
-                opArgs.emplace_back(std::dynamic_pointer_cast<miopen::fusion::BiasOpInvokeParam>(
-                                        invoke_ctx.op_invokers[1])
-                                        ->bdata);
-            }
-            if(bn_idx != -1)
-            {
-                const auto& bn_args =
-                    std::dynamic_pointer_cast<miopen::fusion::BatchNormInferenceOpInvokeParam>(
-                        invoke_ctx.op_invokers[bn_idx]);
-                opArgs.emplace_back(bn_args->bnBias);
-                opArgs.emplace_back(bn_args->bnScale);
-                opArgs.emplace_back(bn_args->estimatedMean);
-                opArgs.emplace_back(bn_args->estimatedVariance);
-            }
-            kernel(opArgs);
+            const auto bias_ptr = [&]() {
+                if(bias_idx != -1)
+                {
+                    return std::dynamic_pointer_cast<miopen::fusion::BiasOpInvokeParam>(
+                               invoke_ctx.op_invokers[1])
+                        ->bdata;
+                }
+                else
+                    return static_cast<ConstData_t>(nullptr);
+            }();
+            float activ_alpha = [&]() {
+                if(activ_idx != -1)
+                {
+                    const auto& activ_args =
+                        std::dynamic_pointer_cast<miopen::fusion::ActivationOpInvokeParam>(
+                            invoke_ctx.op_invokers[activ_idx]);
+                    if(activ_mode == miopenActivationLEAKYRELU)
+                        return (static_cast<float>(activ_args->activAlpha));
+                }
+                return static_cast<float>(0.0);
+            }();
+            launch_kernel(N,
+                          C,
+                          H,
+                          W,
+                          K,
+                          n_groups_, // Not related to group convolutions
+                          flags,     // flags
+                          zero,      // reserved
+                          bot_buf,
+                          wei_buf,
+                          top_buf,
+                          nullptr, // return_addr
+                          R,
+                          S,
+                          pad_H,
+                          pad_W,
+                          out_H,
+                          out_W,
+                          bias_ptr,
+                          activ_alpha // leaky relu alpha
+            );
         };
     };
     return result;

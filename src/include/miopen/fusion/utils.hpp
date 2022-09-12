@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,8 @@ namespace miopen {
 namespace solver {
 namespace fusion {
 
-int GetOpIdx(const std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map, miopenFusionOp_t op)
+inline int GetOpIdx(const std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map,
+                    miopenFusionOp_t op)
 {
     int idx = 0;
     for(const auto& ptr : op_map)
@@ -43,7 +44,7 @@ int GetOpIdx(const std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map, mio
     return -1;
 }
 
-bool WinoCommonIsApplicable(const FusionContext& params)
+inline bool WinoCommonIsApplicable(const FusionContext& params)
 {
     const auto& desc = *params.problem.fusion_plan_desc;
     if(desc.op_map.empty())

@@ -527,21 +527,21 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& params) const
             if(!(c % 2 == 0))
                 return false;
             padded_y = 3;
-            padded_x = Ceil(x, 3);
+            padded_x = Ceiling(x, 3);
         }
         else
         {
-            padded_y = Ceil(y, 6);
-            padded_x = Ceil(x, 3);
+            padded_y = Ceiling(y, 6);
+            padded_x = Ceiling(x, 3);
         }
     }
     else if(conv_ctx.problem.kernel_stride_h == 2)
     {
-        padded_y = Ceil(y, 6);
+        padded_y = Ceiling(y, 6);
         if(x % 6 == 1)
-            padded_x = Ceil(x, 3);
+            padded_x = Ceiling(x, 3);
         else
-            padded_x = Ceil(x, 6);
+            padded_x = Ceiling(x, 6);
     }
     else
         return false;
@@ -587,15 +587,34 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& plan_desc
         result.weight = 100;
     else
         result.weight = 5;
+    const auto& desc    = *plan_desc.problem.fusion_plan_desc;
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
     int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
     GetCompiledInParameters(
         params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+    const int zero = 0;
+    int flags      = [&]() {
+        if(bias_idx != -1 && activ_idx != -1)
+            return (1 << 7) + (1 << 8);
+        else if(bias_idx != -1)
+            return (1 << 7);
+        else
+            return zero;
+    }();
+    const miopenActivationMode_t activ_mode = [&]() {
+        if(activ_idx != -1)
+        {
+            const auto& activ_op =
+                dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
+            return activ_op.activMode;
+        }
+        return miopenActivationPASTHRU;
+    }();
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            const auto& kernel = handle.Run(kernels[0]);
+            const auto& launch_kernel = handle.Run(kernels[0]);
             const auto& invoke_ctx =
                 primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
             const auto& bot_buf = invoke_ctx.in;
@@ -612,50 +631,39 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& plan_desc
                         ->bdata;
                 }
                 else
-                    return nullptr;
-            }();
-            const int zero = 0;
-            int flags      = [&]() {
-                if(bias_idx != -1 && activ_idx != -1)
-                    return (1 << 7) + (1 << 8);
-                else if(bias_idx != -1)
-                    return (1 << 7);
-                else
-                    return zero;
+                    return static_cast<ConstData_t>(nullptr);
             }();
             float activ_alpha = [&]() {
                 if(activ_idx != -1)
                 {
-                    const auto& activ_op =
-                        dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
                     const auto& activ_args =
                         std::dynamic_pointer_cast<miopen::fusion::ActivationOpInvokeParam>(
                             invoke_ctx.op_invokers[activ_idx]);
-                    if(activ_op.activMode == miopenActivationLEAKYRELU)
+                    if(activ_mode == miopenActivationLEAKYRELU)
                         return (static_cast<float>(activ_args->activAlpha));
                 }
                 return static_cast<float>(0.0);
             }();
-            kernel(N,
-                   C,
-                   H,
-                   W,
-                   K,
-                   n_groups_, // Not related to group convolutions
-                   flags,     // flags
-                   zero,      // reserved
-                   bot_buf,
-                   wei_buf,
-                   top_buf,
-                   nullptr, // return_addr
-                   R,
-                   S,
-                   pad_H,
-                   pad_W,
-                   out_H,
-                   out_W,
-                   bias_ptr,
-                   activ_alpha // leaky relu alpha
+            launch_kernel(N,
+                          C,
+                          H,
+                          W,
+                          K,
+                          n_groups_, // Not related to group convolutions
+                          flags,     // flags
+                          zero,      // reserved
+                          bot_buf,
+                          wei_buf,
+                          top_buf,
+                          nullptr, // return_addr
+                          R,
+                          S,
+                          pad_H,
+                          pad_W,
+                          out_H,
+                          out_W,
+                          bias_ptr,
+                          activ_alpha // leaky relu alpha
             );
         };
     };
