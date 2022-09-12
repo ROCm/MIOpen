@@ -74,13 +74,6 @@ using ExtraKernelArgs = std::tuple<int /*N*/,
 struct ConvFwdTensors;
 struct ConvWrwTensors;
 
-enum class ConvDirection
-{
-    Fwd = 1,
-    Bwd = 2,
-    WrW = 4
-};
-
 struct ConvolutionAttribute
 {
     class Gfx90aFp16alt

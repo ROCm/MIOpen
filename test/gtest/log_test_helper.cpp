@@ -25,7 +25,19 @@
  *******************************************************************************/
 #include "log_test_helper.hpp"
 
-void setEnvironmentVariable(const std::string& name, const std::string& value)
+const std::string logConv =
+    "MIOpen(" BKEND
+    "): Command [LogCmdConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 -k "
+    "64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 1 -t 1";
+const std::string logFindConv =
+    "MIOpen(" BKEND
+    "): Command [LogCmdFindConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 "
+    "-k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 1 -t 1";
+
+const std::string envConv     = "MIOPEN_ENABLE_LOGGING_CMD";
+const std::string envFindConv = "MIOPEN_ENABLE_LOGGING_CMD_FIND";
+
+static void setEnvironmentVariable(const std::string& name, const std::string& value)
 {
     int ret = 0;
 
@@ -38,7 +50,7 @@ void setEnvironmentVariable(const std::string& name, const std::string& value)
     EXPECT_EQ(ret, 0);
 }
 
-void unSetEnvironmentVariable(const std::string& name)
+static void unSetEnvironmentVariable(const std::string& name)
 {
     int ret = 0;
 #ifdef _WIN32
@@ -130,7 +142,7 @@ struct Conv
     ~Conv() { miopenDestroyConvolutionDescriptor(convDesc); }
 };
 
-bool isSubStr(const std::string& str, const std::string& sub_str)
+static bool isSubStr(const std::string& str, const std::string& sub_str)
 {
     return str.find(sub_str) != std::string::npos;
 }
@@ -139,7 +151,7 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
                                    const miopenTensorDescriptor_t&,
                                    const miopenConvolutionDescriptor_t&,
                                    const miopenTensorDescriptor_t&,
-                                   const miopen::ConvDirection&,
+                                   const ConvDirection&,
                                    bool)> const& func,
                 std::string env_var,
                 std::string sub_str,
@@ -158,7 +170,7 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
          test_conv_log.weights.desc,
          test_conv_log.convDesc,
          test_conv_log.output.desc,
-         miopen::ConvDirection::Fwd,
+         ConvDirection::Fwd,
          false);
 
     // get the captured string

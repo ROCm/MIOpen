@@ -27,7 +27,7 @@
 
 #include <gtest/gtest.h>
 
-#include "miopen/logger.hpp"
+#include <miopen/config.h>
 #include <miopen/convolution.hpp>
 
 #if MIOPEN_BACKEND_OPENCL
@@ -36,37 +36,44 @@
 #define BKEND "HIP"
 #endif
 
-static const std::string& logConv =
-    "MIOpen(" BKEND
-    "): Command [LogCmdConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 -k "
-    "64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 1 -t 1";
-static const std::string& logFindConv =
-    "MIOpen(" BKEND
-    "): Command [LogCmdFindConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 "
-    "-k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 1 -t 1";
+extern std::string const logConv;
+extern std::string const logFindConv;
 
-static const std::string& envConv     = "MIOPEN_ENABLE_LOGGING_CMD";
-static const std::string& envFindConv = "MIOPEN_ENABLE_LOGGING_CMD_FIND";
+extern std::string const envConv;
+extern std::string const envFindConv;
 
+// Copy of struct that is in miopen.
+// This is for testing purpose only.
+enum class ConvDirection
+{
+    Fwd = 1,
+    Bwd = 2,
+    WrW = 4
+};
+
+// Copy of function declaration that is in miopen.
+// This is for testing purpose only.
 void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
                        const miopenTensorDescriptor_t& wDesc,
                        const miopenConvolutionDescriptor_t& convDesc,
                        const miopenTensorDescriptor_t& yDesc,
-                       const miopen::ConvDirection& conv_dir,
+                       const ConvDirection& conv_dir,
                        bool is_immediate);
-
+// Copy of function declaration that is in miopen.
+// This is for testing purpose only.
 void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                            const miopenTensorDescriptor_t& wDesc,
                            const miopenConvolutionDescriptor_t& convDesc,
                            const miopenTensorDescriptor_t& yDesc,
-                           const miopen::ConvDirection& conv_dir,
+                           const ConvDirection& conv_dir,
                            bool is_immediate);
 
+// Function that is used in multiple test cases.
 void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
                                    const miopenTensorDescriptor_t&,
                                    const miopenConvolutionDescriptor_t&,
                                    const miopenTensorDescriptor_t&,
-                                   const miopen::ConvDirection&,
+                                   const ConvDirection&,
                                    bool)> const& func,
                 std::string env_var,
                 std::string sub_str,
