@@ -71,12 +71,13 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
+    bool flag = false;
     if(miopen::CheckNumericsEnabled())
     {
-        miopen::checkNumericsInput(handle, xDesc, x);
+        flag |= miopen::checkNumericsInput(handle, xDesc, x);
         if(!float_equal(*(static_cast<const float*>(beta)), 0))
         {
-            miopen::checkNumericsInput(handle, yDesc, y);
+            flag |= miopen::checkNumericsInput(handle, yDesc, y);
         }
     }
 
@@ -135,7 +136,14 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
 
     if(miopen::CheckNumericsEnabled())
     {
-        miopen::checkNumericsOutput(handle, yDesc, y);
+        flag |= miopen::checkNumericsOutput(handle, yDesc, y);
+        const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+        if(flag && static_cast<bool>(file_name))
+        {
+            std::string file_name_str = file_name;
+            DumpTensorToFileFromDevice(handle, xDesc, x, file_name_str + "_x.bin");
+            DumpTensorToFileFromDevice(handle, yDesc, y, file_name_str + "_y.bin");
+        }
     }
 
     return miopenStatusSuccess;
@@ -159,14 +167,15 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
+    bool flag = false;
     if(miopen::CheckNumericsEnabled())
     {
         // miopen::checkNumericsInput(handle, yDesc, y); // not actually used?
-        miopen::checkNumericsInput(handle, dyDesc, dy);
+        flag |= miopen::checkNumericsInput(handle, dyDesc, dy);
         // miopen::checkNumericsInput(handle, xDesc, x); // not actually used?
         if(!float_equal(*(static_cast<const float*>(beta)), 0))
         {
-            miopen::checkNumericsInput(handle, dxDesc, dx);
+            flag |= miopen::checkNumericsInput(handle, dxDesc, dx);
         }
     }
 
@@ -199,7 +208,14 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
 
     if(miopen::CheckNumericsEnabled())
     {
-        miopen::checkNumericsOutput(handle, dxDesc, dx);
+        flag |= miopen::checkNumericsOutput(handle, dxDesc, dx);
+        const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+        if(flag && static_cast<bool>(file_name))
+        {
+            std::string file_name_str = file_name;
+            DumpTensorToFileFromDevice(handle, dxDesc, dx, file_name_str + "_dx.bin");
+            DumpTensorToFileFromDevice(handle, dyDesc, dy, file_name_str + "_dy.bin");
+        }
     }
 
     return miopenStatusSuccess;
