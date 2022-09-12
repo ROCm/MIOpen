@@ -986,21 +986,6 @@ int ConvFin<Tgpu, Tref>::MIOpenFind()
     std::ostringstream ss;
     problem.Serialize(ss);
     output["db_key"] = ss.str();
-    miopen::ConvolutionUserBuffers bufs(workspace.gpuData.buf.get(), workspace.desc.GetNumBytes());
-    if(conv_dir == miopen::conv::Direction::Forward)
-        bufs.SetFwd(inputTensor.gpuData.buf.get(),
-                    weightTensor.gpuData.buf.get(),
-                    outputTensor.gpuData.buf.get());
-    else if(conv_dir == miopen::conv::Direction::BackwardData)
-        bufs.SetBwd(inputTensor.gpuData.buf.get(),
-                    weightTensor.gpuData.buf.get(),
-                    outputTensor.gpuData.buf.get());
-    else if(conv_dir == miopen::conv::Direction::BackwardWeights)
-        bufs.SetWrW(inputTensor.gpuData.buf.get(),
-                    weightTensor.gpuData.buf.get(),
-                    outputTensor.gpuData.buf.get());
-
-    ctx.SetBufs(bufs);
 
     auto db = GetDb(ctx);
     json find_result;
