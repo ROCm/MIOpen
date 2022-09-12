@@ -1690,16 +1690,34 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 final : ConvSolver
 
 struct ConvAsmImplicitGemmV4R1DynamicWrw final : ConvSolver
 {
+    // To suppress -Woverloaded-virtual
+    using ConvSolver::IsApplicable;
+    using ConvSolver::GetWorkspaceSize;
+
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicWrw>();
     }
 
-    bool IsApplicable(const ConvolutionContext& ctx) const override;
+    bool IsApplicable(const ConvolutionContext& ctx) const override
+    {
+        return IsApplicable(ctx, ctx.problem);
+    }
     bool IsDynamic() const override { return true; }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
+    {
+        return GetWorkspaceSize(ctx.problem);
+    }
     bool MayNeedWorkspace() const override { return true; }
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.problem);
+    }
+
+private:
+    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const;
+    size_t GetWorkspaceSize(const ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const;
 };
 
 struct ConvAsmImplicitGemmGTCDynamicWrwXdlops final : ConvSolver
