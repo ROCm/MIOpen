@@ -913,10 +913,6 @@ bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& params) co
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
-#if !WORKAROUND_ISSUE_1681
-    if(params.problem.direction.IsBackwardWrW())
-        return false;
-#endif
     return IsApplicableBase(params) && params.problem.group_counts == 1;
 }
 
