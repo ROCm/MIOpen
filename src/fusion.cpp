@@ -39,6 +39,57 @@
 
 namespace miopen {
 
+miopenStatus_t ConvBiasActivFusion(Handle& handle,
+                                   const void* alpha1,
+                                   const TensorDescriptor xDesc,
+                                   ConstData_t x,
+                                   const TensorDescriptor wDesc,
+                                   ConstData_t w,
+                                   const ConvolutionDescriptor conv_desc,
+                                   miopenConvFwdAlgorithm_t algo,
+                                   void* workspace,
+                                   size_t workspaceSizeInBytes,
+                                   const void* alpha2,
+                                   const TensorDescriptor zDesc,
+                                   ConstData_t z,
+                                   const TensorDescriptor biasDesc,
+                                   ConstData_t bias,
+                                   const ActivationDescriptor activationDesc,
+                                   const TensorDescriptor yDesc,
+                                   Data_t y)
+{
+    assert(workspace == nullptr);
+    assert(workspaceSizeInBytes == 0);
+    assert(z == nullptr);
+    assert(zDesc.GetSize() == 0);
+    FusionPlanDescriptor fusePlanDesc{miopenVerticalFusion, xDesc};
+    OperatorArgs fusionArgs;
+    auto convoOp = std::make_shared<ConvForwardOpDescriptor>(conv_desc, wDesc);
+    auto biasOp  = std::make_shared<BiasFusionOpDescriptor>(biasDesc);
+    auto activOp = std::make_shared<ActivFwdFusionOpDescriptor>(activationDesc.GetMode());
+    fusePlanDesc.AddOp(convoOp);
+    fusePlanDesc.SetConvAlgo(algo);
+    fusePlanDesc.AddOp(biasOp);
+    fusePlanDesc.AddOp(activOp);
+
+    auto status = fusePlanDesc.Compile(handle);
+    if(status != miopenStatusSuccess)
+    {
+        return status;
+    }
+    float alpha       = static_cast<float>(1.0);
+    float beta        = static_cast<float>(0);
+    float activ_alpha = static_cast<float>(0), activ_beta = static_cast<float>(0),
+          activ_gamma = static_cast<float>(0);
+
+    // Set the Args
+    convoOp->SetArgs(fusionArgs, &alpha1, &beta, w);
+    activOp->SetArgs(fusionArgs, &alpha2, &beta, activ_alpha, activ_beta, activ_gamma);
+    biasOp->SetArgs(fusionArgs, &alpha, &beta, bias);
+    fusePlanDesc.Execute(handle, xDesc, x, yDesc, y, fusionArgs);
+    return status;
+}
+
 FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
                                            const TensorDescriptor& inDesc)
     : fusion_dir(dir),

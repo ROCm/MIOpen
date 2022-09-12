@@ -520,4 +520,21 @@ void generate_unary_one(F f, std::vector<int> input, G g)
     f(make_tensor<T>(input, g));
 }
 
+struct tensor_elem_gen_integer
+{
+    unsigned long max_value = 17;
+
+    template <class... Ts>
+    double operator()(Ts... Xs) const
+    {
+        static_assert(sizeof...(Ts) < 6,
+                      "Dimensions in tensor_elem_gen_integer must be less than 6.");
+        assert(max_value > 0);
+        std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
+        std::array<unsigned long, 5> right            = {{613, 547, 701, 877, 1049}};
+        unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173ul);
+        return static_cast<double>(dot % max_value);
+    }
+};
+
 #endif
