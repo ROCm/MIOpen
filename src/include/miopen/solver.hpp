@@ -1691,8 +1691,8 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 final : ConvSolver
 struct ConvAsmImplicitGemmV4R1DynamicWrw final : ConvSolver
 {
     // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
     using ConvSolver::GetWorkspaceSize;
+    using ConvSolver::IsApplicable;
 
     const std::string& SolverDbId() const override
     {

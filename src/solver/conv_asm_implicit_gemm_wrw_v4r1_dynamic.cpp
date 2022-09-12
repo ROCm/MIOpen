@@ -270,8 +270,7 @@ size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ProblemDescript
     else
         ele_size = 2;
 
-    gemmk_groups =
-        GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem.conv_problem, GemmKPerBlock);
+    gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem.conv_problem, GemmKPerBlock);
 
     if(gemmk_groups == 0)
         extra_groups = 0;
@@ -295,7 +294,8 @@ static int GetGemmkGroups(const ProblemDescription& problem)
     return GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem.conv_problem, GemmKPerBlock);
 }
 
-bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ExecutionContext& ctx,
+                                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1{}))
         return false;
@@ -341,7 +341,8 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ExecutionContext& ctx
     return FindImplicitGemmWrwV4R1DynamicKernel(problem, kernel_name, block_size, grid_size);
 }
 
-ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
+ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionContext& ctx,
+                                                            const ProblemDescription& problem) const
 {
     ConvSolution result;
 
@@ -389,8 +390,8 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionConte
         kernel_reduction.kernel_name = "wrw_reduction_hip";
         kernel_reduction.g_wk.clear();
         int block_size_reduction = 256;
-        int grid_size_redcution  = problem.n_outputs * problem.n_inputs *
-                                  problem.kernel_size_h * problem.kernel_size_w /
+        int grid_size_redcution  = problem.n_outputs * problem.n_inputs * problem.kernel_size_h *
+                                  problem.kernel_size_w /
                                   (reduction_per_thread * block_size_reduction);
         kernel_reduction.g_wk.push_back(grid_size_redcution * block_size_reduction);
         kernel_reduction.g_wk.push_back(1);
