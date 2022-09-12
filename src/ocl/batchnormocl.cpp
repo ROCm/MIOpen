@@ -91,13 +91,14 @@ void BatchNormForwardTraining(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
+    bool flag = false;
     if(miopen::CheckNumericsEnabled())
     {
-        miopen::checkNumericsInput(handle, xDesc, x);
+        flag |= miopen::checkNumericsInput(handle, xDesc, x);
         if(bnScale != nullptr)
-            miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
+            flag |= miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
         if(bnBias != nullptr)
-            miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
+            flag |= miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
     }
 
     const auto resultsave    = resultSaveMean != nullptr && resultSaveInvVariance != nullptr;
@@ -140,15 +141,45 @@ void BatchNormForwardTraining(Handle& handle,
 
     if(miopen::CheckNumericsEnabled())
     {
-        miopen::checkNumericsOutput(handle, yDesc, y);
+        flag |= miopen::checkNumericsOutput(handle, yDesc, y);
         if(resultRunningMean != nullptr)
-            miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningMean);
+            flag |= miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningMean);
         if(resultRunningVariance != nullptr)
-            miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningVariance);
+            flag |=
+                miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningVariance);
         if(resultSaveMean != nullptr)
-            miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultSaveMean);
+            flag |= miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultSaveMean);
         if(resultSaveInvVariance != nullptr)
-            miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultSaveInvVariance);
+            flag |=
+                miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultSaveInvVariance);
+
+        const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+        if(flag && static_cast<bool>(file_name))
+        {
+            std::string file_name_str = file_name;
+            DumpTensorToFileFromDevice(handle, xDesc, x, file_name_str + "_x.bin");
+            DumpTensorToFileFromDevice(handle, yDesc, y, file_name_str + "_y.bin");
+            DumpTensorToFileFromDevice(
+                handle, bnScaleBiasMeanVarDesc, bnScale, file_name_str + "_bnScale.bin");
+            DumpTensorToFileFromDevice(
+                handle, bnScaleBiasMeanVarDesc, bnBias, file_name_str + "_bnBias.bin");
+            DumpTensorToFileFromDevice(handle,
+                                       bnScaleBiasMeanVarDesc,
+                                       resultRunningMean,
+                                       file_name_str + "_resultRunningMean.bin");
+            DumpTensorToFileFromDevice(handle,
+                                       bnScaleBiasMeanVarDesc,
+                                       resultRunningVariance,
+                                       file_name_str + "_resultRunningVariance.bin");
+            DumpTensorToFileFromDevice(handle,
+                                       bnScaleBiasMeanVarDesc,
+                                       resultSaveMean,
+                                       file_name_str + "_resultSaveMean.bin");
+            DumpTensorToFileFromDevice(handle,
+                                       bnScaleBiasMeanVarDesc,
+                                       resultSaveInvVariance,
+                                       file_name_str + "_resultSaveInvVariance.bin");
+        }
     }
 }
 //================== END FWD TRAIN ===================
@@ -169,13 +200,14 @@ void BatchNormForwardInference(Handle& handle,
                                ConstData_t estimatedVariance,
                                double epsilon)
 {
+    bool flag = false;
     if(miopen::CheckNumericsEnabled())
     {
-        miopen::checkNumericsInput(handle, xDesc, x);
-        miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
-        miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
-        miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, estimatedMean);
-        miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, estimatedVariance);
+        flag |= miopen::checkNumericsInput(handle, xDesc, x);
+        flag |= miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
+        flag |= miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
+        flag |= miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, estimatedMean);
+        flag |= miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, estimatedVariance);
     }
 
     if(estimatedMean != nullptr && estimatedVariance != nullptr)
@@ -250,7 +282,26 @@ void BatchNormForwardInference(Handle& handle,
     }
     if(miopen::CheckNumericsEnabled())
     {
-        miopen::checkNumericsOutput(handle, yDesc, y);
+        flag |= miopen::checkNumericsOutput(handle, yDesc, y);
+        const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+        if(flag && static_cast<bool>(file_name))
+        {
+            std::string file_name_str = file_name;
+            DumpTensorToFileFromDevice(handle, xDesc, x, file_name_str + "_x.bin");
+            DumpTensorToFileFromDevice(handle, yDesc, y, file_name_str + "_y.bin");
+            DumpTensorToFileFromDevice(
+                handle, bnScaleBiasMeanVarDesc, bnScale, file_name_str + "_bnScale.bin");
+            DumpTensorToFileFromDevice(
+                handle, bnScaleBiasMeanVarDesc, bnBias, file_name_str + "_bnBias.bin");
+            DumpTensorToFileFromDevice(handle,
+                                       bnScaleBiasMeanVarDesc,
+                                       estimatedMean,
+                                       file_name_str + "_estimatedMean.bin");
+            DumpTensorToFileFromDevice(handle,
+                                       bnScaleBiasMeanVarDesc,
+                                       estimatedVariance,
+                                       file_name_str + "_estimatedVariance.bin");
+        }
     }
 }
 //================= END FORWARD INFERENCE ====================
@@ -280,16 +331,17 @@ void BatchNormBackward(Handle& handle,
 #if(MIO_BN_TIME_EVERYTHING == 1)
     auto t_start = std::chrono::high_resolution_clock::now();
 #endif
+    bool flag = false;
     if(miopen::CheckNumericsEnabled())
     {
-        miopen::checkNumericsInput(handle, xDesc, x);
-        miopen::checkNumericsInput(handle, dyDesc, dy);
-        miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, bnScale);
+        flag |= miopen::checkNumericsInput(handle, xDesc, x);
+        flag |= miopen::checkNumericsInput(handle, dyDesc, dy);
+        flag |= miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, bnScale);
 
         if(savedMean != nullptr)
-            miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, savedMean);
+            flag |= miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, savedMean);
         if(savedInvVariance != nullptr)
-            miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, savedInvVariance);
+            flag |= miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, savedInvVariance);
     }
 
     if(x == nullptr || dy == nullptr || bnScale == nullptr || dx == nullptr)
@@ -354,9 +406,34 @@ void BatchNormBackward(Handle& handle,
 
     if(miopen::CheckNumericsEnabled())
     {
-        miopen::checkNumericsOutput(handle, dxDesc, dx);
-        miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnScaleDiff);
-        miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnBiasDiff);
+        flag |= miopen::checkNumericsOutput(handle, dxDesc, dx);
+        flag |= miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnScaleDiff);
+        flag |= miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnBiasDiff);
+
+        const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+        if(flag && static_cast<bool>(file_name))
+        {
+            std::string file_name_str = file_name;
+            DumpTensorToFileFromDevice(handle, xDesc, x, file_name_str + "_x.bin");
+            DumpTensorToFileFromDevice(handle, dxDesc, dx, file_name_str + "_dx.bin");
+            DumpTensorToFileFromDevice(handle, dyDesc, dy, file_name_str + "_dy.bin");
+            DumpTensorToFileFromDevice(
+                handle, bnScaleBiasDiffDesc, bnScale, file_name_str + "_bnScale.bin");
+            DumpTensorToFileFromDevice(
+                handle, bnScaleBiasDiffDesc, savedMean, file_name_str + "_savedMean.bin");
+            DumpTensorToFileFromDevice(handle,
+                                       bnScaleBiasDiffDesc,
+                                       savedInvVariance,
+                                       file_name_str + "_savedInvVariance.bin");
+            DumpTensorToFileFromDevice(handle,
+                                       bnScaleBiasDiffDesc,
+                                       resultBnScaleDiff,
+                                       file_name_str + "_resultBnScaleDiff.bin");
+            DumpTensorToFileFromDevice(handle,
+                                       bnScaleBiasDiffDesc,
+                                       resultBnBiasDiff,
+                                       file_name_str + "_resultBnBiasDiff.bin");
+        }
     }
 }
 } // namespace miopen
