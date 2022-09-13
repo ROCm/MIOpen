@@ -131,7 +131,7 @@ RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -pa
 ARG MIOTENSILE_VER="default"
 RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
 
-ARG CK_COMMIT=efd1d25733fb22f4900698d86dd88599e7864102
+ARG CK_COMMIT=7589116121f80189f47cfd8692f300ee8c6377ad
 RUN rm -rf /tmp/ck* && mkdir /tmp/ck && wget -O ck.tar.gz https://www.github.com/rocmsoftwareplatform/composable_kernel/archive/${CK_COMMIT}.tar.gz -O /tmp/ck.tar.gz && \
     tar zxvf /tmp/ck.tar.gz -C /tmp/ && mkdir /tmp/composable_kernel-${CK_COMMIT}/build &&\
     cd /tmp/composable_kernel-${CK_COMMIT}/build && \
