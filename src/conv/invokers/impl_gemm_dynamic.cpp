@@ -113,10 +113,10 @@ InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionCont
 }
 
 template <>
-InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const ConvolutionContext& ctx,
+InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescription& problem,
                                                                   const int& cfg)
 {
-    const auto& conv_problem = ctx.problem.conv_problem;
+    const auto& conv_problem = problem.conv_problem;
     int hi                   = conv_problem.GetOutHeight();
     int wi                   = conv_problem.GetOutWidth();
     int n                    = conv_problem.GetInBatchSize();
@@ -252,9 +252,9 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const Convolut
 template <>
 InvokerFactory
 MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDynamic_t>(
-    const ConvolutionContext& ctx, const solver::TunableImplicitGemmGTCDynamic_t& cfg)
+    const miopen::ProblemDescription& problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg)
 {
-    const auto& conv_problem = ctx.problem.conv_problem;
+    const auto& conv_problem = problem.conv_problem;
     int hi                   = conv_problem.GetOutHeight();
     int wi                   = conv_problem.GetOutWidth();
     int n                    = conv_problem.GetInBatchSize();

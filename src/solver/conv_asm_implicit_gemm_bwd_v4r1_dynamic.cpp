@@ -36,7 +36,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1)
 namespace miopen {
 namespace solver {
 
-static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ctx,
+static inline bool FindImplicitGemmDynamicKernelBwd(const ProblemDescription& problem,
                                                     std::string& kernel_name,
                                                     int& block_size,
                                                     int& grid_size)
@@ -44,21 +44,21 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ct
     // TODO: add more dynamic kernel to expand support range, and update this function
     // clang-format off
     // refer to ConvolutionContextInterpreter, in bwd most dimension is reversed
-    int hi          = ctx.problem.out_height;
-    int wi          = ctx.problem.out_width;
-    int n           = ctx.problem.batch_sz;
-    int k           = ctx.problem.n_inputs;
-    int c           = ctx.problem.n_outputs;
-    int ho          = ctx.problem.in_height;
-    int wo          = ctx.problem.in_width;
-    int stride_h    = ctx.problem.in_height > 1 ? ctx.problem.kernel_stride_h : 1;
-    int stride_w    = ctx.problem.in_width > 1 ? ctx.problem.kernel_stride_w : 1;
-    int dilation_h  = ctx.problem.kernel_size_h > 1? ctx.problem.kernel_dilation_h : 1;
-    int dilation_w  = ctx.problem.kernel_size_w > 1? ctx.problem.kernel_dilation_w : 1;
-    int pad_h       = ctx.problem.pad_h;
-    int pad_w       = ctx.problem.pad_w;
-    int y           = ctx.problem.kernel_size_h;
-    int x           = ctx.problem.kernel_size_w;
+    int hi          = problem.out_height;
+    int wi          = problem.out_width;
+    int n           = problem.batch_sz;
+    int k           = problem.n_inputs;
+    int c           = problem.n_outputs;
+    int ho          = problem.in_height;
+    int wo          = problem.in_width;
+    int stride_h    = problem.in_height > 1 ? problem.kernel_stride_h : 1;
+    int stride_w    = problem.in_width > 1 ? problem.kernel_stride_w : 1;
+    int dilation_h  = problem.kernel_size_h > 1? problem.kernel_dilation_h : 1;
+    int dilation_w  = problem.kernel_size_w > 1? problem.kernel_dilation_w : 1;
+    int pad_h       = problem.pad_h;
+    int pad_w       = problem.pad_w;
+    int y           = problem.kernel_size_h;
+    int x           = problem.kernel_size_w;
 
     int gcd_stride_dilation_h = gcd(stride_h, dilation_h);
     int gcd_stride_dilation_w = gcd(stride_w, dilation_w);
@@ -127,7 +127,7 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ConvolutionContext& ct
     return false;
 }
 
-bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1{}))
         return false;
@@ -139,22 +139,22 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& c
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!ctx.problem.direction.IsBackwardData())
+    if(!problem.direction.IsBackwardData())
         return false;
 
-    if(!ctx.problem.Is2d())
+    if(!problem.Is2d())
         return false;
 
-    if(!ctx.problem.IsFp32())
+    if(!problem.IsFp32())
         return false;
 
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(ctx.problem.group_counts != 1)
+    if(problem.group_counts != 1)
         return false;
 
-    if(!ctx.problem.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
@@ -166,17 +166,17 @@ bool ConvAsmImplicitGemmV4R1DynamicBwd::IsApplicable(const ConvolutionContext& c
     std::string kernel_name;
     int block_size;
     int grid_size;
-    return FindImplicitGemmDynamicKernelBwd(ctx, kernel_name, block_size, grid_size);
+    return FindImplicitGemmDynamicKernelBwd(problem, kernel_name, block_size, grid_size);
 }
 
-ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(const ConvolutionContext& ctx) const
+ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     ConvSolution result;
 
     std::string kernel_name;
     int block_size;
     int grid_size;
-    bool ret = FindImplicitGemmDynamicKernelBwd(ctx, kernel_name, block_size, grid_size);
+    bool ret = FindImplicitGemmDynamicKernelBwd(problem, kernel_name, block_size, grid_size);
     if(!ret)
         MIOPEN_THROW("should not happen!");
 
@@ -202,7 +202,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(const ConvolutionCon
 
     kernel.comp_options = options.str();
 
-    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(ctx, int(0));
+    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(problem, int(0));
     result.construction_params.push_back(kernel);
     return result;
 }
