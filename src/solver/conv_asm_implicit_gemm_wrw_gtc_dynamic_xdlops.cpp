@@ -640,7 +640,8 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ProblemDescription& problem)
                                                                                  gemm_n_per_block,
                                                                                  gemm_k_per_block,
                                                                                  b);
-                                int tunable_index       = find_tunable(tunables,
+
+                                int tunable_index = find_tunable(tunables,
                                                                  gemm_m_per_block,
                                                                  gemm_n_per_block,
                                                                  gemm_k_per_block,
