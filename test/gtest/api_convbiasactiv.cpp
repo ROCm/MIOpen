@@ -27,6 +27,7 @@
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
 #include <serialize.hpp>
+#include <fusionHost.hpp>
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
@@ -84,11 +85,27 @@ protected:
                                         cba_config.dialtion_x);
         int n, c, h, w;
         miopenGetConvolutionForwardOutputDim(conv_desc, &input.desc, &weights.desc, &n, &c, &h, &w);
-        output        = tensor<float>{static_cast<size_t>(n),
+        output  = tensor<float>{static_cast<size_t>(n),
                                static_cast<size_t>(c),
                                static_cast<size_t>(h),
                                static_cast<size_t>(w)};
-        bias          = tensor<float>{1, static_cast<size_t>(c), 1, 1};
+        ref_out = tensor<float>{static_cast<size_t>(n),
+                                static_cast<size_t>(c),
+                                static_cast<size_t>(h),
+                                static_cast<size_t>(w)};
+        bias    = tensor<float>{1, static_cast<size_t>(c), 1, 1};
+        bias.generate(tensor_elem_gen_integer{17});
+        std::fill(output.begin(), output.end(), 0.0f);
+        std::fill(ref_out.begin(), ref_out.end(), 0.0f);
+        std::fill(bias.begin(), bias.end(), 0.0f);
+        int bias_mode = 1; // zero disables bias
+        convHostForward(input, ref_out, weights, bias_mode, bias, conv_desc);
+        activationHostInfer(cba_config.activ_mode,
+                            double_zero,
+                            double_zero,
+                            double_zero,
+                            ref_out.data,
+                            ref_out.data);
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
         wei_dev       = handle.Write(weights.data);
@@ -97,6 +114,16 @@ protected:
     }
     void TearDown() override
     {
+        auto&& handle = get_handle();
+        output.data   = handle.Read<float>(out_dev, output.data.size());
+        EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
+        EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
+        const auto mxdiff = miopen::max_diff(output, ref_out);
+        std::ignore       = mxdiff;
+        auto idx          = miopen::mismatch_idx(ref_out, output, miopen::float_equal);
+        EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
+            << "Non finite number found in the CPU data";
+        EXPECT_FALSE(idx < miopen::range_distance(ref_out));
         miopenDestroyConvolutionDescriptor(conv_desc);
         miopenDestroyActivationDescriptor(activ_desc);
     }
@@ -107,6 +134,7 @@ protected:
     tensor<float> weights;
     tensor<float> output;
     tensor<float> bias;
+    tensor<float> ref_out;
     miopen::Allocator::ManageDataPtr in_dev;
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;
