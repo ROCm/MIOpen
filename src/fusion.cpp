@@ -37,6 +37,9 @@
 #include <string>
 #include <half.hpp>
 
+#define MIOPEN_CHECK(x)          \
+    if(x != miopenStatusSuccess) \
+        return x;
 namespace miopen {
 
 miopenStatus_t ConvBiasActivFusion(Handle& handle,
@@ -60,34 +63,43 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
 {
     assert(workspace == nullptr);
     assert(workspaceSizeInBytes == 0);
-    assert(z == nullptr);
-    assert(zDesc.GetSize() == 0);
+    if(alpha1 != nullptr)
+    {
+        const auto falpha1 = *(static_cast<const float*>(alpha1));
+        if(falpha1 != 1.0f)
+            MIOPEN_THROW(miopenStatusNotImplemented, "alpha1 can only be 1.0");
+    }
+    if(alpha2 != nullptr)
+    {
+        const auto falpha2 = *(static_cast<const float*>(alpha2));
+        if(falpha2 != 1.0f)
+            MIOPEN_THROW(miopenStatusNotImplemented, "alpha2 can only be 1.0");
+    }
+    if(z != nullptr || zDesc.GetSize() != 0)
+        MIOPEN_THROW(miopenStatusNotImplemented, "The addition of z vector is not yet supported");
     FusionPlanDescriptor fusePlanDesc{miopenVerticalFusion, xDesc};
     OperatorArgs fusionArgs;
     auto convoOp = std::make_shared<ConvForwardOpDescriptor>(conv_desc, wDesc);
     auto biasOp  = std::make_shared<BiasFusionOpDescriptor>(biasDesc);
     auto activOp = std::make_shared<ActivFwdFusionOpDescriptor>(activationDesc.GetMode());
-    fusePlanDesc.AddOp(convoOp);
-    fusePlanDesc.SetConvAlgo(algo);
-    fusePlanDesc.AddOp(biasOp);
-    fusePlanDesc.AddOp(activOp);
+    MIOPEN_CHECK(fusePlanDesc.AddOp(convoOp));
+    MIOPEN_CHECK(fusePlanDesc.SetConvAlgo(algo));
+    MIOPEN_CHECK(fusePlanDesc.AddOp(biasOp));
+    MIOPEN_CHECK(fusePlanDesc.AddOp(activOp));
 
-    auto status = fusePlanDesc.Compile(handle);
-    if(status != miopenStatusSuccess)
-    {
-        return status;
-    }
+    MIOPEN_CHECK(fusePlanDesc.Compile(handle));
     float alpha       = static_cast<float>(1.0);
     float beta        = static_cast<float>(0);
-    float activ_alpha = static_cast<float>(0), activ_beta = static_cast<float>(0),
-          activ_gamma = static_cast<float>(0);
+    float activ_alpha = activationDesc.GetAlpha();
+    float activ_beta  = activationDesc.GetBeta();
+    float activ_gamma = activationDesc.GetGamma();
 
     // Set the Args
-    convoOp->SetArgs(fusionArgs, &alpha1, &beta, w);
-    activOp->SetArgs(fusionArgs, &alpha2, &beta, activ_alpha, activ_beta, activ_gamma);
-    biasOp->SetArgs(fusionArgs, &alpha, &beta, bias);
-    fusePlanDesc.Execute(handle, xDesc, x, yDesc, y, fusionArgs);
-    return status;
+    MIOPEN_CHECK(convoOp->SetArgs(fusionArgs, &alpha, &beta, w));
+    MIOPEN_CHECK(activOp->SetArgs(fusionArgs, &alpha, &beta, activ_alpha, activ_beta, activ_gamma));
+    MIOPEN_CHECK(biasOp->SetArgs(fusionArgs, &alpha, &beta, bias));
+    MIOPEN_CHECK(fusePlanDesc.Execute(handle, xDesc, x, yDesc, y, fusionArgs));
+    return miopenStatusSuccess;
 }
 
 FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,

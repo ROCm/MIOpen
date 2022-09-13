@@ -481,24 +481,28 @@ miopenConvolutionBiasActivationForward(miopenHandle_t handle,
                         activationDesc,
                         ydesc,
                         y);
-    return miopen::try_([&] {
-        ConvBiasActivFusion(miopen::deref(handle),
-                            alpha1,
-                            miopen::deref(xDesc),
-                            x,
-                            miopen::deref(wDesc),
-                            w,
-                            miopen::deref(conv_desc),
-                            algo,
-                            workspace,
-                            workspaceSizeInBytes,
-                            alpha2,
-                            miopen::deref(zDesc),
-                            z,
-                            miopen::deref(biasDesc),
-                            bias,
-                            miopen::deref(activationDesc),
-                            miopen::deref(yDesc),
-                            y);
+    miopenStatus_t res = miopenStatusUnknownError;
+    const auto try_res = miopen::try_([&] {
+        res = ConvBiasActivFusion(miopen::deref(handle),
+                                  alpha1,
+                                  miopen::deref(xDesc),
+                                  DataCast(x),
+                                  miopen::deref(wDesc),
+                                  DataCast(w),
+                                  miopen::deref(conv_desc),
+                                  algo,
+                                  DataCast(workspace),
+                                  workspaceSizeInBytes,
+                                  alpha2,
+                                  miopen::deref(zDesc),
+                                  DataCast(z),
+                                  miopen::deref(biasDesc),
+                                  DataCast(bias),
+                                  miopen::deref(activationDesc),
+                                  miopen::deref(yDesc),
+                                  DataCast(y));
     });
+    if(try_res == miopenStatusSuccess)
+        return res;
+    return try_res;
 }

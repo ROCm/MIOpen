@@ -31,37 +31,94 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 
-// Demonstrate some basic assertions.
-TEST(ConvBiasActivFwd, DriveAPI)
+struct CBATestCase
 {
-    const double double_zero = 0.0f;
-    tensor<float> input{16, 128, 16, 16};
-    tensor<float> weights{1, 128, 3, 3};
-    tensor<float> z{};
+    size_t N;
+    size_t C;
+    size_t H;
+    size_t W;
+    size_t k;
+    size_t y;
+    size_t x;
+    size_t pad_x;
+    size_t pad_y;
+    size_t stride_x;
+    size_t stride_y;
+    size_t dialtion_x;
+    size_t dilation_y;
+    miopenActivationMode_t activ_mode;
+    miopenConvolutionMode_t conv_mode;
+    friend std::ostream& operator<<(std::ostream& os, const CBATestCase& tc)
+    {
+        return os << "N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
+                  << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
+                  << " pad_x:" << tc.pad_x << " stride_y:" << tc.stride_y
+                  << " dilation_y:" << tc.dilation_y << " activ_mode:" << tc.activ_mode
+                  << " conv_mode:" << tc.conv_mode;
+    }
+};
+
+struct ConvBiasActivFwdTest
+    : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, CBATestCase>>
+{
+protected:
+    void SetUp() override
+    {
+        std::tie(algo, cba_config) = GetParam();
+        const double double_zero   = 0.0f;
+        input   = tensor<float>{cba_config.N, cba_config.C, cba_config.H, cba_config.W};
+        weights = tensor<float>{1, cba_config.k, cba_config.x, cba_config.y};
+        input.generate(tensor_elem_gen_integer{17});
+        weights.generate(tensor_elem_gen_integer{17});
+        miopenCreateConvolutionDescriptor(&conv_desc);
+        miopenCreateActivationDescriptor(&activ_desc);
+        miopenSetActivationDescriptor(
+            activ_desc, cba_config.activ_mode, double_zero, double_zero, double_zero);
+        miopenInitConvolutionDescriptor(conv_desc,
+                                        cba_config.conv_mode,
+                                        cba_config.pad_y,
+                                        cba_config.pad_x,
+                                        cba_config.stride_y,
+                                        cba_config.stride_x,
+                                        cba_config.dilation_y,
+                                        cba_config.dialtion_x);
+        int n, c, h, w;
+        miopenGetConvolutionForwardOutputDim(conv_desc, &input.desc, &weights.desc, &n, &c, &h, &w);
+        output        = tensor<float>{static_cast<size_t>(n),
+                               static_cast<size_t>(c),
+                               static_cast<size_t>(h),
+                               static_cast<size_t>(w)};
+        bias          = tensor<float>{1, static_cast<size_t>(c), 1, 1};
+        auto&& handle = get_handle();
+        in_dev        = handle.Write(input.data);
+        wei_dev       = handle.Write(weights.data);
+        out_dev       = handle.Write(output.data);
+        bias_dev      = handle.Write(bias.data);
+    }
+    void TearDown() override
+    {
+        miopenDestroyConvolutionDescriptor(conv_desc);
+        miopenDestroyActivationDescriptor(activ_desc);
+    }
+    CBATestCase cba_config;
     miopenConvolutionDescriptor_t conv_desc;
     miopenActivationDescriptor_t activ_desc;
-    input.generate(tensor_elem_gen_integer{17});
-    weights.generate(tensor_elem_gen_integer{17});
-    miopenCreateConvolutionDescriptor(&conv_desc);
-    miopenCreateActivationDescriptor(&activ_desc);
-    miopenSetActivationDescriptor(
-        activ_desc, miopenActivationRELU, double_zero, double_zero, double_zero);
-    miopenInitConvolutionDescriptor(conv_desc, miopenConvolution, 0, 0, 1, 1, 1, 1);
-    int n, c, h, w;
-    miopenGetConvolutionForwardOutputDim(conv_desc, &input.desc, &weights.desc, &n, &c, &h, &w);
-    tensor<float> output{static_cast<size_t>(n),
-                         static_cast<size_t>(c),
-                         static_cast<size_t>(h),
-                         static_cast<size_t>(w)};
-    tensor<float> bias{1, static_cast<size_t>(c), 1, 1};
-    const float alpha                   = 1.0f;
-    auto&& handle                       = get_handle();
-    auto in_dev                         = handle.Write(input.data);
-    auto wei_dev                        = handle.Write(weights.data);
-    auto out_dev                        = handle.Write(output.data);
-    auto bias_dev                       = handle.Write(bias.data);
-    const miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
-    const auto status                   = miopenConvolutionBiasActivationForward(&get_handle(),
+    tensor<float> input;
+    tensor<float> weights;
+    tensor<float> output;
+    tensor<float> bias;
+    miopen::Allocator::ManageDataPtr in_dev;
+    miopen::Allocator::ManageDataPtr wei_dev;
+    miopen::Allocator::ManageDataPtr out_dev;
+    miopen::Allocator::ManageDataPtr bias_dev;
+    miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
+};
+
+TEST_P(ConvBiasActivFwdTest, DriveAPI)
+{
+    tensor<float> z{};
+    const float alpha = 1.0f;
+    const auto status = miopenConvolutionBiasActivationForward(&get_handle(),
                                                                &alpha,
                                                                &input.desc,
                                                                in_dev.get(),
@@ -81,3 +138,23 @@ TEST(ConvBiasActivFwd, DriveAPI)
                                                                out_dev.get());
     EXPECT_EQ(status, miopenStatusSuccess);
 }
+
+INSTANTIATE_TEST_SUITE_P(CBAFwdAPITest,
+                         ConvBiasActivFwdTest,
+                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect,
+                                                          miopenConvolutionFwdAlgoWinograd),
+                                          testing::Values(CBATestCase{16,
+                                                                      128,
+                                                                      16,
+                                                                      16,
+                                                                      128,
+                                                                      3,
+                                                                      3,
+                                                                      0,
+                                                                      0,
+                                                                      1,
+                                                                      1,
+                                                                      1,
+                                                                      1,
+                                                                      miopenActivationRELU,
+                                                                      miopenConvolution})));
