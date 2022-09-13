@@ -635,9 +635,12 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ProblemDescription& problem)
                                     }
                                 }
 
-                                int gemm_k_global_split = if_gemm_k_global_split(
-                                    problem, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, b);
-                                int tunable_index = find_tunable(tunables,
+                                int gemm_k_global_split = if_gemm_k_global_split(problem,
+                                                                                 gemm_m_per_block,
+                                                                                 gemm_n_per_block,
+                                                                                 gemm_k_per_block,
+                                                                                 b);
+                                int tunable_index       = find_tunable(tunables,
                                                                  gemm_m_per_block,
                                                                  gemm_n_per_block,
                                                                  gemm_k_per_block,
@@ -788,7 +791,8 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ProblemDescription& problem)
         is_valid, sel_index, sel_block_size, sel_grid_size, sel_log2_gemm_k_global_splits);
 }
 
-size_t ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ProblemDescription& problem) const
+size_t
+ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;
@@ -805,7 +809,8 @@ size_t ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ProblemDes
     }
 }
 
-bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ExecutionContext& ctx,
+                                                          const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS{}))
         return false;
@@ -851,7 +856,8 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ExecutionContext
 }
 
 ConvSolution
-ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
+ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
+                                                    const ProblemDescription& problem) const
 {
     ConvSolution result;
 
