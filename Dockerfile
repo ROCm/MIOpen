@@ -1,38 +1,34 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04 as miopen
 
 ARG USE_MLIR="OFF"
 
 # Support multiarch
 RUN dpkg --add-architecture i386
 
-# Add rocm repository
-# Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
-# unless MLIR library is incompatible with current ROCm.
-
-RUN if [ "$USE_MLIR" = "ON" ] ; \
-        then export ROCM_APT_VER=.apt_5.1;\
-    else \
-        export ROCM_APT_VER=.apt_5.1;  \
-    fi && \
-echo $ROCM_APT_VER &&\
-sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ ubuntu main > /etc/apt/sources.list.d/rocm.list'
-RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu bionic main universe | tee -a /etc/apt/sources.list"
-
-#Add gpg keys
-# Install dependencies
+# Install preliminary dependencies
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    wget \
+    apt-utils \
     ca-certificates \
     curl \
     libnuma-dev \
     gnupg \
-    apt-utils && \
-apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 9386B48A1A693C5C && \
-wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - && \
-wget --no-check-certificate -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | apt-key add - && \
-sh -c "echo deb https://apt.kitware.com/ubuntu/ bionic main | tee -a /etc/apt/sources.list" && \
-apt-get update && \
+    wget
+
+#Add gpg keys
+RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 9386B48A1A693C5C && \
+    wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add -
+
+# Add rocm repository
+# Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
+# unless MLIR library is incompatible with current ROCm.
+RUN export ROCM_APT_VER=.apt_5.2.3;\
+echo $ROCM_APT_VER &&\
+sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ ubuntu main > /etc/apt/sources.list.d/rocm.list'
+RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu focal main universe | tee -a /etc/apt/sources.list"
+
+# Install dependencies
+RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     build-essential \
     cmake-data=3.15.1-0kitware1 \
@@ -55,7 +51,6 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     python3 \
     python-dev \
     python3-dev \
-    python-pip \
     python3-pip \
     python3-distutils \
     python3-venv \
@@ -65,6 +60,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     rocm-opencl \
     rocm-opencl-dev \
     rocblas \
+    rpm \
     zlib1g-dev \
     kmod && \
     apt-get remove -y rocm-cmake && \
@@ -105,10 +101,11 @@ ARG CCACHE_SECONDARY_STORAGE=""
 ARG CCACHE_DIR="/tmp"
 RUN env
 # RUN cget -p $PREFIX install https://github.com/ccache/ccache/archive/7f1572ae9ca958fa923a66235f6a64a360b03523.tar.gz -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON
-RUN rm -rf /tmp/ccache* && mkdir /tmp/ccache && wget https://github.com/ccache/ccache/archive/7f1572ae9ca958fa923a66235f6a64a360b03523.tar.gz -O /tmp/ccache.tar.gz && \
-    tar zxvf /tmp/ccache.tar.gz -C /tmp/ && mkdir /tmp/ccache-7f1572ae9ca958fa923a66235f6a64a360b03523/build && \
-    cd /tmp/ccache-7f1572ae9ca958fa923a66235f6a64a360b03523/build && \
-    cmake -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON .. && make -j install
+ARG CCACHE_COMMIT=7f1572ae9ca958fa923a66235f6a64a360b03523
+RUN rm -rf /tmp/ccache* && mkdir /tmp/ccache && wget https://github.com/ccache/ccache/archive/${CCACHE_COMMIT}.tar.gz -O /tmp/ccache.tar.gz && \
+    tar zxvf /tmp/ccache.tar.gz -C /tmp/ && mkdir /tmp/ccache-${CCACHE_COMMIT}/build && \
+    cd /tmp/ccache-${CCACHE_COMMIT}/build && \
+    cmake -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON .. && make -j install && rm -rf /tmp/*
 RUN ccache -s 
 ARG COMPILER_LAUNCHER=""
 RUN if [ "$USE_FIN" = "ON" ]; then \
@@ -131,4 +128,10 @@ RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -pa
 ARG MIOTENSILE_VER="default"
 RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
 
+ARG CK_COMMIT=91d8b7d67ae9dbf8a6e691ea3e17c0b9705c6ba7
+RUN rm -rf /tmp/ck* && mkdir /tmp/ck && wget -O ck.tar.gz https://www.github.com/rocmsoftwareplatform/composable_kernel/archive/${CK_COMMIT}.tar.gz -O /tmp/ck.tar.gz && \
+    tar zxvf /tmp/ck.tar.gz -C /tmp/ && mkdir /tmp/composable_kernel-${CK_COMMIT}/build &&\
+    cd /tmp/composable_kernel-${CK_COMMIT}/build && \
+    CXX=/opt/rocm/bin/hipcc cmake -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" -DCMAKE_PREFIX_PATH=/opt/rocm -D CMAKE_CXX_FLAGS=" --offload-arch=gfx900 --offload-arch=gfx906 --offload-arch=gfx908 --offload-arch=gfx90a --offload-arch=gfx1030 -O3 " .. && \
+    make -j $(nproc) install && rm -rf /tmp/*
 RUN groupadd -f render

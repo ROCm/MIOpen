@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,14 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <hip/hip_runtime_api.h>
-#include <miopen/errors.hpp>
+
+#pragma once
+
+#include <type_traits>
 
 namespace miopen {
 
-std::string HIPErrorMessage(int error, const std::string& msg)
+namespace detail {
+
+template <typename...>
+using void_t = void;
+
+template <class Default, class AlwaysVoid, template <class...> class Op, class... Args>
+struct MemberDetector
 {
-    return msg + ": " + hipGetErrorString(static_cast<hipError_t>(error));
-}
+    using value_t = std::false_type;
+    using type    = Default;
+};
+
+template <class Default, template <class...> class Op, class... Args>
+struct MemberDetector<Default, void_t<Op<Args...>>, Op, Args...>
+{
+    using value_t = std::true_type;
+    using type    = Op<Args...>;
+};
+
+} // namespace detail
+
+template <template <class...> class Op, class... Args>
+using HasMember = typename detail::MemberDetector<void, void, Op, Args...>::value_t;
 
 } // namespace miopen
