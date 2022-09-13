@@ -3,3 +3,4 @@ boost@1.79 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build
 half,https://github.com/pfultz2/half/archive/1.12.0.tar.gz -X header -H sha256:0a08660b68abb176ebc2a0cdf8de46e3182a7f46c66443bb80dbfaaec98cf969 --build
 ROCmSoftwarePlatform/llvm-project-mlir@rocm-5.3.0 -H sha256:ee5093aad5459773c350205ef937a186a20994b42798106f8126b9914ad099a5 -DBUILD_FAT_LIBMLIRMIOPEN=1
 nlohmann/json@v3.9.1 -DJSON_MultipleHeaders=ON -DJSON_BuildTests=Off
+ROCmSoftwarePlatform/composable_kernel@7589116121f80189f47cfd8692f300ee8c6377ad -D CMAKE_CXX_FLAGS=" --offload-arch=gfx900 --offload-arch=gfx906 --offload-arch=gfx908 --offload-arch=gfx90a --offload-arch=gfx1030 -O3 " 

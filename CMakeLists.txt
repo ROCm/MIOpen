@@ -221,7 +221,7 @@ if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
 endif()
 
 # Depend on Composable Kernels
-option(MIOPEN_USE_COMPOSABLEKERNEL "Enable MIOpen to use composable kernels for various operations" Off)
+option(MIOPEN_USE_COMPOSABLEKERNEL "Enable MIOpen to use composable kernels for various operations" On)
 if(MIOPEN_USE_COMPOSABLEKERNEL)
 find_package(composable_kernel 1.0.0 COMPONENTS device_operations host_tensor)
 endif()
