@@ -192,7 +192,6 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
                                                const TensorDescriptor& yDesc,
                                                bool exhaustiveSearch,
                                                bool isForward,
-                                               const ConvolutionUserBuffers& bufs,
                                                const AnyInvokeParams& invoke_ctx) const
 {
 
@@ -206,7 +205,6 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     ctx.save_srch_req              = true;
     ctx.general_compile_options    = "";
     ctx.SetStream(&handle);
-    ctx.SetBufs(bufs);
     ctx.DetectRocm();
     ctx.SetupFloats();
 
@@ -228,7 +226,6 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
                                                      const TensorDescriptor& yDesc,
                                                      bool exhaustiveSearch,
                                                      bool isForward,
-                                                     const ConvolutionUserBuffers& bufs,
                                                      const AnyInvokeParams& invoke_ctx) const
 {
 
@@ -243,7 +240,6 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     ctx.save_srch_req              = true;
     ctx.general_compile_options    = "";
     ctx.SetStream(&handle);
-    ctx.SetBufs(bufs);
     ctx.DetectRocm();
     ctx.SetupFloats();
 
@@ -390,20 +386,16 @@ static void DirConvFindCore(Handle& handle,
         AutoUseFastDynamicSolutions tmp{ctx};
         return conv.FindWinogradSolutions(ctx, invoke_ctx);
     }();
-    ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-    bufs.SetFwd(x, w, y);
     const auto gemm = !use_winograd_only ? conv.FindDataGemmSolutions(ctx, invoke_ctx)
                                          : std::vector<miopen::solver::ConvSolution>{};
-    const auto direct =
-        !use_winograd_only
-            ? conv.FindDataDirectSolutions(
-                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx)
-            : std::vector<miopen::solver::ConvSolution>{};
-    const auto igemm =
-        !use_winograd_only
-            ? conv.FindDataImplicitGemmSolutions(
-                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx)
-            : std::vector<miopen::solver::ConvSolution>{};
+    const auto direct = !use_winograd_only
+                            ? conv.FindDataDirectSolutions(
+                                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, invoke_ctx)
+                            : std::vector<miopen::solver::ConvSolution>{};
+    const auto igemm = !use_winograd_only
+                           ? conv.FindDataImplicitGemmSolutions(
+                                 handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, invoke_ctx)
+                           : std::vector<miopen::solver::ConvSolution>{};
     const auto fft = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx)
                                         : std::vector<miopen::solver::ConvSolution>{};
 
@@ -507,9 +499,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     else
     {
         ctx.DetectRocm();
-        ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-        bufs.SetFwd(x, w, y);
-        ctx.SetBufs(bufs);
         ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             DirConvFindCore(handle,
@@ -1158,19 +1147,17 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     AutoUseFastDynamicSolutions tmp{ctx};
                     return FindWinogradSolutions(ctx, invoke_ctx);
                 }();
-            ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-            bufs.SetBwd(dx, w, dy);
             const auto gemm = !use_winograd_only ? FindDataGemmSolutions(ctx, invoke_ctx)
                                                  : std::vector<miopen::solver::ConvSolution>{};
             const auto direct =
                 !use_winograd_only
                     ? FindDataDirectSolutions(
-                          handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx)
+                          handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, invoke_ctx)
                     : std::vector<miopen::solver::ConvSolution>{};
             const auto igemm =
                 !use_winograd_only
                     ? FindDataImplicitGemmSolutions(
-                          handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx)
+                          handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, invoke_ctx)
                     : std::vector<miopen::solver::ConvSolution>{};
             const auto fft = !use_winograd_only ? FindFftSolutions(ctx, invoke_ctx)
                                                 : std::vector<miopen::solver::ConvSolution>{};
@@ -1497,12 +1484,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     else
     {
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
-            ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-            bufs.SetWrW(x, dw, dy);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             ctx.do_search                  = exhaustiveSearch;
             ctx.SetStream(&handle);
-            ctx.SetBufs(bufs);
             ctx.SetupFloats();
             ctx.DetectRocm();
             const auto network_config = ctx.problem.BuildConfKey();
