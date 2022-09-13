@@ -1,4 +1,4 @@
-FROM ubuntu:20.04 as miopen
+FROM ubuntu:22.04 as miopen
 
 ARG USE_MLIR="OFF"
 
@@ -22,10 +22,18 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 9386B48A1A
 # Add rocm repository
 # Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
 # unless MLIR library is incompatible with current ROCm.
-RUN export ROCM_APT_VER=.apt_5.2.3;\
+RUN export ROCM_APT_VER=.apt_5.3;\
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ ubuntu main > /etc/apt/sources.list.d/rocm.list'
-RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu focal main universe | tee -a /etc/apt/sources.list"
+RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu jammy main universe | tee -a /etc/apt/sources.list"
+
+RUN wget https://artifactory-cdn.amd.com/artifactory/list/amdgpu-deb/amd-nonfree-radeon_22.04-1_all.deb --no-check-certificate
+RUN apt-get update && \
+DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+    ./amd-nonfree-radeon_22.04-1_all.deb
+RUN sh -c 'echo deb [arch=amd64 trusted=yes] http://compute-artifactory.amd.com/artifactory/list/rocm-release-archive-22.04-deb/ 5.3 rel-45 > /etc/apt/sources.list.d/rocm-build.list'
+RUN amdgpu-repo --amdgpu-build=1473570
+RUN amdgpu-install -y --usecase=rocm
 
 # Install dependencies
 RUN apt-get update && \
@@ -33,7 +41,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     build-essential \
     cmake \
     comgr \
-    clang-format-10 \
+    clang-format \
     doxygen \
     g++ \
     gdb \
@@ -46,15 +54,12 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     llvm-amdgpu \
     miopengemm \
     pkg-config \
-    python \
     python3 \
-    python-dev \
     python3-dev \
     python3-pip \
     python3-distutils \
     python3-venv \
     software-properties-common \
-    rocm-dev \
     rocm-device-libs \
     rocm-opencl \
     rocm-opencl-dev \
@@ -62,7 +67,6 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     rpm \
     zlib1g-dev \
     kmod && \
-    apt-get remove -y rocm-cmake && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -127,7 +131,7 @@ RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -pa
 ARG MIOTENSILE_VER="default"
 RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
 
-ARG CK_COMMIT=91d8b7d67ae9dbf8a6e691ea3e17c0b9705c6ba7
+ARG CK_COMMIT=efd1d25733fb22f4900698d86dd88599e7864102
 RUN rm -rf /tmp/ck* && mkdir /tmp/ck && wget -O ck.tar.gz https://www.github.com/rocmsoftwareplatform/composable_kernel/archive/${CK_COMMIT}.tar.gz -O /tmp/ck.tar.gz && \
     tar zxvf /tmp/ck.tar.gz -C /tmp/ && mkdir /tmp/composable_kernel-${CK_COMMIT}/build &&\
     cd /tmp/composable_kernel-${CK_COMMIT}/build && \
