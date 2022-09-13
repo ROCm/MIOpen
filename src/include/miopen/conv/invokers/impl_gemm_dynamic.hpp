@@ -208,12 +208,14 @@ static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const Conv
 InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionContext& ctx);
 
 template <typename T = int>
-InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const miopen::ProblemDescription& problem,
-                                                             const T& cfg);
+InvokerFactory
+MakeImplGemmDynamicBackwardDataInvokerFactory(const miopen::ProblemDescription& problem,
+                                              const T& cfg);
 
 template <>
-InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescription& problem,
-                                                                  const int& cfg);
+InvokerFactory
+MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescription& problem,
+                                                   const int& cfg);
 
 template <>
 InvokerFactory

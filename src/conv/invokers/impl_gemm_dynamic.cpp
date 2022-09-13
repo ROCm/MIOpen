@@ -113,8 +113,9 @@ InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionCont
 }
 
 template <>
-InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescription& problem,
-                                                                  const int& cfg)
+InvokerFactory
+MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescription& problem,
+                                                   const int& cfg)
 {
     const auto& conv_problem = problem.conv_problem;
     int hi                   = conv_problem.GetOutHeight();

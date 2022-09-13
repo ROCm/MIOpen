@@ -973,7 +973,8 @@ FindImplicitGemmGtcDynamicBwdKernel(const ProblemDescription& problem)
     return std::make_tuple(false, TunableImplicitGemmGTCDynamic_t(), "", -1, -1);
 }
 
-bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ExecutionContext& ctx,
+                                                          const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS{}))
         return false;
@@ -1017,7 +1018,8 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ExecutionContext
 }
 
 ConvSolution
-ConvAsmImplicitGemmGTCDynamicBwdXdlops::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
+ConvAsmImplicitGemmGTCDynamicBwdXdlops::GetSolution(const ExecutionContext& ctx,
+                                                    const ProblemDescription& problem) const
 {
     ConvSolution result;
     KernelInfo kernel;
