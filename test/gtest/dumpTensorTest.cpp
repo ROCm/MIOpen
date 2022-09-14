@@ -36,7 +36,7 @@ void populateTensor(tensor<T>& host_tensor)
 template <class T>
 void populateWithNAN(std::vector<T>& data)
 {
-  std::fill(data.begin(), data.end(), std::numeric_limits<T>::quiet_NaN());
+    std::fill(data.begin(), data.end(), std::numeric_limits<T>::quiet_NaN());
 }
 
 template <class T>
@@ -48,7 +48,7 @@ void compare(const tensor<T>& host_tensor,
 
     for(int i = 0; i < host_tensor.data.size(); ++i)
     {
-        //if(compare_nan && i == nan_index)
+        // if(compare_nan && i == nan_index)
         if(compare_nan)
         {
             EXPECT_TRUE(std::isnan(host_tensor[i])) << "Was expecting nan at index " << i;
@@ -113,7 +113,7 @@ void testDumpWithNan(const std::string& test_file_name)
     miopen::Handle handle{};
     // before writing to gpu we set one of the element
     // in the vector to nan.
-    //host_tensor.data[nan_index] = std::numeric_limits<T>::quiet_NaN();
+    // host_tensor.data[nan_index] = std::numeric_limits<T>::quiet_NaN();
     populateWithNAN(host_tensor.data);
 
     // write the tensor to GPU
