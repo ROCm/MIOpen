@@ -529,6 +529,8 @@ struct pooling_driver : test_driver
         auto idx_typ = index_type_lookup.at(miopen::ToUpper(index_type));
         auto idx_sz  = sizeof(uint8_t);
         int spt_dim  = in_shape.size() - 2;
+        const bool skip_many_configs_with_non_int8_index =
+            (dataset_id == 0); // Otherwise the default dataset takes too much time.
         switch(idx_typ)
         {
         case miopenIndexUint8: {
@@ -546,49 +548,58 @@ struct pooling_driver : test_driver
                 return;
             }
 
-            // test_pooling_test --all only test 5 uint16 cases
-            if(num_uint16_case > 5)
+            if(skip_many_configs_with_non_int8_index)
             {
-                return;
+                // test_pooling_test --all only test 5 uint16 cases
+                if(num_uint16_case > 5)
+                {
+                    return;
+                }
+                ++num_uint16_case;
             }
             idx_sz = sizeof(uint16_t);
-            ++num_uint16_case;
             break;
         }
         case miopenIndexUint32: {
-            // test_pooling_test --all only test 5 uint32 cases
-            if(wsidx == 0)
+            if(skip_many_configs_with_non_int8_index)
             {
-                if(num_uint32_case > 5 || spt_dim == 3)
-                    return;
+                // test_pooling_test --all only test 5 uint32 cases
+                if(wsidx == 0)
+                {
+                    if(num_uint32_case > 5 || spt_dim == 3)
+                        return;
 
-                ++num_uint32_case;
-            }
-            else
-            {
-                if(num_uint32_case_imgidx > 5)
-                    return;
+                    ++num_uint32_case;
+                }
+                else
+                {
+                    if(num_uint32_case_imgidx > 5)
+                        return;
 
-                ++num_uint32_case_imgidx;
+                    ++num_uint32_case_imgidx;
+                }
             }
 
             idx_sz = sizeof(uint32_t);
             break;
         }
         case miopenIndexUint64: {
-            if(wsidx == 0)
+            if(skip_many_configs_with_non_int8_index)
             {
-                if(num_uint64_case > 5 || spt_dim == 3)
-                    return;
+                if(wsidx == 0)
+                {
+                    if(num_uint64_case > 5 || spt_dim == 3)
+                        return;
 
-                ++num_uint64_case;
-            }
-            else
-            {
-                if(num_uint64_case_imgidx > 5 && spt_dim == 2)
-                    return;
+                    ++num_uint64_case;
+                }
+                else
+                {
+                    if(num_uint64_case_imgidx > 5 && spt_dim == 2)
+                        return;
 
-                ++num_uint64_case_imgidx;
+                    ++num_uint64_case_imgidx;
+                }
             }
 
             idx_sz = sizeof(uint64_t);

@@ -193,9 +193,68 @@ float Im2d2ColGPU(const Handle& handle,
 
         params += GetDataTypeKernelParams(type);
 
-        const std::vector<size_t> vld{256, 1, 1};
-        size_t global_threads = 256 * std::max(1, (c_pack / num_ch_per_wg)) * num_blks;
+        const int group_size_x = 256;
+        const std::vector<size_t> vld{group_size_x, 1, 1};
+        size_t group_cnt      = std::max(1, (c_pack / num_ch_per_wg)) * num_blks;
+        size_t global_threads = group_size_x * group_cnt;
         const std::vector<size_t> vgd{global_threads, 1, 1};
+
+        bool use_64bit_buffer_index = false;
+        use_64bit_buffer_index |= group_cnt > INT32_MAX;
+
+        if(extreme_case > MAX_LOCAL_MEM)
+        {
+            // check get_global_id
+            use_64bit_buffer_index |= global_threads > INT32_MAX;
+
+            const size_t in_chw = 1LL * in_h * in_w * c_pack;
+            use_64bit_buffer_index |= in_chw > INT32_MAX;
+
+            const size_t out_hw = 1LL * out_h * out_w;
+            use_64bit_buffer_index |= out_hw > INT32_MAX;
+
+            const size_t col_row = 1LL * wei_w * wei_h * c_pack;
+
+            const size_t tid = col_row * out_hw;
+            use_64bit_buffer_index |= tid > INT32_MAX;
+        }
+        else
+        {
+            if(num_blks == 1 && stride_h * stride_w == 1)
+            {
+                const size_t im_off_id = 1LL * group_cnt * num_ch_per_wg * in_h * in_w;
+                use_64bit_buffer_index |= im_off_id > INT32_MAX;
+
+                const size_t col_y =
+                    (1LL * group_cnt * num_ch_per_wg) * out_h * out_w * wei_h * wei_w;
+                use_64bit_buffer_index |= col_y > INT32_MAX;
+
+                // col_x= out_y * out_w + out_x;
+                // out_y = group_size_x/out_w; out_x = group_size_x % out_w;
+                //  = 255 / out_w * out_w + 255 % out_w;
+                int col_x            = 255 + 255;
+                const size_t col_off = col_y + col_x + (1LL * wei_h * wei_w) * out_h * out_w;
+                use_64bit_buffer_index |= col_off > INT32_MAX;
+            }
+            else
+            {
+                const size_t im_off_id = 1LL * (group_cnt / num_blks) * in_h * in_w;
+                use_64bit_buffer_index |= im_off_id > INT32_MAX;
+
+                const size_t col_x = 1LL * (out_h + 256) * out_w + 256;
+                use_64bit_buffer_index |= col_x > INT32_MAX;
+
+                const size_t col_y = 1LL * c * out_h * out_w * wei_h * wei_w;
+                use_64bit_buffer_index |= col_y > INT32_MAX;
+
+                const size_t col_off = col_y + col_x + (1LL * wei_h * wei_w) * out_h * out_w;
+                use_64bit_buffer_index |= col_off > INT32_MAX;
+            }
+        }
+
+        if(use_64bit_buffer_index)
+            params += " -DUSE_LARGE_BUFFER_INDEX";
+
         handle.AddKernel(
             "miopenIm2Col", network_config, program_name, kernel_name, vld, vgd, params)(
             data_size_bound_pack,

@@ -14,7 +14,6 @@ MIOpen supports two programming models -
 * Base software stack, which includes:
   * HIP - 
     * HIP and HCC libraries and header files.
-    * [clang-ocl](https://github.com/RadeonOpenCompute/clang-ocl) -- **required**
   * OpenCL - OpenCL libraries and header files.
 * [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) - enable various functionalities including transposed and dilated convolutions. 
   * This is optional on the HIP backend, and required on the OpenCL backend.
@@ -30,7 +29,7 @@ MIOpen supports two programming models -
   * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10)
   * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCmSoftwarePlatform/rocBLAS/releases/tag/rocm-3.5.0)
 * [MLIR](https://github.com/ROCmSoftwarePlatform/llvm-project-mlir) - (Multi-Level Intermediate Representation) with its MIOpen dialect to support and complement kernel development.
-* [Comopsable Kernel](https://github.com/ROCmSoftwarePlatform/composable_kernel) - C++ templated device library for GEMM-like and reduction-like operators.
+* [Composable Kernel](https://github.com/ROCmSoftwarePlatform/composable_kernel) - C++ templated device library for GEMM-like and reduction-like operators.
 
 ## Installing MIOpen with pre-built packages
 
@@ -236,6 +235,41 @@ Also, githooks can be installed to format the code per-commit:
 ./.githooks/install
 ```
 
+## Storing large file using Git LFS
+
+Git Large File Storage (LFS) replaces large files such as audio samples, videos, datasets, and graphics with text pointers inside Git, while storing the file contents on a remote server. In MIOpen, we use git LFS to store the large files, such as the kernel database files (*.kdb) which are normally > 0.5GB. Steps:
+
+Git LFS can be installed and set up by:
+
+```
+sudo apt install git-lfs
+git lfs install
+```
+
+In the Git repository that you want to use Git LFS, track the file type that you's like by (if the file type has been tracked, this step can be skipped):
+
+```
+git lfs track "*.file_type"
+git add .gitattributes
+```
+
+Pull all or a single large file that you would like to update by:
+
+```
+git lfs pull --exclude=
+or
+git lfs pull --exclude= --include "filename"
+```
+
+Update the large files and push to the github by:
+
+```
+git add my_large_files
+git commit -m "the message"
+git push
+```
+
+
 ## Installing the dependencies manually
 
 If Ubuntu v16 is used then the `Boost` packages can also be installed by:
@@ -286,4 +320,10 @@ MIOpen's paper is freely available and can be accessed on arXiv:
     primaryClass={cs.LG}
 }
 ```
+
+## Porting from cuDNN to MIOpen
+
+The [porting
+guide](https://github.com/ROCmSoftwarePlatform/MIOpen/tree/develop/doc/src/MIOpen_Porting_Guide.md)
+highlights the key differences between the current cuDNN and MIOpen APIs.
 

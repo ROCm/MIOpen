@@ -87,26 +87,26 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
         return false;
     if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
         return false;
-    if(!ctx.IsLayoutDefault())
+    if(!ctx.problem.IsLayoutDefault())
         return false;
-    if(!ctx.direction.IsForward())
+    if(!ctx.problem.direction.IsForward())
         return false;
-    if(!ctx.Is2d())
+    if(!ctx.problem.Is2d())
         return false;
-    if(!(ctx.IsFp32() or ctx.IsFp16()))
+    if(!(ctx.problem.IsFp32() or ctx.problem.IsFp16()))
         return false;
-    if(ctx.group_counts != 1)
+    if(ctx.problem.group_counts != 1)
         return false;
     if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
-       ctx.conv_problem.IsGfx90aFp16altRequired())
+       ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     {
         // this kernel use int32_t for memory offset, which covers 2GB of memory maximum
         const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
 
-        if(!(ctx.bot_sz < max_index_range && ctx.weights_sz < max_index_range &&
-             ctx.top_sz < max_index_range))
+        if(!(ctx.problem.bot_sz < max_index_range && ctx.problem.weights_sz < max_index_range &&
+             ctx.problem.top_sz < max_index_range))
             return false;
     }
 

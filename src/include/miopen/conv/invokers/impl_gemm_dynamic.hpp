@@ -188,7 +188,7 @@ template <typename T>
 static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext& ctx,
                                                                       const T& cfg)
 {
-    const auto& conv_problem = ctx.conv_problem;
+    const auto& conv_problem = ctx.problem.conv_problem;
     auto opArgs              = ComputeDynamicIGemmForwardKernelArgs<T>(conv_problem, cfg);
     return [opArgs](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
@@ -226,6 +226,8 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
 InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     const ConvolutionContext& ctx,
     const solver::PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config);
-
+InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
+    const ConvolutionContext& ctx,
+    const solver::PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config);
 } // namespace conv
 } // namespace miopen
