@@ -37,6 +37,8 @@
 #include <miopen/invoke_params.hpp>
 #include <miopen/invoker.hpp>
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <boost/any.hpp>
 
 #include <string>
@@ -93,6 +95,9 @@ struct ConvolutionAttribute
         inline bool GetFwd() const { return Get() == 1; } // false is the default.
         inline bool GetBwd() const { return Get() != 0; } // true is the default.
         inline bool GetWrW() const { return Get() != 0; } // true is the default.
+
+        friend void to_json(nlohmann::json& json, const Gfx90aFp16alt& attribute);
+        friend void from_json(const nlohmann::json& json, Gfx90aFp16alt& attribute);
     } gfx90aFp16alt;
 
     class Deterministic
@@ -120,6 +125,9 @@ struct ConvolutionAttribute
     /// * 1: Enabled/No.
     void Set(miopenConvolutionAttrib_t attr, int value);
     int Get(miopenConvolutionAttrib_t attr) const;
+
+    friend void to_json(nlohmann::json& json, const ConvolutionAttribute& conv);
+    friend void from_json(const nlohmann::json& json, ConvolutionAttribute& conv);
 };
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
@@ -367,6 +375,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     std::size_t GetSolutionCountFallback(const ExecutionContext& exec_ctx,
                                          const conv::ProblemDescription& problem) const;
+
+    friend void to_json(nlohmann::json& json, const ConvolutionDescriptor& conv);
+    friend void from_json(const nlohmann::json& json, ConvolutionDescriptor& conv);
 };
 
 void ConvolutionBackwardBias(const Handle& handle,
