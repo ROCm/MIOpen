@@ -44,25 +44,27 @@ namespace miopen {
 
 miopenStatus_t ConvBiasActivFusion(Handle& handle,
                                    const void* alpha1,
-                                   const TensorDescriptor xDesc,
+                                   const TensorDescriptor& xDesc,
                                    ConstData_t x,
-                                   const TensorDescriptor wDesc,
+                                   const TensorDescriptor& wDesc,
                                    ConstData_t w,
-                                   const ConvolutionDescriptor conv_desc,
+                                   const ConvolutionDescriptor& conv_desc,
                                    miopenConvFwdAlgorithm_t algo,
                                    void* workspace,
                                    size_t workspaceSizeInBytes,
                                    const void* alpha2,
-                                   const TensorDescriptor zDesc,
+                                   const TensorDescriptor& zDesc,
                                    ConstData_t z,
-                                   const TensorDescriptor biasDesc,
+                                   const TensorDescriptor& biasDesc,
                                    ConstData_t bias,
-                                   const ActivationDescriptor activationDesc,
-                                   const TensorDescriptor yDesc,
+                                   const ActivationDescriptor& activationDesc,
+                                   const TensorDescriptor& yDesc,
                                    Data_t y)
 {
     assert(workspace == nullptr);
     assert(workspaceSizeInBytes == 0);
+    std::ignore = workspace;
+    std::ignore = workspaceSizeInBytes;
     if(alpha1 != nullptr)
     {
         const auto falpha1 = *(static_cast<const float*>(alpha1));

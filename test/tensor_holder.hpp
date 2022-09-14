@@ -34,6 +34,8 @@
 #include <miopen/each_args.hpp>
 #include <miopen/bfloat16.hpp>
 
+#include "serialize.hpp"
+
 #include <half.hpp>
 #include <iomanip>
 #include <fstream>
