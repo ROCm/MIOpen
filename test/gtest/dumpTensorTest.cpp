@@ -124,7 +124,9 @@ void testDumpWithNan(const std::string& test_file_name)
     }
     else
     {
-        EXPECT_TRUE(false) << "Was expecting NAN value in tensor";
+        EXPECT_TRUE(false)
+            << "Was expecting NAN value in tensor. Current value at host_tensor.data[" << nan_index
+            << "] = " << host_tensor.data[nan_index];
     }
     // clean up
     boost::filesystem::remove(test_file_name);
