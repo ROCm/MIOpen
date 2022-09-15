@@ -33,7 +33,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     ./amd-nonfree-radeon_22.04-1_all.deb
 RUN sh -c 'echo deb [arch=amd64 trusted=yes] http://compute-artifactory.amd.com/artifactory/list/rocm-release-archive-22.04-deb/ 5.3 rel-45 > /etc/apt/sources.list.d/rocm-build.list'
 RUN amdgpu-repo --amdgpu-build=1473570
-RUN amdgpu-install -y --usecase=rocm
+RUN amdgpu-install -y --usecase=rocm --no-dkms
 
 # Install dependencies
 RUN apt-get update && \
@@ -130,12 +130,5 @@ RUN if [ "$USE_TARGETID" = "ON" ] ; then export HIPCC_LINK_FLAGS_APPEND='-O3 -pa
 # install last released miopentensile in default (master), install latest commits when MIOTENSILE_VER="latest" (develop)
 ARG MIOTENSILE_VER="default"
 RUN if [ "$USE_TARGETID" = "OFF" ] ; then echo "MIOpenTensile is not installed."; elif [ "$MIOTENSILE_VER" = "latest" ] ; then cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; else cget -p $PREFIX install ROCmSoftwarePlatform/MIOpenTensile@94a9047741d16a8eccd290131b78fb1aa69cdcdf; fi
-
-ARG CK_COMMIT=7589116121f80189f47cfd8692f300ee8c6377ad
-RUN rm -rf /tmp/ck* && mkdir /tmp/ck && wget -O ck.tar.gz https://www.github.com/rocmsoftwareplatform/composable_kernel/archive/${CK_COMMIT}.tar.gz -O /tmp/ck.tar.gz && \
-    tar zxvf /tmp/ck.tar.gz -C /tmp/ && mkdir /tmp/composable_kernel-${CK_COMMIT}/build &&\
-    cd /tmp/composable_kernel-${CK_COMMIT}/build && \
-    CXX=/opt/rocm/bin/hipcc cmake -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" -DCMAKE_PREFIX_PATH=/opt/rocm -D CMAKE_CXX_FLAGS=" --offload-arch=gfx900 --offload-arch=gfx906 --offload-arch=gfx908 --offload-arch=gfx90a --offload-arch=gfx1030 -O3 " .. && \
-    make -j $(nproc) install && rm -rf /tmp/*
 
 RUN groupadd -f render
