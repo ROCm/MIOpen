@@ -43,23 +43,23 @@ struct CKArgs
 {
     CKArgs(const ConvolutionContext& ctx)
     {
-        N        = ConvolutionContextInterpreter::GetBatchN(ctx.problem);
-        K        = ConvolutionContextInterpreter::GetOutputChannelK(ctx.problem);
-        C        = ConvolutionContextInterpreter::GetInputChannelC(ctx.problem);
-        input    = {ConvolutionContextInterpreter::GetInputHeightHi(ctx.problem),
-                 ConvolutionContextInterpreter::GetInputWidthWi(ctx.problem)};
-        output   = {ConvolutionContextInterpreter::GetOutputHeightHo(ctx.problem),
-                  ConvolutionContextInterpreter::GetOutputWidthWo(ctx.problem)};
-        filter   = {ConvolutionContextInterpreter::GetFilterHeightY(ctx.problem),
-                  ConvolutionContextInterpreter::GetFilterWidthX(ctx.problem)};
-        strides  = {ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx.problem),
-                   ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx.problem)};
-        dilation = {ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx.problem),
-                    ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx.problem)};
-        lPadding = {ConvolutionContextInterpreter::GetInputLeftPadH(ctx.problem),
-                    ConvolutionContextInterpreter::GetInputLeftPadW(ctx.problem)};
-        rPadding = {ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx.problem),
-                    ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx.problem)};
+        N        = ProblemInterpreter::GetBatchN(ctx.problem);
+        K        = ProblemInterpreter::GetOutputChannelK(ctx.problem);
+        C        = ProblemInterpreter::GetInputChannelC(ctx.problem);
+        input    = {ProblemInterpreter::GetInputHeightHi(ctx.problem),
+                 ProblemInterpreter::GetInputWidthWi(ctx.problem)};
+        output   = {ProblemInterpreter::GetOutputHeightHo(ctx.problem),
+                  ProblemInterpreter::GetOutputWidthWo(ctx.problem)};
+        filter   = {ProblemInterpreter::GetFilterHeightY(ctx.problem),
+                  ProblemInterpreter::GetFilterWidthX(ctx.problem)};
+        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem),
+                   ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem)};
+        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem),
+                    ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem)};
+        lPadding = {ProblemInterpreter::GetInputLeftPadH(ctx.problem),
+                    ProblemInterpreter::GetInputLeftPadW(ctx.problem)};
+        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadH(ctx.problem),
+                    ProblemInterpreter::GetAdjustedInputRightPadW(ctx.problem)};
     }
     int N;
     int K;

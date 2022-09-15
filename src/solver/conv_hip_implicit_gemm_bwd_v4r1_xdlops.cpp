@@ -93,8 +93,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
         // calculate vector length on gemmk dimension
         SrcDataPerRead_GemmM = gcd(SrcDataPerRead_GemmM, GemmMPerBlock);
 
-        const auto y = ConvolutionContextInterpreter::GetFilterHeightY(ctx.problem);
-        const auto x = ConvolutionContextInterpreter::GetFilterWidthX(ctx.problem);
+        const auto y = ProblemInterpreter::GetFilterHeightY(ctx.problem);
+        const auto x = ProblemInterpreter::GetFilterWidthX(ctx.problem);
 
         // \todo too conservative
         if(!(y == 1 && x == 1))
@@ -187,19 +187,19 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, GemmNPerBlock);
 
         // calculate vector length on gemmn dimension
-        const auto y           = ConvolutionContextInterpreter::GetFilterHeightY(ctx.problem);
-        const auto x           = ConvolutionContextInterpreter::GetFilterWidthX(ctx.problem);
-        const auto left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx.problem);
-        const auto left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx.problem);
-        const auto right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx.problem);
-        const auto right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx.problem);
+        const auto y           = ProblemInterpreter::GetFilterHeightY(ctx.problem);
+        const auto x           = ProblemInterpreter::GetFilterWidthX(ctx.problem);
+        const auto left_pad_h  = ProblemInterpreter::GetInputLeftPadH(ctx.problem);
+        const auto left_pad_w  = ProblemInterpreter::GetInputLeftPadW(ctx.problem);
+        const auto right_pad_h = ProblemInterpreter::GetAdjustedInputRightPadH(ctx.problem);
+        const auto right_pad_w = ProblemInterpreter::GetAdjustedInputRightPadW(ctx.problem);
 
         // \todo too conversative
         if(y == 1 && x == 1 && left_pad_h == 0 && left_pad_w == 0 && right_pad_h == 0 &&
            right_pad_w == 0)
         {
-            const auto ho        = ConvolutionContextInterpreter::GetOutputHeightHo(ctx.problem);
-            const auto wo        = ConvolutionContextInterpreter::GetOutputWidthWo(ctx.problem);
+            const auto ho        = ProblemInterpreter::GetOutputHeightHo(ctx.problem);
+            const auto wo        = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
             SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, ho * wo);
         }
         else
@@ -729,12 +729,12 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionCo
 
 int ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(const ConvolutionContext& ctx)
 {
-    const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
-    const auto conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
+    const auto conv_stride_h = ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
+    const auto conv_stride_w = ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
     const auto conv_dilation_h =
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx.problem);
+        ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem);
     const auto conv_dilation_w =
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx.problem);
+        ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem);
 
     const auto gcd_stride_dilation_h = gcd(conv_stride_h, conv_dilation_h);
     const auto gcd_stride_dilation_w = gcd(conv_stride_w, conv_dilation_w);
@@ -748,24 +748,24 @@ int ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(const Convolutio
 std::tuple<int, int, int, int>
 ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ConvolutionContext& ctx, int gemm_id)
 {
-    const auto g             = ConvolutionContextInterpreter::GetGroupCountG(ctx.problem);
-    const auto n             = ConvolutionContextInterpreter::GetBatchN(ctx.problem);
-    const auto k             = ConvolutionContextInterpreter::GetOutputChannelK(ctx.problem);
-    const auto c             = ConvolutionContextInterpreter::GetInputChannelC(ctx.problem);
-    const auto hi            = ConvolutionContextInterpreter::GetInputHeightHi(ctx.problem);
-    const auto wi            = ConvolutionContextInterpreter::GetInputWidthWi(ctx.problem);
-    const auto ho            = ConvolutionContextInterpreter::GetOutputHeightHo(ctx.problem);
-    const auto wo            = ConvolutionContextInterpreter::GetOutputWidthWo(ctx.problem);
-    const auto y             = ConvolutionContextInterpreter::GetFilterHeightY(ctx.problem);
-    const auto x             = ConvolutionContextInterpreter::GetFilterWidthX(ctx.problem);
-    const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
-    const auto conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
+    const auto g             = ProblemInterpreter::GetGroupCountG(ctx.problem);
+    const auto n             = ProblemInterpreter::GetBatchN(ctx.problem);
+    const auto k             = ProblemInterpreter::GetOutputChannelK(ctx.problem);
+    const auto c             = ProblemInterpreter::GetInputChannelC(ctx.problem);
+    const auto hi            = ProblemInterpreter::GetInputHeightHi(ctx.problem);
+    const auto wi            = ProblemInterpreter::GetInputWidthWi(ctx.problem);
+    const auto ho            = ProblemInterpreter::GetOutputHeightHo(ctx.problem);
+    const auto wo            = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
+    const auto y             = ProblemInterpreter::GetFilterHeightY(ctx.problem);
+    const auto x             = ProblemInterpreter::GetFilterWidthX(ctx.problem);
+    const auto conv_stride_h = ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
+    const auto conv_stride_w = ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
     const auto conv_dilation_h =
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx.problem);
+        ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem);
     const auto conv_dilation_w =
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx.problem);
-    const auto in_left_pad_h = ConvolutionContextInterpreter::GetInputLeftPadH(ctx.problem);
-    const auto in_left_pad_w = ConvolutionContextInterpreter::GetInputLeftPadW(ctx.problem);
+        ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem);
+    const auto in_left_pad_h = ProblemInterpreter::GetInputLeftPadH(ctx.problem);
+    const auto in_left_pad_w = ProblemInterpreter::GetInputLeftPadW(ctx.problem);
 
     const auto gcd_stride_dilation_h = gcd(conv_stride_h, conv_dilation_h);
     const auto gcd_stride_dilation_w = gcd(conv_stride_w, conv_dilation_w);
@@ -1001,23 +1001,23 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
 
             // clang-format off
             construction_parameters.comp_options =
-                std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ConvolutionContextInterpreter::GetInputChannelC(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(ConvolutionContextInterpreter::GetInputHeightHi(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(ConvolutionContextInterpreter::GetInputWidthWi(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ConvolutionContextInterpreter::GetOutputHeightHo(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ConvolutionContextInterpreter::GetOutputWidthWo(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(ConvolutionContextInterpreter::GetFilterHeightY(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(ConvolutionContextInterpreter::GetFilterWidthX(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_H=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_W=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_H=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_W=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_H=") + std::to_string(ConvolutionContextInterpreter::GetInputLeftPadH(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_W=") + std::to_string(ConvolutionContextInterpreter::GetInputLeftPadW(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_H=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx.problem)) +
-                std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_W=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ProblemInterpreter::GetBatchN(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ProblemInterpreter::GetOutputChannelK(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ProblemInterpreter::GetInputChannelC(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(ProblemInterpreter::GetInputHeightHi(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(ProblemInterpreter::GetInputWidthWi(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ProblemInterpreter::GetOutputHeightHo(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ProblemInterpreter::GetOutputWidthWo(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(ProblemInterpreter::GetFilterHeightY(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(ProblemInterpreter::GetFilterWidthX(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_H=") + std::to_string(ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_W=") + std::to_string(ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_H=") + std::to_string(ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_W=") + std::to_string(ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_H=") + std::to_string(ProblemInterpreter::GetInputLeftPadH(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_W=") + std::to_string(ProblemInterpreter::GetInputLeftPadW(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_H=") + std::to_string(ProblemInterpreter::GetAdjustedInputRightPadH(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_W=") + std::to_string(ProblemInterpreter::GetAdjustedInputRightPadW(ctx.problem)) +
                 std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(ctx.problem.group_counts) +
                 std::string(" -DCK_PARAM_TUNABLE_BLOCK_SIZE=") + std::to_string(block_size) +
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_BLOCK=") + std::to_string(GemmMPerBlock) +

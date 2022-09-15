@@ -40,7 +40,7 @@ namespace solver {
 // 2. adjust right padding size so that filter will not move out-of-bound
 // 3. adjust stride to 1 if output image size is 1
 // 4. adjust dilation to 1 if filter size is 1
-struct ConvolutionContextInterpreter
+struct ProblemInterpreter
 {
     static auto GetGroupCountG(const ProblemDescription& problem) { return problem.group_counts; }
 
