@@ -70,6 +70,7 @@ if(MIOPEN_ENABLE_SQLITE)
     pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 endif()
 find_package(BZip2)
+find_package(nlohmann_json 3.9.1 REQUIRED)
 if(MIOPEN_ENABLE_SQLITE_KERN_CACHE AND NOT MIOPEN_ENABLE_SQLITE)
     message(FATAL_ERROR "MIOPEN_ENABLE_SQLITE_KERN_CACHE requires MIOPEN_ENABLE_SQLITE")
 endif()
@@ -86,7 +87,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 2.18.0)
+rocm_setup_version(VERSION 2.19.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -133,6 +134,7 @@ else()
     option(MIOPEN_DISABLE_SYSDB  "Disable sys database access" ${MIOPEN_EMBED_BUILD})
 endif()
 set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache files to embed")
+option(MIOPEN_EMBED_BINCACHE "Embed Binary Cache or KDB" Off)
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
 
@@ -218,6 +220,12 @@ if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
     message(STATUS "MIOPEN_hip_VERSION_PATCH overriden with ${MIOPEN_OVERRIDE_HIP_VERSION_PATCH}")
 endif()
 
+# Depend on Composable Kernels
+option(MIOPEN_USE_COMPOSABLEKERNEL "Enable MIOpen to use composable kernels for various operations" On)
+if(MIOPEN_USE_COMPOSABLEKERNEL)
+find_package(composable_kernel 1.0.0 COMPONENTS device_operations host_tensor)
+endif()
+
 set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
 
@@ -246,7 +254,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     # miopentensile default off
     set(MIOPEN_USE_MIOPENTENSILE OFF CACHE BOOL "")
 
-    find_program(HIP_OC_COMPILER clang-ocl
+    find_program(HIP_OC_COMPILER clang
         PATH_SUFFIXES bin
         PATHS
             /opt/rocm
@@ -426,11 +434,6 @@ if(MIOPEN_USE_ROCBLAS)
 endif()
 
 if(MIOPEN_BACKEND STREQUAL "HIP")
-    # In HIP backend, there is a posibility of COMGR disabled.
-    # In this case add the clang-ocl as dependency for runtime kernel compilation
-    if(NOT MIOPEN_USE_COMGR)
-        set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-clang-ocl")
-    endif()
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}")
     set(CPACK_RPM_PACKAGE_REQUIRES "${MIOPEN_PACKAGE_REQS}")
 
@@ -446,11 +449,58 @@ elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-hip)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-hip)
 endif()
+# Begin KDB component install 
+function(install_kdb)
+    set(oneValueArgs NAME COMPONENT_NAME)
+    cmake_parse_arguments(PARSE "" "${oneValueArgs}" "" ${ARGN})
+
+    if(PARSE_NAME)
+        set(FILE_NAME ${PARSE_NAME})
+    endif()
+    STRING(REPLACE - _ FILE_NAME "${ARCH_NAME}")
+    file(READ "${CMAKE_SOURCE_DIR}/src/kernels/${FILE_NAME}.kdb" FILE_CONTENTS LIMIT 7)
+    string(STRIP "${FILE_CONTENTS}" FILE_CONTENTS)
+    if(FILE_CONTENTS STREQUAL "version")
+        set(LFS_MISSING_FILES ${LFS_MISSING_FILES} ${FILE_NAME}.kdb PARENT_SCOPE)
+    else()
+        message("Installing ${FILE_NAME} in component ${PARSE_COMPONENT_NAME}")
+        rocm_install(FILES
+            src/kernels/${FILE_NAME}.kdb
+        DESTINATION ${DATA_INSTALL_DIR}/db
+        COMPONENT ${PARSE_COMPONENT_NAME})
+    endif()
+endfunction()
+
+# Both the lists below should be in sync always
+list(APPEND ARCH_LST gfx90a68 gfx90a6e gfx1030-36 gfx90878 gfx906-64 gfx906-60 gfx900-64 gfx900-56)
+list(APPEND ARCH_FILE_LST gfx90a-104kdb gfx90a-110kdb gfx1030-36kdb gfx908-120kdb gfx906-64kdb gfx906-60kdb gfx900-64kdb gfx900-56kdb)
+
+list(LENGTH ARCH_LST FULL_LEN)
+math(EXPR ARCH_LST_LEN "${FULL_LEN} - 1")
+
+
+foreach(IDX RANGE ${ARCH_LST_LEN})
+    list(GET ARCH_LST ${IDX} ARCH_NAME)
+    list(GET ARCH_FILE_LST ${IDX} ARCH_FILE_NAME)
+    install_kdb(
+        NAME ${ARCH_NAME}
+        COMPONENT_NAME ${ARCH_FILE_NAME}
+    )
+endforeach()
+
+if(LFS_MISSING_FILES)
+    string(REPLACE ";" "; " LFS_MISSING_FILES "${LFS_MISSING_FILES}")
+    message(WARNING "GIT LFS Files not pulled down, skipped: ${LFS_MISSING_FILES}")
+    set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
+endif()
+
+set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
+#end kdb package creation
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
     DESCRIPTION "AMD's DNN Library"
-    MAINTAINER "Paul Fultz II <paul.fultz@amd.com>"
+    MAINTAINER "MIOpen Maintainer <miopen-lib.support@amd.com>"
     LDCONFIG
     # DEPENDS rocm-opencl hip-rocclr tinygemm
 )

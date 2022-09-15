@@ -160,7 +160,7 @@ void PerformanceImplicitGemmForwardV4R5Xdlops::HeuristicInit(const ConvolutionCo
 
     // loop over certain ranges of tuning parameter
     auto get_euristic_config = [&](auto is_valid_func) {
-        if(ctx.IsFp32())
+        if(ctx.problem.IsFp32())
         {
             tmp = {256, 256, 8, 128, 128, 4, false, true, 1};
 
@@ -193,7 +193,7 @@ void PerformanceImplicitGemmForwardV4R5Xdlops::HeuristicInit(const ConvolutionCo
                     break;
             } while(!all_visited);
         }
-        else if(ctx.IsFp16())
+        else if(ctx.problem.IsFp16())
         {
             tmp              = {256, 256, 8, 128, 128, 8, false, true, 1};
             bool all_visited = false;
@@ -225,7 +225,7 @@ void PerformanceImplicitGemmForwardV4R5Xdlops::HeuristicInit(const ConvolutionCo
                     break;
             } while(!all_visited);
         }
-        else if(ctx.IsBfp16())
+        else if(ctx.problem.IsBfp16())
         {
             tmp = {256, 256, 8, 128, 128, 8, false, true, 1};
 
@@ -286,13 +286,6 @@ void PerformanceImplicitGemmForwardV4R5Xdlops::HeuristicInit(const ConvolutionCo
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceImplicitGemmForwardV4R5Xdlops::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 std::tuple<int, bool> PerformanceImplicitGemmForwardV4R5Xdlops::CalculateBlockSize() const
 {
     int block_size = 0;
@@ -348,10 +341,12 @@ PerformanceImplicitGemmForwardV4R5Xdlops::CalculateGemmABlockCopyPerformancePara
     int ClusterLengths_GemmK     = -1;
     int ClusterLengths_GemmM     = -1;
     int ClusterLengths_GemmKPack = -1;
-    int SrcDataPerRead_GemmKPack = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
-                                                : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = ctx.IsFp32() ? amd_lds_write_max_length<float>()
-                                                 : amd_lds_write_max_length<half_float::half>();
+    int SrcDataPerRead_GemmKPack = ctx.problem.IsFp32()
+                                       ? amd_buffer_load_max_length<float>()
+                                       : amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
+                                        ? amd_lds_write_max_length<float>()
+                                        : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -434,10 +429,11 @@ PerformanceImplicitGemmForwardV4R5Xdlops::CalculateGemmBBlockCopyPerformancePara
     int ClusterLengths_GemmK     = -1;
     int ClusterLengths_B         = -1;
     int ClusterLengths_GemmKPack = -1;
-    int SrcDataPerRead_B         = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
-                                        : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = ctx.IsFp32() ? amd_lds_write_max_length<float>()
-                                                 : amd_lds_write_max_length<half_float::half>();
+    int SrcDataPerRead_B         = ctx.problem.IsFp32() ? amd_buffer_load_max_length<float>()
+                                                : amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
+                                        ? amd_lds_write_max_length<float>()
+                                        : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -500,7 +496,7 @@ PerformanceImplicitGemmForwardV4R5Xdlops::CalculateGemmBBlockCopyPerformancePara
         if(miopen::IsEnabled(
                MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R5_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
         {
-            if(ctx.IsFp16())
+            if(ctx.problem.IsFp16())
             {
                 if(SrcDataPerRead_B >= GemmBThreadDataPerRead_GemmN)
                 {
@@ -586,8 +582,8 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmForwardV4R5Xdlops::Calculat
     const auto a_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
     const auto b_block_space = GemmKPerBlock * GemmNPerBlock * GemmKPack;
 
-    std::size_t lds_size =
-        (a_block_space + b_block_space) * (ctx.IsFp32() ? sizeof(float) : sizeof(half_float::half));
+    std::size_t lds_size = (a_block_space + b_block_space) *
+                           (ctx.problem.IsFp32() ? sizeof(float) : sizeof(half_float::half));
 
     return std::make_tuple(lds_size, true);
 }
@@ -790,12 +786,12 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
         const int a_data_per_thread_copy = (GemmKPerBlock * GemmMPerBlock * GemmKPack) / block_size;
         const int b_data_per_thread_copy = (GemmKPerBlock * GemmNPerBlock * GemmKPack) / block_size;
 
-        if(ctx.IsFp32())
+        if(ctx.problem.IsFp32())
         {
             if(a_data_per_thread_copy > 16 || b_data_per_thread_copy > 16)
                 return false;
         }
-        else if(ctx.IsFp16() || ctx.IsBfp16())
+        else if(ctx.problem.IsFp16() || ctx.problem.IsBfp16())
         {
             if(a_data_per_thread_copy > 32 || b_data_per_thread_copy > 32)
                 return false;
@@ -805,7 +801,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
     // GemmKPerBlock*GemmKPack should not be too small, otherwise read performance of A matrix would
     // be bad
     {
-        if(ctx.IsFp32())
+        if(ctx.problem.IsFp32())
         {
             if(GemmKPack > 4)
                 return false;
@@ -813,7 +809,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
             if(GemmKPerBlock * GemmKPack < 8)
                 return false;
         }
-        else if(ctx.IsFp16() || ctx.IsBfp16())
+        else if(ctx.problem.IsFp16() || ctx.problem.IsBfp16())
         {
             if(GemmKPerBlock * GemmKPack < 16)
                 return false;
@@ -826,7 +822,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsFastToBeUsedForTuning(
         if(miopen::IsEnabled(
                MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_FWD_V4R5_XDLOPS_ADD_VECTOR_LOAD_GEMMN_TUNE_PARAM{}))
         {
-            if(ctx.IsFp16())
+            if(ctx.problem.IsFp16())
             {
                 int SrcDataPerRead_B          = 0;
                 int DstDataPerWrite_GemmKPack = 0;
@@ -996,7 +992,7 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R5_XDLOPS{}))
         return false;
 
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
         return false;
 
     if(!ctx.use_hip_kernels)
@@ -1008,7 +1004,7 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
     if(!IsXdlopsSupport(ctx))
         return false;
 
-    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+    if(!(ctx.problem.IsFp32() || ctx.problem.IsFp16() || ctx.problem.IsBfp16()))
         return false;
 
     const auto y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
@@ -1018,19 +1014,20 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
     if(y == 1 && x == 1)
         return false;
 
-    if(!ctx.direction.IsForward())
+    if(!ctx.problem.direction.IsForward())
         return false;
 
-    if(!ctx.Is2d())
+    if(!ctx.problem.Is2d())
         return false;
 
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
+       ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
 
-    if(!ctx.IsLayoutDefault())
+    if(!ctx.problem.IsLayoutDefault())
     {
         return false;
     }
