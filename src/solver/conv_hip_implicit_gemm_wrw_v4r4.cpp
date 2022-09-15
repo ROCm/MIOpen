@@ -233,15 +233,13 @@ PerformanceImplicitGemmV4R4WrW::CalculateGemmBBlockCopyPerformanceParameters(
     {
         SrcDataPerRead_GemmK = gcd(SrcDataPerRead_GemmK, GemmKPerBlock);
 
-        const auto y  = ProblemInterpreter::GetFilterHeightY(ctx.problem);
-        const auto x  = ProblemInterpreter::GetFilterWidthX(ctx.problem);
-        const auto hi = ProblemInterpreter::GetInputHeightHi(ctx.problem);
-        const auto wi = ProblemInterpreter::GetInputWidthWi(ctx.problem);
-        const auto wo = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
-        const auto conv_stride_h =
-            ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
-        const auto conv_stride_w =
-            ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
+        const auto y             = ProblemInterpreter::GetFilterHeightY(ctx.problem);
+        const auto x             = ProblemInterpreter::GetFilterWidthX(ctx.problem);
+        const auto hi            = ProblemInterpreter::GetInputHeightHi(ctx.problem);
+        const auto wi            = ProblemInterpreter::GetInputWidthWi(ctx.problem);
+        const auto wo            = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
+        const auto conv_stride_h = ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
+        const auto conv_stride_w = ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
         const auto conv_dilation_w =
             ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem);
         const auto in_left_pad_h  = ProblemInterpreter::GetInputLeftPadH(ctx.problem);
@@ -255,9 +253,8 @@ PerformanceImplicitGemmV4R4WrW::CalculateGemmBBlockCopyPerformanceParameters(
             const auto z  = ProblemInterpreter::GetFilterDepthZ(ctx.problem);
             const auto conv_stride_d =
                 ProblemInterpreter::GetAdjustedConvolutionStrideD(ctx.problem);
-            const auto in_left_pad_d = ProblemInterpreter::GetInputLeftPadD(ctx.problem);
-            const auto in_right_pad_d =
-                ProblemInterpreter::GetAdjustedInputRightPadD(ctx.problem);
+            const auto in_left_pad_d  = ProblemInterpreter::GetInputLeftPadD(ctx.problem);
+            const auto in_right_pad_d = ProblemInterpreter::GetAdjustedInputRightPadD(ctx.problem);
 
             if(z == 1 && y == 1 && x == 1 && conv_stride_d == 1 && conv_stride_h == 1 &&
                conv_stride_w == 1 && in_left_pad_d == 0 && in_left_pad_h == 0 &&
@@ -575,8 +572,7 @@ ConvHipImplicitGemmV4R4WrW::CalculateGemmSize(const ConvolutionContext& ctx)
     const auto gemm_n =
         c * y * x * (ctx.problem.Is3d() ? ProblemInterpreter::GetFilterDepthZ(ctx.problem) : 1);
     const auto gemm_k =
-        n * ho * wo *
-        (ctx.problem.Is3d() ? ProblemInterpreter::GetOutputDepthDo(ctx.problem) : 1);
+        n * ho * wo * (ctx.problem.Is3d() ? ProblemInterpreter::GetOutputDepthDo(ctx.problem) : 1);
 
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }

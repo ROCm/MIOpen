@@ -237,14 +237,12 @@ PerformanceImplicitGemmV4R4Fwd::CalculateGemmBBlockCopyPerformanceParameters(
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, GemmNPerBlock);
 
         // calculate vector length on gemmn dimension
-        const auto y  = ProblemInterpreter::GetFilterHeightY(ctx.problem);
-        const auto x  = ProblemInterpreter::GetFilterWidthX(ctx.problem);
-        const auto hi = ProblemInterpreter::GetInputHeightHi(ctx.problem);
-        const auto wi = ProblemInterpreter::GetInputWidthWi(ctx.problem);
-        const auto conv_stride_h =
-            ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
-        const auto conv_stride_w =
-            ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
+        const auto y             = ProblemInterpreter::GetFilterHeightY(ctx.problem);
+        const auto x             = ProblemInterpreter::GetFilterWidthX(ctx.problem);
+        const auto hi            = ProblemInterpreter::GetInputHeightHi(ctx.problem);
+        const auto wi            = ProblemInterpreter::GetInputWidthWi(ctx.problem);
+        const auto conv_stride_h = ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
+        const auto conv_stride_w = ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
         const auto conv_dilation_w =
             ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem);
         const auto in_left_pad_h  = ProblemInterpreter::GetInputLeftPadH(ctx.problem);
@@ -258,9 +256,8 @@ PerformanceImplicitGemmV4R4Fwd::CalculateGemmBBlockCopyPerformanceParameters(
             const auto z  = ProblemInterpreter::GetFilterDepthZ(ctx.problem);
             const auto conv_stride_d =
                 ProblemInterpreter::GetAdjustedConvolutionStrideD(ctx.problem);
-            const auto in_left_pad_d = ProblemInterpreter::GetInputLeftPadD(ctx.problem);
-            const auto in_right_pad_d =
-                ProblemInterpreter::GetAdjustedInputRightPadD(ctx.problem);
+            const auto in_left_pad_d  = ProblemInterpreter::GetInputLeftPadD(ctx.problem);
+            const auto in_right_pad_d = ProblemInterpreter::GetAdjustedInputRightPadD(ctx.problem);
 
             if(z == 1 && y == 1 && x == 1 && conv_stride_d == 1 && conv_stride_h == 1 &&
                conv_stride_w == 1 && in_left_pad_d == 0 && in_left_pad_h == 0 &&

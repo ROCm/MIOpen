@@ -138,9 +138,15 @@ struct ProblemInterpreter
 
     static auto GetFilterDepthZ(const ProblemDescription& problem) { return problem.kernel_size_d; }
 
-    static auto GetFilterLayout(const ProblemDescription& problem) { return problem.weights_layout; }
+    static auto GetFilterLayout(const ProblemDescription& problem)
+    {
+        return problem.weights_layout;
+    }
 
-    static auto GetFilterHeightY(const ProblemDescription& problem) { return problem.kernel_size_h; }
+    static auto GetFilterHeightY(const ProblemDescription& problem)
+    {
+        return problem.kernel_size_h;
+    }
 
     static auto GetFilterWidthX(const ProblemDescription& problem) { return problem.kernel_size_w; }
 

@@ -729,12 +729,10 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionCo
 
 int ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(const ConvolutionContext& ctx)
 {
-    const auto conv_stride_h = ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
-    const auto conv_stride_w = ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
-    const auto conv_dilation_h =
-        ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem);
-    const auto conv_dilation_w =
-        ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem);
+    const auto conv_stride_h   = ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
+    const auto conv_stride_w   = ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
+    const auto conv_dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem);
+    const auto conv_dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem);
 
     const auto gcd_stride_dilation_h = gcd(conv_stride_h, conv_dilation_h);
     const auto gcd_stride_dilation_w = gcd(conv_stride_w, conv_dilation_w);
@@ -748,24 +746,22 @@ int ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(const Convolutio
 std::tuple<int, int, int, int>
 ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ConvolutionContext& ctx, int gemm_id)
 {
-    const auto g             = ProblemInterpreter::GetGroupCountG(ctx.problem);
-    const auto n             = ProblemInterpreter::GetBatchN(ctx.problem);
-    const auto k             = ProblemInterpreter::GetOutputChannelK(ctx.problem);
-    const auto c             = ProblemInterpreter::GetInputChannelC(ctx.problem);
-    const auto hi            = ProblemInterpreter::GetInputHeightHi(ctx.problem);
-    const auto wi            = ProblemInterpreter::GetInputWidthWi(ctx.problem);
-    const auto ho            = ProblemInterpreter::GetOutputHeightHo(ctx.problem);
-    const auto wo            = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
-    const auto y             = ProblemInterpreter::GetFilterHeightY(ctx.problem);
-    const auto x             = ProblemInterpreter::GetFilterWidthX(ctx.problem);
-    const auto conv_stride_h = ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
-    const auto conv_stride_w = ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
-    const auto conv_dilation_h =
-        ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem);
-    const auto conv_dilation_w =
-        ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem);
-    const auto in_left_pad_h = ProblemInterpreter::GetInputLeftPadH(ctx.problem);
-    const auto in_left_pad_w = ProblemInterpreter::GetInputLeftPadW(ctx.problem);
+    const auto g               = ProblemInterpreter::GetGroupCountG(ctx.problem);
+    const auto n               = ProblemInterpreter::GetBatchN(ctx.problem);
+    const auto k               = ProblemInterpreter::GetOutputChannelK(ctx.problem);
+    const auto c               = ProblemInterpreter::GetInputChannelC(ctx.problem);
+    const auto hi              = ProblemInterpreter::GetInputHeightHi(ctx.problem);
+    const auto wi              = ProblemInterpreter::GetInputWidthWi(ctx.problem);
+    const auto ho              = ProblemInterpreter::GetOutputHeightHo(ctx.problem);
+    const auto wo              = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
+    const auto y               = ProblemInterpreter::GetFilterHeightY(ctx.problem);
+    const auto x               = ProblemInterpreter::GetFilterWidthX(ctx.problem);
+    const auto conv_stride_h   = ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
+    const auto conv_stride_w   = ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
+    const auto conv_dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem);
+    const auto conv_dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem);
+    const auto in_left_pad_h   = ProblemInterpreter::GetInputLeftPadH(ctx.problem);
+    const auto in_left_pad_w   = ProblemInterpreter::GetInputLeftPadW(ctx.problem);
 
     const auto gcd_stride_dilation_h = gcd(conv_stride_h, conv_dilation_h);
     const auto gcd_stride_dilation_w = gcd(conv_stride_w, conv_dilation_w);

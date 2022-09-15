@@ -364,12 +364,11 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
     if(!IsXdlopsSupport(ctx))
         return false;
 
-    std::size_t n = ProblemInterpreter::GetBatchN(ctx.problem);
-    std::size_t k =
-        ProblemInterpreter::GetOutputChannelK(ctx.problem) / ctx.problem.group_counts;
-    std::size_t c = ProblemInterpreter::GetInputChannelC(ctx.problem) / ctx.problem.group_counts;
-    std::size_t y = ProblemInterpreter::GetFilterHeightY(ctx.problem);
-    std::size_t x = ProblemInterpreter::GetFilterWidthX(ctx.problem);
+    std::size_t n  = ProblemInterpreter::GetBatchN(ctx.problem);
+    std::size_t k  = ProblemInterpreter::GetOutputChannelK(ctx.problem) / ctx.problem.group_counts;
+    std::size_t c  = ProblemInterpreter::GetInputChannelC(ctx.problem) / ctx.problem.group_counts;
+    std::size_t y  = ProblemInterpreter::GetFilterHeightY(ctx.problem);
+    std::size_t x  = ProblemInterpreter::GetFilterWidthX(ctx.problem);
     std::size_t ho = ProblemInterpreter::GetOutputHeightHo(ctx.problem);
     std::size_t wo = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
 

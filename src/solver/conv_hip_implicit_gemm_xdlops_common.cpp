@@ -33,9 +33,9 @@ namespace solver {
 
 bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
 {
-    const auto n = ProblemInterpreter::GetBatchN(ctx.problem);
-    const auto k = ProblemInterpreter::GetOutputChannelK(ctx.problem) / ctx.problem.group_counts;
-    const auto c = ProblemInterpreter::GetInputChannelC(ctx.problem) / ctx.problem.group_counts;
+    const auto n  = ProblemInterpreter::GetBatchN(ctx.problem);
+    const auto k  = ProblemInterpreter::GetOutputChannelK(ctx.problem) / ctx.problem.group_counts;
+    const auto c  = ProblemInterpreter::GetInputChannelC(ctx.problem) / ctx.problem.group_counts;
     const auto ho = ProblemInterpreter::GetOutputHeightHo(ctx.problem);
     const auto wo = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
     const auto y  = ProblemInterpreter::GetFilterHeightY(ctx.problem);

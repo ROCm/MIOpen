@@ -497,14 +497,12 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
 
         // GemmN is src vector read dimension
         // calculate vector length on gemmn dimension based on global tensor layout
-        const auto y  = ProblemInterpreter::GetFilterHeightY(ctx.problem);
-        const auto x  = ProblemInterpreter::GetFilterWidthX(ctx.problem);
-        const auto ho = ProblemInterpreter::GetOutputHeightHo(ctx.problem);
-        const auto wo = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
-        const auto conv_stride_h =
-            ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
-        const auto conv_stride_w =
-            ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
+        const auto y             = ProblemInterpreter::GetFilterHeightY(ctx.problem);
+        const auto x             = ProblemInterpreter::GetFilterWidthX(ctx.problem);
+        const auto ho            = ProblemInterpreter::GetOutputHeightHo(ctx.problem);
+        const auto wo            = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
+        const auto conv_stride_h = ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
+        const auto conv_stride_w = ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
         const auto conv_dilation_w =
             ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem);
         const auto in_left_pad_h  = ProblemInterpreter::GetInputLeftPadH(ctx.problem);
