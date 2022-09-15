@@ -364,14 +364,14 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
     if(!IsXdlopsSupport(ctx))
         return false;
 
-    std::size_t n = ConvolutionContextInterpreter::GetBatchN(ctx);
+    std::size_t n = ConvolutionContextInterpreter::GetBatchN(ctx.problem);
     std::size_t k =
-        ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.problem.group_counts;
-    std::size_t c = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.problem.group_counts;
-    std::size_t y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    std::size_t x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    std::size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+        ConvolutionContextInterpreter::GetOutputChannelK(ctx.problem) / ctx.problem.group_counts;
+    std::size_t c = ConvolutionContextInterpreter::GetInputChannelC(ctx.problem) / ctx.problem.group_counts;
+    std::size_t y = ConvolutionContextInterpreter::GetFilterHeightY(ctx.problem);
+    std::size_t x = ConvolutionContextInterpreter::GetFilterWidthX(ctx.problem);
+    std::size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx.problem);
+    std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx.problem);
 
     std::size_t GemmM, GemmN, GemmK;
     // forward

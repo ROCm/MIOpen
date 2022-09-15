@@ -33,13 +33,13 @@ namespace solver {
 
 bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
 {
-    const auto n = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.problem.group_counts;
-    const auto c = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.problem.group_counts;
-    const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+    const auto n = ConvolutionContextInterpreter::GetBatchN(ctx.problem);
+    const auto k = ConvolutionContextInterpreter::GetOutputChannelK(ctx.problem) / ctx.problem.group_counts;
+    const auto c = ConvolutionContextInterpreter::GetInputChannelC(ctx.problem) / ctx.problem.group_counts;
+    const auto ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx.problem);
+    const auto wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx.problem);
+    const auto y  = ConvolutionContextInterpreter::GetFilterHeightY(ctx.problem);
+    const auto x  = ConvolutionContextInterpreter::GetFilterWidthX(ctx.problem);
 
     std::size_t GemmM, GemmN, GemmK;
 
