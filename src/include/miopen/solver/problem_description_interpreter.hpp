@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_CONVOLUTION_CONTEXT_INTERPRETER_HPP_
-#define GUARD_CONVOLUTION_CONTEXT_INTERPRETER_HPP_
+#ifndef PROBLEM_DESCRIPTION_INTERPRETER_HPP_
+#define PROBLEM_DESCRIPTION_INTERPRETER_HPP_
 
 #include <miopen/env.hpp>
 #include <miopen/mlo_internal.hpp>

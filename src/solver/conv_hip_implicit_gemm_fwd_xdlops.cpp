@@ -29,7 +29,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
-#include <miopen/solver/convolution_context_interpreter.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/host/host_interface.hpp>
 #endif
