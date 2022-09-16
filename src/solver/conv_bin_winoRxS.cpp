@@ -179,11 +179,9 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
     // Padding for bwd data shall not be negative.
     if(problem.direction.IsBackwardData() || problem.direction.IsBackwardWrW())
     {
-        if(!(0 <= problem.GetBackwardPadW() &&
-             problem.GetBackwardPadW() < std::pow(2, 16)))
+        if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
-        if(!(0 <= problem.GetBackwardPadH() &&
-             problem.GetBackwardPadH() < std::pow(2, 16)))
+        if(!(0 <= problem.GetBackwardPadH() && problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
     const auto grid_workgroup_count_x = ctx.GetStream().GetMaxComputeUnits();
@@ -217,7 +215,8 @@ static inline bool IsShaderContraintsMet(const miopen::ExecutionContext& ctx,
 namespace miopen {
 namespace solver {
 
-bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
+                                      const ProblemDescription& problem) const
 {
     if(!problem.Is2d())
         return false;
@@ -229,8 +228,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx, const Problem
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW{}))
             return false;
-        if(!(problem.IsFp32() && problem.kernel_stride_w == 1 &&
-             problem.kernel_stride_h == 1))
+        if(!(problem.IsFp32() && problem.kernel_stride_w == 1 && problem.kernel_stride_h == 1))
             return false; // WrW is only for fp32 and no stride for now.
     }
     else
@@ -317,7 +315,8 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx, const Problem
     }
 }
 
-ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
+ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
+                                             const ProblemDescription& problem) const
 {
     ConvSolution result;
     const auto n_groups = ctx.GetStream().GetMaxComputeUnits();
@@ -499,7 +498,8 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx, const 
     return result;
 }
 
-bool ConvBinWinogradRxSFused::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool ConvBinWinogradRxSFused::IsApplicable(const ExecutionContext& ctx,
+                                           const ProblemDescription& problem) const
 {
     std::ignore = ctx;
     std::ignore = problem;
@@ -507,7 +507,8 @@ bool ConvBinWinogradRxSFused::IsApplicable(const ExecutionContext& ctx, const Pr
     return true; // Actual checks moved to FusionMDGraph.
 }
 
-ConvSolution ConvBinWinogradRxSFused::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
+ConvSolution ConvBinWinogradRxSFused::GetSolution(const ExecutionContext& ctx,
+                                                  const ProblemDescription& problem) const
 {
     std::ignore = problem;
 
