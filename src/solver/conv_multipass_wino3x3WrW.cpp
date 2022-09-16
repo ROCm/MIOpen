@@ -567,7 +567,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     int N, C, H, W, K, n_groups, out_H, out_W, R, S;
 
     GetCompiledInParameters(
-        params, &C, &K, &R, &S, &N, &n_groups, &H, &W, &out_H, &out_W, &unused, &unused);
+        params, params.problem, &C, &K, &R, &S, &N, &n_groups, &H, &W, &out_H, &out_W, &unused, &unused);
     // clang-format off
     BuffInfo
         in_buff_info(
