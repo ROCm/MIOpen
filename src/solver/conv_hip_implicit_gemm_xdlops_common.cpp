@@ -150,7 +150,7 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
         GemmNPerBlock / GemmBBlockCopyClusterLengths_GemmN;
     const auto GemmABlockCopyThreadSliceLengths_GemmM =
         GemmMPerBlock / GemmABlockCopyClusterLengths_GemmM;
-    const auto lds_size = ComputeLDSRequiredSize(ctx,
+    const auto lds_size = ComputeLDSRequiredSize(ctx.problem,
                                                  GemmNPerBlock,
                                                  GemmMPerBlock,
                                                  GemmKPerBlock,
