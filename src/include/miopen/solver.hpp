@@ -1744,14 +1744,27 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlops final : ConvSolver
 
 struct ConvAsmImplicitGemmV4R1DynamicBwd final : ConvSolver
 {
+    // To suppress -Woverloaded-virtual
+    using ConvSolver::IsApplicable;
+
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvAsmImplicitGemmV4R1DynamicBwd>();
     }
 
-    bool IsApplicable(const ConvolutionContext&) const override;
+    bool IsApplicable(const ConvolutionContext& ctx) const override
+    {
+        return IsApplicable(ctx, ctx.problem);
+    }
     bool IsDynamic() const override { return true; }
-    ConvSolution GetSolution(const ConvolutionContext&) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.problem);
+    }
+
+private:
+    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const;
 };
 
 struct ConvAsmImplicitGemmGTCDynamicFwdXdlops final : ConvSolver
@@ -1768,14 +1781,27 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlops final : ConvSolver
 
 struct ConvAsmImplicitGemmGTCDynamicBwdXdlops final : ConvSolver
 {
+    // To suppress -Woverloaded-virtual
+    using ConvSolver::IsApplicable;
+
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicBwdXdlops>();
     }
 
-    bool IsApplicable(const ConvolutionContext& ctx) const override;
+    bool IsApplicable(const ConvolutionContext& ctx) const override
+    {
+        return IsApplicable(ctx, ctx.problem);
+    }
     bool IsDynamic() const override { return true; }
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.problem);
+    }
+
+private:
+    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const;
+    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const;
 };
 
 /// Holds common member functions for the Solvers which share the same

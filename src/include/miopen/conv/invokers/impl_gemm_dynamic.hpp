@@ -209,17 +209,19 @@ InvokerFactory
 MakeImplGemmDynamicForward1x1InvokerFactory(const miopen::ProblemDescription& problem);
 
 template <typename T = int>
-InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionContext& ctx,
-                                                             const T& cfg);
+InvokerFactory
+MakeImplGemmDynamicBackwardDataInvokerFactory(const miopen::ProblemDescription& problem,
+                                              const T& cfg);
 
 template <>
-InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const ConvolutionContext& ctx,
-                                                                  const int& cfg);
+InvokerFactory
+MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescription& problem,
+                                                   const int& cfg);
 
 template <>
 InvokerFactory
 MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDynamic_t>(
-    const ConvolutionContext& ctx, const solver::TunableImplicitGemmGTCDynamic_t& cfg);
+    const miopen::ProblemDescription& problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg);
 
 InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     const ConvolutionContext& ctx,
