@@ -24,10 +24,10 @@
  *
  *******************************************************************************/
 
-.include "Conv_Winograd_Ultra_v1_1_3_metadata.inc"
+.include "Conv_Winograd_Ultra_v1_0_14_metadata.inc"
 
 KERNEL_PROLOG fp16_pk_stride1
 
-.include "Conv_Winograd_Ultra_v1_1_3_gfx10_fp16_pk_stride1.inc"
+.include "Conv_Winograd_Ultra_v1_0_14_gfx10_fp16_pk_stride1.inc"
 
 KERNEL_EPILOG fp16_pk_stride1

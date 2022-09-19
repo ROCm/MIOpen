@@ -600,9 +600,9 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
 
     const unsigned n_works     = control_buf.size() / group_size;
     const size_t workspace_req = GetWorkspaceSize(params);
+    const size_t workspace_buf = control_buf.size() * sizeof(decltype(control_buf)::value_type);
 
-    if(workspace_req < control_buf.size() * sizeof(decltype(control_buf)::value_type))
-        MIOPEN_THROW("Control buffer size is not equal to workspace_req");
+    assert(workspace_req >= workspace_buf);
 
     const size_t wg_size = 256;
 
@@ -616,8 +616,8 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    std::string kernel_name    = "miopenSp3AsmConv_Ultra_v1_1_3_gfx10";
-    std::string kernel_file    = "Conv_Winograd_Ultra_v1_1_3";
+    std::string kernel_name    = "miopenSp3AsmConv_Ultra_v1_0_14_gfx10";
+    std::string kernel_file    = "Conv_Winograd_Ultra_v1_0_14";
     std::string kernel_postfix = "_fp16_pk_stride1";
 
     kernel.kernel_name = kernel_name + kernel_postfix;
@@ -672,6 +672,16 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
                              std::to_string(workspace_req) + " required)");
 
             CopyDataToBuffer(params.GetStream(), control_buf, workspace);
+
+            // clang-format off
+            MIOPEN_LOG_I2("C=" << C << " K=" << K << " n_groups=" << n_groups << " n_works=" << n_works
+                << " d_C_pitch=" << d_C_pitch << " d_H_pitch=" << d_H_pitch 
+                << " o_K_pitch=" << o_K_pitch << " o_H_pitch=" << o_H_pitch 
+                << " d_step_1_pitch=" << d_step_1_pitch << " d_step_2_pitch=" << d_step_2_pitch
+                << " o_step_1_pitch=" << o_step_1_pitch << " o_step_2_pitch=" << o_step_2_pitch
+                << " workspace_req=" << workspace_req << " workspace_buf=" << workspace_buf
+                << " flags=" << flags << " R=" << R << " S=" << S);
+            // clang-format on
 
             kern(C,
                  K,

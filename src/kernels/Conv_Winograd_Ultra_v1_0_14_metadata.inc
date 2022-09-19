@@ -193,19 +193,19 @@ METADATA_WRAPPER total_sgpr_count,.amdgcn.next_free_vgpr,workgroup_size_x, <\ker
 .endm
 
 .macro PROLOG_KERNEL_DESCRIPTOR_WRAPPER_CONST_ALLOC machine_version, kernel_name_postfix, batch_size, height, width, out_height, out_width, pad_height, pad_width, n_groups, intl_factor
-    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_Ultra_v1_1_3_gfx\machine_version\()_\kernel_name_postfix\()_\batch_size\()x\height\()x\width\()_\out_height\()x\out_width\()_\pad_height\()x\pad_width\()_\n_groups\()_\intl_factor
+    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_Ultra_v1_0_14_gfx\machine_version\()_\kernel_name_postfix\()_\batch_size\()x\height\()x\width\()_\out_height\()x\out_width\()_\pad_height\()x\pad_width\()_\n_groups\()_\intl_factor
 .endm
 
 .macro EPILOG_KERNEL_DESCRIPTOR_WRAPPER_CONST_ALLOC machine_version, kernel_name_postfix, batch_size, height, width, out_height, out_width, pad_height, pad_width, n_groups, intl_factor
-    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_Ultra_v1_1_3_gfx\machine_version\()_\kernel_name_postfix\()_\batch_size\()x\height\()x\width\()_\out_height\()x\out_width\()_\pad_height\()x\pad_width\()_\n_groups\()_\intl_factor
+    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_Ultra_v1_0_14_gfx\machine_version\()_\kernel_name_postfix\()_\batch_size\()x\height\()x\width\()_\out_height\()x\out_width\()_\pad_height\()x\pad_width\()_\n_groups\()_\intl_factor
 .endm
 
 .macro PROLOG_KERNEL_DESCRIPTOR_WRAPPER machine_version, kernel_name_postfix
-    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_Ultra_v1_1_3_gfx\machine_version\()_\kernel_name_postfix
+    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_Ultra_v1_0_14_gfx\machine_version\()_\kernel_name_postfix
 .endm
 
 .macro EPILOG_KERNEL_DESCRIPTOR_WRAPPER machine_version, kernel_name_postfix
-    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_Ultra_v1_1_3_gfx\machine_version\()_\kernel_name_postfix
+    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConv_Ultra_v1_0_14_gfx\machine_version\()_\kernel_name_postfix
 .endm
 
 .macro KERNEL_PROLOG kernel_name_postfix
