@@ -41,7 +41,6 @@
 #include <tuple>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3_ENFORCE)
 
 static inline size_t Ceil(const size_t v, const size_t m)
 {
@@ -87,6 +86,12 @@ struct work_info
     uint64_t o_clip[o_clip_tiles_QW][o_tile_H];
 };
 
+enum struct flush_control
+{
+    FLUSH_NONE,
+    FLUSH_N,
+};
+
 inline void WU_control_make_3x3_w_info(unsigned N,
                                        unsigned H,
                                        unsigned W,
@@ -100,6 +105,7 @@ inline void WU_control_make_3x3_w_info(unsigned N,
                                        unsigned o_stride_N,
                                        unsigned o_stride_H,
                                        unsigned o_stride_W,
+                                       flush_control flush,
                                        std::vector<work_info>& w_info)
 {
     //
@@ -116,7 +122,7 @@ inline void WU_control_make_3x3_w_info(unsigned N,
 
     while((o_cur_w < o_W) && (o_cur_h < o_H) && (cur_n < N))
     {
-
+        bool flush_tail   = false;
         work_info cur_w_i = {};
         int64_t d_cur_w   = o_cur_w - pad_W;
         int64_t d_cur_h   = o_cur_h - pad_H;
@@ -139,7 +145,7 @@ inline void WU_control_make_3x3_w_info(unsigned N,
                     cur_w_i.d_clip[k][j] |= static_cast<uint64_t>(
                                             (d_cur_w + i < 0) || (W <= d_cur_w + i) ||
                                             (d_cur_h + j < 0) || (H <= d_cur_h + j) ||
-                                            (cur_n < 0) || (N <= cur_n));
+                                            (cur_n < 0) || (N <= cur_n) || flush_tail);
                     // clang-format on
                 }
             }
@@ -154,34 +160,41 @@ inline void WU_control_make_3x3_w_info(unsigned N,
                     cur_w_i.o_clip[k][j] |= static_cast<uint64_t>(
                                             (o_cur_w + i < 0) || (o_W <= o_cur_w + i) ||
                                             (o_cur_h + j < 0) || (o_H <= o_cur_h + j) ||
-                                            (cur_n < 0) || (N <= cur_n));
+                                            (cur_n < 0) || (N <= cur_n) || flush_tail);
                     // clang-format on
                 }
             }
 
-            d_cur_w += d_tile_step_W;
-            o_cur_w += o_tile_step_W;
             cur_w_i.step_1_pos <<= 1;
             cur_w_i.step_2_pos <<= 1;
 
-            if(o_W <= o_cur_w)
+            if(!flush_tail)
             {
-                cur_w_i.step_1_pos |= 1;
+                d_cur_w += d_tile_step_W;
+                o_cur_w += o_tile_step_W;
 
-                o_cur_w = 0;
-                d_cur_w = o_cur_w - pad_W;
+                if(o_W <= o_cur_w)
+                {
+                    cur_w_i.step_1_pos |= 1;
 
-                o_cur_h += o_tile_step_H;
-                d_cur_h += d_tile_step_H;
-            }
-            if(o_H <= o_cur_h)
-            {
-                cur_w_i.step_2_pos |= 1;
+                    o_cur_w = 0;
+                    d_cur_w = o_cur_w - pad_W;
 
-                o_cur_h = 0;
-                d_cur_h = o_cur_h - pad_H;
+                    o_cur_h += o_tile_step_H;
+                    d_cur_h += d_tile_step_H;
+                }
+                if(o_H <= o_cur_h)
+                {
+                    cur_w_i.step_2_pos |= 1;
 
-                cur_n += 1;
+                    o_cur_h = 0;
+                    d_cur_h = o_cur_h - pad_H;
+
+                    cur_n += 1;
+
+                    if(flush == flush_control::FLUSH_N)
+                        flush_tail = true;
+                }
             }
         }
         w_info.push_back(cur_w_i);
@@ -194,8 +207,8 @@ inline void WU_control_w_info_bit_encode(std::vector<work_info>& w_info,
 {
     for(auto i = 0; i < w_info.size(); i++)
     {
-        std::array<uint32_t, 64> block = {0};
-        work_info w_i                  = w_info[i];
+        std::array<uint32_t, group_size> block = {0};
+        work_info w_i                          = w_info[i];
 
         for(auto j = 0; j < 32; j++)
         {
@@ -246,9 +259,9 @@ inline void WU_control_w_info_bit_encode(std::vector<work_info>& w_info,
                 bit_reverse = false;
             }
 
-            for(auto k = 0; k < 64; k++)
+            for(auto k = 0; k < group_size; k++)
             {
-                auto idx = bit_reverse ? 63 - k : k;
+                auto idx = bit_reverse ? group_size - 1 - k : k;
                 block[idx] <<= 1;
                 block[idx] |= (qword & 1);
                 qword >>= 1;
@@ -272,6 +285,7 @@ inline void WU_control_make_3x3(unsigned N,
                                 unsigned o_stride_N,
                                 unsigned o_stride_H,
                                 unsigned o_stride_W,
+                                flush_control flush,
                                 std::vector<uint32_t>& gpu_control,
                                 unsigned n_groups,
                                 unsigned intl_factor)
@@ -290,6 +304,7 @@ inline void WU_control_make_3x3(unsigned N,
                                o_stride_N,
                                o_stride_H,
                                o_stride_W,
+                               flush,
                                w_info);
 
     std::vector<work_info> w_info_intl;
@@ -451,17 +466,13 @@ bool ConvBinWinogradUltraRxSf2x3::IsApplicable(const ConvolutionContext& params)
 
 size_t ConvBinWinogradUltraRxSf2x3::GetWorkspaceSize(const ConvolutionContext& params) const
 {
-    constexpr size_t control_buf_type_size = 4;
-
     const auto desc = UnifiedDescriptionConv2d(params.conv_problem);
     const int N     = desc.N;
     const int out_H = desc.out_h;
     const int out_W = desc.out_w;
 
-    return control_buf_type_size * RoundUpToMultiple(N * RoundUpToMultiple(out_H, o_tile_step_H) *
-                                                         RoundUpToMultiple(out_W, o_tile_step_W) /
-                                                         (o_tile_step_H * o_tile_step_W),
-                                                     group_size);
+    return sizeof(uint32_t) * N *
+           RoundUpToMultiple(Ceil(out_H, o_tile_step_H) * Ceil(out_W, o_tile_step_W), group_size);
 }
 
 ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params) const
@@ -485,7 +496,7 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
     const int S     = desc.S;
     const int pad_H = desc.pad_h;
     const int pad_W = desc.pad_w;
-    BuffInfo d_buf, o_buf, f_buf;
+    BuffInfo d_buf, o_buf;
 
     int flags                = 0;
     uint64_t reserved_offset = 0;
@@ -518,16 +529,6 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
                          out_W,
                          group_cnt,
                          GetTypeSize(params.out_data_type));
-        // cppcheck-suppress unreadVariable
-        f_buf = BuffInfo(GetGroupConvLayout(is_forward ? (MemLayout_t::NCHW)
-                                                       : GetSwappedNCLayout(MemLayout_t::NCHW),
-                                            false),
-                         K,
-                         C,
-                         R,
-                         S,
-                         group_cnt,
-                         GetTypeSize(params.weights_data_type));
     }
     else
     {
@@ -553,13 +554,6 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
             out_W,
             group_cnt,
             GetTypeSize(params.out_data_type));
-        f_buf = BuffInfo(GetGroupConvLayout(GetSwappedNCLayout(MemLayout_t::NCHW), true),
-                         K,
-                         C,
-                         R,
-                         S,
-                         group_cnt,
-                         GetTypeSize(params.weights_data_type));
     }
 
     const unsigned tiles_n_row    = (out_W + o_tile_step_W - 1) / o_tile_step_W;
@@ -581,6 +575,10 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
     const int o_step_1_pitch = o_tile_step_H * o_H_pitch - tiles_n_row * o_tile_step_W * o_W_pitch;
     const int o_step_2_pitch = o_N_pitch - tiles_n_column * o_tile_step_H * o_H_pitch;
 
+    flush_control flush = d_step_2_pitch >= std::pow(2, 23)   ? flush_control::FLUSH_N
+                          : o_step_2_pitch >= std::pow(2, 23) ? flush_control::FLUSH_N
+                                                              : flush_control::FLUSH_NONE;
+
     std::vector<uint32_t> control_buf;
     WU_control_make_3x3(N,
                         H,
@@ -595,14 +593,16 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
                         o_N_pitch,
                         o_H_pitch,
                         o_W_pitch,
+                        flush,
                         control_buf,
                         n_groups,
                         intl_factor);
 
-    const unsigned n_works     = control_buf.size() / 64;
+    const unsigned n_works     = control_buf.size() / group_size;
     const size_t workspace_req = GetWorkspaceSize(params);
 
-    assert(workspace_req == control_buf.size() * sizeof(decltype(control_buf)::value_type));
+    if(workspace_req < control_buf.size() * sizeof(decltype(control_buf)::value_type))
+        MIOPEN_THROW("Control buffer size is not equal to workspace_req");
 
     const size_t wg_size = 256;
 
@@ -699,9 +699,6 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
                  reserved_offset,
                  reserved_offset,
                  reserved_offset);
-
-            if(miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3_ENFORCE{}))
-                handle.ResetKernelTime();
         };
     };
 
