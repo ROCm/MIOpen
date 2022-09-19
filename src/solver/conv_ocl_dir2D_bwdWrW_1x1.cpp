@@ -39,7 +39,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW1X1)
 namespace miopen {
 namespace solver {
 
-bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
+                                    const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_266868
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10"))
@@ -78,8 +79,7 @@ static inline int GetNPasses(const ProblemDescription& problem)
 {
     const int n_passes =
 #if TWO_PASSES
-        ((problem.batch_sz >= 16 ||
-          2 * problem.n_outputs > problem.n_inputs) &&
+        ((problem.batch_sz >= 16 || 2 * problem.n_outputs > problem.n_inputs) &&
          problem.pad_h == 0 && problem.pad_w == 0 &&
          (problem.kernel_stride_w > 1 || problem.kernel_stride_h > 1))
             ? 2
@@ -98,14 +98,14 @@ size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ProblemDescription& problem) con
     {
         const auto in_channel_stride = problem.in_stride * problem.in_height;
         const auto in_batch_stride   = in_channel_stride * problem.n_outputs;
-        return in_batch_stride * problem.batch_sz *
-               GetTypeSize(problem.out_data_type);
+        return in_batch_stride * problem.batch_sz * GetTypeSize(problem.out_data_type);
     }
     else
         return 0;
 }
 
-ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
+                                           const ProblemDescription& problem) const
 {
     ConvSolution result;
     const int n_passes = GetNPasses(problem);
@@ -136,8 +136,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx, const 
         }
         else
         */
-        if(4 * ((problem.n_outputs + 15) / 16) * ((problem.n_inputs + 15) / 16) >=
-           512)
+        if(4 * ((problem.n_outputs + 15) / 16) * ((problem.n_inputs + 15) / 16) >= 512)
         {
             n_lcl_in_maps = 16;
         }
@@ -215,20 +214,18 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx, const 
 
         int read_unit = 4;
         // subsampled input
-        int in_width  = (n_passes > 1) ? problem.in_width : problem.out_width;
-        int in_height = (n_passes > 1) ? problem.in_height : problem.out_height;
-        int in_stride = (n_passes > 1) ? problem.in_stride : problem.out_stride;
-        int in_channel_stride =
-            (n_passes > 1) ? in_stride * in_height : problem.out_channel_stride;
-        int in_batch_stride = (n_passes > 1) ? in_channel_stride * problem.n_outputs
-                                             : problem.out_batch_stride;
+        int in_width          = (n_passes > 1) ? problem.in_width : problem.out_width;
+        int in_height         = (n_passes > 1) ? problem.in_height : problem.out_height;
+        int in_stride         = (n_passes > 1) ? problem.in_stride : problem.out_stride;
+        int in_channel_stride = (n_passes > 1) ? in_stride * in_height : problem.out_channel_stride;
+        int in_batch_stride =
+            (n_passes > 1) ? in_channel_stride * problem.n_outputs : problem.out_batch_stride;
         int out_batch_stride   = problem.in_batch_stride;
         int out_channel_stride = problem.in_channel_stride;
         int out_stride         = problem.in_stride;
-        int wei_batch_stride   = problem.n_inputs * problem.n_outputs *
-                               problem.kernel_size_w * problem.kernel_size_h;
-        int wei_channel_stride =
-            problem.n_outputs * problem.kernel_size_w * problem.kernel_size_h;
+        int wei_batch_stride =
+            problem.n_inputs * problem.n_outputs * problem.kernel_size_w * problem.kernel_size_h;
+        int wei_channel_stride = problem.n_outputs * problem.kernel_size_w * problem.kernel_size_h;
         int max_loads_per_readunit = (out_channel_stride / read_unit) * problem.batch_sz;
 
         // limited shape size shows better performance with ead_uint == 3
@@ -250,34 +247,27 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx, const 
 
         if(problem.pad_w > 0)
         {
-            in_pad_min_x = problem.kernel_stride_w -
-                           (problem.pad_w % problem.kernel_stride_w);
+            in_pad_min_x = problem.kernel_stride_w - (problem.pad_w % problem.kernel_stride_w);
             // In case PAD == STRIDE
             in_pad_min_x = in_pad_min_x % problem.kernel_stride_w;
 
-            out_pad_min_x = (problem.pad_w + problem.kernel_stride_w - 1) /
+            out_pad_min_x = (problem.pad_w + problem.kernel_stride_w - 1) / problem.kernel_stride_w;
+            out_pad_width = (problem.out_width - in_pad_min_x + problem.kernel_stride_w - 1) /
                             problem.kernel_stride_w;
-            out_pad_width =
-                (problem.out_width - in_pad_min_x + problem.kernel_stride_w - 1) /
-                problem.kernel_stride_w;
         }
         if(problem.pad_h > 0)
         {
-            in_pad_min_y = problem.kernel_stride_h -
-                           (problem.pad_h % problem.kernel_stride_h);
+            in_pad_min_y = problem.kernel_stride_h - (problem.pad_h % problem.kernel_stride_h);
             // In case PAD == STRIDE
             in_pad_min_y = in_pad_min_y % problem.kernel_stride_h;
 
-            out_pad_min_y = (problem.pad_h + problem.kernel_stride_h - 1) /
-                            problem.kernel_stride_h;
-            out_pad_height =
-                (problem.out_height - in_pad_min_y + problem.kernel_stride_h - 1) /
-                problem.kernel_stride_h;
+            out_pad_min_y = (problem.pad_h + problem.kernel_stride_h - 1) / problem.kernel_stride_h;
+            out_pad_height = (problem.out_height - in_pad_min_y + problem.kernel_stride_h - 1) /
+                             problem.kernel_stride_h;
         }
 
         if(problem.pad_w > 0 || problem.pad_h > 0 ||
-           (n_passes == 1 &&
-            (problem.kernel_stride_w > 1 || problem.kernel_stride_h > 1)))
+           (n_passes == 1 && (problem.kernel_stride_w > 1 || problem.kernel_stride_h > 1)))
         {
             read_unit = (out_pad_width % 4 == 0)
                             ? 4
