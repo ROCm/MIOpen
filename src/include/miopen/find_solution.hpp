@@ -79,7 +79,7 @@ auto FindSolutionImpl(
                 {
                     return s.GetSolution(context, config);
                 }
-                MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
+                MIOPEN_LOG_IE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
             }
             else
