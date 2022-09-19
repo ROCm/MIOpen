@@ -35,7 +35,7 @@
 #include <miopen/tensor.hpp>
 #include <utility>
 
-#include "driver.hpp"
+#include <fusionHost.hpp>
 #include "activ_driver.hpp"
 #include "InputFlags.hpp"
 #include "get_handle.hpp"
@@ -44,316 +44,138 @@
 
 #include "gtest/gtest.h"
 
-std::string to_name(miopenActivationMode_t m)
+struct ActivationConfig
 {
-#define STRING_CASE(x) \
-    case x: return #x; break;
-    switch(m)
+    size_t N;
+    size_t C;
+    size_t H;
+    size_t W;
+    miopenActivationMode_t activ_mode;
+};
+
+struct TestActivation : public ::testing::TestWithParam<ActivationConfig>
+{
+protected:
+    void SetUp() override
     {
-        STRING_CASE(miopenActivationPASTHRU)
-        STRING_CASE(miopenActivationLOGISTIC)
-        STRING_CASE(miopenActivationTANH)
-        STRING_CASE(miopenActivationRELU)
-        STRING_CASE(miopenActivationSOFTRELU)
-        STRING_CASE(miopenActivationABS)
-        STRING_CASE(miopenActivationPOWER)
-        STRING_CASE(miopenActivationCLIPPEDRELU)
-        STRING_CASE(miopenActivationLEAKYRELU)
-        STRING_CASE(miopenActivationELU)
+        double alpha = 0.95;
+        double beta  = 2.3;
+        double gamma = 3.4;
+        activ_config = GetParam();
+        input = tensor<float>{activ_config.N, activ_config.C, activ_config.H, activ_config.W};
+        input.generate(tensor_elem_gen_integer{17});
+        miopenCreateActivationDescriptor(&activ_desc);
+        // TODO: same alpha beta gamma as below?
+        miopenSetActivationDescriptor(activ_desc, activ_config.activ_mode, alpha, beta, gamma);
+
+        gpu_output = tensor<float>{
+            static_cast<size_t>(activ_config.N), // n from miopenGetConvolutionForwardOutputDim ?
+            static_cast<size_t>(activ_config.C),
+            static_cast<size_t>(activ_config.H),
+            static_cast<size_t>(activ_config.W)};
+        cpu_ref_out = tensor<float>{
+            static_cast<size_t>(activ_config.N), // n from miopenGetConvolutionForwardOutputDim ?
+            static_cast<size_t>(activ_config.C),
+            static_cast<size_t>(activ_config.H),
+            static_cast<size_t>(activ_config.W)};
+
+        std::fill(gpu_output.begin(), gpu_output.end(), 0.0f);
+        std::fill(cpu_ref_out.begin(), cpu_ref_out.end(), 0.0f);
+
+        activationHostInfer(activ_config.activ_mode,
+                            gamma,      // 0.0f?
+                            beta,       // 0.0f?
+                            alpha,      // 0.0f?
+                            input.data, // TODO: cpu_ref_out.data?
+                            cpu_ref_out.data);
+
+        auto&& handle = get_handle();
+        in_ptr        = handle.Write(input.data);
+        out_ptr       = handle.Write(gpu_output.data);
     }
-    return "";
+
+    void TearDown() override
+    {
+        auto&& handle   = get_handle();
+        gpu_output.data = handle.Read<float>(out_ptr, gpu_output.data.size());
+        EXPECT_FALSE(miopen::range_zero(cpu_ref_out)) << "Cpu data is all zeros";
+        EXPECT_FALSE(miopen::range_zero(gpu_output)) << "Gpu data is all zeros";
+        const auto maxDiff = miopen::max_diff(cpu_ref_out, gpu_output);
+        std::ignore        = maxDiff;
+        auto idx           = miopen::mismatch_idx(cpu_ref_out, gpu_output, miopen::float_equal);
+        EXPECT_FALSE(miopen::find_idx(cpu_ref_out, miopen::not_finite) >= 0)
+            << "Non finite number found in the CPU data";
+        EXPECT_FALSE(idx < miopen::range_distance(cpu_ref_out));
+        miopenDestroyActivationDescriptor(activ_desc);
+    }
+
+    tensor<float> input;
+    tensor<float> gpu_output;
+    tensor<float> cpu_ref_out;
+    ActivationConfig activ_config;
+    miopenActivationDescriptor_t activ_desc;
+    miopen::Allocator::ManageDataPtr in_ptr;
+    miopen::Allocator::ManageDataPtr out_ptr;
+};
+
+#define MIOPEN_CHECK(x)          \
+    if(x != miopenStatusSuccess) \
+        return x;
+
+miopenStatus_t RunActivation(miopenHandle_t handle,
+                             const float* alpha1,
+                             miopenTensorDescriptor_t xDesc,
+                             ConstData_t x,
+
+                             const miopenTensorDescriptor_t zDesc,
+                             ConstData_t z,
+
+                             const miopen::ActivationDescriptor& activationDesc,
+                             const miopenTensorDescriptor_t yDesc,
+                             Data_t y)
+{
+    if(alpha1 != nullptr)
+    {
+        const auto falpha1 = *(static_cast<const float*>(alpha1));
+        if(falpha1 != 1.0f)
+            MIOPEN_THROW(miopenStatusNotImplemented, "alpha1 can only be 1.0");
+    }
+    // if(z != nullptr || zDesc.GetSize() != 0)
+    //    MIOPEN_THROW(miopenStatusNotImplemented, "The addition of z vector is not yet supported");
+
+    miopen::OperatorArgs fusionArgs;
+
+    auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(activationDesc.GetMode());
+
+    float alpha       = static_cast<float>(1.0);
+    float beta        = static_cast<float>(0);
+    float activ_alpha = activationDesc.GetAlpha();
+    float activ_beta  = activationDesc.GetBeta();
+    float activ_gamma = activationDesc.GetGamma();
+
+    // Set the Args
+    MIOPEN_CHECK(activOp->SetArgs(fusionArgs, &alpha, &beta, activ_alpha, activ_beta, activ_gamma));
+    // TODO: Execute?
+    return miopenStatusSuccess;
 }
 
-template <class T>
-struct verify_forward_activation
+INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
+                         TestActivation,
+                         ::testing::Values(ActivationConfig{16, 32, 8, 8, miopenActivationELU}));
+
+TEST_P(TestActivation, ActivationFwdTest)
 {
-    tensor<T> input;
-    miopen::ActivationDescriptor desc;
-
-    template <class A>
-    tensor<T> cpu(A a)
-    {
-        auto out = input;
-
-        input.par_for_each(
-            [&](int o, int w, int i, int j) { out(o, w, i, j) = a(input(o, w, i, j)); });
-
-        return out;
-    }
-
-    template <class A>
-    tensor<T> gpu(A)
-    {
-        auto&& handle = get_handle();
-        auto out      = input;
-        auto in_dev   = handle.Write(input.data);
-        auto out_dev  = handle.Write(out.data);
-
-        float alpha = 1, beta = 0;
-
-        desc.Forward(handle, &alpha, input.desc, in_dev.get(), &beta, out.desc, out_dev.get());
-
-        out.data = handle.Read<T>(out_dev, out.data.size());
-        return out;
-    }
-
-    template <class A>
-    void fail(float, A)
-    {
-        std::cout << "Forward Activation: " << to_name(desc.GetMode()) << std::endl;
-        std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
-    }
-};
-
-template <class T>
-struct verify_backwards_activation
-{
-    tensor<T> input;
-    tensor<T> dout;
-    tensor<T> out;
-    miopen::ActivationDescriptor desc;
-
-    template <class A>
-    tensor<T> cpu(A a)
-    {
-        auto dinput = input;
-
-        input.par_for_each([&](int o, int w, int i, int j) {
-            dinput(o, w, i, j) = a(dout(o, w, i, j), input(o, w, i, j), out(o, w, i, j));
-        });
-
-        return dinput;
-    }
-
-    template <class A>
-    tensor<T> gpu(A)
-    {
-        auto&& handle = get_handle();
-        auto dinput   = input;
-
-        auto in_dev   = handle.Write(input.data);
-        auto dout_dev = handle.Write(dout.data);
-        auto out_dev  = handle.Write(out.data);
-        auto din_dev  = handle.Write(dinput.data);
-
-        float alpha = 1, beta = 0;
-
-        desc.Forward(handle, &alpha, input.desc, in_dev.get(), &beta, out.desc, out_dev.get());
-        desc.Backward(handle,
-                      &alpha,
-                      // y
-                      out.desc,
-                      out_dev.get(),
-                      // dy
-                      dout.desc,
-                      dout_dev.get(),
-                      // x
-                      input.desc,
-                      in_dev.get(),
-                      &beta,
-                      // dx
-                      dinput.desc,
-                      din_dev.get());
-
-        dinput.data = handle.Read<T>(din_dev, dinput.data.size());
-        return dinput;
-    }
-
-    template <class A>
-    void fail(float, A)
-    {
-        std::cout << "Backwards Activation: " << to_name(desc.GetMode()) << std::endl;
-        std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
-    }
-};
-
-struct select_first
-{
-    template <class T>
-    auto operator()(const T& x) MIOPEN_RETURNS(x.first); // NOLINT (readability-const-return-type)
-};
-
-template <class T>
-struct activation_driver : test_driver
-{
-    tensor<T> input;
-    double alpha     = 0.95;
-    double beta      = 2.3;
-    double gamma     = 3.4;
-    std::string mode = "PASTHRU";
-    std::unordered_map<std::string, std::function<void()>> lookup;
-    bool packed = true;
-
-    template <class A>
-    struct callback  
-    {
-        //Function call operator
-        void operator()(activation_driver* self) const { self->template run<A>(); }
-    };
-
-    template <class Forward, class Backward>
-    void add_mode(miopenActivationMode_t m, Forward f, Backward b)
-    {
-        lookup.emplace(transform_mode(to_name(m)), [=] { this->run(m, f, b); });
-    }
-
-    activation_driver()
-    {
-        disabled_cache = true;
-        add_mode(
-            miopenActivationPASTHRU,
-            [=](double x) { return x; },
-            [=](double dy, double, double) { return dy; });
-        add_mode(
-            miopenActivationLOGISTIC,
-            [=](double x) { return 1 / (1 + std::exp(-x)); },
-            [=](double dy, double, double y) { return dy * y * (1 - y); });
-        add_mode(
-            miopenActivationTANH,
-            // y = beta * tanh(alpha * x)
-            [=](double x) { return beta * std::tanh(alpha * x); },
-            [=](double dy, double, double y) { return dy * alpha * (beta - y * y / beta); });
-        add_mode(
-            miopenActivationRELU,
-            [=](double x) { return (x > 0) ? x : 0; },
-            [=](double dy, double x, double) { return (x > 0) ? dy : 0; });
-        add_mode(
-            miopenActivationSOFTRELU,
-            [=](double x) { return std::log1p(std::exp(x)); },
-            [=](double dy, double x, double) {
-                static const double threshold = 50.;
-                double expval                 = std::exp(std::min(x, threshold));
-                return dy * expval / (expval + 1.0);
-            });
-        add_mode(
-            miopenActivationABS,
-            [=](double x) { return std::abs(x); },
-            [=](double dy, double x, double) { return dy * ((x > 0) ? 1 : -1); });
-        add_mode(
-            miopenActivationPOWER,
-            [=](double x) {
-                double v = alpha + beta * x;
-                return v <= std::numeric_limits<double>::epsilon() ? 0 : pow(v, gamma);
-            },
-            [=](double, double x, double y) {
-                auto v = alpha + beta * x;
-                return v <= std::numeric_limits<double>::epsilon() ? 0 : gamma * beta * y / v;
-            });
-        add_mode(
-            miopenActivationCLIPPEDRELU,
-            [=](double x) { return std::min(alpha, std::max(double(0), x)); },
-            [=](double dy, double x, double) { return (x > 0 && x <= alpha) ? dy : 0; });
-        add_mode(
-            miopenActivationLEAKYRELU,
-            [=](double x) { return (x > 0) ? x : x * alpha; },
-            [=](double dy, double x, double) { return dy * ((x > 0) ? 1 : alpha); });
-        add_mode(
-            miopenActivationELU,
-            [=](double x) { return (x > 0) ? x : alpha * std::expm1(x); },
-            [=](double dy, double x, double y) { return dy * ((x > 0) ? 1 : y + alpha); });
-        add(input,
-            "input",
-            get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
-        add(alpha, "alpha");
-        add(beta, "beta");
-        add(gamma, "gamma");
-        add(mode, "mode", generate_data(modes()));
-        add(packed, "packed", generate_data({true, false}));
-    }
-
-    std::vector<std::string> modes()
-    {
-        std::vector<std::string> result(lookup.size());
-        std::transform(lookup.begin(), lookup.end(), result.begin(), select_first{});
-        return result;
-    }
-
-    miopen::ActivationDescriptor make_descriptor(miopenActivationMode_t m) const
-    {
-        return {m, alpha, beta, gamma};
-    }
-
-    static std::string transform_mode(std::string s)
-    {
-        return miopen::RemovePrefix(miopen::ToUpper(s), "MIOPENACTIVATION");
-    }
-
-    void run()
-    {
-        if(!packed)
-        {
-            const auto dim_lens = input.desc.GetLengths();
-            auto dim_strides    = input.desc.GetStrides();
-            dim_strides[0]      = dim_strides[0] + 1;
-
-            input = tensor<T>{dim_lens, dim_strides};
-        }
-
-        std::size_t n, c, h, w;
-        std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
-        size_t total_mem     = 4 * input.desc.GetNumBytes(); // estimate based on backward pass
-        size_t device_mem    = get_handle().GetGlobalMemorySize();
-        if(total_mem >= device_mem)
-        {
-            show_command();
-            std::cout << "Config requires " << total_mem
-                      << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
-                      << " Bytes of memory." << std::endl;
-            return;
-        }
-
-        lookup[transform_mode(mode)]();
-    }
-
-    template <class Forward, class Backward>
-    void run(miopenActivationMode_t m, Forward f, Backward b)
-    {
-        auto desc = make_descriptor(m);
-        auto out  = verify(verify_forward_activation<T>{input, desc}, f);
-        auto dout = out.first;
-        dout.generate([&](int n, int c, int h, int w) {
-            T x      = out.first(n, c, h, w);
-            double y = (877 * n + 547 * c + 701 * h + 1049 * w + static_cast<int>(769 * x)) % 2503;
-            return ((x * y) / 1301.0);
-        });
-        verify(verify_backwards_activation<T>{input, dout, out.first, desc}, b);
-    }
-};
-
-class TestActivation : public ::testing::Test 
-{
-    protected:
-    //Only run once
-    static void SetUpTestSuite() 
-    {
-        ASSERT_GT(argc,0);
-        ASSERT_NE(argv, nullptr);
-        //const char** const_argv = argv;
-        //test_drive<activation_driver>(argc, argv);
-    }
-
-    public: 
-    static int argc;
-    static char** argv;
-};
-
-int TestActivation::argc = 0;
-char** TestActivation::argv = nullptr;
-
-//Fixture for add_mode?
-//TEST_F()
-
-int main(int argc, const char* argv[]) 
-{ 
-    testing::InitGoogleTest(&argc, const_cast<char**>(argv));
-
-    //Passing command line parameters
-    //Ref: https://github.com/google/googletest/issues/765
-    //TEST_F or TEST?
-    TestActivation::argc = argc;
-    TestActivation::argv = const_cast<char**>(argv);
-    
-    test_drive<activation_driver>(argc, argv);
-
-    return RUN_ALL_TESTS();
+    tensor<float> z{};
+    const float alpha     = 1.0f;
+    miopenStatus_t status = miopenStatusUnsupportedOp;
+    status                = RunActivation(&get_handle(),
+                           &alpha,
+                           &input.desc,
+                           in_ptr.get(),
+                           &z.desc,
+                           nullptr,
+                           miopen::deref(activ_desc),
+                           &gpu_output.desc,
+                           static_cast<Data_t>(out_ptr.get()));
+    EXPECT_EQ(status, miopenStatusSuccess);
 }
