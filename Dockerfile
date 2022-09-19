@@ -40,33 +40,21 @@ RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     build-essential \
     cmake \
-    comgr \
     clang-format \
     doxygen \
-    g++ \
     gdb \
     git \
-    hip-rocclr \
     lcov \
-    libelf-dev \
     libncurses5-dev \
-    libpthread-stubs0-dev \
     llvm-amdgpu \
     miopengemm \
     pkg-config \
-    python3 \
     python3-dev \
     python3-pip \
-    python3-distutils \
     python3-venv \
-    software-properties-common \
-    rocm-device-libs \
-    rocm-opencl \
-    rocm-opencl-dev \
     rocblas \
     rpm \
-    zlib1g-dev \
-    kmod && \
+    software-properties-common && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
