@@ -263,6 +263,17 @@ struct AnySolver
                 }
                 MIOPEN_LOG_I2("Perf Db: Invalid Config: " << value.SolverDbId());
             }
+            else if(!value.AltSolverDbId().empty() &&
+                    db.Load(ctx.problem, value.AltSolverDbId(), config))
+            {
+                MIOPEN_LOG_I("Perf Db: alternate record loaded: " << value.AltSolverDbId());
+                if(value.IsValidPerformanceConfig(ctx, config))
+                {
+                    return config.ToString();
+                }
+                MIOPEN_LOG_I2("Perf Db: Invalid alternate record from Perf Db: "
+                              << value.AltSolverDbId() << ": " << config);
+            }
             MIOPEN_LOG_I2("Perf Db: Failed Loading: " << value.SolverDbId());
             return "";
         }
