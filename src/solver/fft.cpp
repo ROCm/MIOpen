@@ -120,12 +120,10 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
         return false;
     }
 
-    const auto is_fwd   = problem.direction.IsForward();
-    decltype(auto) conv = problem.conv_problem.GetConv();
-    decltype(auto) xDesc =
-        is_fwd ? problem.conv_problem.GetIn() : problem.conv_problem.GetOut();
-    decltype(auto) yDesc =
-        is_fwd ? problem.conv_problem.GetOut() : problem.conv_problem.GetIn();
+    const auto is_fwd    = problem.direction.IsForward();
+    decltype(auto) conv  = problem.conv_problem.GetConv();
+    decltype(auto) xDesc = is_fwd ? problem.conv_problem.GetIn() : problem.conv_problem.GetOut();
+    decltype(auto) yDesc = is_fwd ? problem.conv_problem.GetOut() : problem.conv_problem.GetIn();
     decltype(auto) wDesc = problem.conv_problem.GetWeights();
 
     if(conv.GetSpatialDimension() != 2 || conv.group_count != 1 ||
@@ -162,11 +160,9 @@ bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& pr
 
 size_t fft::GetWorkspaceSize(const ProblemDescription& problem) const
 {
-    const auto fwd = problem.direction.IsForward();
-    decltype(auto) xDesc =
-        fwd ? problem.conv_problem.GetIn() : problem.conv_problem.GetOut();
-    decltype(auto) yDesc =
-        fwd ? problem.conv_problem.GetOut() : problem.conv_problem.GetIn();
+    const auto fwd       = problem.direction.IsForward();
+    decltype(auto) xDesc = fwd ? problem.conv_problem.GetIn() : problem.conv_problem.GetOut();
+    decltype(auto) yDesc = fwd ? problem.conv_problem.GetOut() : problem.conv_problem.GetIn();
     decltype(auto) wDesc = problem.conv_problem.GetWeights();
 
     int in_n, in_c, in_h, in_w;
