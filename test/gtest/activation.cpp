@@ -64,24 +64,37 @@ protected:
         activ_config = GetParam();
         input = tensor<float>{activ_config.N, activ_config.C, activ_config.H, activ_config.W};
         input.generate(tensor_elem_gen_integer{17});
+
+        // TODO: use miopen API?
         miopenCreateActivationDescriptor(&activ_desc);
-        // TODO: same alpha beta gamma as below?
         miopenSetActivationDescriptor(activ_desc, activ_config.activ_mode, alpha, beta, gamma);
 
-        gpu_output = tensor<float>{
-            static_cast<size_t>(activ_config.N), // n from miopenGetConvolutionForwardOutputDim ?
-            static_cast<size_t>(activ_config.C),
-            static_cast<size_t>(activ_config.H),
-            static_cast<size_t>(activ_config.W)};
-        cpu_ref_out = tensor<float>{
-            static_cast<size_t>(activ_config.N), // n from miopenGetConvolutionForwardOutputDim ?
-            static_cast<size_t>(activ_config.C),
-            static_cast<size_t>(activ_config.H),
-            static_cast<size_t>(activ_config.W)};
+        // In TEST_P()
+        // auto ptr_bwdfusionplan                = GetManagedFusionPlanDesc(&input.desc);
+        // miopenCreateOpActivationForward(ptr_fwdfusionplan.get(), &activFwdOp, activ_mode);
+
+        std::size_t n, c, h, w;
+        std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
+        size_t total_mem     = 4 * input.desc.GetNumBytes(); // estimate based on backward pass
+        volatile size_t device_mem = get_handle().GetGlobalMemorySize();
+
+        ASSERT_GE(total_mem, device_mem) << "Tensor exceeds GPU memory size";
+
+        gpu_output =
+            tensor<float>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
+                          static_cast<size_t>(c),
+                          static_cast<size_t>(h),
+                          static_cast<size_t>(w)};
+        cpu_ref_out =
+            tensor<float>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
+                          static_cast<size_t>(c),
+                          static_cast<size_t>(h),
+                          static_cast<size_t>(w)};
 
         std::fill(gpu_output.begin(), gpu_output.end(), 0.0f);
         std::fill(cpu_ref_out.begin(), cpu_ref_out.end(), 0.0f);
 
+        // Infer on CPU, forward
         activationHostInfer(activ_config.activ_mode,
                             gamma,      // 0.0f?
                             beta,       // 0.0f?
@@ -89,23 +102,28 @@ protected:
                             input.data, // TODO: cpu_ref_out.data?
                             cpu_ref_out.data);
 
+        // Infer on CPU, backward
+        // activationHostBwd(...)
+
         auto&& handle = get_handle();
-        in_ptr        = handle.Write(input.data);
-        out_ptr       = handle.Write(gpu_output.data);
+        in_dev        = handle.Write(input.data);
+        out_dev       = handle.Write(gpu_output.data);
     }
 
     void TearDown() override
     {
-        auto&& handle   = get_handle();
-        gpu_output.data = handle.Read<float>(out_ptr, gpu_output.data.size());
-        EXPECT_FALSE(miopen::range_zero(cpu_ref_out)) << "Cpu data is all zeros";
-        EXPECT_FALSE(miopen::range_zero(gpu_output)) << "Gpu data is all zeros";
+        auto&& handle = get_handle();
+        // Read data fro GPU
+        gpu_output.data = handle.Read<float>(out_dev, gpu_output.data.size());
+        EXPECT_FALSE(miopen::range_zero(cpu_ref_out)) << "CPU data is all zeros";
+        EXPECT_FALSE(miopen::range_zero(gpu_output)) << "GPU data is all zeros";
         const auto maxDiff = miopen::max_diff(cpu_ref_out, gpu_output);
         std::ignore        = maxDiff;
         auto idx           = miopen::mismatch_idx(cpu_ref_out, gpu_output, miopen::float_equal);
         EXPECT_FALSE(miopen::find_idx(cpu_ref_out, miopen::not_finite) >= 0)
             << "Non finite number found in the CPU data";
         EXPECT_FALSE(idx < miopen::range_distance(cpu_ref_out));
+
         miopenDestroyActivationDescriptor(activ_desc);
     }
 
@@ -114,49 +132,55 @@ protected:
     tensor<float> cpu_ref_out;
     ActivationConfig activ_config;
     miopenActivationDescriptor_t activ_desc;
-    miopen::Allocator::ManageDataPtr in_ptr;
-    miopen::Allocator::ManageDataPtr out_ptr;
+    miopen::Allocator::ManageDataPtr in_dev;
+    miopen::Allocator::ManageDataPtr out_dev;
 };
 
-#define MIOPEN_CHECK(x)          \
-    if(x != miopenStatusSuccess) \
-        return x;
-
-miopenStatus_t RunActivation(miopenHandle_t handle,
-                             const float* alpha1,
-                             miopenTensorDescriptor_t xDesc,
+miopenStatus_t RunActivation(miopen::Handle& handle,
+                             miopenActivationDescriptor_t activationDesc,
+                             const void* alpha,
+                             const miopen::TensorDescriptor& xDesc,
                              ConstData_t x,
-
-                             const miopenTensorDescriptor_t zDesc,
-                             ConstData_t z,
-
-                             const miopen::ActivationDescriptor& activationDesc,
-                             const miopenTensorDescriptor_t yDesc,
+                             const void* beta,
+                             const miopen::TensorDescriptor& yDesc,
                              Data_t y)
 {
-    if(alpha1 != nullptr)
-    {
-        const auto falpha1 = *(static_cast<const float*>(alpha1));
-        if(falpha1 != 1.0f)
-            MIOPEN_THROW(miopenStatusNotImplemented, "alpha1 can only be 1.0");
-    }
-    // if(z != nullptr || zDesc.GetSize() != 0)
-    //    MIOPEN_THROW(miopenStatusNotImplemented, "The addition of z vector is not yet supported");
+    // ASSERT_TRUE(alpha);
+    // ASSERT_TRUE(beta != nullptr);
 
-    miopen::OperatorArgs fusionArgs;
+    if(alpha == nullptr || beta == nullptr)
+        MIOPEN_THROW(miopenStatusBadParm, "alpha or beta is NULL");
 
+    /*
+    miopen::OperatorArgs fwdActivArgs;
     auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(activationDesc.GetMode());
+    */
 
-    float alpha       = static_cast<float>(1.0);
-    float beta        = static_cast<float>(0);
-    float activ_alpha = activationDesc.GetAlpha();
-    float activ_beta  = activationDesc.GetBeta();
-    float activ_gamma = activationDesc.GetGamma();
+    // float alpha       = static_cast<float>(1.0);
+    // float beta        = static_cast<float>(0);
+    // float activ_alpha = activationDesc.GetAlpha();
+    // float activ_beta  = activationDesc.GetBeta();
+    // float activ_gamma = activationDesc.GetGamma();
 
-    // Set the Args
-    MIOPEN_CHECK(activOp->SetArgs(fusionArgs, &alpha, &beta, activ_alpha, activ_beta, activ_gamma));
+    miopenStatus_t status =
+        miopen::deref(activationDesc).Forward(handle, alpha, xDesc, x, beta, yDesc, y);
+
+    /*
+        // Set the Args
+        miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
+                                const miopenFusionOpDescriptor_t activFwdOp,
+                                const void* alpha,
+                                const void* beta,
+                                double activAlpha,
+                                double activBeta,
+                                double activGamma);
+
+
+        MIOPEN_CHECK(activOp->SetArgs(fwdActivArgs, &alpha, &beta, activ_alpha, activ_beta,
+       activ_gamma));
+        */
     // TODO: Execute?
-    return miopenStatusSuccess;
+    return status;
 }
 
 INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
@@ -165,17 +189,15 @@ INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
 
 TEST_P(TestActivation, ActivationFwdTest)
 {
-    tensor<float> z{};
-    const float alpha     = 1.0f;
-    miopenStatus_t status = miopenStatusUnsupportedOp;
-    status                = RunActivation(&get_handle(),
-                           &alpha,
-                           &input.desc,
-                           in_ptr.get(),
-                           &z.desc,
-                           nullptr,
-                           miopen::deref(activ_desc),
-                           &gpu_output.desc,
-                           static_cast<Data_t>(out_ptr.get()));
+    const float alpha = 1.0f, beta = 0;
+    miopenStatus_t status = RunActivation(get_handle(),
+                                          activ_desc,
+                                          &alpha,
+                                          input.desc,
+                                          in_dev.get(),
+                                          &beta,
+                                          gpu_output.desc,
+                                          out_dev.get());
+
     EXPECT_EQ(status, miopenStatusSuccess);
 }
