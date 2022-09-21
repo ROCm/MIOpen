@@ -1937,15 +1937,9 @@ struct PerformanceConfigConvBinWinogradRxS : PerfConfigBase<PerformanceConfigCon
 template <int Winodata, int Winofilter>
 struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinogradRxS>
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId(); }
-
-    static const std::string& GetSolverDbId()
+    const std::string& SolverDbId() const override
     {
-        static const std::string dbId = std::string("ConvBinWinogradRxSf")
-                                            .append(std::to_string(Winodata))
-                                            .append("x")
-                                            .append(std::to_string(Winofilter));
-        return dbId;
+        return GetSolverDbId<ConvBinWinoRxS<Winodata, Winofilter>>();
     }
 
     PerformanceConfigConvBinWinogradRxS
