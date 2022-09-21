@@ -618,7 +618,21 @@ enable_clang_tidy(
         -readability-container-data-pointer
         -readability-identifier-length
         -readability-suspicious-call-argument
-
+        #TODO Code Quality WORKAROUND ROCm 5.3 && Ubuntu 22.04 && C++17 && cppcheck 2.9 update
+        -modernize-use-nodiscard
+        -misc-confusable-identifiers
+        -modernize-unary-static-assert
+        -modernize-macro-to-enum
+        -modernize-concat-nested-namespaces
+        -readability-redundant-declaration
+        -readability-simplify-boolean-expr
+        -bugprone-branch-clone
+        -clang-diagnostic-deprecated
+        -hicpp-deprecated-headers
+        -hicpp-member-init
+        -performance-no-automatic-move
+        -clang-analyzer-cplusplus.NewDeleteLeaks
+        -modernize-deprecated-headers
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
@@ -663,6 +677,15 @@ enable_cppcheck(
         unreadVariable:*src/composable_kernel/host/*/*
         unreadVariable:*src/composable_kernel/external/*/*
         unmatchedSuppression
+        #TODO Code Quality WORKAROUND ROCm 5.3 && Ubuntu 22.04 && C++17 && cppcheck 2.9 update
+        ctuOneDefinitionRuleViolation:*test/*
+        ctuOneDefinitionRuleViolation:*src/composable_kernel/composable_kernel/*/*
+        ctuPointerArith:*test/*
+        constParameter
+        constVariable
+        variableScope
+        missingReturn
+        cstyleCast
     FORCE
     SOURCES
         addkernels/

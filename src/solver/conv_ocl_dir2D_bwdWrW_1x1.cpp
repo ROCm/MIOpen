@@ -220,8 +220,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         int in_stride = (n_passes > 1) ? params.problem.in_stride : params.problem.out_stride;
         int in_channel_stride =
             (n_passes > 1) ? in_stride * in_height : params.problem.out_channel_stride;
-        int in_batch_stride = (n_passes > 1) ? in_channel_stride * params.problem.n_outputs
-                                             : params.problem.out_batch_stride;
+        int in_batch_stride    = (n_passes > 1) ? in_channel_stride * params.problem.n_outputs
+                                                : params.problem.out_batch_stride;
         int out_batch_stride   = params.problem.in_batch_stride;
         int out_channel_stride = params.problem.in_channel_stride;
         int out_stride         = params.problem.in_stride;
@@ -279,9 +279,10 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
            (n_passes == 1 &&
             (params.problem.kernel_stride_w > 1 || params.problem.kernel_stride_h > 1)))
         {
-            read_unit = (out_pad_width % 4 == 0)
-                            ? 4
-                            : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2 == 0) ? 2 : 1;
+            read_unit = (out_pad_width % 4 == 0)   ? 4
+                        : (out_pad_width % 3 == 0) ? 3
+                        : (out_pad_width % 2 == 0) ? 2
+                                                   : 1;
             // read_unit = (out_pad_width % 7 == 0) ? 7 : (out_pad_width % 5 == 0) ? 5 :
             // (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2
             // == 0) ? 2 : 1;
@@ -307,9 +308,10 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         int n_lcl_in_map_once   = 8;
         int accum_sz            = n_lcl_out_map_once * n_lcl_in_map_once;
 
-        int write_unit = (out_pad_width % 4 == 0)
-                             ? 4
-                             : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2 == 0) ? 2 : 1;
+        int write_unit   = (out_pad_width % 4 == 0)   ? 4
+                           : (out_pad_width % 3 == 0) ? 3
+                           : (out_pad_width % 2 == 0) ? 2
+                                                      : 1;
         int n_grp0_size0 = 256;
         // real input strides
         int in0_stride         = params.problem.out_stride;

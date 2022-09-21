@@ -149,8 +149,8 @@ class BaseFin
             {
                 auto p = handle.LoadProgram(kern.kernel_file, kern.comp_options, false, "");
                 hsaco  = p.IsCodeObjectInMemory()
-                            ? p.GetCodeObjectBlob()
-                            : miopen::LoadFile(p.GetCodeObjectPathname().string());
+                             ? p.GetCodeObjectBlob()
+                             : miopen::LoadFile(p.GetCodeObjectPathname().string());
                 if(hsaco.empty())
                 {
                     std::cerr << "Got empty code object" << std::endl;

@@ -471,7 +471,7 @@ pipeline {
                                 -o -iname \'*.cpp.in\' \
                                 -o -iname \'*.cl\' \
                                 | grep -v -E '(build/)|(install/)' \
-                                | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-10 -style=file {} | diff - {}\'"
+                                | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-12 -style=file {} | diff - {}\'"
                     }
                     steps{
                         buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, needs_gpu:false)
