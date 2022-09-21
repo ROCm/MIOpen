@@ -25,9 +25,12 @@
  *******************************************************************************/
 #include "log_test_helper.hpp"
 
-TEST(LOG_TEST, AssertLogCmdOutput_Neg) { TestLogFun(LogCmdConvolution, envConv, logConv, false); }
+TEST(LOG_TEST, AssertLogCmdOutput_Neg)
+{
+    TestLogFun(miopen::debug::LogCmdConvolution, envConv, logConv, false);
+}
 
 TEST(LOG_TEST, AssertLogFindCmdOutput_Neg)
 {
-    TestLogFun(LogCmdFindConvolution, envFindConv, logFindConv, false);
+    TestLogFun(miopen::debug::LogCmdFindConvolution, envConv, logFindConv, false);
 }

@@ -25,6 +25,24 @@
  *******************************************************************************/
 #include "log_test_helper.hpp"
 
+#include <miopen/config.h>
+#include <stdlib.h>
+
+#if MIOPEN_BACKEND_OPENCL
+#define BKEND "OpenCL"
+#elif MIOPEN_BACKEND_HIP
+#define BKEND "HIP"
+#endif
+
+// Copy of struct that is in miopen.
+// This is for testing purpose only.
+enum class ConvDirection
+{
+    Fwd = 1,
+    Bwd = 2,
+    WrW = 4
+};
+
 const std::string logConv =
     "MIOpen(" BKEND
     "): Command [LogCmdConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 -k "
@@ -34,8 +52,7 @@ const std::string logFindConv =
     "): Command [LogCmdFindConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 "
     "-k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 1 -t 1";
 
-const std::string envConv     = "MIOPEN_ENABLE_LOGGING_CMD";
-const std::string envFindConv = "MIOPEN_ENABLE_LOGGING_CMD_FIND";
+const std::string envConv = "MIOPEN_ENABLE_LOGGING_CMD";
 
 static void setEnvironmentVariable(const std::string& name, const std::string& value)
 {

@@ -26,31 +26,17 @@
 #pragma once
 
 #include <gtest/gtest.h>
-
-#include <miopen/config.h>
+#include <string>
 #include <miopen/convolution.hpp>
-
-#if MIOPEN_BACKEND_OPENCL
-#define BKEND "OpenCL"
-#elif MIOPEN_BACKEND_HIP
-#define BKEND "HIP"
-#endif
 
 extern std::string const logConv;
 extern std::string const logFindConv;
-
 extern std::string const envConv;
-extern std::string const envFindConv;
 
-// Copy of struct that is in miopen.
-// This is for testing purpose only.
-enum class ConvDirection
-{
-    Fwd = 1,
-    Bwd = 2,
-    WrW = 4
-};
+enum class ConvDirection;
 
+namespace miopen {
+namespace debug {
 // Copy of function declaration that is in miopen.
 // This is for testing purpose only.
 void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
@@ -67,7 +53,8 @@ void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                            const miopenTensorDescriptor_t& yDesc,
                            const ConvDirection& conv_dir,
                            bool is_immediate);
-
+} // namespace debug
+} // namespace miopen
 // Function that is used in multiple test cases.
 void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
                                    const miopenTensorDescriptor_t&,

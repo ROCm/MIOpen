@@ -210,7 +210,6 @@ std::string LoggingPrefix();
 /// \param level - one of the values defined in LoggingLevel.
 bool IsLogging(LoggingLevel level, bool disableQuieting = false);
 bool IsLoggingCmd();
-bool IsLoggingCmdFind();
 bool IsLoggingFunctionCalls();
 
 namespace logger {

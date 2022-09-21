@@ -8,7 +8,6 @@ All logging messages output to standard error stream (`stderr`). The following e
 * `MIOPEN_ENABLE_LOGGING` - Enables printing the basic layer by layer MIOpen API call information with actual parameters (configurations). Important for debugging. Disabled by default.
 
 * `MIOPEN_ENABLE_LOGGING_CMD` - A user can use this environmental variable to output the associated `MIOpenDriver` command line(s) onto console. Disabled by default.
-* `MIOPEN_ENABLE_LOGGING_CMD_FIND` - Environmental variable to output the `MIOpenDriver` command line(s) when find api is called. Disabled by default.
 
 > **_NOTE 1:_ These two and other two-state ("boolean") environment variables can be set to the following values:**
 > ```
