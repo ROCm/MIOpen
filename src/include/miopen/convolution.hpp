@@ -229,8 +229,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
                                                    const conv::ProblemDescription& problem,
-                                                   const size_t maxSolutionCount,
-                                                   bool* const fallbackPathTaken) const;
+                                                   size_t maxSolutionCount,
+                                                   bool* fallbackPathTaken) const;
 
     void CompileSolution(const ExecutionContext& ctx,
                          const conv::ProblemDescription& problem,
