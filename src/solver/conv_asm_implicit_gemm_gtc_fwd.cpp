@@ -1499,7 +1499,8 @@ FindImplicitGemmGtcDynamicFwdKernel(const ProblemDescription& problem)
     return std::make_tuple(false, tunables[0], "", -1, -1);
 }
 
-bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext& ctx,
+                                                          const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
         return false;
@@ -1532,8 +1533,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
     }
 
 #if WORKAROUND_SWDEV_306318
-    if((problem.kernel_size_h == 1) && (problem.kernel_size_w == 1) &&
-       (problem.n_inputs % 8 != 0))
+    if((problem.kernel_size_h == 1) && (problem.kernel_size_w == 1) && (problem.n_inputs % 8 != 0))
         return false;
 #endif
 
@@ -1549,7 +1549,8 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
 }
 
 ConvSolution
-ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
+ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ExecutionContext& ctx,
+                                                    const ProblemDescription& problem) const
 {
     ConvSolution result;
     KernelInfo kernel;
