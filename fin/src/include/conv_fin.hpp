@@ -2038,32 +2038,17 @@ int ConvFin<Tgpu, Tref>::CalcWorkspace()
     size_t ws_sizeof_find_bwd = 0;
     auto is_transform         = IsInputTensorTransform();
 
-    if(is_wrw)
-        ws_sizeof_find_wrw = convDesc.BackwardWeightsGetWorkSpaceSize(
-            GetHandle(), outputTensor.desc, inputTensor.desc, weightTensor.desc);
-    if(is_bwd)
-    {
-        ws_sizeof_find_bwd =
-            (convDesc.mode == miopenTranspose)
-                ? convDesc.ForwardGetWorkSpaceSize(
-                      GetHandle(), weightTensor.desc, outputTensor.desc, inputTensor.desc)
-                : convDesc.BackwardDataGetWorkSpaceSize(
-                      GetHandle(), weightTensor.desc, outputTensor.desc, inputTensor.desc);
-    }
-    if(is_fwd)
-    {
-        ws_sizeof_find_fwd = (convDesc.mode == miopenTranspose)
-                                 ? convDesc.BackwardDataGetWorkSpaceSize(
-                                       GetHandle(),
-                                       (is_transform ? weightTensor_vect4.desc : weightTensor.desc),
-                                       (is_transform ? inputTensor_vect4.desc : inputTensor.desc),
-                                       outputTensor.desc)
-                                 : convDesc.ForwardGetWorkSpaceSize(
-                                       GetHandle(),
-                                       (is_transform ? weightTensor_vect4.desc : weightTensor.desc),
-                                       (is_transform ? inputTensor_vect4.desc : inputTensor.desc),
-                                       outputTensor.desc);
-    }
+    using namespace miopen;
+    const auto dir     = is_wrw   ? conv::Direction::BackwardWeights
+                   : is_bwd ? conv::Direction::BackwardData
+                            : conv::Direction::Forward;
+    const auto ctx     = ExecutionContext{&GetHandle()}.DetectRocm();
+    const auto problem = conv::ProblemDescription{
+        inputTensor.desc, weightTensor.desc, outputTensor.desc, convDesc, dir};
+
+    auto& result = is_wrw ? ws_sizeof_find_wrw : is_bwd ? ws_sizeof_find_bwd : ws_sizeof_find_fwd;
+
+    result = convDesc.GetWorkSpaceSize(ctx, problem);
 
     const auto wsSizeof =
         std::max(std::max(ws_sizeof_find_bwd, ws_sizeof_find_wrw), ws_sizeof_find_fwd);
