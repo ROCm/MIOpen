@@ -41,7 +41,8 @@ bool AlwaysEnableConvDirectNaive = false;
 
 namespace solver {
 
-bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext& ctx, const ProblemDescription& problem)
+bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext& ctx,
+                                         const ProblemDescription& problem)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     return (device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
@@ -51,18 +52,14 @@ bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext& ctx, const Prob
 // Check tensor data type respectively
 bool IsInputFp32(const ProblemDescription& problem)
 {
-    return (problem.in_data_type == miopenFloat &&
-            problem.weights_data_type == miopenFloat) ||
-           (problem.out_data_type == miopenFloat &&
-            problem.weights_data_type == miopenFloat) ||
+    return (problem.in_data_type == miopenFloat && problem.weights_data_type == miopenFloat) ||
+           (problem.out_data_type == miopenFloat && problem.weights_data_type == miopenFloat) ||
            (problem.in_data_type == miopenFloat && problem.out_data_type == miopenFloat);
 }
 bool IsInputFp16(const ProblemDescription& problem)
 {
-    return (problem.in_data_type == miopenHalf &&
-            problem.weights_data_type == miopenHalf) ||
-           (problem.out_data_type == miopenHalf &&
-            problem.weights_data_type == miopenHalf) ||
+    return (problem.in_data_type == miopenHalf && problem.weights_data_type == miopenHalf) ||
+           (problem.out_data_type == miopenHalf && problem.weights_data_type == miopenHalf) ||
            (problem.in_data_type == miopenHalf && problem.out_data_type == miopenHalf);
 }
 bool IsInputBfp16(const ProblemDescription& problem)
@@ -71,15 +68,12 @@ bool IsInputBfp16(const ProblemDescription& problem)
             problem.weights_data_type == miopenBFloat16) ||
            (problem.out_data_type == miopenBFloat16 &&
             problem.weights_data_type == miopenBFloat16) ||
-           (problem.in_data_type == miopenBFloat16 &&
-            problem.out_data_type == miopenBFloat16);
+           (problem.in_data_type == miopenBFloat16 && problem.out_data_type == miopenBFloat16);
 }
 bool IsInputInt8(const ProblemDescription& problem)
 {
-    return (problem.in_data_type == miopenInt8 &&
-            problem.weights_data_type == miopenInt8) ||
-           (problem.out_data_type == miopenInt8 &&
-            problem.weights_data_type == miopenInt8) ||
+    return (problem.in_data_type == miopenInt8 && problem.weights_data_type == miopenInt8) ||
+           (problem.out_data_type == miopenInt8 && problem.weights_data_type == miopenInt8) ||
            (problem.in_data_type == miopenInt8 && problem.out_data_type == miopenInt8);
 }
 bool IsAccFp64(const ProblemDescription& problem)
@@ -184,7 +178,8 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
     return ctx.general_compile_options;
 }
 
-bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext& ctx, const ProblemDescription& problem)
+bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext& ctx,
+                                                 const ProblemDescription& problem)
 {
     if(ConvDirectNaiveConvIsAssemblyKernel(ctx, problem))
     {

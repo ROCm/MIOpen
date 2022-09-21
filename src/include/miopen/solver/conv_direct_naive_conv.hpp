@@ -36,7 +36,8 @@ bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext&, const ProblemD
 std::string ConvDirectNaiveConvKernelName(const ProblemDescription&);
 std::string ConvDirectNaiveConvKernelFile();
 std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx);
-bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext&, const ProblemDescription&);
+bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext&,
+                                                 const ProblemDescription&);
 
 bool IsInputFp32(const ProblemDescription&);
 bool IsInputFp16(const ProblemDescription&);
