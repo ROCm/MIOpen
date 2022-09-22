@@ -505,13 +505,13 @@ struct verify_forward_conv : conv_base<T, Tout>
         /// So we use one Immediate mode call during Find mode tests,
         /// to print solver name onto console.
         miopenConvSolution_t selected = {};
-        bool fallback_path_taken = false;
-        std::size_t count        = 0;
+        bool fallback_path_taken      = false;
+        std::size_t count             = 0;
 
         std::vector<char> ws;
         Allocator::ManageDataPtr ws_dev = nullptr;
 
-        const auto ctx = ExecutionContext{&handle}.DetectRocm();
+        const auto ctx     = ExecutionContext{&handle}.DetectRocm();
         const auto problem = conv::ProblemDescription{
             input.desc, weights.desc, rout.desc, filter, conv::Direction::Forward};
 
@@ -550,7 +550,8 @@ struct verify_forward_conv : conv_base<T, Tout>
                     exit(-1); // NOLINT (concurrency-mt-unsafe)
                 }
 
-                const auto solutions = filter.GetSolutions(ctx, problem, count, &fallback_path_taken);
+                const auto solutions =
+                    filter.GetSolutions(ctx, problem, count, &fallback_path_taken);
                 count = solutions.size();
 
                 if(count == 0)
@@ -1036,7 +1037,7 @@ struct verify_backward_conv : conv_base<T>
                 // std::cout << "backward transpose Conv solutions available: " << count <<
                 // std::endl;
                 auto solutions = filter.GetSolutions(ctx, problem, count, &fallback_path_taken);
-                count = solutions.size();
+                count          = solutions.size();
 
                 if(count == 0)
                 {
@@ -1103,7 +1104,7 @@ struct verify_backward_conv : conv_base<T>
 
                 // std::cout << "Backward Conv solutions available: " << count << std::endl;
                 auto solutions = filter.GetSolutions(ctx, problem, count, &fallback_path_taken);
-                count = solutions.size();
+                count          = solutions.size();
 
                 if(count == 0)
                 {
@@ -1618,7 +1619,7 @@ struct verify_forward_conv_int8 : conv_base<T>
         auto in_vpad_dev  = handle.Write(input_vpad.data);
         auto wei_vpad_dev = handle.Write(weights_vpad.data);
 
-        const auto ctx = ExecutionContext{&handle}.DetectRocm();
+        const auto ctx     = ExecutionContext{&handle}.DetectRocm();
         const auto problem = conv::ProblemDescription{
             is_transform ? weight_vpad_desc : weights.desc,
             is_transform ? input_vpad_desc : input.desc,
@@ -1677,7 +1678,7 @@ struct verify_forward_conv_int8 : conv_base<T>
 
         // std::cout << "Forward Conv solutions available: " << count << std::endl;
         bool fallback_path_taken = false;
-        auto solutions     = filter.GetSolutions(ctx, problem, count, &fallback_path_taken);
+        auto solutions           = filter.GetSolutions(ctx, problem, count, &fallback_path_taken);
         count                    = solutions.size();
 
         if(count == 0)
@@ -2288,7 +2289,7 @@ struct conv_driver : test_driver
                     // TODO: Tout here was float which should have been int32
                     auto output_int8 =
                         get_output_tensor<T, Tout>(filter, input, weights, out_layout);
-                    const auto problem    = conv::ProblemDescription{input.desc,
+                    const auto problem        = conv::ProblemDescription{input.desc,
                                                                   weights.desc,
                                                                   std::move(output_int8.desc),
                                                                   filter,

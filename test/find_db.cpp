@@ -171,9 +171,9 @@ private:
     {
         MIOPEN_LOG_I("Starting wrw find-db test.");
 
-        const auto ctx = ExecutionContext{&handle}.DetectRocm();
-        const auto problem =
-            conv::ProblemDescription{y.desc, w.desc, x.desc, filter, conv::Direction::BackwardWeights};
+        const auto ctx     = ExecutionContext{&handle}.DetectRocm();
+        const auto problem = conv::ProblemDescription{
+            y.desc, w.desc, x.desc, filter, conv::Direction::BackwardWeights};
         const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
 
         auto workspace     = std::vector<char>(workspace_size);
