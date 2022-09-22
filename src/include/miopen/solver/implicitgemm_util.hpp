@@ -31,7 +31,7 @@
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/rocm_features.hpp>
-#include <miopen/solver/convolution_context_interpreter.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 #include <algorithm>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
@@ -365,14 +365,13 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
     if(!IsXdlopsSupport(ctx))
         return false;
 
-    std::size_t n = ConvolutionContextInterpreter::GetBatchN(ctx);
-    std::size_t k =
-        ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.problem.group_counts;
-    std::size_t c = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.problem.group_counts;
-    std::size_t y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    std::size_t x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    std::size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    std::size_t n  = ProblemInterpreter::GetBatchN(ctx.problem);
+    std::size_t k  = ProblemInterpreter::GetOutputChannelK(ctx.problem) / ctx.problem.group_counts;
+    std::size_t c  = ProblemInterpreter::GetInputChannelC(ctx.problem) / ctx.problem.group_counts;
+    std::size_t y  = ProblemInterpreter::GetFilterHeightY(ctx.problem);
+    std::size_t x  = ProblemInterpreter::GetFilterWidthX(ctx.problem);
+    std::size_t ho = ProblemInterpreter::GetOutputHeightHo(ctx.problem);
+    std::size_t wo = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
 
     std::size_t GemmM, GemmN, GemmK;
     // forward

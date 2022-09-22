@@ -122,14 +122,14 @@ to generate a given convolution.*/
 std::string ConstructBuildOptions(const ConvolutionContext& ctx, bool is_xdlops, int kernel_id)
 {
     // Arguments for mlir-miopen-driver.
-    using CI = ConvolutionContextInterpreter;
+    using PDI = ProblemInterpreter;
 
     std::string operation   = GetOperation(ctx);
     std::string kernel_name = GetKernelName(ctx, is_xdlops, kernel_id);
 
-    std::string in_layout  = InsertGToLayout(CI::GetInputLayout(ctx), 'C');
-    std::string fil_layout = InsertGToLayout(CI::GetFilterLayout(ctx), 'N');
-    std::string out_layout = InsertGToLayout(CI::GetOutputLayout(ctx), 'C');
+    std::string in_layout  = InsertGToLayout(PDI::GetInputLayout(ctx.problem), 'C');
+    std::string fil_layout = InsertGToLayout(PDI::GetFilterLayout(ctx.problem), 'N');
+    std::string out_layout = InsertGToLayout(PDI::GetOutputLayout(ctx.problem), 'C');
 
     std::ostringstream mlir_handle;
 
@@ -138,9 +138,9 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx, bool is_xdlops,
         mlir_handle << " --x2 1";
     }
 
-    const auto in_type  = CI::GetInputDataType(ctx);
+    const auto in_type  = PDI::GetInputDataType(ctx.problem);
     const auto fil_type = ctx.problem.weights_data_type;
-    auto out_type       = CI::GetOutputDataType(ctx);
+    auto out_type       = PDI::GetOutputDataType(ctx.problem);
 
     // In case this is int8 convolution, ignore the output type and always request int32_t as
     // default output type. This is because MLIR invoker does casttensor on output if a non-int32_t
@@ -156,28 +156,28 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx, bool is_xdlops,
         << " --kernel_id " << kernel_id
         << " --num_cu " << ctx.GetStream().GetMaxComputeUnits()
         << " --arch " << GetIsaName(ctx.GetStream().GetTargetProperties())
-        << " --groupsize " << CI::GetGroupCountG(ctx)
+        << " --groupsize " << PDI::GetGroupCountG(ctx.problem)
         << " --fil_layout " << fil_layout
         << " --fil_type " << DTypeName(fil_type)
         << " --in_layout " << in_layout
         << " --out_layout " << out_layout
         << " --in_type " << DTypeName(in_type)
         << " --out_type " << DTypeName(out_type)
-        << " --batchsize " << CI::GetBatchN(ctx)
-        << " --in_channels " << CI::GetInputChannelC(ctx)
-        << " --out_channels " << CI::GetOutputChannelK(ctx)
-        << " --in_h " << CI::GetInputHeightHi(ctx)
-        << " --in_w " << CI::GetInputWidthWi(ctx)
-        << " --out_h " << CI::GetOutputHeightHo(ctx)
-        << " --out_w " << CI::GetOutputWidthWo(ctx)
-        << " --fil_h " << CI::GetFilterHeightY(ctx)
-        << " --fil_w " << CI::GetFilterWidthX(ctx)
-        << " --dilation_h " << CI::GetAdjustedConvolutionDilationH(ctx)
-        << " --dilation_w " << CI::GetAdjustedConvolutionDilationW(ctx)
-        << " --conv_stride_h " << CI::GetAdjustedConvolutionStrideH(ctx)
-        << " --conv_stride_w " << CI::GetAdjustedConvolutionStrideW(ctx)
-        << " --padding_h " << CI::GetInputLeftPadH(ctx)
-        << " --padding_w " << CI::GetInputLeftPadW(ctx)
+        << " --batchsize " << PDI::GetBatchN(ctx.problem)
+        << " --in_channels " << PDI::GetInputChannelC(ctx.problem)
+        << " --out_channels " << PDI::GetOutputChannelK(ctx.problem)
+        << " --in_h " << PDI::GetInputHeightHi(ctx.problem)
+        << " --in_w " << PDI::GetInputWidthWi(ctx.problem)
+        << " --out_h " << PDI::GetOutputHeightHo(ctx.problem)
+        << " --out_w " << PDI::GetOutputWidthWo(ctx.problem)
+        << " --fil_h " << PDI::GetFilterHeightY(ctx.problem)
+        << " --fil_w " << PDI::GetFilterWidthX(ctx.problem)
+        << " --dilation_h " << PDI::GetAdjustedConvolutionDilationH(ctx.problem)
+        << " --dilation_w " << PDI::GetAdjustedConvolutionDilationW(ctx.problem)
+        << " --conv_stride_h " << PDI::GetAdjustedConvolutionStrideH(ctx.problem)
+        << " --conv_stride_w " << PDI::GetAdjustedConvolutionStrideW(ctx.problem)
+        << " --padding_h " << PDI::GetInputLeftPadH(ctx.problem)
+        << " --padding_w " << PDI::GetInputLeftPadW(ctx.problem)
         << " --kernel_name " << kernel_name;
     // clang-format on
     return mlir_handle.str();
