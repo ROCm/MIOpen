@@ -41,94 +41,88 @@ bool AlwaysEnableConvDirectNaive = false;
 
 namespace solver {
 
-bool ConvDirectNaiveConvIsAssemblyKernel(const ConvolutionContext& ctx)
+bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext& ctx,
+                                         const ProblemDescription& problem)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     return (device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
-           ctx.problem.IsLayoutDefault() && (!ctx.problem.IsInt8());
+           problem.IsLayoutDefault() && (!problem.IsInt8());
 }
 
 // Check tensor data type respectively
-bool IsInputFp32(const ConvolutionContext& ctx)
+bool IsInputFp32(const ProblemDescription& problem)
 {
-    return (ctx.problem.in_data_type == miopenFloat &&
-            ctx.problem.weights_data_type == miopenFloat) ||
-           (ctx.problem.out_data_type == miopenFloat &&
-            ctx.problem.weights_data_type == miopenFloat) ||
-           (ctx.problem.in_data_type == miopenFloat && ctx.problem.out_data_type == miopenFloat);
+    return (problem.in_data_type == miopenFloat && problem.weights_data_type == miopenFloat) ||
+           (problem.out_data_type == miopenFloat && problem.weights_data_type == miopenFloat) ||
+           (problem.in_data_type == miopenFloat && problem.out_data_type == miopenFloat);
 }
-bool IsInputFp16(const ConvolutionContext& ctx)
+bool IsInputFp16(const ProblemDescription& problem)
 {
-    return (ctx.problem.in_data_type == miopenHalf &&
-            ctx.problem.weights_data_type == miopenHalf) ||
-           (ctx.problem.out_data_type == miopenHalf &&
-            ctx.problem.weights_data_type == miopenHalf) ||
-           (ctx.problem.in_data_type == miopenHalf && ctx.problem.out_data_type == miopenHalf);
+    return (problem.in_data_type == miopenHalf && problem.weights_data_type == miopenHalf) ||
+           (problem.out_data_type == miopenHalf && problem.weights_data_type == miopenHalf) ||
+           (problem.in_data_type == miopenHalf && problem.out_data_type == miopenHalf);
 }
-bool IsInputBfp16(const ConvolutionContext& ctx)
+bool IsInputBfp16(const ProblemDescription& problem)
 {
-    return (ctx.problem.in_data_type == miopenBFloat16 &&
-            ctx.problem.weights_data_type == miopenBFloat16) ||
-           (ctx.problem.out_data_type == miopenBFloat16 &&
-            ctx.problem.weights_data_type == miopenBFloat16) ||
-           (ctx.problem.in_data_type == miopenBFloat16 &&
-            ctx.problem.out_data_type == miopenBFloat16);
+    return (problem.in_data_type == miopenBFloat16 &&
+            problem.weights_data_type == miopenBFloat16) ||
+           (problem.out_data_type == miopenBFloat16 &&
+            problem.weights_data_type == miopenBFloat16) ||
+           (problem.in_data_type == miopenBFloat16 && problem.out_data_type == miopenBFloat16);
 }
-bool IsInputInt8(const ConvolutionContext& ctx)
+bool IsInputInt8(const ProblemDescription& problem)
 {
-    return (ctx.problem.in_data_type == miopenInt8 &&
-            ctx.problem.weights_data_type == miopenInt8) ||
-           (ctx.problem.out_data_type == miopenInt8 &&
-            ctx.problem.weights_data_type == miopenInt8) ||
-           (ctx.problem.in_data_type == miopenInt8 && ctx.problem.out_data_type == miopenInt8);
+    return (problem.in_data_type == miopenInt8 && problem.weights_data_type == miopenInt8) ||
+           (problem.out_data_type == miopenInt8 && problem.weights_data_type == miopenInt8) ||
+           (problem.in_data_type == miopenInt8 && problem.out_data_type == miopenInt8);
 }
-bool IsAccFp64(const ConvolutionContext& ctx)
+bool IsAccFp64(const ProblemDescription& problem)
 {
-    return IsInputFp32(ctx) || IsInputFp16(ctx) || IsInputBfp16(ctx);
+    return IsInputFp32(problem) || IsInputFp16(problem) || IsInputBfp16(problem);
 }
-bool IsAccInt32(const ConvolutionContext& ctx) { return IsInputInt8(ctx); }
-bool IsOutputFp32(const ConvolutionContext& ctx)
+bool IsAccInt32(const ProblemDescription& problem) { return IsInputInt8(problem); }
+bool IsOutputFp32(const ProblemDescription& problem)
 {
-    return ctx.problem.IsFp32() ||
-           (ctx.problem.in_data_type == miopenInt8 && ctx.problem.weights_data_type == miopenInt8 &&
-            ctx.problem.out_data_type == miopenFloat);
+    return problem.IsFp32() ||
+           (problem.in_data_type == miopenInt8 && problem.weights_data_type == miopenInt8 &&
+            problem.out_data_type == miopenFloat);
 }
-bool IsOutputFp16(const ConvolutionContext& ctx) { return ctx.problem.IsFp16(); }
-bool IsOutputBfp16(const ConvolutionContext& ctx) { return ctx.problem.IsBfp16(); }
-bool IsOutputInt8(const ConvolutionContext& ctx)
+bool IsOutputFp16(const ProblemDescription& problem) { return problem.IsFp16(); }
+bool IsOutputBfp16(const ProblemDescription& problem) { return problem.IsBfp16(); }
+bool IsOutputInt8(const ProblemDescription& problem)
 {
-    return ctx.problem.in_data_type == miopenInt8 && ctx.problem.weights_data_type == miopenInt8 &&
-           ctx.problem.out_data_type == miopenInt8;
+    return problem.in_data_type == miopenInt8 && problem.weights_data_type == miopenInt8 &&
+           problem.out_data_type == miopenInt8;
 }
-bool IsOutputInt32(const ConvolutionContext& ctx)
+bool IsOutputInt32(const ProblemDescription& problem)
 {
-    return ctx.problem.in_data_type == miopenInt8 && ctx.problem.weights_data_type == miopenInt8 &&
-           ctx.problem.out_data_type == miopenInt32;
+    return problem.in_data_type == miopenInt8 && problem.weights_data_type == miopenInt8 &&
+           problem.out_data_type == miopenInt32;
 }
 
-std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
+std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {
     std::ostringstream kernel_name;
     kernel_name << "naive_conv_";
-    if(ctx.problem.direction.IsForward())
+    if(problem.direction.IsForward())
         kernel_name << "fwd_";
-    else if(ctx.problem.direction.IsBackwardData())
+    else if(problem.direction.IsBackwardData())
         kernel_name << "bwd_";
-    else if(ctx.problem.direction.IsBackwardWrW())
+    else if(problem.direction.IsBackwardWrW())
         kernel_name << "wrw_";
     else
         MIOPEN_THROW("unsupported convolution direction");
 
-    if(ctx.problem.IsLayoutDefault())
+    if(problem.IsLayoutDefault())
     {
-        if(ctx.problem.Is2d())
+        if(problem.Is2d())
             kernel_name << "nchw_";
         else
             kernel_name << "ncdhw_";
     }
-    else if(ctx.problem.IsLayoutNHWC())
+    else if(problem.IsLayoutNHWC())
     {
-        if(ctx.problem.Is2d())
+        if(problem.Is2d())
             kernel_name << "nhwc_";
         else
             kernel_name << "ndhwc_";
@@ -136,33 +130,33 @@ std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
     else
         MIOPEN_THROW("unsupported tensor layout");
 
-    if(IsInputFp32(ctx))
+    if(IsInputFp32(problem))
         kernel_name << "float_";
-    else if(IsInputFp16(ctx))
+    else if(IsInputFp16(problem))
         kernel_name << "half_";
-    else if(IsInputBfp16(ctx))
+    else if(IsInputBfp16(problem))
         kernel_name << "ushort_";
-    else if(IsInputInt8(ctx))
+    else if(IsInputInt8(problem))
         kernel_name << "int8_t_";
     else
         MIOPEN_THROW("unsupported data type:");
 
-    if(IsAccInt32(ctx))
+    if(IsAccInt32(problem))
         kernel_name << "int32_t_";
-    else if(IsAccFp64(ctx))
+    else if(IsAccFp64(problem))
         kernel_name << "double_";
     else
         MIOPEN_THROW("unsupported data type:");
 
-    if(IsOutputFp32(ctx))
+    if(IsOutputFp32(problem))
         kernel_name << "float";
-    else if(IsOutputFp16(ctx))
+    else if(IsOutputFp16(problem))
         kernel_name << "half";
-    else if(IsOutputBfp16(ctx))
+    else if(IsOutputBfp16(problem))
         kernel_name << "ushort";
-    else if(IsOutputInt8(ctx))
+    else if(IsOutputInt8(problem))
         kernel_name << "int8_t";
-    else if(IsOutputInt32(ctx))
+    else if(IsOutputInt32(problem))
         kernel_name << "int32_t";
     else
         MIOPEN_THROW("unsupported data type:");
@@ -184,9 +178,10 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
     return ctx.general_compile_options;
 }
 
-bool ConvDirectNaiveConvIsApplicableByKernelType(const ConvolutionContext& ctx)
+bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext& ctx,
+                                                 const ProblemDescription& problem)
 {
-    if(ConvDirectNaiveConvIsAssemblyKernel(ctx))
+    if(ConvDirectNaiveConvIsAssemblyKernel(ctx, problem))
     {
         if(!ctx.use_asm_kernels)
             return false;
