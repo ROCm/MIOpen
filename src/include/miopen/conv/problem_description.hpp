@@ -149,16 +149,16 @@ struct ProblemDescription
 {
     ProblemDescription() = default;
 
-    ProblemDescription(const TensorDescriptor& in_,
-                       const TensorDescriptor& weights_,
-                       const TensorDescriptor& out_,
-                       const ConvolutionDescriptor& conv_,
+    ProblemDescription(TensorDescriptor in_,
+                       TensorDescriptor weights_,
+                       TensorDescriptor out_,
+                       ConvolutionDescriptor conv_,
                        Direction direction_,
                        int bias_ = 0)
-        : in(in_),
-          weights(weights_),
-          out(out_),
-          conv(conv_),
+        : in(std::move(in_)),
+          weights(std::move(weights_)),
+          out(std::move(out_)),
+          conv(std::move(conv_)),
           in_layout(ComputeInLayout()),
           weights_layout(ComputeWeightsLayout()),
           out_layout(ComputeOutLayout()),
