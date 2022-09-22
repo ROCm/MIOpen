@@ -2387,14 +2387,23 @@ struct conv_driver : test_driver
                 weights.generate(gen_sign_value);
 
                 auto&& handle = get_handle();
+
+                using namespace miopen;
+                using Direction = conv::Direction;
+                const auto ctx = ExecutionContext{&handle}.DetectRocm();
+
                 size_t total_mem;
                 if(is_int8)
                 {
                     // TODO: Tout here was float which should have been int32
                     auto output_int8 =
                         get_output_tensor<T, Tout>(filter, input, weights, out_layout);
-                    size_t workspace_size = filter.ForwardGetWorkSpaceSize(
-                        handle, weights.desc, input.desc, output_int8.desc);
+                    const auto problem    = conv::ProblemDescription{input.desc,
+                                                                  weights.desc,
+                                                                  std::move(output_int8.desc),
+                                                                  filter,
+                                                                  Direction::Forward};
+                    const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
 
                     // 4x because assume type is miopenInt8x4
                     total_mem = input.desc.GetNumBytes() + 4 * input.desc.GetNumBytes() +
@@ -2403,30 +2412,20 @@ struct conv_driver : test_driver
                 }
                 else
                 {
-                    size_t workspace_size_1 =
-                        filter.mode == miopenTranspose
-                            ? filter.ForwardGetWorkSpaceSize(
-                                  handle, weights.desc, output.desc, input.desc)
-                            : filter.BackwardDataGetWorkSpaceSize(
-                                  handle, weights.desc, output.desc, input.desc);
+                    const auto fwd_problem = conv::ProblemDescription{
+                        input.desc, weights.desc, output.desc, filter, Direction::Forward};
+                    const auto bwd_problem = conv::ProblemDescription{
+                        output.desc, weights.desc, input.desc, filter, Direction::BackwardData};
+                    const auto wrw_problem = conv::ProblemDescription{
+                        output.desc, weights.desc, input.desc, filter, Direction::BackwardWeights};
 
-                    size_t workspace_size_2 =
-                        filter.mode == miopenTranspose
-                            ? filter.BackwardDataGetWorkSpaceSize(
-                                  handle, weights.desc, input.desc, output.desc)
-                            : filter.ForwardGetWorkSpaceSize(
-                                  handle, weights.desc, input.desc, output.desc);
+                    const auto workspaces =
+                        std::array<std::size_t, 3>{filter.GetWorkSpaceSize(ctx, fwd_problem),
+                                                   filter.GetWorkSpaceSize(ctx, bwd_problem),
+                                                   filter.GetWorkSpaceSize(ctx, wrw_problem)};
 
-                    size_t workspace_size_3 = filter.BackwardWeightsGetWorkSpaceSize(
-                        handle,
-                        filter.mode == miopenTranspose ? input.desc : output.desc,
-                        filter.mode == miopenTranspose ? output.desc : input.desc,
-                        weights.desc);
-
-                    std::vector<size_t> workspace_sizes = {
-                        workspace_size_1, workspace_size_2, workspace_size_3};
-                    size_t workspace_size =
-                        *std::max_element(workspace_sizes.begin(), workspace_sizes.end());
+                    const auto workspace_size =
+                        *std::max_element(workspaces.begin(), workspaces.end());
 
                     total_mem = input.desc.GetNumBytes() + weights.desc.GetNumBytes() +
                                 output.desc.GetNumBytes() +
