@@ -295,7 +295,7 @@ void ConvFindCore(const AnyInvokeParams& invoke_ctx,
             EvaluateInvokers(handle, ss.second, ss.first, network_config, invoke_ctx, record);
 }
 
-bool IsAlgorithmDisabled(const miopenConvAlgorithm_t algo)
+bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo)
 {
     switch(algo)
     { // clang-format off

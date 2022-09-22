@@ -77,5 +77,5 @@ void ConvFindCore(const AnyInvokeParams& invoke_ctx,
                   bool use_winograd_only,
                   const std::vector<std::unique_ptr<SolversFinder>>& finders);
 
-bool IsAlgorithmDisabled(const miopenConvAlgorithm_t algo);
+bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo);
 } // namespace miopen

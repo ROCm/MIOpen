@@ -163,7 +163,7 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
         auto fallback = bool{};
         auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback);
         if(!sols.empty() && !(findMode.IsHybrid(ctx) && fallback))
-            sol = std::move(sols.front());
+            sol = sols.front();
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
     }
 

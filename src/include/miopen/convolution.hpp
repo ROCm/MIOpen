@@ -224,7 +224,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             Data_t workSpace,
                             std::size_t workSpaceSize) const;
 
-    std::size_t GetSolutionCount(const ExecutionContext& handle,
+    std::size_t GetSolutionCount(const ExecutionContext& exec_ctx,
                                  const conv::ProblemDescription& problem) const;
 
     std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& exec_ctx,
