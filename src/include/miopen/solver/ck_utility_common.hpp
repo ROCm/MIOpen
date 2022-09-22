@@ -31,7 +31,7 @@
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/rocm_features.hpp>
-#include <miopen/solver/convolution_context_interpreter.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 #include <algorithm>
 #include <sstream>
 
@@ -117,23 +117,23 @@ static inline auto get_ck_convolution_problem_descriptor(const ConvolutionContex
         ck_datatype = ck::DataTypeEnum_t::Unknown;
 
     return ck::driver::ConvolutionProblemDescriptor{
-        miopen::solver::ConvolutionContextInterpreter::GetBatchN(ctx),
-        ConvolutionContextInterpreter::GetOutputChannelK(ctx),
-        ConvolutionContextInterpreter::GetInputChannelC(ctx),
-        ConvolutionContextInterpreter::GetFilterHeightY(ctx),
-        ConvolutionContextInterpreter::GetFilterWidthX(ctx),
-        ConvolutionContextInterpreter::GetInputHeightHi(ctx),
-        ConvolutionContextInterpreter::GetInputWidthWi(ctx),
-        ConvolutionContextInterpreter::GetOutputHeightHo(ctx),
-        ConvolutionContextInterpreter::GetOutputWidthWo(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx),
-        ConvolutionContextInterpreter::GetInputLeftPadH(ctx),
-        ConvolutionContextInterpreter::GetInputLeftPadW(ctx),
-        ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx),
+        ProblemInterpreter::GetBatchN(ctx.problem),
+        ProblemInterpreter::GetOutputChannelK(ctx.problem),
+        ProblemInterpreter::GetInputChannelC(ctx.problem),
+        ProblemInterpreter::GetFilterHeightY(ctx.problem),
+        ProblemInterpreter::GetFilterWidthX(ctx.problem),
+        ProblemInterpreter::GetInputHeightHi(ctx.problem),
+        ProblemInterpreter::GetInputWidthWi(ctx.problem),
+        ProblemInterpreter::GetOutputHeightHo(ctx.problem),
+        ProblemInterpreter::GetOutputWidthWo(ctx.problem),
+        ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem),
+        ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem),
+        ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem),
+        ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem),
+        ProblemInterpreter::GetInputLeftPadH(ctx.problem),
+        ProblemInterpreter::GetInputLeftPadW(ctx.problem),
+        ProblemInterpreter::GetAdjustedInputRightPadH(ctx.problem),
+        ProblemInterpreter::GetAdjustedInputRightPadW(ctx.problem),
         ck_datatype,
         ck_datatype,
         ck_datatype};
