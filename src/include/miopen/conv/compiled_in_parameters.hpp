@@ -36,7 +36,8 @@ namespace miopen {
  * returns parameter values that are compiled in legacy kernels for kernels using them as
  * arguments.
  */
-inline void GetCompiledInParameters(const ConvolutionContext& ctx,
+inline void GetCompiledInParameters(const ExecutionContext& ctx,
+                                    const ProblemDescription& problem,
                                     int* const N,
                                     int* const C,
                                     int* const H,
@@ -45,15 +46,16 @@ inline void GetCompiledInParameters(const ConvolutionContext& ctx,
                                     int* const n_groups)
 {
     assert(N && C && H && W && K && n_groups);
-    *N        = ctx.problem.batch_sz;
-    *C        = ctx.problem.n_inputs;
-    *H        = ctx.problem.in_height;
-    *W        = ctx.problem.in_width;
-    *K        = ctx.problem.n_outputs;
+    *N        = problem.batch_sz;
+    *C        = problem.n_inputs;
+    *H        = problem.in_height;
+    *W        = problem.in_width;
+    *K        = problem.n_outputs;
     *n_groups = ctx.GetStream().GetMaxComputeUnits();
 }
 
-inline void GetCompiledInParameters(const ConvolutionContext& ctx,
+inline void GetCompiledInParameters(const ExecutionContext& ctx,
+                                    const ProblemDescription& problem,
                                     int* const N,
                                     int* const C,
                                     int* const H,
@@ -63,13 +65,14 @@ inline void GetCompiledInParameters(const ConvolutionContext& ctx,
                                     int* const out_H,
                                     int* const out_W)
 {
-    GetCompiledInParameters(ctx, N, C, H, W, K, n_groups);
+    GetCompiledInParameters(ctx, problem, N, C, H, W, K, n_groups);
     assert(out_H && out_W);
-    *out_H = ctx.problem.out_height;
-    *out_W = ctx.problem.out_width;
+    *out_H = problem.out_height;
+    *out_W = problem.out_width;
 }
 
-inline void GetCompiledInParameters(const ConvolutionContext& ctx,
+inline void GetCompiledInParameters(const ExecutionContext& ctx,
+                                    const ProblemDescription& problem,
                                     int* const N,
                                     int* const C,
                                     int* const H,
@@ -83,12 +86,12 @@ inline void GetCompiledInParameters(const ConvolutionContext& ctx,
                                     int* const pad_H,
                                     int* const pad_W)
 {
-    GetCompiledInParameters(ctx, N, C, H, W, K, n_groups, out_H, out_W);
+    GetCompiledInParameters(ctx, problem, N, C, H, W, K, n_groups, out_H, out_W);
     assert(filter_size_H && filter_size_W && pad_H && pad_W);
-    *filter_size_H = ctx.problem.kernel_size_h;
-    *filter_size_W = ctx.problem.kernel_size_w;
-    *pad_H = ctx.problem.direction.IsForward() ? ctx.problem.pad_h : ctx.problem.GetBackwardPadH();
-    *pad_W = ctx.problem.direction.IsForward() ? ctx.problem.pad_w : ctx.problem.GetBackwardPadW();
+    *filter_size_H = problem.kernel_size_h;
+    *filter_size_W = problem.kernel_size_w;
+    *pad_H         = problem.direction.IsForward() ? problem.pad_h : problem.GetBackwardPadH();
+    *pad_W         = problem.direction.IsForward() ? problem.pad_w : problem.GetBackwardPadW();
 }
 
 } // namespace miopen

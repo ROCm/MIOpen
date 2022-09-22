@@ -40,69 +40,71 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
 namespace miopen {
 namespace solver {
 
-bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
+bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
+                                       const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_3X3{}))
         return false;
-    if(!params.problem.Is2d())
+    if(!problem.Is2d())
         return false;
-    if(!(params.problem.direction.IsForward() || params.problem.direction.IsBackwardData()))
+    if(!(problem.direction.IsForward() || problem.direction.IsBackwardData()))
         return false;
-    if(!(params.rmv.IsV2orV3() && params.use_asm_kernels))
+    if(!(ctx.rmv.IsV2orV3() && ctx.use_asm_kernels))
         return false;
 
-    const auto target = params.GetStream().GetTargetProperties();
+    const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 
-    const auto name = params.GetStream().GetDeviceName();
+    const auto name = ctx.GetStream().GetDeviceName();
     if(!(name == "gfx803" || name == "gfx900" || name == "gfx906" || name == "gfx908"))
         return false;
 
     // Check if kernel is suitable for the problem description
     // and able to correctly run with given parameters.
     const auto device_is_gfx8         = StartsWith(name, "gfx8");
-    const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
-    if(!params.problem.IsLayoutDefault())
+    const auto grid_workgroup_count_x = ctx.GetStream().GetMaxComputeUnits();
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
 
     // clang-format off
-    return params.problem.pad_w == 1
-        && params.problem.pad_h == 1
-        && params.problem.kernel_size_w == 3
-        && params.problem.kernel_size_h == 3
-        && params.problem.kernel_stride_w == 1
-        && params.problem.kernel_stride_h == 1
-        && params.problem.kernel_dilation_w == 1
-        && params.problem.kernel_dilation_h == 1
-        && params.problem.batch_sz < std::pow(2, 16)
-        && params.problem.n_inputs < std::pow(2, 16)
-        && params.problem.n_outputs < std::pow(2, 16)
-        && params.problem.in_height < std::pow(2, 16)
-        && params.problem.in_width < std::pow(2, 16)
+    return problem.pad_w == 1
+        && problem.pad_h == 1
+        && problem.kernel_size_w == 3
+        && problem.kernel_size_h == 3
+        && problem.kernel_stride_w == 1
+        && problem.kernel_stride_h == 1
+        && problem.kernel_dilation_w == 1
+        && problem.kernel_dilation_h == 1
+        && problem.batch_sz < std::pow(2, 16)
+        && problem.n_inputs < std::pow(2, 16)
+        && problem.n_outputs < std::pow(2, 16)
+        && problem.in_height < std::pow(2, 16)
+        && problem.in_width < std::pow(2, 16)
         && grid_workgroup_count_x < std::pow(2, 16)
-        && (params.problem.n_inputs * params.problem.in_height * params.problem.in_width) <= std::pow(2, 28)
-        && (params.problem.n_outputs * params.problem.in_height * params.problem.in_width) <= std::pow(2, 28)
-        && (params.problem.n_inputs * params.problem.kernel_size_w * params.problem.kernel_size_h) <= std::pow(2, 28)
-        && (params.problem.n_outputs * params.problem.kernel_size_w * params.problem.kernel_size_h) <= std::pow(2, 28)
-        && params.problem.n_inputs % 2 == 0
-        && params.problem.n_inputs >= (device_is_gfx8 ? 16 : 18)
-        && params.problem.IsFp32()
-        && params.problem.group_counts == 1
-        && params.problem.in_layout == "NCHW";
+        && (problem.n_inputs * problem.in_height * problem.in_width) <= std::pow(2, 28)
+        && (problem.n_outputs * problem.in_height * problem.in_width) <= std::pow(2, 28)
+        && (problem.n_inputs * problem.kernel_size_w * problem.kernel_size_h) <= std::pow(2, 28)
+        && (problem.n_outputs * problem.kernel_size_w * problem.kernel_size_h) <= std::pow(2, 28)
+        && problem.n_inputs % 2 == 0
+        && problem.n_inputs >= (device_is_gfx8 ? 16 : 18)
+        && problem.IsFp32()
+        && problem.group_counts == 1
+        && problem.in_layout == "NCHW";
         /// && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
         /// Actually, K<->C flpping is controlled by separate flag, so we can support either
         /// layout in both directions.
     // clang-format on
 }
 
-ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) const
+ConvSolution ConvBinWinograd3x3U::GetSolution(const ExecutionContext& ctx,
+                                              const ProblemDescription& problem) const
 {
     ConvSolution result;
-    const auto n_groups = params.GetStream().GetMaxComputeUnits();
-    const auto name     = params.GetStream().GetDeviceName();
+    const auto n_groups = ctx.GetStream().GetMaxComputeUnits();
+    const auto name     = ctx.GetStream().GetDeviceName();
 
     KernelInfo kernel;
 
@@ -119,7 +121,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
     kernel.kernel_name = "miopenSp3AsmConv3x3F";
 
     KernelBuildParameters options{
-        {"ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4},
+        {"ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
@@ -132,7 +134,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
 
     result.construction_params.push_back(kernel);
 
-    const auto is_forward = params.problem.direction.IsForward();
+    const auto is_forward = problem.direction.IsForward();
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         constexpr int F_REVERSE_R = 1 << 0;
@@ -153,15 +155,15 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) 
         int* reserved_ptr = nullptr;
         int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
         GetCompiledInParameters(
-            params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+            ctx, problem, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
         MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                             << " n_groups=" << n_groups_ << " flags=" << flags << " R=" << R
                             << " S=" << S << " pad_H=" << pad_H << " pad_W=" << pad_W
                             << " out_H=" << out_H << " out_W=" << out_W);
 
-        return [=](const Handle& handle, const AnyInvokeParams& ctx) {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto k        = handle.Run(kernels[0]);
-            const auto& fwd_ctx = ctx.CastTo<conv::DataInvokeParams>();
+            const auto& fwd_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
             const auto& tensors = fwd_ctx.tensors;
 
             k(N,

@@ -732,21 +732,22 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     if(UseSubsample(params))
     {
         int N, C, H, W, K, n_groups, out_H, out_W;
-        GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+        GetCompiledInParameters(
+            params, params.problem, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
         result.invoker_factory = conv::MakeGcnAsm1x1USSInvokerFactory(
             N, C, K, n_groups, out_H, out_W, result.workspace_sz);
     }
     else if(UseUpsample(params))
     {
         int N, C, H, W, K, n_groups;
-        GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
+        GetCompiledInParameters(params, params.problem, &N, &C, &H, &W, &K, &n_groups);
         result.invoker_factory =
             conv::MakeGcnAsm1x1UUSInvokerFactory(N, C, K, n_groups, H, W, result.workspace_sz);
     }
     else
     {
         int N, C, H, W, K, n_groups;
-        GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
+        GetCompiledInParameters(params, params.problem, &N, &C, &H, &W, &K, &n_groups);
         result.invoker_factory = conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
     }
 
