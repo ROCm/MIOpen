@@ -25,7 +25,7 @@
  *******************************************************************************/
 
 #include <vector>
-#include <stdint.h>
+#include <cstdint>
 
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
@@ -40,6 +40,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 namespace miopen {
 namespace solver {
 
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 using DeviceConvFwdPtr_t = std::unique_ptr<
     ck::tensor_operation::device::DeviceConvFwd<2,
                                                 ck::tensor_layout::convolution::NHWC,
@@ -85,6 +86,7 @@ struct CKArgs
     std::vector<int> lPadding;
     std::vector<int> rPadding;
 };
+#endif
 
 void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionContext& ctx)
 {

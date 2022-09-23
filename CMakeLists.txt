@@ -222,8 +222,12 @@ endif()
 
 # Depend on Composable Kernels
 option(MIOPEN_USE_COMPOSABLEKERNEL "Enable MIOpen to use composable kernels for various operations" On)
+if(MIOPEN_BACKEND_OPENCL)
+    set(MIOPEN_USE_COMPOSABLEKERNEL OFF)
+endif()
+message(STATUS "Enable Composable Kernels: ${MIOPEN_USE_COMPOSABLEKERNEL}")
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
+    find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
 endif()
 
 set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
@@ -619,6 +623,8 @@ enable_clang_tidy(
         -readability-identifier-length
         -readability-suspicious-call-argument
         #TODO Code Quality WORKAROUND ROCm 5.3 && Ubuntu 22.04 && C++17 && cppcheck 2.9 update
+        -bugprone-use-after-move
+        -hicpp-invalid-access-moved
         -modernize-use-nodiscard
         -misc-confusable-identifiers
         -modernize-unary-static-assert
