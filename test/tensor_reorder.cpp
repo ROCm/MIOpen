@@ -371,7 +371,7 @@ struct reorder_invoke_param : public miopen::InvokeParams
 template <typename T>
 struct tensor_reorder_driver : tensor_reorder_base_driver
 {
-    //NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)
+    // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)
     void run()
     {
         auto run_reorder = [this](uint32_t dim_0,
@@ -502,7 +502,7 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
 
         iterate_reorder(run_reorder);
     }
-    //NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
+    // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 };
 
 template <template <class...> class Driver>
