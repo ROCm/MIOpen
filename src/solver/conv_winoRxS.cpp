@@ -191,19 +191,19 @@ inline bool IsShaderContraintsMet(const int R,
              params.problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
-    if(!params.IsLayoutDefault())
+    if(!params.problem.IsLayoutDefault())
     {
         return false;
     }
 
-    const auto n_groups = params.GetStream().GetMaxHardwareComputeUnits();
-    auto Kp1_OH_OW = (K + 1) * OH * OW;
-    auto Cp1_H_W =   (C + 1) *  H *  W;
-    auto K_OH_OW = K * OH * OW;
-    auto C_H_W = C * H * W;
-    auto OHd2_OWd2 = int(std::ceil(OH/2) * std::ceil(OW/2));
+    const auto n_groups  = params.GetStream().GetMaxHardwareComputeUnits();
+    auto o_N_stride_OHOW = (K + 1) * OH * OW;
+    auto d_N_stride_HW   = (C + 1) * H * W;
+    auto o_N_stride      = K * OH * OW;
+    auto d_N_stride      = C * H * W;
+    auto OHd2_OWd2       = Ceil(OH, 2) * Ceil(OW, 2);
 
-    auto stride_one = (params.in_stride == 1 && params.out_stride == 1);
+    auto stride_one = (params.problem.in_stride == 1 && params.problem.out_stride == 1);
 
     // clang-format off
     // Check implementation limits.
@@ -216,13 +216,13 @@ inline bool IsShaderContraintsMet(const int R,
         && R < std::pow(2, 16)
         && OH < std::pow(2, 16)
         && OW < std::pow(2, 16)
-        && params.pad_w < std::pow(2, 16)
-        && params.pad_h < std::pow(2, 16)
+        && params.problem.pad_w < std::pow(2, 16)
+        && params.problem.pad_h < std::pow(2, 16)
         && n_groups < std::pow(2, 16)
         && C * R * S < std::pow(2, 22)
         && K * R * S < std::pow(2, 28)
-        && ((Kp1_OH_OW < std::pow(2, 29) && Cp1_H_W < std::pow(2, 29))
-           || (stride_one && K_OH_OW < std::pow(2, 30) && C_H_W < std::pow(2, 30)
+        && ((o_N_stride_OHOW < std::pow(2, 29) && d_N_stride_HW < std::pow(2, 29))
+           || (stride_one && o_N_stride < std::pow(2, 30) && d_N_stride < std::pow(2, 30)
            && (N == 1 || OHd2_OWd2 % 16 == 0)));
 }
 
