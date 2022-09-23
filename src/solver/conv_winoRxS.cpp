@@ -196,13 +196,15 @@ inline bool IsShaderContraintsMet(const int R,
         return false;
     }
 
-    const auto n_groups  = params.GetStream().GetMaxHardwareComputeUnits();
-    auto o_N_stride_OHOW = (K + 1) * OH * OW;
-    auto d_N_stride_HW   = (C + 1) * H * W;
-    auto o_N_stride      = K * OH * OW;
-    auto d_N_stride      = C * H * W;
-    auto OHd2_OWd2       = Ceil(OH, 2) * Ceil(OW, 2);
+    uint32_t o_K_stride      = OH * OW;
+    uint32_t o_N_stride      = o_K_stride * K;
+    uint32_t o_N_stride_OHOW = o_N_stride + o_K_stride;
 
+    uint32_t d_C_stride    = H * W;
+    uint32_t d_N_stride    = d_C_stride * C;
+    uint32_t d_N_stride_HW = d_N_stride + d_C_stride;
+
+    auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
     auto stride_one = (params.problem.in_stride == 1 && params.problem.out_stride == 1);
 
     // clang-format off
@@ -218,12 +220,11 @@ inline bool IsShaderContraintsMet(const int R,
         && OW < std::pow(2, 16)
         && params.problem.pad_w < std::pow(2, 16)
         && params.problem.pad_h < std::pow(2, 16)
-        && n_groups < std::pow(2, 16)
         && C * R * S < std::pow(2, 22)
         && K * R * S < std::pow(2, 28)
         && ((o_N_stride_OHOW < std::pow(2, 29) && d_N_stride_HW < std::pow(2, 29))
            || (stride_one && o_N_stride < std::pow(2, 30) && d_N_stride < std::pow(2, 30)
-           && (N == 1 || OHd2_OWd2 % 16 == 0)));
+           && (N == 1 || num_tiles % 16 == 0)));
 }
 
 } // namespace
