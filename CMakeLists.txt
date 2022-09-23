@@ -327,17 +327,25 @@ set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND $
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
 if(MIOPEN_USE_MLIR)
-    # REQUIRED is not supported before cmake 3.18
-    find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
     if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
         message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
     endif()
-
-    if(NOT LIBMLIRMIOPEN)
-        message(FATAL_ERROR "libMLIRMIOpen not found, please reinstall dependencies. \
-        Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
+    # Try to find package rocMLIR
+    # REQUIRED is omitted since we do not want cmake to abort if the package is not found
+    find_package(rocMLIR 1.0.0 CONFIG)
+    if(NOT rocMLIR_FOUND)
+        message(STATUS "Falling back to find library libMLIRMIOpen")
+        # Backward compatibility with ROCm 5.3
+        # If the rocMLIR package is not found, try to find the library libMLIRMIOpen directly
+        find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
+        if(NOT LIBMLIRMIOPEN)
+            message(FATAL_ERROR "library libMLIRMIOpen not found, please reinstall dependencies. \
+            Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
+        else()
+            message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
+        endif()
     else()
-        message(STATUS "Build with libMLIRMIOpen: " ${LIBMLIRMIOPEN})
+        message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION}")
     endif()
 endif()
 
