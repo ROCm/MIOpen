@@ -222,6 +222,9 @@ endif()
 
 # Depend on Composable Kernels
 option(MIOPEN_USE_COMPOSABLEKERNEL "Enable MIOpen to use composable kernels for various operations" On)
+if(MIOPEN_BACKEND_OPENCL)
+    set(MIOPEN_USE_COMPOSABLEKERNEL OFF)
+endif()
 if(MIOPEN_USE_COMPOSABLEKERNEL)
 find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
 endif()
@@ -618,6 +621,17 @@ enable_clang_tidy(
         -readability-container-data-pointer
         -readability-identifier-length
         -readability-suspicious-call-argument
+        #CPP-17 and ROCM 5.3 update related warning
+        -misc-confusable-identifiers
+        -modernize-use-nodiscard
+        -modernize-concat-nested-namespaces
+        -modernize-unary-static-assert
+        -modernize-macro-to-enum
+        -readability-simplify-boolean-expr
+        -readability-redundant-declaration
+        -hicpp-member-init
+        -bugprone-use-after-move
+        -hicpp-invalid-access-moved
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
