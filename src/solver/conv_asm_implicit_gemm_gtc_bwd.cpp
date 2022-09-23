@@ -834,10 +834,10 @@ FindImplicitGemmGtcDynamicBwdKernel(const ProblemDescription& problem)
 
     for(const auto& cfg : tunables)
     {
-        const auto b             = (cfg.nxe == 0 || ctx.problem.IsFp32())
+        const auto b             = (cfg.nxe == 0 || problem.IsFp32())
                                        ? h_tilda_slice * w_tilda_slice
                                        : ((h_tilda_slice * w_tilda_slice + cfg.nxb - 1) / cfg.nxb) * cfg.nxb;
-        const auto gemm_n_packed = ctx.problem.IsFp16() ? n * b : gemm_n;
+        const auto gemm_n_packed = problem.IsFp16() ? n * b : gemm_n;
 
         assert((cfg.gemm_n_per_block != 0) && (cfg.gemm_m_per_block != 0) && (cfg.nxb != 0) &&
                (cfg.gemm_k_per_block != 0));
