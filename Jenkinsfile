@@ -421,7 +421,7 @@ pipeline {
             defaultValue: false,
             description: "Enable OpenCL backend stages")
         string(name: "DOCKER_IMAGE_OVERRIDE",
-            defaultValue: '',
+            defaultValue: 'rocm/miopen:ci_rocm530_ubuntu2204',
             description: "")
     }
 
