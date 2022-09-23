@@ -225,8 +225,9 @@ option(MIOPEN_USE_COMPOSABLEKERNEL "Enable MIOpen to use composable kernels for 
 if(MIOPEN_BACKEND_OPENCL)
     set(MIOPEN_USE_COMPOSABLEKERNEL OFF)
 endif()
+message(STATUS "Enable Composable Kernels: ${MIOPEN_USE_COMPOSABLEKERNEL}")
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
+    find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
 endif()
 
 set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
