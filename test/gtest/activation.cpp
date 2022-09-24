@@ -74,11 +74,12 @@ protected:
         // miopenCreateOpActivationForward(ptr_fwdfusionplan.get(), &activFwdOp, activ_mode);
 
         std::size_t n, c, h, w;
+        auto&& handle = get_handle();
         std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
         size_t total_mem     = 4 * input.desc.GetNumBytes(); // estimate based on backward pass
-        volatile size_t device_mem = get_handle().GetGlobalMemorySize();
+        size_t device_mem = handle.GetGlobalMemorySize();
 
-        ASSERT_GE(total_mem, device_mem) << "Tensor exceeds GPU memory size";
+        ASSERT_LT(total_mem, device_mem) << "Tensor exceeds GPU memory size";
 
         gpu_output =
             tensor<float>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
@@ -104,8 +105,6 @@ protected:
 
         // Infer on CPU, backward
         // activationHostBwd(...)
-
-        auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
         out_dev       = handle.Write(gpu_output.data);
     }
