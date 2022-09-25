@@ -700,6 +700,21 @@ enable_cppcheck(
         variableScope
         missingReturn
         cstyleCast
+        unknownMacro
+        uselessCallsSubstr
+        uninitMemberVar
+        overlappingWriteUnion
+        operatorEqVarError
+        returnTempReference
+        objectIndex
+        integerOverflowCond
+        rethrowNoCurrentException
+        mismatchingContainers
+        unreadVariable
+        CastIntegerToAddressAtReturn
+        knownConditionTrueFalse
+        shadowFunction
+        moduloofone
     FORCE
     SOURCES
         addkernels/
