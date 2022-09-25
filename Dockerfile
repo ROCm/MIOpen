@@ -110,6 +110,13 @@ RUN ccache -s
 ADD doc/requirements.txt /doc-requirements.txt
 RUN pip3 install -r /doc-requirements.txt
 
+ARG CK_COMMIT=2c6d63d0317d1a765b4e9f9b85177bb51a373b88
+RUN rm -rf /tmp/ck* && mkdir /tmp/ck && wget -O ck.tar.gz https://www.github.com/rocmsoftwareplatform/composable_kernel/archive/${CK_COMMIT}.tar.gz -O /tmp/ck.tar.gz && \
+    tar zxvf /tmp/ck.tar.gz -C /tmp/ && mkdir /tmp/composable_kernel-${CK_COMMIT}/build &&\
+    cd /tmp/composable_kernel-${CK_COMMIT}/build && \
+    CXX=/opt/rocm/llvm/bin/clang++ cmake -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" -DCMAKE_PREFIX_PATH=/opt/rocm -D CMAKE_CXX_FLAGS=" -O3 " -DAMDGPU_TARGETS="gfx900;gfx906;gfx908;gfx90a;gfx1030".. && \
+    make -j $(nproc) install && rm -rf /tmp/*
+
 # Use parallel job to accelerate tensile build
 # Workaround for Tensile with TargetID feature
 ARG USE_TARGETID="OFF"
