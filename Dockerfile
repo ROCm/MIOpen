@@ -1,4 +1,5 @@
 FROM ubuntu:20.04 as miopen
+ARG DEBIAN_FRONTEND=noninteractive
 
 ARG USE_MLIR="OFF"
 
