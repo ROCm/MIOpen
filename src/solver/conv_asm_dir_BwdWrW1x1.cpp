@@ -784,7 +784,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     result.construction_params.push_back(kernel);
 
     int N, C, H, W, K, n_groups;
-    GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
+    GetCompiledInParameters(params, params.problem, &N, &C, &H, &W, &K, &n_groups);
 
     if(UseSubsample(params))
     {
