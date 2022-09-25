@@ -334,6 +334,12 @@ struct tensor_vec_driver : test_driver
         auto type_size = sizeof(T);
         auto vec_size  = 4 / type_size;
 
+        if(vec_size == 0)
+        {
+            std::cout << "Type size is greater than 4: type_size = " << type_size << std::endl;
+            return;
+        }
+
         if(trans)
             dst_lens[0] = (dst_lens[0] % vec_size != 0)
                               ? dst_lens[0] + (vec_size - dst_lens[0] % vec_size)
