@@ -53,6 +53,20 @@ struct ActivationConfig
     miopenActivationMode_t activ_mode;
 };
 
+template <class T1, class T2>
+void CompareTensors(T1&& t1, T2&& t2)
+{
+    EXPECT_FALSE(miopen::range_zero(t1)) << "CPU data is all zeros";
+    EXPECT_FALSE(miopen::range_zero(t2)) << "GPU data is all zeros";
+    const auto maxDiff = miopen::max_diff(t1, t2);
+    std::ignore        = maxDiff;
+    auto idx           = miopen::mismatch_idx(t1, t2, miopen::float_equal);
+    EXPECT_FALSE(miopen::find_idx(t1, miopen::not_finite) >= 0)
+        << "Non finite number found in the CPU data";
+    EXPECT_FALSE(idx < miopen::range_distance(t1));
+    return;
+}
+
 struct TestActivation : public ::testing::TestWithParam<ActivationConfig>
 {
 protected:
@@ -64,6 +78,8 @@ protected:
         activ_config = GetParam();
         input = tensor<float>{activ_config.N, activ_config.C, activ_config.H, activ_config.W};
         input.generate(tensor_elem_gen_integer{17});
+        dinput_cpu = input;
+        dinput_gpu = input;
 
         // TODO: use miopen API?
         miopenCreateActivationDescriptor(&activ_desc);
@@ -74,10 +90,10 @@ protected:
         // miopenCreateOpActivationForward(ptr_fwdfusionplan.get(), &activFwdOp, activ_mode);
 
         std::size_t n, c, h, w;
-        auto&& handle = get_handle();
+        auto&& handle        = get_handle();
         std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
         size_t total_mem     = 4 * input.desc.GetNumBytes(); // estimate based on backward pass
-        size_t device_mem = handle.GetGlobalMemorySize();
+        size_t device_mem    = handle.GetGlobalMemorySize();
 
         ASSERT_LT(total_mem, device_mem) << "Tensor exceeds GPU memory size";
 
@@ -97,16 +113,31 @@ protected:
 
         // Infer on CPU, forward
         activationHostInfer(activ_config.activ_mode,
-                            gamma,      // 0.0f?
-                            beta,       // 0.0f?
-                            alpha,      // 0.0f?
-                            input.data, // TODO: cpu_ref_out.data?
-                            cpu_ref_out.data);
+                            gamma,             // 0.0f?
+                            beta,              // 0.0f?
+                            alpha,             // 0.0f?
+                            input.data,        // Input
+                            cpu_ref_out.data); // Output
 
         // Infer on CPU, backward
-        // activationHostBwd(...)
-        in_dev        = handle.Write(input.data);
-        out_dev       = handle.Write(gpu_output.data);
+        doutput  = cpu_ref_out;
+        float x  = cpu_ref_out(n, c, h, w);
+        double y = (877 * n + 547 * c + 701 * h + 1049 * w + static_cast<int>(769 * x)) % 2503;
+        doutput.generate((x * y) / 1301.0);
+
+        activationHostBwd(activ_config.activ_mode,
+                          gamma,
+                          beta,
+                          alpha,
+                          doutput.data,     // dy
+                          input.data,       // x
+                          cpu_ref_out.data, // y
+                          dinput_cpu.data); // dx
+
+        in_dev   = handle.Write(input.data);
+        out_dev  = handle.Write(gpu_output.data);
+        din_dev  = handle.Write(dinput_gpu.data);
+        dout_dev = handle.Write(doutput.data);
     }
 
     void TearDown() override
@@ -114,25 +145,29 @@ protected:
         auto&& handle = get_handle();
         // Read data fro GPU
         gpu_output.data = handle.Read<float>(out_dev, gpu_output.data.size());
-        EXPECT_FALSE(miopen::range_zero(cpu_ref_out)) << "CPU data is all zeros";
-        EXPECT_FALSE(miopen::range_zero(gpu_output)) << "GPU data is all zeros";
-        const auto maxDiff = miopen::max_diff(cpu_ref_out, gpu_output);
-        std::ignore        = maxDiff;
-        auto idx           = miopen::mismatch_idx(cpu_ref_out, gpu_output, miopen::float_equal);
-        EXPECT_FALSE(miopen::find_idx(cpu_ref_out, miopen::not_finite) >= 0)
-            << "Non finite number found in the CPU data";
-        EXPECT_FALSE(idx < miopen::range_distance(cpu_ref_out));
 
+        CompareTensors(cpu_ref_out, gpu_output);
+
+        dinput_gpu.data = handle.Read<float>(din_dev, dinput_gpu.data.size());
+
+        CompareTensors(dinput_cpu, dinput_gpu);
         miopenDestroyActivationDescriptor(activ_desc);
     }
 
-    tensor<float> input;
+    tensor<float> input; // x
     tensor<float> gpu_output;
-    tensor<float> cpu_ref_out;
+    tensor<float> cpu_ref_out; // y
+
+    tensor<float> dinput_cpu; // dx
+    tensor<float> dinput_gpu;
+    tensor<float> doutput;
+
     ActivationConfig activ_config;
     miopenActivationDescriptor_t activ_desc;
-    miopen::Allocator::ManageDataPtr in_dev;
-    miopen::Allocator::ManageDataPtr out_dev;
+    miopen::Allocator::ManageDataPtr in_dev;   // x
+    miopen::Allocator::ManageDataPtr out_dev;  // y
+    miopen::Allocator::ManageDataPtr din_dev;  // dx
+    miopen::Allocator::ManageDataPtr dout_dev; // dy
 };
 
 miopenStatus_t RunActivation(miopen::Handle& handle,
@@ -142,11 +177,12 @@ miopenStatus_t RunActivation(miopen::Handle& handle,
                              ConstData_t x,
                              const void* beta,
                              const miopen::TensorDescriptor& yDesc,
-                             Data_t y)
+                             Data_t y,
+                             const miopen::TensorDescriptor& dyDesc,
+                             ConstData_t dy,
+                             const miopen::TensorDescriptor& dxDesc,
+                             Data_t dx)
 {
-    // ASSERT_TRUE(alpha);
-    // ASSERT_TRUE(beta != nullptr);
-
     if(alpha == nullptr || beta == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "alpha or beta is NULL");
 
@@ -161,9 +197,26 @@ miopenStatus_t RunActivation(miopen::Handle& handle,
     // float activ_beta  = activationDesc.GetBeta();
     // float activ_gamma = activationDesc.GetGamma();
 
-    miopenStatus_t status =
-        miopen::deref(activationDesc).Forward(handle, alpha, xDesc, x, beta, yDesc, y);
+    miopen::ActivationDescriptor desc = miopen::deref(activationDesc);
+    miopenStatus_t fwdStatus          = desc.Forward(handle,
+                                            alpha,
+                                            xDesc, // input.desc
+                                            x,     // in_dev.get()
+                                            beta,
+                                            yDesc, // gpu_output.desc
+                                            y);    // out_dev.get()
 
+    miopenStatus_t bwdStatus = desc.Backward(handle,
+                                             alpha,
+                                             yDesc, // out.desc
+                                             y,     // out_dev.get()
+                                             dyDesc,
+                                             dy,
+                                             xDesc, // input.desc
+                                             x,
+                                             beta,
+                                             dxDesc,
+                                             dx);
     /*
         // Set the Args
         miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
@@ -178,8 +231,9 @@ miopenStatus_t RunActivation(miopen::Handle& handle,
         MIOPEN_CHECK(activOp->SetArgs(fwdActivArgs, &alpha, &beta, activ_alpha, activ_beta,
        activ_gamma));
         */
-    // TODO: Execute?
-    return status;
+    return ((fwdStatus == miopenStatusSuccess && bwdStatus == miopenStatusSuccess)
+                ? miopenStatusSuccess
+                : fwdStatus);
 }
 
 INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
@@ -192,11 +246,15 @@ TEST_P(TestActivation, ActivationFwdTest)
     miopenStatus_t status = RunActivation(get_handle(),
                                           activ_desc,
                                           &alpha,
-                                          input.desc,
+                                          input.desc, // x
                                           in_dev.get(),
                                           &beta,
-                                          gpu_output.desc,
-                                          out_dev.get());
+                                          gpu_output.desc, // y
+                                          out_dev.get(),
+                                          doutput.desc, // dy
+                                          dout_dev.get(),
+                                          dinput_gpu.desc,
+                                          din_dev.get());
 
     EXPECT_EQ(status, miopenStatusSuccess);
 }
