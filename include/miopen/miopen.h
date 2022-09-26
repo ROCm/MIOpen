@@ -3180,6 +3180,32 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
                         const miopenTensorDescriptor_t outputDesc,
                         void* output,
                         miopenOperatorArgs_t args);
+
+/*! @brief Prepares and executes the Convlution+Bias+Activation Fusion
+ *
+ *
+ * @param handle           MIOpen handle (input)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenConvolutionBiasActivationForward(miopenHandle_t handle,
+                                       const void* alpha1,
+                                       const miopenTensorDescriptor_t xDesc,
+                                       const void* x,
+                                       const miopenTensorDescriptor_t wDesc,
+                                       const void* w,
+                                       const miopenConvolutionDescriptor_t convDesc,
+                                       miopenConvFwdAlgorithm_t algo,
+                                       void* workspace,
+                                       size_t workspaceSizeInBytes,
+                                       const void* alpha2,
+                                       const miopenTensorDescriptor_t zDesc,
+                                       const void* z,
+                                       const miopenTensorDescriptor_t biasDesc,
+                                       const void* bias,
+                                       const miopenActivationDescriptor_t activationDesc,
+                                       const miopenTensorDescriptor_t yDesc,
+                                       void* y);
 /** @} */
 // CLOSEOUT FUSION DOXYGEN GROUP
 

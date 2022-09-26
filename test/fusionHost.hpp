@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 #pragma once
-#include "test.hpp"
+// #include "test.hpp"
 #include <array>
 #include <iostream>
 #include <iterator>
@@ -36,7 +36,7 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <utility>
-#include "driver.hpp"
+// #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"

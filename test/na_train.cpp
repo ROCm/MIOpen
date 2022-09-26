@@ -32,6 +32,8 @@
 #define PREC_TYPE T
 #endif
 
+#include "test.hpp"
+#include "driver.hpp"
 #include "fusionHost.hpp"
 #include <miopen/stringutils.hpp>
 

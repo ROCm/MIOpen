@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -440,4 +440,69 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
                      DataCast(output),
                      miopen::deref(args));
     });
+}
+
+extern "C" miopenStatus_t
+miopenConvolutionBiasActivationForward(miopenHandle_t handle,
+                                       const void* alpha1,
+                                       const miopenTensorDescriptor_t xDesc,
+                                       const void* x,
+                                       const miopenTensorDescriptor_t wDesc,
+                                       const void* w,
+                                       const miopenConvolutionDescriptor_t conv_desc,
+                                       miopenConvFwdAlgorithm_t algo,
+                                       void* workspace,
+                                       size_t workspaceSizeInBytes,
+                                       const void* alpha2,
+                                       const miopenTensorDescriptor_t zDesc,
+                                       const void* z,
+                                       const miopenTensorDescriptor_t biasDesc,
+                                       const void* bias,
+                                       const miopenActivationDescriptor_t activationDesc,
+                                       const miopenTensorDescriptor_t yDesc,
+                                       void* y)
+{
+
+    MIOPEN_LOG_FUNCTION(handle,
+                        alpha1,
+                        xDesc,
+                        x,
+                        wDesc,
+                        w,
+                        conv_desc,
+                        algo,
+                        workspace,
+                        workspaceSizeInBytes,
+                        alpha2,
+                        zDesc,
+                        z,
+                        biasDesc,
+                        bias,
+                        activationDesc,
+                        ydesc,
+                        y);
+    miopenStatus_t res = miopenStatusUnknownError;
+    const auto try_res = miopen::try_([&] {
+        res = ConvBiasActivFusion(miopen::deref(handle),
+                                  alpha1,
+                                  miopen::deref(xDesc),
+                                  DataCast(x),
+                                  miopen::deref(wDesc),
+                                  DataCast(w),
+                                  miopen::deref(conv_desc),
+                                  algo,
+                                  DataCast(workspace),
+                                  workspaceSizeInBytes,
+                                  alpha2,
+                                  miopen::deref(zDesc),
+                                  DataCast(z),
+                                  miopen::deref(biasDesc),
+                                  DataCast(bias),
+                                  miopen::deref(activationDesc),
+                                  miopen::deref(yDesc),
+                                  DataCast(y));
+    });
+    if(try_res == miopenStatusSuccess)
+        return res;
+    return try_res;
 }
