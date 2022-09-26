@@ -250,6 +250,9 @@ add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
+    if(MIOPEN_USE_COMPOSABLEKERNEL)
+    find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
+    endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
         set(MIOPEN_MODE_NOGPU 1)
     endif()
@@ -285,6 +288,8 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "Build without rocblas")
     endif()
 else()
+    #CK is only enabled when HIP backend is selected   
+    set(MIOPEN_USE_COMPOSABLEKERNEL Off)
     if(MIOPEN_USE_HIPRTC)
         message(FATAL_ERROR "HIPRTC cannot be used without HIP backend")
     endif()
@@ -598,6 +603,9 @@ enable_clang_tidy(
         -modernize-use-equals-default
         -modernize-use-trailing-return-type
         -modernize-use-transparent-functors
+        -modernize-use-nodiscard
+        -modernize-concat-nested-namespaces
+        -modernize-unary-static-assert
         -performance-unnecessary-value-param
         -readability-braces-around-statements
         -readability-convert-member-functions-to-static

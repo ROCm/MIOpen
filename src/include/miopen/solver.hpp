@@ -4215,6 +4215,7 @@ struct PerformanceConfigHipImplicitGemmFwdXdlops
     bool operator==(const PerformanceConfigHipImplicitGemmFwdXdlops& other) const;
 };
 
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 struct ConvHipImplicitGemmFwdXdlops final
     : ConvTunableSolver<PerformanceConfigHipImplicitGemmFwdXdlops>
 {
@@ -4248,6 +4249,7 @@ struct ConvHipImplicitGemmFwdXdlops final
     // value bigger than 0.01f, e.g. 0.02f.
     float GetWti(const ConvolutionContext&) const override { return 0.02f; };
 };
+#endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
 struct AnySolver;
 
