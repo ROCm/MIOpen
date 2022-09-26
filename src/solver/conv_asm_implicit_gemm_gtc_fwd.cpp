@@ -1348,28 +1348,28 @@ static std::tuple<bool, // is suitable kernel found
                   std::string, // kernel_name
                   int,         // block_size
                   int>         // grid_size
-FindImplicitGemmGtcDynamicFwdKernel(const ConvolutionContext& ctx)
+FindImplicitGemmGtcDynamicFwdKernel(const ProblemDescription& problem)
 {
     auto tunables         = GetImplicitGemmGtcDynamicFwdXdlopsTunablesList();
-    const auto& n         = ctx.problem.batch_sz;
-    const auto& c         = ctx.problem.n_inputs;
-    const auto& k         = ctx.problem.n_outputs;
-    const auto& ho        = ctx.problem.out_height;
-    const auto& wo        = ctx.problem.out_width;
-    const auto stride_h   = ctx.problem.in_height > 1 ? ctx.problem.kernel_stride_h : 1;
-    const auto stride_w   = ctx.problem.in_width > 1 ? ctx.problem.kernel_stride_w : 1;
-    const auto dilation_h = ctx.problem.kernel_size_h > 1 ? ctx.problem.kernel_dilation_h : 1;
-    const auto dilation_w = ctx.problem.kernel_size_w > 1 ? ctx.problem.kernel_dilation_w : 1;
-    const auto& pad_h     = ctx.problem.pad_h;
-    const auto& pad_w     = ctx.problem.pad_w;
-    const auto& y         = ctx.problem.kernel_size_h;
-    const auto& x         = ctx.problem.kernel_size_w;
+    const auto& n         = problem.batch_sz;
+    const auto& c         = problem.n_inputs;
+    const auto& k         = problem.n_outputs;
+    const auto& ho        = problem.out_height;
+    const auto& wo        = problem.out_width;
+    const auto stride_h   = problem.in_height > 1 ? problem.kernel_stride_h : 1;
+    const auto stride_w   = problem.in_width > 1 ? problem.kernel_stride_w : 1;
+    const auto dilation_h = problem.kernel_size_h > 1 ? problem.kernel_dilation_h : 1;
+    const auto dilation_w = problem.kernel_size_w > 1 ? problem.kernel_dilation_w : 1;
+    const auto& pad_h     = problem.pad_h;
+    const auto& pad_w     = problem.pad_w;
+    const auto& y         = problem.kernel_size_h;
+    const auto& x         = problem.kernel_size_w;
 
     const auto& gemm_m = k;
     const auto gemm_n  = n * ho * wo;
     const auto gemm_k  = c * y * x;
 
-    const auto& precision = ctx.problem.IsFp16() ? miopenHalf : miopenFloat;
+    const auto& precision = problem.IsFp16() ? miopenHalf : miopenFloat;
 
     for(const auto& cfg : tunables)
     {
@@ -1499,7 +1499,8 @@ FindImplicitGemmGtcDynamicFwdKernel(const ConvolutionContext& ctx)
     return std::make_tuple(false, tunables[0], "", -1, -1);
 }
 
-bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext& ctx,
+                                                          const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS{}))
         return false;
@@ -1511,29 +1512,28 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ConvolutionConte
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!ctx.problem.direction.IsForward())
+    if(!problem.direction.IsForward())
         return false;
 
-    if(!ctx.problem.Is2d())
+    if(!problem.Is2d())
         return false;
 
-    if(!ctx.problem.IsFp32() && !ctx.problem.IsFp16())
+    if(!problem.IsFp32() && !problem.IsFp16())
         return false;
 
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(ctx.problem.group_counts != 1)
+    if(problem.group_counts != 1)
         return false;
 
-    if(!ctx.problem.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
 
 #if WORKAROUND_SWDEV_306318
-    if((ctx.problem.kernel_size_h == 1) && (ctx.problem.kernel_size_w == 1) &&
-       (ctx.problem.n_inputs % 8 != 0))
+    if((problem.kernel_size_h == 1) && (problem.kernel_size_w == 1) && (problem.n_inputs % 8 != 0))
         return false;
 #endif
 
@@ -1543,13 +1543,14 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ConvolutionConte
 
     bool isValid;
     std::tie(isValid, std::ignore, std::ignore, std::ignore, std::ignore) =
-        FindImplicitGemmGtcDynamicFwdKernel(ctx);
+        FindImplicitGemmGtcDynamicFwdKernel(problem);
 
     return isValid;
 }
 
 ConvSolution
-ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ConvolutionContext& ctx) const
+ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ExecutionContext& ctx,
+                                                    const ProblemDescription& problem) const
 {
     ConvSolution result;
     KernelInfo kernel;
@@ -1560,7 +1561,7 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ConvolutionContext& ct
     int grid_size;
     TunableImplicitGemmGTCDynamic_t cfg;
     std::tie(std::ignore, cfg, kernel_name, block_size, grid_size) =
-        FindImplicitGemmGtcDynamicFwdKernel(ctx);
+        FindImplicitGemmGtcDynamicFwdKernel(problem);
 
     std::ostringstream kernel_file_name;
     kernel_file_name << kernel_name << ".s";
@@ -1583,7 +1584,7 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlops::GetSolution(const ConvolutionContext& ct
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
     result.invoker_factory =
-        conv::MakeImplGemmDynamicForwardInvokerFactory<TunableImplicitGemmGTCDynamic_t>(ctx.problem,
+        conv::MakeImplGemmDynamicForwardInvokerFactory<TunableImplicitGemmGTCDynamic_t>(problem,
                                                                                         cfg);
     result.construction_params.push_back(kernel);
     return result;
