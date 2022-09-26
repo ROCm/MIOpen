@@ -205,7 +205,8 @@ inline bool IsShaderContraintsMet(const int R,
     uint32_t d_N_stride_HW = d_N_stride + d_C_stride;
 
     auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
-    auto stride_one = (params.problem.in_stride == 1 && params.problem.out_stride == 1);
+    auto stride_one = params.problem.kernel_stride_h == params.problem.kernel_stride_w ==
+                      params.problem.kernel_dilation_h == params.problem.kernel_dilation_w == 1;
 
     // clang-format off
     // Check implementation limits.
