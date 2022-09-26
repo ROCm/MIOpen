@@ -37,7 +37,72 @@
 #include <string>
 #include <half.hpp>
 
+#define MIOPEN_CHECK(x)          \
+    if(x != miopenStatusSuccess) \
+        return x;
 namespace miopen {
+
+miopenStatus_t ConvBiasActivFusion(Handle& handle,
+                                   const void* alpha1,
+                                   const TensorDescriptor& xDesc,
+                                   ConstData_t x,
+                                   const TensorDescriptor& wDesc,
+                                   ConstData_t w,
+                                   const ConvolutionDescriptor& conv_desc,
+                                   miopenConvFwdAlgorithm_t algo,
+                                   void* workspace,
+                                   size_t workspaceSizeInBytes,
+                                   const void* alpha2,
+                                   const TensorDescriptor& zDesc,
+                                   ConstData_t z,
+                                   const TensorDescriptor& biasDesc,
+                                   ConstData_t bias,
+                                   const ActivationDescriptor& activationDesc,
+                                   const TensorDescriptor& yDesc,
+                                   Data_t y)
+{
+    assert(workspace == nullptr);
+    assert(workspaceSizeInBytes == 0);
+    std::ignore = workspace;
+    std::ignore = workspaceSizeInBytes;
+    if(alpha1 != nullptr)
+    {
+        const auto falpha1 = *(static_cast<const float*>(alpha1));
+        if(falpha1 != 1.0f)
+            MIOPEN_THROW(miopenStatusNotImplemented, "alpha1 can only be 1.0");
+    }
+    if(alpha2 != nullptr)
+    {
+        const auto falpha2 = *(static_cast<const float*>(alpha2));
+        if(falpha2 != 1.0f)
+            MIOPEN_THROW(miopenStatusNotImplemented, "alpha2 can only be 1.0");
+    }
+    if(z != nullptr || zDesc.GetSize() != 0)
+        MIOPEN_THROW(miopenStatusNotImplemented, "The addition of z vector is not yet supported");
+    FusionPlanDescriptor fusePlanDesc{miopenVerticalFusion, xDesc};
+    OperatorArgs fusionArgs;
+    auto convoOp = std::make_shared<ConvForwardOpDescriptor>(conv_desc, wDesc);
+    auto biasOp  = std::make_shared<BiasFusionOpDescriptor>(biasDesc);
+    auto activOp = std::make_shared<ActivFwdFusionOpDescriptor>(activationDesc.GetMode());
+    MIOPEN_CHECK(fusePlanDesc.AddOp(convoOp));
+    MIOPEN_CHECK(fusePlanDesc.SetConvAlgo(algo));
+    MIOPEN_CHECK(fusePlanDesc.AddOp(biasOp));
+    MIOPEN_CHECK(fusePlanDesc.AddOp(activOp));
+
+    MIOPEN_CHECK(fusePlanDesc.Compile(handle));
+    float alpha       = static_cast<float>(1.0);
+    float beta        = static_cast<float>(0);
+    float activ_alpha = activationDesc.GetAlpha();
+    float activ_beta  = activationDesc.GetBeta();
+    float activ_gamma = activationDesc.GetGamma();
+
+    // Set the Args
+    MIOPEN_CHECK(convoOp->SetArgs(fusionArgs, &alpha, &beta, w));
+    MIOPEN_CHECK(activOp->SetArgs(fusionArgs, &alpha, &beta, activ_alpha, activ_beta, activ_gamma));
+    MIOPEN_CHECK(biasOp->SetArgs(fusionArgs, &alpha, &beta, bias));
+    MIOPEN_CHECK(fusePlanDesc.Execute(handle, xDesc, x, yDesc, y, fusionArgs));
+    return miopenStatusSuccess;
+}
 
 FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
                                            const TensorDescriptor& inDesc)

@@ -33,6 +33,7 @@
 #include <miopen/solver.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/fusion_ops.hpp>
+#include <miopen/activ.hpp>
 
 #include <set>
 #include <vector>
@@ -273,8 +274,8 @@ struct BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
 
 struct ConvForwardOpDescriptor : FusionOpDescriptor
 {
-    ConvForwardOpDescriptor(ConvolutionDescriptor& conv_descriptor,
-                            TensorDescriptor& filter_descriptor)
+    ConvForwardOpDescriptor(const ConvolutionDescriptor& conv_descriptor,
+                            const TensorDescriptor& filter_descriptor)
         : base_desc(conv_descriptor),
           filter_desc(filter_descriptor),
           kernel_info_valid(false),
@@ -310,6 +311,24 @@ namespace fusion {
 bool IsWinograd(const std::vector<solver::AnySolver>& ss);
 
 } // namespace fusion
+miopenStatus_t ConvBiasActivFusion(Handle& handle,
+                                   const void* alpha1,
+                                   const TensorDescriptor& xDesc,
+                                   ConstData_t x,
+                                   const TensorDescriptor& wDesc,
+                                   ConstData_t w,
+                                   const ConvolutionDescriptor& conv_desc,
+                                   miopenConvFwdAlgorithm_t algo,
+                                   void* workspace,
+                                   size_t workspaceSizeInBytes,
+                                   const void* alpha2,
+                                   const TensorDescriptor& zDesc,
+                                   ConstData_t z,
+                                   const TensorDescriptor& biasDesc,
+                                   ConstData_t bias,
+                                   const ActivationDescriptor& activationDesc,
+                                   const TensorDescriptor& yDesc,
+                                   Data_t y);
 
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);
