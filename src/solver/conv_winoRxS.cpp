@@ -698,8 +698,20 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
         int ignore;
 
         int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W;
-        GetCompiledInParameters(
-            params, &N, &C, &H, &W, &K, &ignore, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+        GetCompiledInParameters(params,
+                                params.problem,
+                                &N,
+                                &C,
+                                &H,
+                                &W,
+                                &K,
+                                &ignore,
+                                &out_H,
+                                &out_W,
+                                &R,
+                                &S,
+                                &pad_H,
+                                &pad_W);
         const auto group_cnt = params.problem.group_counts;
         C                    = C / group_cnt;
         K                    = K / group_cnt;
@@ -800,8 +812,20 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     {
         int unused = 0;
         int N, C, H, W, K, out_H, out_W, R, S;
-        GetCompiledInParameters(
-            params, &C, &K, &R, &S, &N, &unused, &H, &W, &out_H, &out_W, &unused, &unused);
+        GetCompiledInParameters(params,
+                                params.problem,
+                                &C,
+                                &K,
+                                &R,
+                                &S,
+                                &N,
+                                &unused,
+                                &H,
+                                &W,
+                                &out_H,
+                                &out_W,
+                                &unused,
+                                &unused);
         const auto group_cnt             = params.problem.group_counts;
         static const int F_NKC_STRIDES   = 1 << 9;
         static const int F_GROUP_STRIDES = 1 << 10;
