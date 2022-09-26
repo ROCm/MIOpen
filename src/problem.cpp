@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/miopen.h"
 #include <miopen/problem.hpp>
 
 #include <miopen/conv/problem_description.hpp>
@@ -154,8 +155,8 @@ conv::ProblemDescription Problem::AsConvolution() const
         GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
 
     const auto conv_dir = static_cast<conv::Direction>(direction);
-    return conv_dir == conv::Direction::Forward
-               ? conv::ProblemDescription(x_desc, w_desc, y_desc, conv_desc, conv_dir)
+    return conv_dir == conv::Direction::Forward ? (conv_desc.mode==miopenTranspose ? conv::ProblemDescription(x_desc, w_desc, y_desc, conv_desc, conv::Direction::BackwardData) : 
+               conv::ProblemDescription(x_desc, w_desc, y_desc, conv_desc, conv_dir)) 
                : conv::ProblemDescription(y_desc, w_desc, x_desc, conv_desc, conv_dir);
 }
 
@@ -292,14 +293,13 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     }
 
     ret.reserve(found);
-
     const auto conv_dir = static_cast<conv::Direction>(direction);
     const auto netcfg   = AsConvolution().BuildConfKey();
 
     for(auto i = 0; i < found; ++i)
     {
-        const auto algo = ConvolutionAlgoToDirectionalString(
-            static_cast<miopenConvAlgorithm_t>(find1_solutions[i].fwd_algo), conv_dir);
+        const auto& algo = ConvolutionAlgoToDirectionalString(
+                static_cast<miopenConvAlgorithm_t>(find1_solutions[i].fwd_algo), (conv_desc.mode == miopenTranspose) ? conv::Direction::BackwardData : conv_dir);
 
         auto solution = Solution{};
         solution.SetTime(find1_solutions[i].time);
