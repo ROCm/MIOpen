@@ -233,12 +233,6 @@ if(MIOPEN_TEST_GFX103X)
     endif()
 endif()
 
-if(MIOPEN_TEST_GFX908)
-    if(WORKAROUND_ISSUE_1787 AND MIOPEN_TEST_ALL)
-        list(APPEND SKIP_TESTS test_miopendriver_big_tensor test_conv_ck_igemm_fwd_v6r1_dlops_nchw)
-    endif()
-endif()
-
 #TODO Code Quality WORKAROUND ROCm 5.1 update
 if(MIOPEN_BACKEND_OPENCL AND MIOPEN_TEST_ALL)
     if(MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906)
@@ -667,6 +661,13 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
         PROPERTIES RUN_SERIAL On)
     set_tests_properties(test_miopendriver_big_tensor
         PROPERTIES TIMEOUT 600) 
+endif()
+
+
+if(MIOPEN_TEST_GFX908)
+    if(WORKAROUND_ISSUE_1787 AND MIOPEN_TEST_ALL)
+        list(APPEND SKIP_TESTS test_miopendriver_big_tensor test_conv_ck_igemm_fwd_v6r1_dlops_nchw)
+    endif()
 endif()
 
 set(IMPLICITGEMM_ARGS ${MIOPEN_TEST_FLOAT_ARG})
