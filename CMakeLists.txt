@@ -223,7 +223,7 @@ endif()
 # Depend on Composable Kernels
 option(MIOPEN_USE_COMPOSABLEKERNEL "Enable MIOpen to use composable kernels for various operations" On)
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-find_package(composable_kernel 1.0.0 COMPONENTS device_operations host_tensor)
+find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
 endif()
 
 set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
