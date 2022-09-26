@@ -40,21 +40,22 @@ namespace solver {
 // problematic configs.
 static bool WorkaroundSwdev168168() { return true; }
 
-bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
+bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& ctx,
+                                   const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53{}))
         return false;
-    if(!params.use_opencl_convolutions)
+    if(!ctx.use_opencl_convolutions)
         return false;
-    if(!params.problem.Is2d())
+    if(!problem.Is2d())
         return false;
-    if(params.problem.IsAsymmetricPadH() || params.problem.IsAsymmetricPadW())
+    if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
-    if(!(params.problem.IsFp32() || params.problem.IsFp16() || params.problem.IsBfp16()))
+    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
-    if(!params.problem.direction.IsBackwardWrW())
+    if(!problem.direction.IsBackwardWrW())
         return false;
-    if(!params.problem.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
@@ -66,17 +67,13 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
         // Workaround for issue 1173. These FP16 configs would cause clang-ocl compiler to crash
         // during kernel compilation, due to compiler bug
         workaround =
-            workaround || (params.problem.out_data_type == miopenHalf &&
-                           ((params.problem.kernel_size_w == 7 &&
-                             params.problem.kernel_size_h == 7 && params.problem.pad_w == 3) ||
-                            (params.problem.kernel_size_w == 7 &&
-                             params.problem.kernel_size_h == 7 && params.problem.pad_w == 2) ||
-                            (params.problem.kernel_size_w == 11 &&
-                             params.problem.kernel_size_h == 11 && params.problem.pad_w == 5) ||
-                            (params.problem.kernel_size_w == 11 &&
-                             params.problem.kernel_size_h == 11 && params.problem.pad_w == 2) ||
-                            (params.problem.kernel_size_w == 11 &&
-                             params.problem.kernel_size_h == 11 && params.problem.pad_w == 1)));
+            workaround ||
+            (problem.out_data_type == miopenHalf &&
+             ((problem.kernel_size_w == 7 && problem.kernel_size_h == 7 && problem.pad_w == 3) ||
+              (problem.kernel_size_w == 7 && problem.kernel_size_h == 7 && problem.pad_w == 2) ||
+              (problem.kernel_size_w == 11 && problem.kernel_size_h == 11 && problem.pad_w == 5) ||
+              (problem.kernel_size_w == 11 && problem.kernel_size_h == 11 && problem.pad_w == 2) ||
+              (problem.kernel_size_w == 11 && problem.kernel_size_h == 11 && problem.pad_w == 1)));
 
         // Workaround for issue 1242. These FP32 configs produce wrong result if compiled with
         // OpenCL 1.2.0-2018090737 that comes with rocm 1.9, using -O2 flag or higher.
@@ -84,12 +81,10 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
         // would pass
         workaround =
             workaround ||
-            (params.problem.out_data_type == miopenFloat &&
-             ((params.problem.kernel_size_w == 7 && params.problem.kernel_size_h == 7 &&
-               params.problem.pad_w == 3) ||
-              (params.problem.kernel_size_w == 7 && params.problem.kernel_size_h == 7 &&
-               params.problem.pad_w == 1)) &&
-             (params.problem.out_height % 112 == 0 || params.problem.out_width % 112 == 0));
+            (problem.out_data_type == miopenFloat &&
+             ((problem.kernel_size_w == 7 && problem.kernel_size_h == 7 && problem.pad_w == 3) ||
+              (problem.kernel_size_w == 7 && problem.kernel_size_h == 7 && problem.pad_w == 1)) &&
+             (problem.out_height % 112 == 0 || problem.out_width % 112 == 0));
 
         // Workaround for issue 1479
         // The compiler issue causes the correctness failure of particular config
@@ -97,32 +92,30 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
         // Disabling compiler optimization i.e. #pragma unroll in MIOpenConvBwdWrW_LxG_P53.cl
         // restores the correctness. Until, the compiler issue is fixed, all configs with width 1024
         // is skipped
-        workaround =
-            workaround || (params.problem.IsFp32() && params.problem.kernel_size_w == 3 &&
-                           params.problem.kernel_size_h == 3 && params.problem.pad_h == 2 &&
-                           params.problem.pad_w == 2 && params.problem.out_width == 1024);
+        workaround = workaround || (problem.IsFp32() && problem.kernel_size_w == 3 &&
+                                    problem.kernel_size_h == 3 && problem.pad_h == 2 &&
+                                    problem.pad_w == 2 && problem.out_width == 1024);
     }
 
     /// Resolve NaN issue on gfx908, manifested on Jenkins.
     /// Note that there is another solver, ConvOclBwdWrW2, that has very similar
     /// performance and applicable for the affected "popular" configs (7x7 filter, 1x1 padding).
-    const auto name = params.GetStream().GetDeviceName();
-    workaround      = workaround || (params.problem.IsFp16() && (name == "gfx908") &&
-                                params.problem.kernel_size_w == 7 &&
-                                params.problem.kernel_size_h == 7 && params.problem.pad_w == 1);
+    const auto name = ctx.GetStream().GetDeviceName();
+    workaround =
+        workaround || (problem.IsFp16() && (name == "gfx908") && problem.kernel_size_w == 7 &&
+                       problem.kernel_size_h == 7 && problem.pad_w == 1);
 
-    return (params.problem.kernel_dilation_w == 1 && params.problem.kernel_dilation_h == 1) &&
-           (params.problem.kernel_stride_w == 1 && params.problem.kernel_stride_h == 1) &&
+    return (problem.kernel_dilation_w == 1 && problem.kernel_dilation_h == 1) &&
+           (problem.kernel_stride_w == 1 && problem.kernel_stride_h == 1) &&
 
            // This limitation is because of the way the kernel process data at lower vertical
            // boundary (including padding).
-           (params.problem.kernel_size_h >=
-            params.problem.pad_h + params.problem.kernel_stride_h) &&
+           (problem.kernel_size_h >= problem.pad_h + problem.kernel_stride_h) &&
 
            // Input image height plus vertical paddings should be no less than filter vertical size.
            // TODO: chao: revisit this to make sure this is the actual limitation.
            // Remind that input is output, output is input.
-           (params.problem.kernel_size_h <= params.problem.out_height + 2 * params.problem.pad_h) &&
+           (problem.kernel_size_h <= problem.out_height + 2 * problem.pad_h) &&
 
            // Input and output width and height need to match exactly,
            // meaning, filter's moving range should be the same as input plus padding.
@@ -130,13 +123,13 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
            // right padding, when reading an input row into LDS. Also need to rewrite the vertical
            // loop.
            // Remind that input is output, output is input.
-           (params.problem.in_height == params.problem.out_height + 2 * params.problem.pad_h -
-                                            params.problem.kernel_size_h + 1) &&
-           (params.problem.in_width == params.problem.out_width + 2 * params.problem.pad_w -
-                                           params.problem.kernel_size_w + 1) &&
+           (problem.in_height ==
+            problem.out_height + 2 * problem.pad_h - problem.kernel_size_h + 1) &&
+           (problem.in_width ==
+            problem.out_width + 2 * problem.pad_w - problem.kernel_size_w + 1) &&
 
            // Avoid LDS over-allocation
-           GetSolution(params).Succeeded() && !workaround;
+           GetSolution(ctx, problem).Succeeded() && !workaround;
 }
 
 /*! @brief ComputeInputParams
@@ -152,7 +145,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
  *
  */
 static inline miopenStatus_t ComputeInputParams(
-    const ConvolutionContext& params,
+    const ProblemDescription& problem,
     int out_lcl_width,
     int& num_out_channels, // No. of input channels to be processed in a single workgroup
     int& out_n_horizon_reads,
@@ -167,24 +160,24 @@ static inline miopenStatus_t ComputeInputParams(
 
     // As each width chunk starts to get split,
     // it should include complete kernel filter in horizontal span.
-    const uint filter_adjustment = params.problem.kernel_size_w - 1;
+    const uint filter_adjustment = problem.kernel_size_w - 1;
 
     const auto lds_size         = 64 * 1024; /// TBD Obtain this from device info.
-    const auto max_lds_elements = lds_size / (2 * GetTypeSize(params.problem.in_data_type));
+    const auto max_lds_elements = lds_size / (2 * GetTypeSize(problem.in_data_type));
 
     while(num_out_channels * out_n_vert_reads * (out_n_horizon_reads + filter_adjustment) >
           max_lds_elements)
     {
         if(out_n_vert_reads < 2 && num_out_channels >= 2)
         {
-            out_n_vert_reads = params.problem.in_height;
+            out_n_vert_reads = problem.in_height;
             num_out_channels = std::ceil(static_cast<float>(num_out_channels) / 2);
         }
-        else if(out_n_vert_reads >= params.problem.kernel_size_h * 2)
+        else if(out_n_vert_reads >= problem.kernel_size_h * 2)
         {
             out_n_vert_reads = std::ceil(static_cast<float>(out_n_vert_reads) / 2);
         }
-        else if(out_n_vert_reads >= params.problem.kernel_size_h && out_n_horizon_reads > 2)
+        else if(out_n_vert_reads >= problem.kernel_size_h && out_n_horizon_reads > 2)
         {
             out_n_horizon_reads = std::ceil(static_cast<float>(out_n_horizon_reads) / 2);
         }
@@ -198,9 +191,9 @@ static inline miopenStatus_t ComputeInputParams(
 
     // LDS check based on weight blob
     // Kernel uses LDS for storing input data and weight accumulation
-    if(workgroup_size * params.problem.kernel_size_w > max_lds_elements)
+    if(workgroup_size * problem.kernel_size_w > max_lds_elements)
     {
-        MIOPEN_LOG_I2("For large filter size " << params.problem.kernel_size_w
+        MIOPEN_LOG_I2("For large filter size " << problem.kernel_size_w
                                                << ", running out of LDS size (bytes) " << lds_size);
         return miopenStatusNotInitialized;
     }
@@ -309,87 +302,87 @@ static inline void ComputeNumInputWidthLoops(
     }
 }
 
-size_t ConvOclBwdWrW53::GetWorkspaceSize(const ConvolutionContext& params) const
+size_t ConvOclBwdWrW53::GetWorkspaceSize(const ProblemDescription& problem) const
 {
-    int n_stacks      = std::min(params.problem.batch_sz, 1);
-    int N_BATCH_LOOPS = (params.problem.n_inputs * params.problem.n_outputs <= 8 * 1024) ? 1
-                        : (params.problem.batch_sz <= 16 || params.problem.in_width <= 32)
-                            ? (params.problem.batch_sz / n_stacks)
+    int n_stacks      = std::min(problem.batch_sz, 1);
+    int N_BATCH_LOOPS = (problem.n_inputs * problem.n_outputs <= 8 * 1024) ? 1
+                        : (problem.batch_sz <= 16 || problem.in_width <= 32)
+                            ? (problem.batch_sz / n_stacks)
                             : 4;
     int n_batch_blks =
-        (params.problem.batch_sz + N_BATCH_LOOPS * n_stacks - 1) / (N_BATCH_LOOPS * n_stacks);
+        (problem.batch_sz + N_BATCH_LOOPS * n_stacks - 1) / (N_BATCH_LOOPS * n_stacks);
     if(n_batch_blks > 1)
     {
-        int wei_bstride = (params.problem.n_outputs / params.problem.group_counts) *
-                          (params.problem.kernel_size_w * params.problem.kernel_size_h);
-        int data_len = GetTypeSize(params.problem.out_data_type);
-        return wei_bstride * params.problem.n_inputs * n_batch_blks * data_len;
+        int wei_bstride = (problem.n_outputs / problem.group_counts) *
+                          (problem.kernel_size_w * problem.kernel_size_h);
+        int data_len = GetTypeSize(problem.out_data_type);
+        return wei_bstride * problem.n_inputs * n_batch_blks * data_len;
     }
     else
         return 0;
 }
 
-ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) const
+ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
+                                          const ProblemDescription& problem) const
 {
     ConvSolution result;
 
     const auto hw_wave_sz = 64;
     // inpout are outputs
-    int wei_cstride = params.problem.kernel_size_w * params.problem.kernel_size_h;
+    int wei_cstride = problem.kernel_size_w * problem.kernel_size_h;
 
     // At convolutionocl level, the assertion is present to ensure output channels are
     // in multiple of group counts
-    int wei_bstride = (params.problem.n_outputs / params.problem.group_counts) * wei_cstride;
+    int wei_bstride = (problem.n_outputs / problem.group_counts) * wei_cstride;
 
     // number  of batch iterations
     result.n_stacks = 1;
-    result.n_stacks = std::min(params.problem.batch_sz, result.n_stacks);
+    result.n_stacks = std::min(problem.batch_sz, result.n_stacks);
     // defines how to proceed : 1 grouop per batch or with a loop over all batches
     // loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
-    int N_BATCH_LOOPS = (params.problem.n_inputs * params.problem.n_outputs <= 8 * 1024) ? 1
-                        : (params.problem.batch_sz <= 16 || params.problem.in_width <= 32)
-                            ? (params.problem.batch_sz / result.n_stacks)
+    int N_BATCH_LOOPS = (problem.n_inputs * problem.n_outputs <= 8 * 1024) ? 1
+                        : (problem.batch_sz <= 16 || problem.in_width <= 32)
+                            ? (problem.batch_sz / result.n_stacks)
                             : 4;
-    int n_batch_blks  = (params.problem.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) /
+    int n_batch_blks  = (problem.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) /
                        (N_BATCH_LOOPS * result.n_stacks);
 
-    result.out_pix_tile0 = params.problem.kernel_size_w;
-    result.out_pix_tile1 = params.problem.kernel_size_h;
+    result.out_pix_tile0 = problem.kernel_size_w;
+    result.out_pix_tile1 = problem.kernel_size_h;
 
     // n of wavefronts per group
-    int n_waves =
-        ((result.out_pix_tile0 * result.out_pix_tile1) <= 16 && (params.problem.in_width > 8)) ? 4
-        : (params.problem.in_width <= 16)                                                      ? 1
-                                                                                               : 2;
-    int GRP_SZ = hw_wave_sz * n_waves;
+    int n_waves = ((result.out_pix_tile0 * result.out_pix_tile1) <= 16 && (problem.in_width > 8))
+                      ? 4
+                  : (problem.in_width <= 16) ? 1
+                                             : 2;
+    int GRP_SZ  = hw_wave_sz * n_waves;
     result.n_in_data_tiles =
-        (params.problem.in_width <= 32 && (result.out_pix_tile0 * result.out_pix_tile1) <= 16) ? 4
-                                                                                               : 1;
+        (problem.in_width <= 32 && (result.out_pix_tile0 * result.out_pix_tile1) <= 16) ? 4 : 1;
 
     result.n_in_data_tiles =
-        std::min(result.n_in_data_tiles, (params.problem.n_outputs / params.problem.group_counts));
+        std::min(result.n_in_data_tiles, (problem.n_outputs / problem.group_counts));
 
-    static const int read_unit = (params.problem.out_width % 4 == 0)   ? 4
-                                 : (params.problem.out_width % 3 == 0) ? 3
-                                 : (params.problem.out_width % 2 == 0) ? 2
-                                                                       : 1;
+    static const int read_unit = (problem.out_width % 4 == 0)   ? 4
+                                 : (problem.out_width % 3 == 0) ? 3
+                                 : (problem.out_width % 2 == 0) ? 2
+                                                                : 1;
 
     static const std::string READ_TYPE =
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
     // calculate number of input scans in the input block
-    int out_lcl_width = ((params.problem.out_width + read_unit - 1) / read_unit) * read_unit +
-                        2 * params.problem.pad_w;
+    int out_lcl_width =
+        ((problem.out_width + read_unit - 1) / read_unit) * read_unit + 2 * problem.pad_w;
 
     // number of input map blocks being process at once
-    int out_n_vert_reads = (params.problem.out_height > 32 && params.problem.out_width <= 64 &&
+    int out_n_vert_reads = (problem.out_height > 32 && problem.out_width <= 64 &&
                             (result.out_pix_tile0 * result.out_pix_tile1) <= 16)
-                               ? (params.problem.out_height + 1) / 2
-                               : params.problem.out_height;
+                               ? (problem.out_height + 1) / 2
+                               : problem.out_height;
 
     // Given the availability of LDS, recomputes the params
     int out_n_horizon_reads = out_lcl_width;
-    if(ComputeInputParams(params,
+    if(ComputeInputParams(problem,
                           out_lcl_width,
                           result.n_in_data_tiles,
                           out_n_horizon_reads,
@@ -400,29 +393,29 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         return {miopenStatusNotInitialized};
     }
 
-    int out_n_vert_read_loops = static_cast<int>(std::ceil(
-        static_cast<float>(params.problem.out_height) / static_cast<float>(out_n_vert_reads)));
+    int out_n_vert_read_loops = static_cast<int>(
+        std::ceil(static_cast<float>(problem.out_height) / static_cast<float>(out_n_vert_reads)));
 
     // When a row is split into chunks, each chunk should fully cover the entire filter in
     // horizontal dir
     out_n_horizon_reads = (out_n_horizon_reads == out_lcl_width)
                               ? out_lcl_width
-                              : (out_n_horizon_reads + params.problem.kernel_size_w - 1);
+                              : (out_n_horizon_reads + problem.kernel_size_w - 1);
 
     int out_n_horizon_read_loops            = 1;
     int out_horizon_last_chunk_valid_pixels = 0;
     ComputeNumInputWidthLoops(out_lcl_width,
-                              params.problem.pad_w,
+                              problem.pad_w,
                               out_n_horizon_reads,
-                              params.problem.kernel_size_w,
+                              problem.kernel_size_w,
                               out_n_horizon_read_loops,
                               out_horizon_last_chunk_valid_pixels);
-    if(out_n_horizon_read_loops > 2 && params.problem.pad_w != 0)
+    if(out_n_horizon_read_loops > 2 && problem.pad_w != 0)
     {
         MIOPEN_LOG_I2("Padding where split is more than 2 ways is not supported.");
         return {miopenStatusNotInitialized};
     }
-    if(out_n_horizon_read_loops > 1 && params.problem.group_counts > 1)
+    if(out_n_horizon_read_loops > 1 && problem.group_counts > 1)
     {
         MIOPEN_LOG_I2("For large images, group support is missing.");
         return {miopenStatusNotInitialized};
@@ -436,21 +429,20 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
             : read_unit;
 
     // Compute in -> out in kernel i.e. dy
-    int in_width_chunk =
-        (out_n_horizon_read_loops == 1)
-            ? params.problem.in_width
-            : (out_n_horizon_reads + params.problem.pad_w - params.problem.kernel_size_w + 1);
+    int in_width_chunk = (out_n_horizon_read_loops == 1)
+                             ? problem.in_width
+                             : (out_n_horizon_reads + problem.pad_w - problem.kernel_size_w + 1);
     int in_width_last_chunk_valid_pixels =
-        (out_n_horizon_read_loops == 1) ? 0 : (params.problem.in_width % in_width_chunk);
+        (out_n_horizon_read_loops == 1) ? 0 : (problem.in_width % in_width_chunk);
 
     result.in_tile1        = 1;
     result.n_out_pix_tiles = 1;
     int n_out_stacks       = 1;
-    ComputeOutputParams(params.problem.in_width,
+    ComputeOutputParams(problem.in_width,
                         GRP_SZ,
                         in_width_chunk,
-                        params.problem.n_inputs,
-                        params.problem.group_counts,
+                        problem.n_inputs,
+                        problem.group_counts,
                         result.in_tile0,
                         n_out_stacks);
 
@@ -468,8 +460,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
     // select output mapping
     int total_out_maps = result.n_out_pix_tiles * n_out_stacks;
-    total_out_maps =
-        (total_out_maps > params.problem.n_inputs) ? params.problem.n_inputs : total_out_maps;
+    total_out_maps     = (total_out_maps > problem.n_inputs) ? problem.n_inputs : total_out_maps;
 
     result.grp_tile0 = GRP_SZ;
     result.grp_tile1 = 1;
@@ -485,47 +476,47 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         (ut_read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((ut_read_unit));
 
     // group parameters
-    int n_input_channels_per_group  = params.problem.n_outputs / params.problem.group_counts;
-    int n_output_channels_per_group = params.problem.n_inputs / params.problem.group_counts;
+    int n_input_channels_per_group  = problem.n_outputs / problem.group_counts;
+    int n_output_channels_per_group = problem.n_inputs / problem.group_counts;
 
-    if(!params.problem.direction.IsBackwardWrW())
-        MIOPEN_THROW("!params.problem.direction.IsBackwardWrW()");
+    if(!problem.direction.IsBackwardWrW())
+        MIOPEN_THROW("!problem.direction.IsBackwardWrW()");
     // it's backward - inputs are outputs and vs versa
     auto comp_options =
         std::string(" -DMLO_DIR_FORWARD=0") + std::string(" -DMLO_GRP_SZ=") +
         std::to_string(GRP_SZ) + std::string(" -DMLO_GRP_SZ0=") + std::to_string(result.grp_tile0) +
         std::string(" -DMLO_GRP_SZ1=") + std::to_string(result.grp_tile1) +
         std::string(" -DMLO_GRP_SZ2=") + std::to_string(grp_tile2) +
-        std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.problem.kernel_size_w) +
-        std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.problem.kernel_size_h) +
-        std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.problem.pad_w) +
-        std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.problem.pad_h) +
-        std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(params.problem.kernel_stride_w) +
-        std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(params.problem.kernel_stride_h) +
-        std::string(" -DSTRIDE_W=") + std::to_string(params.problem.kernel_stride_w) +
-        std::string(" -DSTRIDE_H=") + std::to_string(params.problem.kernel_stride_h) +
-        std::string(" -DMLO_N_OUTPUTS=") + std::to_string(params.problem.n_inputs) +
-        std::string(" -DMLO_N_INPUTS=") + std::to_string(params.problem.n_outputs) +
-        std::string(" -DMLO_GROUP_COUNTS=") + std::to_string(params.problem.group_counts) +
+        std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(problem.kernel_size_w) +
+        std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(problem.kernel_size_h) +
+        std::string(" -DMLO_FILTER_PAD0=") + std::to_string(problem.pad_w) +
+        std::string(" -DMLO_FILTER_PAD1=") + std::to_string(problem.pad_h) +
+        std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(problem.kernel_stride_w) +
+        std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(problem.kernel_stride_h) +
+        std::string(" -DSTRIDE_W=") + std::to_string(problem.kernel_stride_w) +
+        std::string(" -DSTRIDE_H=") + std::to_string(problem.kernel_stride_h) +
+        std::string(" -DMLO_N_OUTPUTS=") + std::to_string(problem.n_inputs) +
+        std::string(" -DMLO_N_INPUTS=") + std::to_string(problem.n_outputs) +
+        std::string(" -DMLO_GROUP_COUNTS=") + std::to_string(problem.group_counts) +
         std::string(" -DMLO_N_INPUTS_PER_GROUP=") + std::to_string(n_input_channels_per_group) +
         std::string(" -DMLO_N_OUTPUTS_PER_GROUP=") + std::to_string(n_output_channels_per_group) +
-        std::string(" -DMLO_BATCH_SZ=") + std::to_string(params.problem.batch_sz) +
+        std::string(" -DMLO_BATCH_SZ=") + std::to_string(problem.batch_sz) +
         std::string(" -DMLO_N_BATCH_LOOPS=") + std::to_string(N_BATCH_LOOPS) +
-        std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(params.problem.in_batch_stride) +
-        std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-        std::to_string(params.problem.in_channel_stride) + std::string(" -DMLO_OUT_STRIDE=") +
-        std::to_string(params.problem.in_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
-        std::to_string(params.problem.out_batch_stride) + std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
-        std::to_string(params.problem.out_channel_stride) + std::string(" -DMLO_IN_STRIDE=") +
-        std::to_string(params.problem.out_stride) + std::string(" -DMLO_WEI_BATCH_STRIDE=") +
-        std::to_string(wei_bstride) + std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
-        std::to_string(wei_cstride) + std::string(" -DMLO_IN_WIDTH=") +
-        std::to_string(params.problem.out_width) + std::string(" -DMLO_IN_HEIGHT=") +
-        std::to_string(params.problem.out_height) + std::string(" -DMLO_OUT_WIDTH=") +
-        std::to_string(params.problem.in_width) + std::string(" -DMLO_OUT_HEIGHT=") +
-        std::to_string(params.problem.in_height) + std::string(" -DMLO_IN_TILE1=") +
-        std::to_string(result.in_tile1) + std::string(" -DMLO_IN_TILE0=") +
-        std::to_string(result.in_tile0) + std::string(" -DMLO_N_LCL_BATCHS=") +
+        std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(problem.in_batch_stride) +
+        std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(problem.in_channel_stride) +
+        std::string(" -DMLO_OUT_STRIDE=") + std::to_string(problem.in_stride) +
+        std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(problem.out_batch_stride) +
+        std::string(" -DMLO_IN_CHANNEL_STRIDE=") + std::to_string(problem.out_channel_stride) +
+        std::string(" -DMLO_IN_STRIDE=") + std::to_string(problem.out_stride) +
+        std::string(" -DMLO_WEI_BATCH_STRIDE=") + std::to_string(wei_bstride) +
+        std::string(" -DMLO_WEI_CHANNEL_STRIDE=") + std::to_string(wei_cstride) +
+        std::string(" -DMLO_IN_WIDTH=") + std::to_string(problem.out_width) +
+        std::string(" -DMLO_IN_HEIGHT=") + std::to_string(problem.out_height) +
+        std::string(" -DMLO_OUT_WIDTH=") + std::to_string(problem.in_width) +
+        std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(problem.in_height) +
+        std::string(" -DMLO_IN_TILE1=") + std::to_string(result.in_tile1) +
+        std::string(" -DMLO_IN_TILE0=") + std::to_string(result.in_tile0) +
+        std::string(" -DMLO_N_LCL_BATCHS=") +
         std::to_string(result.n_stacks) // # of diff stacks (part of batch).
         + std::string(" -DMLO_N_LCL_OUT_MAPS=") +
         std::to_string(result.n_out_pix_tiles) // # output pixel tiles per wk-item (ALU)
@@ -542,8 +533,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         std::string(" -DMLO_IN_EXTENT1=") + std::to_string(out_n_vert_reads) +
         std::string(" -DMLO_IN_N_VERT_LOOPS=") + std::to_string(out_n_vert_read_loops) +
         std::string(" -DMLO_IN_WIDTH_CHUNK=") +
-        std::to_string((out_n_horizon_read_loops == 1) ? params.problem.out_width
-                                                       : out_n_horizon_reads) +
+        std::to_string((out_n_horizon_read_loops == 1) ? problem.out_width : out_n_horizon_reads) +
         std::string(" -DMLO_IN_WIDTH_N_LOOPS=") + std::to_string(out_n_horizon_read_loops) +
         std::string(" -DMLO_IN_WIDTH_LAST_CHUNK_VALID_READ_UNITS=") +
         std::to_string(out_horizon_last_chunk_valid_read_units) +
@@ -555,17 +545,17 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         std::to_string(in_width_last_chunk_valid_spans) +
         std::string(" -DMLO_OUT_WIDTH_LAST_CHUNK_VALID_PIXELS_IN_LAST_SPAN=") +
         std::to_string(in_width_last_chunk_valid_pixels_in_last_span) +
-        std::string(" -DMLO_CONV_BIAS=") + std::to_string(params.problem.bias) +
+        std::string(" -DMLO_CONV_BIAS=") + std::to_string(problem.bias) +
         std::string(" -DMLO_UT_READ_TYPE=") + UT_READ_TYPE + std::string(" -DMLO_UT_READ_UNIT=") +
         std::to_string(ut_read_unit) + std::string(" -DMLO_UT_GRP_SZ0=") +
         std::to_string(UT_GRP_SZ0)
 
         //		+ std::string(" -limit-vector-registers=64 ")
-        + params.general_compile_options;
+        + ctx.general_compile_options;
 
-    // On gfx908 hardware, the compiler doesn't seem to support #pragam unroll correctly
+    // On gfx908 hardware, the compiler doesn't seem to support #pragma unroll correctly
     // References: PR: #1962 and SWDEV-200074
-    const auto name = params.GetStream().GetDeviceName();
+    const auto name = ctx.GetStream().GetDeviceName();
     if(StartsWith(name, "gfx908"))
     {
         comp_options += " -DMLO_DISABLE_PRAGMA_UNROLL_COMPILER_SWDEV_200074_WORKAROUND=1";
@@ -580,14 +570,13 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         kernel.l_wk.push_back(grp_tile2);
         // input is output
 
-        size_t gbl_wk1 = ((params.problem.n_inputs + total_out_maps - 1) / total_out_maps);
+        size_t gbl_wk1 = ((problem.n_inputs + total_out_maps - 1) / total_out_maps);
         size_t gbl_wk2 = n_batch_blks;
         size_t gbl_wk0 = GRP_SZ;
 
-        if(params.problem.group_counts > 1)
+        if(problem.group_counts > 1)
         {
-            gbl_wk0 *= (((params.problem.n_outputs / params.problem.group_counts) +
-                         result.n_in_data_tiles - 1) /
+            gbl_wk0 *= (((problem.n_outputs / problem.group_counts) + result.n_in_data_tiles - 1) /
                         result.n_in_data_tiles);
 
             kernel.kernel_file = "MIOpenGroupConvBwdWrW_LxG_P53.cl";
@@ -595,8 +584,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         }
         else
         {
-            gbl_wk0 *=
-                ((params.problem.n_outputs + result.n_in_data_tiles - 1) / result.n_in_data_tiles);
+            gbl_wk0 *= ((problem.n_outputs + result.n_in_data_tiles - 1) / result.n_in_data_tiles);
 
             kernel.kernel_file = "MIOpenConvBwdWrW_LxG_P53.cl";
             kernel.kernel_name = "MIOpenCvBwdWrW";
@@ -623,7 +611,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         kernel.l_wk.push_back(1);
         kernel.l_wk.push_back(1);
 
-        int gbl_ut_wk0 = wei_bstride * params.problem.n_inputs / ut_read_unit;
+        int gbl_ut_wk0 = wei_bstride * problem.n_inputs / ut_read_unit;
 
         kernel.g_wk.push_back(gbl_ut_wk0);
         kernel.g_wk.push_back(1);
@@ -632,7 +620,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         result.construction_params.push_back(kernel);
     }
 
-    const auto ws_sz       = GetWorkspaceSize(params);
+    const auto ws_sz       = GetWorkspaceSize(problem);
     result.workspace_sz    = ws_sz;
     result.invoker_factory = conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
 
