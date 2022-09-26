@@ -50,6 +50,7 @@ option( MIOPEN_TEST_WITH_MIOPENDRIVER "Use MIOpenDriver in tests" ${MIOPEN_TEST_
 
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" OFF) # TODO: Remove this W/A after ~6 months (in January 2023)
+option( WORKAROUND_ISSUE_1787 "" ON)
 
 # Run the test suite to a depth limit
 #limit greater than 2 leads to prolonged testing more than 5hrs per stage.
@@ -229,6 +230,12 @@ endif()
 if(MIOPEN_TEST_GFX103X)
     if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
         list(APPEND SKIP_TESTS test_lrn_test)
+    endif()
+endif()
+
+if(MIOPEN_TEST_GFX908)
+    if(WORKAROUND_ISSUE_1787 AND MIOPEN_TEST_ALL)
+        list(APPEND SKIP_TESTS test_miopendriver_big_tensor test_conv_ck_igemm_fwd_v6r1_dlops_nchw)
     endif()
 endif()
 
