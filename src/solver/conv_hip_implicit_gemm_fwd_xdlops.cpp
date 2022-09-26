@@ -33,7 +33,7 @@
 #include <miopen/solver/convolution_context_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/convolution_forward.hpp>
-
+#endif
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
 namespace miopen {
@@ -320,5 +320,3 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
 
 } // namespace solver
 } // namespace miopen
-
-#endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
