@@ -375,7 +375,7 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ProblemDescription& problem) 
     if(!(n_mult <= total_n_blocks))
         return false;
 
-    const auto c_per_wave = (problem.n_inputs + waves_c_in_group - 1) / waves_c_in_group;
+    const auto c_per_wave      = (problem.n_inputs + waves_c_in_group - 1) / waves_c_in_group;
     const auto c_per_last_wave = problem.n_inputs - (c_per_wave * (waves_c_in_group - 1));
 
     if(problem.direction.IsBackwardData() && !(problem.n_outputs % k_mult == 0))
@@ -399,10 +399,8 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ProblemDescription& problem) 
                        1,
                        GetTypeSize(problem.out_data_type));
         int n_miss = n_mult * GetNPerGpr() - 1;
-        if((static_cast<long>(problem.n_inputs) + n_miss) * ibuf.byte_stride.nk >=
-               (1LL << 31) ||
-           (static_cast<long>(problem.n_outputs) + n_miss) * obuf.byte_stride.nk >=
-               (1LL << 31))
+        if((static_cast<long>(problem.n_inputs) + n_miss) * ibuf.byte_stride.nk >= (1LL << 31) ||
+           (static_cast<long>(problem.n_outputs) + n_miss) * obuf.byte_stride.nk >= (1LL << 31))
             return false;
     }
     return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
@@ -466,7 +464,8 @@ bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ProblemDescription& problem,
     return config.IsValidValue() && config.IsValid(problem);
 }
 
-bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
+                                 const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2{}))
         return false;
