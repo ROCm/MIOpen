@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "miopen/miopen.h"
 #include <miopen/problem.hpp>
 
 #include <miopen/conv/problem_description.hpp>
@@ -298,7 +297,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
     for(auto i = 0; i < found; ++i)
     {
-        const auto& algo = ConvolutionAlgoToDirectionalString(
+        const auto algo = ConvolutionAlgoToDirectionalString(
                 static_cast<miopenConvAlgorithm_t>(find1_solutions[i].fwd_algo), (conv_desc.mode == miopenTranspose) ? conv::Direction::BackwardData : conv_dir);
 
         auto solution = Solution{};
