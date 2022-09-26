@@ -83,7 +83,8 @@ bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
     return config.IsValidValue() && config.IsValid(problem);
 }
 
-bool ConvBiasActivAsm1x1U::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvBiasActivAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
+                                        const ProblemDescription& problem) const
 {
     return ConvAsm1x1U{}.IsApplicable(ctx, problem);
 }
@@ -93,12 +94,12 @@ size_t ConvBiasActivAsm1x1U::GetWorkspaceSize(const ProblemDescription& problem)
     return ConvAsm1x1U{}.GetWorkspaceSize(problem);
 }
 
-PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::Search(const ConvolutionContext& ctx, const ProblemDescription& problem, const AnyInvokeParams&) const
+PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(
+    const ConvolutionContext& ctx, const ProblemDescription& problem, const AnyInvokeParams&) const
 {
     std::ignore = problem;
 
-    auto cba_ctx = ctx;
+    auto cba_ctx      = ctx;
     auto& cba_problem = cba_ctx.problem;
 
     cba_problem.bias = 1;
@@ -115,16 +116,15 @@ ConvBiasActivAsm1x1U::Search(const ConvolutionContext& ctx, const ProblemDescrip
     const auto wei_buf  = handle.Create(cba_problem.weights_sz);
     const auto out_buf  = handle.Create(cba_problem.top_sz);
 
-    auto tensors    = FusedConvDataTensors{};
-    tensors.in      = in_buf.get();
-    tensors.w       = wei_buf.get();
-    tensors.out     = out_buf.get();
-    tensors.inDesc  = cba_problem.conv_problem.GetIn();
-    tensors.wDesc   = cba_problem.conv_problem.GetWeights();
-    tensors.outDesc = cba_problem.conv_problem.GetOut();
-    tensors.bias    = bias_buf.get();
-    const auto gfx90aaltimpl =
-        cba_problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
+    auto tensors             = FusedConvDataTensors{};
+    tensors.in               = in_buf.get();
+    tensors.w                = wei_buf.get();
+    tensors.out              = out_buf.get();
+    tensors.inDesc           = cba_problem.conv_problem.GetIn();
+    tensors.wDesc            = cba_problem.conv_problem.GetWeights();
+    tensors.outDesc          = cba_problem.conv_problem.GetOut();
+    tensors.bias             = bias_buf.get();
+    const auto gfx90aaltimpl = cba_problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
     const auto fused_invoke_ctx = conv::FusedDataInvokeParams(tensors, nullptr, 0, gfx90aaltimpl);
     return GenericSearch(*this, cba_ctx, fused_invoke_ctx);
 }

@@ -370,7 +370,8 @@ bool ConvAsm1x1U::IsValidPerformanceConfig(const ProblemDescription& problem,
     return config.IsValidValue() && config.IsValid(problem);
 }
 
-bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
+                               const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U{}))
         return false;
@@ -466,9 +467,8 @@ size_t ConvAsm1x1U::GetWorkspaceSize(const ProblemDescription& problem) const
 {
     if(UseSubsample(problem) || UseUpsample(problem))
     {
-        int in_batch_stride =
-            AsmImgWidth(problem) * AsmImgHeight(problem) *
-            (UseSubsample(problem) ? problem.n_inputs : problem.n_outputs);
+        int in_batch_stride = AsmImgWidth(problem) * AsmImgHeight(problem) *
+                              (UseSubsample(problem) ? problem.n_inputs : problem.n_outputs);
         int data_len = GetTypeSize(problem.out_data_type);
         return in_batch_stride * problem.batch_sz * data_len;
     }
@@ -495,9 +495,8 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
     if(UseSubsample(problem) || UseUpsample(problem))
     {
         // subsampled input, in_height equals to image size after downsampling
-        int in_batch_stride =
-            AsmImgWidth(problem) * AsmImgHeight(problem) *
-            (UseSubsample(problem) ? problem.n_inputs : problem.n_outputs);
+        int in_batch_stride = AsmImgWidth(problem) * AsmImgHeight(problem) *
+                              (UseSubsample(problem) ? problem.n_inputs : problem.n_outputs);
         int write_unit =
             (AsmImgWidth(problem) % 4 == 0)
                 ? 4
@@ -510,19 +509,18 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
             (problem.in_data_type == miopenHalf ? "ushort" : "float") +
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
-            std::string(" -DMLO_FILTER0_STRIDE0=") +
-            std::to_string(problem.kernel_stride_w) +
-            std::string(" -DMLO_FILTER0_STRIDE1=") +
-            std::to_string(problem.kernel_stride_h) + std::string(" -DMLO_WRITE_UNIT=") +
-            std::to_string(write_unit) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-            std::to_string(problem.out_channel_stride) + std::string(" -DMLO_OUT_STRIDE=") +
-            std::to_string(problem.out_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
-            std::to_string(in_batch_stride) + std::string(" -DMLO_IN0_BATCH_STRIDE=") +
+            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(problem.kernel_stride_w) +
+            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(problem.kernel_stride_h) +
+            std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
+            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(problem.out_channel_stride) +
+            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(problem.out_stride) +
+            std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
+            std::string(" -DMLO_IN0_BATCH_STRIDE=") +
             std::to_string(problem.direction.IsForward() ? problem.in_batch_stride
-                                                                : problem.out_batch_stride) +
-            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") +
-            std::to_string(problem.in_channel_stride) + std::string(" -DMLO_IN0_STRIDE=") +
-            std::to_string(problem.in_stride) + ctx.general_compile_options;
+                                                         : problem.out_batch_stride) +
+            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(problem.in_channel_stride) +
+            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(problem.in_stride) +
+            ctx.general_compile_options;
 
         ss_us_kernel.l_wk.push_back(n_grp0_size0);
         ss_us_kernel.l_wk.push_back(1);
@@ -714,8 +712,8 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
         main_kernel.l_wk[0] *
         divide_round_plus_inf(AsmImgHeight(problem) * AsmImgWidth(problem), hw_per_wave));
 
-    main_kernel.g_wk.push_back(divide_round_plus_inf(problem.n_outputs,
-                                                     pcfg->GetKMult() * pcfg->GetWavesKInGroup()));
+    main_kernel.g_wk.push_back(
+        divide_round_plus_inf(problem.n_outputs, pcfg->GetKMult() * pcfg->GetWavesKInGroup()));
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     main_kernel.g_wk.push_back(divide_round_plus_inf(problem.batch_sz, n_images_per_wave));
 
@@ -733,8 +731,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
     if(UseSubsample(problem))
     {
         int N, C, H, W, K, n_groups, out_H, out_W;
-        GetCompiledInParameters(
-            ctx, problem, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+        GetCompiledInParameters(ctx, problem, &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
         result.invoker_factory = conv::MakeGcnAsm1x1USSInvokerFactory(
             N, C, K, n_groups, out_H, out_W, result.workspace_sz);
     }
