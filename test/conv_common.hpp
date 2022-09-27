@@ -668,8 +668,10 @@ struct verify_forward_conv : conv_base<T, Tout>
                 in_len[1]  = ((in_len[1] + 3) / 4) * 4;
                 wei_len[1] = ((wei_len[1] + 3) / 4) * 4;
 
-                miopen::TensorDescriptor input_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8, in_len);
-                miopen::TensorDescriptor weight_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8, wei_len);
+                miopen::TensorDescriptor input_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8,
+                                                         in_len);
+                miopen::TensorDescriptor weight_vpad_desc(is_vect ? miopenInt8x4 : miopenInt8,
+                                                          wei_len);
 
                 auto input_vpad   = tensor<T>{in_len};
                 auto weights_vpad = tensor<T>{wei_len};
