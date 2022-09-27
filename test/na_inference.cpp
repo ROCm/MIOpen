@@ -23,6 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "test.hpp"
+#include "driver.hpp"
 #include "fusionHost.hpp"
 #include "random.hpp"
 #include <miopen/stringutils.hpp>
