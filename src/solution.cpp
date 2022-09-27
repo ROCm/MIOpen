@@ -76,9 +76,8 @@ void Solution::RunImpl(Handle& handle,
     const auto w = get_input_checked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
     auto y       = get_input_checked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
 
-    const auto problem_ = conv_desc.mode == miopenTranspose
-                              ? Transpose(GetProblem(), conv_desc, &x, w, &y)
-                              : GetProblem();
+    const auto problem_ =
+        conv_desc.mode == miopenTranspose ? Transpose(GetProblem(), &x, w, &y) : GetProblem();
 
     if(y.descriptor->GetLengths()[1] != w.descriptor->GetLengths()[0])
     {
@@ -174,28 +173,9 @@ void Solution::RunImpl(Handle& handle,
     checkNumericsOutput_();
 }
 
-Problem Solution::Transpose(const Problem& problem,
-                            const ConvolutionDescriptor& conv_desc,
-                            RunInput* x,
-                            const RunInput& w,
-                            RunInput* y)
+Problem Solution::Transpose(const Problem& problem, RunInput* x, const RunInput& w, RunInput* y)
 {
-    auto transposed = Problem{};
-    transposed.SetOperatorDescriptor(conv_desc);
-
-    switch(problem.GetDirection())
-    {
-    case miopenProblemDirectionForward:
-        transposed.SetDirection(miopenProblemDirectionBackward);
-        break;
-    case miopenProblemDirectionBackward:
-        transposed.SetDirection(miopenProblemDirectionForward);
-        break;
-    case miopenProblemDirectionBackwardWeights:
-        transposed.SetDirection(miopenProblemDirectionBackwardWeights);
-        break;
-    default: MIOPEN_THROW(miopenStatusNotImplemented);
-    }
+    auto transposed = problem.Transpose();
 
     std::swap(*x, *y);
 

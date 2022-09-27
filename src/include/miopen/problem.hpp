@@ -86,6 +86,8 @@ struct Problem : miopenProblem
     const TensorDescriptor& GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
                                                        const std::string& name_str) const;
 
+    Problem Transpose() const;
+
     static void ValidateGroupCount(const TensorDescriptor& xDesc,
                                    const TensorDescriptor& wDesc,
                                    const ConvolutionDescriptor& conv);
@@ -105,6 +107,8 @@ private:
                                             std::size_t max_solutions,
                                             const AllocatedBuffers& buffers,
                                             const ConvolutionDescriptor& conv_desc) const;
+
+    void TransposeImpl(const ConvolutionDescriptor& conv_desc);
 };
 
 } // namespace miopen
