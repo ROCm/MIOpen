@@ -311,7 +311,10 @@ std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context
 }
 
 template <class Solver, class Context, class Problem>
-auto GenericSearch(const Solver s, const Context& ctx, const Problem& problem, const AnyInvokeParams& invoke_ctx)
+auto GenericSearch(const Solver s,
+                   const Context& ctx,
+                   const Problem& problem,
+                   const AnyInvokeParams& invoke_ctx)
 {
     std::ignore = problem;
     return GenericSearch(s, ctx, invoke_ctx);
