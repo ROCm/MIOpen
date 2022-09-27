@@ -756,9 +756,7 @@ PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ConvolutionContext& ctx,
                                                  const ProblemDescription& problem,
                                                  const AnyInvokeParams& invoke_ctx) const
 {
-    std::ignore = problem;
-
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
 } // namespace solver
