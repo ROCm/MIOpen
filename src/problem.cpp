@@ -340,7 +340,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                : conv::Direction::Forward;
     })();
 
-    const auto netcfg   = AsConvolution().BuildConfKey();
+    const auto netcfg = AsConvolution().BuildConfKey();
 
     for(auto i = 0; i < found; ++i)
     {
