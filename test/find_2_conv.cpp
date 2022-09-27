@@ -51,6 +51,7 @@ struct Find2Test : test_driver
     // --input 16,192,28,28 --weights 32,192,5,5 --filter 2,2,1,1,1,1,
     miopen::ConvolutionDescriptor filter = {
         2, miopenConvolution, miopenPaddingDefault, {1, 1}, {1, 1}, {1, 1}};
+    miopenConvolutionMode_t mode = miopenConvolution;
 
     Find2Test()
     {
@@ -61,12 +62,35 @@ struct Find2Test : test_driver
                 miopenProblemDirectionBackward,
                 miopenProblemDirectionBackwardWeights,
             }));
+
+        add(mode,
+            "mode",
+            generate_data({
+                miopenConvolution,
+                miopenTranspose,
+            }));
     }
 
-    void run() { TestConv(); }
+    void run()
+    {
+        ReleaseMemory();
+        GenerateTensors();
+        TestConv();
+    }
 
 private:
-    void TestConv()
+    void ReleaseMemory()
+    {
+        x_dev.release();
+        w_dev.release();
+        y_dev.release();
+
+        x = {};
+        w = {};
+        y = {};
+    }
+
+    void GenerateTensors()
     {
         auto& handle_deref = get_handle();
 
@@ -77,8 +101,11 @@ private:
         x_dev = handle_deref.Write(x.data);
         w_dev = handle_deref.Write(w.data);
         y_dev = handle_deref.Write(y.data);
+    }
 
-        miopenHandle_t handle = &handle_deref;
+    void TestConv()
+    {
+        miopenHandle_t handle = &get_handle();
         miopenProblem_t problem;
 
         EXPECT_EQUAL(miopenCreateConvProblem(&problem, &filter, direction), miopenStatusSuccess);
