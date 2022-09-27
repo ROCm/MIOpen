@@ -235,7 +235,7 @@ endif()
 #TODO Code Quality WORKAROUND ROCm 5.1 update
 if(MIOPEN_BACKEND_OPENCL AND MIOPEN_TEST_ALL)
     if(MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906)
-        list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d)
+        list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d test_conv3d_find2)
     endif()
     if(MIOPEN_TEST_GFX103X)
         list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d)
@@ -245,6 +245,13 @@ endif()
 #TODO WORKAROUND_ISSUE_1424
 if(MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908)
     list(APPEND SKIP_TESTS test_bn_3d_spatial_test)
+endif()
+
+#TODO WORKAROUND_ISSUE_1743: issue with GemmFwdRest
+# These tests are passing on latest mainline dockers
+# TODO: remove after next CI docker update
+if(MIOPEN_TEST_GFX90A AND MIOPEN_TEST_HALF)
+    list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_conv3d_find2)
 endif()
 
 # The usage is non-trivial, see function add_test_command.

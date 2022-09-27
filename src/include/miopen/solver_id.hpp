@@ -46,6 +46,7 @@ struct AnySolver;
 
 enum class Primitive
 {
+    Invalid,
     Convolution,
     Activation,
     Batchnorm,

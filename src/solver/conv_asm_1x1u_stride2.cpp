@@ -728,7 +728,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
 
     {
         int N, C, H, W, K, n_groups;
-        GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
+        GetCompiledInParameters(params, params.problem, &N, &C, &H, &W, &K, &n_groups);
         result.invoker_factory = conv::MakeGcnAsm1x1UInvokerFactory(N, C, H, W, K, n_groups);
     }
 

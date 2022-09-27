@@ -275,8 +275,10 @@ struct AnySolver
                 MIOPEN_LOG_I2("Perf Db: Invalid alternate record from Perf Db: "
                               << value.AltSolverDbId() << ": " << config);
             }
-            MIOPEN_LOG_I2("Perf Db: Failed Loading: " << value.SolverDbId());
-            return "";
+
+            MIOPEN_LOG_I2("Perf Db: Failed Loading, Using Default: " << value.SolverDbId());
+            config = value.GetDefaultPerformanceConfig(ctx);
+            return config.ToString();
         }
         std::string
         GetPerfCfgParams(const ConvolutionContext& ctx, const Db& db, std::false_type) const
@@ -289,7 +291,8 @@ struct AnySolver
 
         std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const override
         {
-            return GetPerfCfgParams(ctx, db, std::integral_constant<bool, TunableSolver::Is>());
+            return GetPerfCfgParams(
+                ctx.problem, db, std::integral_constant<bool, TunableSolver::Is>());
         }
 
         size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override

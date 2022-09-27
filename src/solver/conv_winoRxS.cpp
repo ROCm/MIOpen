@@ -533,7 +533,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
             return false;
 #if !WORKAROUND_ISSUE_1681
-        if(params.problem.group_counts == 1)
+        if(params.problem.group_counts == 1 && !params.problem.direction.IsBackwardWrW())
             return false;
 #endif
     }
@@ -700,8 +700,20 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
         int ignore;
 
         int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W;
-        GetCompiledInParameters(
-            params, &N, &C, &H, &W, &K, &ignore, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+        GetCompiledInParameters(params,
+                                params.problem,
+                                &N,
+                                &C,
+                                &H,
+                                &W,
+                                &K,
+                                &ignore,
+                                &out_H,
+                                &out_W,
+                                &R,
+                                &S,
+                                &pad_H,
+                                &pad_W);
         const auto group_cnt = params.problem.group_counts;
         C                    = C / group_cnt;
         K                    = K / group_cnt;
@@ -802,8 +814,20 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     {
         int unused = 0;
         int N, C, H, W, K, out_H, out_W, R, S;
-        GetCompiledInParameters(
-            params, &C, &K, &R, &S, &N, &unused, &H, &W, &out_H, &out_W, &unused, &unused);
+        GetCompiledInParameters(params,
+                                params.problem,
+                                &C,
+                                &K,
+                                &R,
+                                &S,
+                                &N,
+                                &unused,
+                                &H,
+                                &W,
+                                &out_H,
+                                &out_W,
+                                &unused,
+                                &unused);
         const auto group_cnt             = params.problem.group_counts;
         static const int F_NKC_STRIDES   = 1 << 9;
         static const int F_GROUP_STRIDES = 1 << 10;
@@ -915,6 +939,10 @@ bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& params) co
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
+#if !WORKAROUND_ISSUE_1681
+    if(params.problem.direction.IsBackwardWrW())
+        return false;
+#endif
     return IsApplicableBase(params) && params.problem.group_counts == 1;
 }
 
@@ -1002,8 +1030,20 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& par
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
     int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
-    GetCompiledInParameters(
-        params, &N, &C, &H, &W, &K, &n_groups_, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+    GetCompiledInParameters(params,
+                            conv_ctx.problem,
+                            &N,
+                            &C,
+                            &H,
+                            &W,
+                            &K,
+                            &n_groups_,
+                            &out_H,
+                            &out_W,
+                            &R,
+                            &S,
+                            &pad_H,
+                            &pad_W);
     const int zero = 0;
     int flags      = [&]() {
         if(bias_idx != -1 && activ_idx != -1)

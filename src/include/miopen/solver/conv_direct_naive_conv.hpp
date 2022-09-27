@@ -32,23 +32,24 @@ namespace miopen {
 
 namespace solver {
 
-bool ConvDirectNaiveConvIsAssemblyKernel(const ConvolutionContext& ctx);
-std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx);
+bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext&, const ProblemDescription&);
+std::string ConvDirectNaiveConvKernelName(const ProblemDescription&);
 std::string ConvDirectNaiveConvKernelFile();
 std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx);
-bool ConvDirectNaiveConvIsApplicableByKernelType(const ConvolutionContext& ctx);
+bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext&,
+                                                 const ProblemDescription&);
 
-bool IsInputFp32(const ConvolutionContext& ctx);
-bool IsInputFp16(const ConvolutionContext& ctx);
-bool IsInputBfp16(const ConvolutionContext& ctx);
-bool IsInputInt8(const ConvolutionContext& ctx);
-bool IsAccFp64(const ConvolutionContext& ctx);
-bool IsAccInt32(const ConvolutionContext& ctx);
-bool IsOutputFp32(const ConvolutionContext& ctx);
-bool IsOutputFp16(const ConvolutionContext& ctx);
-bool IsOutputBfp16(const ConvolutionContext& ctx);
-bool IsOutputInt8(const ConvolutionContext& ctx);
-bool IsOutputInt32(const ConvolutionContext& ctx);
+bool IsInputFp32(const ProblemDescription&);
+bool IsInputFp16(const ProblemDescription&);
+bool IsInputBfp16(const ProblemDescription&);
+bool IsInputInt8(const ProblemDescription&);
+bool IsAccFp64(const ProblemDescription&);
+bool IsAccInt32(const ProblemDescription&);
+bool IsOutputFp32(const ProblemDescription&);
+bool IsOutputFp16(const ProblemDescription&);
+bool IsOutputBfp16(const ProblemDescription&);
+bool IsOutputInt8(const ProblemDescription&);
+bool IsOutputInt32(const ProblemDescription&);
 
 } // namespace solver
 } // namespace miopen

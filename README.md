@@ -14,7 +14,6 @@ MIOpen supports two programming models -
 * Base software stack, which includes:
   * HIP - 
     * HIP and HCC libraries and header files.
-    * [clang-ocl](https://github.com/RadeonOpenCompute/clang-ocl) -- **required**
   * OpenCL - OpenCL libraries and header files.
 * [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) - enable various functionalities including transposed and dilated convolutions. 
   * This is optional on the HIP backend, and required on the OpenCL backend.
@@ -30,7 +29,7 @@ MIOpen supports two programming models -
   * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCmSoftwarePlatform/rocBLAS/tree/master-rocm-2.10)
   * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCmSoftwarePlatform/rocBLAS/releases/tag/rocm-3.5.0)
 * [MLIR](https://github.com/ROCmSoftwarePlatform/llvm-project-mlir) - (Multi-Level Intermediate Representation) with its MIOpen dialect to support and complement kernel development.
-* [Comopsable Kernel](https://github.com/ROCmSoftwarePlatform/composable_kernel) - C++ templated device library for GEMM-like and reduction-like operators.
+* [Composable Kernel](https://github.com/ROCmSoftwarePlatform/composable_kernel) - C++ templated device library for GEMM-like and reduction-like operators.
 
 ## Installing MIOpen with pre-built packages
 
