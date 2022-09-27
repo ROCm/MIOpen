@@ -64,6 +64,10 @@
 #define WORKAROUND_MI100_ROM37_HIP_COMPILER_CRASH \
     (HIP_PACKAGE_VERSION_MAJOR == 3 && HIP_PACKAGE_VERSION_MINOR == 7)
 
+using ExecutionContext       = miopen::ExecutionContext;
+using ConvProblemDescription = miopen::conv::ProblemDescription;
+using Direction              = miopen::conv::Direction;
+
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
 static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
                                                     const miopen::ConvolutionDescriptor convDesc,
@@ -488,8 +492,6 @@ struct verify_forward_conv : conv_base<T, Tout>
 
     tensor<Tout> gpu()
     {
-        using namespace miopen;
-
         auto&& handle = get_handle();
         auto rout     = out;
 
@@ -511,9 +513,9 @@ struct verify_forward_conv : conv_base<T, Tout>
         std::vector<char> ws;
         Allocator::ManageDataPtr ws_dev = nullptr;
 
-        const auto ctx     = ExecutionContext{&handle}.DetectRocm();
-        const auto problem = conv::ProblemDescription{
-            input.desc, weights.desc, rout.desc, filter, conv::Direction::Forward};
+        const auto ctx = ExecutionContext{&handle}.DetectRocm();
+        const auto problem =
+            ConvProblemDescription{input.desc, weights.desc, rout.desc, filter, Direction::Forward};
 
         switch(api)
         {
@@ -979,8 +981,6 @@ struct verify_backward_conv : conv_base<T>
 
     tensor<T> gpu()
     {
-        using namespace miopen;
-
         auto&& handle = get_handle();
         auto rinput   = input;
         std::fill(rinput.begin(), rinput.end(), 0);
@@ -994,8 +994,8 @@ struct verify_backward_conv : conv_base<T>
         std::size_t count        = 0;
 
         const auto ctx     = ExecutionContext{&handle}.DetectRocm();
-        const auto problem = conv::ProblemDescription{
-            out.desc, weights.desc, rinput.desc, filter, conv::Direction::BackwardData};
+        const auto problem = ConvProblemDescription{
+            out.desc, weights.desc, rinput.desc, filter, Direction::BackwardData};
 
         switch(api)
         {
@@ -1345,8 +1345,6 @@ struct verify_backward_weights_conv : conv_base<T>
 
     tensor<T> gpu()
     {
-        using namespace miopen;
-
         auto&& handle = get_handle();
         auto rweights = weights;
         std::fill(rweights.begin(), rweights.end(), 0);
@@ -1360,8 +1358,8 @@ struct verify_backward_weights_conv : conv_base<T>
         std::size_t count        = 0;
 
         const auto ctx     = ExecutionContext{&handle}.DetectRocm();
-        const auto problem = conv::ProblemDescription{
-            out.desc, rweights.desc, input.desc, filter, conv::Direction::BackwardWeights};
+        const auto problem = ConvProblemDescription{
+            out.desc, rweights.desc, input.desc, filter, Direction::BackwardWeights};
 
         switch(api)
         {
@@ -1593,8 +1591,6 @@ struct verify_forward_conv_int8 : conv_base<T>
 
     tensor<float> gpu() const
     {
-        using namespace miopen;
-
         auto&& handle = get_handle();
         auto rout     = get_output_tensor_int8(filter, input, weights);
 
@@ -1620,12 +1616,12 @@ struct verify_forward_conv_int8 : conv_base<T>
         auto wei_vpad_dev = handle.Write(weights_vpad.data);
 
         const auto ctx     = ExecutionContext{&handle}.DetectRocm();
-        const auto problem = conv::ProblemDescription{
+        const auto problem = ConvProblemDescription{
             is_transform ? weight_vpad_desc : weights.desc,
             is_transform ? input_vpad_desc : input.desc,
             rout.desc,
             filter,
-            conv::Direction::Forward,
+            Direction::Forward,
         };
 
         if(is_transform)
@@ -2280,20 +2276,17 @@ struct conv_driver : test_driver
                 output.generate(gen_positive_value);
                 weights.generate(gen_sign_value);
 
-                using namespace miopen;
-                using Direction = conv::Direction;
-
                 size_t total_mem;
                 if(is_int8)
                 {
                     // TODO: Tout here was float which should have been int32
                     auto output_int8 =
                         get_output_tensor<T, Tout>(filter, input, weights, out_layout);
-                    const auto problem        = conv::ProblemDescription{input.desc,
-                                                                  weights.desc,
-                                                                  std::move(output_int8.desc),
-                                                                  filter,
-                                                                  Direction::Forward};
+                    const auto problem        = ConvProblemDescription{input.desc,
+                                                                weights.desc,
+                                                                std::move(output_int8.desc),
+                                                                filter,
+                                                                Direction::Forward};
                     const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
 
                     // 4x because assume type is miopenInt8x4
@@ -2303,11 +2296,11 @@ struct conv_driver : test_driver
                 }
                 else
                 {
-                    const auto fwd_problem = conv::ProblemDescription{
+                    const auto fwd_problem = ConvProblemDescription{
                         input.desc, weights.desc, output.desc, filter, Direction::Forward};
-                    const auto bwd_problem = conv::ProblemDescription{
+                    const auto bwd_problem = ConvProblemDescription{
                         output.desc, weights.desc, input.desc, filter, Direction::BackwardData};
-                    const auto wrw_problem = conv::ProblemDescription{
+                    const auto wrw_problem = ConvProblemDescription{
                         output.desc, weights.desc, input.desc, filter, Direction::BackwardWeights};
 
                     const auto workspaces =

@@ -422,13 +422,12 @@ ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDe
     return 0;
 }
 
-std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
+std::size_t ConvolutionDescriptor::GetWorkSpaceSize(const ExecutionContext& ctx_,
                                                     const conv::ProblemDescription& problem) const
 {
     MIOPEN_LOG_I("");
 
-    ctx.do_search             = false;
-    ctx.disable_perfdb_access = true;
+    auto ctx = ctx_.WithTuning(false).WithPerfdbAccess(false);
 
     while(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
@@ -445,7 +444,7 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
         /// actually required workspace here.
         auto fallback        = bool{};
         const auto solutions = GetSolutions(ctx, problem, 1, &fallback);
-        if(solutions.size() < 1 || (findMode.IsHybrid(ctx) && fallback))
+        if(solutions.empty() || (findMode.IsHybrid(ctx) && fallback))
         {
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
