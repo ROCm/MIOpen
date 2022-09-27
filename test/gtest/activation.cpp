@@ -92,7 +92,7 @@ protected:
         std::size_t n, c, h, w;
         auto&& handle        = get_handle();
         std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
-        size_t total_mem     = 4 * input.desc.GetNumBytes(); // estimate based on backward pass
+        size_t total_mem     = 6 * input.desc.GetNumBytes(); // estimate based on both forward and backward passes
         size_t device_mem    = handle.GetGlobalMemorySize();
 
         ASSERT_LT(total_mem, device_mem) << "Tensor exceeds GPU memory size";
@@ -121,9 +121,11 @@ protected:
 
         // Infer on CPU, backward
         doutput  = cpu_ref_out;
-        float x  = cpu_ref_out(n, c, h, w);
-        double y = (877 * n + 547 * c + 701 * h + 1049 * w + static_cast<int>(769 * x)) % 2503;
-        doutput.generate((x * y) / 1301.0);
+        doutput.generate([&](int n1, int c1, int h1, int w1) {
+            float x      = cpu_ref_out(n1, c1, h1, w1);
+            double y = (877 * n1 + 547 * c1 + 701 * h1 + 1049 * w1 + static_cast<int>(769 * x)) % 2503;
+            return ((x * y) / 1301.0);
+        });
 
         activationHostBwd(activ_config.activ_mode,
                           gamma,
