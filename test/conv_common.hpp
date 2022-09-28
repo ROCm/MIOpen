@@ -588,7 +588,7 @@ struct verify_forward_conv : conv_base<T, Tout>
             }
             else
             {
-                if(debug::testing_find_db_enabled)
+                if(miopen::debug::testing_find_db_enabled)
                 {
                     int ret_algo_count;
                     miopenConvAlgoPerf_t perf;
