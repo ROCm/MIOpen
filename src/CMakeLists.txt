@@ -83,6 +83,7 @@ endfunction()
 set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
+    api/find2_0_commons.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -123,9 +124,11 @@ set( MIOpen_Source
     mdg_expr.cpp
     op_args.cpp
     operator.cpp
+    performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
     problem_description.cpp
+    problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
     reducetensor.cpp
@@ -133,6 +136,7 @@ set( MIOpen_Source
     rnn.cpp
     rnn_api.cpp
     softmax_api.cpp
+    solution.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
@@ -181,6 +185,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
+    solver/conv_hip_implicit_gemm_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
@@ -636,9 +641,14 @@ target_include_directories(MIOpen PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
 )
 
+set(MIOPEN_CK_LINK_FLAGS)
+if(MIOPEN_USE_COMPOSABLEKERNEL)
+set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations composable_kernel::host_tensor hip::host)
+endif()
+
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
-target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES})
+target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
@@ -690,6 +700,8 @@ endif()
 if(LIBMLIRMIOPEN)
   target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
 endif()
+
+target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)
 
 if(WIN32 AND NOT MSVC)
     if(BUILD_DEV)
@@ -769,6 +781,16 @@ rocm_export_targets(
 # Install db files
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
     include(embed)
+    if(MIOPEN_EMBED_BINCACHE AND MIOPEN_BINCACHE_PATH STREQUAL "")
+        if(MIOPEN_NO_LFS_PULLED)
+            message(WARNING "Binary cache files have not been pulled down from git-lfs, will not embed.")
+        else()
+            set(MIOPEN_BINCACHE_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
+            message("MIOPEN_BINCACHE_PATH: ${MIOPEN_BINCACHE_PATH}")
+        endif()
+    else()
+        message(WARNING "MIOPEN_EMBED_BINCACHE is set and MIOPEN_BINCACHE_PATH was used to override default binary cache files. Proceed at your own risk!")
+    endif()
     set(CODE_OBJECTS)
 # embed find db
     foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})

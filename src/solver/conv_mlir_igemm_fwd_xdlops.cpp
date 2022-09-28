@@ -57,11 +57,11 @@ bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS{}))
         return false;
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
-    if(!ctx.direction.IsForward())
+    if(!ctx.problem.direction.IsForward())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
@@ -162,7 +162,7 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& conf
         if(!NextTwoPower<4, 8>(GemmKPACKSize))
             break;
 
-        if(config.IsInt8())
+        if(config.problem.IsInt8())
         {
             // xdlops instructions supported with in8 determines the minimum valid kPerBlock is 8
             if(!NextTwoPower<8, 32>(GemmKPerBlock))
@@ -178,13 +178,6 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& conf
     } while(false);
 
     return true;
-}
-
-std::string PerformanceConvMlirIgemmXdlops::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
 }
 
 PerformanceConvMlirIgemmXdlops

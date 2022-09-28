@@ -76,11 +76,13 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmM     = 0;
     int ClusterLengths_GemmKPack = 0;
-    int SrcDataPerRead_GemmM     = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
-                                            : amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmM     = ctx.problem.IsFp32()
+                                   ? amd_buffer_load_max_length<float>()
+                                   : amd_buffer_load_max_length<half_float::half>();
 
-    int DstDataPerWrite_GemmKPack = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
-                                                 : amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
+                                        ? amd_buffer_load_max_length<float>()
+                                        : amd_buffer_load_max_length<half_float::half>();
 
     try
     {
@@ -91,8 +93,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
         // calculate vector length on gemmk dimension
         SrcDataPerRead_GemmM = gcd(SrcDataPerRead_GemmM, GemmMPerBlock);
 
-        const auto y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-        const auto x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
+        const auto y = ProblemInterpreter::GetFilterHeightY(ctx.problem);
+        const auto x = ProblemInterpreter::GetFilterWidthX(ctx.problem);
 
         // \todo too conservative
         if(!(y == 1 && x == 1))
@@ -168,11 +170,13 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmN     = 0;
     int ClusterLengths_GemmKPack = 0;
-    int SrcDataPerRead_GemmN     = ctx.IsFp32() ? amd_buffer_load_max_length<float>()
-                                            : amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmN     = ctx.problem.IsFp32()
+                                   ? amd_buffer_load_max_length<float>()
+                                   : amd_buffer_load_max_length<half_float::half>();
 
-    int DstDataPerWrite_GemmKPack = ctx.IsFp32() ? amd_lds_write_max_length<float>()
-                                                 : amd_lds_write_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
+                                        ? amd_lds_write_max_length<float>()
+                                        : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -183,19 +187,19 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
         SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, GemmNPerBlock);
 
         // calculate vector length on gemmn dimension
-        const auto y           = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-        const auto x           = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-        const auto left_pad_h  = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-        const auto left_pad_w  = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
-        const auto right_pad_h = ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx);
-        const auto right_pad_w = ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx);
+        const auto y           = ProblemInterpreter::GetFilterHeightY(ctx.problem);
+        const auto x           = ProblemInterpreter::GetFilterWidthX(ctx.problem);
+        const auto left_pad_h  = ProblemInterpreter::GetInputLeftPadH(ctx.problem);
+        const auto left_pad_w  = ProblemInterpreter::GetInputLeftPadW(ctx.problem);
+        const auto right_pad_h = ProblemInterpreter::GetAdjustedInputRightPadH(ctx.problem);
+        const auto right_pad_w = ProblemInterpreter::GetAdjustedInputRightPadW(ctx.problem);
 
         // \todo too conversative
         if(y == 1 && x == 1 && left_pad_h == 0 && left_pad_w == 0 && right_pad_h == 0 &&
            right_pad_w == 0)
         {
-            const auto ho        = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-            const auto wo        = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+            const auto ho        = ProblemInterpreter::GetOutputHeightHo(ctx.problem);
+            const auto wo        = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
             SrcDataPerRead_GemmN = gcd(SrcDataPerRead_GemmN, ho * wo);
         }
         else
@@ -326,7 +330,8 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV4R1Xdlops::Calculat
             GemmKPerBlock * integer_least_multiple(GemmMPerBlock, max_lds_align);
         const auto b_block_space =
             GemmKPerBlock * integer_least_multiple(GemmNPerBlock, max_lds_align);
-        lds_size = (a_block_space + b_block_space) * GetTypeSize(ctx.in_data_type) * GemmKPack;
+        lds_size =
+            (a_block_space + b_block_space) * GetTypeSize(ctx.problem.in_data_type) * GemmKPack;
     }
     catch(...)
     {
@@ -344,10 +349,10 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ConvolutionCo
     int GemmM = 0, GemmN = 0, GemmK = 0, gemm_k_total = 0;
 
     // GemmKPACKSize = 4 for fp16
-    if(ctx.IsFp16() && GemmKPACKSize % 4 != 0)
+    if(ctx.problem.IsFp16() && GemmKPACKSize % 4 != 0)
         return false;
 
-    if(ctx.IsBfp16() && GemmKPACKSize % 2 != 0)
+    if(ctx.problem.IsBfp16() && GemmKPACKSize % 2 != 0)
         return false;
     // check blockwise GEMM size
     for(int gemm_id = 0; gemm_id < ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(ctx);
@@ -492,12 +497,12 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
         const int b_data_per_thread_copy =
             (GemmKPerBlock * GemmNPerBlock * GemmKPACKSize) / block_size;
 
-        if(ctx.IsFp32())
+        if(ctx.problem.IsFp32())
         {
             if(a_data_per_thread_copy > 16 || b_data_per_thread_copy > 16)
                 return false;
         }
-        else if(ctx.IsFp16() || ctx.IsBfp16())
+        else if(ctx.problem.IsFp16() || ctx.problem.IsBfp16())
         {
             if(a_data_per_thread_copy > 32 || b_data_per_thread_copy > 32)
                 return false;
@@ -604,7 +609,7 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionCo
     PerformanceImplicitGemmBwdDataV4R1Xdlops tmp;
 
     auto get_euristic_config = [&](auto is_valid_func) {
-        if(ctx.IsFp32())
+        if(ctx.problem.IsFp32())
         {
             tmp              = {256, 256, 8, 4, 128, 128, true, true};
             bool all_visited = false;
@@ -634,7 +639,7 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionCo
                     break;
             } while(!all_visited);
         }
-        else if(ctx.IsFp16())
+        else if(ctx.problem.IsFp16())
         {
             tmp              = {256, 256, 8, 8, 128, 128, true, true};
             bool all_visited = false;
@@ -664,7 +669,7 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionCo
                     break;
             } while(!all_visited);
         }
-        else if(ctx.IsBfp16())
+        else if(ctx.problem.IsBfp16())
         {
             tmp              = {256, 256, 8, 8, 128, 128, true, true};
             bool all_visited = false;
@@ -722,21 +727,12 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionCo
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceImplicitGemmBwdDataV4R1Xdlops::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 int ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(const ConvolutionContext& ctx)
 {
-    const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-    const auto conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-    const auto conv_dilation_h =
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-    const auto conv_dilation_w =
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
+    const auto conv_stride_h   = ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
+    const auto conv_stride_w   = ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
+    const auto conv_dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem);
+    const auto conv_dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem);
 
     const auto gcd_stride_dilation_h = gcd(conv_stride_h, conv_dilation_h);
     const auto gcd_stride_dilation_w = gcd(conv_stride_w, conv_dilation_w);
@@ -750,24 +746,22 @@ int ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(const Convolutio
 std::tuple<int, int, int, int>
 ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ConvolutionContext& ctx, int gemm_id)
 {
-    const auto g             = ConvolutionContextInterpreter::GetGroupCountG(ctx);
-    const auto n             = ConvolutionContextInterpreter::GetBatchN(ctx);
-    const auto k             = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-    const auto c             = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-    const auto hi            = ConvolutionContextInterpreter::GetInputHeightHi(ctx);
-    const auto wi            = ConvolutionContextInterpreter::GetInputWidthWi(ctx);
-    const auto ho            = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    const auto wo            = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
-    const auto y             = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    const auto x             = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    const auto conv_stride_h = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx);
-    const auto conv_stride_w = ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx);
-    const auto conv_dilation_h =
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx);
-    const auto conv_dilation_w =
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx);
-    const auto in_left_pad_h = ConvolutionContextInterpreter::GetInputLeftPadH(ctx);
-    const auto in_left_pad_w = ConvolutionContextInterpreter::GetInputLeftPadW(ctx);
+    const auto g               = ProblemInterpreter::GetGroupCountG(ctx.problem);
+    const auto n               = ProblemInterpreter::GetBatchN(ctx.problem);
+    const auto k               = ProblemInterpreter::GetOutputChannelK(ctx.problem);
+    const auto c               = ProblemInterpreter::GetInputChannelC(ctx.problem);
+    const auto hi              = ProblemInterpreter::GetInputHeightHi(ctx.problem);
+    const auto wi              = ProblemInterpreter::GetInputWidthWi(ctx.problem);
+    const auto ho              = ProblemInterpreter::GetOutputHeightHo(ctx.problem);
+    const auto wo              = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
+    const auto y               = ProblemInterpreter::GetFilterHeightY(ctx.problem);
+    const auto x               = ProblemInterpreter::GetFilterWidthX(ctx.problem);
+    const auto conv_stride_h   = ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem);
+    const auto conv_stride_w   = ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem);
+    const auto conv_dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem);
+    const auto conv_dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem);
+    const auto in_left_pad_h   = ProblemInterpreter::GetInputLeftPadH(ctx.problem);
+    const auto in_left_pad_w   = ProblemInterpreter::GetInputLeftPadW(ctx.problem);
 
     const auto gcd_stride_dilation_h = gcd(conv_stride_h, conv_dilation_h);
     const auto gcd_stride_dilation_w = gcd(conv_stride_w, conv_dilation_w);
@@ -812,14 +806,14 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ConvolutionContext
 bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext& ctx) const
 {
 #if WORKAROUND_ISSUE_1206
-    if(ctx.IsFp32())
+    if(ctx.problem.IsFp32())
     {
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
             return false;
     }
 #endif
 #if WORKAROUND_SWDEV_329642
-    if(ctx.IsBfp16() && ctx.GetStream().GetDeviceName() == "gfx90a")
+    if(ctx.problem.IsBfp16() && ctx.GetStream().GetDeviceName() == "gfx90a")
     {
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
             return false;
@@ -827,25 +821,26 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
 #endif
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS{}))
         return false;
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(!ctx.direction.IsBackwardData())
+    if(!ctx.problem.direction.IsBackwardData())
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ctx.Is2d())
+    if(!ctx.problem.Is2d())
         return false;
-    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+    if(!(ctx.problem.IsFp32() || ctx.problem.IsFp16() || ctx.problem.IsBfp16()))
         return false;
     if(!IsApplicableXdlops(ctx))
         return false;
     if(!IsIndexRangeLargeEnough(ctx))
         return false;
-    if(!ctx.IsLayoutDefault())
+    if(!ctx.problem.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" && ctx.conv_problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" &&
+       ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     bool is_applicable = true;
@@ -1002,24 +997,24 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
 
             // clang-format off
             construction_parameters.comp_options =
-                std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ConvolutionContextInterpreter::GetBatchN(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ConvolutionContextInterpreter::GetOutputChannelK(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ConvolutionContextInterpreter::GetInputChannelC(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(ConvolutionContextInterpreter::GetInputHeightHi(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(ConvolutionContextInterpreter::GetInputWidthWi(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ConvolutionContextInterpreter::GetOutputHeightHo(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ConvolutionContextInterpreter::GetOutputWidthWo(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(ConvolutionContextInterpreter::GetFilterHeightY(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(ConvolutionContextInterpreter::GetFilterWidthX(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_H=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_W=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_H=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_W=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_H=") + std::to_string(ConvolutionContextInterpreter::GetInputLeftPadH(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_W=") + std::to_string(ConvolutionContextInterpreter::GetInputLeftPadW(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_H=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_W=") + std::to_string(ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx)) +
-                std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(ctx.group_counts) +
+                std::string(" -DCK_PARAM_PROBLEM_N=") + std::to_string(ProblemInterpreter::GetBatchN(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_K=") + std::to_string(ProblemInterpreter::GetOutputChannelK(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_C=") + std::to_string(ProblemInterpreter::GetInputChannelC(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_HI=") + std::to_string(ProblemInterpreter::GetInputHeightHi(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_WI=") + std::to_string(ProblemInterpreter::GetInputWidthWi(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_HO=") + std::to_string(ProblemInterpreter::GetOutputHeightHo(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_WO=") + std::to_string(ProblemInterpreter::GetOutputWidthWo(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_Y=") + std::to_string(ProblemInterpreter::GetFilterHeightY(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_X=") + std::to_string(ProblemInterpreter::GetFilterWidthX(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_H=") + std::to_string(ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_W=") + std::to_string(ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_H=") + std::to_string(ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_W=") + std::to_string(ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_H=") + std::to_string(ProblemInterpreter::GetInputLeftPadH(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_W=") + std::to_string(ProblemInterpreter::GetInputLeftPadW(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_H=") + std::to_string(ProblemInterpreter::GetAdjustedInputRightPadH(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_W=") + std::to_string(ProblemInterpreter::GetAdjustedInputRightPadW(ctx.problem)) +
+                std::string(" -DCK_PARAM_PROBLEM_CONV_GROUP_COUNTS=") + std::to_string(ctx.problem.group_counts) +
                 std::string(" -DCK_PARAM_TUNABLE_BLOCK_SIZE=") + std::to_string(block_size) +
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_M_PER_BLOCK=") + std::to_string(GemmMPerBlock) +
                 std::string(" -DCK_PARAM_TUNABLE_GEMM_N_PER_BLOCK=") + std::to_string(GemmNPerBlock) +

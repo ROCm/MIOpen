@@ -87,6 +87,13 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx,
     const auto& xDesc = problem.GetIn();
     const auto& wDesc = problem.GetWeights();
     const auto& yDesc = problem.GetOut();
+    if(xDesc.GetType() == miopenInt8x4 || xDesc.GetType() == miopenInt8)
+    {
+        // rocBlas needs the output to be int32 always
+        if(yDesc.GetType() != miopenFloat && yDesc.GetType() != miopenInt32 &&
+           yDesc.GetType() != miopenInt8x4)
+            return false;
+    }
     return problem.GetDirection() == conv::Direction::Forward && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBf16Supported) &&
            !(IsAnyBufferFp16(xDesc, yDesc, wDesc) && !IsFp16Supported);
@@ -267,10 +274,13 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
     decltype(auto) wDesc = problem.GetWeights();
     decltype(auto) yDesc = problem.GetOut();
 
-    const GemmDescriptor gemm_desc =
-        conv.group_count > 1
-            ? CreateGemmDescriptorGroupConvCNHWFwd(wDesc, xDesc, yDesc, conv.group_count)
-            : CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
+    const GemmDescriptor gemm_desc = [&]() {
+        auto tmp = conv.group_count > 1
+                       ? CreateGemmDescriptorGroupConvCNHWFwd(wDesc, xDesc, yDesc, conv.group_count)
+                       : CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
+        tmp.deterministic = problem.GetConv().attribute.deterministic;
+        return tmp;
+    }();
 
     const auto workspace_req = GetWorkspaceSize(context, problem);
 
@@ -555,9 +565,13 @@ ConvSolution GemmFwd1x1_0_1_int8::GetSolution(const ExecutionContext& context,
     solution.workspace_sz = workspace_req;
 
     TensorDescriptor ygemmDesc(miopenInt32, yDesc.GetLengths(), yDesc.GetStrides());
-    const GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
-    const auto x_type              = xDesc.GetType();
-    const auto lowp_quant          = conv.lowp_quant;
+    const GemmDescriptor gemm_desc = [&]() {
+        auto tmp          = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
+        tmp.deterministic = problem.GetConv().attribute.deterministic;
+        return tmp;
+    }();
+    const auto x_type     = xDesc.GetType();
+    const auto lowp_quant = conv.lowp_quant;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
@@ -718,8 +732,11 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
 
     if(group_count > 1)
     {
-        GemmDescriptor gemm_desc =
-            CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, group_count);
+        GemmDescriptor gemm_desc = [&]() {
+            auto tmp          = CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, group_count);
+            tmp.deterministic = problem.GetConv().attribute.deterministic;
+            return tmp;
+        }();
 
         const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
         const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
@@ -820,6 +837,7 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
         // tensors.y = tensors.w * tensors.x
         GemmDescriptor gemm_desc =
             CreateGemmStridedBatchedDescriptorConv1x1Fwd(wDesc, xDesc, yDesc);
+        gemm_desc.deterministic = problem.GetConv().attribute.deterministic;
 
         const auto in_spatial  = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
         const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
@@ -1025,10 +1043,13 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
     solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        const auto gemm_desc =
-            conv.group_count > 1
-                ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
-                : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
+        const auto gemm_desc = [&]() {
+            auto tmp = conv.group_count > 1
+                           ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
+                           : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
+            tmp.deterministic = problem.GetConv().attribute.deterministic;
+            return tmp;
+        }();
 
         decltype(auto) in_spatial_ = boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + spatial_dim);
         decltype(auto) out_spatial_ =

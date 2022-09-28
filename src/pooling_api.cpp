@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 #include <miopen/pooling.hpp>
+
+#include <miopen/datatype.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
@@ -41,30 +43,48 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
     {
         auto tensor_dim = miopen::deref(tensorDesc).GetSize();
         std::stringstream ss;
-        if(miopen::deref(tensorDesc).GetType() == miopenHalf)
+
+        switch(miopen::deref(tensorDesc).GetType())
         {
-            ss << "poolfp16";
+        case miopenHalf: ss << "poolfp16"; break;
+        case miopenFloat: ss << "pool"; break;
+        case miopenInt32:
+        case miopenInt8:
+        case miopenInt8x4:
+        case miopenBFloat16:
+        case miopenDouble:
+        default:
+            MIOPEN_LOG_W(
+                "Pooing cmd args logging is not implemented properly for " +
+                miopen::GetDataType(miopen::deref(tensorDesc).GetType()) +
+                " data type. Check the ./bin/MIOpenDriver --help for the correct base argument.");
+            ss << "???";
+            break;
         }
-        else
-        {
-            ss << "pool";
-        }
-        if(tensor_dim == 5)
-        {
-            ss << " -d 3";
-        }
+
         ss << " -M "
            << std::to_string(static_cast<int>(miopen::deref(poolDesc).GetWorkspaceIndexMode()));
-        ss << " -n " << miopen::deref(tensorDesc).GetLengths()[0] // clang-format off
-           << " -c " << miopen::deref(tensorDesc).GetLengths()[1];
-        if(tensor_dim == 5)
+
         {
-            ss << " -D " << miopen::deref(tensorDesc).GetLengths()[2];
+            const auto& lengths = miopen::deref(tensorDesc).GetLengths();
+            const auto& strides = miopen::deref(tensorDesc).GetStrides();
+            auto lengthStrs     = std::vector<std::string>{};
+            auto strideStrs     = std::vector<std::string>{};
+
+            std::transform(lengths.begin(),
+                           lengths.end(),
+                           std::back_inserter(lengthStrs),
+                           [](auto element) { return std::to_string(element); });
+
+            std::transform(strides.begin(),
+                           strides.end(),
+                           std::back_inserter(strideStrs),
+                           [](auto element) { return std::to_string(element); });
+
+            ss << " --input " << miopen::JoinStrings(lengthStrs, "x") << ","
+               << miopen::JoinStrings(strideStrs, "x");
         }
-        ss << " -H " << (tensor_dim == 5 ? miopen::deref(tensorDesc).GetLengths()[3]
-                                         : miopen::deref(tensorDesc).GetLengths()[2])
-           << " -W " << (tensor_dim == 5 ? miopen::deref(tensorDesc).GetLengths()[4]
-                                         : miopen::deref(tensorDesc).GetLengths()[3]);
+
         if(tensor_dim == 5)
         {
             ss << " -Z " << miopen::deref(poolDesc).lens[0];
@@ -85,15 +105,17 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
         {
             ss << " -s " << miopen::deref(poolDesc).strides[0];
         }
-        ss << " -v " << (tensor_dim == 5 ? miopen::deref(poolDesc).strides[1]
-                                         : miopen::deref(poolDesc).strides[0])
-           << " -u " << (tensor_dim == 5 ? miopen::deref(poolDesc).strides[2]
-                                         : miopen::deref(poolDesc).strides[1])
-           << " -m " << (miopen::deref(poolDesc).mode == 0
-                             ? "max"
-                             : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
-           << " -F " << ((is_fwd)?"1":"2")
-           << " -t 1"; // clang-format on
+        ss << " -v "
+           << (tensor_dim == 5 ? miopen::deref(poolDesc).strides[1]
+                               : miopen::deref(poolDesc).strides[0])
+           << " -u "
+           << (tensor_dim == 5 ? miopen::deref(poolDesc).strides[2]
+                               : miopen::deref(poolDesc).strides[1])
+           << " -m "
+           << (miopen::deref(poolDesc).mode == 0
+                   ? "max"
+                   : (miopen::deref(poolDesc).mode == 1 ? "avg" : "avg_in"))
+           << " -F " << ((is_fwd) ? "1" : "0") << " -t 1"; // clang-format on
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }

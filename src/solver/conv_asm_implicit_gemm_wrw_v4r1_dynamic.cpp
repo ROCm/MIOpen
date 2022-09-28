@@ -161,18 +161,18 @@ static inline float CallImplicitGemmWrwDynamic(const miopen::Handle& handle,
 
 // find wrw dynamic kernel by a simple algo
 // check wether this kernel can be applicable
-static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ConvolutionContext& ctx,
+static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ProblemDescription& problem,
                                                         std::string& kernel_name,
                                                         int& block_size,
                                                         int& grid_size)
 {
-    int n     = ctx.batch_sz;
-    int k     = ctx.n_inputs;
-    int c     = ctx.n_outputs;
-    int ho    = ctx.in_height;
-    int wo    = ctx.in_width;
-    int y     = ctx.kernel_size_h;
-    int x     = ctx.kernel_size_w;
+    int n     = problem.batch_sz;
+    int k     = problem.n_inputs;
+    int c     = problem.n_outputs;
+    int ho    = problem.in_height;
+    int wo    = problem.in_width;
+    int y     = problem.kernel_size_h;
+    int x     = problem.kernel_size_w;
     int GemmN = c * y * x;
     int GemmM = k;
     int GemmK = n * ho * wo;
@@ -199,7 +199,7 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ConvolutionContext
             return false;
 
         int log2_gemmk_groups =
-            GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx.conv_problem, GemmKPerBlock);
+            GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem.conv_problem, GemmKPerBlock);
         GemmKGroups = 1 << log2_gemmk_groups;
         if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
             return false;
@@ -231,7 +231,7 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ConvolutionContext
             return false;
 
         int log2_gemmk_groups =
-            GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx.conv_problem, GemmKPerBlock);
+            GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem.conv_problem, GemmKPerBlock);
         GemmKGroups = 1 << log2_gemmk_groups;
         if(GemmK % (GemmKGroups * GemmKPerBlock) != 0)
             return false;
@@ -248,12 +248,12 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ConvolutionContext
         return false;
 }
 
-size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ConvolutionContext& ctx) const
+size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ProblemDescription& problem) const
 {
-    int k            = ctx.n_inputs;
-    int c            = ctx.n_outputs;
-    int y            = ctx.kernel_size_h;
-    int x            = ctx.kernel_size_w;
+    int k            = problem.n_inputs;
+    int c            = problem.n_outputs;
+    int y            = problem.kernel_size_h;
+    int x            = problem.kernel_size_w;
     int ele_size     = 0;
     int gemmk_groups = 0;
     int extra_groups = 0;
@@ -265,12 +265,12 @@ size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ConvolutionCont
     else
         GemmKPerBlock = 4;
 
-    if(ctx.IsFp32())
+    if(problem.IsFp32())
         ele_size = sizeof(float);
     else
         ele_size = 2;
 
-    gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx.conv_problem, GemmKPerBlock);
+    gemmk_groups = GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem.conv_problem, GemmKPerBlock);
 
     if(gemmk_groups == 0)
         extra_groups = 0;
@@ -279,22 +279,23 @@ size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ConvolutionCont
     return k * c * y * x * ele_size * extra_groups;
 }
 
-static int GetGemmkGroups(const ConvolutionContext& ctx)
+static int GetGemmkGroups(const ProblemDescription& problem)
 {
-    const auto& k    = ctx.n_inputs;
-    const auto& c    = ctx.n_outputs;
-    const auto& y    = ctx.kernel_size_h;
-    const auto& x    = ctx.kernel_size_w;
+    const auto& k    = problem.n_inputs;
+    const auto& c    = problem.n_outputs;
+    const auto& y    = problem.kernel_size_h;
+    const auto& x    = problem.kernel_size_w;
     const auto GemmN = c * y * x;
 
     int GemmKPerBlock = 4;
     if((k % 128 == 0) && (GemmN % 128 == 0))
         GemmKPerBlock = 16;
 
-    return GetImplicitGemmWrwV4R1DynamicGemmkGroups(ctx.conv_problem, GemmKPerBlock);
+    return GetImplicitGemmWrwV4R1DynamicGemmkGroups(problem.conv_problem, GemmKPerBlock);
 }
 
-bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ExecutionContext& ctx,
+                                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_V4R1{}))
         return false;
@@ -306,26 +307,26 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ConvolutionContext& c
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(GetGemmkGroups(ctx) > 0) // GetSolution() adds HIP kernels in this case.
+    if(GetGemmkGroups(problem) > 0) // GetSolution() adds HIP kernels in this case.
         if(!ctx.use_hip_kernels)
             return false;
 
-    if(!ctx.direction.IsBackwardWrW())
+    if(!problem.direction.IsBackwardWrW())
         return false;
 
-    if(!ctx.Is2d())
+    if(!problem.Is2d())
         return false;
 
-    if(!ctx.IsFp32())
+    if(!problem.IsFp32())
         return false;
 
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(ctx.group_counts != 1)
+    if(problem.group_counts != 1)
         return false;
 
-    if(!ctx.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
@@ -337,10 +338,11 @@ bool ConvAsmImplicitGemmV4R1DynamicWrw::IsApplicable(const ConvolutionContext& c
     int block_size;
     int grid_size;
 
-    return FindImplicitGemmWrwV4R1DynamicKernel(ctx, kernel_name, block_size, grid_size);
+    return FindImplicitGemmWrwV4R1DynamicKernel(problem, kernel_name, block_size, grid_size);
 }
 
-ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionContext& ctx) const
+ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionContext& ctx,
+                                                            const ProblemDescription& problem) const
 {
     ConvSolution result;
 
@@ -350,12 +352,12 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
     int block_size;
     int grid_size;
     std::string kernel_name;
-    bool ret = FindImplicitGemmWrwV4R1DynamicKernel(ctx, kernel_name, block_size, grid_size);
+    bool ret = FindImplicitGemmWrwV4R1DynamicKernel(problem, kernel_name, block_size, grid_size);
 
     if(!ret)
         MIOPEN_THROW("this kernel should not run with igemm dynamic!");
 
-    result.workspace_sz = GetWorkspaceSize(ctx);
+    result.workspace_sz = GetWorkspaceSize(problem);
 
     kernel.kernel_file = "igemm_v4r1_wrw_dynamic.s";
     kernel.kernel_name = kernel_name;
@@ -380,7 +382,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
 
     result.construction_params.push_back(kernel);
 
-    if(GetGemmkGroups(ctx) > 0)
+    if(GetGemmkGroups(problem) > 0)
     {
         KernelInfo kernel_reduction;
         int reduction_per_thread     = 4;
@@ -388,8 +390,9 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
         kernel_reduction.kernel_name = "wrw_reduction_hip";
         kernel_reduction.g_wk.clear();
         int block_size_reduction = 256;
-        int grid_size_redcution  = ctx.n_outputs * ctx.n_inputs * ctx.kernel_size_h *
-                                  ctx.kernel_size_w / (reduction_per_thread * block_size_reduction);
+        int grid_size_redcution  = problem.n_outputs * problem.n_inputs * problem.kernel_size_h *
+                                  problem.kernel_size_w /
+                                  (reduction_per_thread * block_size_reduction);
         kernel_reduction.g_wk.push_back(grid_size_redcution * block_size_reduction);
         kernel_reduction.g_wk.push_back(1);
         kernel_reduction.g_wk.push_back(1);
@@ -404,7 +407,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ConvolutionCon
         result.construction_params.push_back(kernel_reduction);
     }
 
-    const auto& conv_problem = ctx.conv_problem;
+    const auto& conv_problem = problem.conv_problem;
 
     result.invoker_factory = [conv_problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
