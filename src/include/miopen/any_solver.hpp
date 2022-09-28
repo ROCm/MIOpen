@@ -290,8 +290,7 @@ struct AnySolver
 
         std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const override
         {
-            return GetPerfCfgParams(
-                ctx.problem, db, std::integral_constant<bool, TunableSolver::Is>());
+            return GetPerfCfgParams(ctx, db, std::integral_constant<bool, TunableSolver::Is>());
         }
 
         size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
