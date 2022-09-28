@@ -40,17 +40,18 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 namespace miopen {
 namespace solver {
 
-using DeviceConvFwdPtr_t = std::unique_ptr<
+template<class DataType>
+using DeviceOp =
     ck::tensor_operation::device::DeviceConvFwd<2,
                                                 ck::tensor_layout::convolution::NHWC,
                                                 ck::tensor_layout::convolution::KYXC,
                                                 ck::tensor_layout::convolution::NHWK,
-                                                int8_t,
-                                                int8_t,
-                                                int8_t,
+                                                DataType,
+                                                DataType,
+                                                DataType,
                                                 ck::tensor_operation::element_wise::PassThrough,
                                                 ck::tensor_operation::element_wise::PassThrough,
-                                                ck::tensor_operation::element_wise::PassThrough>>;
+                                                ck::tensor_operation::element_wise::PassThrough>;
 
 struct CKArgs
 {
@@ -93,9 +94,8 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionC
     std::ignore = ctx;
 #else
     this->index = 0;
-    std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-    ck::tensor_operation::device::instance::add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances(
-        conv_ptrs);
+    const auto conv_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOp<int8_t>>::GetInstances();
     assert(!conv_ptrs.empty());
     this->total_size = conv_ptrs.size();
     const auto args  = CKArgs{ctx};
@@ -149,9 +149,8 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(const ConvolutionContext
     std::ignore = ctx;
     return false;
 #else
-    std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-    ck::tensor_operation::device::instance::add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances(
-        conv_ptrs);
+    const auto conv_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOp<int8_t>>::GetInstances();
     const auto args   = CKArgs{ctx};
     auto argument_ptr = conv_ptrs[this->index]->MakeArgumentPointer(nullptr,
                                                                     nullptr,
@@ -233,9 +232,8 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
     if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
         return false;
 
-    std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-    ck::tensor_operation::device::instance::add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances(
-        conv_ptrs);
+    const auto conv_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOp<int8_t>>::GetInstances();
     assert(!conv_ptrs.empty());
 
     for(auto& conv_ptr : conv_ptrs)
@@ -276,9 +274,8 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-            ck::tensor_operation::device::instance::
-                add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances(conv_ptrs);
+        const auto conv_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOp<int8_t>>::GetInstances();
             auto& conv_ptr       = conv_ptrs.at(config.index);
             const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
