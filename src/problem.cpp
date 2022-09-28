@@ -204,12 +204,14 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const AllocatedBuffers& buffers,
                                                  const ConvolutionDescriptor& conv_desc) const
 {
+    const auto& actual = conv_desc.mode == miopenTranspose ? Transpose() : *this;
     auto ret = std::vector<Solution>{};
 
     if(tensor_descriptors.size() != 3)
         MIOPEN_THROW(miopenStatusInvalidValue,
                      "Convolution problem should have exactly three tensor descriptors.");
 
+    // These are not swapped for now to preserve argument order in calls
     const auto& x_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
     const auto& w_desc =
@@ -340,7 +342,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                : conv::Direction::Forward;
     })();
 
-    const auto netcfg = AsConvolution().BuildConfKey();
+    const auto netcfg = actual.AsConvolution().BuildConfKey();
 
     for(auto i = 0; i < found; ++i)
     {
