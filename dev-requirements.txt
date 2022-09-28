@@ -1,4 +1,3 @@
 ROCmSoftwarePlatform/rocm-recipes
 -f requirements.txt
-# 1.90+
-danmar/cppcheck@aca3f6fefa6d6b8c5915f15035c7e5908961f6f1
+danmar/cppcheck@2.9
