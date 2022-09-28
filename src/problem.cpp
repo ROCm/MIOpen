@@ -205,7 +205,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const ConvolutionDescriptor& conv_desc) const
 {
     const auto& actual = conv_desc.mode == miopenTranspose ? Transpose() : *this;
-    auto ret = std::vector<Solution>{};
+    auto ret           = std::vector<Solution>{};
 
     if(tensor_descriptors.size() != 3)
         MIOPEN_THROW(miopenStatusInvalidValue,
