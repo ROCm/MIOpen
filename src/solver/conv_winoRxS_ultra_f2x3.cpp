@@ -328,19 +328,20 @@ inline bool IsShaderContraintsMet(const int R,
                                   const int OH,
                                   const int OW,
                                   const int,
-                                  const ConvolutionContext& params)
+                                  const ExecutionContext& ctx,
+                                  const ProblemDescription& problem)
 {
     // Padding for bwd data shall not be negative.
     /// \todo Either remove WrW related code or re-use function from RxS
-    if(params.direction.IsBackwardData())
+    if(problem.direction.IsBackwardData())
     {
-        if(!(0 <= params.GetBackwardPadW() && params.GetBackwardPadW() < std::pow(2, 16)))
+        if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
-        if(!(0 <= params.GetBackwardPadH() && params.GetBackwardPadH() < std::pow(2, 16)))
+        if(!(0 <= problem.GetBackwardPadH() && problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
-    const auto grid_workgroup_count_x = params.GetStream().GetMaxHardwareComputeUnits();
-    if(!params.IsLayoutDefault())
+    const auto grid_workgroup_count_x = ctx.GetStream().GetMaxHardwareComputeUnits();
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
@@ -395,78 +396,81 @@ void CopyDataToBuffer(const Handle& handle, const std::vector<T> data, void* buf
 
 } // namespace
 
-bool ConvBinWinogradUltraRxSf2x3::IsApplicable(const ConvolutionContext& params) const
+bool ConvBinWinogradUltraRxSf2x3::IsApplicable(const ExecutionContext& ctx,
+                                               const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3{}))
         return false;
 
 #if MIOPEN_BACKEND_HIP
-    if(!params.Is2d())
+    if(!problem.Is2d())
         return false;
-    if(!params.IsFp16())
+    if(!problem.IsFp16())
         return false;
-    if(!params.use_asm_kernels)
+    if(!ctx.use_asm_kernels)
         return false;
-    if(!params.rmv.IsV3())
+    if(!ctx.rmv.IsV3())
         return false;
 
-    const auto name = params.GetStream().GetDeviceName();
+    const auto name = ctx.GetStream().GetDeviceName();
     if(!StartsWith(name, "gfx10"))
         return false;
 
     // clang-format off
-    if (!( params.kernel_stride_w == 1
-        && params.kernel_stride_w == params.kernel_stride_h
-        && params.kernel_dilation_w == 1
-        && params.kernel_dilation_h == 1
-        && params.bias == 0
-        && params.group_counts == 1
-        && params.in_layout == "NCHW"))
+    if (!( problem.kernel_stride_w == 1
+        && problem.kernel_stride_w == problem.kernel_stride_h
+        && problem.kernel_dilation_w == 1
+        && problem.kernel_dilation_h == 1
+        && problem.bias == 0
+        && problem.group_counts == 1
+        && problem.in_layout == "NCHW"))
         return false;
     // clang-format on
 
-    const auto n_inputs_per_group  = params.n_inputs / params.group_counts,
-               n_outputs_per_group = params.n_outputs / params.group_counts;
+    const auto n_inputs_per_group  = problem.n_inputs / problem.group_counts,
+               n_outputs_per_group = problem.n_outputs / problem.group_counts;
 
-    if(!params.direction.IsBackwardWrW())
+    if(!problem.direction.IsBackwardWrW())
     {
-        return IsShaderContraintsMet(params.kernel_size_h, // RxS
-                                     params.kernel_size_w,
-                                     params.kernel_stride_h,
-                                     params.kernel_stride_w,
+        return IsShaderContraintsMet(problem.kernel_size_h, // RxS
+                                     problem.kernel_size_w,
+                                     problem.kernel_stride_h,
+                                     problem.kernel_stride_w,
                                      n_inputs_per_group,  // C
                                      n_outputs_per_group, // K
-                                     params.in_height,    // HxW
-                                     params.in_width,
-                                     params.out_height, // OHxOW
-                                     params.out_width,
-                                     params.batch_sz, // N
-                                     params);
+                                     problem.in_height,   // HxW
+                                     problem.in_width,
+                                     problem.out_height, // OHxOW
+                                     problem.out_width,
+                                     problem.batch_sz, // N
+                                     ctx,
+                                     problem);
     }
     else
     {
-        return IsShaderContraintsMet(params.in_height,
-                                     params.in_width,
-                                     params.kernel_dilation_h,
-                                     params.kernel_dilation_w,
-                                     params.batch_sz,    // N
+        return IsShaderContraintsMet(problem.in_height,
+                                     problem.in_width,
+                                     problem.kernel_dilation_h,
+                                     problem.kernel_dilation_w,
+                                     problem.batch_sz,   // N
                                      n_inputs_per_group, // K
-                                     params.out_height,
-                                     params.out_width,
-                                     params.kernel_size_h,
-                                     params.kernel_size_w,
+                                     problem.out_height,
+                                     problem.out_width,
+                                     problem.kernel_size_h,
+                                     problem.kernel_size_w,
                                      n_outputs_per_group, // C
-                                     params);
+                                     ctx,
+                                     problem);
     }
 #else
-    std::ignore = params;
+    std::ignore = ctx;
     return false;
 #endif
 }
 
-size_t ConvBinWinogradUltraRxSf2x3::GetWorkspaceSize(const ConvolutionContext& params) const
+size_t ConvBinWinogradUltraRxSf2x3::GetWorkspaceSize(const ProblemDescription& problem) const
 {
-    const auto desc = UnifiedDescriptionConv2d(params.conv_problem);
+    const auto desc = UnifiedDescriptionConv2d(problem.conv_problem);
     const int N     = desc.N;
     const int out_H = desc.out_h;
     const int out_W = desc.out_w;
@@ -475,17 +479,18 @@ size_t ConvBinWinogradUltraRxSf2x3::GetWorkspaceSize(const ConvolutionContext& p
            RoundUpToMultiple(Ceil(out_H, o_tile_step_H) * Ceil(out_W, o_tile_step_W), group_size);
 }
 
-ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params) const
+ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ExecutionContext& ctx,
+                                                      const ProblemDescription& problem) const
 {
-    const unsigned n_groups = params.GetStream().GetMaxHardwareComputeUnits();
-    const auto group_cnt    = params.group_counts;
+    const unsigned n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
+    const auto group_cnt    = problem.group_counts;
     const auto intl_factor  = 1;
 
     constexpr unsigned F_REVERSE_R = 1 << 0;
     constexpr unsigned F_REVERSE_S = 1 << 1;
     constexpr unsigned F_FLIP_K_C  = 1 << 2;
 
-    const auto desc = UnifiedDescriptionConv2d(params.conv_problem);
+    const auto desc = UnifiedDescriptionConv2d(problem.conv_problem);
     int H, W;
     int N           = desc.N;
     int C           = desc.C;
@@ -503,57 +508,57 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
     int* reserved_ptr        = nullptr;
     float relu_alpha         = 1.0;
 
-    if(!params.direction.IsBackwardWrW())
+    if(!problem.direction.IsBackwardWrW())
     {
-        const auto is_forward = params.direction.IsForward();
+        const auto is_forward = problem.direction.IsForward();
 
         flags = is_forward ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
-        H     = params.in_height;
-        W     = params.in_width;
+        H     = problem.in_height;
+        W     = problem.in_width;
         C     = C / group_cnt;
         K     = K / group_cnt;
 
         // cppcheck-suppress unreadVariable
-        d_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(params.in_layout), true),
+        d_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(problem.in_layout), true),
                          N,
                          C,
                          H,
                          W,
                          group_cnt,
-                         GetTypeSize(params.in_data_type));
+                         GetTypeSize(problem.in_data_type));
         // cppcheck-suppress unreadVariable
-        o_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(params.out_layout), true),
+        o_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(problem.out_layout), true),
                          N,
                          K,
                          out_H,
                          out_W,
                          group_cnt,
-                         GetTypeSize(params.out_data_type));
+                         GetTypeSize(problem.out_data_type));
     }
     else
     {
         flags = F_FLIP_K_C;
-        H     = params.out_height;
-        W     = params.out_width;
+        H     = problem.out_height;
+        W     = problem.out_width;
         N     = N / group_cnt;
         K     = K / group_cnt;
 
-        d_buf =
-            BuffInfo(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.in_layout)), true),
-                     N,
-                     C,
-                     H,
-                     W,
-                     group_cnt,
-                     GetTypeSize(params.in_data_type));
+        d_buf = BuffInfo(
+            GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.in_layout)), true),
+            N,
+            C,
+            H,
+            W,
+            group_cnt,
+            GetTypeSize(problem.in_data_type));
         o_buf = BuffInfo(
-            GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.out_layout)), false),
+            GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.out_layout)), false),
             N,
             K,
             out_H,
             out_W,
             group_cnt,
-            GetTypeSize(params.out_data_type));
+            GetTypeSize(problem.out_data_type));
     }
 
     const unsigned tiles_n_row    = (out_W + o_tile_step_W - 1) / o_tile_step_W;
@@ -599,7 +604,7 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
                         intl_factor);
 
     const unsigned n_works     = control_buf.size() / group_size;
-    const size_t workspace_req = GetWorkspaceSize(params);
+    const size_t workspace_req = GetWorkspaceSize(problem);
     const size_t workspace_buf = control_buf.size() * sizeof(decltype(control_buf)::value_type);
 
     assert(workspace_req >= workspace_buf);
@@ -608,7 +613,7 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
 
     KernelInfo kernel;
 
-    kernel.g_wk.push_back(wg_size * n_groups * params.group_counts);
+    kernel.g_wk.push_back(wg_size * n_groups * problem.group_counts);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
 
@@ -643,7 +648,7 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
             Data_t workspace;
             size_t workspace_size;
 
-            if(!params.direction.IsBackwardWrW())
+            if(!problem.direction.IsBackwardWrW())
             {
                 const auto& invoke_params = primitive_params.CastTo<conv::DataInvokeParams>();
                 workspace                 = invoke_params.workSpace;
@@ -671,7 +676,7 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
                              std::to_string(workspace_size) + " provided, " +
                              std::to_string(workspace_req) + " required)");
 
-            CopyDataToBuffer(params.GetStream(), control_buf, workspace);
+            CopyDataToBuffer(ctx.GetStream(), control_buf, workspace);
 
             // clang-format off
             MIOPEN_LOG_I2("C=" << C << " K=" << K << " n_groups=" << n_groups << " n_works=" << n_works
