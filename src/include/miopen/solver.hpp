@@ -2325,10 +2325,7 @@ struct PerformanceConfigAsmDirect3x3WrW : PerfConfigBase<PerformanceConfigAsmDir
     void HeuristicInit(const ConvolutionContext&, const ProblemDescription&);
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext&);
-    bool IsValid(const ConvolutionContext& ctx) const
-    {
-        return IsValid(ctx, ctx.problem);
-    }
+    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx, ctx.problem); }
     bool IsValid(const ConvolutionContext&, const ProblemDescription&) const;
     bool operator==(const PerformanceConfigAsmDirect3x3WrW& other) const;
 };
@@ -2336,11 +2333,11 @@ struct PerformanceConfigAsmDirect3x3WrW : PerfConfigBase<PerformanceConfigAsmDir
 struct ConvAsmBwdWrW3x3 final : ConvTunableSolver<PerformanceConfigAsmDirect3x3WrW>
 {
     // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::IsValidPerformanceConfig;
     using ConvTunableSolver::Search;
-    using ConvTunableSolver::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsmBwdWrW3x3>(); }
 
@@ -2371,8 +2368,8 @@ struct ConvAsmBwdWrW3x3 final : ConvTunableSolver<PerformanceConfigAsmDirect3x3W
 
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
-    PerformanceConfigAsmDirect3x3WrW
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const;
+    PerformanceConfigAsmDirect3x3WrW GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                                 const ProblemDescription&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigAsmDirect3x3WrW&) const;
@@ -2470,10 +2467,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : PerfConfigBase<PerformanceConfigConvA
     void HeuristicInit(const ProblemDescription&);
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext&);
-    bool IsValid(const ConvolutionContext& ctx) const
-    {
-        return IsValid(ctx, ctx.problem);
-    }
+    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx, ctx.problem); }
     bool IsValid(const ConvolutionContext&, const ProblemDescription&) const;
     bool operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const;
 };
@@ -2481,12 +2475,12 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : PerfConfigBase<PerformanceConfigConvA
 struct ConvAsmBwdWrW1x1 final : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW1x1>
 {
     // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::IsApplicable;
-    using ConvTunableSolver::GetWorkspaceSize;
     using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::GetWorkspaceSize;
+    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::IsValidPerformanceConfig;
     using ConvTunableSolver::Search;
-    using ConvTunableSolver::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsmBwdWrW1x1>(); }
 
@@ -2523,8 +2517,7 @@ struct ConvAsmBwdWrW1x1 final : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
     size_t GetWorkspaceSize(const ProblemDescription&) const;
-    PerformanceConfigConvAsmBwdWrW1x1
-    GetDefaultPerformanceConfig(const ProblemDescription&) const;
+    PerformanceConfigConvAsmBwdWrW1x1 GetDefaultPerformanceConfig(const ProblemDescription&) const;
     bool IsValidPerformanceConfig(const ProblemDescription&,
                                   const PerformanceConfigConvAsmBwdWrW1x1&) const;
     PerformanceConfigConvAsmBwdWrW1x1 Search(const ConvolutionContext&,

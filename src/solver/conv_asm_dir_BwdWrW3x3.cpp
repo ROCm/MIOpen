@@ -140,12 +140,10 @@ static bool IsReverseInOutAllowed(const ProblemDescription& problem)
     return problem.kernel_stride_w == 1 && problem.kernel_stride_h == 1;
 }
 
-inline int elements_in_dword(const ProblemDescription& problem)
-{
-    return problem.IsFp16() ? 2 : 1;
-}
+inline int elements_in_dword(const ProblemDescription& problem) { return problem.IsFp16() ? 2 : 1; }
 
-bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
+                                               const ProblemDescription& problem) const
 {
     if(!IsValidValue())
         return false;
@@ -162,11 +160,9 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx, co
            (problem.n_inputs % (GetCPerWave() * problem.group_counts) != 0))
             return false;
     }
-    if((problem.n_outputs % (64 / chunk_size) != 0) &&
-       (problem.n_inputs % (64 / chunk_size) != 0))
+    if((problem.n_outputs % (64 / chunk_size) != 0) && (problem.n_inputs % (64 / chunk_size) != 0))
         return false;
-    if((reverse_inout != 0 ? problem.n_inputs : problem.n_outputs) % GetCPerWave() !=
-       0)
+    if((reverse_inout != 0 ? problem.n_inputs : problem.n_outputs) % GetCPerWave() != 0)
         return false;
     if(!(chunk_size * k_per_wave <= 64))
         return false;
@@ -179,8 +175,8 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx, co
     if((reverse_inout != 0) && !IsReverseInOutAllowed(problem))
         return false;
     {
-        const int accums_cnt = (problem.kernel_size_w * problem.kernel_size_h *
-                                GetCPerWave() * k_per_wave * chunk_size) /
+        const int accums_cnt = (problem.kernel_size_w * problem.kernel_size_h * GetCPerWave() *
+                                k_per_wave * chunk_size) /
                                64;
         assert(chunk_size);
         const int out_w_vec =
@@ -189,8 +185,8 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx, co
         if(chunk_size != 16)
         {
             assert(chunk_size - problem.pad_w);
-            gprs_per_line_in = (out_w_vec + chunk_size - problem.pad_w - 1) /
-                               (chunk_size - problem.pad_w);
+            gprs_per_line_in =
+                (out_w_vec + chunk_size - problem.pad_w - 1) / (chunk_size - problem.pad_w);
         }
         assert(problem.kernel_stride_w);
         gprs_per_line_in += gprs_per_line_in % problem.kernel_stride_w;
@@ -200,8 +196,8 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx, co
         const int lines_in           = pipe_lines_depth + problem.kernel_size_h - 1;
         const int vgprs_for_lines_in = lines_in * elements_in_dword(problem) * gprs_per_line_in;
         assert(problem.kernel_stride_h);
-        const int lines_out = (pipe_lines_depth + problem.kernel_stride_h - 1) /
-                              problem.kernel_stride_h;
+        const int lines_out =
+            (pipe_lines_depth + problem.kernel_stride_h - 1) / problem.kernel_stride_h;
         const int vgprs_for_lines_out = lines_out * elements_in_dword(problem) * gprs_per_line_out;
         const int vgprs_for_division =
             (vgprs_for_lines_in >= 4 ? 0 : 4) + (vgprs_for_lines_out >= 3 ? 0 : 3);
@@ -234,7 +230,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx, co
         /// information here and in all similar places across other Solvers.
         const bool dot2_inst_avail = (name == "gfx906" || name == "gfx908");
         const bool dot2_emulate    = (!dot2_inst_avail) && (elements_in_dword(problem) == 2);
-        const int v_instr = (k_per_wave * problem.kernel_size_h * gprs_per_line_out *
+        const int v_instr          = (k_per_wave * problem.kernel_size_h * gprs_per_line_out *
                              problem.kernel_size_w * 4 * (dot2_emulate ? 2 : 1)) /
                             3 * elements_in_dword(problem);
         const int exch_instr = elements_in_dword(problem) == 2 ? 3 * m_instr : 0;
@@ -246,30 +242,27 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx, co
     return true;
 }
 
-void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& ctx, const ProblemDescription& problem)
+void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& ctx,
+                                                     const ProblemDescription& problem)
 {
     limit_wave_cnt = 0;
 
     chunk_size = (problem.out_width < 48) ? 8 : 16;
-    if((problem.n_outputs % (64 / chunk_size) != 0) &&
-       (problem.n_inputs % (64 / chunk_size) != 0))
+    if((problem.n_outputs % (64 / chunk_size) != 0) && (problem.n_inputs % (64 / chunk_size) != 0))
         chunk_size = 16; // Fixup for correctness
 
     reverse_inout = 0;
-    if(IsReverseInOutAllowed(problem) &&
-       ((problem.n_outputs % 4 != 0) || (problem.out_width < 8)))
+    if(IsReverseInOutAllowed(problem) && ((problem.n_outputs % 4 != 0) || (problem.out_width < 8)))
         reverse_inout = 1;
 
-    const auto c_k =
-        problem.n_outputs * problem.n_inputs / problem.group_counts; // C*K
+    const auto c_k = problem.n_outputs * problem.n_inputs / problem.group_counts; // C*K
     if(c_k < 256)
         k_per_wave = 1;
     else if(c_k < 16384)
         k_per_wave = 2;
     else // C*K >= 16k
         k_per_wave = ((chunk_size == 8) ? 2 : 4);
-    while((reverse_inout != 0 ? problem.n_outputs : problem.n_inputs) % k_per_wave !=
-          0)
+    while((reverse_inout != 0 ? problem.n_outputs : problem.n_inputs) % k_per_wave != 0)
         k_per_wave /= 2; // Fixup for correctness
 
     if(c_k <= 512)
@@ -326,7 +319,8 @@ void PerformanceConfigAsmDirect3x3WrW::HeuristicInit(const ConvolutionContext& c
 }
 
 PerformanceConfigAsmDirect3x3WrW
-ConvAsmBwdWrW3x3::GetDefaultPerformanceConfig(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+ConvAsmBwdWrW3x3::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+                                              const ProblemDescription& problem) const
 {
     PerformanceConfigAsmDirect3x3WrW pp;
     pp.HeuristicInit(ctx, problem);
@@ -334,14 +328,16 @@ ConvAsmBwdWrW3x3::GetDefaultPerformanceConfig(const ConvolutionContext& ctx, con
     return pp;
 }
 
-bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                                const ProblemDescription& problem,
-                                                const PerformanceConfigAsmDirect3x3WrW& config) const
+bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceConfigAsmDirect3x3WrW& config) const
 {
     return config.IsValidValue() && config.IsValid(ctx, problem);
 }
 
-bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx,
+                                    const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3{}))
         return false;
@@ -368,8 +364,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& ctx, const Problem
         return false;
     }
 #if WORKAROUND_ISSUE_532
-    if(StartsWith(name, "gfx9") &&
-       (problem.kernel_stride_w > 1 || problem.kernel_stride_h > 1))
+    if(StartsWith(name, "gfx9") && (problem.kernel_stride_w > 1 || problem.kernel_stride_h > 1))
         return false;
 #endif
 
@@ -492,8 +487,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& ctx,
     GenerateClangDefsym(options, "group_counts", problem.group_counts);
 
     const int k_group_size =
-        problem.n_inputs /
-        (pcfg->reverse_inout != 0 ? pcfg->GetCPerWave() : pcfg->GetKPerWave()) /
+        problem.n_inputs / (pcfg->reverse_inout != 0 ? pcfg->GetCPerWave() : pcfg->GetKPerWave()) /
         problem.group_counts;
     const bool k_group_size_is_power_of_two = ((k_group_size & (k_group_size - 1)) == 0);
     GenerateClangDefsym(options, "k_group_size_is_power_of_two", k_group_size_is_power_of_two);
@@ -512,14 +506,12 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& ctx,
 
     if(pcfg->GetReverseInout() == 0)
     {
-        kernel.g_wk.push_back(problem.n_outputs / pcfg->GetCPerWave() /
-                              problem.group_counts);
+        kernel.g_wk.push_back(problem.n_outputs / pcfg->GetCPerWave() / problem.group_counts);
         kernel.g_wk.push_back(problem.n_inputs / pcfg->GetKPerWave());
     }
     else
     {
-        kernel.g_wk.push_back(problem.n_outputs / pcfg->GetKPerWave() /
-                              problem.group_counts);
+        kernel.g_wk.push_back(problem.n_outputs / pcfg->GetKPerWave() / problem.group_counts);
         kernel.g_wk.push_back(problem.n_inputs / pcfg->GetCPerWave());
     }
 

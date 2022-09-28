@@ -307,7 +307,8 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
         && IsFromPack<0, 1, 2, 3, 4>(data_prefetch); // clang-format on
 }
 
-bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& ctx,
+                                                const ProblemDescription& problem) const
 {
 
     if(!IsValidValue())
@@ -362,14 +363,11 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& ctx, c
 
 void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ProblemDescription& problem)
 {
-    short_store = (problem.out_data_type == miopenHalf ||
-                   problem.out_data_type == miopenBFloat16)
-                      ? 1
-                      : 0;
+    short_store =
+        (problem.out_data_type == miopenHalf || problem.out_data_type == miopenBFloat16) ? 1 : 0;
     read_size = 4;
     n_per_gpr =
-        (problem.batch_sz >= 4 && (AsmImgHeight(problem) * AsmImgWidth(problem)) <= 128) ? 4
-                                                                                              : 1;
+        (problem.batch_sz >= 4 && (AsmImgHeight(problem) * AsmImgWidth(problem)) <= 128) ? 4 : 1;
     data_prefetch      = 1;
     const auto c_k_256 = problem.n_outputs * problem.n_inputs / 256; // C*K/256
     if(c_k_256 < 2)
@@ -455,13 +453,14 @@ ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ProblemDescription& problem)
     return pp;
 }
 
-bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(const ProblemDescription& problem,
-                                                const PerformanceConfigConvAsmBwdWrW1x1& config) const
+bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(
+    const ProblemDescription& problem, const PerformanceConfigConvAsmBwdWrW1x1& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
 }
 
-bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
+                                    const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1{}))
         return false;
@@ -542,9 +541,8 @@ size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ProblemDescription& problem) con
 {
     if(UseSubsample(problem))
     {
-        int data_len = GetTypeSize(problem.out_data_type);
-        int in_batch_stride =
-            problem.in_stride * problem.in_height * problem.n_outputs;
+        int data_len        = GetTypeSize(problem.out_data_type);
+        int in_batch_stride = problem.in_stride * problem.in_height * problem.n_outputs;
         return in_batch_stride * problem.batch_sz * data_len;
     }
     else
@@ -564,30 +562,26 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
     if(UseSubsample(problem))
     {
         // subsampled input, in_height equals to image size after downsampling
-        int in_batch_stride =
-            problem.in_stride * problem.in_height * problem.n_outputs;
-        int write_unit = (problem.in_width % 4 == 0)
-                             ? 4
-                             : (problem.in_width % 3 == 0)
-                                   ? 3
-                                   : (problem.in_width % 2 == 0) ? 2 : 1;
+        int in_batch_stride = problem.in_stride * problem.in_height * problem.n_outputs;
+        int write_unit =
+            (problem.in_width % 4 == 0)
+                ? 4
+                : (problem.in_width % 3 == 0) ? 3 : (problem.in_width % 2 == 0) ? 2 : 1;
         int n_grp0_size0 = 256;
 
         const auto subsample_kernel_compilation_options =
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
-            std::string(" -DMLO_FILTER0_STRIDE0=") +
-            std::to_string(problem.kernel_stride_w) +
-            std::string(" -DMLO_FILTER0_STRIDE1=") +
-            std::to_string(problem.kernel_stride_h) + std::string(" -DMLO_WRITE_UNIT=") +
-            std::to_string(write_unit) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-            std::to_string(problem.in_channel_stride) + std::string(" -DMLO_OUT_STRIDE=") +
-            std::to_string(problem.in_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
-            std::to_string(in_batch_stride) + std::string(" -DMLO_IN0_BATCH_STRIDE=") +
-            std::to_string(problem.out_batch_stride) +
-            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") +
-            std::to_string(problem.out_channel_stride) + std::string(" -DMLO_IN0_STRIDE=") +
-            std::to_string(problem.out_stride) + ctx.general_compile_options;
+            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(problem.kernel_stride_w) +
+            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(problem.kernel_stride_h) +
+            std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
+            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(problem.in_channel_stride) +
+            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(problem.in_stride) +
+            std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
+            std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(problem.out_batch_stride) +
+            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(problem.out_channel_stride) +
+            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(problem.out_stride) +
+            ctx.general_compile_options;
 
         KernelInfo kernel;
 
@@ -634,9 +628,8 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
     GenerateClangDefsym(options, "do_not_use_default_perf_params", 1);
 
     GenerateClangDefsym(options, "acc_type", 1);
-    const unsigned int buf_type = problem.out_data_type == miopenHalf
-                                      ? 2
-                                      : problem.out_data_type == miopenFloat ? 1 : 3;
+    const unsigned int buf_type =
+        problem.out_data_type == miopenHalf ? 2 : problem.out_data_type == miopenFloat ? 1 : 3;
     GenerateClangDefsym(options, "buf_type", buf_type);
 
     enum class MemLayout : int
@@ -706,8 +699,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
-    buff_info fbuf(
-        MemLayout::NCHW, problem.n_inputs, problem.n_outputs, 1, 1, 1, data_len);
+    buff_info fbuf(MemLayout::NCHW, problem.n_inputs, problem.n_outputs, 1, 1, 1, data_len);
     GenerateClangDefsym(options, "input_n_stride", ibuf.byte_stride.nk);
     GenerateClangDefsym(options, "input_c_stride", ibuf.byte_stride.c);
     GenerateClangDefsym(options, "input_h_stride", ibuf.byte_stride.h);
