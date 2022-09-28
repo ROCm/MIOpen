@@ -219,8 +219,6 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     const auto& y_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
 
-    ValidateGroupCount(x_desc, w_desc, conv_desc);
-
     const auto& x = buffers.at(miopenTensorConvolutionX);
     const auto& w = buffers.at(miopenTensorConvolutionW);
     const auto& y = buffers.at(miopenTensorConvolutionY);
