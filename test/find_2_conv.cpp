@@ -73,9 +73,9 @@ struct Find2Test : test_driver
 private:
     void ReleaseMemory()
     {
-        x_dev.release();
-        w_dev.release();
-        y_dev.release();
+        x_dev = nullptr;
+        w_dev = nullptr;
+        y_dev = nullptr;
 
         x = {};
         w = {};
