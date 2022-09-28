@@ -51,7 +51,7 @@ struct Find2Test : test_driver
     // --input 16,192,28,28 --weights 32,192,5,5 --filter 2,2,1,1,1,1,
     miopen::ConvolutionDescriptor filter = {
         2, miopenConvolution, miopenPaddingDefault, {1, 1}, {1, 1}, {1, 1}};
-    miopenConvolutionMode_t mode = miopenConvolution;
+    std::string mode = "miopenConvolution";
 
     Find2Test()
     {
@@ -66,8 +66,8 @@ struct Find2Test : test_driver
         add(mode,
             "mode",
             generate_data({
-                miopenConvolution,
-                miopenTranspose,
+                "miopenConvolution",
+                "miopenTranspose",
             }));
     }
 
@@ -107,6 +107,13 @@ private:
     {
         miopenHandle_t handle = &get_handle();
         miopenProblem_t problem;
+
+        if(mode == "miopenConvolution" || mode == "0")
+            filter.mode = miopenConvolution;
+        else if(mode == "miopenTranspose" || mode == "1")
+            filter.mode = miopenTranspose;
+        else
+            MIOPEN_THROW(miopenStatusInvalidValue);
 
         EXPECT_EQUAL(miopenCreateConvProblem(&problem, &filter, direction), miopenStatusSuccess);
 
