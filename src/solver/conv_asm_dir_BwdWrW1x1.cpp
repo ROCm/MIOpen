@@ -361,7 +361,8 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& ctx,
     return true;
 }
 
-void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& ctx, const ProblemDescription& problem)
+void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& ctx,
+                                                      const ProblemDescription& problem)
 {
     short_store =
         (problem.out_data_type == miopenHalf || problem.out_data_type == miopenBFloat16) ? 1 : 0;
@@ -445,7 +446,8 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& 
 }
 
 PerformanceConfigConvAsmBwdWrW1x1
-ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+                                              const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsmBwdWrW1x1 pp;
     pp.HeuristicInit(ctx, problem);
@@ -454,7 +456,9 @@ ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx, con
 }
 
 bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceConfigConvAsmBwdWrW1x1& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceConfigConvAsmBwdWrW1x1& config) const
 {
     return config.IsValidValue() && config.IsValid(ctx, problem);
 }

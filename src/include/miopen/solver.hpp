@@ -2515,7 +2515,8 @@ struct ConvAsmBwdWrW1x1 final : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
     size_t GetWorkspaceSize(const ProblemDescription&) const;
-    PerformanceConfigConvAsmBwdWrW1x1 GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const;
+    PerformanceConfigConvAsmBwdWrW1x1 GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                                  const ProblemDescription&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigConvAsmBwdWrW1x1&) const;
