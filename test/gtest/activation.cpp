@@ -50,7 +50,7 @@ struct ActivationConfig
     size_t C;
     size_t H;
     size_t W;
-    miopenActivationMode_t activ_mode;
+    //miopenActivationMode_t activ_mode;
 };
 
 template <class T1, class T2>
@@ -67,7 +67,7 @@ void CompareTensors(T1&& t1, T2&& t2)
     return;
 }
 
-struct TestActivation : public ::testing::TestWithParam<ActivationConfig>
+struct TestActivation : public ::testing::TestWithParam<std::tuple<miopenActivationMode_t,ActivationConfig>>
 {
 protected:
     void SetUp() override
@@ -75,7 +75,8 @@ protected:
         double alpha = 0.95;
         double beta  = 2.3;
         double gamma = 3.4;
-        activ_config = GetParam();
+        //activ_config = GetParam();
+        std::tie(activ_mode, activ_config) = GetParam();
         input = tensor<float>{activ_config.N, activ_config.C, activ_config.H, activ_config.W};
         input.generate(tensor_elem_gen_integer{17});
         dinput_cpu = input;
@@ -83,7 +84,7 @@ protected:
 
         // TODO: use miopen API?
         miopenCreateActivationDescriptor(&activ_desc);
-        miopenSetActivationDescriptor(activ_desc, activ_config.activ_mode, alpha, beta, gamma);
+        miopenSetActivationDescriptor(activ_desc, activ_mode, alpha, beta, gamma);
 
         // In TEST_P()
         // auto ptr_bwdfusionplan                = GetManagedFusionPlanDesc(&input.desc);
@@ -96,7 +97,7 @@ protected:
             6 * input.desc.GetNumBytes(); // estimate based on both forward and backward passes
         size_t device_mem = handle.GetGlobalMemorySize();
 
-        ASSERT_LT(total_mem, device_mem) << "Tensor exceeds GPU memory size";
+        ASSERT_LT(total_mem, device_mem) << "Tensor exceeds system memory size";
 
         output_gpu =
             tensor<float>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
@@ -113,7 +114,7 @@ protected:
         std::fill(output_cpu_ref.begin(), output_cpu_ref.end(), 0.0f);
 
         // Infer on CPU, forward
-        activationHostInfer(activ_config.activ_mode,
+        activationHostInfer(activ_mode,
                             gamma,                // 0.0f?
                             beta,                 // 0.0f?
                             alpha,                // 0.0f?
@@ -129,7 +130,7 @@ protected:
             return ((x * y) / 1301.0);
         });
 
-        activationHostBwd(activ_config.activ_mode,
+        activationHostBwd(activ_mode,
                           gamma,
                           beta,
                           alpha,
@@ -147,7 +148,7 @@ protected:
     void TearDown() override
     {
         auto&& handle = get_handle();
-        // Read data fro GPU
+        // Read data from GPU
         output_gpu.data = handle.Read<float>(out_dev, output_gpu.data.size());
 
         CompareTensors(output_cpu_ref, output_gpu);
@@ -167,6 +168,7 @@ protected:
     tensor<float> doutput;
 
     ActivationConfig activ_config;
+    miopenActivationMode_t activ_mode;
     miopenActivationDescriptor_t activ_desc;
     miopen::Allocator::ManageDataPtr in_dev;   // x
     miopen::Allocator::ManageDataPtr out_dev;  // y
@@ -221,9 +223,29 @@ miopenStatus_t RunActivation(miopen::Handle& handle,
 
 INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
                          TestActivation,
-                         ::testing::Values(ActivationConfig{16, 32, 8, 8, miopenActivationELU}));
+                         ::testing::Combine(
+                         ::testing::Values(
+                            //miopenActivationLOGISTIC,
+                            //miopenActivationTANH,
+                            miopenActivationRELU,
+                            miopenActivationSOFTRELU,
+                            miopenActivationABS,
+                            //miopenActivationPOWER,
+                            //miopenActivationCLIPPEDRELU, 
+                            miopenActivationLEAKYRELU, 
+                            miopenActivationELU),
 
-TEST_P(TestActivation, ActivationFwdTest)
+                         ::testing::Values(
+                            ActivationConfig{128, 128, 16, 16},
+                            ActivationConfig{128, 16, 16, 16},
+                            ActivationConfig{16, 128, 16, 16},
+                            ActivationConfig{16, 32, 8, 8},
+                            ActivationConfig{32, 16, 8, 8},
+                            ActivationConfig{2, 16, 5, 4},
+                            ActivationConfig{2, 2, 2, 2}
+                            )));
+ 
+TEST_P(TestActivation, ActivationFwdBwdTest)
 {
     const float alpha = 1.0f, beta = 0;
     miopenStatus_t status = RunActivation(get_handle(),
