@@ -57,22 +57,16 @@ template <typename DataType>
 using DeviceOpPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOp<DataType>>;
 
-template <typename DataType>
 auto GetPtrs(const ConvolutionContext& ctx)
 {
-    std::vector<std::unique_ptr<DeviceOp<DataType>>> op_ptrs;
-    if(ctx.problem.conv_problem.GetInDataType() == miopenInt8)
-    {
-        op_ptrs = DeviceOpPtrs<int8_t>::GetInstances();
-    }
-    else if(ctx.problem.conv_problem.GetInDataType() == miopenHalf)
-    {
-        op_ptrs = DeviceOpPtrs<ck::half_t>::GetInstances();
-    }
-    else if(ctx.problem.conv_problem.GetInDataType() == miopenFloat)
-    {
-        op_ptrs = DeviceOpPtrs<float>::GetInstances();
-    }
+    using dType ctx.problem.conv_problem;
+    auto op_ptrs = dType.GetInDataType() == miopenInt8
+                       ? DeviceOpPtrs<int8_t>::GetInstances()
+                       : dType.GetInDataType() == miopenHalf
+                             ? DeviceOpPtrs<ck::half_t>::GetInstances()
+                             : dType.GetInDataType() == miopenFloat
+                                   ? DeviceOpPtrs<float>::GetInstances()
+                                   : DeviceOpPtrs<int>::GetInstances();
     return op_ptrs;
 }
 
