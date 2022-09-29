@@ -40,7 +40,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 namespace miopen {
 namespace solver {
 
-template<class DataType>
+template<typename DataType>
 using DeviceOp =
     ck::tensor_operation::device::DeviceConvFwd<2,
                                                 ck::tensor_layout::convolution::NHWC,
@@ -52,6 +52,23 @@ using DeviceOp =
                                                 ck::tensor_operation::element_wise::PassThrough,
                                                 ck::tensor_operation::element_wise::PassThrough,
                                                 ck::tensor_operation::element_wise::PassThrough>;
+
+template<typename DataType>
+using DeviceOpPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    DeviceOp<DataType>>;
+
+template<typename DataType>
+auto GetPtrs(const ConvolutionContext& ctx){
+  std::vector<std::unique_ptr<DeviceOp<DataType>>> op_ptrs;
+  if(ctx.problem.conv_problem.GetInDataType() == miopenInt8){
+    op_ptrs = DeviceOpPtrs<int8_t>::GetInstances();
+  } else if(ctx.problem.conv_problem.GetInDataType() == miopenHalf){
+    op_ptrs = DeviceOpPtrs<ck::half_t>::GetInstances();
+  } else if(ctx.problem.conv_problem.GetInDataType() == miopenFloat){
+    op_ptrs = DeviceOpPtrs<float>::GetInstances();
+  }
+  return op_ptrs;
+}
 
 struct CKArgs
 {
@@ -94,8 +111,7 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionC
     std::ignore = ctx;
 #else
     this->index = 0;
-    const auto conv_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp<int8_t>>::GetInstances();
+    const auto conv_ptrs = GetPtrs(ctx);
     assert(!conv_ptrs.empty());
     this->total_size = conv_ptrs.size();
     const auto args  = CKArgs{ctx};
@@ -149,8 +165,7 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(const ConvolutionContext
     std::ignore = ctx;
     return false;
 #else
-    const auto conv_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp<int8_t>>::GetInstances();
+    const auto conv_ptrs = GetPtrs(ctx);
     const auto args   = CKArgs{ctx};
     auto argument_ptr = conv_ptrs[this->index]->MakeArgumentPointer(nullptr,
                                                                     nullptr,
@@ -215,9 +230,12 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
         return false;
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
-    if(!(ctx.problem.conv_problem.GetInDataType() == miopenInt8 &&
-         ctx.problem.conv_problem.GetWeightsDataType() == miopenInt8 &&
-         ctx.problem.conv_problem.GetOutDataType() == miopenInt8))
+    if(ctx.problem.conv_problem.GetInDataType() !=
+       ctx.problem.conv_problem.GetWeightsDataType() ||
+       ctx.problem.conv_problem.GetWeightsDataType() !=
+       ctx.problem.conv_problem.GetOutDataType() ||
+       ctx.problem.conv_problem.GetInDataType() !=
+       ctx.problem.conv_problem.GetOutDataType())
         return false;
     if(!ctx.problem.direction.IsForward())
         return false;
@@ -232,8 +250,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
     if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
         return false;
 
-    const auto conv_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp<int8_t>>::GetInstances();
+    const auto conv_ptrs = GetPtrs(ctx);
     assert(!conv_ptrs.empty());
 
     for(auto& conv_ptr : conv_ptrs)
@@ -274,8 +291,7 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-        const auto conv_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp<int8_t>>::GetInstances();
+            const auto conv_ptrs = GetPtrs(ctx);
             auto& conv_ptr       = conv_ptrs.at(config.index);
             const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
