@@ -41,6 +41,7 @@
 #include <tuple>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3_ENFORCE)
 
 static inline size_t Ceil(const size_t v, const size_t m)
 {
@@ -692,6 +693,9 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ExecutionContext& ct
                  reserved_offset,
                  reserved_offset,
                  reserved_offset);
+
+            if(miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3_ENFORCE{}))
+                handle.ResetKernelTime();
         };
     };
 
