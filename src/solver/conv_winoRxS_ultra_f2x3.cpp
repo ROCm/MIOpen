@@ -520,6 +520,8 @@ bool ConvBinWinogradUltraRxSf2x3::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!ctx.rmv.IsV3())
         return false;
+    if(problem.direction.IsBackwardWrW())
+        return false;
 
     const auto name = ctx.GetStream().GetDeviceName();
     if(!StartsWith(name, "gfx10"))
@@ -539,38 +541,19 @@ bool ConvBinWinogradUltraRxSf2x3::IsApplicable(const ExecutionContext& ctx,
     const auto n_inputs_per_group  = problem.n_inputs / problem.group_counts,
                n_outputs_per_group = problem.n_outputs / problem.group_counts;
 
-    if(!problem.direction.IsBackwardWrW())
-    {
-        return IsShaderContraintsMet(problem.kernel_size_h, // RxS
-                                     problem.kernel_size_w,
-                                     problem.kernel_stride_h,
-                                     problem.kernel_stride_w,
-                                     n_inputs_per_group,  // C
-                                     n_outputs_per_group, // K
-                                     problem.in_height,   // HxW
-                                     problem.in_width,
-                                     problem.out_height, // OHxOW
-                                     problem.out_width,
-                                     problem.batch_sz, // N
-                                     ctx,
-                                     problem);
-    }
-    else
-    {
-        return IsShaderContraintsMet(problem.in_height,
-                                     problem.in_width,
-                                     problem.kernel_dilation_h,
-                                     problem.kernel_dilation_w,
-                                     problem.batch_sz,   // N
-                                     n_inputs_per_group, // K
-                                     problem.out_height,
-                                     problem.out_width,
-                                     problem.kernel_size_h,
-                                     problem.kernel_size_w,
-                                     n_outputs_per_group, // C
-                                     ctx,
-                                     problem);
-    }
+    return IsShaderContraintsMet(problem.kernel_size_h, // RxS
+                                 problem.kernel_size_w,
+                                 problem.kernel_stride_h,
+                                 problem.kernel_stride_w,
+                                 n_inputs_per_group,  // C
+                                 n_outputs_per_group, // K
+                                 problem.in_height,   // HxW
+                                 problem.in_width,
+                                 problem.out_height, // OHxOW
+                                 problem.out_width,
+                                 problem.batch_sz, // N
+                                 ctx,
+                                 problem);
 #else
     std::ignore = ctx;
     return false;
