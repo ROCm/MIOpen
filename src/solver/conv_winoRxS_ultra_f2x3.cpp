@@ -200,7 +200,7 @@ struct WinogradUltraDescription
         d_step_2_pitch = d_N_pitch - tiles_n_column * d_tile_step_H * d_H_pitch;
 
         o_N_pitch = o_buf.byte_stride.nk;
-        o_K_pitch = d_buf.byte_stride.c;
+        o_K_pitch = o_buf.byte_stride.c;
         o_H_pitch = o_buf.byte_stride.h;
         o_W_pitch = o_buf.byte_stride.w;
 
@@ -591,7 +591,8 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ExecutionContext& ct
     const size_t workspace_req = GetWorkspaceSize(problem);
     const size_t workspace_buf = control_buf.size() * sizeof(decltype(control_buf)::value_type);
 
-    assert(workspace_req == workspace_buf);
+    if(workspace_req != workspace_buf)
+        MIOPEN_THROW("ConvBinWinogradUltraRxSf2x3 invalid control buffer size");
 
     const size_t wg_size = 256;
 
