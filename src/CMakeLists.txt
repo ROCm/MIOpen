@@ -639,7 +639,7 @@ target_include_directories(MIOpen PUBLIC
 
 set(MIOPEN_CK_LINK_FLAGS)
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations composable_kernel::host_tensor hip::host)
+set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations hip::host)
 endif()
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
