@@ -34,53 +34,55 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW)
 namespace miopen {
 namespace solver {
 
-bool ConvDirectNaiveConvWrw::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvDirectNaiveConvWrw::IsApplicable(const ConvolutionContext& ctx,
+                                          const ProblemDescription& problem) const
 {
     if(!miopen::debug::AlwaysEnableConvDirectNaive &&
        miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_WRW{}))
         return false;
 
-    if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx))
+    if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx, problem))
         return false;
 
-    if(!ctx.IsLayoutDefault() && !ctx.IsLayoutNHWC())
+    if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
 
-    if(!(ctx.IsFp32() || ctx.IsFp16() || ctx.IsBfp16()))
+    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 
-    if(!ctx.direction.IsBackwardWrW())
+    if(!problem.direction.IsBackwardWrW())
         return false;
 
     return true;
 }
 
-ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx) const
+ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx,
+                                                 const ProblemDescription& problem) const
 {
     ConvSolution result;
 
-    int di          = ctx.out_depth;
-    int hi          = ctx.out_height;
-    int wi          = ctx.out_width;
-    int n           = ctx.batch_sz;
-    int k           = ctx.n_inputs;
-    int c           = ctx.n_outputs;
-    int do_         = ctx.in_depth;
-    int ho          = ctx.in_height;
-    int wo          = ctx.in_width;
-    int sz          = ctx.in_depth > 1 ? ctx.kernel_stride_d : 1;
-    int sy          = ctx.in_height > 1 ? ctx.kernel_stride_h : 1;
-    int sx          = ctx.in_width > 1 ? ctx.kernel_stride_w : 1;
-    int dz          = ctx.kernel_size_d > 1 ? ctx.kernel_dilation_d : 1;
-    int dy          = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
-    int dx          = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
-    int pz          = ctx.pad_d;
-    int py          = ctx.pad_h;
-    int px          = ctx.pad_w;
-    int fz          = ctx.kernel_size_d;
-    int fy          = ctx.kernel_size_h;
-    int fx          = ctx.kernel_size_w;
-    int group       = ctx.group_counts;
+    int di          = problem.out_depth;
+    int hi          = problem.out_height;
+    int wi          = problem.out_width;
+    int n           = problem.batch_sz;
+    int k           = problem.n_inputs;
+    int c           = problem.n_outputs;
+    int do_         = problem.in_depth;
+    int ho          = problem.in_height;
+    int wo          = problem.in_width;
+    int sz          = problem.in_depth > 1 ? problem.kernel_stride_d : 1;
+    int sy          = problem.in_height > 1 ? problem.kernel_stride_h : 1;
+    int sx          = problem.in_width > 1 ? problem.kernel_stride_w : 1;
+    int dz          = problem.kernel_size_d > 1 ? problem.kernel_dilation_d : 1;
+    int dy          = problem.kernel_size_h > 1 ? problem.kernel_dilation_h : 1;
+    int dx          = problem.kernel_size_w > 1 ? problem.kernel_dilation_w : 1;
+    int pz          = problem.pad_d;
+    int py          = problem.pad_h;
+    int px          = problem.pad_w;
+    int fz          = problem.kernel_size_d;
+    int fy          = problem.kernel_size_h;
+    int fx          = problem.kernel_size_w;
+    int group       = problem.group_counts;
     int c_per_group = c / group;
     int k_per_group = k / group;
 
@@ -90,7 +92,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx) 
     KernelInfo kernel;
 
     kernel.kernel_file = ConvDirectNaiveConvKernelFile();
-    kernel.kernel_name = ConvDirectNaiveConvKernelName(ctx);
+    kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
     kernel.g_wk.clear();
 
     kernel.g_wk.push_back(grid_size * block_size);
@@ -103,7 +105,7 @@ ConvSolution ConvDirectNaiveConvWrw::GetSolution(const ConvolutionContext& ctx) 
 
     kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx);
 
-    if(ctx.Is2d())
+    if(problem.Is2d())
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             const auto kern = kernels[0];
             return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {

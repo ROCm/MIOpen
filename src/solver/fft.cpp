@@ -107,22 +107,24 @@ static void cgemm_grid(size_t* global_work_size,
     global_work_size[1] = totalWorkGroups1 * local_work_size[1];
 }
 
-bool fft::IsApplicable(const ConvolutionContext& ctx) const
+bool fft::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
+    std::ignore = ctx;
+
     // disable running any FFT based convolutions by checking this env variable
-    if(ctx.direction.IsBackwardWrW() || !ctx.conv_problem.IsFp32())
+    if(problem.direction.IsBackwardWrW() || !problem.conv_problem.IsFp32())
         return false;
 
-    if(!ctx.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
 
-    const auto is_fwd    = ctx.direction.IsForward();
-    decltype(auto) conv  = ctx.conv_problem.GetConv();
-    decltype(auto) xDesc = is_fwd ? ctx.conv_problem.GetIn() : ctx.conv_problem.GetOut();
-    decltype(auto) yDesc = is_fwd ? ctx.conv_problem.GetOut() : ctx.conv_problem.GetIn();
-    decltype(auto) wDesc = ctx.conv_problem.GetWeights();
+    const auto is_fwd    = problem.direction.IsForward();
+    decltype(auto) conv  = problem.conv_problem.GetConv();
+    decltype(auto) xDesc = is_fwd ? problem.conv_problem.GetIn() : problem.conv_problem.GetOut();
+    decltype(auto) yDesc = is_fwd ? problem.conv_problem.GetOut() : problem.conv_problem.GetIn();
+    decltype(auto) wDesc = problem.conv_problem.GetWeights();
 
     if(conv.GetSpatialDimension() != 2 || conv.group_count != 1 ||
        !miopen::all_of(conv.GetConvDilations(), [](auto v) { return v == 1; }))
@@ -156,12 +158,12 @@ bool fft::IsApplicable(const ConvolutionContext& ctx) const
     return std::tie(wei_h, wei_w) == std::make_tuple(5, 5) && cparam == std::make_tuple(2, 2, 1, 1);
 }
 
-size_t fft::GetWorkspaceSize(const ConvolutionContext& ctx) const
+size_t fft::GetWorkspaceSize(const ProblemDescription& problem) const
 {
-    const auto fwd       = ctx.direction.IsForward();
-    decltype(auto) xDesc = fwd ? ctx.conv_problem.GetIn() : ctx.conv_problem.GetOut();
-    decltype(auto) yDesc = fwd ? ctx.conv_problem.GetOut() : ctx.conv_problem.GetIn();
-    decltype(auto) wDesc = ctx.conv_problem.GetWeights();
+    const auto fwd       = problem.direction.IsForward();
+    decltype(auto) xDesc = fwd ? problem.conv_problem.GetIn() : problem.conv_problem.GetOut();
+    decltype(auto) yDesc = fwd ? problem.conv_problem.GetOut() : problem.conv_problem.GetIn();
+    decltype(auto) wDesc = problem.conv_problem.GetWeights();
 
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());
@@ -196,10 +198,13 @@ size_t fft::GetWorkspaceSize(const ConvolutionContext& ctx) const
     return 2 * 2 * N * temp_size * sizeof(float);
 }
 
-ConvSolution fft::GetSolution(const ConvolutionContext& ctx) const
+ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    int in_n = ctx.batch_sz, in_c = ctx.n_inputs, in_h = ctx.in_height, in_w = ctx.in_width;
-    int out_n = ctx.batch_sz, out_c = ctx.n_outputs;
+    std::ignore = ctx;
+
+    int in_n = problem.batch_sz, in_c = problem.n_inputs, in_h = problem.in_height,
+        in_w  = problem.in_width;
+    int out_n = problem.batch_sz, out_c = problem.n_outputs;
 
     const int N          = FFTConvParams::TileSize(in_h, in_w);
     const int NumKernels = FFTConvParams::NumKernels;
@@ -336,7 +341,7 @@ ConvSolution fft::GetSolution(const ConvolutionContext& ctx) const
     else if((in_h == 7) && (in_w == 7))
         parms += " -DCFF_IMG_SZ_7_7";
 
-    const auto workSpaceSize = GetWorkspaceSize(ctx);
+    const auto workSpaceSize = GetWorkspaceSize(problem);
 
     parms += " -DCFF_IMG_H=";
     parms += std::to_string(in_h);
@@ -351,7 +356,7 @@ ConvSolution fft::GetSolution(const ConvolutionContext& ctx) const
     parms += " -DCFF_HALFW=";
     parms += std::to_string(workSpaceSize / (2 * 2 * sizeof(float)));
 
-    if(!ctx.direction.IsForward())
+    if(!problem.direction.IsForward())
     {
         parms += " -DCFF_BACKWARD";
     }

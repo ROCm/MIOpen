@@ -58,10 +58,10 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->IsTunable();
     };
-    bool TestSysDbRecord(const DbRecord& record) const
+    bool TestSysDbRecord(const ConvolutionContext& ctx, const DbRecord& record) const
     {
         assert(ptr_value != nullptr);
-        return ptr_value->TestSysDbRecord(record);
+        return ptr_value->TestSysDbRecord(ctx, record);
     };
     std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const
     {
@@ -122,7 +122,8 @@ struct AnySolver
         virtual ~AnySolver_base(){};
         virtual bool IsApplicable(const ConvolutionContext& ctx) const                         = 0;
         virtual bool IsTunable() const                                                         = 0;
-        virtual bool TestSysDbRecord(const DbRecord& record) const                             = 0;
+        virtual bool TestSysDbRecord(const ConvolutionContext& ctx,
+                                     const DbRecord& record) const                             = 0;
         virtual std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const = 0;
         virtual bool IsDynamic() const                                                         = 0;
         virtual float GetWti(const ConvolutionContext& ctx) const                              = 0;
@@ -170,22 +171,30 @@ struct AnySolver
             static constexpr bool Is = type::value;
         };
 
-        bool TestSysDbRecord(const DbRecord& record, std::true_type) const
+        bool
+        TestSysDbRecord(const ConvolutionContext& ctx, const DbRecord& record, std::true_type) const
         {
             using PerformanceConfig = decltype(
                 value.GetDefaultPerformanceConfig(std::declval<const ConvolutionContext&>()));
             PerformanceConfig config{};
-            return record.GetValues(value.SolverDbId(), config);
+            bool success = record.GetValues(value.SolverDbId(), config);
+            if(success)
+                success = value.IsValidPerformanceConfig(ctx, config);
+
+            return success;
         }
-        bool TestSysDbRecord(const DbRecord& record, std::false_type) const
+        bool TestSysDbRecord(const ConvolutionContext& ctx,
+                             const DbRecord& record,
+                             std::false_type) const
         {
+            std::ignore = ctx;
             std::ignore = record;
             return false;
         }
 
-        bool TestSysDbRecord(const DbRecord& record) const override
+        bool TestSysDbRecord(const ConvolutionContext& ctx, const DbRecord& record) const override
         {
-            return TestSysDbRecord(record, std::integral_constant<bool, TunableSolver::Is>());
+            return TestSysDbRecord(ctx, record, std::integral_constant<bool, TunableSolver::Is>());
         }
 
         // tunable legacy solver
@@ -245,19 +254,30 @@ struct AnySolver
         {
             using PerformanceConfig = decltype(value.GetDefaultPerformanceConfig(ctx));
             PerformanceConfig config{};
-            if(db.Load(ctx, value.SolverDbId(), config))
+            if(db.Load(ctx.problem, value.SolverDbId(), config))
             {
                 MIOPEN_LOG_I2("Perf Db: Record Loaded: " << value.SolverDbId());
                 if(value.IsValidPerformanceConfig(ctx, config))
                 {
-                    std::ostringstream ss;
-                    config.Serialize(ss);
-                    return ss.str();
+                    return config.ToString();
                 }
                 MIOPEN_LOG_I2("Perf Db: Invalid Config: " << value.SolverDbId());
             }
-            MIOPEN_LOG_I2("Perf Db: Failed Loading: " << value.SolverDbId());
-            return "";
+            else if(!value.AltSolverDbId().empty() &&
+                    db.Load(ctx.problem, value.AltSolverDbId(), config))
+            {
+                MIOPEN_LOG_I("Perf Db: alternate record loaded: " << value.AltSolverDbId());
+                if(value.IsValidPerformanceConfig(ctx, config))
+                {
+                    return config.ToString();
+                }
+                MIOPEN_LOG_I2("Perf Db: Invalid alternate record from Perf Db: "
+                              << value.AltSolverDbId() << ": " << config);
+            }
+
+            MIOPEN_LOG_I2("Perf Db: Failed Loading, Using Default: " << value.SolverDbId());
+            config = value.GetDefaultPerformanceConfig(ctx);
+            return config.ToString();
         }
         std::string
         GetPerfCfgParams(const ConvolutionContext& ctx, const Db& db, std::false_type) const

@@ -87,6 +87,13 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx,
     const auto& xDesc = problem.GetIn();
     const auto& wDesc = problem.GetWeights();
     const auto& yDesc = problem.GetOut();
+    if(xDesc.GetType() == miopenInt8x4 || xDesc.GetType() == miopenInt8)
+    {
+        // rocBlas needs the output to be int32 always
+        if(yDesc.GetType() != miopenFloat && yDesc.GetType() != miopenInt32 &&
+           yDesc.GetType() != miopenInt8x4)
+            return false;
+    }
     return problem.GetDirection() == conv::Direction::Forward && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBf16Supported) &&
            !(IsAnyBufferFp16(xDesc, yDesc, wDesc) && !IsFp16Supported);

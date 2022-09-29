@@ -51,7 +51,7 @@ public:
 
     bool IsApplicable(const ConvolutionContext& context) const override
     {
-        return context.in_width == 1;
+        return context.problem.in_width == 1;
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&) const
@@ -67,7 +67,7 @@ public:
     }
 };
 
-struct TestConfig : solver::Serializable<TestConfig>
+struct TestConfig : solver::PerfConfigBase<TestConfig>
 {
     std::string str;
 
@@ -142,6 +142,18 @@ static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const st
 
     return solvers.SearchForAllSolutions(ctx, db, {}, 1).front();
 }
+
+template <class TInstance>
+class StaticContainer
+{
+public:
+    inline static TInstance& Instance()
+    {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+        static TInstance data{};
+        return data;
+    }
+};
 
 class SolverTest
 {

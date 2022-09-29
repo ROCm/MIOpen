@@ -26,13 +26,16 @@
 #ifndef GUARD_MIOPEN_TENSOR_HPP_
 #define GUARD_MIOPEN_TENSOR_HPP_
 
-#include <miopen/common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/object.hpp>
+
+#include <miopen/common.hpp>
 #include <miopen/each_args.hpp>
-#include <miopen/returns.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/functional.hpp>
+#include <miopen/object.hpp>
+#include <miopen/returns.hpp>
+
+#include <nlohmann/json_fwd.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -170,7 +173,7 @@ struct TensorDescriptor : miopenTensorDescriptor
     miopenTensorLayout_t GetLayout_t() const;
     std::string GetLayout_str() const;
 
-    int GetVectorLength() const;
+    std::size_t GetVectorLength() const;
 
     std::size_t GetElementSize() const;
 
@@ -242,12 +245,15 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
 
+    friend void to_json(nlohmann::json& j, const TensorDescriptor& descriptor);
+    friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);
+
 private:
     std::vector<std::size_t> lens;
     std::vector<std::size_t> strides;
 
     bool packed;
-    int vector_length = 1;
+    std::size_t vector_length = 1;
 
     miopenDataType_t type             = miopenFloat;
     miopenTensorLayout_t tensorLayout = miopenTensorNCHW;
