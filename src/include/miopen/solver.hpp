@@ -2462,7 +2462,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : PerfConfigBase<PerformanceConfigConvA
     int GetDataPrefetch() const { return data_prefetch; }
     // clang-format on
 
-    void HeuristicInit(const ProblemDescription&);
+    void HeuristicInit(const ConvolutionContext&, const ProblemDescription&);
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext&);
     bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx, ctx.problem); }
@@ -2485,12 +2485,12 @@ struct ConvAsmBwdWrW1x1 final : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW
     PerformanceConfigConvAsmBwdWrW1x1
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
     {
-        return GetDefaultPerformanceConfig(ctx.problem);
+        return GetDefaultPerformanceConfig(ctx, ctx.problem);
     }
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceConfigConvAsmBwdWrW1x1& config) const override
     {
-        return IsValidPerformanceConfig(ctx.problem, config);
+        return IsValidPerformanceConfig(ctx, ctx.problem, config);
     }
     PerformanceConfigConvAsmBwdWrW1x1 Search(const ConvolutionContext& ctx,
                                              const AnyInvokeParams& invoke_ctx) const override
@@ -2515,8 +2515,9 @@ struct ConvAsmBwdWrW1x1 final : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
     size_t GetWorkspaceSize(const ProblemDescription&) const;
-    PerformanceConfigConvAsmBwdWrW1x1 GetDefaultPerformanceConfig(const ProblemDescription&) const;
-    bool IsValidPerformanceConfig(const ProblemDescription&,
+    PerformanceConfigConvAsmBwdWrW1x1 GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const ProblemDescription&,
                                   const PerformanceConfigConvAsmBwdWrW1x1&) const;
     PerformanceConfigConvAsmBwdWrW1x1 Search(const ConvolutionContext&,
                                              const ProblemDescription&,

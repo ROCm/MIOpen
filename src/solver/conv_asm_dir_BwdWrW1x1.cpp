@@ -361,7 +361,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& ctx,
     return true;
 }
 
-void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ProblemDescription& problem)
+void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& ctx, const ProblemDescription& problem)
 {
     short_store =
         (problem.out_data_type == miopenHalf || problem.out_data_type == miopenBFloat16) ? 1 : 0;
@@ -426,7 +426,7 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ProblemDescription& 
         read_size  = 4;
     }
 
-    if(!IsValid(problem))
+    if(!IsValid(ctx, problem))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
 
@@ -439,24 +439,24 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ProblemDescription& 
         n_part_cnt    = 1;
         read_size     = 1;
         data_prefetch = 0;
-        assert(IsValid(problem));
+        assert(IsValid(ctx, problem));
     }
     MIOPEN_LOG_I(ToString());
 }
 
 PerformanceConfigConvAsmBwdWrW1x1
-ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsmBwdWrW1x1 pp;
-    pp.HeuristicInit(problem);
+    pp.HeuristicInit(ctx, problem);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
 
 bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(
-    const ProblemDescription& problem, const PerformanceConfigConvAsmBwdWrW1x1& config) const
+    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceConfigConvAsmBwdWrW1x1& config) const
 {
-    return config.IsValidValue() && config.IsValid(problem);
+    return config.IsValidValue() && config.IsValid(ctx, problem);
 }
 
 bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
@@ -729,7 +729,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             s = std::string(p_asciz);
             if(!s.empty()) // else nothing to parse.
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(problem))
+                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(ctx, problem))
                 {
                     MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS: "
                                  "Bad format or invalid for the problem config: "
