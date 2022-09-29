@@ -59,7 +59,7 @@ using DeviceOpPtrs =
 
 auto GetPtrs(const ConvolutionContext& ctx)
 {
-    using dType ctx.problem.conv_problem;
+    using dType  = ctx.problem.conv_problem;
     auto op_ptrs = dType.GetInDataType() == miopenInt8
                        ? DeviceOpPtrs<int8_t>::GetInstances()
                        : dType.GetInDataType() == miopenHalf
