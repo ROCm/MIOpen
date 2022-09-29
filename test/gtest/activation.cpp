@@ -50,7 +50,7 @@ struct ActivationConfig
     size_t C;
     size_t H;
     size_t W;
-    //miopenActivationMode_t activ_mode;
+    // miopenActivationMode_t activ_mode;
 };
 
 template <class T1, class T2>
@@ -67,7 +67,8 @@ void CompareTensors(T1&& t1, T2&& t2)
     return;
 }
 
-struct TestActivation : public ::testing::TestWithParam<std::tuple<miopenActivationMode_t,ActivationConfig>>
+struct TestActivation
+    : public ::testing::TestWithParam<std::tuple<miopenActivationMode_t, ActivationConfig>>
 {
 protected:
     void SetUp() override
@@ -75,7 +76,7 @@ protected:
         double alpha = 0.95;
         double beta  = 2.3;
         double gamma = 3.4;
-        //activ_config = GetParam();
+        // activ_config = GetParam();
         std::tie(activ_mode, activ_config) = GetParam();
         input = tensor<float>{activ_config.N, activ_config.C, activ_config.H, activ_config.W};
         input.generate(tensor_elem_gen_integer{17});
@@ -223,28 +224,25 @@ miopenStatus_t RunActivation(miopen::Handle& handle,
 
 INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
                          TestActivation,
-                         ::testing::Combine(
-                         ::testing::Values(
-                            //miopenActivationLOGISTIC,
-                            //miopenActivationTANH,
-                            miopenActivationRELU,
-                            miopenActivationSOFTRELU,
-                            miopenActivationABS,
-                            //miopenActivationPOWER,
-                            //miopenActivationCLIPPEDRELU, 
-                            miopenActivationLEAKYRELU, 
-                            miopenActivationELU),
+                         ::testing::Combine(::testing::Values(
+                                                // miopenActivationLOGISTIC,
+                                                // miopenActivationTANH,
+                                                miopenActivationRELU,
+                                                miopenActivationSOFTRELU,
+                                                miopenActivationABS,
+                                                // miopenActivationPOWER,
+                                                // miopenActivationCLIPPEDRELU,
+                                                miopenActivationLEAKYRELU,
+                                                miopenActivationELU),
 
-                         ::testing::Values(
-                            ActivationConfig{128, 128, 16, 16},
-                            ActivationConfig{128, 16, 16, 16},
-                            ActivationConfig{16, 128, 16, 16},
-                            ActivationConfig{16, 32, 8, 8},
-                            ActivationConfig{32, 16, 8, 8},
-                            ActivationConfig{2, 16, 5, 4},
-                            ActivationConfig{2, 2, 2, 2}
-                            )));
- 
+                                            ::testing::Values(ActivationConfig{128, 128, 16, 16},
+                                                              ActivationConfig{128, 16, 16, 16},
+                                                              ActivationConfig{16, 128, 16, 16},
+                                                              ActivationConfig{16, 32, 8, 8},
+                                                              ActivationConfig{32, 16, 8, 8},
+                                                              ActivationConfig{2, 16, 5, 4},
+                                                              ActivationConfig{2, 2, 2, 2})));
+
 TEST_P(TestActivation, ActivationFwdBwdTest)
 {
     const float alpha = 1.0f, beta = 0;
