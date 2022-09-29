@@ -25,41 +25,54 @@
  *******************************************************************************/
 
 #include <vector>
+#include <cstdint>
 
 #include <miopen/solver.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
-#include <miopen/solver/convolution_context_interpreter.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-#include <ck/library/host/host_interface.hpp>
+#include <ck/library/tensor_operation_instance/gpu/convolution_forward.hpp>
 #endif
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
 
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+using DeviceConvFwdPtr_t = std::unique_ptr<
+    ck::tensor_operation::device::DeviceConvFwd<2,
+                                                ck::tensor_layout::convolution::NHWC,
+                                                ck::tensor_layout::convolution::KYXC,
+                                                ck::tensor_layout::convolution::NHWK,
+                                                int8_t,
+                                                int8_t,
+                                                int8_t,
+                                                ck::tensor_operation::element_wise::PassThrough,
+                                                ck::tensor_operation::element_wise::PassThrough,
+                                                ck::tensor_operation::element_wise::PassThrough>>;
+
 struct CKArgs
 {
     CKArgs(const ConvolutionContext& ctx)
     {
-        N        = ConvolutionContextInterpreter::GetBatchN(ctx);
-        K        = ConvolutionContextInterpreter::GetOutputChannelK(ctx);
-        C        = ConvolutionContextInterpreter::GetInputChannelC(ctx);
-        input    = {ConvolutionContextInterpreter::GetInputHeightHi(ctx),
-                 ConvolutionContextInterpreter::GetInputWidthWi(ctx)};
-        output   = {ConvolutionContextInterpreter::GetOutputHeightHo(ctx),
-                  ConvolutionContextInterpreter::GetOutputWidthWo(ctx)};
-        filter   = {ConvolutionContextInterpreter::GetFilterHeightY(ctx),
-                  ConvolutionContextInterpreter::GetFilterWidthX(ctx)};
-        strides  = {ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx),
-                   ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx)};
-        dilation = {ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx),
-                    ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx)};
-        lPadding = {ConvolutionContextInterpreter::GetInputLeftPadH(ctx),
-                    ConvolutionContextInterpreter::GetInputLeftPadW(ctx)};
-        rPadding = {ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx),
-                    ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx)};
+        N        = ProblemInterpreter::GetBatchN(ctx.problem);
+        K        = ProblemInterpreter::GetOutputChannelK(ctx.problem);
+        C        = ProblemInterpreter::GetInputChannelC(ctx.problem);
+        input    = {ProblemInterpreter::GetInputHeightHi(ctx.problem),
+                 ProblemInterpreter::GetInputWidthWi(ctx.problem)};
+        output   = {ProblemInterpreter::GetOutputHeightHo(ctx.problem),
+                  ProblemInterpreter::GetOutputWidthWo(ctx.problem)};
+        filter   = {ProblemInterpreter::GetFilterHeightY(ctx.problem),
+                  ProblemInterpreter::GetFilterWidthX(ctx.problem)};
+        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem),
+                   ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem)};
+        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem),
+                    ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem)};
+        lPadding = {ProblemInterpreter::GetInputLeftPadH(ctx.problem),
+                    ProblemInterpreter::GetInputLeftPadW(ctx.problem)};
+        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadH(ctx.problem),
+                    ProblemInterpreter::GetAdjustedInputRightPadW(ctx.problem)};
     }
     int N;
     int K;
@@ -72,6 +85,7 @@ struct CKArgs
     std::vector<int> lPadding;
     std::vector<int> rPadding;
 };
+#endif
 
 void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionContext& ctx)
 {
@@ -81,28 +95,32 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionC
 #else
     this->index = 0;
     std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-    add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
+    ck::tensor_operation::device::instance::add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances(
+        conv_ptrs);
     assert(!conv_ptrs.empty());
     this->total_size = conv_ptrs.size();
     const auto args  = CKArgs{ctx};
     for(auto& conv_ptr : conv_ptrs)
     {
-        auto argument_ptr = conv_ptr.MakeArgumentPointer(nullptr,
-                                                         nullptr,
-                                                         nullptr,
-                                                         args.N,
-                                                         args.K,
-                                                         args.C,
-                                                         args.input,
-                                                         args.filter,
-                                                         args.output,
-                                                         args.strides,
-                                                         args.dilation,
-                                                         args.lPadding,
-                                                         args.rPadding);
-        if(conv_ptr.IsSupportedArgument(argument_ptr.get()))
+        auto argument_ptr = conv_ptr->MakeArgumentPointer(nullptr,
+                                                          nullptr,
+                                                          nullptr,
+                                                          args.N,
+                                                          args.K,
+                                                          args.C,
+                                                          args.input,
+                                                          args.filter,
+                                                          args.output,
+                                                          args.strides,
+                                                          args.dilation,
+                                                          args.lPadding,
+                                                          args.rPadding,
+                                                          {},
+                                                          {},
+                                                          {});
+        if(conv_ptr->IsSupportedArgument(argument_ptr.get()))
         {
-            this->kernel_id = conv_ptr.GetTypeString();
+            this->kernel_id = conv_ptr->GetTypeString();
             break;
         }
         ++this->index;
@@ -133,22 +151,26 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(const ConvolutionContext
     return false;
 #else
     std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-    add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
+    ck::tensor_operation::device::instance::add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances(
+        conv_ptrs);
     const auto args   = CKArgs{ctx};
-    auto argument_ptr = conv_ptrs[this->index].MakeArgumentPointer(nullptr,
-                                                                   nullptr,
-                                                                   nullptr,
-                                                                   args.N,
-                                                                   args.K,
-                                                                   args.C,
-                                                                   args.input,
-                                                                   args.filter,
-                                                                   args.input,
-                                                                   args.strides,
-                                                                   args.dilation,
-                                                                   args.lPadding,
-                                                                   args.rPadding);
-    return conv_ptrs[this->index].IsSupportedArgument(argument_ptr.get());
+    auto argument_ptr = conv_ptrs[this->index]->MakeArgumentPointer(nullptr,
+                                                                    nullptr,
+                                                                    nullptr,
+                                                                    args.N,
+                                                                    args.K,
+                                                                    args.C,
+                                                                    args.input,
+                                                                    args.filter,
+                                                                    args.input,
+                                                                    args.strides,
+                                                                    args.dilation,
+                                                                    args.lPadding,
+                                                                    args.rPadding,
+                                                                    {},
+                                                                    {},
+                                                                    {});
+    return conv_ptrs[this->index]->IsSupportedArgument(argument_ptr.get());
 #endif
 }
 
@@ -213,25 +235,29 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
         return false;
 
     std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-    add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
+    ck::tensor_operation::device::instance::add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances(
+        conv_ptrs);
     assert(!conv_ptrs.empty());
 
     for(auto& conv_ptr : conv_ptrs)
     {
-        auto argument_ptr = conv_ptr.MakeArgumentPointer(nullptr,
-                                                         nullptr,
-                                                         nullptr,
-                                                         args.N,
-                                                         args.K,
-                                                         args.C,
-                                                         args.input,
-                                                         args.filter,
-                                                         args.input,
-                                                         args.strides,
-                                                         args.dilation,
-                                                         args.lPadding,
-                                                         args.rPadding);
-        if(conv_ptr.IsSupportedArgument(argument_ptr.get()))
+        auto argument_ptr = conv_ptr->MakeArgumentPointer(nullptr,
+                                                          nullptr,
+                                                          nullptr,
+                                                          args.N,
+                                                          args.K,
+                                                          args.C,
+                                                          args.input,
+                                                          args.filter,
+                                                          args.input,
+                                                          args.strides,
+                                                          args.dilation,
+                                                          args.lPadding,
+                                                          args.rPadding,
+                                                          {},
+                                                          {},
+                                                          {});
+        if(conv_ptr->IsSupportedArgument(argument_ptr.get()))
             return true;
     }
     return false;
@@ -252,11 +278,12 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-            add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances_t(conv_ptrs);
+            ck::tensor_operation::device::instance::
+                add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances(conv_ptrs);
             auto& conv_ptr       = conv_ptrs.at(config.index);
             const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors  = data_ctx.tensors;
-            auto argument_ptr    = conv_ptr.MakeArgumentPointer(
+            auto argument_ptr    = conv_ptr->MakeArgumentPointer(
                 const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
                     static_cast<const void*>(tensors.in)),
                 const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
@@ -271,8 +298,11 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
                 args.strides,
                 args.dilation,
                 args.lPadding,
-                args.rPadding);
-            auto invoker_ptr            = conv_ptr.MakeInvokerPointer();
+                args.rPadding,
+                {},
+                {},
+                {});
+            auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
             const auto enable_profiling = handle.IsProfilingEnabled();
 
             float elapsed_time =

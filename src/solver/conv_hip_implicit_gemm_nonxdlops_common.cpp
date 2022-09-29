@@ -59,15 +59,15 @@ bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) c
 
 bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
 {
-    std::size_t N = KernelBatchN(ctx);
-    std::size_t K = KernelOutputChannelK(ctx);
-    std::size_t C = KernelInputChannelC(ctx);
+    std::size_t N = KernelBatchN(ctx.problem);
+    std::size_t K = KernelOutputChannelK(ctx.problem);
+    std::size_t C = KernelInputChannelC(ctx.problem);
 
-    std::size_t Ho = KernelOutputHeightHo(ctx);
-    std::size_t Wo = KernelOutputWidthWo(ctx);
+    std::size_t Ho = KernelOutputHeightHo(ctx.problem);
+    std::size_t Wo = KernelOutputWidthWo(ctx.problem);
 
-    std::size_t Y = KernelFilterHeightY(ctx);
-    std::size_t X = KernelFilterWidthX(ctx);
+    std::size_t Y = KernelFilterHeightY(ctx.problem);
+    std::size_t X = KernelFilterWidthX(ctx.problem);
 
     const int N1 = GemmNRepeat;
     const int N2 = GemmNPerThreadSubC;
@@ -78,7 +78,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
 
     const auto B = N0 * Ho * Wo;
 
-    const auto nonVectorizedC = C / GetEPackLength(ctx, false);
+    const auto nonVectorizedC = C / GetEPackLength(ctx, ctx.problem, false);
     const auto E              = nonVectorizedC * Y * X;
 
     if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
@@ -117,10 +117,10 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     // fp16/bfp16: vector read of length 8 or greater is not supported
     // as vector_type<vector<half,4>, 2> is not working. So, restrict epack*gemmreada <= 4
     // and epack*gemmreadb <= 4
-    // if((ctx.problem.IsFp16()  || ctx.problem.IsBfp16()) && ((GetEPackLength(ctx,
+    // if((ctx.problem.IsFp16()  || ctx.problem.IsBfp16()) && ((GetEPackLength(ctx, ctx.problem,
     // false)*GemmNPerThreadSubC > 4)
     // ||
-    //   (GetEPackLength(ctx, false)*GemmMPerThreadSubC > 4)))
+    //   (GetEPackLength(ctx, ctx.problem, false)*GemmMPerThreadSubC > 4)))
     //  return false;
 
     // sanity check
@@ -156,7 +156,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     const int InBlockCopySubLengths_B  = BPerBlock / InBlockCopyClusterLengths_B;
     const int WeiBlockCopySubLengths_K = KPerBlock / WeiBlockCopyClusterLengths_K;
 
-    const std::size_t lds_size = ComputeLDSRequiredSize(ctx,
+    const std::size_t lds_size = ComputeLDSRequiredSize(ctx.problem,
                                                         BPerBlock,
                                                         KPerBlock,
                                                         EPerBlock,
@@ -164,7 +164,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
                                                         GemmNPerThreadSubC,
                                                         InBlockCopySubLengths_B,
                                                         WeiBlockCopySubLengths_K,
-                                                        GetEPackLength(ctx, false));
+                                                        GetEPackLength(ctx, ctx.problem, false));
 
     if(lds_size > 64 * 1024)
         return false;
@@ -174,15 +174,15 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
 
 bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
 {
-    std::size_t N = KernelBatchN(ctx);
-    std::size_t K = KernelOutputChannelK(ctx);
-    std::size_t C = KernelInputChannelC(ctx);
+    std::size_t N = KernelBatchN(ctx.problem);
+    std::size_t K = KernelOutputChannelK(ctx.problem);
+    std::size_t C = KernelInputChannelC(ctx.problem);
 
-    std::size_t Ho = KernelOutputHeightHo(ctx);
-    std::size_t Wo = KernelOutputWidthWo(ctx);
+    std::size_t Ho = KernelOutputHeightHo(ctx.problem);
+    std::size_t Wo = KernelOutputWidthWo(ctx.problem);
 
-    std::size_t Y = KernelFilterHeightY(ctx);
-    std::size_t X = KernelFilterWidthX(ctx);
+    std::size_t Y = KernelFilterHeightY(ctx.problem);
+    std::size_t X = KernelFilterWidthX(ctx.problem);
 
     const int N1 = GemmNRepeat;
     const int N2 = GemmNPerThreadSubC;
@@ -193,7 +193,7 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
 
     const auto B = N0 * Ho * Wo;
 
-    const auto nonVectorizedC = C / GetEPackLength(ctx, false);
+    const auto nonVectorizedC = C / GetEPackLength(ctx, ctx.problem, false);
     const auto E              = nonVectorizedC * Y * X;
 
     if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
@@ -221,10 +221,10 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
     // fp16/bfp16: vector read of length 8 or greater is not supported
     // as vector_type<vector<half,4>, 2> is not working. So, restrict epack*gemmreada <= 4
     // and epack*gemmreadb <= 4
-    // if((ctx.problem.IsFp16()  || ctx.problem.IsBfp16()) && ((GetEPackLength(ctx,
+    // if((ctx.problem.IsFp16()  || ctx.problem.IsBfp16()) && ((GetEPackLength(ctx, ctx.problem,
     // false)*GemmNPerThreadSubC > 4)
     // ||
-    //   (GetEPackLength(ctx, false)*GemmMPerThreadSubC > 4)))
+    //   (GetEPackLength(ctx, ctx.problem, false)*GemmMPerThreadSubC > 4)))
     //  return false;
 
     // sanity check
@@ -260,7 +260,7 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
     const int InBlockCopySubLengths_B  = BPerBlock / InBlockCopyClusterLengths_B;
     const int WeiBlockCopySubLengths_K = KPerBlock / WeiBlockCopyClusterLengths_K;
 
-    const std::size_t lds_size = ComputeLDSRequiredSize(ctx,
+    const std::size_t lds_size = ComputeLDSRequiredSize(ctx.problem,
                                                         BPerBlock,
                                                         KPerBlock,
                                                         EPerBlock,
@@ -268,7 +268,7 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
                                                         GemmNPerThreadSubC,
                                                         InBlockCopySubLengths_B,
                                                         WeiBlockCopySubLengths_K,
-                                                        GetEPackLength(ctx, false));
+                                                        GetEPackLength(ctx, ctx.problem, false));
 
     if(lds_size > 64 * 1024)
         return false;

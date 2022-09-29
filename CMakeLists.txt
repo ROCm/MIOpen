@@ -101,7 +101,7 @@ endif()
 
 ############################################################
 # require C++14
-add_compile_options(-std=c++14)
+add_compile_options(-std=c++17)
 
 ############################################################
 # OPTION - MIOpen Backend
@@ -221,9 +221,13 @@ if( DEFINED MIOPEN_OVERRIDE_HIP_VERSION_PATCH )
 endif()
 
 # Depend on Composable Kernels
-option(MIOPEN_USE_COMPOSABLEKERNEL "Enable MIOpen to use composable kernels for various operations" Off)
+option(MIOPEN_USE_COMPOSABLEKERNEL "Enable MIOpen to use composable kernels for various operations" On)
+if(MIOPEN_BACKEND_OPENCL)
+    set(MIOPEN_USE_COMPOSABLEKERNEL OFF)
+endif()
+message(STATUS "Enable Composable Kernels: ${MIOPEN_USE_COMPOSABLEKERNEL}")
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-find_package(composable_kernel 1.0.0 COMPONENTS device_operations host_tensor)
+    find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
 endif()
 
 set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
@@ -246,6 +250,9 @@ add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
+    if(MIOPEN_USE_COMPOSABLEKERNEL)
+    find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
+    endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
         set(MIOPEN_MODE_NOGPU 1)
     endif()
@@ -281,6 +288,8 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "Build without rocblas")
     endif()
 else()
+    #CK is only enabled when HIP backend is selected   
+    set(MIOPEN_USE_COMPOSABLEKERNEL Off)
     if(MIOPEN_USE_HIPRTC)
         message(FATAL_ERROR "HIPRTC cannot be used without HIP backend")
     endif()
@@ -594,6 +603,9 @@ enable_clang_tidy(
         -modernize-use-equals-default
         -modernize-use-trailing-return-type
         -modernize-use-transparent-functors
+        -modernize-use-nodiscard
+        -modernize-concat-nested-namespaces
+        -modernize-unary-static-assert
         -performance-unnecessary-value-param
         -readability-braces-around-statements
         -readability-convert-member-functions-to-static
@@ -618,6 +630,17 @@ enable_clang_tidy(
         -readability-container-data-pointer
         -readability-identifier-length
         -readability-suspicious-call-argument
+        #CPP-17 and ROCM 5.3 update related warning
+        -misc-confusable-identifiers
+        -modernize-use-nodiscard
+        -modernize-concat-nested-namespaces
+        -modernize-unary-static-assert
+        -modernize-macro-to-enum
+        -readability-simplify-boolean-expr
+        -readability-redundant-declaration
+        -hicpp-member-init
+        -bugprone-use-after-move
+        -hicpp-invalid-access-moved
 
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}

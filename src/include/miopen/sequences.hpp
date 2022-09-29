@@ -235,9 +235,12 @@ private:
     Find<0, values...> find_ = {};
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated"
 template <class TValue, TValue... values>
 constexpr std::array<int, sizeof...(values)>
     Sequence<TValue, values...>::data; // Sometimes can't link without of this line
+#pragma GCC diagnostic pop
 
 template <class TValue>
 struct SequenceIteratorBase
