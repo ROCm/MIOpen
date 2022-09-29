@@ -20,6 +20,7 @@ list(APPEND GTEST_CMAKE_CXX_FLAGS
      -Wno-unused-member-function
      -Wno-comma
      -Wno-old-style-cast
+     -Wno-deprecated
 )
 message(STATUS "Suppressing googltest warnings with flags: ${GTEST_CMAKE_CXX_FLAGS}")
 
