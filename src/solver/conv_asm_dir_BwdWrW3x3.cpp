@@ -528,7 +528,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     result.workspace_sz = 0;
 
     int N, C, H, W, K, n_groups;
-    GetCompiledInParameters(params, &N, &C, &H, &W, &K, &n_groups);
+    GetCompiledInParameters(params, params.problem, &N, &C, &H, &W, &K, &n_groups);
 
     result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
