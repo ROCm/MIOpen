@@ -1,6 +1,6 @@
 sqlite3@3.17 -DCMAKE_POSITION_INDEPENDENT_CODE=On
 boost@1.79 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build
 half,https://github.com/pfultz2/half/archive/1.12.0.tar.gz -X header -H sha256:0a08660b68abb176ebc2a0cdf8de46e3182a7f46c66443bb80dbfaaec98cf969 --build
-ROCmSoftwarePlatform/rocMLIR@release/rocm-5.4  -DBUILD_FAT_LIBROCKCOMPILER=1
+ROCmSoftwarePlatform/rocMLIR@11f2e26f193d398cc67f00d9b8e5a58504a14092  -DBUILD_FAT_LIBROCKCOMPILER=1
 nlohmann/json@v3.9.1 -DJSON_MultipleHeaders=ON -DJSON_BuildTests=Off
-ROCmSoftwarePlatform/composable_kernel@2c6d63d0317d1a765b4e9f9b85177bb51a373b88 -DAMDGPU_TARGETS="gfx900;gfx906;gfx908;gfx90a;gfx1030"
+ROCmSoftwarePlatform/composable_kernel@2c6d63d0317d1a765b4e9f9b85177bb51a373b88 -DGPU_TARGETS="gfx900;gfx906;gfx908;gfx90a;gfx1030"
