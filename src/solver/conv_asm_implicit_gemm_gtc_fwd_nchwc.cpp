@@ -257,7 +257,9 @@ static std::tuple<std::string, // kernel_name
                   size_t,      // grid_size
                   size_t>      // splits_4G
 GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
 {
     const auto& n     = problem.batch_sz;
     const auto& k     = problem.n_outputs * config.vector_c;
@@ -269,8 +271,8 @@ GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
     const auto& wi = problem.in_width;
     const auto& c  = problem.n_inputs;
 
-    auto splits_4G = igemm_split_batch_size(
-        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
+    auto splits_4G =
+        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
 
     const auto gemm_m = k / group;
     const auto gemm_n = (n / splits_4G) * ho * wo;
@@ -286,7 +288,8 @@ GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
     return std::make_tuple(kernel_name, block_size, grid_size, splits_4G);
 }
 
-void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const ProblemDescription& problem)
+void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(
+    const ProblemDescription& problem)
 {
 
     static const std::vector<std::tuple<int, int, int>> tile_list_Halfx4 = {
@@ -385,8 +388,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Probl
         gemm_m,
         gemm_n,
         gemm_k,
-        (problem.IsFp16() && problem.vectorLength == 4) ? tile_list_Halfx4
-                                                                : tile_list_Halfx8);
+        (problem.IsFp16() && problem.vectorLength == 4) ? tile_list_Halfx4 : tile_list_Halfx8);
 
     auto find_with_gemm_k_pad = [&]() {
         const auto& config_list = GetFwdDlopsNCHWCConfigList();
@@ -397,8 +399,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Probl
             const auto& config = config_list[i];
             if(!(((problem.IsFp16() && problem.vectorLength == 4) &&
                   config.precision == "Halfx4") ||
-                 ((problem.IsFp16() && problem.vectorLength == 8) &&
-                  config.precision == "Halfx8")))
+                 ((problem.IsFp16() && problem.vectorLength == 8) && config.precision == "Halfx8")))
                 continue;
 
             if(!((problem.IsNCHWc_NCHWc() && config.tensor_layout == "nchwc_kcyxc") ||
@@ -462,7 +463,8 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValidValue() const
         return false;
     return *this == config_list[index];
 }
-bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(const ProblemDescription& problem) const
+bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(
+    const ProblemDescription& problem) const
 {
     if(IsDefaultConstructed())
         return false;
@@ -535,7 +537,8 @@ ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::Search(const ConvolutionContext& ctx
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(
+    const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC{}))
         return false;
@@ -620,7 +623,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     std::ostringstream msg;
     MIOPEN_LOG_I2(SolverDbId() << ": " << config.ToString() << msg.str());
 
-    result.invoker_factory = conv::MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(problem, config);
+    result.invoker_factory =
+        conv::MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(problem, config);
     return result;
 }
 
