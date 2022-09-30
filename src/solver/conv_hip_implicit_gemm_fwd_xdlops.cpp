@@ -59,14 +59,10 @@ using DeviceOpPtrs =
 
 auto GetPtrs(const ConvolutionContext& ctx)
 {
-    using dType  = ctx.problem.conv_problem;
-    auto op_ptrs = dType.GetInDataType() == miopenInt8
+    const auto convp = ctx.problem.conv_problem;
+    auto op_ptrs     = convp.GetInDataType() == miopenInt8
                        ? DeviceOpPtrs<int8_t>::GetInstances()
-                       : dType.GetInDataType() == miopenHalf
-                             ? DeviceOpPtrs<ck::half_t>::GetInstances()
-                             : dType.GetInDataType() == miopenFloat
-                                   ? DeviceOpPtrs<float>::GetInstances()
-                                   : DeviceOpPtrs<int>::GetInstances();
+                       : DeviceOpPtrs<float>::GetInstances();
     return op_ptrs;
 }
 
