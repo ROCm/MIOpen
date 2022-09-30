@@ -387,7 +387,9 @@ static std::tuple<std::string, // kernel_name
                   size_t,      // grid_size
                   size_t>      // splits_4G
 GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
 {
     const auto group      = problem.group_counts;
     const auto hi         = problem.out_height;
@@ -427,8 +429,8 @@ GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     const auto w_tilda_slice = w_tilda_right - w_tilda_left;
     const auto num_of_gemm   = y_tilda * x_tilda;
 
-    auto splits_4G = igemm_split_batch_size(
-        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
+    auto splits_4G =
+        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
 
     const auto gemm_m = (n / splits_4G) * h_tilda_slice * w_tilda_slice;
     const auto gemm_n = c / group;
@@ -443,7 +445,8 @@ GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     return std::make_tuple(kernel_name, block_size, grid_size, splits_4G);
 }
 
-void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const ConvolutionContext& ctx, const ProblemDescription& problem)
+void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(
+    const ConvolutionContext& ctx, const ProblemDescription& problem)
 {
     static const std::vector<std::tuple<int, int, int>> tile_list_fp32 = {
         std::make_tuple(128, 128, 16),
@@ -624,8 +627,7 @@ void PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::HeuristicInit(const Convo
         gemm_m,
         gemm_n,
         gemm_k_even,
-        problem.IsFp32() ? tile_list_fp32
-                             : (problem.IsFp16() ? tile_list_fp16 : tile_list_bfp16));
+        problem.IsFp32() ? tile_list_fp32 : (problem.IsFp16() ? tile_list_fp16 : tile_list_bfp16));
 
     MIOPEN_LOG_I("m_per_block:" << m_per_block << ", n_per_block:" << n_per_block
                                 << ", k_per_block:" << k_per_block);
@@ -771,13 +773,13 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::SetNextValue(
         return false;
     }
 }
-bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const ProblemDescription& problem) const
+bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
+    const ProblemDescription& problem) const
 {
     if(IsDefaultConstructed())
         return false;
 
-    if(!((problem.IsFp16() && precision == "fp16") ||
-         (problem.IsFp32() && precision == "fp32") ||
+    if(!((problem.IsFp16() && precision == "fp16") || (problem.IsFp32() && precision == "fp32") ||
          (problem.IsBfp16() && precision == "bf16")))
         return false;
 
@@ -803,8 +805,8 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const ProblemDesc
     const auto ho = problem.in_height;
     const auto wo = problem.in_width;
 
-    auto splits_4G = igemm_split_batch_size(
-        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
+    auto splits_4G =
+        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
     if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
         return false;
 
@@ -821,9 +823,8 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const ProblemDesc
             return false;
     }
 
-    if(problem.IsFp16() &&
-       !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 && merge_e == 1 &&
-         gemm_k_global_split == 0))
+    if(problem.IsFp16() && !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 &&
+                             merge_e == 1 && gemm_k_global_split == 0))
     {
         if(gemm_k_global_split != 0)
         {
@@ -837,9 +838,8 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(const ProblemDesc
         }
     }
 
-    if(problem.IsBfp16() &&
-       !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 && merge_e == 1 &&
-         gemm_k_global_split == 0))
+    if(problem.IsBfp16() && !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 &&
+                              merge_e == 1 && gemm_k_global_split == 0))
     {
         if(gemm_k_global_split == 0)
         {
@@ -888,7 +888,8 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::Search(const ConvolutionContext& ctx
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
+    const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS_NHWC{}))
         return false;
@@ -909,8 +910,7 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionC
     if(!problem.Is2d())
         return false;
 
-    if(!problem.IsFp32() && !problem.IsFp16() &&
-       !(problem.IsBfp16() && device_name == "gfx90a"))
+    if(!problem.IsFp32() && !problem.IsFp16() && !(problem.IsBfp16() && device_name == "gfx90a"))
         return false;
 
     if(!ctx.rmv.IsV3())
@@ -933,8 +933,8 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(const ConvolutionC
     return true;
 }
 
-size_t
-ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+size_t ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetWorkspaceSize(
+    const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
     const auto& hi     = problem.out_height;
     const auto& wi     = problem.out_width;
@@ -1040,8 +1040,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
         GenerateClangDefsym(opts_1, "igemm_bwd_fp16_alt_impl", 1);
         result.construction_params[1].comp_options = opts_1.str();
         if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", fp16_alt:"
-                << problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetBwd();
+            msg << ", fp16_alt:" << problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetBwd();
     }
 
     if(is_nchw)
