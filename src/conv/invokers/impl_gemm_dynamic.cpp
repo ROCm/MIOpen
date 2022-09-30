@@ -1052,10 +1052,10 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 }
 
 InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
-    const ConvolutionContext& ctx,
+    const miopen::ProblemDescription& problem,
     const solver::PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
 {
-    const auto& conv_problem = ctx.problem.conv_problem;
+    const auto& conv_problem = problem.conv_problem;
     int hi                   = conv_problem.GetInHeight();
     int wi                   = conv_problem.GetInWidth();
     int n                    = conv_problem.GetInBatchSize();
@@ -1106,7 +1106,7 @@ InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
     int move_slice_k = (s_move_slice_k_y << 16) | (s_move_slice_k_x << 8) | s_move_slice_k_c;
 
     int splits_4G = solver::igemm_split_batch_size(
-        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.problem.in_data_type));
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
     splits_4G       = (splits_4G == 0 ? n : splits_4G);
     uint32_t gemm_n = 1;
     uint32_t gemm_m = 1;
