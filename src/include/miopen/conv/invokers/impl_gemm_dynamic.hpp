@@ -228,6 +228,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     const solver::PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config);
 InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     const ConvolutionContext& ctx,
+    const miopen::ProblemDescription& problem,
     const solver::PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config);
 InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
     const ConvolutionContext& ctx,
