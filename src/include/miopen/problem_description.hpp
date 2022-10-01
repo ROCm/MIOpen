@@ -158,8 +158,9 @@ struct ProblemDescription
         std::string data_type =
             EncodeDataTypesForKey(self.in_data_type, self.weights_data_type, self.out_data_type);
         f(data_type, "data_type");
-        std::string dir =
-            self.direction.IsForward() ? "F" : self.direction.IsBackwardData() ? "B" : "W";
+        std::string dir = self.direction.IsForward()        ? "F"
+                          : self.direction.IsBackwardData() ? "B"
+                                                            : "W";
         f(dir, "direction");
     }
     struct Direction
@@ -254,8 +255,8 @@ struct ProblemDescription
         batch_sz     = batch;
         int data_len = GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * channels * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+                           ? batch * channels * depth * height * width * data_len
+                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         out_width          = width;
         out_height         = height;
@@ -289,8 +290,8 @@ struct ProblemDescription
         batch_sz     = batch;
         int data_len = GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * channels * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+                           ? batch * channels * depth * height * width * data_len
+                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         in_width          = width;
         in_height         = height;

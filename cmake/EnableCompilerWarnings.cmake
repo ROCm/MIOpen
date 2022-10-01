@@ -67,6 +67,7 @@ else()
             -Wunused
             -Wno-ignored-qualifiers
             -Wno-sign-compare
+            -Wno-deprecated
         )
         if (CMAKE_${COMPILER}_COMPILER_ID MATCHES "Clang")
             list(APPEND CMAKE_COMPILER_WARNINGS
