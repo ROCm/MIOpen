@@ -380,10 +380,10 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
                                           bool isXdlops                 = false)
 {
 #if MIOPEN_BACKEND_HIP
-    const int pad_H = params.problem.direction.IsForward() ? params.problem.pad_h
-                                                           : params.problem.GetBackwardPadH();
-    const int pad_W = params.problem.direction.IsForward() ? params.problem.pad_w
-                                                           : params.problem.GetBackwardPadW();
+    const int pad_H    = params.problem.direction.IsForward() ? params.problem.pad_h
+                                                              : params.problem.GetBackwardPadH();
+    const int pad_W    = params.problem.direction.IsForward() ? params.problem.pad_w
+                                                              : params.problem.GetBackwardPadW();
     const int n_groups = params.GetStream().GetMaxComputeUnits();
     DEFINE_SHADER_ALIASES(params.problem)
     DEFINE_GETXFORMHWSIZE(params.problem)

@@ -85,10 +85,10 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
 
     const auto x_elem_sz = problem.GetXDesc().GetElementSize();
 
-    const auto x_width2D =
-        ((x_lens.size() == 2)
-             ? x_lens[1]
-             : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4) ? x_lens[3] : x_lens[4]);
+    const auto x_width2D = ((x_lens.size() == 2)   ? x_lens[1]
+                            : (x_lens.size() == 3) ? x_lens[2]
+                            : (x_lens.size() == 4) ? x_lens[3]
+                                                   : x_lens[4]);
 
     const auto packed    = problem.GetXDesc().IsPacked() && problem.GetYDesc().IsPacked();
     const auto read_len  = (packed) ? x_elem_sz : x_width2D;
@@ -96,10 +96,10 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
 
     const auto READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
 
-    const auto height =
-        (x_lens.size() == 2)
-            ? x_lens[0]
-            : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4) ? x_lens[2] : x_lens[3];
+    const auto height = (x_lens.size() == 2)   ? x_lens[0]
+                        : (x_lens.size() == 3) ? x_lens[1]
+                        : (x_lens.size() == 4) ? x_lens[2]
+                                               : x_lens[3];
 
     auto build_params = KernelBuildParameters{
         {"LITE"},
@@ -174,18 +174,16 @@ ConvSolution ActivFwdSolver0::GetSolution(const ExecutionContext&,
                     const auto x_strides = params.x_desc.GetStrides();
                     const auto y_strides = params.y_desc.GetStrides();
 
-                    const auto x_stride2D = static_cast<unsigned int>(
-                        (x_lens_.size() == 2)
-                            ? x_strides[0]
-                            : (x_lens_.size() == 3)
-                                  ? x_strides[1]
-                                  : (x_lens_.size() == 4) ? x_strides[2] : x_strides[3]);
-                    const auto y_stride2D = static_cast<unsigned int>(
-                        (y_lens_.size() == 2)
-                            ? y_strides[0]
-                            : (y_lens_.size() == 3)
-                                  ? y_strides[1]
-                                  : (y_lens_.size() == 4) ? y_strides[2] : y_strides[3]);
+                    const auto x_stride2D =
+                        static_cast<unsigned int>((x_lens_.size() == 2)   ? x_strides[0]
+                                                  : (x_lens_.size() == 3) ? x_strides[1]
+                                                  : (x_lens_.size() == 4) ? x_strides[2]
+                                                                          : x_strides[3]);
+                    const auto y_stride2D =
+                        static_cast<unsigned int>((y_lens_.size() == 2)   ? y_strides[0]
+                                                  : (y_lens_.size() == 3) ? y_strides[1]
+                                                  : (y_lens_.size() == 4) ? y_strides[2]
+                                                                          : y_strides[3]);
 
                     kernel(params.x,
                            params.y,

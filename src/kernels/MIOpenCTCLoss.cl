@@ -353,7 +353,7 @@ static inline void CTCGradient(const global _FLOAT* probs_logits,
             {
                 _FLOAT beta_temp1 = j % 2 == 0 ? *((ADDRSPACE_BETA _FLOAT*)(beta_buff1 + k1 + 1))
                                                : *((ADDRSPACE_BETA _FLOAT*)(beta_buff0 + k1 + 1));
-                beta_temp = LogAddExp(&beta_temp, &beta_temp1);
+                beta_temp         = LogAddExp(&beta_temp, &beta_temp1);
             }
             if(k1 <= label_prime_len - 3)
                 if(lb_cur != BLANK_LB && lb_cur != lb_pre)
@@ -361,7 +361,7 @@ static inline void CTCGradient(const global _FLOAT* probs_logits,
                     _FLOAT beta_temp2 = j % 2 == 0
                                             ? *((ADDRSPACE_BETA _FLOAT*)(beta_buff1 + k1 + 2))
                                             : *((ADDRSPACE_BETA _FLOAT*)(beta_buff0 + k1 + 2));
-                    beta_temp = LogAddExp(&beta_temp, &beta_temp2);
+                    beta_temp         = LogAddExp(&beta_temp, &beta_temp2);
                 }
 
             beta_temp += *((const global _FLOAT*)(probs_logits + pidx));
@@ -400,7 +400,7 @@ static inline void CTCGradient(const global _FLOAT* probs_logits,
 #endif
                 _FLOAT beta_temp = j % 2 == 0 ? *((ADDRSPACE_BETA _FLOAT*)(beta_buff0 + klid))
                                               : *((ADDRSPACE_BETA _FLOAT*)(beta_buff1 + klid));
-                size_t bidx_ts = j1 * label_prime_len + klid;
+                size_t bidx_ts   = j1 * label_prime_len + klid;
 
                 beta_temp += *((global _FLOAT*)(alpha_log + bidx_ts));
                 _FLOAT grad_temp =
@@ -428,7 +428,7 @@ static inline void CTCGradient(const global _FLOAT* probs_logits,
 #endif
             _FLOAT beta_temp = j % 2 == 0 ? *((ADDRSPACE_BETA _FLOAT*)(beta_buff0 + k))
                                           : *((ADDRSPACE_BETA _FLOAT*)(beta_buff1 + k));
-            size_t bidx_ts = j1 * label_prime_len + k;
+            size_t bidx_ts   = j1 * label_prime_len + k;
 
             beta_temp += *((global _FLOAT*)(alpha_log + bidx_ts));
             _FLOAT grad_temp =

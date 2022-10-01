@@ -54,14 +54,12 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
 {
     //
     LegacyPerformanceConfig result{};
-    result.in_tile0 =
-        (params.problem.in_width <= 8)
-            ? 8
-            : (params.problem.in_width <= 16) ? 16 : 32; // size of input data per ALU plane
-    result.in_tile1 =
-        (params.problem.in_height <= 8)
-            ? 8
-            : (params.problem.in_height <= 16) ? 16 : 32; // size of input data per ALU plane
+    result.in_tile0 = (params.problem.in_width <= 8)    ? 8
+                      : (params.problem.in_width <= 16) ? 16
+                                                        : 32; // size of input data per ALU plane
+    result.in_tile1 = (params.problem.in_height <= 8)    ? 8
+                      : (params.problem.in_height <= 16) ? 16
+                                                         : 32; // size of input data per ALU plane
 
     result.out_pix_tile0 =
         std::max(params.problem.kernel_stride_w,
@@ -408,9 +406,9 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             out_pix_tile_sz[2] = 4;
 
             n_out_tiles_rg[0] = 2;
-            n_out_tiles_rg[1] = (params.problem.n_outputs % 64 == 0)
-                                    ? 6
-                                    : (params.problem.n_outputs % 32 == 0) ? 5 : 4;
+            n_out_tiles_rg[1] = (params.problem.n_outputs % 64 == 0)   ? 6
+                                : (params.problem.n_outputs % 32 == 0) ? 5
+                                                                       : 4;
 
             n_in_tiles_rg[0] = 2;
             n_in_tiles_rg[1] = (params.problem.n_inputs % 8 == 0) ? 3 : 2;

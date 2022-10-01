@@ -284,12 +284,12 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmABlockCopyPerformanceParamete
 {
     // A tensor shape [GemmG, GemmK, GemmM, GemmKPack]
 
-    int ClusterLengths_GemmK     = -1;
-    int ClusterLengths_GemmM     = -1;
-    int ClusterLengths_GemmKPack = -1;
-    int SrcDataPerRead_GemmM     = ctx.problem.IsFp32()
-                                   ? amd_buffer_load_max_length<float>()
-                                   : amd_buffer_load_max_length<half_float::half>();
+    int ClusterLengths_GemmK      = -1;
+    int ClusterLengths_GemmM      = -1;
+    int ClusterLengths_GemmKPack  = -1;
+    int SrcDataPerRead_GemmM      = ctx.problem.IsFp32()
+                                        ? amd_buffer_load_max_length<float>()
+                                        : amd_buffer_load_max_length<half_float::half>();
     int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
                                         ? amd_lds_write_max_length<float>()
                                         : amd_lds_write_max_length<half_float::half>();
@@ -367,12 +367,12 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmBBlockCopyPerformanceParamete
 {
     // B tensor shape [GemmG, GemmK, GemmN, GemmKPack]
 
-    int ClusterLengths_GemmK     = -1;
-    int ClusterLengths_GemmN     = -1;
-    int ClusterLengths_GemmKPack = -1;
-    int SrcDataPerRead_GemmN     = ctx.problem.IsFp32()
-                                   ? amd_buffer_load_max_length<float>()
-                                   : amd_buffer_load_max_length<half_float::half>();
+    int ClusterLengths_GemmK      = -1;
+    int ClusterLengths_GemmN      = -1;
+    int ClusterLengths_GemmKPack  = -1;
+    int SrcDataPerRead_GemmN      = ctx.problem.IsFp32()
+                                        ? amd_buffer_load_max_length<float>()
+                                        : amd_buffer_load_max_length<half_float::half>();
     int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
                                         ? amd_lds_write_max_length<float>()
                                         : amd_lds_write_max_length<half_float::half>();

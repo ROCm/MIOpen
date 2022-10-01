@@ -147,9 +147,9 @@ void OpTensor3d(const Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg = first_not_one != blens.rend()
-                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                     : 1;
+    int num_wg      = first_not_one != blens.rend()
+                          ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                          : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -444,9 +444,9 @@ void OpTensor4d(const Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg = first_not_one != blens.rend()
-                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                     : 1;
+    int num_wg      = first_not_one != blens.rend()
+                          ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                          : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -968,9 +968,9 @@ void OpTensorOther(const Handle& handle,
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    int num_wg = first_not_one != blens.rend()
-                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                     : 1;
+    int num_wg      = first_not_one != blens.rend()
+                          ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                          : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;

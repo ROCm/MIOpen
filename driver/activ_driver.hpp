@@ -250,7 +250,7 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             double v = -alpha / beta;
             in[i]    = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>((v + 0.005) / beta),
                                           static_cast<Tgpu>((v + 2.0) / beta))
-                          : RAN_GEN<Tgpu>(static_cast<Tgpu>((v - 2.0) / beta),
+                             : RAN_GEN<Tgpu>(static_cast<Tgpu>((v - 2.0) / beta),
                                           static_cast<Tgpu>((v - 0.005) / beta));
             break;
         }

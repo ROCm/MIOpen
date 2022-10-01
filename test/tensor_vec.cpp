@@ -334,6 +334,12 @@ struct tensor_vec_driver : test_driver
         auto type_size = sizeof(T);
         auto vec_size  = 4 / type_size;
 
+        if(vec_size == 0)
+        {
+            std::cout << "Type size is greater than 4: type_size = " << type_size << std::endl;
+            return;
+        }
+
         if(trans)
             dst_lens[0] = (dst_lens[0] % vec_size != 0)
                               ? dst_lens[0] + (vec_size - dst_lens[0] % vec_size)
@@ -343,10 +349,11 @@ struct tensor_vec_driver : test_driver
                               ? dst_lens[1] + (vec_size - dst_lens[1] % vec_size)
                               : dst_lens[1];
 
-        unsigned long max_value =
-            miopen_type<T>{} == miopenHalf ? 5 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
-        src = tensor<T>{src_lens}.generate(tensor_elem_gen_integer{max_value});
-        dst = tensor<T>{dst_lens}.generate(tensor_elem_gen_integer{max_value});
+        unsigned long max_value = miopen_type<T>{} == miopenHalf   ? 5
+                                  : miopen_type<T>{} == miopenInt8 ? 127
+                                                                   : 17;
+        src                     = tensor<T>{src_lens}.generate(tensor_elem_gen_integer{max_value});
+        dst                     = tensor<T>{dst_lens}.generate(tensor_elem_gen_integer{max_value});
 
         if(forw)
             verify_equals(verify_tensor_vec_forward<T>{src, dst, trans, alpha, beta});
