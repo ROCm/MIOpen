@@ -13,27 +13,27 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     ca-certificates \
     curl \
     libnuma-dev \
-    gnupg \
+    gnupg2 \
     wget
 
 #Add gpg keys
+ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 9386B48A1A693C5C && \
     wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add -
+
+RUN wget https://repo.radeon.com/amdgpu-install/5.3/ubuntu/focal/amdgpu-install_5.3.50300-1_all.deb  --no-check-certificate
+RUN apt-get update && \
+DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+    ./amdgpu-install_5.3.50300-1_all.deb
 
 # Add rocm repository
 # Note: The ROCm version with $USE_MLIR should keep in sync with default ROCm version
 # unless MLIR library is incompatible with current ROCm.
-RUN export ROCM_APT_VER=.apt_5.3;\
+RUN export ROCM_APT_VER=5.3;\
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 trusted=yes] http://repo.radeon.com/rocm/apt/$ROCM_APT_VER/ ubuntu main > /etc/apt/sources.list.d/rocm.list'
 RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu focal main universe | tee -a /etc/apt/sources.list"
 
-RUN wget https://artifactory-cdn.amd.com/artifactory/list/amdgpu-deb/amd-nonfree-radeon_20.04-1_all.deb --no-check-certificate
-RUN apt-get update && \
-DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    ./amd-nonfree-radeon_20.04-1_all.deb
-RUN sh -c 'echo deb [arch=amd64 trusted=yes] http://compute-artifactory.amd.com/artifactory/list/rocm-release-archive-20.04-deb/ 5.3 rel-45 > /etc/apt/sources.list.d/rocm-build.list'
-RUN amdgpu-repo --amdgpu-build=1473570
 RUN amdgpu-install -y --usecase=rocm --no-dkms
 
 # Install dependencies
