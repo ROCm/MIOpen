@@ -219,8 +219,8 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
 
         size_t work_per_grp = batch_size <= 64 ? 256 : batch_size <= 128 ? 128 : 64;
         assert(512 >= work_per_grp && work_per_grp > 0);
-        size_t glb_sz = batch_size < MAX_ACTIVE_THREADS / work_per_grp ? batch_size * work_per_grp
-                                                                       : MAX_ACTIVE_THREADS;
+        size_t glb_sz  = batch_size < MAX_ACTIVE_THREADS / work_per_grp ? batch_size * work_per_grp
+                                                                        : MAX_ACTIVE_THREADS;
         size_t grp_num = glb_sz / work_per_grp;
 
         size_t lcl_mem_per_grp = MAX_LOCAL_MEM / 2 / (512 / work_per_grp);

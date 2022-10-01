@@ -72,17 +72,17 @@ __kernel void Col2Im3d(global _FLOAT* col,
     int start_d = (im_d < dilation_d * (wei_d - 1) + 1)
                       ? 0
                       : (im_d - (dilation_d * (wei_d - 1) + 1)) / stride_d + 1;
-    int end_d = min(col_d, im_d / stride_d + 1);
+    int end_d   = min(col_d, im_d / stride_d + 1);
 
     int start_h = (im_h < dilation_h * (wei_h - 1) + 1)
                       ? 0
                       : (im_h - (dilation_h * (wei_h - 1) + 1)) / stride_h + 1;
-    int end_h = min(col_h, im_h / stride_h + 1);
+    int end_h   = min(col_h, im_h / stride_h + 1);
 
     int start_w = (im_w < dilation_w * (wei_w - 1) + 1)
                       ? 0
                       : (im_w - (dilation_w * (wei_w - 1) + 1)) / stride_w + 1;
-    int end_w = min(col_w, im_w / stride_w + 1);
+    int end_w   = min(col_w, im_w / stride_w + 1);
 
     int ch_offset = im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
     col += ch_offset;

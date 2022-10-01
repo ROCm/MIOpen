@@ -99,9 +99,9 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& ctx,
     if(problem.kernel_size_h == 3 && problem.kernel_size_w == 3)
     {
         // n of input batches
-        n_in_stacks = ((problem.batch_sz / 4) * 4 == problem.batch_sz)
-                          ? 4
-                          : ((problem.batch_sz / 2) * 2 == problem.batch_sz) ? 2 : 1;
+        n_in_stacks = ((problem.batch_sz / 4) * 4 == problem.batch_sz)   ? 4
+                      : ((problem.batch_sz / 2) * 2 == problem.batch_sz) ? 2
+                                                                         : 1;
     }
     else
     {

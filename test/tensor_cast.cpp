@@ -172,13 +172,11 @@ struct tensor_cast_driver : test_driver
     {
         unsigned long max_value =
             miopen_type<T>{} == miopenHalf ? 5 : (miopen_type<T>{} == miopenInt8 ? 126 : 32767);
-        max_val = miopen_type<T>{} == miopenHalf
-                      ? 65504.0
-                      : miopen_type<T>{} == miopenInt8
-                            ? 127.0
-                            : miopen_type<T>{} == miopenInt32
-                                  ? 2147483647.0
-                                  : miopen_type<T>{} == miopenBFloat16 ? 0x7F7F : 3.402823466e+38F;
+        max_val = miopen_type<T>{} == miopenHalf       ? 65504.0
+                  : miopen_type<T>{} == miopenInt8     ? 127.0
+                  : miopen_type<T>{} == miopenInt32    ? 2147483647.0
+                  : miopen_type<T>{} == miopenBFloat16 ? 0x7F7F
+                                                       : 3.402823466e+38F;
 
         srcSuper = tensor<int>{srcSuperLens}.generate(tensor_elem_gen_integer{max_value});
         dstSuper = tensor<T>{dstSuperLens}.generate(tensor_elem_gen_integer{max_value});

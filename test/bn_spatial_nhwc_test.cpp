@@ -170,7 +170,7 @@ struct verify_forward_train_bn_spatial
             newRunMean             = runMean(0, 0, 0, cidx) * (1 - expAvgFactor);
             runMean(0, 0, 0, cidx) = mean_accum * expAvgFactor + newRunMean;
             adjust                 = (n_batch * height * width == 1) ? variance_accum
-                                                     : (nhw / (nhw - 1)) * variance_accum;
+                                                                     : (nhw / (nhw - 1)) * variance_accum;
             runVar(0, 0, 0, cidx) =
                 (1 - expAvgFactor) * runVar(0, 0, 0, cidx) + expAvgFactor * adjust;
         });

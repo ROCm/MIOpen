@@ -320,7 +320,9 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
 
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_DAT_TYPE=" + READ_DAT_TYPE +
                   " -DREAD_BOOL_TYPE=" +
-                  std::string(RD_BLCK == 4 ? "uint" : RD_BLCK == 2 ? "ushort" : "uchar");
+                  std::string(RD_BLCK == 4   ? "uint"
+                              : RD_BLCK == 2 ? "ushort"
+                                             : "uchar");
 
         if(xDesc.GetType() == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
@@ -523,7 +525,9 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
 
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_DAT_TYPE=" + READ_DAT_TYPE +
                   " -DREAD_BOOL_TYPE=" +
-                  std::string(RD_BLCK == 4 ? "uint" : RD_BLCK == 2 ? "ushort" : "uchar");
+                  std::string(RD_BLCK == 4   ? "uint"
+                              : RD_BLCK == 2 ? "ushort"
+                                             : "uchar");
 
         if(use_prng)
         {

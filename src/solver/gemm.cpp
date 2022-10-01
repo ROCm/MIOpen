@@ -275,9 +275,9 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
     decltype(auto) yDesc = problem.GetOut();
 
     const GemmDescriptor gemm_desc = [&]() {
-        auto tmp = conv.group_count > 1
-                       ? CreateGemmDescriptorGroupConvCNHWFwd(wDesc, xDesc, yDesc, conv.group_count)
-                       : CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
+        auto tmp          = conv.group_count > 1
+                                ? CreateGemmDescriptorGroupConvCNHWFwd(wDesc, xDesc, yDesc, conv.group_count)
+                                : CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
         tmp.deterministic = problem.GetConv().attribute.deterministic;
         return tmp;
     }();
@@ -766,8 +766,9 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                 // y = w * x
                 miopenStatus_t gemm_status = miopenStatusNotInitialized;
 
-                const auto runs =
-                    group_count <= 1 ? 1 : conv_params.type == InvokeType::Run ? in_n : 1;
+                const auto runs = group_count <= 1                      ? 1
+                                  : conv_params.type == InvokeType::Run ? in_n
+                                                                        : 1;
 
                 for(std::size_t i = 0; i < runs; i++)
                 {
@@ -1044,9 +1045,9 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         const auto gemm_desc = [&]() {
-            auto tmp = conv.group_count > 1
-                           ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
-                           : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
+            auto tmp          = conv.group_count > 1
+                                    ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
+                                    : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
             tmp.deterministic = problem.GetConv().attribute.deterministic;
             return tmp;
         }();

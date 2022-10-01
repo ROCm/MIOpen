@@ -296,10 +296,10 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             int HORIZ_ALIGNED = 1;
             if(!is_forward)
             {
-                VERT_ALIGNED = (params.problem.out_height / params.problem.kernel_stride_h ==
+                VERT_ALIGNED  = (params.problem.out_height / params.problem.kernel_stride_h ==
                                 params.problem.in_height)
-                                   ? 1
-                                   : 0;
+                                    ? 1
+                                    : 0;
                 HORIZ_ALIGNED = (params.problem.out_width / params.problem.kernel_stride_w ==
                                  params.problem.in_width)
                                     ? 1

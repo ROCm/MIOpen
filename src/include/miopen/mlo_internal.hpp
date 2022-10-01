@@ -479,8 +479,8 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
 
         int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * channels * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+                           ? batch * channels * depth * height * width * data_len
+                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         _out_df_width          = width;
         _out_df_height         = height;
@@ -521,8 +521,8 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
 
         int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * channels * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+                           ? batch * channels * depth * height * width * data_len
+                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         _in_df_width          = width;
         _in_df_height         = height;

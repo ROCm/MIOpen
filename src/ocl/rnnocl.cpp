@@ -4703,7 +4703,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 {
                     hid_shift = ri == 0 ? (li * batch_n * hy_stride + bacc * hy_stride)
                                         : (li * batch_n * hy_stride + baccbi * hy_stride);
-                    cur_time = ri == 0 ? ti : seqLen - 1 - ti;
+                    cur_time  = ri == 0 ? ti : seqLen - 1 - ti;
                     if(ti > 0)
                     {
                         pre_batch =

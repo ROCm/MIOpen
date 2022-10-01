@@ -672,9 +672,9 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
 
     // dx = transpose(w) * dy
     const auto gemm_desc = [&]() {
-        auto tmp = group_count > 1
-                       ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count)
-                       : CreateGemmDescriptorConvBwdData(wDesc, dyDesc, dxDesc);
+        auto tmp          = group_count > 1
+                                ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count)
+                                : CreateGemmDescriptorConvBwdData(wDesc, dyDesc, dxDesc);
         tmp.deterministic = problem.GetConv().attribute.deterministic;
         return tmp;
     }();

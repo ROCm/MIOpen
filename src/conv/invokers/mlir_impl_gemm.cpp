@@ -90,7 +90,6 @@ void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
     (void)weights_strides;
     (void)out_dims;
     (void)out_strides;
-    return;
 }
 
 MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
@@ -332,6 +331,7 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
 #if MIOPEN_BACKEND_OPENCL
 #if MIIR_BARE_POINTER_ABI
             handle.Run(kernels[0])(tensors.w, tensors.in, tensors.out);
+            (void)args;
 #else
             handle.Run(kernels[0])(tensors.w,
                                    tensors.w,
@@ -388,6 +388,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
             {
 #if MIIR_BARE_POINTER_ABI
                 handle.Run(k)(tensors.w, tensors.out, tensors.in);
+                (void)args;
 #else
                 handle.Run(k)(tensors.w,
                               tensors.w,
@@ -460,6 +461,7 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t w
                 {
 #if MIIR_BARE_POINTER_ABI
                     handle.Run(k)(tensors.dw, tensors.x, tensors.dy, workspace);
+                    (void)args;
 #else
                     handle.Run(k)(tensors.dw,
                                   tensors.dw,

@@ -497,10 +497,10 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
         // subsampled input, in_height equals to image size after downsampling
         int in_batch_stride = AsmImgWidth(problem) * AsmImgHeight(problem) *
                               (UseSubsample(problem) ? problem.n_inputs : problem.n_outputs);
-        int write_unit =
-            (AsmImgWidth(problem) % 4 == 0)
-                ? 4
-                : (AsmImgWidth(problem) % 3 == 0) ? 3 : (AsmImgWidth(problem) % 2 == 0) ? 2 : 1;
+        int write_unit = (AsmImgWidth(problem) % 4 == 0)   ? 4
+                         : (AsmImgWidth(problem) % 3 == 0) ? 3
+                         : (AsmImgWidth(problem) % 2 == 0) ? 2
+                                                           : 1;
 
         int n_grp0_size0 = 256;
 

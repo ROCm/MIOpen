@@ -178,9 +178,9 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
 
     // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
     const auto gemm_desc = [&]() {
-        auto tmp = group_count > 1
-                       ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
-                       : CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(dyDesc, xDesc, dwDesc);
+        auto tmp          = group_count > 1
+                                ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
+                                : CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(dyDesc, xDesc, dwDesc);
         tmp.deterministic = problem.GetConv().attribute.deterministic;
         return tmp;
     }();
@@ -383,9 +383,9 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
 
     // dw = dy * transpose(Im2Col(x))
     const auto gemm_desc = [&]() {
-        auto tmp = group_count > 1
-                       ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
-                       : CreateGemmDescriptorConvBwdWeight(dyDesc, xDesc, dwDesc);
+        auto tmp          = group_count > 1
+                                ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
+                                : CreateGemmDescriptorConvBwdWeight(dyDesc, xDesc, dwDesc);
         tmp.deterministic = problem.GetConv().attribute.deterministic;
         return tmp;
     }();
