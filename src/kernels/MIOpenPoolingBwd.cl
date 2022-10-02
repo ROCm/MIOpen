@@ -75,12 +75,12 @@ mloPoolingAveBwd(const __global _FLOAT* top_diff,
     int b  = ob / mlo_n_outputs;
     int o  = ob - b * mlo_n_outputs;
 
-    int top_x = (x + mlo_pad0 - MLO_POOLING_KERNEL_SZ0) < 0
-                    ? 0
-                    : (x + mlo_pad0 - MLO_POOLING_KERNEL_SZ0) / MLO_POOLING_STRIDE0 + 1;
-    int top_y = (y + mlo_pad1 - MLO_POOLING_KERNEL_SZ1) < 0
-                    ? 0
-                    : (y + mlo_pad1 - MLO_POOLING_KERNEL_SZ1) / MLO_POOLING_STRIDE1 + 1;
+    int top_x   = (x + mlo_pad0 - MLO_POOLING_KERNEL_SZ0) < 0
+                      ? 0
+                      : (x + mlo_pad0 - MLO_POOLING_KERNEL_SZ0) / MLO_POOLING_STRIDE0 + 1;
+    int top_y   = (y + mlo_pad1 - MLO_POOLING_KERNEL_SZ1) < 0
+                      ? 0
+                      : (y + mlo_pad1 - MLO_POOLING_KERNEL_SZ1) / MLO_POOLING_STRIDE1 + 1;
     int top_off = b * mlo_topdf_batch_str + o * mlo_topdf_channel_str;
 
     _FLOAT res[MLO_POOLBWD_N_VERT_OUT_PIX][MLO_POOLBWD_N_HORIZ_OUT_PIX];
@@ -137,7 +137,7 @@ mloPoolingAveBwd(const __global _FLOAT* top_diff,
         int top_hstart = (h < MLO_POOLING_KERNEL_SZ1)
                              ? 0
                              : (h - MLO_POOLING_KERNEL_SZ1) / MLO_POOLING_STRIDE1 + 1;
-        int top_hend = min(h / MLO_POOLING_STRIDE1 + 1, mlo_top_height);
+        int top_hend   = min(h / MLO_POOLING_STRIDE1 + 1, mlo_top_height);
 
         for(int l = 0; l < MLO_POOLBWD_N_HORIZ_OUT_PIX; l++)
         {
@@ -146,7 +146,7 @@ mloPoolingAveBwd(const __global _FLOAT* top_diff,
             int top_wstart = (w < MLO_POOLING_KERNEL_SZ0)
                                  ? 0
                                  : (w - MLO_POOLING_KERNEL_SZ0) / MLO_POOLING_STRIDE0 + 1;
-            int top_wend = min(w / MLO_POOLING_STRIDE0 + 1, mlo_top_width);
+            int top_wend   = min(w / MLO_POOLING_STRIDE0 + 1, mlo_top_width);
 
             for(int top_h = top_hstart; top_h < top_hend; ++top_h)
             {
@@ -239,12 +239,12 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
     int b       = ob / mlo_n_outputs;
     int o       = ob - b * mlo_n_outputs;
 
-    int top_x = (x + mlo_pad0 - MLO_POOLING_KERNEL_SZ0) < 0
-                    ? 0
-                    : (x + mlo_pad0 - MLO_POOLING_KERNEL_SZ0) / MLO_POOLING_STRIDE0 + 1;
-    int top_y = (y + mlo_pad1 - MLO_POOLING_KERNEL_SZ1) < 0
-                    ? 0
-                    : (y + mlo_pad1 - MLO_POOLING_KERNEL_SZ1) / MLO_POOLING_STRIDE1 + 1;
+    int top_x      = (x + mlo_pad0 - MLO_POOLING_KERNEL_SZ0) < 0
+                         ? 0
+                         : (x + mlo_pad0 - MLO_POOLING_KERNEL_SZ0) / MLO_POOLING_STRIDE0 + 1;
+    int top_y      = (y + mlo_pad1 - MLO_POOLING_KERNEL_SZ1) < 0
+                         ? 0
+                         : (y + mlo_pad1 - MLO_POOLING_KERNEL_SZ1) / MLO_POOLING_STRIDE1 + 1;
     int top_df_off = b * mlo_topdf_batch_str + o * mlo_topdf_channel_str;
 
     _FLOAT res[MLO_POOLBWD_N_VERT_OUT_PIX][MLO_POOLBWD_N_HORIZ_OUT_PIX];

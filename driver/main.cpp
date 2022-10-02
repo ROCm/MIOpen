@@ -199,9 +199,9 @@ int main(int argc, char* argv[])
         return rc;
     }
 
-    int fargval = ((base_arg != "CBAInfer") && (base_arg != "CBAInferfp16"))
-                      ? drv->GetInputFlags().GetValueInt("forw")
-                      : 1;
+    int fargval       = ((base_arg != "CBAInfer") && (base_arg != "CBAInferfp16"))
+                            ? drv->GetInputFlags().GetValueInt("forw")
+                            : 1;
     bool bnFwdInVer   = (fargval == 2 && (base_arg == "bnorm"));
     bool verifyarg    = (drv->GetInputFlags().GetValueInt("verify") == 1);
     int cumulative_rc = 0; // Do not stop running tests in case of errors.
