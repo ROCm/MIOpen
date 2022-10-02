@@ -567,11 +567,11 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
     {
         // subsampled input, in_height equals to image size after downsampling
         int in_batch_stride = problem.in_stride * problem.in_height * problem.n_outputs;
-        int write_unit =
-            (problem.in_width % 4 == 0)
-                ? 4
-                : (problem.in_width % 3 == 0) ? 3 : (problem.in_width % 2 == 0) ? 2 : 1;
-        int n_grp0_size0 = 256;
+        int write_unit      = (problem.in_width % 4 == 0)   ? 4
+                              : (problem.in_width % 3 == 0) ? 3
+                              : (problem.in_width % 2 == 0) ? 2
+                                                            : 1;
+        int n_grp0_size0    = 256;
 
         const auto subsample_kernel_compilation_options =
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
@@ -632,8 +632,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
     GenerateClangDefsym(options, "do_not_use_default_perf_params", 1);
 
     GenerateClangDefsym(options, "acc_type", 1);
-    const unsigned int buf_type =
-        problem.out_data_type == miopenHalf ? 2 : problem.out_data_type == miopenFloat ? 1 : 3;
+    const unsigned int buf_type = problem.out_data_type == miopenHalf    ? 2
+                                  : problem.out_data_type == miopenFloat ? 1
+                                                                         : 3;
     GenerateClangDefsym(options, "buf_type", buf_type);
 
     enum class MemLayout : int

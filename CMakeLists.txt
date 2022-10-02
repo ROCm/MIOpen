@@ -226,9 +226,6 @@ if(MIOPEN_BACKEND_OPENCL)
     set(MIOPEN_USE_COMPOSABLEKERNEL OFF)
 endif()
 message(STATUS "Enable Composable Kernels: ${MIOPEN_USE_COMPOSABLEKERNEL}")
-if(MIOPEN_USE_COMPOSABLEKERNEL)
-    find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
-endif()
 
 set_var_to_condition(MIOPEN_USE_COMGR_DEFAULT (NOT DEFINED MIOPEN_BACKEND_OPENCL) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
 option(MIOPEN_USE_COMGR "Use comgr to build kernels instead of offline tools" ${MIOPEN_USE_COMGR_DEFAULT})
@@ -251,7 +248,7 @@ add_definitions("-DHIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}")
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     if(MIOPEN_USE_COMPOSABLEKERNEL)
-    find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
+        find_package(composable_kernel 1.0.0 COMPONENTS device_operations)
     endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
         set(MIOPEN_MODE_NOGPU 1)
@@ -332,17 +329,25 @@ set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND $
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
 if(MIOPEN_USE_MLIR)
-    # REQUIRED is not supported before cmake 3.18
-    find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
     if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
         message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
     endif()
-
-    if(NOT LIBMLIRMIOPEN)
-        message(FATAL_ERROR "libMLIRMIOpen not found, please reinstall dependencies. \
-        Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
+    # Try to find package rocMLIR
+    # REQUIRED is omitted since we do not want cmake to abort if the package is not found
+    find_package(rocMLIR 1.0.0 CONFIG)
+    if(NOT rocMLIR_FOUND)
+        message(STATUS "Falling back to find library libMLIRMIOpen")
+        # Backward compatibility with ROCm 5.3
+        # If the rocMLIR package is not found, try to find the library libMLIRMIOpen directly
+        find_library(LIBMLIRMIOPEN MLIRMIOpen REQUIRED)
+        if(NOT LIBMLIRMIOPEN)
+            message(FATAL_ERROR "library libMLIRMIOpen not found, please reinstall dependencies. \
+            Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
+        else()
+            message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
+        endif()
     else()
-        message(STATUS "Build with libMLIRMIOpen: " ${LIBMLIRMIOPEN})
+        message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION}")
     endif()
 endif()
 
@@ -630,18 +635,23 @@ enable_clang_tidy(
         -readability-container-data-pointer
         -readability-identifier-length
         -readability-suspicious-call-argument
-        #CPP-17 and ROCM 5.3 update related warning
-        -misc-confusable-identifiers
-        -modernize-use-nodiscard
-        -modernize-concat-nested-namespaces
-        -modernize-unary-static-assert
-        -modernize-macro-to-enum
-        -readability-simplify-boolean-expr
-        -readability-redundant-declaration
-        -hicpp-member-init
+        #TODO Code Quality WORKAROUND ROCm 5.3 && Ubuntu 22.04 && C++17 && cppcheck 2.9 update
         -bugprone-use-after-move
         -hicpp-invalid-access-moved
-
+        -modernize-use-nodiscard
+        -misc-confusable-identifiers
+        -modernize-unary-static-assert
+        -modernize-macro-to-enum
+        -modernize-concat-nested-namespaces
+        -readability-redundant-declaration
+        -readability-simplify-boolean-expr
+        -bugprone-branch-clone
+        -clang-diagnostic-deprecated
+        -hicpp-deprecated-headers
+        -hicpp-member-init
+        -performance-no-automatic-move
+        -clang-analyzer-cplusplus.NewDeleteLeaks
+        -modernize-deprecated-headers
         ${MIOPEN_TIDY_CHECKS}
     ${MIOPEN_TIDY_ERRORS}
     HEADER_FILTER
@@ -686,6 +696,30 @@ enable_cppcheck(
         unreadVariable:*src/composable_kernel/host/*/*
         unreadVariable:*src/composable_kernel/external/*/*
         unmatchedSuppression
+        #TODO Code Quality WORKAROUND ROCm 5.3 && Ubuntu 22.04 && C++17 && cppcheck 2.9 update
+        ctuOneDefinitionRuleViolation:*test/*
+        ctuOneDefinitionRuleViolation:*src/composable_kernel/composable_kernel/*/*
+        ctuPointerArith:*test/*
+        constParameter
+        constVariable
+        variableScope
+        missingReturn
+        cstyleCast
+        unknownMacro
+        uselessCallsSubstr
+        uninitMemberVar
+        overlappingWriteUnion
+        operatorEqVarError
+        returnTempReference
+        objectIndex
+        integerOverflowCond
+        rethrowNoCurrentException
+        mismatchingContainers
+        unreadVariable
+        CastIntegerToAddressAtReturn
+        knownConditionTrueFalse
+        shadowFunction
+        moduloofone
     FORCE
     SOURCES
         addkernels/
