@@ -247,13 +247,6 @@ if(MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908)
     list(APPEND SKIP_TESTS test_bn_3d_spatial_test)
 endif()
 
-#TODO WORKAROUND_ISSUE_1743: issue with GemmFwdRest
-# These tests are passing on latest mainline dockers
-# TODO: remove after next CI docker update
-if(MIOPEN_TEST_GFX90A AND MIOPEN_TEST_HALF)
-    list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_conv3d_find2)
-endif()
-
 # The usage is non-trivial, see function add_test_command.
 if(SKIP_TESTS)
     list(REMOVE_DUPLICATES SKIP_TESTS)
@@ -658,7 +651,8 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_BN} -n 256 -c 512 -H 28 -W 28 -m 1 --forw 0 -b 1 -r 1
     )
 
-    add_custom_test(test_miopendriver_big_tensor GFX900_DISABLED GFX906_DISABLED SKIP_UNLESS_ALL GFX103X_ENABLED
+    # WORKAROUND_ISSUE_1787 disabled for gfx908
+    add_custom_test(test_miopendriver_big_tensor GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED SKIP_UNLESS_ALL GFX103X_ENABLED
         # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1661
         # Issue #1697: this is large test which has to run in serial and not enabled on gfx900/gfx906
         COMMAND MIOPEN_DRIVER_USE_GPU_REFERENCE=1 $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -W 5078 -H 4903 -c 24 -n 5 -k 1 --fil_w 3 --fil_h 3 --pad_w 6 --pad_h 4 -F 1
@@ -1727,7 +1721,8 @@ set(CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV
     MIOPEN_FIND_MODE=normal
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCkIgemmFwdV6r1DlopsNchw)
 
-add_custom_test(test_conv_ck_igemm_fwd_v6r1_dlops_nchw FLOAT_ENABLED HALF_ENABLED BF16_DISABLED GFX103X_ENABLED SKIP_UNLESS_ALL
+# gfx908 disabled as a workaround for https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1790/files?diff=split&w=1#r982923610
+add_custom_test(test_conv_ck_igemm_fwd_v6r1_dlops_nchw FLOAT_ENABLED HALF_ENABLED BF16_DISABLED GFX908_DISABLED GFX103X_ENABLED SKIP_UNLESS_ALL
 COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 1024 14 14  --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 14 14  --weights  256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
 COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 1024 14 14  --weights  512 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
