@@ -4446,6 +4446,10 @@ struct PerformanceConfigHipImplicitGemmFwdXdlops
         f(s.kernel_id, "kernel_id");
     }
     bool operator==(const PerformanceConfigHipImplicitGemmFwdXdlops& other) const;
+    template <typename DataType>
+    void Init(const ConvolutionContext& ctx);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const ConvolutionContext& ctx) const;
 };
 
 struct ConvHipImplicitGemmFwdXdlops final
@@ -4480,6 +4484,13 @@ struct ConvHipImplicitGemmFwdXdlops final
     // we do expect that CK is faster than Naive), therefore we use a
     // value bigger than 0.01f, e.g. 0.02f.
     float GetWti(const ConvolutionContext&) const override { return 0.02f; };
+    template <typename DataType>
+    bool CheckCKApplicability(const ConvolutionContext& ctx) const;
+    template <typename DataType>
+    void GetCKSolution(const Handle& handle,
+                       const AnyInvokeParams& primitive_parameters,
+                       const ConvolutionContext& ctx,
+                       const PerformanceConfigHipImplicitGemmFwdXdlops& config) const;
 };
 
 struct AnySolver;

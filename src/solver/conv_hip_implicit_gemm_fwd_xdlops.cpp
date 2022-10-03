@@ -92,12 +92,12 @@ struct CKArgs
 };
 
 template <typename DataType>
-void InitHelper(const ConvolutionContext& ctx, int& idx, int& t_size, std::string& k_id)
+void PerformanceConfigHipImplicitGemmFwdXdlops::Init(const ConvolutionContext& ctx)
 {
     const auto args      = CKArgs{ctx};
     const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
-    t_size = conv_ptrs.size();
+    this->total_size = conv_ptrs.size();
     for(int i = 0; i < conv_ptrs.size(); i++)
     {
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
@@ -118,39 +118,40 @@ void InitHelper(const ConvolutionContext& ctx, int& idx, int& t_size, std::strin
                                                               {});
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
         {
-            k_id = conv_ptrs[i]->GetTypeString();
+            this->kernel_id = conv_ptrs[i]->GetTypeString();
             break;
         }
-        ++idx;
+        ++this->index;
     }
 }
 
 template <typename DataType>
-bool ValidHelper(const ConvolutionContext& ctx, const int idx)
+bool PerformanceConfigHipImplicitGemmFwdXdlops::CheckIsSupportCKArgs(
+    const ConvolutionContext& ctx) const
 {
     const auto args      = CKArgs{ctx};
     const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
-    auto argument_ptr    = conv_ptrs[idx]->MakeArgumentPointer(nullptr,
-                                                            nullptr,
-                                                            nullptr,
-                                                            args.N,
-                                                            args.K,
-                                                            args.C,
-                                                            args.input,
-                                                            args.filter,
-                                                            args.input,
-                                                            args.strides,
-                                                            args.dilation,
-                                                            args.lPadding,
-                                                            args.rPadding,
-                                                            {},
-                                                            {},
-                                                            {});
-    return conv_ptrs[idx]->IsSupportedArgument(argument_ptr.get());
+    auto argument_ptr    = conv_ptrs[this->index]->MakeArgumentPointer(nullptr,
+                                                                    nullptr,
+                                                                    nullptr,
+                                                                    args.N,
+                                                                    args.K,
+                                                                    args.C,
+                                                                    args.input,
+                                                                    args.filter,
+                                                                    args.input,
+                                                                    args.strides,
+                                                                    args.dilation,
+                                                                    args.lPadding,
+                                                                    args.rPadding,
+                                                                    {},
+                                                                    {},
+                                                                    {});
+    return conv_ptrs[this->index]->IsSupportedArgument(argument_ptr.get());
 }
 
 template <typename DataType>
-bool ApplicableHelper(const ConvolutionContext& ctx)
+bool ConvHipImplicitGemmFwdXdlops::CheckCKApplicability(const ConvolutionContext& ctx) const
 {
     const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
@@ -182,10 +183,11 @@ bool ApplicableHelper(const ConvolutionContext& ctx)
 }
 
 template <typename DataType>
-void SolutionHelper(const Handle& handle,
-                    const AnyInvokeParams& primitive_parameters,
-                    const ConvolutionContext& ctx,
-                    const PerformanceConfigHipImplicitGemmFwdXdlops& config)
+void ConvHipImplicitGemmFwdXdlops::GetCKSolution(
+    const Handle& handle,
+    const AnyInvokeParams& primitive_parameters,
+    const ConvolutionContext& ctx,
+    const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {
     const auto args      = CKArgs{ctx};
     const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
@@ -236,9 +238,9 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionC
     this->kernel_id  = "";
     switch(ctx.problem.conv_problem.GetInDataType())
     {
-    case miopenInt8: InitHelper<int8_t>(ctx, index, total_size, kernel_id); break;
-    case miopenHalf: InitHelper<ck::half_t>(ctx, index, total_size, kernel_id); break;
-    case miopenFloat: InitHelper<float>(ctx, index, total_size, kernel_id); break;
+    case miopenInt8: Init<int8_t>(ctx); break;
+    case miopenHalf: Init<ck::half_t>(ctx); break;
+    case miopenFloat: Init<float>(ctx); break;
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
@@ -271,9 +273,9 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(const ConvolutionContext
 #else
     switch(ctx.problem.conv_problem.GetInDataType())
     {
-    case miopenInt8: return ValidHelper<int8_t>(ctx, this->index);
-    case miopenHalf: return ValidHelper<ck::half_t>(ctx, this->index);
-    case miopenFloat: return ValidHelper<float>(ctx, this->index);
+    case miopenInt8: return CheckIsSupportCKArgs<int8_t>(ctx);
+    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(ctx);
+    case miopenFloat: return CheckIsSupportCKArgs<float>(ctx);
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
@@ -340,9 +342,9 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
         return false;
     switch(ctx.problem.conv_problem.GetInDataType())
     {
-    case miopenInt8: return ApplicableHelper<int8_t>(ctx);
-    case miopenHalf: return ApplicableHelper<ck::half_t>(ctx);
-    case miopenFloat: return ApplicableHelper<float>(ctx);
+    case miopenInt8: return CheckCKApplicability<int8_t>(ctx);
+    case miopenHalf: return CheckCKApplicability<ck::half_t>(ctx);
+    case miopenFloat: return CheckCKApplicability<float>(ctx);
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
@@ -367,13 +369,13 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
             switch(ctx.problem.conv_problem.GetInDataType())
             {
             case miopenInt8:
-                SolutionHelper<int8_t>(handle, primitive_parameters, ctx, config);
+                GetCKSolution<int8_t>(handle, primitive_parameters, ctx, config);
                 break;
             case miopenHalf:
-                SolutionHelper<ck::half_t>(handle, primitive_parameters, ctx, config);
+                GetCKSolution<ck::half_t>(handle, primitive_parameters, ctx, config);
                 break;
             case miopenFloat:
-                SolutionHelper<float>(handle, primitive_parameters, ctx, config);
+                GetCKSolution<float>(handle, primitive_parameters, ctx, config);
                 break;
             case miopenInt32:
             case miopenInt8x4:
