@@ -234,21 +234,16 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionC
     this->index      = 0;
     this->total_size = 0;
     this->kernel_id  = "";
-    InitHelper<int8_t>(ctx, index, total_size, kernel_id);
-    /*
-    switch(ctx.problem.conv_problem.GetInDataType()){
-        case miopenInt8:
-            InitHelper<int8_t>(ctx, index, total_size, kernel_id);
-            break;
-        case miopenHalf:
-            InitHelper<ck::half_t>(ctx, index, total_size, kernel_id);
-            break;
-        case miopenFloat:
-            InitHelper<float>(ctx, index, total_size, kernel_id);
-            break;
-        default:
-            break;
-    }*/
+    switch(ctx.problem.conv_problem.GetInDataType())
+    {
+    case miopenInt8: InitHelper<int8_t>(ctx, index, total_size, kernel_id); break;
+    case miopenHalf: InitHelper<ck::half_t>(ctx, index, total_size, kernel_id); break;
+    case miopenFloat: InitHelper<float>(ctx, index, total_size, kernel_id); break;
+    case miopenInt32:
+    case miopenInt8x4:
+    case miopenBFloat16:
+    case miopenDouble: break;
+    }
 #endif
 }
 
@@ -274,19 +269,17 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(const ConvolutionContext
     std::ignore = ctx;
     return false;
 #else
-    return ValidHelper<int8_t>(ctx, this->index);
-    /*
-    switch(ctx.problem.conv_problem.GetInDataType()){
-        case miopenInt8:
-            return ValidHelper<int8_t>(ctx, this->index);
-        case miopenHalf:
-            return ValidHelper<ck::half_t>(ctx, this->index);
-        case miopenFloat:
-            return ValidHelper<float>(ctx, this->index);
-        default:
-            break;
+    switch(ctx.problem.conv_problem.GetInDataType())
+    {
+    case miopenInt8: return ValidHelper<int8_t>(ctx, this->index);
+    case miopenHalf: return ValidHelper<ck::half_t>(ctx, this->index);
+    case miopenFloat: return ValidHelper<float>(ctx, this->index);
+    case miopenInt32:
+    case miopenInt8x4:
+    case miopenBFloat16:
+    case miopenDouble: break;
     }
-    */
+    return false;
 #endif
 }
 
@@ -345,20 +338,17 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
         return false;
     if(!ctx.problem.IsLayoutNHWC())
         return false;
-    return ApplicableHelper<int8_t>(ctx);
-    /*
-    switch(ctx.problem.conv_problem.GetInDataType()){
-        case miopenInt8:
-            return ApplicableHelper<int8_t>(ctx);
-        case miopenHalf:
-            return ApplicableHelper<ck::half_t>(ctx);
-        case miopenFloat:
-            return ApplicableHelper<float>(ctx);
-        default:
-            break;
+    switch(ctx.problem.conv_problem.GetInDataType())
+    {
+    case miopenInt8: return ApplicableHelper<int8_t>(ctx);
+    case miopenHalf: return ApplicableHelper<ck::half_t>(ctx);
+    case miopenFloat: return ApplicableHelper<float>(ctx);
+    case miopenInt32:
+    case miopenInt8x4:
+    case miopenBFloat16:
+    case miopenDouble: break;
     }
-    */
-    // return false;
+    return false;
 #endif
 }
 
@@ -374,22 +364,22 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            SolutionHelper<int8_t>(handle, primitive_parameters, ctx, config);
-            /*
-            switch(ctx.problem.conv_problem.GetInDataType()){
-                case miopenInt8:
-                    SolutionHelper<int8_t>(handle, ctx, config);
-                    break;
-                case miopenHalf:
-                    SolutionHelper<ck::half_t>(handle, ctx, config);
-                    break;
-                case miopenFloat:
-                    SolutionHelper<float>(handle, ctx, config);
-                    break;
-                default:
-                    break;
+            switch(ctx.problem.conv_problem.GetInDataType())
+            {
+            case miopenInt8:
+                SolutionHelper<int8_t>(handle, primitive_parameters, ctx, config);
+                break;
+            case miopenHalf:
+                SolutionHelper<ck::half_t>(handle, primitive_parameters, ctx, config);
+                break;
+            case miopenFloat:
+                SolutionHelper<float>(handle, primitive_parameters, ctx, config);
+                break;
+            case miopenInt32:
+            case miopenInt8x4:
+            case miopenBFloat16:
+            case miopenDouble: break;
             }
-            */
         };
     };
     return result;
