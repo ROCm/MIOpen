@@ -1039,13 +1039,13 @@ struct Merge_v2_magic_division
     using UpLengths =
         decltype(make_tuple(container_reduce(LowLengths{}, math::multiplies{}, Number<1>{})));
 
-    using LowLengthsMagicDivisorMultipiler = decltype(
-        generate_tuple(lambda_merge_generate_MagicDivision_calculate_magic_multiplier<LowLengths>{},
-                       Number<NDimLow>{}));
+    using LowLengthsMagicDivisorMultipiler = decltype(generate_tuple(
+        lambda_merge_generate_MagicDivision_calculate_magic_multiplier<LowLengths>{},
+        Number<NDimLow>{}));
 
-    using LowLengthsMagicDivisorShift = decltype(
-        generate_tuple(lambda_merge_generate_MagicDivision_calculate_magic_shift<LowLengths>{},
-                       Number<NDimLow>{}));
+    using LowLengthsMagicDivisorShift = decltype(generate_tuple(
+        lambda_merge_generate_MagicDivision_calculate_magic_shift<LowLengths>{},
+        Number<NDimLow>{}));
 
     LowLengths low_lengths_;
     LowLengthsMagicDivisorMultipiler low_lengths_magic_divisor_multiplier_;
@@ -1198,9 +1198,9 @@ struct Merge_v2r2_magic_division
         lambda_merge_generate_MagicDivision_calculate_magic_multiplier<LowLengthsScan>{},
         Number<NDimLow>{}));
 
-    using LowLengthsScanMagicDivisorShift = decltype(
-        generate_tuple(lambda_merge_generate_MagicDivision_calculate_magic_shift<LowLengthsScan>{},
-                       Number<NDimLow>{}));
+    using LowLengthsScanMagicDivisorShift = decltype(generate_tuple(
+        lambda_merge_generate_MagicDivision_calculate_magic_shift<LowLengthsScan>{},
+        Number<NDimLow>{}));
 
     LowLengths low_lengths_;
     LowLengthsScan low_lengths_scan_;

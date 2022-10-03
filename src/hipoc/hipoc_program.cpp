@@ -311,7 +311,7 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params,
 {
     std::string filename = is_kernel_str ? "tinygemm.cl" // Fixed name for miopengemm.
                                          : program;
-    const auto src = [&]() -> std::string {
+    const auto src       = [&]() -> std::string {
         if(miopen::EndsWith(filename, ".mlir"))
             return {}; // MLIR solutions do not use source code.
         if(!kernel_src.empty())

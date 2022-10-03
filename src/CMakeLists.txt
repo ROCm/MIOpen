@@ -640,7 +640,7 @@ target_include_directories(MIOpen PUBLIC
 
 set(MIOPEN_CK_LINK_FLAGS)
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations composable_kernel::host_tensor hip::host)
+set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations hip::host)
 endif()
 
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
@@ -694,8 +694,15 @@ if(miopentensile_FOUND)
     target_link_libraries(MIOpen PRIVATE MIOpenTensile)
 endif()
 
+# For backward compatibility with ROCm 5.3
+# Build with library libMLIRMIOpen
 if(LIBMLIRMIOPEN)
-  target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
+    target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
+endif()
+
+# Build with package rocMLIR
+if(rocMLIR_FOUND)
+    target_link_libraries(MIOpen PRIVATE rocMLIR::rockCompiler)
 endif()
 
 target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)

@@ -174,8 +174,8 @@ struct AnySolver
         bool
         TestSysDbRecord(const ConvolutionContext& ctx, const DbRecord& record, std::true_type) const
         {
-            using PerformanceConfig = decltype(
-                value.GetDefaultPerformanceConfig(std::declval<const ConvolutionContext&>()));
+            using PerformanceConfig = decltype(value.GetDefaultPerformanceConfig(
+                std::declval<const ConvolutionContext&>()));
             PerformanceConfig config{};
             bool success = record.GetValues(value.SolverDbId(), config);
             if(success)
@@ -290,8 +290,7 @@ struct AnySolver
 
         std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const override
         {
-            return GetPerfCfgParams(
-                ctx.problem, db, std::integral_constant<bool, TunableSolver::Is>());
+            return GetPerfCfgParams(ctx, db, std::integral_constant<bool, TunableSolver::Is>());
         }
 
         size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override

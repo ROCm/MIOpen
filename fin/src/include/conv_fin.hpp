@@ -2039,8 +2039,9 @@ int ConvFin<Tgpu, Tref>::CalcWorkspace()
     auto is_transform         = IsInputTensorTransform();
 
     using namespace miopen;
-    const auto dir = is_wrw ? conv::Direction::BackwardWeights
-                            : is_bwd ? conv::Direction::BackwardData : conv::Direction::Forward;
+    const auto dir     = is_wrw   ? conv::Direction::BackwardWeights
+                         : is_bwd ? conv::Direction::BackwardData
+                                  : conv::Direction::Forward;
     const auto ctx     = ExecutionContext{&GetHandle()}.DetectRocm();
     const auto problem = conv::ProblemDescription{
         inputTensor.desc, weightTensor.desc, outputTensor.desc, convDesc, dir};

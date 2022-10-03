@@ -374,6 +374,7 @@ struct reorder_invoke_param : public miopen::InvokeParams
 template <typename T>
 struct tensor_reorder_driver : tensor_reorder_base_driver
 {
+    // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)
     void run()
     {
         auto run_reorder = [this](uint32_t dim_0,
@@ -480,7 +481,7 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
                                 order_1,
                                 order_2,
                                 order_3);
-
+            invoker_factory = boost::none;
 #if MIOPEN_BACKEND_OPENCL
             status = clEnqueueReadBuffer(
                 q, dst_dev, CL_TRUE, 0, workspace, t_dst_gpu.data.data(), 0, nullptr, nullptr);
@@ -493,7 +494,6 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
             hipFree(dst_dev);
             hipFree(src_dev);
 #endif
-
             // we expect excact match, since use integer
             bool valid_result = verify_tensor(t_dst_gpu, t_dst);
             std::cout << "[" << reorder_str::get(order_0, order_1, order_2, order_3) << ", b"
@@ -505,6 +505,7 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
 
         iterate_reorder(run_reorder);
     }
+    // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 };
 
 template <template <class...> class Driver>

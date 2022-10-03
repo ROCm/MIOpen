@@ -59,7 +59,7 @@ struct ConvolutionContext : ExecutionContext
         : ExecutionContext(exec_ctx), problem(problem_)
     {
     }
-    ConvolutionContext(const ProblemDescription& problem_) : problem(problem_) {}
+    explicit ConvolutionContext(const ProblemDescription& problem_) : problem(problem_) {}
     ConvolutionContext(const conv::ProblemDescription& problem_, const ExecutionContext& ctx)
         : ExecutionContext(ctx), problem(problem_)
     {
