@@ -387,18 +387,18 @@ static void DirConvFindCore(Handle& handle,
         AutoUseFastDynamicSolutions tmp{ctx};
         return conv.FindWinogradSolutions(ctx, invoke_ctx);
     }();
-    const auto gemm = !use_winograd_only ? conv.FindDataGemmSolutions(ctx, invoke_ctx)
-                                         : std::vector<miopen::solver::ConvSolution>{};
-    const auto direct = !use_winograd_only
-                            ? conv.FindDataDirectSolutions(
+    const auto gemm     = !use_winograd_only ? conv.FindDataGemmSolutions(ctx, invoke_ctx)
+                                             : std::vector<miopen::solver::ConvSolution>{};
+    const auto direct   = !use_winograd_only
+                              ? conv.FindDataDirectSolutions(
                                   handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, invoke_ctx)
-                            : std::vector<miopen::solver::ConvSolution>{};
-    const auto igemm = !use_winograd_only
-                           ? conv.FindDataImplicitGemmSolutions(
+                              : std::vector<miopen::solver::ConvSolution>{};
+    const auto igemm    = !use_winograd_only
+                              ? conv.FindDataImplicitGemmSolutions(
                                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, invoke_ctx)
-                           : std::vector<miopen::solver::ConvSolution>{};
-    const auto fft = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx)
-                                        : std::vector<miopen::solver::ConvSolution>{};
+                              : std::vector<miopen::solver::ConvSolution>{};
+    const auto fft      = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx)
+                                             : std::vector<miopen::solver::ConvSolution>{};
 
     // Precompile
     {
@@ -812,8 +812,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
 
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
-    const auto& inDesc = problem.direction.IsForward() ? problem.conv_problem.GetIn()
-                                                       : problem.conv_problem.GetOut();
+    const auto& inDesc      = problem.direction.IsForward() ? problem.conv_problem.GetIn()
+                                                            : problem.conv_problem.GetOut();
     const auto& weightsDesc = problem.conv_problem.GetWeights();
     // This check is needed on fallback path only.
     // On regular path (find-db hit) this was checked during Find().
@@ -1570,15 +1570,15 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                           this->attribute.gfx90aFp16alt.GetWrW()};
 
             // Find solutions
-            const auto gemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
-                                  ? FindAllGemmSolutions(ctx, invoke_ctx)
-                                  : std::vector<miopen::solver::ConvSolution>{};
-            const auto direct = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
-                                    ? FindAllBwdWrW2DSolutions(ctx, invoke_ctx)
-                                    : std::vector<miopen::solver::ConvSolution>{};
-            const auto winograd = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
-                                      ? FindWinogradWrWAllSolutions(ctx, invoke_ctx)
-                                      : std::vector<miopen::solver::ConvSolution>{};
+            const auto gemm        = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
+                                         ? FindAllGemmSolutions(ctx, invoke_ctx)
+                                         : std::vector<miopen::solver::ConvSolution>{};
+            const auto direct      = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
+                                         ? FindAllBwdWrW2DSolutions(ctx, invoke_ctx)
+                                         : std::vector<miopen::solver::ConvSolution>{};
+            const auto winograd    = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
+                                         ? FindWinogradWrWAllSolutions(ctx, invoke_ctx)
+                                         : std::vector<miopen::solver::ConvSolution>{};
             const auto implictgemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{})
                                          ? FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx)
                                          : std::vector<miopen::solver::ConvSolution>{};

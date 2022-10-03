@@ -310,6 +310,16 @@ std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context
     return solutions;
 }
 
+template <class Solver, class Context, class Problem>
+auto GenericSearch(const Solver s,
+                   const Context& ctx,
+                   const Problem& problem,
+                   const AnyInvokeParams& invoke_ctx)
+{
+    std::ignore = problem;
+    return GenericSearch(s, ctx, invoke_ctx);
+}
+
 template <class Solver, class Context>
 auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
     -> decltype(s.GetDefaultPerformanceConfig(context_))

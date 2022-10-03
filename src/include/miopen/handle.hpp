@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_CONTEXT_HPP_
-#define GUARD_MIOPEN_CONTEXT_HPP_
+#ifndef GUARD_MIOPEN_HANDLE_HPP_
+#define GUARD_MIOPEN_HANDLE_HPP_
 
 #include <miopen/config.h>
 #include <miopen/kernel_info.hpp>
@@ -298,4 +298,4 @@ private:
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenHandle, miopen::Handle);
 
-#endif // GUARD_MIOPEN_CONTEXT_HPP_
+#endif // GUARD_MIOPEN_HANDLE_HPP_

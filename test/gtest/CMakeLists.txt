@@ -7,6 +7,10 @@ include(GoogleTest)
 
 find_package(rocblas)
 
+set(SOURCES ${SOURCES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/log_test_helper.cpp"
+    )
+
 if(MIOPEN_BACKEND_OPENCL)
   set(SKIP_TESTS dumpTensorTest)
 endif()
@@ -14,7 +18,7 @@ endif()
 function(add_gtest TEST_NAME)
   if( NOT (TEST_NAME IN_LIST SKIP_TESTS))
     message("Adding Test: " ${TEST_NAME})
-    add_executable(test_${TEST_NAME} ${TEST_NAME}.cpp )
+    add_executable(test_${TEST_NAME} ${TEST_NAME}.cpp  ${SOURCES})
     add_dependencies(tests test_${TEST_NAME})
     add_dependencies(check test_${TEST_NAME})
     target_compile_options(test_${TEST_NAME} PRIVATE -Wno-global-constructors -Wno-undef)
@@ -31,6 +35,9 @@ function(add_gtest TEST_NAME)
 endfunction()
 
 file(GLOB TESTS *.cpp)
+# this is the file I want to exclude / remove from the TESTS
+list(REMOVE_ITEM TESTS "${SOURCES}")
+
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
     add_gtest(${BASE_NAME})
