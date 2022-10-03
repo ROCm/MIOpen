@@ -63,6 +63,9 @@ void CompareTensors(T1&& t1, T2&& t2)
     auto idx           = miopen::mismatch_idx(t1, t2, miopen::float_equal);
     EXPECT_FALSE(miopen::find_idx(t1, miopen::not_finite) >= 0)
         << "Non finite number found in the CPU data";
+    // For debugging purpose only, remove later
+    std::cerr << "idx = " << idx << "; miopen::range_distance(t1) = " << miopen::range_distance(t1)
+              << std::endl;
     EXPECT_FALSE(idx < miopen::range_distance(t1));
     return;
 }
@@ -86,10 +89,6 @@ protected:
         // TODO: use miopen API?
         miopenCreateActivationDescriptor(&activ_desc);
         miopenSetActivationDescriptor(activ_desc, activ_mode, alpha, beta, gamma);
-
-        // In TEST_P()
-        // auto ptr_bwdfusionplan                = GetManagedFusionPlanDesc(&input.desc);
-        // miopenCreateOpActivationForward(ptr_fwdfusionplan.get(), &activFwdOp, activ_mode);
 
         std::size_t n, c, h, w;
         auto&& handle        = get_handle();
