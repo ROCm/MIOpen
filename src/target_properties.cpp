@@ -39,8 +39,7 @@ namespace miopen {
 
 static std::string GetDeviceNameFromMap(const std::string& in)
 {
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static std::map<std::string, std::string> device_name_map = {
+    static const std::map<std::string, std::string> device_name_map = {
         {"Ellesmere", "gfx803"},
         {"Baffin", "gfx803"},
         {"RacerX", "gfx803"},

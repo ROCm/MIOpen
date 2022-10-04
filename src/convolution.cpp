@@ -163,6 +163,12 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
 
     auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
+    if(wDesc.GetLayout_str() == "CHWNc")
+    {
+        std::tie(wei_k, wei_c) = miopen::tie_pick<3, 0>{}(wDesc.GetLengths());
+        wei_spatial            = boost::adaptors::slice(wDesc.GetLengths(), 1, 1 + spatial_dim);
+    }
+
     if(mode == miopenConvolution)
     {
         // for depthwise conv wei_c must be 1 while group_count must be wei_c
@@ -234,7 +240,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
         }
         else
         {
-            out_c = wei_k;
+            out_c = wei_k / wDesc.GetVectorLength();
 
             for(int i = 0; i < spatial_dim; ++i)
             {
@@ -256,11 +262,12 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
 
     const std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
     std::vector<std::size_t> out_strides;
-    tensor_layout_to_strides(out_lens, default_layout, yLayout, out_strides);
-
+    tensor_layout_to_strides(
+        out_lens, default_layout, yLayout, xDesc.GetVectorLength(), out_strides);
     return {(xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
                  ? (yType == miopenInt32 ? yType : miopenFloat)
                  : xDesc.GetType()),
+            xDesc.GetLayout_t(),
             out_lens,
             out_strides};
 }
@@ -783,6 +790,15 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
                              std::to_string(value));
         gfx90aFp16alt.value = value;
     }
+    else if(attr == MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC)
+    {
+        if(value < 0 || value > 1)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "[Set conv attribute] Error: Attemp to set invalid value for "
+                         "MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC: " +
+                             std::to_string(value));
+        deterministic.value = value;
+    }
     else
     {
         MIOPEN_THROW(miopenStatusBadParm,
@@ -795,6 +811,8 @@ int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
 {
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
         return gfx90aFp16alt.value;
+    else if(attr == MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC)
+        return deterministic.value;
     MIOPEN_THROW(miopenStatusBadParm,
                  "[Get conv attribute] Error: Attribute [" +
                      std::to_string(static_cast<int>(attr)) + "] does not exist.");

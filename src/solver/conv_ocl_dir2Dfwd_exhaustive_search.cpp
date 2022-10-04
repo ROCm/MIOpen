@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,13 +24,10 @@
  *
  *******************************************************************************/
 
-#define MIOPEN
-
 #include <miopen/allocator.hpp>
 #include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
-#include <miopen/mlo_utils.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/bfloat16.hpp>
 
@@ -50,8 +47,8 @@ namespace solver {
 /*
  * select default configuration if a known configuration has not been found.
  */
-LegacyPerformanceConfig
-ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionContext& params) const
+LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerformanceConfig(
+    const ConvolutionContext& params) const
 {
     //
     LegacyPerformanceConfig result{};
@@ -647,7 +644,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     {
         int ret                   = -1;
         double default_time       = std::numeric_limits<double>::max();
-        const auto default_config = GetPerformanceConfig(params);
+        const auto default_config = GetDefaultPerformanceConfig(params);
         if(params.kernel_size_w == 1 && params.kernel_size_h == 1 &&
            params.group_counts ==
                1) // Group conv: None 1x1 version yet, fallback to universal kernel.

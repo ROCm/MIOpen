@@ -32,7 +32,6 @@
 
 #include <cassert>
 #include <cmath>
-#include <cmath>
 
 namespace miopen {
 

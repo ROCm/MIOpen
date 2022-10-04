@@ -1,3 +1,4 @@
+#include <miopen/config.h> // WORKAROUND_BOOST_ISSUE_392
 #include <miopen/rank.hpp>
 #include <miopen/sequences.hpp>
 
@@ -176,7 +177,7 @@ struct BoostSequence
     constexpr const_iterator begin() const { return arr.begin(); }
     constexpr const_iterator end() const { return arr.end(); }
 
-    private:
+private:
     static constexpr std::size_t count                         = sizeof...(values);
     static constexpr std::array<int, BoostSequence::count> arr = {{values...}};
 };
@@ -266,7 +267,7 @@ struct SpeedTestDriver : public test_driver
         std::cout << "Permitted instances: single, percall, static" << std::endl;
     }
 
-    private:
+private:
     int iterations           = 10;
     Instances instance       = Instances::Unknown;
     Modes mode               = Modes::Unknown;

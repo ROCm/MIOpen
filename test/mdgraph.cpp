@@ -221,8 +221,15 @@ struct mdgraph_driver : test_driver
         auto this_arch = h.GetDeviceName();
         auto target    = h.GetTargetProperties();
 
-        auto wino_supported_arch = {
-            "gfx1030", "gfx1012", "gfx1011", "gfx90a", "gfx908", "gfx906", "gfx900", "gfx803"};
+        auto wino_supported_arch = {"gfx1030",
+                                    "gfx1031",
+                                    "gfx1012",
+                                    "gfx1011",
+                                    "gfx90a",
+                                    "gfx908",
+                                    "gfx906",
+                                    "gfx900",
+                                    "gfx803"};
 
         auto is_wino_support = !xnack_enabled &&
                                !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) &&

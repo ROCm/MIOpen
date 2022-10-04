@@ -240,11 +240,14 @@ ConvSolution GemmBwd1x1_stride2::GetSolution(const ExecutionContext& context,
 
     const auto group_count = conv.group_count;
 
-    GemmDescriptor gemm_desc =
-        group_count > 1
-            ? CreateGemmDescriptorGroupConvCNHWBwdData(wDesc, dyDesc, dxDesc, group_count)
-            : CreateGemmDescriptorConvCNHWBwdData(wDesc, dyDesc, dxDesc);
-
+    GemmDescriptor gemm_desc = [&]() {
+        auto tmp =
+            group_count > 1
+                ? CreateGemmDescriptorGroupConvCNHWBwdData(wDesc, dyDesc, dxDesc, group_count)
+                : CreateGemmDescriptorConvCNHWBwdData(wDesc, dyDesc, dxDesc);
+        tmp.deterministic = problem.GetConv().attribute.deterministic;
+        return tmp;
+    }();
     std::size_t in_n, in_c;
     std::tie(in_n, in_c) = tie_pick<0, 1>()(dxDesc.GetLengths());
 
@@ -446,10 +449,13 @@ ConvSolution GemmBwd1x1_stride1::GetSolution(const ExecutionContext&,
     solution.workspace_sz = 0;
 
     // dx = transpose(w) * dy
-    const auto gemm_desc =
-        group_count > 1 ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count)
-                        : CreateGemmStridedBatchedDescriptorConv1x1BwdData(wDesc, dyDesc, dxDesc);
-
+    const auto gemm_desc = [&]() {
+        auto tmp = group_count > 1
+                       ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count)
+                       : CreateGemmStridedBatchedDescriptorConv1x1BwdData(wDesc, dyDesc, dxDesc);
+        tmp.deterministic = problem.GetConv().attribute.deterministic;
+        return tmp;
+    }();
     const auto in_c = dxDesc.GetLengths()[1];
 
     const auto wei_k = wDesc.GetLengths()[0];
@@ -646,10 +652,13 @@ ConvSolution GemmBwdRest::GetSolution(const ExecutionContext& context,
     const auto out_spatial  = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
 
     // dx = transpose(w) * dy
-    const auto gemm_desc =
-        group_count > 1 ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count)
-                        : CreateGemmDescriptorConvBwdData(wDesc, dyDesc, dxDesc);
-
+    const auto gemm_desc = [&]() {
+        auto tmp = group_count > 1
+                       ? CreateGemmDescriptorGroupConvBwdData(wDesc, dyDesc, dxDesc, group_count)
+                       : CreateGemmDescriptorConvBwdData(wDesc, dyDesc, dxDesc);
+        tmp.deterministic = problem.GetConv().attribute.deterministic;
+        return tmp;
+    }();
     const auto spatial_dims = conv.GetSpatialDimension();
     const auto pads         = conv.GetConvPads();
     const auto strides      = conv.GetConvStrides();

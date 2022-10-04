@@ -1,5 +1,32 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
 #include <miopen/fusion.hpp>
 #include <miopen/any_solver.hpp>
+#include <miopen/stringutils.hpp>
 
 namespace miopen {
 
@@ -392,7 +419,7 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetCompileParms(
            " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(true)) +
            " -DMIO_BN_VARIANT=" + std::to_string(variant) +
            " -DMIO_BN_CBA_WRITE_INTERMEDIATE=" + std::to_string(0) +
-           " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
+           " -DMIO_BN_GFX103X=" + (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0");
 
     compile_config += add;
     MIOPEN_LOG_I2(add);
@@ -604,10 +631,11 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetCompileParms(
            " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
            " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
            " -DMIOPEN_READ_UNIT=" + std::to_string(read_unit) + " -DMIOPEN_READ_TYPE=" + READ_TYPE +
+           // cppcheck-suppress knownConditionTrueFalse
            " -DMIO_SAVE_MEAN_VARIANCE=" + (saveBatchStats ? "1" : "0") +
            " -DMIO_RUNNING_RESULT=" + ((savePopStats) ? "1" : "0") +
            " -DMIO_BN_VARIANT=" + std::to_string(variant) +
-           " -DMIO_BN_GFX1030=" + ((handle.GetDeviceName() == "gfx1030") ? "1" : "0");
+           " -DMIO_BN_GFX103X=" + (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0");
 
     compile_config += add;
     MIOPEN_LOG_I2(add);

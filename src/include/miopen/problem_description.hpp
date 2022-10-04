@@ -75,6 +75,7 @@ struct ProblemDescription
     int in_height         = 0;
     int in_width          = 0;
     int in_depth          = 0;
+    int vectorLength      = 1;
     int kernel_size_h     = 0;
     int kernel_size_w     = 0;
     int kernel_size_d     = 0;
@@ -116,6 +117,8 @@ struct ProblemDescription
     bool IsLayoutDefault() const;
 
     bool IsLayoutNHWC() const;
+
+    bool IsLayoutNCHWC() const;
 
     template <class Self>
     static void Visit(Self&& self, std::function<void(int, std::string)> f)
@@ -161,7 +164,7 @@ struct ProblemDescription
     }
     struct Direction
     {
-        public:
+    public:
         bool IsKnown() const { return v != boost::none; }
         bool IsForward() const { return v == conv::Direction::Forward; }
         bool IsBackwardData() const { return v == conv::Direction::BackwardData; }
@@ -170,7 +173,7 @@ struct ProblemDescription
         Direction() = default;
         Direction(conv::Direction value) : v(value) {}
 
-        private:
+    private:
         boost::optional<conv::Direction> v;
         void Set(conv::Direction value) { v = value; }
 
@@ -199,6 +202,16 @@ struct ProblemDescription
     {
         return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
                out_data_type == miopenBFloat16;
+    }
+    bool IsInt8() const { return conv_problem.IsInt8(); }
+    bool IsNCHWc_NCHWc() const
+    {
+        return in_layout == "NCHWc" && weights_layout == "NCHWc" && out_layout == "NCHWc";
+    }
+
+    bool IsNCHWc_CHWNc() const
+    {
+        return in_layout == "NCHWc" && weights_layout == "CHWNc" && out_layout == "NCHWc";
     }
 
     ProblemDescription() = default;

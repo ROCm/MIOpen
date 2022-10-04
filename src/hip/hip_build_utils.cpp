@@ -42,48 +42,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_HIP_DUMP)
 
 namespace miopen {
 
-namespace {
-
-inline void InplaceRemoveAllTokensThatInclude(std::string& str,
-                                              const std::string& search_1,
-                                              const std::string& search_2)
-{
-    for(std::size_t pos = 0;;)
-    {
-        if((pos = str.find(search_1, pos)) == std::string::npos)
-            break;
-
-        auto beg       = str.find_last_of(" \t\n\r", pos);
-        beg            = (beg == std::string::npos) ? 0 : beg + 1;
-        const auto end = str.find_first_of(" \t\n\r", pos);
-
-        auto len  = std::string::npos;
-        auto next = std::string::npos;
-        if(end != std::string::npos)
-        {
-            next = str.find_first_not_of(" \t\n\r", end);
-            if(next != std::string::npos)
-                len = next - beg;
-        }
-
-        const auto tok =
-            end == std::string::npos ? std::string{str, beg} : std::string{str, beg, end - beg};
-        if(tok.find(search_2) != std::string::npos)
-        {
-            str.erase(beg, len);
-            if(len == std::string::npos)
-                break;
-            pos = beg;
-        }
-        else
-        {
-            pos = next;
-        }
-    }
-}
-
-} // namespace
-
 static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
                                             const std::string& filename,
                                             std::string src,
@@ -99,7 +57,7 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         auto inc_list = GetHipKernelIncList();
         auto inc_path = tmp_dir->path;
         boost::filesystem::create_directories(inc_path);
-        for(auto inc_file : inc_list)
+        for(const auto& inc_file : inc_list)
         {
             auto inc_src = GetKernelInc(inc_file);
             WriteFile(inc_src, inc_path / inc_file);
@@ -125,14 +83,8 @@ static boost::filesystem::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     params += " --cuda-device-only";
     params += " -c";
     params += " -O3 ";
-
     params += " -Wno-unused-command-line-argument -I. ";
-
-    {
-        std::string hip_compiler_flags = MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
-        InplaceRemoveAllTokensThatInclude(hip_compiler_flags, "clang_rt.builtins", "x86_64");
-        params += hip_compiler_flags;
-    }
+    params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
 
 #if HIP_PACKAGE_VERSION_FLAT < 4004000000ULL
     params += " -mllvm --amdgpu-spill-vgpr-to-agpr=0";

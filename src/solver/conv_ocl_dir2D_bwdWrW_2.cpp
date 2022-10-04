@@ -32,7 +32,6 @@
 #include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/bfloat16.hpp>
-#include <miopen/mlo_utils.hpp>
 #include <miopen/visit_float.hpp>
 
 #include <algorithm>
@@ -151,12 +150,12 @@ bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& params) co
 ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& params) const
 {
     // Invoking base class GetSolution with default values for params obtained
-    // from GetPerformanceConfig(params)
-    return ConvOclBwdWrW2<1>::GetSolution(params, GetPerformanceConfig(params));
+    // from GetDefaultPerformanceConfig(params)
+    return ConvOclBwdWrW2<1>::GetSolution(params, GetDefaultPerformanceConfig(params));
 }
 
 template <int N_BATCH_LOOPS>
-inline bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::operator==(
+bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::operator==(
     const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const
 {
     // clang-format off
@@ -432,14 +431,6 @@ void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(const Convolu
 }
 
 template <int N_BATCH_LOOPS>
-std::string PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::ToString() const
-{
-    std::ostringstream ss;
-    ss << (*this);
-    return ss.str();
-}
-
-template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsValidPerformanceConfig(
     const ConvolutionContext& params,
     const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& perfConfig) const
@@ -497,7 +488,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& p
            /// We use the default PerformanceConfig here. This guarantees that at least
            /// one config will pass the LDS constraint check during auto-tuning.
            /// This works also for non-tunable solver.
-           IsValidPerformanceConfig(params, GetPerformanceConfig(params));
+           IsValidPerformanceConfig(params, GetDefaultPerformanceConfig(params));
 }
 
 template <int N_BATCH_LOOPS>
@@ -508,7 +499,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& param
 
 template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> pp;
     pp.HeuristicInit(params);
@@ -535,8 +526,7 @@ size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&
 template <int N_BATCH_LOOPS>
 ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
     const ConvolutionContext& params,
-    const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config,
-    bool) const
+    const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const
 {
     ConvSolution result;
     const auto hw_wave_size   = 64;
@@ -746,6 +736,12 @@ ConvOclBwdWrW2<N_BATCH_LOOPS>::Search(const ConvolutionContext& context,
 /// We need to instantiate required classes implicitly.
 /// The reason is that we do not define the whole template class
 /// in the header, only declaring it there.
+template struct PerformanceConfigConvOclBwdWrw2<1>;
+template struct PerformanceConfigConvOclBwdWrw2<2>;
+template struct PerformanceConfigConvOclBwdWrw2<4>;
+template struct PerformanceConfigConvOclBwdWrw2<8>;
+template struct PerformanceConfigConvOclBwdWrw2<16>;
+
 template struct ConvOclBwdWrW2<1>;
 template struct ConvOclBwdWrW2<2>;
 template struct ConvOclBwdWrW2<4>;

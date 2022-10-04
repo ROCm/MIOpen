@@ -225,8 +225,7 @@ PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(int read_size_,
 {
 }
 
-inline bool
-PerformanceConfigConvAsm1x1U::operator==(const PerformanceConfigConvAsm1x1U& other) const
+bool PerformanceConfigConvAsm1x1U::operator==(const PerformanceConfigConvAsm1x1U& other) const
 {
     // clang-format off
     return read_size == other.read_size
@@ -354,15 +353,8 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ConvolutionContext& confi
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceConfigConvAsm1x1U::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConfigConvAsm1x1U
-ConvAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvAsm1x1U::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsm1x1U pp;
     pp.HeuristicInit(params);
@@ -488,8 +480,7 @@ static int divide_round_plus_inf(const int x, const int y)
 }
 
 ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
-                                      const PerformanceConfigConvAsm1x1U& config,
-                                      const bool disableConfigOverrideFromEnv) const
+                                      const PerformanceConfigConvAsm1x1U& config) const
 {
     ConvSolution result;
 
@@ -667,8 +658,8 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
 
     const PerformanceConfigConvAsm1x1U* pcfg = &config;
+
     PerformanceConfigConvAsm1x1U fromEnv;
-    if(!disableConfigOverrideFromEnv)
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS{});

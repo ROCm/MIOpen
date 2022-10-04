@@ -41,6 +41,7 @@
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
 #else
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #include <CL/cl.h>
 #endif
 
@@ -339,6 +340,24 @@ typedef enum
     miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
 } miopenDataType_t;
 
+/*! @ingroup tensor
+ * @enum miopenTensorLayout_t
+ * Tensor layouts supported by MIOpen.
+ * miopenTensorCHWNc4 and miopenTensorCHWNc8 layout only support weight tensor.
+ */
+typedef enum
+{
+    miopenTensorNCHW   = 0, /*!< NCHW memory layout (Fully supported) */
+    miopenTensorNHWC   = 1, /*!< NHWC memory layout (Fully supported) */
+    miopenTensorCHWN   = 2, /*!< CHWN memory layout (Not supported) */
+    miopenTensorNCHWc4 = 3, /*!< NCHWc4 memory layout (Partially supported) */
+    miopenTensorNCHWc8 = 4, /*!< NCHWc8 memory layout (Partially supported) */
+    miopenTensorCHWNc4 = 5, /*!< CHWNc4 memory layout (Partially supported) */
+    miopenTensorCHWNc8 = 6, /*!< CHWNc8 memory layout (Partially supported) */
+    miopenTensorNCDHW  = 7, /*!< NCDHW memory layout (Fully supported) */
+    miopenTensorNDHWC  = 8, /*!< NCDHW memory layout (Fully supported) */
+} miopenTensorLayout_t;
+
 /*! @ingroup pooling
  * @enum miopenIndexType_t
  * MIOpen index datatypes.
@@ -549,6 +568,9 @@ typedef enum
         0, /*!< Use alternative fp16 implementation.
             Only supported for gfx90a; has no effect for other targets.
             0 - disabled, 1 - enabled, -1 or unset - default (F0B1W1) >*/
+    MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC =
+        1, /*!< Restrict MIOpen convolutions to kernels which produce numerically deterministic
+              results. 0 - disabled (default), 1 - enabled >*/
 } miopenConvolutionAttrib_t;
 
 /** @addtogroup tensor
@@ -578,6 +600,49 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
  */
 MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
     miopenTensorDescriptor_t tensorDesc, miopenDataType_t dataType, int n, int c, int h, int w);
+
+/*! @brief Set shape of ND tensor with specific layout
+ *
+ * Interface for setting N-D tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
+ * @param tensorDesc   Tensor descriptor type (output)
+ * @param dataType     MIOpen datatype (input)
+ * @param tensorLayout Tensor layout (input)
+ * @param lens         Tensor dimensions (input)
+ * @param num_lens     Tensor dimension size (input)
+ * @return             miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
+                                      miopenDataType_t dataType,
+                                      miopenTensorLayout_t tensorLayout,
+                                      int* lens,
+                                      int num_lens);
+/*! @brief Set shape and stride of 4D tensor
+ *
+ * Interface for setting 4-D tensor shape and stride.
+ *
+ * @param tensorDesc Tensor descriptor type (output)
+ * @param dataType   MIOpen datatype (input)
+ * @param n          Mini-batch size (input)
+ * @param c          Number of channels (input)
+ * @param h          Data height dimension size (input)
+ * @param w          Data width dimension size (input)
+ * @param nStride    Mini-batch dimension stride (input)
+ * @param cStride    Channel dimension stride (input)
+ * @param hStride    Height dimension stride (input)
+ * @param wStride    Width dimension stride (input)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
+                                                           miopenDataType_t dataType,
+                                                           int n,
+                                                           int c,
+                                                           int h,
+                                                           int w,
+                                                           int nStride,
+                                                           int cStride,
+                                                           int hStride,
+                                                           int wStride);
 
 /*! @brief Get the details of the tensor descriptor
  *
@@ -2173,7 +2238,7 @@ MIOPEN_EXPORT miopenStatus_t miopenPoolingBackward(miopenHandle_t handle,
                                                    const void* beta,
                                                    const miopenTensorDescriptor_t dxDesc,
                                                    void* dx,
-                                                   const void* workSpace);
+                                                   void* workSpace);
 
 /*! @brief Destroys the pooling descriptor object
  *
@@ -2408,7 +2473,10 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
  * with their descriptor.
  *
  * If either estimatedMean, or estimatedVariance are null pointers then the values for the mean and
- * variance will not be used.
+ * variance will be calculated from input data and this calculated mean and variance will be used
+ * to update input values.
+ * If variance is zero and epsilon is also zero, this function outputs NAN values.  Input espilon
+ * value should always be non zero positive value.
  *
  * @param handle                    MIOpen handle (input)
  * @param bn_mode                   Batch normalization mode (input)

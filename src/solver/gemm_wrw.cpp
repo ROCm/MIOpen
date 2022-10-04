@@ -45,7 +45,6 @@ static inline bool IsAnyBufferFp16(const TensorDescriptor& xDesc,
     return xDesc.GetType() == miopenHalf || yDesc.GetType() == miopenHalf ||
            wDesc.GetType() == miopenHalf;
 }
-#endif
 
 static double
 SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_factor)
@@ -60,6 +59,7 @@ SlowdownFactor(int n_oper, const double oper_factor, const double multiple_oper_
     else
         return 1.0;
 }
+#endif
 
 bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx,
                                const conv::ProblemDescription& problem) const
@@ -177,9 +177,13 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
     }
 
     // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-    const auto gemm_desc =
-        group_count > 1 ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
-                        : CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(dyDesc, xDesc, dwDesc);
+    const auto gemm_desc = [&]() {
+        auto tmp = group_count > 1
+                       ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
+                       : CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(dyDesc, xDesc, dwDesc);
+        tmp.deterministic = problem.GetConv().attribute.deterministic;
+        return tmp;
+    }();
 
     const auto in_spatial =
         boost::adaptors::slice(xDesc.GetLengths(), 2, 2 + conv.GetSpatialDimension());
@@ -378,9 +382,13 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
     const auto group_count = conv.group_count;
 
     // dw = dy * transpose(Im2Col(x))
-    const auto gemm_desc =
-        group_count > 1 ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
-                        : CreateGemmDescriptorConvBwdWeight(dyDesc, xDesc, dwDesc);
+    const auto gemm_desc = [&]() {
+        auto tmp = group_count > 1
+                       ? CreateGemmDescriptorGroupConvBwdWeight(dyDesc, xDesc, dwDesc, group_count)
+                       : CreateGemmDescriptorConvBwdWeight(dyDesc, xDesc, dwDesc);
+        tmp.deterministic = problem.GetConv().attribute.deterministic;
+        return tmp;
+    }();
 
     const auto spatial_dims   = conv.GetSpatialDimension();
     const auto conv_pads      = conv.GetConvPads();
