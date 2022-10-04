@@ -175,7 +175,7 @@ void Solution::RunImpl(Handle& handle,
 
 Problem Solution::Transpose(const Problem& problem, RunInput* x, const RunInput& w, RunInput* y)
 {
-    auto transposed = problem.Transpose();
+    auto transposed = problem.MakeTransposed();
 
     std::swap(*x, *y);
 

@@ -144,7 +144,7 @@ const TensorDescriptor& Problem::GetTensorDescriptorChecked(miopenTensorArgument
     return found->second;
 }
 
-Problem Problem::Transpose() const
+Problem Problem::MakeTransposed() const
 {
     auto transposed = Problem{};
     transposed.SetOperatorDescriptor(GetOperatorDescriptor());
@@ -204,7 +204,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const AllocatedBuffers& buffers,
                                                  const ConvolutionDescriptor& conv_desc) const
 {
-    const auto& actual = conv_desc.mode == miopenTranspose ? Transpose() : *this;
+    const auto& actual = conv_desc.mode == miopenTranspose ? MakeTransposed() : *this;
     auto ret           = std::vector<Solution>{};
 
     if(tensor_descriptors.size() != 3)

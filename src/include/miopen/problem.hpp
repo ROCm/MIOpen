@@ -86,7 +86,7 @@ struct Problem : miopenProblem
     const TensorDescriptor& GetTensorDescriptorChecked(miopenTensorArgumentId_t name,
                                                        const std::string& name_str) const;
 
-    Problem Transpose() const;
+    Problem MakeTransposed() const;
 
     static void ValidateGroupCount(const TensorDescriptor& xDesc,
                                    const TensorDescriptor& wDesc,
