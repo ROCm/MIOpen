@@ -79,7 +79,8 @@ bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::IsValid(const ProblemDescription& p
         ck_utility::get_ck_convolution_problem_descriptor(problem), compile_param);
 }
 
-bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
+                                               const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW{}))
         return false;

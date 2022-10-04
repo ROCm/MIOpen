@@ -3068,10 +3068,7 @@ struct PerformanceConvCkIgemmFwdV6r1DlopsNchw
     }
 
     bool SetNextValue(const ConvolutionContext&);
-    bool IsValid(const ConvolutionContext& ctx) const
-    {
-        return IsValid(ctx.problem);
-    }
+    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx.problem); }
     bool IsValid(const ProblemDescription&) const;
     bool operator==(const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
     {
@@ -3082,12 +3079,12 @@ struct PerformanceConvCkIgemmFwdV6r1DlopsNchw
 struct ConvCkIgemmFwdV6r1DlopsNchw final : ConvTunableSolver<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
 {
     // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::IsApplicable;
-    using ConvTunableSolver::GetWorkspaceSize;
     using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::GetWorkspaceSize;
+    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::IsValidPerformanceConfig;
     using ConvTunableSolver::Search;
-    using ConvTunableSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
@@ -3109,8 +3106,9 @@ struct ConvCkIgemmFwdV6r1DlopsNchw final : ConvTunableSolver<PerformanceConvCkIg
     {
         return GetDefaultPerformanceConfig(ctx.problem);
     }
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const override
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                             const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const override
     {
         return IsValidPerformanceConfig(ctx.problem, config);
     }
