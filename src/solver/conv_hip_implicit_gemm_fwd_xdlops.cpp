@@ -90,7 +90,6 @@ struct CKArgs
     std::vector<int> lPadding;
     std::vector<int> rPadding;
 };
-#endif
 
 template <typename DataType>
 void PerformanceConfigHipImplicitGemmFwdXdlops::Init(const ConvolutionContext& ctx)
@@ -225,7 +224,6 @@ void ConvHipImplicitGemmFwdXdlops::GetCKSolution(
         handle.AccumKernelTime(elapsed_time);
     }
 }
-
 #endif
 
 void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionContext& ctx)
