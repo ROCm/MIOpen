@@ -90,6 +90,7 @@ struct CKArgs
     std::vector<int> lPadding;
     std::vector<int> rPadding;
 };
+#endif
 
 template <typename DataType>
 void PerformanceConfigHipImplicitGemmFwdXdlops::Init(const ConvolutionContext& ctx)
