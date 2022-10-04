@@ -4316,10 +4316,7 @@ struct PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC : PerformanceConfigAsmIm
     void HeuristicInit(const ConvolutionContext&, const ProblemDescription&);
     bool SetNextValue(const ConvolutionContext&);
     bool IsValidValue() const;
-    bool IsValid(const ConvolutionContext& ctx) const
-    {
-        return IsValid(ctx.problem);
-    }
+    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx.problem); }
     bool IsValid(const ProblemDescription&) const;
     size_t ComputeKernelOccupancy() const;
 
@@ -4331,12 +4328,12 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC final
     : ConvTunableSolver<PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC>
 {
     // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::IsApplicable;
-    using ConvTunableSolver::GetWorkspaceSize;
     using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::GetWorkspaceSize;
+    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::IsValidPerformanceConfig;
     using ConvTunableSolver::Search;
-    using ConvTunableSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
@@ -4381,15 +4378,15 @@ private:
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const;
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
     GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const;
-    bool IsValidPerformanceConfig(
-        const ProblemDescription&,
-        const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const;
+    bool IsValidPerformanceConfig(const ProblemDescription&,
+                                  const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const;
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
-    Search(const ConvolutionContext&, const ProblemDescription&, const AnyInvokeParams& invoke_ctx) const;
-    ConvSolution
-    GetSolution(const ConvolutionContext&,
-                const ProblemDescription&,
-                const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const;
+    Search(const ConvolutionContext&,
+           const ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const;
 };
 
 struct PerformanceConfigAsmImplicitGemmGTCvector
