@@ -42,7 +42,7 @@ extern bool& rordb_embed_fs_override();
 
 class ReadonlyRamDb
 {
-    public:
+public:
     ReadonlyRamDb(std::string path) : db_path(path) {}
 
     static ReadonlyRamDb& GetCached(const std::string& path, bool warn_if_unreadable);
@@ -87,7 +87,7 @@ class ReadonlyRamDb
         return record->GetValues(id, value);
     }
 
-    private:
+private:
     struct CacheItem
     {
         int line;

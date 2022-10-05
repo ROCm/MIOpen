@@ -74,6 +74,7 @@ struct GemmDescriptor
     long long int strideA, strideB, strideC;
     float alpha, beta;
     miopenDataType_t dataType;
+    bool deterministic;
 
     friend std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc);
 };

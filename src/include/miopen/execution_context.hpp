@@ -40,17 +40,17 @@ class rocm_meta_version
 {
     int val = Unknown;
 
-    public:
+public:
     static constexpr int Unknown = 0, // Unset env.vars read as 0.
         AMDHSA_COv2              = 1, // V2 metadata, https://llvm.org/docs/AMDGPUUsage.html
         AMDHSA_COv2_COv3         = 2, // E.g. ROCm 2.10 supports both.
         AMDHSA_COv3              = 3, // V3 metadata, https://llvm.org/docs/AMDGPUUsage.html
         Default                  = AMDHSA_COv3; // Used when auto-detection fails.
 
-    private:
+private:
     static constexpr int End = 4, Begin = Unknown;
 
-    public:
+public:
     rocm_meta_version(int v) : val(v) {}
     int getValue() const { return val; }
     bool IsValid() const { return Begin <= val && val < End; }
@@ -67,6 +67,7 @@ struct ExecutionContext
 {
     // Operation modes & environment
     bool do_search               = false;
+    bool db_update               = false;
     bool save_srch_req           = false;
     bool use_asm_kernels         = false;
     bool use_hip_kernels         = true;
@@ -267,7 +268,7 @@ struct ExecutionContext
         return (pdb_path / filename.str()).string();
     }
 
-    private:
+private:
     Handle* stream = nullptr;
 };
 
@@ -276,7 +277,7 @@ class AutoUseFastDynamicSolutions
     bool prev_use_dynamic_;
     ExecutionContext* const ctx;
 
-    public:
+public:
     AutoUseFastDynamicSolutions(ExecutionContext& ctx_) : ctx(&ctx_)
     {
         prev_use_dynamic_ = ctx->use_dynamic_solutions_only;

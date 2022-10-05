@@ -28,6 +28,7 @@
 
 #include <miopen/batchnorm/invoke_params.hpp>
 #include <miopen/batchnorm/problem_description.hpp>
+#include <miopen/stringutils.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>
 
@@ -45,6 +46,17 @@ bool BnBwdTrainingSpatialSingle::IsApplicable(
     if(problem.GetDirection() != miopen::batchnorm::Direction::Backward ||
        problem.GetMode() != miopenBNSpatial)
         return false;
+
+#if WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR
+    if(problem.GetXDesc().GetType() == miopenHalf &&
+       problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
+    {
+        // bfp16parm = true;
+        // Unsupported kernel mode, error in kernel code
+        // MIOpenBatchNormBwdSpatial.cl:526 issue#1549
+        return false;
+    }
+#endif
 
     if(problem.IsLayoutNHWC())
         return true;
@@ -246,7 +258,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             kernel.kernel_name = "MIOpenBatchNormBwdSpatial";
 
             build_params << KernelBuildParameters{
-                {"MIO_BN_GFX1030", (handle.GetDeviceName() == "gfx1030") ? "1" : "0"},
+                {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
             };
 
             kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});

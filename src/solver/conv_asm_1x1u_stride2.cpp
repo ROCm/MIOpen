@@ -287,8 +287,7 @@ PerformanceConfigConvAsm1x1UV2::PerformanceConfigConvAsm1x1UV2(int chunk_size_,
 {
 }
 
-inline bool
-PerformanceConfigConvAsm1x1UV2::operator==(const PerformanceConfigConvAsm1x1UV2& other) const
+bool PerformanceConfigConvAsm1x1UV2::operator==(const PerformanceConfigConvAsm1x1UV2& other) const
 {
     // clang-format off
     return chunk_size == other.chunk_size
@@ -450,15 +449,8 @@ void PerformanceConfigConvAsm1x1UV2::HeuristicInit(const ConvolutionContext& con
     }
 }
 
-std::string PerformanceConfigConvAsm1x1UV2::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConfigConvAsm1x1UV2
-ConvAsm1x1UV2::GetPerformanceConfig(const ConvolutionContext& params) const
+ConvAsm1x1UV2::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsm1x1UV2 pp;
     pp.HeuristicInit(params);
@@ -583,8 +575,7 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& params) const
 }
 
 ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
-                                        const PerformanceConfigConvAsm1x1UV2& config,
-                                        const bool disableConfigOverrideFromEnv) const
+                                        const PerformanceConfigConvAsm1x1UV2& config) const
 {
     ConvSolution result;
     std::ostringstream options;
@@ -593,8 +584,8 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& params,
 
     int data_len                               = GetTypeSize(params.out_data_type);
     const PerformanceConfigConvAsm1x1UV2* pcfg = &config;
+
     PerformanceConfigConvAsm1x1UV2 fromEnv;
-    if(!disableConfigOverrideFromEnv)
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS{});

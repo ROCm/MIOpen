@@ -38,16 +38,18 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 namespace miopen {
 
-int MDGraph_vertex::running_id = 1; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+// Warning: We must guarantee that reading and incrementing of
+// running_id happens atomically.
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+std::atomic<int> MDGraph_vertex::running_id{0};
 
 MDGraph_vertex::MDGraph_vertex(miopenFusionOp_t o,
                                std::string program_name,
                                std::string kernel_name,
                                std::string algo_name,
                                bool _is_leaf)
-    : op(o), is_leaf(_is_leaf), id(MDGraph_vertex::running_id)
+    : op(o), is_leaf(_is_leaf), id(++MDGraph_vertex::running_id)
 {
-    MDGraph_vertex::running_id++;
     vertex_data["program"]   = program_name;
     vertex_data["kernel"]    = kernel_name;
     vertex_data["algorithm"] = algo_name;
@@ -738,8 +740,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
             add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908", "gfx90a"}, 1);
             add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908", "gfx90a"}, 2);
-            add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030"}, 1);
-            add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030"}, 2);
+            add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030", "gfx1031"}, 1);
+            add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030", "gfx1031"}, 2);
         }
     }
 

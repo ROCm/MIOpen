@@ -124,6 +124,8 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
 {
     // values for MIOPEN_USE_ macros
     int use_fp16               = 0;
+    int use_fp16x4             = 0;
+    int use_fp16x8             = 0;
     int use_fp32               = 0;
     int use_int8               = 0;
     int use_int8x4             = 0;
@@ -148,6 +150,8 @@ inline KernelBuildParameters GetDataTypeKBP(miopenDataType_t type)
 
     auto kbp = KernelBuildParameters{
         {"MIOPEN_USE_FP16", use_fp16},
+        {"MIOPEN_USE_FP16x4", use_fp16x4},
+        {"MIOPEN_USE_FP16x8", use_fp16x8},
         {"MIOPEN_USE_FP32", use_fp32},
         {"MIOPEN_USE_INT8", use_int8},
         {"MIOPEN_USE_INT8x4", use_int8x4},

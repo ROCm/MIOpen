@@ -32,11 +32,11 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <functional>
 
 namespace miopen {
 namespace solver {
 
-// TODO: Provide specialization to use stro* functions
 template <class T>
 struct Parse
 {
@@ -49,9 +49,10 @@ struct Parse
     }
 };
 
-template <class Derived, char Seperator = ','>
-struct Serializable
+template <char Separator = ','>
+struct SerDes
 {
+private:
     struct SerializeField
     {
         template <class T>
@@ -60,20 +61,20 @@ struct Serializable
             if(sep != 0)
                 stream << sep;
             stream << x;
-            sep = Seperator;
+            sep = Separator;
         }
     };
 
     struct DeserializeField
     {
         template <class T>
-        void operator()(bool& ok, std::istream& stream, char sep, T& x) const
+        void operator()(bool& ok, std::istream& stream, T& x) const
         {
             if(not ok)
                 return;
             std::string part;
 
-            if(!std::getline(stream, part, sep))
+            if(!std::getline(stream, part, Separator))
             {
                 ok = false;
                 return;
@@ -82,35 +83,45 @@ struct Serializable
             ok = Parse<T>::apply(part, x);
         }
     };
-    void Serialize(std::ostream& stream) const
+
+public:
+    template <class Self>
+    static void Serialize(const Self& self, std::ostream& stream)
     {
         char sep = 0;
-        Derived::Visit(
-            static_cast<const Derived&>(*this),
+        Self::Visit(
+            self,
             std::bind(SerializeField{}, std::ref(stream), std::ref(sep), std::placeholders::_1));
     }
 
-    bool Deserialize(const std::string& s)
+    template <class Self>
+    static bool Deserialize(Self& self, const std::string& s)
     {
-        auto out = static_cast<const Derived&>(*this);
+        auto out = self;
         bool ok  = true;
         std::istringstream ss(s);
-        Derived::Visit(
-            out,
-            std::bind(
-                DeserializeField{}, std::ref(ok), std::ref(ss), Seperator, std::placeholders::_1));
+        Self::Visit(
+            out, std::bind(DeserializeField{}, std::ref(ok), std::ref(ss), std::placeholders::_1));
 
         if(!ok)
             return false;
 
-        static_cast<Derived&>(*this) = out;
+        self = out;
         return true;
     }
+};
 
-    friend std::ostream& operator<<(std::ostream& os, const Derived& c)
+template <class Derived>
+struct Serializable
+{
+    void Serialize(std::ostream& stream) const
     {
-        c.Serialize(os);
-        return os;
+        SerDes<>::Serialize(static_cast<const Derived&>(*this), stream);
+    }
+
+    bool Deserialize(const std::string& s)
+    {
+        return SerDes<>::Deserialize(static_cast<Derived&>(*this), s);
     }
 };
 

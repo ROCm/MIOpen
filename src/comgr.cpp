@@ -128,6 +128,11 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 
 #define PCH_IS_SUPPORTED (COMGR_SUPPORTS_PCH && HIP_SUPPORTS_PCH)
 
+/// It seems like precompiled headers are built with "warpSize" fixed to 64.
+/// This leads to issues in HIP kernels that use "warpSize" on devices that
+/// have wavesize != 64 (currently gfx10 with default build settings).
+#define WORKAROUND_ISSUE_1431 PCH_IS_SUPPORTED
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
 
 #define COMPILER_LC 1
@@ -532,7 +537,7 @@ struct ComgrOwner
 {
     ComgrOwner(const ComgrOwner&) = delete;
 
-    protected:
+protected:
     ComgrOwner() {}
     ComgrOwner(ComgrOwner&&) = default;
 };
@@ -543,7 +548,7 @@ class Data : ComgrOwner
     friend class Dataset; // for GetData
     Data(amd_comgr_data_t h) : handle(h) {}
 
-    public:
+public:
     Data(amd_comgr_data_kind_t kind) { ECI_THROW(amd_comgr_create_data(kind, &handle), kind); }
     Data(Data&&) = default;
     ~Data() { EC(amd_comgr_release_data(handle)); }
@@ -563,7 +568,7 @@ class Data : ComgrOwner
     }
 #endif
 
-    private:
+private:
     std::size_t GetSize() const
     {
         std::size_t sz;
@@ -571,7 +576,7 @@ class Data : ComgrOwner
         return sz;
     }
 
-    public:
+public:
     std::size_t GetBytes(std::vector<char>& bytes) const
     {
         std::size_t sz = GetSize();
@@ -593,7 +598,7 @@ class Dataset : ComgrOwner
 {
     amd_comgr_data_set_t handle = {0};
 
-    public:
+public:
     Dataset() { EC_THROW(amd_comgr_create_data_set(&handle)); }
     ~Dataset() { EC(amd_comgr_destroy_data_set(handle)); }
     auto GetHandle() const { return handle; }
@@ -648,7 +653,7 @@ class ActionInfo : ComgrOwner
 {
     amd_comgr_action_info_t handle = {0};
 
-    public:
+public:
     ActionInfo() { EC_THROW(amd_comgr_create_action_info(&handle)); }
     ~ActionInfo() { EC(amd_comgr_destroy_action_info(handle)); }
     void SetLanguage(const amd_comgr_language_t language) const
@@ -752,6 +757,12 @@ static std::string GetDebugCompilerOptionsInsert()
     return {p};
 }
 
+static inline bool IsWave64Enforced(const OptionList& opts)
+{
+    return std::any_of(
+        opts.begin(), opts.end(), [](const std::string& s) { return s == "-mwavefrontsize64"; });
+}
+
 void BuildHip(const std::string& name,
               const std::string& text,
               const std::string& options,
@@ -825,13 +836,24 @@ void BuildHip(const std::string& name,
             auto optLink    = optCompile;
             compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
             compiler::lc::hip::AddCompilerOptions(optCompile);
-
+#if WORKAROUND_ISSUE_1431
+            if(compiler::lc::hip::IsPchEnabled())
+            {
+                if(StartsWith(target.Name(), "gfx10") && !IsWave64Enforced(optCompile))
+                    optCompile.emplace_back("-DWORKAROUND_ISSUE_1431=1");
+            }
+#endif
             action.SetOptionList(optCompile);
             const Dataset compiledBc;
             action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, inputs, compiledBc);
 
             OptionList addDevLibs;
-            addDevLibs.push_back("wavefrontsize64");
+            // Use device libs for wavefrontsize64 for non-gfx10 targets
+            // or when enforced via option.
+            if(!StartsWith(target.Name(), "gfx10") || IsWave64Enforced(optCompile))
+            {
+                addDevLibs.push_back("wavefrontsize64");
+            }
             addDevLibs.push_back("daz_opt");     // Assume that it's ok to flush denormals to zero.
             addDevLibs.push_back("finite_only"); // No need to handle INF correcly.
             addDevLibs.push_back("unsafe_math"); // Prefer speed over correctness for FP math.
@@ -905,7 +927,12 @@ void BuildOcl(const std::string& name,
         action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, addedPch, compiledBc);
 
         OptionList optLink;
-        optLink.push_back("wavefrontsize64");
+        // Use device libs for wavefrontsize64 for non-gfx10 targets
+        // or when enforced via option.
+        if(!StartsWith(target.Name(), "gfx10") || IsWave64Enforced(optCompile))
+        {
+            optLink.push_back("wavefrontsize64");
+        }
         for(const auto& opt : optCompile)
         {
             if(opt == "-cl-fp32-correctly-rounded-divide-sqrt")
@@ -1001,7 +1028,7 @@ void BuildAsm(const std::string& name,
 
 #if MIOPEN_USE_HIPRTC
 
-#define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838
+#define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838 Issue #1648
 
 namespace hiprtc {
 
@@ -1147,7 +1174,7 @@ class HiprtcProgram
     const std::string& src_name;
     const std::string& src_text;
 
-    public:
+public:
     HiprtcProgram(const std::string& src_name_, const std::string& src_text_)
         : src_name(src_name_), src_text(src_text_)
     {
@@ -1194,7 +1221,7 @@ class HiprtcProgram
         HIPRTC_CALL_INFO_THROW(hiprtcGetCode(prog.get(), &bytes[0]), src_name);
     }
 
-    private:
+private:
     void LogInputFile(const std::string& name, const std::string& content)
     {
         if(miopen::IsEnabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES{}))
@@ -1257,8 +1284,14 @@ void BuildHip(const std::string& name,
 #endif
         opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
         opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1");
+#if WORKAROUND_ISSUE_1431
+        if(StartsWith(target.Name(), "gfx10") && !miopen::comgr::IsWave64Enforced(opts))
+            opts.push_back("-DWORKAROUND_ISSUE_1431=1");
+#endif
 #if WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H
         opts.push_back("-Wno-newline-eof");
+        opts.push_back("-Wno-reserved-identifier");
+        opts.push_back("-Wno-old-style-cast");
 #endif
         opts.push_back("-Wno-cuda-compat");
         opts.push_back("-fno-gpu-rdc");

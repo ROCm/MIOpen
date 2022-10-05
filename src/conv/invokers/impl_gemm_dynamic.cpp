@@ -10,6 +10,27 @@
 namespace miopen {
 namespace conv {
 
+static inline uint32_t igemm_find_tile_size_with_upper_bound(
+    uint32_t out_size, size_t upper_bound, uint32_t stride, uint32_t dilation, uint32_t filter)
+{
+    // return tile size so that the required input tile(sec_in) is no larger than upper_bound
+    uint32_t n_tiles = 1;
+    if(n_tiles <= out_size)
+    {
+        for(; n_tiles <= out_size; n_tiles++)
+        {
+            uint32_t tile_size = (out_size + n_tiles - 1) / n_tiles;
+            uint32_t sec_in    = (tile_size - 1) * stride + 1 + dilation * (filter - 1);
+            if(sec_in <= upper_bound)
+                break;
+        }
+    }
+    else
+        MIOPEN_THROW("out_size should not be less than one");
+
+    return (out_size + n_tiles - 1) / n_tiles;
+}
+
 static float CallImplGemmDynamicForward1x1(const miopen::Handle& handle,
                                            const ProblemDescription& conv_problem,
                                            ConstData_t src,
@@ -241,8 +262,8 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDyna
     int c                    = conv_problem.GetOutChannels();
     int ho                   = conv_problem.GetInHeight();
     int wo                   = conv_problem.GetInWidth();
-    int stride_h             = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w             = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int stride_h   = conv_problem.GetOutHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w   = conv_problem.GetOutWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
     int dilation_h = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
     int dilation_w = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
     int pad_h      = conv_problem.GetPadH();
@@ -569,9 +590,9 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
         if(!trans_output_skippable)
             opArgsTrans.emplace_back(trans_output.GetKernelArg());
 
-        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetSize();
-        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetSize();
-        trans_output_size = trans_output_skippable ? 0 : trans_output.GetSize();
+        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
+        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetOutputTensorSize();
+        trans_output_size = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
 
         int idx = 0;
         if(!trans_input_skippable)
@@ -723,8 +744,8 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     int c                    = conv_problem.GetOutChannels();
     int ho                   = conv_problem.GetInHeight();
     int wo                   = conv_problem.GetInWidth();
-    int stride_h             = conv_problem.GetInHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
-    int stride_w             = conv_problem.GetInWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
+    int stride_h   = conv_problem.GetOutHeight() > 1 ? conv_problem.GetKernelStrideH() : 1;
+    int stride_w   = conv_problem.GetOutWidth() > 1 ? conv_problem.GetKernelStrideW() : 1;
     int dilation_h = conv_problem.GetWeightsHeight() > 1 ? conv_problem.GetDilationH() : 1;
     int dilation_w = conv_problem.GetWeightsWidth() > 1 ? conv_problem.GetDilationW() : 1;
     int pad_h      = conv_problem.GetPadH();
@@ -887,9 +908,9 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
         if(!trans_output_skippable)
             opArgsTrans.emplace_back(trans_output.GetKernelArg());
 
-        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetSize();
-        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetSize();
-        trans_output_size = trans_output_skippable ? 0 : trans_output.GetSize();
+        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
+        trans_weight_size = trans_weight_skippable ? 0 : trans_weight.GetOutputTensorSize();
+        trans_output_size = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
 
         int idx = 0;
         if(!trans_input_skippable)
@@ -1028,5 +1049,137 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     };
 }
 
+InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
+    const ConvolutionContext& ctx,
+    const solver::PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
+{
+    const auto& conv_problem = ctx.conv_problem;
+    int hi                   = conv_problem.GetInHeight();
+    int wi                   = conv_problem.GetInWidth();
+    int n                    = conv_problem.GetInBatchSize();
+    int k                    = conv_problem.GetOutChannels() * config.vector_c;
+    int c                    = conv_problem.GetInChannels();
+    int ks                   = 1;
+    int ho                   = conv_problem.GetOutHeight();
+    int wo                   = conv_problem.GetOutWidth();
+    int stride_h             = conv_problem.GetKernelStrideH();
+    int stride_w             = conv_problem.GetKernelStrideW();
+    int dilation_h           = conv_problem.GetDilationH();
+    int dilation_w           = conv_problem.GetDilationW();
+    int pad_h                = conv_problem.GetPadH();
+    int pad_w                = conv_problem.GetPadW();
+    int y                    = conv_problem.GetWeightsHeight();
+    int x                    = conv_problem.GetWeightsWidth();
+    int group                = conv_problem.GetGroupCount();
+
+    // Currentlly we do not tile in H/W dimension, using tile H/W as Ho/Wo, Thus Number of Tile
+    // equal to one
+    uint32_t upper_bound_h = 0xffff; // 16bit
+    uint32_t upper_bound_w = 0xffff; // 16bit
+    uint32_t tile_h =
+        igemm_find_tile_size_with_upper_bound(ho, upper_bound_h, stride_h, dilation_h, y);
+    uint32_t tile_w =
+        igemm_find_tile_size_with_upper_bound(wo, upper_bound_w, stride_w, dilation_w, x);
+    uint32_t ntile_h = 1;
+    uint32_t ntile_w = 1;
+    if(tile_h != 0 && tile_w != 0)
+    {
+        ntile_h = (ho + tile_h - 1) / tile_h;
+        ntile_w = (wo + tile_w - 1) / tile_w;
+    }
+    else
+        MIOPEN_THROW("tile_hw should not be zero");
+
+    int tile_hw  = (tile_h << 16) | tile_w;
+    int ntile_hw = (ntile_h << 16) | ntile_w;
+    // Split K make no sense in vector format
+    int stride_hw   = (stride_h << 16) | stride_w;
+    int dilation_hw = (dilation_h << 16) | dilation_w;
+    int pad_hw      = (pad_h << 16) | pad_w;
+    int wei_hw      = (y << 16) | x;
+    // Initialize here for better readibility
+    uint32_t s_move_slice_k_y = (config.gemm_k_per_block / config.vector_c / x) % y;
+    uint32_t s_move_slice_k_x = config.gemm_k_per_block / config.vector_c % x;
+    uint32_t s_move_slice_k_c = (config.gemm_k_per_block / config.vector_c / (x * y)) % (c / group);
+    int move_slice_k = (s_move_slice_k_y << 16) | (s_move_slice_k_x << 8) | s_move_slice_k_c;
+
+    int splits_4G = solver::igemm_split_batch_size(
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+    splits_4G       = (splits_4G == 0 ? n : splits_4G);
+    uint32_t gemm_n = 1;
+    uint32_t gemm_m = 1;
+    if(splits_4G != 0)
+    {
+        gemm_n = (n / splits_4G) * tile_h * tile_w;
+        gemm_m = k / group;
+    }
+    else
+        MIOPEN_THROW("splits_4G should not be zero");
+    magic_div_u32_t mdiv_0, mdiv_1, mdiv_2, mdiv_3, mdiv_4, mdiv_5, mdiv_6, mdiv_7;
+    uint32_t shift_pack_0, shift_pack_1;
+
+    mdiv_0 = magic_div_u32_gen((gemm_n + config.gemm_n_per_block - 1) / config.gemm_n_per_block);
+    mdiv_1 = magic_div_u32_gen((gemm_m + config.gemm_m_per_block - 1) / config.gemm_m_per_block);
+    mdiv_2 = magic_div_u32_gen(tile_h);
+    mdiv_3 = magic_div_u32_gen(tile_w);
+    mdiv_4 = magic_div_u32_gen(y);
+    mdiv_5 = magic_div_u32_gen(x);
+    mdiv_6 = magic_div_u32_gen(ntile_h);
+    mdiv_7 = magic_div_u32_gen(ntile_w);
+    shift_pack_0 = magic_div_u32_pack_shift(mdiv_0.shift, mdiv_1.shift, mdiv_2.shift, mdiv_3.shift);
+    shift_pack_1 = magic_div_u32_pack_shift(mdiv_4.shift, mdiv_5.shift, mdiv_6.shift, mdiv_7.shift);
+
+    std::vector<OpKernelArg> opArgs;
+    opArgs.emplace_back(0); // placeholder
+    opArgs.emplace_back(0); // placeholder
+    opArgs.emplace_back(0); // placeholder
+    opArgs.emplace_back(tile_hw);
+    opArgs.emplace_back(ntile_hw);
+    opArgs.emplace_back(hi);
+    opArgs.emplace_back(wi);
+    opArgs.emplace_back(n / splits_4G);
+    opArgs.emplace_back(k / group);
+    opArgs.emplace_back(c / group);
+    opArgs.emplace_back(group);
+    opArgs.emplace_back(ks);
+    opArgs.emplace_back(ho);
+    opArgs.emplace_back(wo);
+    opArgs.emplace_back(stride_hw);
+    opArgs.emplace_back(dilation_hw);
+    opArgs.emplace_back(pad_hw);
+    opArgs.emplace_back(wei_hw);
+    opArgs.emplace_back(move_slice_k);
+    opArgs.emplace_back(mdiv_0.magic);
+    opArgs.emplace_back(mdiv_1.magic);
+    opArgs.emplace_back(mdiv_2.magic);
+    opArgs.emplace_back(mdiv_3.magic);
+    opArgs.emplace_back(mdiv_4.magic);
+    opArgs.emplace_back(mdiv_5.magic);
+    opArgs.emplace_back(mdiv_6.magic);
+    opArgs.emplace_back(mdiv_7.magic);
+    opArgs.emplace_back(shift_pack_0);
+    opArgs.emplace_back(shift_pack_1);
+
+    return [=](const std::vector<Kernel>& kernels) mutable {
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
+            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            const auto ker          = handle.Run(kernels[0]);
+
+            opArgs[0] = OpKernelArg(tensors.in);
+            opArgs[1] = OpKernelArg(tensors.w);
+            opArgs[2] = OpKernelArg(tensors.out);
+            ker(opArgs);
+
+            if(handle.IsProfilingEnabled())
+            {
+                float elapsed = 0;
+                elapsed += handle.GetKernelTime();
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
+}
 } // namespace conv
 } // namespace miopen

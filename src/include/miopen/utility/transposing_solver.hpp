@@ -130,7 +130,7 @@ struct AnyImplementation
             p->~Interface();
     }
 
-    private:
+private:
     using Storage = std::aligned_storage_t<sizeof(Interface), alignof(Interface)>;
     using Cloner  = void (*)(const Storage&, Storage&, Interface**);
 
@@ -213,7 +213,7 @@ struct UniversalTransposeSolver : TransposePseudoSolver
 
 class SegmentedGpuBuffer
 {
-    public:
+public:
     SegmentedGpuBuffer(const Handle& handle_, Data_t memory_, std::size_t offset_ = 0)
         : handle(&handle_), memory(memory_), offset(offset_)
     {
@@ -236,7 +236,7 @@ class SegmentedGpuBuffer
         return subbuffer;
     }
 
-    private:
+private:
     const Handle* handle;
     Data_t memory;
     std::size_t offset;
@@ -295,7 +295,7 @@ struct ProblemTensorTransposeDescriptor
 
 class ProblemTensorTransposeInvoke
 {
-    public:
+public:
     template <class Problem, class InvokeParams>
     ProblemTensorTransposeInvoke(
         SegmentedGpuBuffer& allocator,
@@ -345,7 +345,7 @@ class ProblemTensorTransposeInvoke
         handle.AccumKernelTime(time);
     }
 
-    private:
+private:
     miopen::shared<Data_t> buffer;
     Invoker invoker;
     AnyInvokeParams transpose_params;
@@ -353,7 +353,7 @@ class ProblemTensorTransposeInvoke
 
 class ProblemTensorTransposeGroup
 {
-    public:
+public:
     template <class Problem, class InvokeParams>
     ProblemTensorTransposeGroup(
         const Handle& handle_,
@@ -401,7 +401,7 @@ class ProblemTensorTransposeGroup
             transpose(*handle);
     }
 
-    private:
+private:
     const Handle* handle;
     std::vector<ProblemTensorTransposeInvoke> inputs;
     std::vector<ProblemTensorTransposeInvoke> outputs;
@@ -585,13 +585,13 @@ struct TransposingSolver : Base
         return sln;
     }
 
-    private:
+private:
     inline static Problem Transpose(const Problem& problem)
     {
         auto transposed_problem = problem;
         for(const auto& transpose : Derived::GetTransposes())
             transpose.Transpose(problem, transposed_problem);
-        return std::move(transposed_problem);
+        return transposed_problem;
     }
 };
 

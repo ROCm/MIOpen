@@ -38,11 +38,18 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS)
 namespace miopen {
 namespace solver {
 
-const PerformanceConvMlirIgemmXdlops& PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest()
+void PerformanceConvMlirIgemmXdlops::SetMlirHeuristicInitRequest()
 {
-    static const PerformanceConvMlirIgemmXdlops p =
-        PerformanceConvMlirIgemmXdlops(-2, -2, -2, -2, -2, -2, false, false, false);
-    return p;
+    // These values are equivalent to when tuning config is heuristically initialized.
+    // We leave all config fields to be -2/false and use_spare_set untouched.
+    GemmMPerBlock                = -2;
+    GemmNPerBlock                = -2;
+    GemmKPerBlock                = -2;
+    GemmMPerWave                 = -2;
+    GemmNPerWave                 = -2;
+    GemmKPACKSize                = -2;
+    GemmAThreadCopyMoreGemmK     = false;
+    GemmBThreadCopyMoreGemmKPack = false;
 }
 
 bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
@@ -50,7 +57,7 @@ bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS{}))
         return false;
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+    if(ctx.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
@@ -90,6 +97,8 @@ PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(bool spare)
     : PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops(
           4, 16, 1, 4, 16, 4, false, false, spare)
 {
+    if(spare)
+        SetMlirHeuristicInitRequest();
 }
 
 PerformanceConvMlirIgemmXdlops::PerformanceConvMlirIgemmXdlops()
@@ -108,8 +117,7 @@ bool PerformanceConvMlirIgemmXdlops::operator==(const PerformanceConvMlirIgemmXd
         && GemmNPerWave == other.GemmNPerWave
         && GemmKPACKSize == other.GemmKPACKSize
         && GemmAThreadCopyMoreGemmK  == other.GemmAThreadCopyMoreGemmK
-        && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack
-        && use_spare_set == other.use_spare_set;
+        && GemmBThreadCopyMoreGemmKPack  == other.GemmBThreadCopyMoreGemmKPack;
     // clang-format on
 }
 
@@ -119,17 +127,25 @@ bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx) cons
     if(*this == MlirHeuristicInitRequest())
         return true;
 
-    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, *this, true));
+    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, true));
+    bool isValid     = false;
+    for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
+    {
+        isValid = MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, *this, true, kernel_id));
+        if(!isValid)
+            return false;
+    }
+    return isValid;
 #else
     std::ignore = ctx;
     return false;
 #endif
 }
 
-bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& config)
 {
-    if(*this == MlirHeuristicInitRequest())
-        MIOPEN_THROW("Should not iterate from the heuristic value");
+    if(use_spare_set)
+        return false;
 
     GemmBThreadCopyMoreGemmKPack = true;
     GemmAThreadCopyMoreGemmK     = true;
@@ -139,8 +155,6 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& /*co
             break;
         if(!NextTwoPower<16, 256>(GemmNPerBlock))
             break;
-        if(!NextTwoPower<1, 8>(GemmKPerBlock))
-            break;
         if(!NextTwoPower<4, 128>(GemmMPerWave))
             break;
         if(!NextTwoPower<16, 128>(GemmNPerWave))
@@ -148,21 +162,26 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& /*co
         if(!NextTwoPower<4, 8>(GemmKPACKSize))
             break;
 
+        if(config.IsInt8())
+        {
+            // xdlops instructions supported with in8 determines the minimum valid kPerBlock is 8
+            if(!NextTwoPower<8, 32>(GemmKPerBlock))
+                break;
+        }
+        else
+        {
+            if(!NextTwoPower<1, 8>(GemmKPerBlock))
+                break;
+        }
+
         return false;
     } while(false);
 
     return true;
 }
 
-std::string PerformanceConvMlirIgemmXdlops::ToString() const
-{
-    std::ostringstream ss;
-    Serialize(ss);
-    return ss.str();
-}
-
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmFwdXdlops::GetPerformanceConfig(const ConvolutionContext& ctx) const
+ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
@@ -183,8 +202,7 @@ ConvMlirIgemmFwdXdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
-                                                 const PerformanceConvMlirIgemmXdlops& config,
-                                                 bool) const
+                                                 const PerformanceConvMlirIgemmXdlops& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
