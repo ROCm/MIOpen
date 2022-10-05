@@ -805,7 +805,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
         ValidateGroupCount(dxDesc, wDesc, *this);
 
         const auto problem =
-            conv::ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+            conv::ProblemDescription{dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData};
         const auto ctx = ExecutionContext{&handle};
 
         if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardData))
@@ -1000,7 +1000,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
         ValidateGroupCount(xDesc, dwDesc, *this);
 
         const auto problem = conv::ProblemDescription{
-            xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
+            dyDesc, dwDesc, xDesc, *this, conv::Direction::BackwardWeights};
         const auto ctx = ExecutionContext{&handle};
 
         if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardWeights))
