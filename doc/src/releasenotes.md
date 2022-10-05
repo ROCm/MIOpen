@@ -1,6 +1,19 @@
 
 ## MIOpen Release notes
 
+### 10/05/2022 [2.18.0]
+ - This release announces the deprecation of MIOpen's OpenCL backend and updates the distribution mechanism for MIOpen kernels along with a few other documentation changes.
+
+- Deprecate MIOpen's OpenCL backend
+- Integrate Kernel DB files into MIOpen using Git LFS
+- Add and update MIOpen porting guide
+- Fix an issue in the pooling kernels
+- Fix address calculation issue in Image to Column kernel
+- Various performance tuning and updates
+- Fix an issue in the Winograd kernels 
+- Enable MIOpen to restrict to deterministic kernels
+- Various other internal improvements and fixes
+
 ### 04/12/2022 [2.16.0]
  - This release includes enahanced support for MI210 and MI250 and various other improvements.
 
