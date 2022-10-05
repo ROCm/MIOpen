@@ -174,7 +174,7 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
         const auto id = solver::Id{sol->solution_id};
         CompileSolution(id, ctx, problem);
         results.push_back(
-            {id.GetAlgo(conv::Direction::Forward), id.ToString(), sol->time, sol->workspace_size});
+            {id.GetAlgo(problem.GetDirection()), id.ToString(), sol->time, sol->workspace_size});
     }
     else
     {
@@ -662,7 +662,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     ValidateGroupCount(dxDesc, wDesc, *this);
 
     const auto problem =
-        conv::ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+        conv::ProblemDescription{dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData};
 
     auto ctx =
         ExecutionContext{&handle}.DetectRocm().SetupFloats(problem).WithTuning(exhaustiveSearch);
@@ -853,7 +853,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     *returnedAlgoCount = 0;
 
     auto problem =
-        conv::ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
+        conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, conv::Direction::BackwardWeights};
     auto ctx =
         ExecutionContext{&handle}.DetectRocm().SetupFloats(problem).WithTuning(exhaustiveSearch);
 
