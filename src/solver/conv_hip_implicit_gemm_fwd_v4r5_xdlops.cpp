@@ -119,7 +119,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::operator==(
     // clang-format on
 }
 
-bool PerformanceImplicitGemmForwardV4R5Xdlops::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceImplicitGemmForwardV4R5Xdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
 {
     do
     {
@@ -608,7 +608,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsReallyValid(const ConvolutionCo
         return false;
 
     if(!IsValidBlockwiseGemmXdlops(
-           ctx, GemmMPerBlock, GemmNPerBlock, GemmKPerBlock, GemmMPerWave, GemmNPerWave, GemmKPack))
+           ctx.problem, GemmMPerBlock, GemmNPerBlock, GemmKPerBlock, GemmMPerWave, GemmNPerWave, GemmKPack))
         return false;
 
     bool valid = false;
@@ -980,7 +980,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R5Xdlops::GetSolution(
         ctx.general_compile_options;
     // clang-format on
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx.problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 }
@@ -1022,7 +1022,7 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ConvolutionContext
        ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
-    if(!IsIndexRangeLargeEnough(ctx))
+    if(!IsIndexRangeLargeEnough(ctx.problem))
         return false;
 
     if(!ctx.problem.IsLayoutDefault())
@@ -1054,7 +1054,7 @@ PerformanceImplicitGemmForwardV4R5Xdlops
 ConvHipImplicitGemmForwardV4R5Xdlops::Search(const ConvolutionContext& ctx,
                                              const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, ctx.problem, invoke_ctx);
 }
 
 } // namespace solver

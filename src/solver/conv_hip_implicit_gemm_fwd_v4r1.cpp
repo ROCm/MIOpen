@@ -156,16 +156,16 @@ bool ConvHipImplicitGemmV4R1WrW::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmV4R1
-ConvHipImplicitGemmV4R1Fwd::Search(const ConvolutionContext& context,
+ConvHipImplicitGemmV4R1Fwd::Search(const ConvolutionContext& ctx,
                                    const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, context, invoke_ctx);
+    return GenericSearch(*this, ctx, ctx.problem, invoke_ctx);
 }
 PerformanceImplicitGemmV4R1
-ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& context,
+ConvHipImplicitGemmV4R1WrW::Search(const ConvolutionContext& ctx,
                                    const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, context, invoke_ctx);
+    return GenericSearch(*this, ctx, ctx.problem, invoke_ctx);
 }
 
 ConvSolution
@@ -343,8 +343,8 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) +
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, ctx.problem, false)) +
-        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
+        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, ctx.problem) ? '1' : '0') +
+        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, ctx.problem) ? '1' : '0') +
         get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on
@@ -367,7 +367,7 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
     }
 
     result.construction_params.push_back(construction_parameters);
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx.problem);
 
     return result;
 }
@@ -548,8 +548,8 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) +
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, ctx.problem, false)) +
-        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx)? '1' : '0') +
-        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
+        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, ctx.problem)? '1' : '0') +
+        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, ctx.problem) ? '1' : '0') +
         get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on

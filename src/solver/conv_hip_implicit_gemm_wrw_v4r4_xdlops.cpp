@@ -90,7 +90,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::operator==(
     // clang-format on
 }
 
-bool PerformanceImplicitGemmWrwV4R4Xdlops::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceImplicitGemmWrwV4R4Xdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
 {
     do
     {
@@ -629,7 +629,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ConvolutionContex
         return false;
 
     if(!IsValidBlockwiseGemmXdlops(
-           ctx, GemmMPerBlock, GemmNPerBlock, GemmKPerBlock, GemmMPerWave, GemmNPerWave, GemmKPack))
+           ctx.problem, GemmMPerBlock, GemmNPerBlock, GemmKPerBlock, GemmMPerWave, GemmNPerWave, GemmKPack))
         return false;
 
     bool valid = false;
@@ -1043,9 +1043,6 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ct
     if(!IsXdlopsSupport(ctx))
         return false;
 
-    if(!IsXdlopsSupport(ctx))
-        return false;
-
     if(!(ctx.problem.IsFp32() || ctx.problem.IsFp16() || ctx.problem.IsBfp16()))
         return false;
 
@@ -1059,7 +1056,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ct
        ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
-    if(!IsIndexRangeLargeEnough(ctx))
+    if(!IsIndexRangeLargeEnough(ctx.problem))
         return false;
 
     if(!ctx.problem.IsLayoutDefault())
@@ -1091,7 +1088,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops::Search(const ConvolutionContext& ctx,
                                          const AnyInvokeParams& invoke_ctx) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, ctx.problem, invoke_ctx);
 }
 
 std::size_t ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
