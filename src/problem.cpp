@@ -144,7 +144,7 @@ const TensorDescriptor& Problem::GetTensorDescriptorChecked(miopenTensorArgument
     return found->second;
 }
 
-Problem Problem::Transpose() const
+Problem Problem::MakeTransposed() const
 {
     auto transposed = Problem{};
     transposed.SetOperatorDescriptor(GetOperatorDescriptor());
@@ -204,20 +204,20 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const AllocatedBuffers& buffers,
                                                  const ConvolutionDescriptor& conv_desc) const
 {
-    auto ret = std::vector<Solution>{};
+    const auto& actual = conv_desc.mode == miopenTranspose ? MakeTransposed() : *this;
+    auto ret           = std::vector<Solution>{};
 
     if(tensor_descriptors.size() != 3)
         MIOPEN_THROW(miopenStatusInvalidValue,
                      "Convolution problem should have exactly three tensor descriptors.");
 
+    // These are not swapped for now to preserve argument order in calls
     const auto& x_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
     const auto& w_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
     const auto& y_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
-
-    ValidateGroupCount(x_desc, w_desc, conv_desc);
 
     const auto& x = buffers.at(miopenTensorConvolutionX);
     const auto& w = buffers.at(miopenTensorConvolutionW);
@@ -302,8 +302,15 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
     ret.reserve(found);
 
-    const auto conv_dir = static_cast<conv::Direction>(direction);
-    const auto netcfg   = AsConvolution().BuildConfKey();
+    const auto conv_dir = ([&]() {
+        const auto dir = static_cast<conv::Direction>(direction);
+        if(dir == conv::Direction::BackwardWeights || conv_desc.mode != miopenTranspose)
+            return dir;
+        return dir == conv::Direction::Forward ? conv::Direction::BackwardData
+                                               : conv::Direction::Forward;
+    })();
+
+    const auto netcfg = actual.AsConvolution().BuildConfKey();
 
     for(auto i = 0; i < found; ++i)
     {
