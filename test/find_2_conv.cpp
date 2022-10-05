@@ -63,10 +63,26 @@ struct Find2Test : test_driver
             }));
     }
 
-    void run() { TestConv(); }
+    void run()
+    {
+        ReleaseMemory();
+        GenerateTensors();
+        TestConv();
+    }
 
 private:
-    void TestConv()
+    void ReleaseMemory()
+    {
+        x_dev = nullptr;
+        w_dev = nullptr;
+        y_dev = nullptr;
+
+        x = {};
+        w = {};
+        y = {};
+    }
+
+    void GenerateTensors()
     {
         auto& handle_deref = get_handle();
 
@@ -77,8 +93,11 @@ private:
         x_dev = handle_deref.Write(x.data);
         w_dev = handle_deref.Write(w.data);
         y_dev = handle_deref.Write(y.data);
+    }
 
-        miopenHandle_t handle = &handle_deref;
+    void TestConv()
+    {
+        miopenHandle_t handle = &get_handle();
         miopenProblem_t problem;
 
         EXPECT_EQUAL(miopenCreateConvProblem(&problem, &filter, direction), miopenStatusSuccess);
