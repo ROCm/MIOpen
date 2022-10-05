@@ -47,12 +47,14 @@ template <>
 miopenDataType_t GetDataType<float16>();
 template <>
 miopenDataType_t GetDataType<bfloat16>();
+template <>
+miopenDataType_t GetDataType<int8_t>();
 #if FIN_BACKEND_OPENCL
 #define STATUS_SUCCESS CL_SUCCESS
 using status_t = cl_int;
 #else // FIN_BACKEND_HIP
 #define STATUS_SUCCESS 0
-using status_t               = int;
+using status_t = int;
 #endif
 
 template <typename Tgpu, typename Tcpu>
