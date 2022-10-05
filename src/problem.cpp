@@ -224,7 +224,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     const auto& y = buffers.at(miopenTensorConvolutionY);
 
     const auto conv_problem =
-        conv_desc.mode == miopenTranspose ? AsConvolution() : Transpose().AsConvolution();
+        conv_desc.mode == miopenTranspose ? AsConvolution() : MakeTransposed().AsConvolution();
 
     const auto workspace_max = conv_desc.GetWorkSpaceSize({&handle}, conv_problem);
 
