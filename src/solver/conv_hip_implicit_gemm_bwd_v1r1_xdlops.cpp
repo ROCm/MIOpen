@@ -469,8 +469,13 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsReallyValid(const ConvolutionContex
     if(!IsValidValue())
         return false;
 
-    if(!IsValidBlockwiseGemmXdlops(
-           ctx.problem, GemmMPerBlock, GemmNPerBlock, GemmKPerBlock, GemmMPerWave, GemmNPerWave, GemmKPack))
+    if(!IsValidBlockwiseGemmXdlops(ctx.problem,
+                                   GemmMPerBlock,
+                                   GemmNPerBlock,
+                                   GemmKPerBlock,
+                                   GemmMPerWave,
+                                   GemmNPerWave,
+                                   GemmKPack))
         return false;
 
     bool valid = false;

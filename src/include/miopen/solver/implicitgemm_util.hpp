@@ -452,7 +452,8 @@ static inline size_t ComputeLDSRequiredSize(const ProblemDescription& problem,
     return lds_size;
 }
 
-static inline bool use_amd_inline_asm(const ConvolutionContext& ctx, const ProblemDescription& problem)
+static inline bool use_amd_inline_asm(const ConvolutionContext& ctx,
+                                      const ProblemDescription& problem)
 {
 
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx8"))
