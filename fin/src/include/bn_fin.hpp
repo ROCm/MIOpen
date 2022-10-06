@@ -125,7 +125,8 @@ int BNFin<Tgpu, Tref>::TestApplicability()
 #endif
 
     auto& handle = GetHandle();
-    auto ctx     = miopen::ExecutionContext(&handle);
+    // cppcheck-suppress unreadVariable
+    auto ctx = miopen::ExecutionContext(&handle);
 #if MIOPEN_MODE_NOGPU
     BaseFin::InitNoGpuHandle(handle, job["arch"], job["num_cu"]);
 #else
@@ -390,7 +391,8 @@ int BNFin<Tgpu, Tref>::MIOpenFindCompile()
         "Unable to perform MIOpenFindCompile MIOpen was not compiled using HIPNOGPU backend");
 #endif
     auto& handle = GetHandle();
-    auto ctx     = miopen::ExecutionContext(&handle);
+    // cppcheck-suppress unreadVariable
+    auto ctx = miopen::ExecutionContext(&handle);
     GetHandle().EnableProfiling(true);
 #if MIOPEN_MODE_NOGPU
     BaseFin::InitNoGpuHandle(handle, job["arch"], job["num_cu"]);
@@ -423,10 +425,8 @@ int BNFin<Tgpu, Tref>::MIOpenFindCompile()
 
         res_item["workspace"] = sln.workspace_sz;
         std::vector<miopen::solver::KernelInfo> kernels;
-        for(auto&& kernel : sln.construction_params)
-        {
+        for(auto&& kernel : sln.construction_params) // cppcheck-suppress useStlAlgorithm
             kernels.push_back(kernel);
-        }
         std::ignore      = miopen::solver::PrecompileKernels(handle, kernels);
         json kernel_list = json::array();
         for(const auto& k : kernels)
