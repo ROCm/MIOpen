@@ -77,7 +77,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::operator==(
     // clang-format on
 }
 
-bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
 {
     do
     {
@@ -469,8 +469,13 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsReallyValid(const ConvolutionContex
     if(!IsValidValue())
         return false;
 
-    if(!IsValidBlockwiseGemmXdlops(
-           ctx, GemmMPerBlock, GemmNPerBlock, GemmKPerBlock, GemmMPerWave, GemmNPerWave, GemmKPack))
+    if(!IsValidBlockwiseGemmXdlops(ctx.problem,
+                                   GemmMPerBlock,
+                                   GemmNPerBlock,
+                                   GemmKPerBlock,
+                                   GemmMPerWave,
+                                   GemmNPerWave,
+                                   GemmKPack))
         return false;
 
     bool valid = false;
@@ -775,7 +780,7 @@ bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext
        ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
-    if(!IsIndexRangeLargeEnough(ctx))
+    if(!IsIndexRangeLargeEnough(ctx.problem))
         return false;
 
     if(!ctx.problem.IsLayoutDefault())
@@ -797,7 +802,7 @@ PerformanceImplicitGemmBwdV1R1Xdlops
 ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx,
                                              const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, ctx.problem, invoke_ctx);
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
@@ -907,7 +912,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
         get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx.problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 }
