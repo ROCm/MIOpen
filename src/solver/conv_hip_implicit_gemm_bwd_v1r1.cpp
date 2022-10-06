@@ -561,7 +561,7 @@ void PerformanceImplicitGemmBwdDataV1R1::HeuristicInit(const ConvolutionContext&
     MIOPEN_LOG_I(ToString());
 }
 
-bool PerformanceImplicitGemmBwdDataV1R1::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceImplicitGemmBwdDataV1R1::SetNextValue(const ConvolutionContext& /*ctx*/)
 {
     // always search full space, no matter if use_spare_set or not
     do
@@ -685,7 +685,7 @@ PerformanceImplicitGemmBwdDataV1R1
 ConvHipImplicitGemmBwdDataV1R1::Search(const ConvolutionContext& ctx,
                                        const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, ctx.problem, invoke_ctx);
 }
 
 ConvSolution
@@ -813,8 +813,8 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_SRC_DATA_PER_READ_GEMM_N=") + std::to_string(GemmBBlockCopySrcDataPerRead_GemmN) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_C_THREAD_COPY_DST_DATA_PER_WRITE_GEMM_N1=") + std::to_string(GemmCThreadCopyDstDataPerWrite_GemmN1) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
-        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
+        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, ctx.problem) ? '1' : '0') +
+        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, ctx.problem) ? '1' : '0') +
         get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on
@@ -856,7 +856,7 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
             std::to_string(GemmBBlockCopyDstDataPerWrite_GemmKPACK);
     }
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx.problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 }

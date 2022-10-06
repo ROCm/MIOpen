@@ -198,7 +198,7 @@ PerformanceConfigHipImplicitGemmFwdXdlops
 ConvHipImplicitGemmFwdXdlops::Search(const ConvolutionContext& ctx,
                                      const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, ctx.problem, invoke_ctx);
 }
 
 size_t ConvHipImplicitGemmFwdXdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
