@@ -537,10 +537,15 @@ Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t s
 
 void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz) const
 {
+    ReadTo(data, ddata.get(), sz);
+}
+
+void Handle::ReadTo(void* data, ConstData_t ddata, std::size_t sz) const
+{
     MIOPEN_HANDLE_LOCK
     this->Finish();
-    auto status = clEnqueueReadBuffer(
-        this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
+    auto status =
+        clEnqueueReadBuffer(this->GetStream(), ddata, CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if(status != CL_SUCCESS)
     {
         MIOPEN_THROW_CL_STATUS(status, "OpenCL error reading from buffer: " + std::to_string(sz));
