@@ -185,11 +185,9 @@ inline bool IsShaderContraintsMet(const ExecutionContext& ctx,
     /// \todo Either remove WrW related code or re-use function from RxS
     if(problem.direction.IsBackwardData())
     {
-        if(!(0 <= problem.GetBackwardPadW() &&
-             problem.GetBackwardPadW() < std::pow(2, 16)))
+        if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
-        if(!(0 <= problem.GetBackwardPadH() &&
-             problem.GetBackwardPadH() < std::pow(2, 16)))
+        if(!(0 <= problem.GetBackwardPadH() && problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
     const auto grid_workgroup_count_x = ctx.GetStream().GetMaxHardwareComputeUnits();
@@ -227,7 +225,8 @@ PerformanceConfigConvBinWinogradRxS::PerformanceConfigConvBinWinogradRxS(int n_g
 }
 
 template <int Winodata, int Winofilter>
-void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext& ctx, const ProblemDescription& problem)
+void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext& ctx,
+                                                        const ProblemDescription& problem)
 {
     const auto n_inputs_per_group  = problem.n_inputs / problem.group_counts,
                n_outputs_per_group = problem.n_outputs / problem.group_counts;
@@ -243,8 +242,8 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext
                                       problem.in_width,
                                       problem.kernel_dilation_h,
                                       problem.kernel_dilation_w,
-                                      problem.batch_sz, // N
-                                      n_inputs_per_group,      // K
+                                      problem.batch_sz,   // N
+                                      n_inputs_per_group, // K
                                       problem.kernel_size_h,
                                       problem.kernel_size_w,
                                       problem.pad_w,
@@ -263,9 +262,9 @@ void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext
                                       problem.kernel_size_w,
                                       problem.kernel_stride_h,
                                       problem.kernel_stride_w,
-                                      n_inputs_per_group,        // C
-                                      n_outputs_per_group,       // K
-                                      problem.out_height, // OHxOW
+                                      n_inputs_per_group,  // C
+                                      n_outputs_per_group, // K
+                                      problem.out_height,  // OHxOW
                                       problem.out_width,
                                       problem.pad_w,
                                       problem.pad_h,
@@ -346,12 +345,12 @@ public:
           n_groups(ctx.GetStream()
                        .GetMaxHardwareComputeUnits()), /// \todo Take n_groups from PerfConfig.
           out_of_model_scope(!(problem.group_counts == 1) || //
-                             !(U == 1) ||                        //
-                             !(V == 1) ||                        //
-                             !(input_stride_h == 1) ||           //
-                             !(input_stride_w == 1) ||           //
-                             !(filter_stride_h == 1) ||          //
-                             !(filter_stride_w == 1) ||          //
+                             !(U == 1) ||                    //
+                             !(V == 1) ||                    //
+                             !(input_stride_h == 1) ||       //
+                             !(input_stride_w == 1) ||       //
+                             !(filter_stride_h == 1) ||      //
+                             !(filter_stride_w == 1) ||      //
 #if !WTI_MODEL_ALLOW_ANY_RS
                              !(R <= 5) || //
                              !(S <= 5) || //
@@ -503,8 +502,8 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
                                      problem,
                                      problem.in_height,
                                      problem.in_width,
-                                     problem.batch_sz, // N
-                                     n_inputs_per_group,      // K
+                                     problem.batch_sz,   // N
+                                     n_inputs_per_group, // K
                                      problem.out_height,
                                      problem.out_width,
                                      problem.kernel_size_h,
@@ -517,9 +516,9 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
                                      problem,
                                      problem.kernel_size_h, // RxS
                                      problem.kernel_size_w,
-                                     n_inputs_per_group,       // C
-                                     n_outputs_per_group,      // K
-                                     problem.in_height, // HxW
+                                     n_inputs_per_group,  // C
+                                     n_outputs_per_group, // K
+                                     problem.in_height,   // HxW
                                      problem.in_width,
                                      problem.out_height, // OHxOW
                                      problem.out_width,
@@ -528,7 +527,8 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
 }
 
 template <int Winodata, int Winofilter>
-bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& ctx,
+                                                        const ProblemDescription& problem) const
 {
     if(IS2X3)
     {
@@ -587,7 +587,9 @@ GetPerfConfFromEnv(const ConvolutionContext& ctx)
 
 template <int Winodata, int Winofilter>
 ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceConfigConvBinWinogradRxS& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceConfigConvBinWinogradRxS& config) const
 {
     const auto n_groups = config.n_groups;
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
@@ -702,20 +704,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
         int ignore;
 
         int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W;
-        GetCompiledInParameters(ctx,
-                                problem,
-                                &N,
-                                &C,
-                                &H,
-                                &W,
-                                &K,
-                                &ignore,
-                                &out_H,
-                                &out_W,
-                                &R,
-                                &S,
-                                &pad_H,
-                                &pad_W);
+        GetCompiledInParameters(
+            ctx, problem, &N, &C, &H, &W, &K, &ignore, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
         const auto group_cnt = problem.group_counts;
         C                    = C / group_cnt;
         K                    = K / group_cnt;
@@ -816,20 +806,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     {
         int unused = 0;
         int N, C, H, W, K, out_H, out_W, R, S;
-        GetCompiledInParameters(ctx,
-                                problem,
-                                &C,
-                                &K,
-                                &R,
-                                &S,
-                                &N,
-                                &unused,
-                                &H,
-                                &W,
-                                &out_H,
-                                &out_W,
-                                &unused,
-                                &unused);
+        GetCompiledInParameters(
+            ctx, problem, &C, &K, &R, &S, &N, &unused, &H, &W, &out_H, &out_W, &unused, &unused);
         const auto group_cnt             = problem.group_counts;
         static const int F_NKC_STRIDES   = 1 << 9;
         static const int F_GROUP_STRIDES = 1 << 10;
@@ -847,8 +825,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
             W,
             group_cnt,
             GetTypeSize(problem.in_data_type)),
-            o_buf(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.out_layout)),
-                                     false),
+            o_buf(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.out_layout)), false),
                   N,
                   K,
                   out_H,
@@ -937,7 +914,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     return result;
 }
 
-bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& ctx,
+                                            const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
@@ -948,12 +926,14 @@ bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& ctx, const
     return IsApplicableBase(ctx, problem) && problem.group_counts == 1;
 }
 
-float ConvBinWinogradRxSf2x3g1::GetWti(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+float ConvBinWinogradRxSf2x3g1::GetWti(const ConvolutionContext& ctx,
+                                       const ProblemDescription& problem) const
 {
     return GetWtiBase<2, 3>(ctx, problem);
 }
 
-ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& ctx,
+                                                   const ProblemDescription& problem) const
 {
     const auto tunable = ConvBinWinoRxS<2, 3>{};
     return tunable.GetSolution(ctx, problem, tunable.GetDefaultPerformanceConfig(ctx, problem));

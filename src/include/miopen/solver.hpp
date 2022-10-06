@@ -2129,10 +2129,10 @@ template <int Winodata, int Winofilter>
 struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinogradRxS>
 {
     // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::GetDefaultPerformanceConfig;
-    using ConvTunableSolver::Search;
     using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::IsApplicable;
+    using ConvTunableSolver::Search;
 
     const std::string& SolverDbId() const override { return GetSolverDbId(); }
 
@@ -2202,8 +2202,8 @@ extern template struct ConvBinWinoRxS<3, 2>;
 struct ConvBinWinogradRxSf2x3g1 final : ConvSolver
 {
     // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
     using ConvSolver::GetWti;
+    using ConvSolver::IsApplicable;
 
     const std::string& SolverDbId() const override
     {
@@ -2215,10 +2215,7 @@ struct ConvBinWinogradRxSf2x3g1 final : ConvSolver
         return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }
-    float GetWti(const ConvolutionContext& ctx) const override
-    {
-        return GetWti(ctx, ctx.problem);
-    }
+    float GetWti(const ConvolutionContext& ctx) const override { return GetWti(ctx, ctx.problem); }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
         return GetSolution(ctx, ctx.problem);
