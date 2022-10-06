@@ -32,10 +32,115 @@
 #include <miopen/stringutils.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/fusion/solvers.hpp>
 
 namespace miopen {
 
 namespace solver {
+
+namespace fusion {
+
+bool BnFwdInferActivationFused::IsApplicable(const FusionContext& context) { return true; }
+
+ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& fusion_ctx)
+{
+    const auto& handle = fusion_ctx.GetStream();
+    bool bfpmixparm    = false;
+    bool bfp16parm     = false;
+    bool bfp32parm     = true;
+    if(problem.GetXDesc().GetType() == miopenHalf &&
+       problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
+    {
+        bfp16parm = true;
+        bfp32parm = false;
+    }
+    else if(problem.GetXDesc().GetType() == miopenHalf &&
+            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+    {
+        bfpmixparm = true;
+        bfp32parm  = false;
+    }
+
+    int n, c, h, w;
+    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
+
+    unsigned int in_cstride = h * w;
+
+    auto result = ConvSolution{miopenStatusSuccess};
+
+    {
+        size_t xlocalsize = 1;
+        auto xgridsize    = c;
+        size_t ylocalsize = 256;
+        size_t ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+        size_t zlocalsize = 1;
+        size_t zgridsize  = 1;
+
+        auto kernel = KernelInfo{};
+
+        kernel.kernel_file = "MIOpenBatchNormFwdInfer"; // build this up
+        kernel.kernel_name = "MIOpenBatchNormFwdInfer";
+        if(problem.GetMode() == miopenBNSpatial)
+        { // SPATIAL kernels
+            kernel.kernel_file += "Spatial.cl";
+            kernel.kernel_name += "SpatialEst";
+        }
+        else
+        { // PER ACTIVATION
+            kernel.kernel_file += "PerAct.cl";
+            kernel.kernel_name += "PerActivationEst";
+        }
+
+        const auto build_params = KernelBuildParameters{
+            {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
+            {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
+            {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
+            {"MIO_BN_GRP0", xlocalsize},
+            {"MIO_BN_GRP1", ylocalsize},
+            {"MIO_BN_GRP2", zlocalsize},
+            {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
+        };
+
+        kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
+
+        kernel.l_wk.push_back(xlocalsize);
+        kernel.l_wk.push_back(ylocalsize);
+        kernel.l_wk.push_back(zlocalsize);
+
+        kernel.g_wk.push_back(xgridsize);
+        kernel.g_wk.push_back(ygridsize);
+        kernel.g_wk.push_back(zgridsize);
+
+        result.construction_params.push_back(kernel);
+    }
+
+    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+            decltype(auto) kernel = handle_.Run(kernels.front());
+            decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InfInvokeParams>();
+
+            int n_, c_, h_, w_;
+            std::tie(n_, c_, h_, w_) = tien<4>(params.xDesc->GetLengths());
+
+            unsigned int in_nstride_ = c_ * h_ * w_;
+            unsigned int in_cstride_ = h_ * w_;
+
+            kernel(params.x,
+                   params.y,
+                   params.estimatedMean,
+                   params.estimatedVariance,
+                   params.bnScale,
+                   params.bnBias,
+                   params.epsilon,
+                   n_,
+                   in_cstride_,
+                   in_nstride_);
+        };
+    };
+
+    return result;
+}
+} // namespace fusion
 
 namespace batchnorm {
 

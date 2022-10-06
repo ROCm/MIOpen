@@ -1101,7 +1101,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     const auto solvers    = solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U,
                                                  solver::fusion::ConvOclDirectFwdFused,
                                                  solver::fusion::ConvBinWinogradRxSFused,
-                                                 solver::fusion::ConvBinWinogradRxSf2x3g1Fused>{};
+                                                 solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
+                                                 solver::fusion::BnFwdInferActivationFused>{};
     auto exec_ctx         = ExecutionContext{&handle};
     exec_ctx.DetectRocm();
     const auto fusion_ctx = FusionContext{this, handle};

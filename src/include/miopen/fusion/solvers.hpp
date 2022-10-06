@@ -64,6 +64,14 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
         }
         return {};
     }
+
+    miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx, conv::Direction dir) const
+    {
+        const auto& bn_op =
+            dynamic_cast<BatchNormInferenceFusionOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
+
+        return {};
+    }
 };
 
 struct FusionContext : miopen::ExecutionContext
@@ -233,6 +241,16 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
         return GetSolverDbId<ConvBinWinogradRxSf2x3g1Fused>();
     }
 
+    bool IsApplicable(const FusionContext& params) const override;
+    ConvSolution GetSolution(const FusionContext& params) const;
+};
+
+struct BnFwdInferActivationFused final : FusionSolverBase
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<BatchNormInferActivationFused>();
+    }
     bool IsApplicable(const FusionContext& params) const override;
     ConvSolution GetSolution(const FusionContext& params) const;
 };
