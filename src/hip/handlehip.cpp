@@ -295,9 +295,14 @@ Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t s
 
 void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz) const
 {
+    ReadTo(data, ddata.get(), sz);
+}
+
+void Handle::ReadTo(void* data, ConstData_t ddata, std::size_t sz) const
+{
     MIOPEN_HANDLE_LOCK
     this->Finish();
-    auto status = hipMemcpy(data, ddata.get(), sz, hipMemcpyDeviceToHost);
+    auto status = hipMemcpy(data, ddata, sz, hipMemcpyDeviceToHost);
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Hip error reading from buffer: ");
 }
