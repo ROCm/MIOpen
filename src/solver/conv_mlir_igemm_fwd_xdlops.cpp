@@ -127,7 +127,7 @@ bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx) cons
     if(*this == MlirHeuristicInitRequest())
         return true;
 
-    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, true));
+    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, *this, true));
     bool isValid     = false;
     for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
     {
