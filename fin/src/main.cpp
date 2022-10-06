@@ -144,6 +144,10 @@ int main(int argc, char* argv[], char* envp[])
             {
                 f = std::make_unique<fin::ConvFin<bfloat16, float>>(command);
             }
+            else if(command["config"]["cmd"] == "convint8")
+            {
+                f = std::make_unique<fin::ConvFin<int8_t, float>>(command);
+            }
             else if(command["config"]["cmd"] == "bnorm")
             {
                 f = std::make_unique<fin::BNFin<float, float>>(command);
