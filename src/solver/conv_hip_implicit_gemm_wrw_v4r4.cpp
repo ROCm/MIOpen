@@ -533,7 +533,7 @@ void PerformanceImplicitGemmV4R4WrW::HeuristicInit(const ConvolutionContext& ctx
     MIOPEN_LOG_I(ToString());
 }
 
-bool PerformanceImplicitGemmV4R4WrW::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceImplicitGemmV4R4WrW::SetNextValue(const ConvolutionContext& /*ctx*/)
 {
     // always search full space, no matter if use_spare_set or not
     do
@@ -620,10 +620,10 @@ bool ConvHipImplicitGemmV4R4WrW::IsValidPerformanceConfig(
 }
 
 PerformanceImplicitGemmV4R4WrW
-ConvHipImplicitGemmV4R4WrW::Search(const ConvolutionContext& context,
+ConvHipImplicitGemmV4R4WrW::Search(const ConvolutionContext& ctx,
                                    const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, context, invoke_ctx);
+    return GenericSearch(*this, ctx, ctx.problem, invoke_ctx);
 }
 
 ConvSolution
@@ -746,8 +746,8 @@ ConvHipImplicitGemmV4R4WrW::GetSolution(const ConvolutionContext& ctx,
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmN) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_C_THREAD_COPY_DST_DATA_PER_WRITE_GEMM_N1=") + std::to_string(GemmCThreadCopyDstDataPerWrite_GemmN1) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
-        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
-        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx) ? '1' : '0') +
+        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, ctx.problem) ? '1' : '0') +
+        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, ctx.problem) ? '1' : '0') +
         get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
 
