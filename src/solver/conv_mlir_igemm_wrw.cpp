@@ -38,7 +38,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW)
 namespace miopen {
 namespace solver {
 
-bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx,
+                                    const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW{}))

@@ -52,7 +52,8 @@ void PerformanceConvMlirIgemmXdlops::SetMlirHeuristicInitRequest()
     GemmBThreadCopyMoreGemmKPack = false;
 }
 
-bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
+                                          const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS{}))
@@ -122,7 +123,8 @@ bool PerformanceConvMlirIgemmXdlops::operator==(const PerformanceConvMlirIgemmXd
     // clang-format on
 }
 
-bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx,
+                                             const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
     if(*this == MlirHeuristicInitRequest())
@@ -132,7 +134,8 @@ bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx, cons
     bool isValid     = false;
     for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
     {
-        isValid = MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, problem, *this, true, kernel_id));
+        isValid = MiirIsConfigApplicable(
+            mlir::ConstructBuildOptions(ctx, problem, *this, true, kernel_id));
         if(!isValid)
             return false;
     }
@@ -190,7 +193,9 @@ ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ct
 }
 
 bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceConvMlirIgemmXdlops& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceConvMlirIgemmXdlops& config) const
 {
     MIOPEN_LOG_I("");
     return config.IsValid(ctx, problem);

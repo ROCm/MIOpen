@@ -37,7 +37,10 @@ namespace mlir {
 
 std::string GetKernelName(const ProblemDescription& problem, bool is_xdlops, int kernel_id = 0);
 
-std::string ConstructBuildOptions(const ConvolutionContext& ctx, const ProblemDescription& problem, bool is_xdlops, int kernel_id = 0);
+std::string ConstructBuildOptions(const ConvolutionContext& ctx,
+                                  const ProblemDescription& problem,
+                                  bool is_xdlops,
+                                  int kernel_id = 0);
 
 template <typename T>
 std::string ConstructBuildOptions(const ConvolutionContext& ctx,
@@ -46,7 +49,8 @@ std::string ConstructBuildOptions(const ConvolutionContext& ctx,
                                   bool is_xdlops,
                                   int kernel_id = 0)
 {
-    std::ostringstream options{ConstructBuildOptions(ctx, problem, is_xdlops, kernel_id), std::ios::ate};
+    std::ostringstream options{ConstructBuildOptions(ctx, problem, is_xdlops, kernel_id),
+                               std::ios::ate};
 
     // Library does heuristic initialization when no perf_config
     // is specified

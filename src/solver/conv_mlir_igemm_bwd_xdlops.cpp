@@ -38,7 +38,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS)
 namespace miopen {
 namespace solver {
 
-bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvMlirIgemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
+                                          const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_BWD_XDLOPS{}))
@@ -68,7 +69,9 @@ ConvMlirIgemmBwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ct
 }
 
 bool ConvMlirIgemmBwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceConvMlirIgemmXdlops& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceConvMlirIgemmXdlops& config) const
 {
     MIOPEN_LOG_I("");
     return config.IsValid(ctx, problem);

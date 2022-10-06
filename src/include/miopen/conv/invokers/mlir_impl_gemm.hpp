@@ -34,7 +34,8 @@ namespace conv {
 
 InvokerFactory MakeMlirFwdInvokerFactory(const miopen::ProblemDescription& problem);
 InvokerFactory MakeMlirBwdInvokerFactory(const miopen::ProblemDescription& problem);
-InvokerFactory MakeMlirWrWInvokerFactory(const miopen::ProblemDescription& problem, size_t workspace_req);
+InvokerFactory MakeMlirWrWInvokerFactory(const miopen::ProblemDescription& problem,
+                                         size_t workspace_req);
 
 } // namespace conv
 } // namespace miopen
