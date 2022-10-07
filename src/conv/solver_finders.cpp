@@ -41,7 +41,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 
-class DataDirectSolverFinder : public SolversFinder
+class DirectSolverFinder : public SolversFinder
 {
 public:
     AlgorithmName GetAlgorithmName(const ConvolutionContext& ctx) const override
@@ -166,7 +166,7 @@ const std::vector<std::unique_ptr<SolversFinder>>& GetConvSolverFinders()
     static const auto finders = []() {
         auto tmp = std::vector<std::unique_ptr<SolversFinder>>{};
         tmp.emplace_back(std::make_unique<WinogradSolverFinder>());
-        tmp.emplace_back(std::make_unique<DataDirectSolverFinder>());
+        tmp.emplace_back(std::make_unique<DirectSolverFinder>());
         tmp.emplace_back(std::make_unique<ImplicitGemmSolverFinder>());
         tmp.emplace_back(std::make_unique<GemmSolverFinder>());
         tmp.emplace_back(std::make_unique<FftSolverFinder>());
