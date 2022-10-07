@@ -4485,7 +4485,7 @@ struct ConvHipImplicitGemmFwdXdlops final
     template <typename DataType>
     bool CheckCKApplicability(const ConvolutionContext& ctx) const;
     template <typename DataType>
-    void GetCKSolution(const Handle& handle,
+    void RunCKSolution(const Handle& handle,
                        const AnyInvokeParams& primitive_parameters,
                        const ConvolutionContext& ctx,
                        const PerformanceConfigHipImplicitGemmFwdXdlops& config) const;

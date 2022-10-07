@@ -183,7 +183,7 @@ bool ConvHipImplicitGemmFwdXdlops::CheckCKApplicability(const ConvolutionContext
 }
 
 template <typename DataType>
-void ConvHipImplicitGemmFwdXdlops::GetCKSolution(
+void ConvHipImplicitGemmFwdXdlops::RunCKSolution(
     const Handle& handle,
     const AnyInvokeParams& primitive_parameters,
     const ConvolutionContext& ctx,
@@ -368,13 +368,13 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
             switch(ctx.problem.conv_problem.GetInDataType())
             {
             case miopenInt8:
-                GetCKSolution<int8_t>(handle, primitive_parameters, ctx, config);
+                RunCKSolution<int8_t>(handle, primitive_parameters, ctx, config);
                 break;
             case miopenHalf:
-                GetCKSolution<ck::half_t>(handle, primitive_parameters, ctx, config);
+                RunCKSolution<ck::half_t>(handle, primitive_parameters, ctx, config);
                 break;
             case miopenFloat:
-                GetCKSolution<float>(handle, primitive_parameters, ctx, config);
+                RunCKSolution<float>(handle, primitive_parameters, ctx, config);
                 break;
             case miopenInt32:
             case miopenInt8x4:
