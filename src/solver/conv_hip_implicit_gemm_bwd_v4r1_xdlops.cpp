@@ -77,8 +77,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
     int ClusterLengths_GemmM     = 0;
     int ClusterLengths_GemmKPack = 0;
     int SrcDataPerRead_GemmM     = ctx.problem.IsFp32()
-                                   ? amd_buffer_load_max_length<float>()
-                                   : amd_buffer_load_max_length<half_float::half>();
+                                       ? amd_buffer_load_max_length<float>()
+                                       : amd_buffer_load_max_length<half_float::half>();
 
     int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
                                         ? amd_buffer_load_max_length<float>()
@@ -171,8 +171,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
     int ClusterLengths_GemmN     = 0;
     int ClusterLengths_GemmKPack = 0;
     int SrcDataPerRead_GemmN     = ctx.problem.IsFp32()
-                                   ? amd_buffer_load_max_length<float>()
-                                   : amd_buffer_load_max_length<half_float::half>();
+                                       ? amd_buffer_load_max_length<float>()
+                                       : amd_buffer_load_max_length<half_float::half>();
 
     int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
                                         ? amd_lds_write_max_length<float>()
@@ -383,7 +383,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ConvolutionCo
     if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 && GemmK % GemmKPerBlock == 0))
         return false; // wrong! cannot divice N evenly among thread
 
-    if(!IsValidBlockwiseGemmXdlops(ctx,
+    if(!IsValidBlockwiseGemmXdlops(ctx.problem,
                                    GemmMPerBlock,
                                    GemmNPerBlock,
                                    GemmKPerBlock,
@@ -579,7 +579,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValidValue() const
         && IsTwoPower<16,128>(GemmNPerWave); // clang-format on
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
 {
     GemmBThreadCopyMoreGemmKPack = true;
     GemmAThreadCopyMoreGemmK     = true;
@@ -835,7 +835,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext
         return false;
     if(!IsApplicableXdlops(ctx))
         return false;
-    if(!IsIndexRangeLargeEnough(ctx))
+    if(!IsIndexRangeLargeEnough(ctx.problem))
         return false;
     if(!ctx.problem.IsLayoutDefault())
         return false;
@@ -875,7 +875,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops
 ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx,
                                              const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, ctx.problem, invoke_ctx);
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
@@ -1048,7 +1048,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
 
         }
     }
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx.problem);
     return result;
 }
 

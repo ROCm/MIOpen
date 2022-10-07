@@ -48,18 +48,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 namespace miopen {
 namespace solver {
 
-namespace fusion {
-
-void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& problem)
+bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsm1x1U::HeuristicInit(
         problem.GetConvContext(0, conv::Direction::Forward));
 }
 
-bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionContext& problem)
-{
-    return PerformanceConfigConvAsm1x1U::SetNextValue(
-        problem.GetConvContext(0, conv::Direction::Forward));
+    return PerformanceConfigConvAsm1x1U::IsValid(problem);
 }
 
 bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionContext& problem) const
@@ -69,18 +64,18 @@ bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionContext& problem
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const FusionContext& desc) const
+ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
 {
     PerformanceConfigConvBiasActivAsm1x1U pp;
-    pp.HeuristicInit(desc);
+    pp.HeuristicInit(problem);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
 
 bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
-    const FusionContext& problem, const PerformanceConfigConvBiasActivAsm1x1U& c) const
+    const ProblemDescription& problem, const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
-    return c.IsValidValue() && c.IsValid(problem);
+    return config.IsValidValue() && config.IsValid(problem);
 }
 
 PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionContext& context,
@@ -91,6 +86,7 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
     cba_context.problem.bias_sz =
         cba_context.problem.n_outputs * ((cba_context.problem.out_data_type == miopenHalf) ? 2 : 4);
     if(!cba_context.problem.direction.IsForward())
+
         MIOPEN_THROW("Only inference supported.");
 
     /// Workaround: Fused conv API does not pass user-allocated buffers here,
@@ -124,7 +120,6 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& problem,
     ConvAsm1x1U base_sol{};
 
     auto sol = base_sol.GetSolution(ctx, config);
-
     if(sol.construction_params.size() != 1)
         MIOPEN_THROW("ConvBiasActivAsm1x1U expects only one kernel");
 
@@ -132,24 +127,10 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& problem,
     kernel_info.kernel_file = "conv1x1u_bias_activ.s";
     const auto& desc        = *problem.problem.fusion_plan_desc;
 
-    const bool has_bias = [&]() {
-        if(desc.op_map.size() == 3)
-            return true;
-        else if(desc.op_map[1]->kind() == miopenFusionOpBiasForward)
-            return true;
-        return false;
-    }();
-    const int activ_idx = [&]() {
-        if(desc.op_map.size() == 3)
-            return 2;
-        else if(desc.op_map[1]->kind() == miopenFusionOpActivForward)
-            return 1;
-        return -1;
-    }();
-
-    std::ostringstream cba_options;
-    GenerateClangDefsym(cba_options, "fusion_mode", 1);
-    if(has_bias)
+    if(ctx.is_for_generic_search)
+    {
+        std::ostringstream cba_options;
+        GenerateClangDefsym(cba_options, "activ_mode", 3);
         GenerateClangDefsym(cba_options, "bias_mode", 1);
     if(activ_idx != -1)
     {
@@ -159,8 +140,7 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& problem,
     }
     kernel_info.comp_options += cba_options.str();
 
-    const auto out_data_type = ctx.problem.conv_problem.GetOutDataType();
-    sol.weight               = 50.0f;
+    const auto out_data_type = problem.conv_problem.GetOutDataType();
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {

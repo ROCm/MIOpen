@@ -110,7 +110,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::operator==(
 }
 
 bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::SetNextValue(
-    const ConvolutionContext& /*config*/)
+    const ConvolutionContext& /*ctx*/)
 {
     do
     {
@@ -332,12 +332,12 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmABlockCopyPer
 {
     // A tensor shape [GemmG, GemmK, GemmM, GemmKPack]
 
-    int ClusterLengths_GemmK     = -1;
-    int ClusterLengths_GemmM     = -1;
-    int ClusterLengths_GemmKPack = -1;
-    int SrcDataPerRead_GemmKPack = ctx.problem.IsFp32()
-                                       ? amd_buffer_load_max_length<float>()
-                                       : amd_buffer_load_max_length<half_float::half>();
+    int ClusterLengths_GemmK      = -1;
+    int ClusterLengths_GemmM      = -1;
+    int ClusterLengths_GemmKPack  = -1;
+    int SrcDataPerRead_GemmKPack  = ctx.problem.IsFp32()
+                                        ? amd_buffer_load_max_length<float>()
+                                        : amd_buffer_load_max_length<half_float::half>();
     int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
                                         ? amd_lds_write_max_length<float>()
                                         : amd_lds_write_max_length<half_float::half>();
@@ -435,12 +435,12 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmBBlockCopyPer
 {
     // B tensor shape [GemmG, GemmK, GemmN, GemmKPack]
 
-    int ClusterLengths_GemmK     = -1;
-    int ClusterLengths_GemmN     = -1;
-    int ClusterLengths_GemmKPack = -1;
-    int SrcDataPerRead_GemmN     = ctx.problem.IsFp32()
-                                   ? amd_buffer_load_max_length<float>()
-                                   : amd_buffer_load_max_length<half_float::half>();
+    int ClusterLengths_GemmK      = -1;
+    int ClusterLengths_GemmN      = -1;
+    int ClusterLengths_GemmKPack  = -1;
+    int SrcDataPerRead_GemmN      = ctx.problem.IsFp32()
+                                        ? amd_buffer_load_max_length<float>()
+                                        : amd_buffer_load_max_length<half_float::half>();
     int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
                                         ? amd_lds_write_max_length<float>()
                                         : amd_lds_write_max_length<half_float::half>();
@@ -610,8 +610,13 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsReallyValid(
     if(!IsValidValue())
         return false;
 
-    if(!IsValidBlockwiseGemmXdlops(
-           ctx, GemmMPerBlock, GemmNPerBlock, GemmKPerBlock, GemmMPerWave, GemmNPerWave, GemmKPack))
+    if(!IsValidBlockwiseGemmXdlops(ctx.problem,
+                                   GemmMPerBlock,
+                                   GemmNPerBlock,
+                                   GemmKPerBlock,
+                                   GemmMPerWave,
+                                   GemmNPerWave,
+                                   GemmKPack))
         return false;
 
     bool valid = false;
@@ -1025,7 +1030,7 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
         ctx.general_compile_options;
     // clang-format on
 
-    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeImplGemmDataInvokerFactory(ctx.problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 }
@@ -1061,7 +1066,7 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
        ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
-    if(!IsIndexRangeLargeEnough(ctx))
+    if(!IsIndexRangeLargeEnough(ctx.problem))
         return false;
 
     if(!ctx.problem.IsLayoutDefault())
@@ -1121,7 +1126,7 @@ ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::Search(const ConvolutionContex
                                                          const AnyInvokeParams& invoke_ctx) const
 
 {
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, ctx.problem, invoke_ctx);
 }
 
 } // namespace solver

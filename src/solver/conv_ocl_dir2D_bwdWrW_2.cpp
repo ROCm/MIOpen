@@ -607,8 +607,9 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
     // utility parameters
     unsigned int n_utility_waves        = 4;
     unsigned int utility_workgroup_size = hw_wave_size * n_utility_waves;
-    unsigned int utility_read_unit =
-        ((wei_cstride / 4) * 4 == wei_cstride) ? 4 : ((wei_cstride / 2) * 2 == wei_cstride) ? 2 : 1;
+    unsigned int utility_read_unit      = ((wei_cstride / 4) * 4 == wei_cstride)   ? 4
+                                          : ((wei_cstride / 2) * 2 == wei_cstride) ? 2
+                                                                                   : 1;
     std::string UT_READ_TYPE =
         (utility_read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((utility_read_unit));
 

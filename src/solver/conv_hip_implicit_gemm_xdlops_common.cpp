@@ -243,7 +243,7 @@ bool PerformanceImplicitGemmXdlops::IsValidValue() const
         && IsTwoPower<4,128>(WeiBlockCopyClusterLengths_K); // clang-format on
 }
 
-bool PerformanceImplicitGemmXdlops::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceImplicitGemmXdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
 {
     do
     {

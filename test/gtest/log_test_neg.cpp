@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,19 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "log_test_helper.hpp"
 
-#pragma once
+TEST(LOG_TEST, AssertLogCmdOutput_Neg)
+{
+    TestLogFun(miopen::debug::LogCmdConvolution, envConv, logConv, false);
+}
 
-#include <miopen/invoker.hpp>
-#include <miopen/kernel.hpp>
-#include <miopen/conv/context.hpp>
-
-#include <vector>
-
-namespace miopen {
-namespace conv {
-
-InvokerFactory MakeImplGemmDataInvokerFactory(const miopen::ProblemDescription& problem);
-
-} // namespace conv
-} // namespace miopen
+TEST(LOG_TEST, AssertLogFindCmdOutput_Neg)
+{
+    TestLogFun(miopen::debug::LogCmdFindConvolution, envConv, logFindConv, false);
+}
