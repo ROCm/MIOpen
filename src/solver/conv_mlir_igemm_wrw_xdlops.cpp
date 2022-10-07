@@ -92,7 +92,7 @@ ConvSolution ConvMlirIgemmWrWXdlops::GetSolution(const ConvolutionContext& ctx,
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
-    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, problem, true));
+    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, problem, config, true));
 
     for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
     {

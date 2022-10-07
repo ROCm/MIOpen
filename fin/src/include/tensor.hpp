@@ -47,6 +47,8 @@ template <>
 miopenDataType_t GetDataType<float16>();
 template <>
 miopenDataType_t GetDataType<bfloat16>();
+template <>
+miopenDataType_t GetDataType<int8_t>();
 #if FIN_BACKEND_OPENCL
 #define STATUS_SUCCESS CL_SUCCESS
 using status_t = cl_int;

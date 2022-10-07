@@ -773,7 +773,7 @@ struct PerformanceImplicitGemm : PerfConfigBase<PerformanceImplicitGemm>
 
     void HeuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& config);
+    bool SetNextValue(const ConvolutionContext&);
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemm& other) const;
 };
@@ -864,7 +864,7 @@ struct PerformanceImplicitGemmV4R4Fwd : PerfConfigBase<PerformanceImplicitGemmV4
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& config);
+    bool SetNextValue(const ConvolutionContext&);
 };
 
 struct PerformanceImplicitGemmV4R4WrW : PerfConfigBase<PerformanceImplicitGemmV4R4WrW>
@@ -919,7 +919,7 @@ struct PerformanceImplicitGemmV4R4WrW : PerfConfigBase<PerformanceImplicitGemmV4
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& config);
+    bool SetNextValue(const ConvolutionContext&);
 };
 
 struct PerformanceImplicitGemmBwdDataV1R1 : PerfConfigBase<PerformanceImplicitGemmBwdDataV1R1>
@@ -975,7 +975,7 @@ struct PerformanceImplicitGemmBwdDataV1R1 : PerfConfigBase<PerformanceImplicitGe
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& config);
+    bool SetNextValue(const ConvolutionContext&);
 };
 
 struct PerformanceImplicitGemmBwdDataV4R1 : PerfConfigBase<PerformanceImplicitGemmBwdDataV4R1>
@@ -1031,7 +1031,7 @@ struct PerformanceImplicitGemmBwdDataV4R1 : PerfConfigBase<PerformanceImplicitGe
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& config);
+    bool SetNextValue(const ConvolutionContext&);
 };
 
 struct PerformanceImplicitGemmBwdDataV4R1Xdlops
@@ -1087,7 +1087,7 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
     bool IsReallyValid(const ConvolutionContext& ctx) const;
     bool IsFastToBeUsedForTuning(const ConvolutionContext& ctx) const;
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& config);
+    bool SetNextValue(const ConvolutionContext&);
 };
 
 struct ConvHipImplicitGemmV4R1Fwd final : ConvTunableSolver<PerformanceImplicitGemmV4R1>
@@ -1505,7 +1505,7 @@ struct PerformanceImplicitGemmXdlops : PerfConfigBase<PerformanceImplicitGemmXdl
 
     void HeuristicInit(const ConvolutionContext& ctx);
     bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext& config);
+    bool SetNextValue(const ConvolutionContext&);
     bool IsValid(const ConvolutionContext& ctx) const;
     bool operator==(const PerformanceImplicitGemmXdlops& other) const;
 };
@@ -1544,7 +1544,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops& other) const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& config);
+    bool SetNextValue(const ConvolutionContext&);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
@@ -1601,7 +1601,7 @@ struct PerformanceImplicitGemmForwardV4R5Xdlops
     bool operator==(const PerformanceImplicitGemmForwardV4R5Xdlops& other) const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& config);
+    bool SetNextValue(const ConvolutionContext&);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
@@ -1660,7 +1660,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
     bool operator==(const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& other) const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& config);
+    bool SetNextValue(const ConvolutionContext&);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
@@ -1706,7 +1706,7 @@ struct PerformanceImplicitGemmBwdV1R1Xdlops : PerfConfigBase<PerformanceImplicit
     bool operator==(const PerformanceImplicitGemmBwdV1R1Xdlops& other) const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& config);
+    bool SetNextValue(const ConvolutionContext&);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
@@ -3118,7 +3118,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops : PerfConfigBase<PerformanceImplicit
     bool operator==(const PerformanceImplicitGemmWrwV4R4Xdlops& other) const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& config);
+    bool SetNextValue(const ConvolutionContext&);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
@@ -3198,7 +3198,7 @@ struct PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     bool operator==(const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& other) const;
 
     void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& config);
+    bool SetNextValue(const ConvolutionContext&);
     bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& ctx) const;
     bool IsReallyValid(const ConvolutionContext& ctx) const;
