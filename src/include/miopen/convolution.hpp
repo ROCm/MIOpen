@@ -394,6 +394,11 @@ Invoker LoadOrPrepareInvoker(const ExecutionContext& ctx,
 
 std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c);
 
+void DumpTensorToFileFromDevice(const miopen::Handle& handle,
+                                const miopen::TensorDescriptor& tDesc,
+                                ConstData_t dData,
+                                const std::string& filename);
+
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenConvolutionDescriptor, miopen::ConvolutionDescriptor);
 
