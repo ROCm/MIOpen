@@ -61,9 +61,9 @@ struct BlockwiseReduction_2d_block_buffer
         index_t offset;
         for(index_t otherDimInd = 0; otherDimInd < toReduceBlocks; otherDimInd++)
         {
-            offset = blockIsOneRow
-                         ? buffer2dDesc.CalculateOffset(make_tuple(otherDimInd, thread_local_id))
-                         : buffer2dDesc.CalculateOffset(make_tuple(thread_local_id, otherDimInd));
+            offset          = blockIsOneRow
+                                  ? buffer2dDesc.CalculateOffset(make_tuple(otherDimInd, thread_local_id))
+                                  : buffer2dDesc.CalculateOffset(make_tuple(thread_local_id, otherDimInd));
             compType opData = type_convert<compType>{}(block_buffer[offset]);
 
             binop::calculate(lAccuData, opData);
