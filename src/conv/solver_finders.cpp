@@ -157,7 +157,7 @@ protected:
         auto ctx_copy = ctx;
         if(use_winograd_only)
             ctx_copy.use_dynamic_solutions_only = true;
-        return FindAllGemmSolutions(ctx_copy, invoke_ctx);
+        return FindAllWinogradSolutions(ctx_copy, invoke_ctx);
     }
 };
 
