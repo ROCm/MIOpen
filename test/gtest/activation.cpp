@@ -39,7 +39,6 @@
 #include "activ_driver.hpp"
 #include "InputFlags.hpp"
 #include "get_handle.hpp"
-//#include "tensor_holder.hpp"
 #include "verify.hpp"
 
 #include "gtest/gtest.h"
@@ -56,17 +55,16 @@ struct ActivationConfig
 template <class T1, class T2>
 void CompareTensors(T1&& t1, T2&& t2)
 {
+    double tolerance = 80;
     EXPECT_FALSE(miopen::range_zero(t1)) << "CPU data is all zeros";
     EXPECT_FALSE(miopen::range_zero(t2)) << "GPU data is all zeros";
-    const auto maxDiff = miopen::max_diff(t1, t2);
-    std::ignore        = maxDiff;
-    auto idx           = miopen::mismatch_idx(t1, t2, miopen::float_equal);
-    EXPECT_FALSE(miopen::find_idx(t1, miopen::not_finite) >= 0)
-        << "Non finite number found in the CPU data";
-    // For debugging purpose only, remove later
-    std::cerr << "idx = " << idx << "; miopen::range_distance(t1) = " << miopen::range_distance(t1)
-              << std::endl;
-    EXPECT_FALSE(idx < miopen::range_distance(t1));
+    EXPECT_EQ(miopen::range_distance(t1), miopen::range_distance(t2))
+        << "range distance b/w CPU and GPU not equal";
+
+    using value_type = miopen::range_value<decltype(t2)>;
+    double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
+    std::vector<double> error{miopen::rms_range(t1, t2)};
+    EXPECT_FALSE(error.front() > threshold);
     return;
 }
 
@@ -227,7 +225,7 @@ INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
                                                 // miopenActivationLOGISTIC,
                                                 // miopenActivationTANH,
                                                 miopenActivationRELU,
-                                                // miopenActivationSOFTRELU,
+                                                miopenActivationSOFTRELU,
                                                 miopenActivationABS,
                                                 // miopenActivationPOWER,
                                                 // miopenActivationCLIPPEDRELU,
