@@ -534,8 +534,7 @@ enable_clang_tidy(
     CHECKS
         *
         -abseil-*
-        -altera-struct-pack-align
-        -altera-unroll-loops
+        -altera-*
         -android-cloexec-fopen
         -bugprone-exception-escape
         -bugprone-macro-parentheses
@@ -576,13 +575,12 @@ enable_clang_tidy(
         -google-readability-todo
         -google-runtime-int
         -google-runtime-references
-        # We really shouldn't use bitwise operators with signed integers, but
-        # opencl leaves us no choice
         -hicpp-avoid-c-arrays
         -hicpp-braces-around-statements
         -hicpp-explicit-conversions
         -hicpp-named-parameter
         -hicpp-no-array-decay
+        # We really shouldn't use bitwise operators with signed integers, but opencl leaves us no choice
         -hicpp-signed-bitwise
         -hicpp-special-member-functions
         -hicpp-uppercase-literal-suffix
@@ -597,6 +595,8 @@ enable_clang_tidy(
         -llvmlibc-implementation-in-namespace
         -llvmlibc-restrict-system-libc-headers
         -llvm-qualified-auto
+        # This one is extremely slow, and probably has lots of FPs.
+        -misc-confusable-identifiers
         -misc-misplaced-const
         -misc-non-private-member-variables-in-classes
         -misc-no-recursion
@@ -615,16 +615,21 @@ enable_clang_tidy(
         -readability-braces-around-statements
         -readability-convert-member-functions-to-static
         -readability-else-after-return
-        # we are not ready to use it, but very useful
+        # TODO We are not ready to use it, but very useful.
         -readability-function-cognitive-complexity
+        # We dont think this is a useful check. Disabled on migraphx.
+        -readability-identifier-length
         -readability-isolate-declaration
         -readability-magic-numbers
         -readability-named-parameter
         -readability-qualified-auto
         -readability-redundant-string-init
+        # There are many FPs with this, let's disable it (ditto in MIGraphX)
+        -readability-suspicious-call-argument
         -readability-uppercase-literal-suffix
-        #TODO Code Quality WORKAROUND ROCm 5.1 update
-        -altera-id-dependent-backward-branch
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.1 update
+        ###################################################################
         -bugprone-easily-swappable-parameters
         -bugprone-implicit-widening-of-multiplication-result
         -cert-err33-c
@@ -633,13 +638,13 @@ enable_clang_tidy(
         -modernize-use-emplace
         -performance-unnecessary-copy-initialization
         -readability-container-data-pointer
-        -readability-identifier-length
-        -readability-suspicious-call-argument
-        #TODO Code Quality WORKAROUND ROCm 5.3 && Ubuntu 22.04 && C++17 && cppcheck 2.9 update
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.3 &&
+        # Ubuntu 22.04 && C++17 && cppcheck 2.9 update
+        ###################################################################
         -bugprone-use-after-move
         -hicpp-invalid-access-moved
         -modernize-use-nodiscard
-        -misc-confusable-identifiers
         -modernize-unary-static-assert
         -modernize-macro-to-enum
         -modernize-concat-nested-namespaces
@@ -670,6 +675,14 @@ enable_cppcheck(
     SUPPRESS
         ConfigurationNotChecked
         constStatement
+        # There is no ODR violation because of using separate executables,
+        # but cppcheck doesn't understand that as it assumes everything
+        # will be compiled together in one binary.
+        ctuOneDefinitionRuleViolation:*test/*
+        ctuOneDefinitionRuleViolation:*src/composable_kernel/composable_kernel/*/*
+        ctuOneDefinitionRuleViolation:*src/composable_kernel/host/*/*
+        # There are many FPs with this, let's disable this (ditto in MIGraphX)
+        ctuPointerArith:*test/*
         duplicateCondition
         noExplicitConstructor
         passedByValue
@@ -696,10 +709,10 @@ enable_cppcheck(
         unreadVariable:*src/composable_kernel/host/*/*
         unreadVariable:*src/composable_kernel/external/*/*
         unmatchedSuppression
-        #TODO Code Quality WORKAROUND ROCm 5.3 && Ubuntu 22.04 && C++17 && cppcheck 2.9 update
-        ctuOneDefinitionRuleViolation:*test/*
-        ctuOneDefinitionRuleViolation:*src/composable_kernel/composable_kernel/*/*
-        ctuPointerArith:*test/*
+        ###################################################################
+        # TODO Code Quality WORKAROUND ROCm 5.3 &&
+        # Ubuntu 22.04 && C++17 && cppcheck 2.9 update
+        ###################################################################
         constParameter
         constVariable
         variableScope
