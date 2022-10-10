@@ -62,24 +62,25 @@ bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ConvolutionConte
     }
 }
 
-bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::IsValid(const ConvolutionContext& ctx) const
+bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::IsValid(const ProblemDescription& problem) const
 {
     auto compile_param = ck::driver::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{};
     bool found         = false;
 
     std::tie(compile_param, found) =
         ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::CalculateCompileParameterBasedOnTunable(
-            ck_utility::get_ck_convolution_problem_descriptor(ctx),
+            ck_utility::get_ck_convolution_problem_descriptor(problem),
             ck_utility::get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(*this));
 
     if(!found)
         return false;
 
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsValidCompileParameter(
-        ck_utility::get_ck_convolution_problem_descriptor(ctx), compile_param);
+        ck_utility::get_ck_convolution_problem_descriptor(problem), compile_param);
 }
 
-bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
+                                               const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW{}))
         return false;
@@ -87,39 +88,39 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx) co
         return false;
     if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
         return false;
-    if(!ctx.problem.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
         return false;
-    if(!ctx.problem.direction.IsForward())
+    if(!problem.direction.IsForward())
         return false;
-    if(!ctx.problem.Is2d())
+    if(!problem.Is2d())
         return false;
-    if(!(ctx.problem.IsFp32() or ctx.problem.IsFp16()))
+    if(!(problem.IsFp32() or problem.IsFp16()))
         return false;
-    if(ctx.problem.group_counts != 1)
+    if(problem.group_counts != 1)
         return false;
     if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
-       ctx.problem.conv_problem.IsGfx90aFp16altRequired())
+       problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     {
         // this kernel use int32_t for memory offset, which covers 2GB of memory maximum
         const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
 
-        if(!(ctx.problem.bot_sz < max_index_range && ctx.problem.weights_sz < max_index_range &&
-             ctx.problem.top_sz < max_index_range))
+        if(!(problem.bot_sz < max_index_range && problem.weights_sz < max_index_range &&
+             problem.top_sz < max_index_range))
             return false;
     }
 
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsApplicable(
-        ck_utility::get_ck_convolution_problem_descriptor(ctx));
+        ck_utility::get_ck_convolution_problem_descriptor(problem));
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
-ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
+ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
 {
     for(int i = 0; i < ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList().size(); ++i)
     {
-        if(IsValidPerformanceConfig(ctx, i))
+        if(IsValidPerformanceConfig(problem, i))
         {
             return {i};
         }
@@ -131,19 +132,20 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ConvolutionContex
 }
 
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx, const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
+    const ProblemDescription& problem, const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
 {
-    return config.IsValid(ctx);
+    return config.IsValid(problem);
 }
 
 ConvSolution
 ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
+                                         const ProblemDescription& problem,
                                          const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
 {
     ConvSolution sol;
     KernelInfo kernel0_info, kernel1_info;
 
-    const auto ck_conv_problem_desc = ck_utility::get_ck_convolution_problem_descriptor(ctx);
+    const auto ck_conv_problem_desc = ck_utility::get_ck_convolution_problem_descriptor(problem);
 
     auto ck_compile_param = ck::driver::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{};
 
@@ -193,7 +195,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
     sol.construction_params.push_back(kernel1_info);
 
     // workspace is used to save transformed tensor descriptors
-    sol.workspace_sz = GetWorkspaceSize(ctx);
+    sol.workspace_sz = GetWorkspaceSize(problem);
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -242,17 +244,18 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
     return sol;
 }
 
-std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext& ctx) const
+std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ProblemDescription& problem) const
 {
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetMaxWorkSpaceSize(
-        ck_utility::get_ck_convolution_problem_descriptor(ctx));
+        ck_utility::get_ck_convolution_problem_descriptor(problem));
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
 ConvCkIgemmFwdV6r1DlopsNchw::Search(const ConvolutionContext& ctx,
+                                    const ProblemDescription& problem,
                                     const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
 } // namespace solver
