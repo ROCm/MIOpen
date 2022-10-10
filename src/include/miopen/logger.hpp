@@ -156,8 +156,13 @@ std::array<T, sizeof...(Ts) + 1> make_array(T x, Ts... xs)
     return {{x, xs...}};
 }
 
+// MSVC's preprocessor as well as CPPCHECK's one seem unable
+// to properly handle some complex stuff. We have to disable
+// some debugging features to avoid build errors.
+#define WORKAROUND_ISSUE_PP_TRANSFORM_ARGS (defined(_MSC_VER) || defined(CPPCHECK))
+
 #define MIOPEN_LOG_ENUM_EACH(x) std::pair<std::string, decltype(x)>(#x, x)
-#ifdef _MSC_VER
+#if WORKAROUND_ISSUE_PP_TRANSFORM_ARGS
 #define MIOPEN_LOG_ENUM(os, ...) os
 #else
 #define MIOPEN_LOG_ENUM(os, x, ...) \
@@ -237,7 +242,7 @@ inline void* LogObjImpl(void* x) { return x; }
 
 inline const void* LogObjImpl(const void* x) { return x; }
 
-#ifndef _MSC_VER
+#if !WORKAROUND_ISSUE_PP_TRANSFORM_ARGS
 template <class T, typename std::enable_if<(std::is_pointer<T>{}), int>::type = 0>
 std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 {

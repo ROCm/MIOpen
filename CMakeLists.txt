@@ -705,7 +705,6 @@ enable_cppcheck(
         variableScope
         missingReturn
         cstyleCast
-        unknownMacro
         uselessCallsSubstr
         uninitMemberVar
         overlappingWriteUnion
