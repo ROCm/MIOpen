@@ -31,7 +31,7 @@
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/rocm_features.hpp>
-#include <miopen/solver/convolution_context_interpreter.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 #include <algorithm>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM)
@@ -278,16 +278,16 @@ static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
     return (GemmMPerBlock % GemmMPerWave) == 0 && (GemmNPerBlock % GemmNPerWave) == 0;
 }
 
-static inline bool IsIndexRangeLargeEnough(const ConvolutionContext& ctx)
+static inline bool IsIndexRangeLargeEnough(const ProblemDescription& problem)
 {
     // composable kernel use int32_t for memory offset, which covers 2GB of memory maximum
     const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
 
-    return ctx.problem.bot_sz < max_index_range && ctx.problem.weights_sz < max_index_range &&
-           ctx.problem.top_sz < max_index_range;
+    return problem.bot_sz < max_index_range && problem.weights_sz < max_index_range &&
+           problem.top_sz < max_index_range;
 }
 
-static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
+static inline bool IsValidBlockwiseGemmXdlops(const ProblemDescription& problem,
                                               const int GemmMPerBlock,
                                               const int GemmNPerBlock,
                                               const int GemmKPerBlock,
@@ -296,14 +296,14 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
                                               const int GemmKPack)
 {
 #if WORKAROUND_SWDEV_251757
-    if(ctx.problem.IsFp32() && GemmKPerBlock == 1 && GemmKPack == 8)
+    if(problem.IsFp32() && GemmKPerBlock == 1 && GemmKPack == 8)
         return false;
 #endif
 
     // check k
-    if(ctx.problem.IsFp16() && GemmKPack % 4 != 0)
+    if(problem.IsFp16() && GemmKPack % 4 != 0)
         return false;
-    if(ctx.problem.IsBfp16() && GemmKPack % 2 != 0)
+    if(problem.IsBfp16() && GemmKPack % 2 != 0)
         return false;
 
     // check M, N and K
@@ -365,14 +365,13 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
     if(!IsXdlopsSupport(ctx))
         return false;
 
-    std::size_t n = ConvolutionContextInterpreter::GetBatchN(ctx);
-    std::size_t k =
-        ConvolutionContextInterpreter::GetOutputChannelK(ctx) / ctx.problem.group_counts;
-    std::size_t c = ConvolutionContextInterpreter::GetInputChannelC(ctx) / ctx.problem.group_counts;
-    std::size_t y = ConvolutionContextInterpreter::GetFilterHeightY(ctx);
-    std::size_t x = ConvolutionContextInterpreter::GetFilterWidthX(ctx);
-    std::size_t ho = ConvolutionContextInterpreter::GetOutputHeightHo(ctx);
-    std::size_t wo = ConvolutionContextInterpreter::GetOutputWidthWo(ctx);
+    std::size_t n  = ProblemInterpreter::GetBatchN(ctx.problem);
+    std::size_t k  = ProblemInterpreter::GetOutputChannelK(ctx.problem) / ctx.problem.group_counts;
+    std::size_t c  = ProblemInterpreter::GetInputChannelC(ctx.problem) / ctx.problem.group_counts;
+    std::size_t y  = ProblemInterpreter::GetFilterHeightY(ctx.problem);
+    std::size_t x  = ProblemInterpreter::GetFilterWidthX(ctx.problem);
+    std::size_t ho = ProblemInterpreter::GetOutputHeightHo(ctx.problem);
+    std::size_t wo = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
 
     std::size_t GemmM, GemmN, GemmK;
     // forward
@@ -453,7 +452,8 @@ static inline size_t ComputeLDSRequiredSize(const ProblemDescription& problem,
     return lds_size;
 }
 
-static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
+static inline bool use_amd_inline_asm(const ConvolutionContext& ctx,
+                                      const ProblemDescription& problem)
 {
 
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx8"))
@@ -462,7 +462,7 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
     // disable fp16 inline asm for <= gfx900
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(!(StartsWith(device_name, "gfx906") || StartsWith(device_name, "gfx908")) &&
-       ctx.problem.IsFp16())
+       problem.IsFp16())
         return false;
 
     return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});

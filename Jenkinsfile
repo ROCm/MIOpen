@@ -278,7 +278,7 @@ def buildDocker(install_prefix)
     checkout scm
     def image_name = getDockerImageName(install_prefix)
     echo "Building Docker for ${image_name}"
-    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${install_prefix} --build-arg GPU_ARCH='gfx900;gfx906;gfx908;gfx90a;gfx90a:xnack-;gfx1030' --build-arg MIOTENSILE_VER='default' --build-arg USE_TARGETID='OFF' --build-arg USE_MLIR='ON' --build-arg USE_FIN='ON' "
+    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${install_prefix} --build-arg GPU_ARCH='gfx900;gfx906;gfx908;gfx90a:xnack-;gfx1030' --build-arg MIOTENSILE_VER='default' --build-arg USE_TARGETID='OFF' --build-arg USE_MLIR='ON' --build-arg USE_FIN='ON' "
     if(env.CCACHE_HOST)
     {
         def check_host = sh(script:"""(printf "PING\\r\\n";) | nc  -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
@@ -471,7 +471,7 @@ pipeline {
                                 -o -iname \'*.cpp.in\' \
                                 -o -iname \'*.cl\' \
                                 | grep -v -E '(build/)|(install/)' \
-                                | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-10 -style=file {} | diff - {}\'"
+                                | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-12 -style=file {} | diff - {}\'"
                     }
                     steps{
                         buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, needs_gpu:false)

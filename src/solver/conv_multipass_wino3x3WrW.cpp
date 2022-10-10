@@ -566,8 +566,20 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     int unused        = 0;
     int N, C, H, W, K, n_groups, out_H, out_W, R, S;
 
-    GetCompiledInParameters(
-        params, &C, &K, &R, &S, &N, &n_groups, &H, &W, &out_H, &out_W, &unused, &unused);
+    GetCompiledInParameters(params,
+                            params.problem,
+                            &C,
+                            &K,
+                            &R,
+                            &S,
+                            &N,
+                            &n_groups,
+                            &H,
+                            &W,
+                            &out_H,
+                            &out_W,
+                            &unused,
+                            &unused);
     // clang-format off
     BuffInfo
         in_buff_info(
@@ -584,8 +596,8 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
             K, C, R, S,
             GetTypeSize(params.problem.weights_data_type));
 
-    int wino_xform_h = GetSolverWinoXformHWSize(params,0),
-        wino_xform_w = GetSolverWinoXformHWSize(params,1);
+    int wino_xform_h = GetSolverWinoXformHWSize(params.problem, 0),
+        wino_xform_w = GetSolverWinoXformHWSize(params.problem, 1);
     WinogradBufferInfo <WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         // cppcheck-suppress unreadVariable
         wino_in(N,K,C,out_H,out_W,R,S,

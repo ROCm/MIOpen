@@ -58,7 +58,7 @@ struct ConvolutionContext : ExecutionContext
         : problem(in, weights, out, conv, dir, bias_)
     {
     }
-    ConvolutionContext(const ProblemDescription& problem_) : problem(problem_) {}
+    explicit ConvolutionContext(const ProblemDescription& problem_) : problem(problem_) {}
     ConvolutionContext(const conv::ProblemDescription& problem_, const ExecutionContext& ctx)
         : ExecutionContext(ctx), problem(problem_)
     {

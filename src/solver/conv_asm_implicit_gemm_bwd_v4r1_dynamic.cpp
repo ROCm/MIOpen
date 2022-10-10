@@ -43,7 +43,7 @@ static inline bool FindImplicitGemmDynamicKernelBwd(const ProblemDescription& pr
 {
     // TODO: add more dynamic kernel to expand support range, and update this function
     // clang-format off
-    // refer to ConvolutionContextInterpreter, in bwd most dimension is reversed
+    // refer to ProblemInterpreter, in bwd most dimension is reversed
     int hi          = problem.out_height;
     int wi          = problem.out_width;
     int n           = problem.batch_sz;
