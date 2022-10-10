@@ -3111,7 +3111,8 @@ struct PerformanceConvCkIgemmFwdV6r1DlopsNchw
     }
 
     bool SetNextValue(const ConvolutionContext&);
-    bool IsValid(const ConvolutionContext&) const;
+    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx.problem); }
+    bool IsValid(const ProblemDescription&) const;
     bool operator==(const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
     {
         return ck_tunable_list_id == config.ck_tunable_list_id;
@@ -3120,23 +3121,64 @@ struct PerformanceConvCkIgemmFwdV6r1DlopsNchw
 
 struct ConvCkIgemmFwdV6r1DlopsNchw final : ConvTunableSolver<PerformanceConvCkIgemmFwdV6r1DlopsNchw>
 {
+    // To suppress -Woverloaded-virtual
+    using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::GetWorkspaceSize;
+    using ConvTunableSolver::IsApplicable;
+    using ConvTunableSolver::IsValidPerformanceConfig;
+    using ConvTunableSolver::Search;
+
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvCkIgemmFwdV6r1DlopsNchw>();
     }
 
-    bool IsApplicable(const ConvolutionContext&) const override;
-    size_t GetWorkspaceSize(const ConvolutionContext&) const override;
+    bool IsApplicable(const ConvolutionContext& ctx) const override
+    {
+        return IsApplicable(ctx, ctx.problem);
+    }
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
+    {
+        return GetWorkspaceSize(ctx.problem);
+    }
     bool MayNeedWorkspace() const override { return true; }
     bool IsDynamic() const override { return true; }
     PerformanceConvCkIgemmFwdV6r1DlopsNchw
-    GetDefaultPerformanceConfig(const ConvolutionContext&) const override;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
+    {
+        return GetDefaultPerformanceConfig(ctx.problem);
+    }
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                             const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const override
+    {
+        return IsValidPerformanceConfig(ctx.problem, config);
+    }
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw Search(const ConvolutionContext& ctx,
+                                                  const AnyInvokeParams& invoke_ctx) const override
+    {
+        return Search(ctx, ctx.problem, invoke_ctx);
+    }
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const override
+    {
+        return GetSolution(ctx, ctx.problem, config);
+    }
+
+private:
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
+    size_t GetWorkspaceSize(const ProblemDescription&) const;
+    PerformanceConvCkIgemmFwdV6r1DlopsNchw
+    GetDefaultPerformanceConfig(const ProblemDescription&) const;
+    bool IsValidPerformanceConfig(const ProblemDescription&,
+                                  const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const;
     PerformanceConvCkIgemmFwdV6r1DlopsNchw Search(const ConvolutionContext&,
-                                                  const AnyInvokeParams&) const override;
+                                                  const ProblemDescription&,
+                                                  const AnyInvokeParams& invoke_ctx) const;
     ConvSolution GetSolution(const ConvolutionContext&,
-                             const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const override;
+                             const ProblemDescription&,
+                             const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const;
 };
 
 struct ConvDirectNaiveConvFwd final : ConvSolver
