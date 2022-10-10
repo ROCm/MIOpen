@@ -34,13 +34,11 @@
 #include <miopen/stringutils.hpp>
 #include <miopen/tensor.hpp>
 #include <utility>
-
 #include <fusionHost.hpp>
 #include "activ_driver.hpp"
 #include "InputFlags.hpp"
 #include "get_handle.hpp"
 #include "verify.hpp"
-
 #include "gtest/gtest.h"
 
 struct ActivationConfig
@@ -49,7 +47,6 @@ struct ActivationConfig
     size_t C;
     size_t H;
     size_t W;
-    // miopenActivationMode_t activ_mode;
 };
 
 template <class T1, class T2>
@@ -77,14 +74,12 @@ protected:
         double alpha = 0.95;
         double beta  = 2.3;
         double gamma = 3.4;
-        // activ_config = GetParam();
         std::tie(activ_mode, activ_config) = GetParam();
         input = tensor<float>{activ_config.N, activ_config.C, activ_config.H, activ_config.W};
         input.generate(tensor_elem_gen_integer{17});
         dinput_cpu = input;
         dinput_gpu = input;
 
-        // TODO: use miopen API?
         miopenCreateActivationDescriptor(&activ_desc);
         miopenSetActivationDescriptor(activ_desc, activ_mode, alpha, beta, gamma);
 
@@ -108,8 +103,8 @@ protected:
                           static_cast<size_t>(h),
                           static_cast<size_t>(w)};
 
-        std::fill(output_gpu.begin(), output_gpu.end(), 0.0f);
-        std::fill(output_cpu_ref.begin(), output_cpu_ref.end(), 0.0f);
+        std::fill(output_gpu.begin(), output_gpu.end(), NULL);
+        std::fill(output_cpu_ref.begin(), output_cpu_ref.end(), NULL);
 
         // Infer on CPU, forward
         activationHostInfer(activ_mode,
@@ -221,16 +216,15 @@ miopenStatus_t RunActivation(miopen::Handle& handle,
 
 INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
                          TestActivation,
-                         ::testing::Combine(::testing::Values(
-                                                // miopenActivationLOGISTIC,
-                                                // miopenActivationTANH,
-                                                miopenActivationRELU,
-                                                miopenActivationSOFTRELU,
-                                                miopenActivationABS,
-                                                // miopenActivationPOWER,
-                                                // miopenActivationCLIPPEDRELU,
-                                                miopenActivationLEAKYRELU,
-                                                miopenActivationELU),
+                         ::testing::Combine(::testing::Values(miopenActivationLOGISTIC,
+                                                              miopenActivationTANH,
+                                                              miopenActivationRELU,
+                                                              miopenActivationSOFTRELU,
+                                                              miopenActivationABS,
+                                                              miopenActivationPOWER,
+                                                              // miopenActivationCLIPPEDRELU,
+                                                              miopenActivationLEAKYRELU,
+                                                              miopenActivationELU),
 
                                             ::testing::Values(ActivationConfig{128, 128, 16, 16},
                                                               ActivationConfig{128, 16, 16, 16},
