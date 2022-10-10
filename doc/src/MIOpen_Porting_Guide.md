@@ -37,7 +37,7 @@ algorithm. Fall-back to kernels written in high-level language. \
 table display>-->
 <!-- row 1--> <tr></tr>
 <tr></tr> <!--This is to disable-->
-<tbody style="border: 2px solid black; border-collapse: collapse; text-align: left; ">
+<tbody style="border: 2px solid black; border-collapse: collapse; text-align: center; ">
 
 <tr>
 
@@ -54,8 +54,10 @@ table display>-->
 <strong>MIOpen API</strong>
 </td>
 </tr>
+</tbody>
 
 
+<tbody style="border: 2px solid black; border-collapse: collapse; text-align: left; ">
 <tr>
 
 <td>
