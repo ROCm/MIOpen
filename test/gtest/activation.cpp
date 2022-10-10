@@ -71,9 +71,9 @@ struct TestActivation
 protected:
     void SetUp() override
     {
-        double alpha = 0.95;
-        double beta  = 2.3;
-        double gamma = 3.4;
+        double alpha                       = 0.95;
+        double beta                        = 2.3;
+        double gamma                       = 3.4;
         std::tie(activ_mode, activ_config) = GetParam();
         input = tensor<float>{activ_config.N, activ_config.C, activ_config.H, activ_config.W};
         input.generate(tensor_elem_gen_integer{17});
