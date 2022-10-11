@@ -105,7 +105,8 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue(const ConvolutionContext
     return true;
 }
 
-void PerformanceImplicitGemmBwdV1R1Xdlops::HeuristicInit(const ConvolutionContext& ctx, const ProblemDescription& problem)
+void PerformanceImplicitGemmBwdV1R1Xdlops::HeuristicInit(const ConvolutionContext& ctx,
+                                                         const ProblemDescription& problem)
 {
     PerformanceImplicitGemmBwdV1R1Xdlops tmp;
     // loop over certain ranges of tuning parameter
@@ -218,8 +219,10 @@ void PerformanceImplicitGemmBwdV1R1Xdlops::HeuristicInit(const ConvolutionContex
     // second round: really valid
     if(!tmp.IsReallyValid(problem))
     {
-        get_euristic_config(
-            [&ctx, &problem](const auto& config) { std::ignore = ctx; return config.IsReallyValid(problem); });
+        get_euristic_config([&ctx, &problem](const auto& config) {
+            std::ignore = ctx;
+            return config.IsReallyValid(problem);
+        });
     }
 
     // final check
@@ -287,12 +290,10 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmABlockCopyPerformanceParamete
     int ClusterLengths_GemmK      = -1;
     int ClusterLengths_GemmM      = -1;
     int ClusterLengths_GemmKPack  = -1;
-    int SrcDataPerRead_GemmM      = problem.IsFp32()
-                                        ? amd_buffer_load_max_length<float>()
-                                        : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = problem.IsFp32()
-                                        ? amd_lds_write_max_length<float>()
-                                        : amd_lds_write_max_length<half_float::half>();
+    int SrcDataPerRead_GemmM      = problem.IsFp32() ? amd_buffer_load_max_length<float>()
+                                                     : amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? amd_lds_write_max_length<float>()
+                                                     : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -370,12 +371,10 @@ PerformanceImplicitGemmBwdV1R1Xdlops::CalculateGemmBBlockCopyPerformanceParamete
     int ClusterLengths_GemmK      = -1;
     int ClusterLengths_GemmN      = -1;
     int ClusterLengths_GemmKPack  = -1;
-    int SrcDataPerRead_GemmN      = problem.IsFp32()
-                                        ? amd_buffer_load_max_length<float>()
-                                        : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = problem.IsFp32()
-                                        ? amd_lds_write_max_length<float>()
-                                        : amd_lds_write_max_length<half_float::half>();
+    int SrcDataPerRead_GemmN      = problem.IsFp32() ? amd_buffer_load_max_length<float>()
+                                                     : amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? amd_lds_write_max_length<float>()
+                                                     : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -660,7 +659,8 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsFastToBeUsedForTuning(
 // Return false, if you don't want to this to be included in tuning range used by generic search
 // A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
 // false
-bool PerformanceImplicitGemmBwdV1R1Xdlops::IsValid(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool PerformanceImplicitGemmBwdV1R1Xdlops::IsValid(const ConvolutionContext& ctx,
+                                                   const ProblemDescription& problem) const
 {
     return IsReallyValid(problem) && IsFastToBeUsedForTuning(ctx, problem);
 }
@@ -702,8 +702,8 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetDefaultPerformanceConfig(
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdV1R1Xdlops>(ctx, problem);
 }
 
-std::tuple<std::size_t, bool>
-PerformanceImplicitGemmBwdV1R1Xdlops::CalculateLdsNumberOfByte(const ProblemDescription& problem) const
+std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdV1R1Xdlops::CalculateLdsNumberOfByte(
+    const ProblemDescription& problem) const
 {
     const auto a_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
     const auto b_block_space = GemmKPerBlock * GemmNPerBlock * GemmKPack;
@@ -747,7 +747,8 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ProblemDescription&
     }
 }
 
-bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsApplicable(const ConvolutionContext& ctx,
+                                                        const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_251757
     if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS{}))
@@ -807,7 +808,9 @@ ConvHipImplicitGemmBwdDataV1R1Xdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceImplicitGemmBwdV1R1Xdlops& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmBwdV1R1Xdlops& config) const
 {
     ConvSolution result;
 

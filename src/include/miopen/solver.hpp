@@ -1708,10 +1708,7 @@ struct PerformanceImplicitGemmBwdV1R1Xdlops : PerfConfigBase<PerformanceImplicit
     void HeuristicInit(const ConvolutionContext&, const ProblemDescription&);
     bool SetNextValue(const ConvolutionContext&);
     bool IsValidValue() const;
-    bool IsValid(const ConvolutionContext& ctx) const
-    {
-        return IsValid(ctx, ctx.problem);
-    }
+    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx, ctx.problem); }
     bool IsValid(const ConvolutionContext&, const ProblemDescription&) const;
     bool IsReallyValid(const ProblemDescription&) const;
     bool IsFastToBeUsedForTuning(const ConvolutionContext&, const ProblemDescription&) const;
@@ -1987,12 +1984,12 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops final
     : ConvTunableSolver<PerformanceImplicitGemmBwdV1R1Xdlops>
 {
     // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::IsApplicable;
-    using ConvTunableSolver::GetWorkspaceSize;
     using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::GetWorkspaceSize;
+    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::IsValidPerformanceConfig;
     using ConvTunableSolver::Search;
-    using ConvTunableSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
