@@ -64,13 +64,21 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
         }
         return {};
     }
-
-    miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx, conv::Direction dir) const
+    miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx,
+                                                       miopen::batchnorm::Direction dir) const
     {
         const auto& bn_op =
             dynamic_cast<BatchNormInferenceFusionOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
-
-        return {};
+        const auto& bn_args =
+            std::dynamic_pointer_cast<fusion::BatchNormInferenceOpInvokeParam>(bn_op.args);
+        if(dir == miopen::batchnorm::Direction::ForwardInference)
+        {
+            miopen::TensorDescriptor out_desc;
+            bn_op.GetOutputDesc(out_desc);
+            return {bn_op.mode, bn_op.input_desc, out_desc, bn_op.base_desc, bn_args->epsilon};
+        }
+        else
+            MIOPEN_THROW(miopenStatusNotImplemented);
     }
 };
 
@@ -249,7 +257,7 @@ struct BnFwdInferActivationFused final : FusionSolverBase
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<BatchNormInferActivationFused>();
+        return GetSolverDbId<BnFwdInferActivationFused>();
     }
     bool IsApplicable(const FusionContext& params) const override;
     ConvSolution GetSolution(const FusionContext& params) const;

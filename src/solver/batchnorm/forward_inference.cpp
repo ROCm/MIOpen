@@ -40,14 +40,19 @@ namespace solver {
 
 namespace fusion {
 
-bool BnFwdInferActivationFused::IsApplicable(const FusionContext& context) { return true; }
+bool BnFwdInferActivationFused::IsApplicable(const FusionContext& /*context*/) const
+{
+    return true;
+}
 
-ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& fusion_ctx)
+ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& fusion_ctx) const
 {
     const auto& handle = fusion_ctx.GetStream();
     bool bfpmixparm    = false;
     bool bfp16parm     = false;
     bool bfp32parm     = true;
+    const auto problem =
+        fusion_ctx.problem.GetBnProblem(0, miopen::batchnorm::Direction::ForwardInference);
     if(problem.GetXDesc().GetType() == miopenHalf &&
        problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
     {
