@@ -31,6 +31,8 @@ algorithm. Fall-back to kernels written in high-level language. \
 <!-- Tables--> 
 
 ## API differences
+
+<div style="overflow:auto; display:flex; flex-direction:column-reverse;">
 <table style="background: white;" >
 
 <!-- empty rows <tr></tr> were added to disable zebra striping in github's
@@ -2057,3 +2059,4 @@ miopenBatchNormalizationBackward(
 </table>
 
 <br/><br/>
+</div>
