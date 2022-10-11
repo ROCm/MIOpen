@@ -156,10 +156,14 @@ std::array<T, sizeof...(Ts) + 1> make_array(T x, Ts... xs)
     return {{x, xs...}};
 }
 
-// MSVC's preprocessor as well as CPPCHECK's one seem unable
+// MSVC's preprocessor and CPPCHECK seem unable
 // to properly handle some complex stuff. We have to disable
 // some debugging features to avoid build errors.
-#define WORKAROUND_ISSUE_PP_TRANSFORM_ARGS (defined(_MSC_VER) || defined(CPPCHECK))
+#define WORKAROUND_ISSUE_PP_TRANSFORM_ARGS 0
+#if defined(_MSC_VER) || defined(CPPCHECK)
+#undef WORKAROUND_ISSUE_PP_TRANSFORM_ARGS
+#define WORKAROUND_ISSUE_PP_TRANSFORM_ARGS 1
+#endif
 
 #define MIOPEN_LOG_ENUM_EACH(x) std::pair<std::string, decltype(x)>(#x, x)
 #if WORKAROUND_ISSUE_PP_TRANSFORM_ARGS
