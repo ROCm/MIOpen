@@ -30,22 +30,41 @@ algorithm. Fall-back to kernels written in high-level language. \
 <br/><br/><br/><br/>
 <!-- Tables--> 
 
-<table>
-<tr>
-<th> Operation </th>
-<th> cuDNN API </th>
-<th> MIOpen API </th>
-</tr>
+## API differences
+
+<div style="overflow:auto; display:flex; flex-direction:column-reverse;">
+<table style="background: white;" >
 
 <!-- empty rows <tr></tr> were added to disable zebra striping in github's
 table display>-->
 <!-- row 1--> <tr></tr>
 <tr></tr> <!--This is to disable-->
+<tbody style="border: 2px solid black; border-collapse: collapse; text-align: center; ">
+
+<tr>
+
+<td style="border: 2px solid black;">
+<strong>Operation</strong>
+
+</td>
+<td style="border: 2px solid black;">
+
+<strong>cuDNN API</strong>
+</td>
+<td style="border: 2px solid black;">
+
+<strong>MIOpen API</strong>
+</td>
+</tr>
+</tbody>
+
+
+<tbody style="border: 2px solid black; border-collapse: collapse; text-align: left; ">
 <tr>
 
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -53,7 +72,7 @@ cudnnCreate(
     cudnnHandle_t *handle)
 ```
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -62,12 +81,11 @@ miopenCreate(
 ```
 </td>
 </tr>
-
 <!-- row 2--> <tr></tr>
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -76,7 +94,7 @@ cudnnDestroy(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -88,9 +106,9 @@ miopenDestroy(
 <!-- row 3--> <tr></tr>
 <tr>
 <td>
-<strong>Handle<s/trong>
+<strong>Handle</strong>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t
@@ -100,7 +118,7 @@ cudnnSetStream(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t
@@ -111,10 +129,10 @@ miopenSetStream(
 </td>
 </tr>
 <!-- row 4--> <tr></tr>
-<tr>
-<td >
+<tr class="bottom">
+<td>
 </td>
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -124,7 +142,7 @@ cudnnGetStream(
 ```
 </td>
 
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t
@@ -134,11 +152,11 @@ miopenGetStream(
 ```
 </td>
 </tr>
-<!-- row 5--> <tr></tr>
+<!-- row 5--> <tr style="border: 2px solid black;"></tr>
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -147,7 +165,7 @@ cudnnCreateTensorDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -161,7 +179,7 @@ miopenCreateTensorDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -176,7 +194,7 @@ cudnnSetTensor4dDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 // Only `NCHW` format is supported</font> 
@@ -195,7 +213,7 @@ miopenStatus_t miopenSet4dTensorDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -213,7 +231,7 @@ cudnnGetTensor4dDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -235,10 +253,10 @@ miopenGet4dTensorDescriptor(
 
 <tr>
 <td>
-<strong>Tensor<s/trong>
+<strong>Tensor</strong>
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -247,7 +265,7 @@ cudnnDestroyTensorDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t
@@ -261,7 +279,7 @@ miopenDestroyTensorDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -276,7 +294,7 @@ cudnnAddTensor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 //Set tensorOp to miopenOpTensorAdd 
@@ -303,7 +321,7 @@ miopenOpTensor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -322,7 +340,7 @@ cudnnOpTensor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -345,7 +363,7 @@ miopenOpTensor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -357,7 +375,7 @@ cudnnSetTensor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -373,9 +391,9 @@ miopenSetTensor(
 <!-- row 12--> <tr></tr>
 
 <tr>
-<td >
+<td>
 </td>
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -387,7 +405,7 @@ cudnnScaleTensor(
 ```
 </td>
 
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -399,14 +417,14 @@ miopenScaleTensor(
 ```
 </td>
 </tr>
-<!-- row 13--> <tr></tr>
+<!-- row 13--> <tr style="border: 2px solid black;"></tr>
 
 <tr>
 
-<td >
-<strong>Filter<s/trong>
+<td style="border: 1px solid black;">
+<strong>Filter</strong>
 </td>
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -414,7 +432,7 @@ cudnnCreateFilterDescriptor(
     cudnnFilterDescriptor_t *filterDesc)
 ```
 </td>
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 // All *FilterDescriptor* APIs are substituted by 
@@ -424,12 +442,12 @@ cudnnCreateFilterDescriptor(
 
 </tr>
 
-<!-- row 14--> <tr></tr>
+<!-- row 14--> <tr style="border: 2px solid black;"></tr>
 
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -438,7 +456,7 @@ cudnnCreateConvolutionDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -453,7 +471,7 @@ miopenCreateConvolutionDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -469,7 +487,7 @@ cudnnSetConvolution2dDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -489,7 +507,7 @@ miopenInitConvolutionDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -505,7 +523,7 @@ cudnnGetConvolution2dDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -526,7 +544,7 @@ miopenGetConvolutionDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -541,7 +559,7 @@ cudnnGetConvolution2dForwardOutputDim(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -561,7 +579,7 @@ miopenGetConvolutionForwardOutputDim(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -570,7 +588,7 @@ cudnnDestroyConvolutionDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -583,9 +601,9 @@ miopenDestroyConvolutionDescriptor(
 
 <tr>
 <td>
-<strong>Convolution<s/trong>
+<strong>Convolution</strong>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -632,7 +650,7 @@ cudnnGetConvolutionForwardAlgorithm(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 // FindConvolution() is mandatory.
@@ -664,7 +682,7 @@ miopenFindConvolutionForwardAlgorithm(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -679,7 +697,7 @@ cudnnGetConvolutionForwardWorkspaceSize(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -698,7 +716,7 @@ miopenConvolutionForwardGetWorkSpaceSize(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -719,7 +737,7 @@ cudnnConvolutionForward(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -746,7 +764,7 @@ miopenConvolutionForward(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -761,7 +779,7 @@ cudnnConvolutionBackwardBias(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -781,7 +799,7 @@ miopenConvolutionBackwardBias(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -827,7 +845,7 @@ cudnnGetConvolutionBackwardFilterAlgorithm(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 // FindConvolution() is mandatory.
@@ -860,7 +878,7 @@ miopenFindConvolutionBackwardWeightsAlgorithm(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -875,7 +893,7 @@ cudnnGetConvolutionBackwardFilterWorkspaceSize(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -894,7 +912,7 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -915,7 +933,7 @@ cudnnConvolutionBackwardFilter(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -941,7 +959,7 @@ miopenConvolutionBackwardWeights(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -956,7 +974,7 @@ cudnnGetConvolutionBackwardDataWorkspaceSize(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -974,7 +992,7 @@ miopenConvolutionBackwardDataGetWorkSpaceSize(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1021,7 +1039,7 @@ cudnnGetConvolutionBackwardDataAlgorithm(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 // FindConvolution() is mandatory.
@@ -1052,9 +1070,9 @@ miopenFindConvolutionBackwardDataAlgorithm(
 <!-- row 28--> <tr></tr>
 
 <tr>
-<td >
+<td>
 </td>
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1075,7 +1093,7 @@ cudnnConvolutionBackwardData(
 ```
 </td>
 
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
  miopenStatus_t 
@@ -1096,13 +1114,12 @@ cudnnConvolutionBackwardData(
 ```
 </td>
 </tr>
-<!-- row 29--> <tr></tr>
-
+<!-- row 29--> <tr style="border: 2px solid black;"></tr>
 <tr>
 <td>
-<strong>Softmax<s/trong>
+<strong>Softmax</strong>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1119,7 +1136,7 @@ cudnnSoftmaxForward(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1137,9 +1154,9 @@ miopenSoftmaxForward(
 <!-- row 30--> <tr></tr>
 
 <tr>
-<td >
+<td>
 </td>
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1158,7 +1175,7 @@ cudnnSoftmaxBackward(
 ```
 </td>
 
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1175,11 +1192,11 @@ miopenSoftmaxBackward(
 ```
 </td>
 </tr>
-<!-- row 31--> <tr></tr>
+<!-- row 31--> <tr style="border: 2px solid black;"></tr>
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1189,7 +1206,7 @@ cudnnCreatePoolingDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1203,7 +1220,7 @@ miopenCreatePoolingDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1220,7 +1237,7 @@ cudnnSetPooling2dDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1241,7 +1258,7 @@ miopenSet2dPoolingDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1258,7 +1275,7 @@ cudnnGetPooling2dDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1277,9 +1294,9 @@ miopenGet2dPoolingDescriptor(
 <!-- row 34--> <tr></tr>
 <tr>
 <td>
-<strong>Pooling<s/trong>
+<strong>Pooling</strong>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1293,7 +1310,7 @@ cudnnGetPooling2dForwardOutputDim(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1312,7 +1329,7 @@ miopenGetPoolingForwardOutputDim(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1321,7 +1338,7 @@ cudnnDestroyPoolingDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1335,7 +1352,7 @@ miopenDestroyPoolingDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1351,7 +1368,7 @@ cudnnPoolingForward(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1374,11 +1391,11 @@ miopenPoolingForward(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1391,9 +1408,9 @@ miopenPoolingGetWorkSpaceSize(
 <!-- row 38--> <tr></tr>
 
 <tr>
-<td >
+<td>
 </td>
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1413,7 +1430,7 @@ cudnnPoolingBackward(
 ```
 </td>
 
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1434,12 +1451,12 @@ miopenPoolingBackward(
 ```
 </td>
 </tr>
-<!-- row 39--> <tr></tr>
+<!-- row 39--> <tr style="border: 2px solid black;"></tr>
 
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1448,7 +1465,7 @@ cudnnCreateActivationDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1462,7 +1479,7 @@ miopenCreateActivationDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1474,7 +1491,7 @@ cudnnSetActivationDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1491,9 +1508,9 @@ miopenSetActivationDescriptor(
 
 <tr>
 <td>
-<strong>Activation<s/trong>
+<strong>Activation</strong>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1505,7 +1522,7 @@ cudnnGetActivationDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1523,7 +1540,7 @@ miopenGetActivationDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1532,7 +1549,7 @@ cudnnDestroyActivationDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1546,7 +1563,7 @@ miopenDestroyActivationDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1562,7 +1579,7 @@ cudnnActivationForward(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1581,9 +1598,9 @@ miopenActivationForward(
 <!-- row 44--> <tr></tr>
 
 <tr>
-<td >
+<td>
 </td>
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1603,7 +1620,7 @@ cudnnActivationBackward(
 ```
 </td>
 
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1623,11 +1640,11 @@ miopenActivationBackward(
 ```
 </td>
 </tr>
-<!-- row 45--> <tr></tr>
+<!-- row 45--> <tr style="border: 2px solid black;"></tr>
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1636,7 +1653,7 @@ cudnnCreateLRNDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1651,7 +1668,7 @@ miopenCreateLRNDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1664,7 +1681,7 @@ cudnnSetLRNDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1683,7 +1700,7 @@ miopenSetLRNDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1696,7 +1713,7 @@ cudnnGetLRNDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1715,9 +1732,9 @@ miopenGetLRNDescriptor(
 
 <tr>
 <td>
- <strong>LRN<s/trong>
+ <strong>LRN</strong>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1726,7 +1743,7 @@ cudnnDestroyLRNDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1740,7 +1757,7 @@ miopenDestroyLRNDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1757,7 +1774,7 @@ cudnnLRNCrossChannelForward(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1780,7 +1797,7 @@ miopenLRNForward(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1801,7 +1818,7 @@ cudnnLRNCrossChannelBackward(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1823,14 +1840,14 @@ miopenLRNBackward(
 </tr>
 <!-- row 51--> <tr></tr>
 <tr>
-<td >
+<td>
 </td>
-<td >
+<td style="border: 1px solid black;">
 
 
 </td>
 
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1840,12 +1857,12 @@ miopenLRNGetWorkSpaceSize(
 ```
 </td>
 </tr>
-<!-- row 52--> <tr></tr>
+<!-- row 52--> <tr style="border: 2px solid black;"></tr>
 
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1856,7 +1873,7 @@ cudnnDeriveBNTensorDescriptor(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1873,7 +1890,7 @@ miopenDeriveBNTensorDescriptor(
 <tr>
 <td>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1899,7 +1916,7 @@ cudnnBatchNormalizationForwardTraining(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1929,9 +1946,9 @@ miopenBatchNormalizationForwardTraining(
 
 <tr>
 <td>
- <strong>Batch Normalization<s/trong>
+ <strong>Batch Normalization</strong>
 </td>
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -1954,7 +1971,7 @@ cudnnnBatchNormalizationForwardInference(
 ```
 </td>
 
-<td>
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -1980,9 +1997,9 @@ miopenBatchNormalizationForwardInference(
 <!-- row 55--> <tr></tr>
 
 <tr>
-<td >
+<td>
 </td>
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 cudnnStatus_t 
@@ -2010,7 +2027,7 @@ cudnnBatchNormalizationBackward(
 ```
 </td>
 
-<td >
+<td style="border: 1px solid black;">
 
 ```c++
 miopenStatus_t 
@@ -2038,4 +2055,8 @@ miopenBatchNormalizationBackward(
 ```
 </td>
 </tr>
+</tbody>
+</table>
 
+<br/><br/>
+</div>
