@@ -536,6 +536,9 @@ enable_clang_tidy(
         -abseil-*
         -altera-*
         -android-cloexec-fopen
+        # This check is useless for us. Many objects (like tensors or problem descriptions)
+        # naturally have mutiple parameters of the same type.
+        -bugprone-easily-swappable-parameters
         -bugprone-exception-escape
         -bugprone-macro-parentheses
         # too many narrowing conversions in our code
@@ -630,7 +633,6 @@ enable_clang_tidy(
         ###################################################################
         # TODO Code Quality WORKAROUND ROCm 5.1 update
         ###################################################################
-        -bugprone-easily-swappable-parameters
         -bugprone-implicit-widening-of-multiplication-result
         -cert-err33-c
         -google-readability-casting
