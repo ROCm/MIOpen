@@ -650,7 +650,6 @@ enable_clang_tidy(
         -modernize-concat-nested-namespaces
         -readability-redundant-declaration
         -readability-simplify-boolean-expr
-        -bugprone-branch-clone
         -clang-diagnostic-deprecated
         -hicpp-deprecated-headers
         -hicpp-member-init
