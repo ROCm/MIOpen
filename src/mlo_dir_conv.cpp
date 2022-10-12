@@ -148,6 +148,7 @@ static auto GetImplicitGemmSolvers()
         miopen::solver::ConvCkIgemmFwdV6r1DlopsNchw,
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopen::solver::ConvHipImplicitGemmFwdXdlops,
+        miopen::solver::ConvHipImplicitGemmBwdDataXdlops,
 #endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>{};
 }
