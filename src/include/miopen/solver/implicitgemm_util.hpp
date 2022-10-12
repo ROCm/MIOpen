@@ -423,7 +423,8 @@ inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
 
 ///\todo remove
 template <class PerformanceImplicitGemm_t>
-inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx, const ProblemDescription& problem)
+inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx,
+                                            const ProblemDescription& problem)
 {
     PerformanceImplicitGemm_t pp;
     pp.HeuristicInit(ctx, problem);
