@@ -67,15 +67,48 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
     miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx,
                                                        miopen::batchnorm::Direction dir) const
     {
-        const auto& bn_op =
-            dynamic_cast<BatchNormInferenceFusionOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
-        const auto& bn_args =
-            std::dynamic_pointer_cast<fusion::BatchNormInferenceOpInvokeParam>(bn_op.args);
         if(dir == miopen::batchnorm::Direction::ForwardInference)
         {
+            const auto& bn_op =
+                dynamic_cast<BatchNormInferenceFusionOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
             miopen::TensorDescriptor out_desc;
             bn_op.GetOutputDesc(out_desc);
+            const auto& bn_args =
+                std::dynamic_pointer_cast<fusion::BatchNormInferenceOpInvokeParam>(bn_op.args);
             return {bn_op.mode, bn_op.input_desc, out_desc, bn_op.base_desc, bn_args->epsilon};
+        }
+        else if(dir == miopen::batchnorm::Direction::ForwardTraining)
+        {
+            const auto& bn_op =
+                dynamic_cast<BatchNormFwdTrainFusionOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
+            miopen::TensorDescriptor out_desc;
+            bn_op.GetOutputDesc(out_desc);
+            const auto& bn_args =
+                std::dynamic_pointer_cast<fusion::BatchNormFwdTrainingOpInvokeParam>(bn_op.args);
+            return {bn_op.mode,
+                    bn_op.input_desc,
+                    out_desc,
+                    bn_op.base_desc,
+                    bn_args->expAvgFactor,
+                    bn_args->epsilon,
+                    true /* resultSave*/,
+                    bn_op.runningMeanVar};
+        }
+        else if(dir == miopen::batchnorm::Direction::Backward)
+        {
+            const auto& bn_op =
+                dynamic_cast<BatchNormBwdTrainFusionOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
+            miopen::TensorDescriptor out_desc;
+            bn_op.GetOutputDesc(out_desc);
+            const auto& bn_args =
+                std::dynamic_pointer_cast<fusion::BatchNormBwdTrainingOpInvokeParam>(bn_op.args);
+            return {bn_op.mode,
+                    bn_op.input_desc,
+                    out_desc,
+                    bn_op.input_desc,
+                    {} /*bn_op.base_desc*/,
+                    bn_args->epsilon,
+                    bn_op.useBatchStats /*useSaved*/};
         }
         else
             MIOPEN_THROW(miopenStatusNotImplemented);
@@ -258,6 +291,16 @@ struct BnFwdInferActivationFused final : FusionSolverBase
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<BnFwdInferActivationFused>();
+    }
+    bool IsApplicable(const FusionContext& params) const override;
+    ConvSolution GetSolution(const FusionContext& params) const;
+};
+
+struct BnFwdTrgActivationFused final : FusionSolverBase
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<BnFwdTrgActivationFused>();
     }
     bool IsApplicable(const FusionContext& params) const override;
     ConvSolution GetSolution(const FusionContext& params) const;
