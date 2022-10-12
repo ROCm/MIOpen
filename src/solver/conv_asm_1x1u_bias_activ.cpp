@@ -102,9 +102,9 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(
     auto cba_ctx      = ctx;
     auto& cba_problem = cba_ctx.problem;
 
-    cba_problem.bias = 1;
-    cba_problem.bias_sz =
-        cba_problem.n_outputs * ((cba_problem.out_data_type == miopenHalf) ? 2 : 4);
+    cba_problem.bias    = 1;
+    cba_problem.bias_sz = static_cast<size_t>(cba_problem.n_outputs *
+                                              ((cba_problem.out_data_type == miopenHalf) ? 2 : 4));
     if(!cba_problem.direction.IsForward())
         MIOPEN_THROW("Only inference supported.");
 

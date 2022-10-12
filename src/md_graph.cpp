@@ -1196,10 +1196,7 @@ void FusionMDGraph::Reset()
 #ifdef CPPCHECK
 // There are false positives with MIOPEN_ENUM_ARR.
 // See comment near WORKAROUND_ISSUE_PP_TRANSFORM_ARGS in logger.
-void FusionMDGraph::WriteToFile(std::string filename)
-{
-    (void)filename;
-}
+void FusionMDGraph::WriteToFile(std::string filename) { (void)filename; }
 #else
 // guard for debug only
 #define MIOPEN_ENUM_STR(x) std::pair<decltype(x), std::string>(x, #x)

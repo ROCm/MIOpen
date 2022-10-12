@@ -633,7 +633,6 @@ enable_clang_tidy(
         ###################################################################
         # TODO Code Quality WORKAROUND ROCm 5.1 update
         ###################################################################
-        -bugprone-implicit-widening-of-multiplication-result
         -cert-err33-c
         -google-readability-casting
         -hicpp-use-emplace
