@@ -5155,6 +5155,72 @@ struct ConvHipImplicitGemmFwdXdlops final
                        const PerformanceConfigHipImplicitGemmFwdXdlops& config) const;
 };
 
+struct PerformanceConfigHipImplicitGemmBwdDataXdlops
+    : PerfConfigBase<PerformanceConfigHipImplicitGemmBwdDataXdlops>
+{
+    int index;
+    std::string kernel_id;
+    int total_size;
+    PerformanceConfigHipImplicitGemmBwdDataXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id), total_size(-1)
+    {
+    }
+    PerformanceConfigHipImplicitGemmBwdDataXdlops()
+        : PerformanceConfigHipImplicitGemmBwdDataXdlops(0, "")
+    {
+    }
+    PerformanceConfigHipImplicitGemmBwdDataXdlops(bool)
+        : PerformanceConfigHipImplicitGemmBwdDataXdlops(0, "")
+    {
+    }
+    void HeuristicInit(const ConvolutionContext& ctx);
+    bool SetNextValue(const ConvolutionContext& ctx);
+    bool IsValidValue() const;
+    bool IsValid(const ConvolutionContext& ctx) const;
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigHipImplicitGemmBwdDataXdlops& other) const;
+    template <typename DataType>
+    void Init(const ConvolutionContext& ctx);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const ConvolutionContext& ctx) const;
+};
+
+struct ConvHipImplicitGemmBwdDataXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemmBwdDataXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemmBwdDataXdlops>();
+    }
+
+    PerformanceConfigHipImplicitGemmBwdDataXdlops
+    GetDefaultPerformanceConfig(const ConvolutionContext&) const override;
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext&,
+                             const PerformanceConfigHipImplicitGemmBwdDataXdlops&) const override;
+    PerformanceConfigHipImplicitGemmBwdDataXdlops
+    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const override;
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
+    bool MayNeedWorkspace() const override { return false; }
+    bool IsApplicable(const ConvolutionContext& ctx) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution
+    GetSolution(const ConvolutionContext& ctx,
+                const PerformanceConfigHipImplicitGemmBwdDataXdlops& config) const override;
+    float GetWti(const ConvolutionContext&) const override { return 0.02f; };
+    template <typename DataType>
+    bool CheckCKApplicability(const ConvolutionContext& ctx) const;
+    template <typename DataType>
+    void RunCKSolution(const Handle& handle,
+                       const AnyInvokeParams& primitive_parameters,
+                       const ConvolutionContext& ctx,
+                       const PerformanceConfigHipImplicitGemmBwdDataXdlops& config) const;
+};
+
 struct AnySolver;
 
 } // namespace solver
