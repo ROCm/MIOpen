@@ -50,7 +50,7 @@
 // convolutions leads to performance drops. Let's enable ConvBinWinoRxS<2,3> for non-group
 // in order to quickly W/A the perf issue. When find-db fix is ready,
 // we will keep ConvBinWinoRxS<2,3> for group convolutions only.
-#define WORKAROUND_ISSUE_1681 1
+#define WORKAROUND_ISSUE_1681 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
@@ -919,10 +919,6 @@ bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
-#if !WORKAROUND_ISSUE_1681
-    if(problem.direction.IsBackwardWrW())
-        return false;
-#endif
     return IsApplicableBase(ctx, problem) && problem.group_counts == 1;
 }
 
