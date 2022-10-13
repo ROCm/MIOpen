@@ -271,9 +271,9 @@ miopenStatus_t RunBwdActivation(miopen::Handle& handle,
     return status;
 }
 
-TYPED_TEST_SUITE_P(TestActivation);
+TYPED_TEST_CASE(TestActivation, TestTypes);
 
-TYPED_TEST_P(TestActivation, ActivationFwdTest)
+TYPED_TEST(TestActivation, ActivationFwdTest)
 {
     const float alpha = 1.0f, beta = 0;
     miopenStatus_t status = RunFwdActivation(get_handle(),
@@ -288,7 +288,7 @@ TYPED_TEST_P(TestActivation, ActivationFwdTest)
     EXPECT_EQ(status, miopenStatusSuccess);
 }
 
-TYPED_TEST_P(TestActivation, ActivationBwdTest)
+TYPED_TEST(TestActivation, ActivationBwdTest)
 {
     const float alpha = 1.0f, beta = 0;
     miopenStatus_t status = RunBwdActivation(get_handle(),
@@ -306,7 +306,3 @@ TYPED_TEST_P(TestActivation, ActivationBwdTest)
 
     EXPECT_EQ(status, miopenStatusSuccess);
 }
-
-REGISTER_TYPED_TEST_SUITE_P(TestActivation, ActivationFwdTest, ActivationBwdTest);
-
-INSTANTIATE_TYPED_TEST_CASE_P(Activation, TestActivation, TestTypes);
