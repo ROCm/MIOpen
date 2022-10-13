@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -49,6 +49,43 @@ struct ActivationConfig
     size_t W;
 };
 
+struct ActivationLOGISTIC
+{
+    inline static constexpr miopenActivationMode_t activMode = miopenActivationLOGISTIC;
+};
+struct ActivationRELU
+{
+    inline static constexpr miopenActivationMode_t activMode = miopenActivationRELU;
+};
+
+struct Config1
+{
+    inline static constexpr ActivationConfig config{128, 128, 16, 16};
+};
+struct Config2
+{
+    inline static constexpr ActivationConfig config{128, 16, 16, 16};
+};
+
+template <class T, class M, class C> // Type, Mode, Config
+struct TestCase
+{
+    using type = T; // half_float::half int8_t  float bfloat16 double
+
+    static constexpr miopenActivationMode_t getMode() { return M::activMode; }
+
+    static constexpr ActivationConfig getConfig() { return C::config; }
+};
+
+using TestTypes = ::testing::Types<TestCase<float, ActivationLOGISTIC, Config1>,
+                                   TestCase<float, ActivationLOGISTIC, Config2>,
+                                   TestCase<float, ActivationRELU, Config1>,
+                                   TestCase<float, ActivationRELU, Config2>,
+                                   TestCase<double, ActivationLOGISTIC, Config1>,
+                                   TestCase<double, ActivationLOGISTIC, Config2>,
+                                   TestCase<double, ActivationRELU, Config1>,
+                                   TestCase<double, ActivationRELU, Config2>>;
+
 template <class T1, class T2>
 void CompareTensors(T1&& t1, T2&& t2)
 {
@@ -65,17 +102,20 @@ void CompareTensors(T1&& t1, T2&& t2)
     return;
 }
 
-struct TestActivation
-    : public ::testing::TestWithParam<std::tuple<miopenActivationMode_t, ActivationConfig>>
+template <class T>
+struct TestActivation : public ::testing::Test
 {
 protected:
+    using tensorType = typename T::type;
+
     void SetUp() override
     {
-        double alpha                       = 0.95;
-        double beta                        = 2.3;
-        double gamma                       = 3.4;
-        std::tie(activ_mode, activ_config) = GetParam();
-        input = tensor<float>{activ_config.N, activ_config.C, activ_config.H, activ_config.W};
+        double alpha = 0.95;
+        double beta  = 2.3;
+        double gamma = 3.4;
+        activ_mode   = T::getMode();
+        activ_config = T::getConfig();
+        input = tensor<tensorType>{activ_config.N, activ_config.C, activ_config.H, activ_config.W};
         input.generate(tensor_elem_gen_integer{17});
         dinput_cpu = input;
         dinput_gpu = input;
@@ -86,22 +126,27 @@ protected:
         std::size_t n, c, h, w;
         auto&& handle        = get_handle();
         std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
+        EXPECT_EQ(n, activ_config.N);
+        EXPECT_EQ(c, activ_config.C);
+        EXPECT_EQ(h, activ_config.H);
+        EXPECT_EQ(w, activ_config.W);
+
         size_t total_mem =
-            6 * input.desc.GetNumBytes(); // estimate based on both forward and backward passes
+            4 * input.desc.GetNumBytes(); // estimate based on both forward and backward passes
         size_t device_mem = handle.GetGlobalMemorySize();
 
         ASSERT_LT(total_mem, device_mem) << "Tensor exceeds system memory size";
 
-        output_gpu =
-            tensor<float>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
-                          static_cast<size_t>(c),
-                          static_cast<size_t>(h),
-                          static_cast<size_t>(w)};
-        output_cpu_ref =
-            tensor<float>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
-                          static_cast<size_t>(c),
-                          static_cast<size_t>(h),
-                          static_cast<size_t>(w)};
+        output_gpu = tensor<tensorType>{
+            static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
+            static_cast<size_t>(c),
+            static_cast<size_t>(h),
+            static_cast<size_t>(w)};
+        output_cpu_ref = tensor<tensorType>{
+            static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
+            static_cast<size_t>(c),
+            static_cast<size_t>(h),
+            static_cast<size_t>(w)};
 
         std::fill(output_gpu.begin(), output_gpu.end(), NULL);
         std::fill(output_cpu_ref.begin(), output_cpu_ref.end(), NULL);
@@ -142,23 +187,23 @@ protected:
     {
         auto&& handle = get_handle();
         // Read data from GPU
-        output_gpu.data = handle.Read<float>(out_dev, output_gpu.data.size());
+        output_gpu.data = handle.Read<tensorType>(out_dev, output_gpu.data.size());
 
         CompareTensors(output_cpu_ref, output_gpu);
 
-        dinput_gpu.data = handle.Read<float>(din_dev, dinput_gpu.data.size());
+        dinput_gpu.data = handle.Read<tensorType>(din_dev, dinput_gpu.data.size());
 
         CompareTensors(dinput_cpu, dinput_gpu);
         miopenDestroyActivationDescriptor(activ_desc);
     }
 
-    tensor<float> input; // x
-    tensor<float> output_gpu;
-    tensor<float> output_cpu_ref; // y
+    tensor<tensorType> input; // x
+    tensor<tensorType> output_gpu;
+    tensor<tensorType> output_cpu_ref; // y
 
-    tensor<float> dinput_cpu; // dx
-    tensor<float> dinput_gpu;
-    tensor<float> doutput;
+    tensor<tensorType> dinput_cpu; // dx
+    tensor<tensorType> dinput_gpu;
+    tensor<tensorType> doutput;
 
     ActivationConfig activ_config;
     miopenActivationMode_t activ_mode;
@@ -169,86 +214,99 @@ protected:
     miopen::Allocator::ManageDataPtr dout_dev; // dy
 };
 
-miopenStatus_t RunActivation(miopen::Handle& handle,
-                             miopenActivationDescriptor_t activationDesc,
-                             const void* alpha,
-                             const miopen::TensorDescriptor& xDesc,
-                             ConstData_t x,
-                             const void* beta,
-                             const miopen::TensorDescriptor& yDesc,
-                             Data_t y,
-                             const miopen::TensorDescriptor& dyDesc,
-                             ConstData_t dy,
-                             const miopen::TensorDescriptor& dxDesc,
-                             Data_t dx)
+miopenStatus_t RunFwdActivation(miopen::Handle& handle,
+                                miopenActivationDescriptor_t activationDesc,
+                                const void* alpha,
+                                const miopen::TensorDescriptor& xDesc,
+                                ConstData_t x,
+                                const void* beta,
+                                const miopen::TensorDescriptor& yDesc,
+                                Data_t y)
 {
     if(alpha == nullptr || beta == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "alpha or beta is NULL");
 
     miopen::ActivationDescriptor desc = miopen::deref(activationDesc);
-    miopenStatus_t fwdStatus          = desc.Forward(handle,
-                                            alpha,
-                                            xDesc, // input.desc
-                                            x,     // in_dev.get()
-                                            beta,
-                                            yDesc, // output_gpu.desc
-                                            y);    // out_dev.get()
+    miopenStatus_t status             = desc.Forward(handle,
+                                         alpha,
+                                         xDesc, // input.desc
+                                         x,     // in_dev.get()
+                                         beta,
+                                         yDesc, // output_gpu.desc
+                                         y);    // out_dev.get()
 
-    miopenStatus_t bwdStatus = desc.Backward(handle,
-                                             alpha,
-                                             yDesc, // out.desc
-                                             y,     // out_dev.get()
-                                             dyDesc,
-                                             dy,
-                                             xDesc, // input.desc
-                                             x,
-                                             beta,
-                                             dxDesc,
-                                             dx);
-
-    if(fwdStatus == miopenStatusSuccess && bwdStatus == miopenStatusSuccess)
-        return miopenStatusSuccess;
-    else if(fwdStatus != miopenStatusSuccess)
-        return fwdStatus;
-    else
-        return bwdStatus;
+    return status;
 }
 
-INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
-                         TestActivation,
-                         ::testing::Combine(::testing::Values(miopenActivationLOGISTIC,
-                                                              miopenActivationTANH,
-                                                              miopenActivationRELU,
-                                                              miopenActivationSOFTRELU,
-                                                              miopenActivationABS,
-                                                              miopenActivationPOWER,
-                                                              // miopenActivationCLIPPEDRELU,
-                                                              miopenActivationLEAKYRELU,
-                                                              miopenActivationELU),
+miopenStatus_t RunBwdActivation(miopen::Handle& handle,
+                                miopenActivationDescriptor_t activationDesc,
+                                const void* alpha,
+                                const miopen::TensorDescriptor& xDesc,
+                                ConstData_t x,
+                                const void* beta,
+                                const miopen::TensorDescriptor& yDesc,
+                                Data_t y,
+                                const miopen::TensorDescriptor& dyDesc,
+                                ConstData_t dy,
+                                const miopen::TensorDescriptor& dxDesc,
+                                Data_t dx)
+{
+    if(alpha == nullptr || beta == nullptr)
+        MIOPEN_THROW(miopenStatusBadParm, "alpha or beta is NULL");
 
-                                            ::testing::Values(ActivationConfig{128, 128, 16, 16},
-                                                              ActivationConfig{128, 16, 16, 16},
-                                                              ActivationConfig{16, 128, 16, 16},
-                                                              ActivationConfig{16, 32, 8, 8},
-                                                              ActivationConfig{32, 16, 8, 8},
-                                                              ActivationConfig{2, 16, 5, 4},
-                                                              ActivationConfig{2, 2, 2, 2})));
+    miopen::ActivationDescriptor desc = miopen::deref(activationDesc);
 
-TEST_P(TestActivation, ActivationFwdBwdTest)
+    miopenStatus_t status = desc.Backward(handle,
+                                          alpha,
+                                          yDesc, // out.desc
+                                          y,     // out_dev.get()
+                                          dyDesc,
+                                          dy,
+                                          xDesc, // input.desc
+                                          x,
+                                          beta,
+                                          dxDesc,
+                                          dx);
+
+    return status;
+}
+
+TYPED_TEST_SUITE_P(TestActivation);
+
+TYPED_TEST_P(TestActivation, ActivationFwdTest)
 {
     const float alpha = 1.0f, beta = 0;
-    miopenStatus_t status = RunActivation(get_handle(),
-                                          activ_desc,
-                                          &alpha,
-                                          input.desc, // x
-                                          in_dev.get(),
-                                          &beta,
-                                          output_gpu.desc, // y
-                                          out_dev.get(),
-                                          doutput.desc, // dy
-                                          dout_dev.get(),
-                                          dinput_gpu.desc, // dx
-                                          din_dev.get());
+    miopenStatus_t status = RunFwdActivation(get_handle(),
+                                             this->activ_desc,
+                                             &alpha,
+                                             this->input.desc, // x
+                                             this->in_dev.get(),
+                                             &beta,
+                                             this->output_gpu.desc, // y
+                                             this->out_dev.get());
 
     EXPECT_EQ(status, miopenStatusSuccess);
 }
+
+TYPED_TEST_P(TestActivation, ActivationBwdTest)
+{
+    const float alpha = 1.0f, beta = 0;
+    miopenStatus_t status = RunBwdActivation(get_handle(),
+                                             this->activ_desc,
+                                             &alpha,
+                                             this->input.desc, // x
+                                             this->in_dev.get(),
+                                             &beta,
+                                             this->output_gpu.desc, // y
+                                             this->out_dev.get(),
+                                             this->doutput.desc, // dy
+                                             this->dout_dev.get(),
+                                             this->dinput_gpu.desc, // dx
+                                             this->din_dev.get());
+
+    EXPECT_EQ(status, miopenStatusSuccess);
+}
+
+REGISTER_TYPED_TEST_SUITE_P(TestActivation, ActivationFwdTest, ActivationBwdTest);
+
+INSTANTIATE_TYPED_TEST_CASE_P(Activation, TestActivation, TestTypes);
