@@ -76,9 +76,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmM     = 0;
     int ClusterLengths_GemmKPack = 0;
-    int SrcDataPerRead_GemmM     = problem.IsFp32()
-                                       ? amd_buffer_load_max_length<float>()
-                                       : amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmM     = problem.IsFp32() ? amd_buffer_load_max_length<float>()
+                                                    : amd_buffer_load_max_length<half_float::half>();
 
     int DstDataPerWrite_GemmKPack = problem.IsFp32()
                                         ? amd_buffer_load_max_length<float>()
@@ -170,13 +169,11 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmN     = 0;
     int ClusterLengths_GemmKPack = 0;
-    int SrcDataPerRead_GemmN     = problem.IsFp32()
-                                       ? amd_buffer_load_max_length<float>()
-                                       : amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmN     = problem.IsFp32() ? amd_buffer_load_max_length<float>()
+                                                    : amd_buffer_load_max_length<half_float::half>();
 
-    int DstDataPerWrite_GemmKPack = problem.IsFp32()
-                                        ? amd_lds_write_max_length<float>()
-                                        : amd_lds_write_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? amd_lds_write_max_length<float>()
+                                                     : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -330,8 +327,7 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV4R1Xdlops::Calculat
             GemmKPerBlock * integer_least_multiple(GemmMPerBlock, max_lds_align);
         const auto b_block_space =
             GemmKPerBlock * integer_least_multiple(GemmNPerBlock, max_lds_align);
-        lds_size =
-            (a_block_space + b_block_space) * GetTypeSize(problem.in_data_type) * GemmKPack;
+        lds_size = (a_block_space + b_block_space) * GetTypeSize(problem.in_data_type) * GemmKPack;
     }
     catch(...)
     {
@@ -341,7 +337,8 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV4R1Xdlops::Calculat
     return std::make_tuple(lds_size, true);
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ProblemDescription& problem) const
+bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(
+    const ProblemDescription& problem) const
 {
     if(!IsValidValue())
         return false;
@@ -355,7 +352,8 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ProblemDescri
     if(problem.IsBfp16() && GemmKPACKSize % 2 != 0)
         return false;
     // check blockwise GEMM size
-    for(int gemm_id = 0; gemm_id < ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(problem);
+    for(int gemm_id = 0;
+        gemm_id < ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(problem);
         ++gemm_id)
     {
 
@@ -512,7 +510,8 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(
     return true;
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValid(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValid(const ConvolutionContext& ctx,
+                                                       const ProblemDescription& problem) const
 {
 
     return IsReallyValid(problem) && IsFastToBeUsedForTuning(ctx, problem);
@@ -604,7 +603,8 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue(const ConvolutionCon
     return true;
 }
 
-void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionContext& ctx, const ProblemDescription& problem)
+void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionContext& ctx,
+                                                             const ProblemDescription& problem)
 {
     PerformanceImplicitGemmBwdDataV4R1Xdlops tmp;
 
@@ -714,8 +714,10 @@ void PerformanceImplicitGemmBwdDataV4R1Xdlops::HeuristicInit(const ConvolutionCo
     // second round: really valid
     if(!tmp.IsReallyValid(problem))
     {
-        get_euristic_config(
-            [&ctx, &problem](const auto& config) { std::ignore = ctx; return config.IsReallyValid(problem); });
+        get_euristic_config([&ctx, &problem](const auto& config) {
+            std::ignore = ctx;
+            return config.IsReallyValid(problem);
+        });
     }
 
     // final check
@@ -744,7 +746,8 @@ int ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateNumberOfGemm(const ProblemDes
 }
 
 std::tuple<int, int, int, int>
-ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ProblemDescription& problem, int gemm_id)
+ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ProblemDescription& problem,
+                                                        int gemm_id)
 {
     const auto g               = ProblemInterpreter::GetGroupCountG(problem);
     const auto n               = ProblemInterpreter::GetBatchN(problem);
@@ -803,7 +806,8 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::CalculateGemmSize(const ProblemDescription
     return std::make_tuple(g, gemm_m, gemm_n, gemm_k);
 }
 
-bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ConvolutionContext& ctx,
+                                                        const ProblemDescription& problem) const
 {
 #if WORKAROUND_ISSUE_1206
     if(problem.IsFp32())
@@ -881,7 +885,9 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::Search(const ConvolutionContext& ctx,
 }
 
 ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
 {
     ConvSolution result;
 
