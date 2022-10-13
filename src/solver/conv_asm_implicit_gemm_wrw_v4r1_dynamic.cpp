@@ -393,7 +393,8 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionConte
         int grid_size_redcution  = problem.n_outputs * problem.n_inputs * problem.kernel_size_h *
                                   problem.kernel_size_w /
                                   (reduction_per_thread * block_size_reduction);
-        kernel_reduction.g_wk.push_back(static_cast<std::size_t>(grid_size_redcution) * block_size_reduction);
+        kernel_reduction.g_wk.push_back(static_cast<std::size_t>(grid_size_redcution) *
+                                        block_size_reduction);
         kernel_reduction.g_wk.push_back(1);
         kernel_reduction.g_wk.push_back(1);
         kernel_reduction.l_wk.clear();

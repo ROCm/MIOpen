@@ -216,7 +216,8 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
                 return false;
         if(limit_wave_cnt != 0 && limit_wave_cnt * 4 < n_per_group)
             return false;
-        const auto lds_size = static_cast<std::size_t>(n_per_group - 1) * solver::wave_size * sizeof(float) * accums_cnt;
+        const auto lds_size = static_cast<std::size_t>(n_per_group - 1) * solver::wave_size *
+                              sizeof(float) * accums_cnt;
         if(!(lds_size <= 65536))
             return false;
 

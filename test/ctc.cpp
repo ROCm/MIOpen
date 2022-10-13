@@ -534,7 +534,8 @@ void GetCTCLossWorkspaceSizeCPU(std::vector<int> probsDesc,
     wksp_sz_dat += static_cast<unsigned long>(max_time_step) * batch_size * class_sz;
 
     // alphas
-    wksp_sz_dat += static_cast<unsigned long>(max_time_step) * batch_size * (2UL * max_label_len + 1);
+    wksp_sz_dat +=
+        static_cast<unsigned long>(max_time_step) * batch_size * (2UL * max_label_len + 1);
 
     *workSpaceSizeCPU = (wksp_sz_dat + wksp_sz_lb) * sizeof(T);
 }

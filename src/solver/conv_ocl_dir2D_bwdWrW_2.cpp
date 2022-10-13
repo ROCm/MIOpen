@@ -241,7 +241,8 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
     // Check 1: n_back_loops
     // Ensure that the total amount of system memory used by intermediate object
     // that holds the weights of x number of batches doesn't exceed system memory
-    size_t wei_cstride = static_cast<size_t>(params.problem.kernel_size_h * params.problem.kernel_size_w);
+    size_t wei_cstride =
+        static_cast<size_t>(params.problem.kernel_size_h) * params.problem.kernel_size_w;
     size_t wei_bstride = (params.problem.n_outputs / params.problem.group_counts) * wei_cstride;
 
     // number  of batch iterations
@@ -283,7 +284,8 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
         return false;
     }
 
-    size_t total_out_channels = static_cast<std::size_t>(n_out_channels_tiles) * n_out_channels_per_tile;
+    size_t total_out_channels =
+        static_cast<std::size_t>(n_out_channels_tiles) * n_out_channels_per_tile;
     if(total_out_channels > n_output_channels_per_group)
     {
         return false;

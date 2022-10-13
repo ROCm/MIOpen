@@ -262,19 +262,23 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     // grid for transpose kernels
     if((in_h == 7) && (in_w == 7))
     {
-        local_work_size[5][0]  = 256;
-        global_work_size[5][0] = static_cast<size_t>((1 + N / 16) * (out_n * out_c / 16)) * local_work_size[5][0];
+        local_work_size[5][0] = 256;
+        global_work_size[5][0] =
+            static_cast<size_t>((1 + N / 16) * (out_n * out_c / 16)) * local_work_size[5][0];
     }
     else if((in_h == 14) && (in_w == 14))
     {
-        local_work_size[2][0]  = 256;
-        global_work_size[2][0] = static_cast<size_t>((1 + N / 16) * (in_c * out_n / 16)) * local_work_size[2][0];
+        local_work_size[2][0] = 256;
+        global_work_size[2][0] =
+            static_cast<size_t>((1 + N / 16) * (in_c * out_n / 16)) * local_work_size[2][0];
 
-        local_work_size[3][0]  = 256;
-        global_work_size[3][0] = static_cast<size_t>((1 + N / 16) * (in_c * out_c / 16)) * local_work_size[3][0];
+        local_work_size[3][0] = 256;
+        global_work_size[3][0] =
+            static_cast<size_t>((1 + N / 16) * (in_c * out_c / 16)) * local_work_size[3][0];
 
-        local_work_size[5][0]  = 256;
-        global_work_size[5][0] = static_cast<size_t>((1 + N / 16) * (out_n * out_c / 16)) * local_work_size[5][0];
+        local_work_size[5][0] = 256;
+        global_work_size[5][0] =
+            static_cast<size_t>((1 + N / 16) * (out_n * out_c / 16)) * local_work_size[5][0];
     }
     else
     {
@@ -291,15 +295,18 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
 
         local_work_size[2][0] = 256;
         global_work_size[2][0] =
-            static_cast<size_t>((N / in_tranpose_bwidth) * (in_c * out_n / in_tranpose_bwidth)) * local_work_size[2][0];
+            static_cast<size_t>((N / in_tranpose_bwidth) * (in_c * out_n / in_tranpose_bwidth)) *
+            local_work_size[2][0];
 
         local_work_size[3][0] = 256;
         global_work_size[3][0] =
-            static_cast<size_t>((N / wt_tranpose_bwidth) * (in_c * out_c / wt_tranpose_bwidth)) * local_work_size[3][0];
+            static_cast<size_t>((N / wt_tranpose_bwidth) * (in_c * out_c / wt_tranpose_bwidth)) *
+            local_work_size[3][0];
 
         local_work_size[5][0] = 256;
         global_work_size[5][0] =
-            static_cast<size_t>((N / ot_tranpose_bwidth) * (out_n * out_c / ot_tranpose_bwidth)) * local_work_size[5][0];
+            static_cast<size_t>((N / ot_tranpose_bwidth) * (out_n * out_c / ot_tranpose_bwidth)) *
+            local_work_size[5][0];
     }
 
     // cgemm kernel options

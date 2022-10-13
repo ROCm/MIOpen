@@ -828,7 +828,8 @@ ConvHipImplicitGemmBwdDataV4R1::GetSolution(const ConvolutionContext& ctx,
             construction_parameters.l_wk.push_back(1);
             construction_parameters.l_wk.push_back(1);
 
-            construction_parameters.g_wk.push_back(static_cast<std::size_t>(config.BlockSize) * grid_size);
+            construction_parameters.g_wk.push_back(static_cast<std::size_t>(config.BlockSize) *
+                                                   grid_size);
             construction_parameters.g_wk.push_back(1);
             construction_parameters.g_wk.push_back(1);
 
