@@ -411,7 +411,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(const ConvolutionCo
     std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(ctx);
 
-    return (valid and lds_size <= 64 * 1024);
+    return (valid and lds_size <= static_cast<std::size_t>(64) * 1024);
 }
 
 bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsFastToBeUsedForTuning(

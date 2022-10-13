@@ -337,7 +337,7 @@ GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(
     const auto gemm_m = (n / splits_4G) * ho * wo;
     const auto gemm_n = k / group;
     size_t block_size = config.BlockSize();
-    size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
+    size_t grid_size  = static_cast<size_t>(group) * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
                        integer_divide_ceil(gemm_n, config.gemm_n_per_block) *
                        (1 << config.gemm_k_global_split);
     std::string kernel_name = config.ToKernelName(ctx);
@@ -490,9 +490,9 @@ void PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::HeuristicInit(
     const auto& x         = problem.kernel_size_w;
     const auto& group     = problem.group_counts;
 
-    size_t gemm_m = n * ho * wo;
+    size_t gemm_m = static_cast<size_t>(n) * ho * wo;
     size_t gemm_n = k / group;
-    size_t gemm_k = (c / group) * y * x;
+    size_t gemm_k = (static_cast<size_t>(c) / group) * y * x;
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);

@@ -192,10 +192,10 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ExecutionContext& ctx,
 
     const int N1 = GemmNRepeat;
     const int N2 = GemmNPerThreadSubC;
-    if(N % (N1 * N2) != 0)
+    if(N % static_cast<std::size_t>(N1 * N2) != 0)
         return false; // wrong! cannot divice N evenly among thread
 
-    const auto N0 = N / (N1 * N2);
+    const auto N0 = N / static_cast<std::size_t>(N1 * N2);
 
     const auto B = N0 * Ho * Wo;
 
@@ -267,7 +267,7 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ExecutionContext& ctx,
                                                         WeiBlockCopySubLengths_K,
                                                         GetEPackLength(ctx, problem, false));
 
-    if(lds_size > 64 * 1024)
+    if(lds_size > static_cast<std::size_t>(64) * 1024)
         return false;
 
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
@@ -383,7 +383,7 @@ static inline ConvSolution GetSolutionBase(const ExecutionContext& ctx,
      * grid dims is in unit of work item.
      * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
      */
-    kernel.g_wk.push_back(grid_size * block_size);
+    kernel.g_wk.push_back(static_cast<std::size_t>(grid_size) * block_size);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
     kernel.l_wk.clear();
