@@ -422,6 +422,16 @@ inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
 }
 
 ///\todo remove
+template <class PerformanceImplicitGemm_t>
+inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx, const ProblemDescription& problem)
+{
+    PerformanceImplicitGemm_t pp;
+    pp.HeuristicInit(ctx, problem);
+    MIOPEN_LOG_I(pp.ToString());
+    return pp;
+}
+
+///\todo remove
 static inline size_t ComputeLDSRequiredSize(const ProblemDescription& problem,
                                             const int BPerBlock,
                                             const int KPerBlock,
