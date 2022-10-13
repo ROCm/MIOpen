@@ -194,24 +194,25 @@ void ConvHipImplicitGemmBwdDataXdlops::RunCKSolution(
     auto& conv_ptr       = conv_ptrs.at(config.index);
     auto& data_ctx       = primitive_parameters.CastTo<conv::DataInvokeParams>();
     const auto& tensors  = data_ctx.tensors;
-    auto argument_ptr =
-        conv_ptr->MakeArgumentPointer(static_cast<void*>(tensors.out), // backward output is input
-                                      const_cast<void*>(static_cast<const void*>(tensors.w)),
-                                      const_cast<void*>( // backward input is output
-                                          static_cast<const void*>(tensors.in)),
-                                      args.N,
-                                      args.K,
-                                      args.C,
-                                      args.input,
-                                      args.filter,
-                                      args.output,
-                                      args.strides,
-                                      args.dilation,
-                                      args.lPadding,
-                                      args.rPadding,
-                                      {},
-                                      {},
-                                      {});
+    auto argument_ptr    = conv_ptr->MakeArgumentPointer(
+        static_cast<void*>(tensors.out),
+        const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            static_cast<const void*>(tensors.w)),
+        const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            static_cast<const void*>(tensors.in)),
+        args.N,
+        args.K,
+        args.C,
+        args.input,
+        args.filter,
+        args.output,
+        args.strides,
+        args.dilation,
+        args.lPadding,
+        args.rPadding,
+        {},
+        {},
+        {});
     auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
     const auto enable_profiling = handle.IsProfilingEnabled();
 
