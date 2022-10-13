@@ -306,6 +306,16 @@ struct BnFwdTrgActivationFused final : FusionSolverBase
     ConvSolution GetSolution(const FusionContext& params) const;
 };
 
+struct BnBwdTrgActivationFused final : FusionSolverBase
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<BnBwdTrgActivationFused>();
+    }
+    bool IsApplicable(const FusionContext& params) const override;
+    ConvSolution GetSolution(const FusionContext& params) const;
+};
+
 } // namespace fusion
 } // namespace solver
 } // namespace miopen

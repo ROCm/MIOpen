@@ -32,10 +32,204 @@
 #include <miopen/stringutils.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/fusion/solvers.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_BN_BWDTRG_ACTIV_FUSED)
 
 namespace miopen {
 
 namespace solver {
+
+namespace fusion {
+
+bool BnBwdTrgActivationFused::IsApplicable(const FusionContext& context) const
+{
+    const auto& desc   = *context.problem.fusion_plan_desc;
+    const auto problem = context.problem.GetBnProblem(0, miopen::batchnorm::Direction::Backward);
+    if(desc.op_map.empty())
+        MIOPEN_THROW("");
+    if(miopen::IsDisabled(MIOPEN_DEBUG_BN_BWDTRG_ACTIV_FUSED{}))
+        return false;
+    if(desc.op_map.size() != 2)
+        return false;
+    if(desc.op_map.at(0)->kind() != miopenFusionOpBatchNormBwdTrain)
+        return false;
+    if(desc.op_map.at(1)->kind() != miopenFusionOpActivBackward)
+        return false;
+    return true;
+}
+
+ConvSolution BnBwdTrgActivationFused::GetSolution(const FusionContext& fusion_ctx) const
+{
+    const auto problem = fusion_ctx.problem.GetBnProblem(0, miopen::batchnorm::Direction::Backward);
+
+    int n, c, h, w;
+    auto result = ConvSolution{miopenStatusSuccess};
+    {
+        const auto& handle = fusion_ctx.GetStream();
+        auto kernel        = KernelInfo{};
+
+        kernel.kernel_file = "MIOpenBatchNormActivBwd";
+        kernel.kernel_name = "MIOpenBatchNormActivBwd";
+        const auto mode    = problem.GetMode();
+        if(mode == miopenBNSpatial)
+        { // SPATIAL kernels
+            kernel.kernel_file += "Spatial.cl";
+            kernel.kernel_name += "Spatial";
+        }
+        else
+        { // PER ACTIVATION
+            kernel.kernel_file += "PerAct.cl";
+            kernel.kernel_name += "PerActivation";
+        }
+        size_t xlocalsize, ylocalsize, zlocalsize;
+        const auto& input_desc = problem.GetXDesc();
+        std::tie(n, c, h, w)   = tien<4>(input_desc.GetLengths());
+        size_t in_cstride      = h * w;
+
+        xlocalsize = 1;
+        ylocalsize = 1;
+        zlocalsize = 1;
+
+        if(mode == miopenBNSpatial)
+        {
+            if(in_cstride <= 1024 && in_cstride > 512)
+                xlocalsize =
+                    std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned long>(1024));
+            else
+                xlocalsize = 1024;
+        }
+        else
+        {
+            ylocalsize = (64 >= in_cstride) ? 64 : 256;
+        }
+        kernel.l_wk = {xlocalsize, ylocalsize, zlocalsize};
+
+        size_t xgridsize = 1;
+        size_t zgridsize = 1;
+        size_t ygridsize = 1;
+
+        if(mode == miopenBNSpatial)
+        {
+            if(in_cstride > 512)
+                xgridsize = c * xlocalsize;
+            else
+                xgridsize = 1024 * c;
+        }
+        else
+        {
+            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
+            xgridsize    = c;
+            ygridsize    = segment * ylocalsize;
+        }
+
+        kernel.g_wk       = {xgridsize, ygridsize, zgridsize};
+        size_t in_nstride = c * in_cstride;
+        size_t in_nchw    = n * in_nstride;
+
+        unsigned int ldsgcn   = xlocalsize / 64;
+        unsigned int ldsnogcn = xlocalsize;
+
+        int variant = 0;
+
+        if(mode == miopenBNSpatial)
+        {
+            ldsgcn   = xlocalsize / 64;
+            ldsnogcn = xlocalsize;
+            if(in_cstride > 1024)
+            {
+                variant = 1;
+            }
+            else if(in_cstride > 512)
+            {
+                variant = (n >= 32) ? 1 : 3;
+            }
+            else
+            {
+                variant = 0;
+            }
+        }
+
+        const auto build_params = KernelBuildParameters{
+            {"SPATIAL_BN", static_cast<int>(problem.GetMode() == miopenBNSpatial)},
+            {"PERACT_BN", static_cast<int>(problem.GetMode() == miopenBNPerActivation)},
+            {"MIOPEN_USE_FPMIX", static_cast<int>(input_desc.GetType() == miopenHalf)},
+            {"MIO_BN_N", static_cast<int>(n)},
+            {"MIO_BN_C", static_cast<int>(c)},
+            {"MIO_BN_HW", static_cast<int>(in_cstride)},
+            {"MIO_BN_NHW", static_cast<int>(n * h * w)},
+            {"MIO_BN_CHW", static_cast<int>(in_nstride)},
+            {"MIO_BN_NCHW", static_cast<int>(in_nchw)},
+            {"MIO_BN_GRP0", static_cast<int>(xlocalsize)},
+            {"MIO_BN_GRP1", static_cast<int>(ylocalsize)},
+            {"MIO_BN_GRP2", static_cast<int>(zlocalsize)},
+            {"MIO_BN_LDS_SIZE", static_cast<int>(ldsnogcn)},
+            {"MIO_BN_LDSGCN_SIZE", static_cast<int>(ldsgcn)},
+            {"MIO_BN_USESAVED", static_cast<int>(true)},
+            {"MIO_BN_VARIANT", static_cast<int>(variant)},
+            {"MIO_BN_GFX103X", static_cast<int>(StartsWith(handle.GetDeviceName(), "gfx103"))}};
+
+        kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
+        result.construction_params.push_back(kernel);
+    }
+
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+            decltype(auto) kernel   = handle_.Run(kernels.front());
+            const auto& invoke_ctx  = raw_params.CastTo<miopen::fusion::FusionInvokeParams>();
+            const auto& bot_ocl_buf = invoke_ctx.in;
+            const auto& top_ocl_buf = invoke_ctx.out;
+            const auto& bn_invoke =
+                std::dynamic_pointer_cast<miopen::fusion::BatchNormBwdTrainingOpInvokeParam>(
+                    invoke_ctx.op_invokers[0]);
+            const auto& activ_invoker =
+                std::dynamic_pointer_cast<miopen::fusion::ActivationBwdOpInvokeParam>(
+                    invoke_ctx.op_invokers[1]);
+            const auto activ_alpha = activ_invoker->activAlpha;
+            const auto activ_beta  = activ_invoker->activBeta;
+            const auto activ_gamma = activ_invoker->activGamma;
+            const auto mode        = problem.GetMode();
+            if(mode == miopenBNPerActivation)
+            {
+                kernel(activ_invoker->x,
+                       activ_invoker->y,
+                       bot_ocl_buf,
+                       top_ocl_buf,
+                       activ_beta * activ_gamma, // activDiffScale
+                       activ_gamma,
+                       activ_beta,
+                       activ_alpha,
+                       bn_invoke->bnScale,
+                       bn_invoke->bnBias,
+                       bn_invoke->resBnScaleDiff,
+                       bn_invoke->resBnBiasDiff,
+                       bn_invoke->savedMean,
+                       bn_invoke->savedInvVariance);
+            }
+            else if(mode == miopenBNSpatial)
+            {
+                kernel(activ_invoker->x,
+                       activ_invoker->y,
+                       bot_ocl_buf,
+                       top_ocl_buf,
+                       activ_beta * activ_gamma, // activDiffScale
+                       activ_gamma,
+                       activ_beta,
+                       activ_alpha,
+                       bn_invoke->bnScale,
+                       bn_invoke->bnBias,
+                       bn_invoke->resBnScaleDiff,
+                       bn_invoke->resBnBiasDiff,
+                       bn_invoke->savedMean,
+                       bn_invoke->savedInvVariance,
+                       n * h * w);
+            }
+        };
+    };
+
+    return result;
+}
+} // namespace fusion
 
 namespace batchnorm {
 
