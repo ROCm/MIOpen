@@ -190,23 +190,22 @@ inline bool IsShaderContraintsMet(const ExecutionContext& ctx,
         if(!(0 <= problem.GetBackwardPadH() && problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
-    if(!params.problem.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
 
-    uint32_t o_K_stride      = OH * OW;
-    uint32_t o_N_stride      = o_K_stride * K;
-    uint32_t o_N_stride_OHOW = o_N_stride + o_K_stride;
+    uint64_t o_K_stride      = OH * OW;
+    uint64_t o_N_stride      = o_K_stride * K;
+    uint64_t o_N_stride_OHOW = o_N_stride + o_K_stride;
 
-    uint32_t d_C_stride    = H * W;
-    uint32_t d_N_stride    = d_C_stride * C;
-    uint32_t d_N_stride_HW = d_N_stride + d_C_stride;
+    uint64_t d_C_stride    = H * W;
+    uint64_t d_N_stride    = d_C_stride * C;
+    uint64_t d_N_stride_HW = d_N_stride + d_C_stride;
 
     auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
-    auto stride_one = params.problem.kernel_stride_h == 1 && params.problem.kernel_stride_w == 1 &&
-                      params.problem.kernel_dilation_h == 1 &&
-                      params.problem.kernel_dilation_w == 1;
+    auto stride_one = problem.kernel_stride_h == 1 && problem.kernel_stride_w == 1 &&
+                      problem.kernel_dilation_h == 1 && problem.kernel_dilation_w == 1;
 
     // clang-format off
     // Check implementation limits.
@@ -219,8 +218,8 @@ inline bool IsShaderContraintsMet(const ExecutionContext& ctx,
         && R < std::pow(2, 16)
         && OH < std::pow(2, 16)
         && OW < std::pow(2, 16)
-        && params.problem.pad_w < std::pow(2, 16)
-        && params.problem.pad_h < std::pow(2, 16)
+        && problem.pad_w < std::pow(2, 16)
+        && problem.pad_h < std::pow(2, 16)
         && C * R * S < std::pow(2, 22)
         && K * R * S < std::pow(2, 28)
         && ((o_N_stride_OHOW < std::pow(2, 29) && d_N_stride_HW < std::pow(2, 29))
