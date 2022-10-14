@@ -38,14 +38,15 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW)
 namespace miopen {
 namespace solver {
 
-bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx,
+                                    const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW{}))
         return false;
-    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
-    if(!ctx.problem.direction.IsBackwardWrW())
+    if(!problem.direction.IsBackwardWrW())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
@@ -59,9 +60,10 @@ bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx) const
     if(StartsWith(device_name, "gfx900"))
         return false;
 
-    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, false));
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, problem, false));
 #else
     std::ignore = ctx;
+    std::ignore = problem;
     return false;
 #endif
 }
@@ -74,28 +76,31 @@ ConvMlirIgemmWrW::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) con
 }
 
 bool ConvMlirIgemmWrW::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                                const ProblemDescription& problem,
                                                 const PerformanceConvMlirIgemm& config) const
 {
     MIOPEN_LOG_I("");
-    return config.IsValid(ctx);
+    return config.IsValid(ctx, problem);
 }
 
 PerformanceConvMlirIgemm ConvMlirIgemmWrW::Search(const ConvolutionContext& ctx,
+                                                  const ProblemDescription& problem,
                                                   const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
 ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx,
+                                           const ProblemDescription& problem,
                                            const PerformanceConvMlirIgemm& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    construction_parameters.kernel_name  = mlir::GetKernelName(ctx, false);
+    construction_parameters.kernel_name  = mlir::GetKernelName(problem, false);
     construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
-    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, config, false);
+    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, problem, config, false);
 
     size_t local_size  = 0;
     size_t global_size = 0;
@@ -109,11 +114,12 @@ ConvSolution ConvMlirIgemmWrW::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(ctx, 0);
+    result.invoker_factory = conv::MakeMlirWrWInvokerFactory(problem, 0);
     result.construction_params.push_back(construction_parameters);
     return result;
 #else
     std::ignore = ctx;
+    std::ignore = problem;
     std::ignore = config;
     return {};
 #endif

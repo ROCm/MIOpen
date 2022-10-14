@@ -37,7 +37,7 @@ namespace miopen {
 namespace solver {
 
 static inline const std::vector<TunableImplicitGemmGTCDynamic_t>&
-GetImplicitGemmGtcDynamicBwdTunablesList(const ConvolutionContext& ctx)
+GetImplicitGemmGtcDynamicBwdTunablesList(const ProblemDescription& problem)
 {
     // clang-format off
     static const std::vector<TunableImplicitGemmGTCDynamic_t> tunables_fp32 = {
@@ -756,7 +756,7 @@ GetImplicitGemmGtcDynamicBwdTunablesList(const ConvolutionContext& ctx)
     };
 
     // clang-format on
-    if(ctx.problem.IsFp16())
+    if(problem.IsFp16())
         return tunables_fp16;
     else
         return tunables_fp32;
@@ -784,27 +784,27 @@ static std::tuple<bool, // is suitable kernel found
                   std::string, // kernel_name
                   int,         // block_size
                   int>         // grid_size
-FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
+FindImplicitGemmGtcDynamicBwdKernel(const ProblemDescription& problem)
 {
-    auto tunables = GetImplicitGemmGtcDynamicBwdTunablesList(ctx);
+    auto tunables = GetImplicitGemmGtcDynamicBwdTunablesList(problem);
 
     // so far, "group" is only supported by bwd fp16 kernels
-    const auto group      = ctx.problem.IsFp16() ? ctx.problem.group_counts : 1;
-    const auto hi         = ctx.problem.out_height;
-    const auto wi         = ctx.problem.out_width;
-    const auto n          = ctx.problem.batch_sz;
-    const auto k          = ctx.problem.n_inputs / group;
-    const auto c          = ctx.problem.n_outputs / group;
-    const auto ho         = ctx.problem.in_height;
-    const auto wo         = ctx.problem.in_width;
-    const auto stride_h   = ctx.problem.out_height > 1 ? ctx.problem.kernel_stride_h : 1;
-    const auto stride_w   = ctx.problem.out_width > 1 ? ctx.problem.kernel_stride_w : 1;
-    const auto dilation_h = ctx.problem.kernel_size_h > 1 ? ctx.problem.kernel_dilation_h : 1;
-    const auto dilation_w = ctx.problem.kernel_size_w > 1 ? ctx.problem.kernel_dilation_w : 1;
-    const auto pad_h      = ctx.problem.pad_h;
-    const auto pad_w      = ctx.problem.pad_w;
-    const auto y          = ctx.problem.kernel_size_h;
-    const auto x          = ctx.problem.kernel_size_w;
+    const auto group      = problem.IsFp16() ? problem.group_counts : 1;
+    const auto hi         = problem.out_height;
+    const auto wi         = problem.out_width;
+    const auto n          = problem.batch_sz;
+    const auto k          = problem.n_inputs / group;
+    const auto c          = problem.n_outputs / group;
+    const auto ho         = problem.in_height;
+    const auto wo         = problem.in_width;
+    const auto stride_h   = problem.out_height > 1 ? problem.kernel_stride_h : 1;
+    const auto stride_w   = problem.out_width > 1 ? problem.kernel_stride_w : 1;
+    const auto dilation_h = problem.kernel_size_h > 1 ? problem.kernel_dilation_h : 1;
+    const auto dilation_w = problem.kernel_size_w > 1 ? problem.kernel_dilation_w : 1;
+    const auto pad_h      = problem.pad_h;
+    const auto pad_w      = problem.pad_w;
+    const auto y          = problem.kernel_size_h;
+    const auto x          = problem.kernel_size_w;
 
     const auto gcd_stride_dilation_h = gcd(stride_h, dilation_h);
     const auto gcd_stride_dilation_w = gcd(stride_w, dilation_w);
@@ -834,10 +834,10 @@ FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
 
     for(const auto& cfg : tunables)
     {
-        const auto b = (cfg.nxe == 0 || ctx.problem.IsFp32())
-                           ? h_tilda_slice * w_tilda_slice
-                           : ((h_tilda_slice * w_tilda_slice + cfg.nxb - 1) / cfg.nxb) * cfg.nxb;
-        const auto gemm_n_packed = ctx.problem.IsFp16() ? n * b : gemm_n;
+        const auto b             = (cfg.nxe == 0 || problem.IsFp32())
+                                       ? h_tilda_slice * w_tilda_slice
+                                       : ((h_tilda_slice * w_tilda_slice + cfg.nxb - 1) / cfg.nxb) * cfg.nxb;
+        const auto gemm_n_packed = problem.IsFp16() ? n * b : gemm_n;
 
         assert((cfg.gemm_n_per_block != 0) && (cfg.gemm_m_per_block != 0) && (cfg.nxb != 0) &&
                (cfg.gemm_k_per_block != 0));
@@ -884,7 +884,7 @@ FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
             continue;
 
         // the following check is only used for bwd fp16
-        if(ctx.problem.IsFp16())
+        if(problem.IsFp16())
         {
             // output vector load limitation, n1b
             if(cfg.nxe == 0 && cfg.tensor_b_thread_lengths[3] > 1 &&
@@ -910,7 +910,7 @@ FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
                                    integer_divide_ceil(gemm_n_packed, cfg.gemm_n_per_block));
     }
 
-    if(ctx.problem.IsFp32())
+    if(problem.IsFp32())
     {
         // second try, try find if packed image size match
         for(const auto& cfg : tunables)
@@ -973,7 +973,8 @@ FindImplicitGemmGtcDynamicBwdKernel(const ConvolutionContext& ctx)
     return std::make_tuple(false, TunableImplicitGemmGTCDynamic_t(), "", -1, -1);
 }
 
-bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ExecutionContext& ctx,
+                                                          const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS{}))
         return false;
@@ -985,23 +986,23 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionConte
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!ctx.problem.direction.IsBackwardData())
+    if(!problem.direction.IsBackwardData())
         return false;
 
-    if(!ctx.problem.Is2d())
+    if(!problem.Is2d())
         return false;
 
-    if(!ctx.problem.IsFp32() && !ctx.problem.IsFp16())
+    if(!problem.IsFp32() && !problem.IsFp16())
         return false;
 
     if(!ctx.rmv.IsV3())
         return false;
 
     // So far, "group" is not supported by the bwd fp32 kernels
-    if(ctx.problem.IsFp32() && ctx.problem.group_counts != 1)
+    if(problem.IsFp32() && problem.group_counts != 1)
         return false;
 
-    if(!ctx.problem.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
@@ -1012,12 +1013,13 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ConvolutionConte
 
     bool isValid;
     std::tie(isValid, std::ignore, std::ignore, std::ignore, std::ignore) =
-        FindImplicitGemmGtcDynamicBwdKernel(ctx);
+        FindImplicitGemmGtcDynamicBwdKernel(problem);
     return isValid;
 }
 
 ConvSolution
-ConvAsmImplicitGemmGTCDynamicBwdXdlops::GetSolution(const ConvolutionContext& ctx) const
+ConvAsmImplicitGemmGTCDynamicBwdXdlops::GetSolution(const ExecutionContext& ctx,
+                                                    const ProblemDescription& problem) const
 {
     ConvSolution result;
     KernelInfo kernel;
@@ -1028,7 +1030,7 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlops::GetSolution(const ConvolutionContext& ct
     int grid_size;
     TunableImplicitGemmGTCDynamic_t cfg;
     std::tie(std::ignore, cfg, kernel_name, block_size, grid_size) =
-        FindImplicitGemmGtcDynamicBwdKernel(ctx);
+        FindImplicitGemmGtcDynamicBwdKernel(problem);
 
     kernel.kernel_file = kernel_name + ".s";
     kernel.kernel_name = kernel_name;
@@ -1047,7 +1049,7 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlops::GetSolution(const ConvolutionContext& ct
 
     MIOPEN_LOG_I2(kernel.kernel_file + ":" + kernel.kernel_name);
 
-    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(ctx, cfg);
+    result.invoker_factory = conv::MakeImplGemmDynamicBackwardDataInvokerFactory(problem, cfg);
     result.construction_params.push_back(kernel);
     return result;
 }

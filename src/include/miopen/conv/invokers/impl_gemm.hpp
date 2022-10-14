@@ -35,7 +35,7 @@
 namespace miopen {
 namespace conv {
 
-InvokerFactory MakeImplGemmDataInvokerFactory(const ConvolutionContext& ctx);
+InvokerFactory MakeImplGemmDataInvokerFactory(const miopen::ProblemDescription& problem);
 
 } // namespace conv
 } // namespace miopen

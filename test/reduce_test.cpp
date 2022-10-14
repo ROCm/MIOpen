@@ -354,9 +354,9 @@ struct verify_reduce_with_indices
         const void* const alphaPtr = (std::is_same<T, double>::value)
                                          ? static_cast<const void*>(&alpha64)
                                          : static_cast<const void*>(&alpha);
-        const void* const betaPtr = (std::is_same<T, double>::value)
-                                        ? static_cast<const void*>(&beta64)
-                                        : static_cast<const void*>(&beta);
+        const void* const betaPtr  = (std::is_same<T, double>::value)
+                                         ? static_cast<const void*>(&beta64)
+                                         : static_cast<const void*>(&beta);
 
         if(ws_sizeInBytes > 0)
         {
@@ -651,9 +651,9 @@ struct verify_reduce_no_indices
         const void* const alphaPtr = (std::is_same<T, double>::value)
                                          ? static_cast<const void*>(&alpha64)
                                          : static_cast<const void*>(&alpha);
-        const void* const betaPtr = (std::is_same<T, double>::value)
-                                        ? static_cast<const void*>(&beta64)
-                                        : static_cast<const void*>(&beta);
+        const void* const betaPtr  = (std::is_same<T, double>::value)
+                                         ? static_cast<const void*>(&beta64)
+                                         : static_cast<const void*>(&beta);
 
         if(ws_sizeInBytes > 0)
         {
@@ -803,23 +803,26 @@ struct reduce_driver : test_driver
         auto outLengths = this->inLengths;
 
         assert(toReduceDims.size() <= outLengths.size());
-        for(int i = 0; i < toReduceDims.size(); i++)
-            assert(toReduceDims[i] < inLengths.size());
 
         // set the lengths of the dimensions to be reduced to 1 to represent the output Tensor
         for(const int& toReduceDim : toReduceDims)
+        {
+            assert(toReduceDim < inLengths.size());
             outLengths[toReduceDim] = static_cast<std::size_t>(1);
+        }
 
         unsigned long max_value;
 
         if(reduceOp == MIOPEN_REDUCE_TENSOR_MUL)
-            max_value =
-                miopen_type<T>{} == miopenHalf ? 41 : miopen_type<T>{} == miopenInt8 ? 127 : 111;
+            max_value = miopen_type<T>{} == miopenHalf   ? 41
+                        : miopen_type<T>{} == miopenInt8 ? 127
+                                                         : 111;
         else if(reduceOp == MIOPEN_REDUCE_TENSOR_NORM1 || reduceOp == MIOPEN_REDUCE_TENSOR_NORM2)
             max_value = 3;
         else
-            max_value =
-                miopen_type<T>{} == miopenHalf ? 13 : miopen_type<T>{} == miopenInt8 ? 127 : 999;
+            max_value = miopen_type<T>{} == miopenHalf   ? 13
+                        : miopen_type<T>{} == miopenInt8 ? 127
+                                                         : 999;
 
         // default data gneration (used by MIN/MAX)
         auto gen_value = [&](auto... is) {

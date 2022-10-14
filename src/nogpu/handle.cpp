@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/common.hpp"
 #include <miopen/config.h>
 #include <miopen/handle.hpp>
 #include <miopen/binary_cache.hpp>
@@ -94,6 +95,8 @@ void Handle::ReadTo(void* /* data */,
                     std::size_t /* sz */) const
 {
 }
+
+void Handle::ReadTo(void* /* data */, ConstData_t /* ddata */, std::size_t /* sz */) const {}
 
 void Handle::Copy(ConstData_t /* src */, Data_t /* dest */, std::size_t /* size */) const {}
 

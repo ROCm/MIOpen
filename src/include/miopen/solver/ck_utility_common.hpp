@@ -31,7 +31,7 @@
 #include <miopen/hip_build_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/rocm_features.hpp>
-#include <miopen/solver/convolution_context_interpreter.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 #include <algorithm>
 #include <sstream>
 
@@ -103,37 +103,37 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
     return compiler_flag.str();
 }
 
-static inline auto get_ck_convolution_problem_descriptor(const ConvolutionContext& ctx)
+static inline auto get_ck_convolution_problem_descriptor(const ProblemDescription& problem)
 {
     ck::DataTypeEnum_t ck_datatype;
 
-    if(ctx.problem.IsFp32())
+    if(problem.IsFp32())
         ck_datatype = ck::DataTypeEnum_t::Float;
-    else if(ctx.problem.IsFp16())
+    else if(problem.IsFp16())
         ck_datatype = ck::DataTypeEnum_t::Half;
-    else if(ctx.problem.IsBfp16())
+    else if(problem.IsBfp16())
         ck_datatype = ck::DataTypeEnum_t::BFloat16;
     else
         ck_datatype = ck::DataTypeEnum_t::Unknown;
 
     return ck::driver::ConvolutionProblemDescriptor{
-        miopen::solver::ConvolutionContextInterpreter::GetBatchN(ctx),
-        ConvolutionContextInterpreter::GetOutputChannelK(ctx),
-        ConvolutionContextInterpreter::GetInputChannelC(ctx),
-        ConvolutionContextInterpreter::GetFilterHeightY(ctx),
-        ConvolutionContextInterpreter::GetFilterWidthX(ctx),
-        ConvolutionContextInterpreter::GetInputHeightHi(ctx),
-        ConvolutionContextInterpreter::GetInputWidthWi(ctx),
-        ConvolutionContextInterpreter::GetOutputHeightHo(ctx),
-        ConvolutionContextInterpreter::GetOutputWidthWo(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionStrideH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionStrideW(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedConvolutionDilationW(ctx),
-        ConvolutionContextInterpreter::GetInputLeftPadH(ctx),
-        ConvolutionContextInterpreter::GetInputLeftPadW(ctx),
-        ConvolutionContextInterpreter::GetAdjustedInputRightPadH(ctx),
-        ConvolutionContextInterpreter::GetAdjustedInputRightPadW(ctx),
+        ProblemInterpreter::GetBatchN(problem),
+        ProblemInterpreter::GetOutputChannelK(problem),
+        ProblemInterpreter::GetInputChannelC(problem),
+        ProblemInterpreter::GetFilterHeightY(problem),
+        ProblemInterpreter::GetFilterWidthX(problem),
+        ProblemInterpreter::GetInputHeightHi(problem),
+        ProblemInterpreter::GetInputWidthWi(problem),
+        ProblemInterpreter::GetOutputHeightHo(problem),
+        ProblemInterpreter::GetOutputWidthWo(problem),
+        ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+        ProblemInterpreter::GetAdjustedConvolutionStrideW(problem),
+        ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+        ProblemInterpreter::GetAdjustedConvolutionDilationW(problem),
+        ProblemInterpreter::GetInputLeftPadH(problem),
+        ProblemInterpreter::GetInputLeftPadW(problem),
+        ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+        ProblemInterpreter::GetAdjustedInputRightPadW(problem),
         ck_datatype,
         ck_datatype,
         ck_datatype};
