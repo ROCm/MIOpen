@@ -49,8 +49,6 @@ std::string random_string(size_t length)
     return str;
 }
 
-// EXPECT() to be repalced by ASSERT_EXIT
-// CHECK() to be replaced by EXPECT_TRUE
 TEST(TestCache, check_bz2_compress)
 {
     std::string to_compress;
@@ -74,9 +72,6 @@ TEST(TestCache, check_bz2_decompress)
 
     std::string decompressed_str;
 
-    // CHECK(throws([&]() { decompressed_str = miopen::decompress(empty_string, 0); }));
-    // EXPECT_THAT([&]() { decompressed_str = miopen::decompress(empty_string, 0); },
-    // ::testing::Throws<std::runtime_error>());
     EXPECT_TRUE(throws([&]() { decompressed_str = miopen::decompress(empty_string, 0); }));
 
     auto orig_str = random_string(4096);
