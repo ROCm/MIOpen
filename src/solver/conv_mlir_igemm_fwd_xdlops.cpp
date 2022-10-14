@@ -52,22 +52,24 @@ void PerformanceConvMlirIgemmXdlops::SetMlirHeuristicInitRequest()
     GemmBThreadCopyMoreGemmKPack = false;
 }
 
-bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvMlirIgemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
+                                          const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD_XDLOPS{}))
         return false;
-    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
-    if(!ctx.problem.direction.IsForward())
+    if(!problem.direction.IsForward())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
-    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, true));
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, problem, true));
 #else
     std::ignore = ctx;
+    std::ignore = problem;
     return false;
 #endif
 }
@@ -121,28 +123,31 @@ bool PerformanceConvMlirIgemmXdlops::operator==(const PerformanceConvMlirIgemmXd
     // clang-format on
 }
 
-bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx) const
+bool PerformanceConvMlirIgemmXdlops::IsValid(const ConvolutionContext& ctx,
+                                             const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
     if(*this == MlirHeuristicInitRequest())
         return true;
 
-    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, true));
+    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, problem, *this, true));
     bool isValid     = false;
     for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
     {
-        isValid = MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, *this, true, kernel_id));
+        isValid = MiirIsConfigApplicable(
+            mlir::ConstructBuildOptions(ctx, problem, *this, true, kernel_id));
         if(!isValid)
             return false;
     }
     return isValid;
 #else
     std::ignore = ctx;
+    std::ignore = problem;
     return false;
 #endif
 }
 
-bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& config)
+bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ProblemDescription& problem)
 {
     if(use_spare_set)
         return false;
@@ -162,7 +167,7 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ConvolutionContext& conf
         if(!NextTwoPower<4, 8>(GemmKPACKSize))
             break;
 
-        if(config.problem.IsInt8())
+        if(problem.IsInt8())
         {
             // xdlops instructions supported with in8 determines the minimum valid kPerBlock is 8
             if(!NextTwoPower<8, 32>(GemmKPerBlock))
@@ -188,29 +193,33 @@ ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ct
 }
 
 bool ConvMlirIgemmFwdXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx, const PerformanceConvMlirIgemmXdlops& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceConvMlirIgemmXdlops& config) const
 {
     MIOPEN_LOG_I("");
-    return config.IsValid(ctx);
+    return config.IsValid(ctx, problem);
 }
 
 PerformanceConvMlirIgemmXdlops
 ConvMlirIgemmFwdXdlops::Search(const ConvolutionContext& ctx,
+                               const ProblemDescription& problem,
                                const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
 ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
+                                                 const ProblemDescription& problem,
                                                  const PerformanceConvMlirIgemmXdlops& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    construction_parameters.kernel_name  = mlir::GetKernelName(ctx, true);
+    construction_parameters.kernel_name  = mlir::GetKernelName(problem, true);
     construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
-    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, config, true);
+    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, problem, config, true);
 
     size_t local_size  = 0;
     size_t global_size = 0;
@@ -224,11 +233,12 @@ ConvSolution ConvMlirIgemmFwdXdlops::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    result.invoker_factory = conv::MakeMlirFwdInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeMlirFwdInvokerFactory(problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 #else
     std::ignore = ctx;
+    std::ignore = problem;
     std::ignore = config;
     return {};
 #endif

@@ -165,9 +165,9 @@ struct tensor
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
-        assert(rhs.GetType() == miopen_type<T>{} ||
+        assert(desc.GetType() == miopen_type<T>{} ||
                ((miopen_type<T>{} == miopenInt8 || miopen_type<T>{} == miopenInt8x4) &&
-                (rhs.GetType() == miopenFloat || rhs.GetType() == miopenInt32)));
+                (desc.GetType() == miopenFloat || desc.GetType() == miopenInt32)));
         data.resize(desc.GetElementSpace());
     }
 
