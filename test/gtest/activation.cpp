@@ -214,95 +214,69 @@ protected:
     miopen::Allocator::ManageDataPtr dout_dev; // dy
 };
 
-miopenStatus_t RunFwdActivation(miopen::Handle& handle,
-                                miopenActivationDescriptor_t activationDesc,
-                                const void* alpha,
-                                const miopen::TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const void* beta,
-                                const miopen::TensorDescriptor& yDesc,
-                                Data_t y)
-{
-    if(alpha == nullptr || beta == nullptr)
-        MIOPEN_THROW(miopenStatusBadParm, "alpha or beta is NULL");
-
-    miopen::ActivationDescriptor desc = miopen::deref(activationDesc);
-    miopenStatus_t status             = desc.Forward(handle,
-                                         alpha,
-                                         xDesc, // input.desc
-                                         x,     // in_dev.get()
-                                         beta,
-                                         yDesc, // output_gpu.desc
-                                         y);    // out_dev.get()
-
-    return status;
-}
-
-miopenStatus_t RunBwdActivation(miopen::Handle& handle,
-                                miopenActivationDescriptor_t activationDesc,
-                                const void* alpha,
-                                const miopen::TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const void* beta,
-                                const miopen::TensorDescriptor& yDesc,
-                                Data_t y,
-                                const miopen::TensorDescriptor& dyDesc,
-                                ConstData_t dy,
-                                const miopen::TensorDescriptor& dxDesc,
-                                Data_t dx)
+miopenStatus_t RunActivation(miopen::Handle& handle,
+                             miopenActivationDescriptor_t activationDesc,
+                             const void* alpha,
+                             const miopen::TensorDescriptor& xDesc,
+                             ConstData_t x,
+                             const void* beta,
+                             const miopen::TensorDescriptor& yDesc,
+                             Data_t y,
+                             const miopen::TensorDescriptor& dyDesc,
+                             ConstData_t dy,
+                             const miopen::TensorDescriptor& dxDesc,
+                             Data_t dx)
 {
     if(alpha == nullptr || beta == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "alpha or beta is NULL");
 
     miopen::ActivationDescriptor desc = miopen::deref(activationDesc);
 
-    miopenStatus_t status = desc.Backward(handle,
-                                          alpha,
-                                          yDesc, // out.desc
-                                          y,     // out_dev.get()
-                                          dyDesc,
-                                          dy,
-                                          xDesc, // input.desc
-                                          x,
-                                          beta,
-                                          dxDesc,
-                                          dx);
+    miopenStatus_t fwdStatus = desc.Forward(handle,
+                                            alpha,
+                                            xDesc, // input.desc
+                                            x,     // in_dev.get()
+                                            beta,
+                                            yDesc, // output_gpu.desc
+                                            y);    // out_dev.get()
 
-    return status;
+    miopenStatus_t bwdStatus = desc.Backward(handle,
+                                             alpha,
+                                             yDesc, // out.desc
+                                             y,     // out_dev.get()
+                                             dyDesc,
+                                             dy,
+                                             xDesc, // input.desc
+                                             x,
+                                             beta,
+                                             dxDesc,
+                                             dx);
+
+    if(fwdStatus == miopenStatusSuccess && bwdStatus == miopenStatusSuccess)
+        return miopenStatusSuccess;
+    else if(fwdStatus != miopenStatusSuccess)
+        return fwdStatus;
+    else
+        return bwdStatus;
 }
 
 TYPED_TEST_CASE(TestActivation, TestTypes);
 
-TYPED_TEST(TestActivation, ActivationFwdTest)
+TYPED_TEST(TestActivation, ActivationTest)
 {
     const float alpha = 1.0f, beta = 0;
-    miopenStatus_t status = RunFwdActivation(get_handle(),
-                                             this->activ_desc,
-                                             &alpha,
-                                             this->input.desc, // x
-                                             this->in_dev.get(),
-                                             &beta,
-                                             this->output_gpu.desc, // y
-                                             this->out_dev.get());
-
-    EXPECT_EQ(status, miopenStatusSuccess);
-}
-
-TYPED_TEST(TestActivation, ActivationBwdTest)
-{
-    const float alpha = 1.0f, beta = 0;
-    miopenStatus_t status = RunBwdActivation(get_handle(),
-                                             this->activ_desc,
-                                             &alpha,
-                                             this->input.desc, // x
-                                             this->in_dev.get(),
-                                             &beta,
-                                             this->output_gpu.desc, // y
-                                             this->out_dev.get(),
-                                             this->doutput.desc, // dy
-                                             this->dout_dev.get(),
-                                             this->dinput_gpu.desc, // dx
-                                             this->din_dev.get());
+    miopenStatus_t status = RunActivation(get_handle(),
+                                          this->activ_desc,
+                                          &alpha,
+                                          this->input.desc, // x
+                                          this->in_dev.get(),
+                                          &beta,
+                                          this->output_gpu.desc, // y
+                                          this->out_dev.get(),
+                                          this->doutput.desc, // dy
+                                          this->dout_dev.get(),
+                                          this->dinput_gpu.desc, // dx
+                                          this->din_dev.get());
 
     EXPECT_EQ(status, miopenStatusSuccess);
 }
