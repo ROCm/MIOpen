@@ -270,6 +270,7 @@ void ConvFindCore(const AnyInvokeParams& invoke_ctx,
     auto solutions = std::map<AlgorithmName, std::vector<solver::ConvSolution>>{};
     std::transform(
         finders.begin(), finders.end(), std::inserter(solutions, solutions.end()), [&](auto&& f) {
+            MIOPEN_LOG_I2("Starting find for " << f->GetAlgorithmName(ctx).ToString());
             return std::make_pair(f->GetAlgorithmName(ctx),
                                   f->Find(ctx, invoke_ctx, use_winograd_only));
         });

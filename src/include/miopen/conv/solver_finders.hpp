@@ -49,7 +49,10 @@ public:
                                                   bool use_winograd_only) const
     {
         if(!IsEnabled(ctx, use_winograd_only))
+        {
+            MIOPEN_LOG_I2("Skipping " << GetAlgorithmName(ctx).ToString());
             return {};
+        }
 
         try
         {
