@@ -44,8 +44,7 @@ namespace fusion {
 
 bool BnBwdTrgActivationFused::IsApplicable(const FusionContext& context) const
 {
-    const auto& desc   = *context.problem.fusion_plan_desc;
-    const auto problem = context.problem.GetBnProblem(0, miopen::batchnorm::Direction::Backward);
+    const auto& desc = *context.problem.fusion_plan_desc;
     if(desc.op_map.empty())
         MIOPEN_THROW("");
     if(miopen::IsDisabled(MIOPEN_DEBUG_BN_BWDTRG_ACTIV_FUSED{}))

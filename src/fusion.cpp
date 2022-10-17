@@ -1102,7 +1102,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                                                  solver::fusion::ConvOclDirectFwdFused,
                                                  solver::fusion::ConvBinWinogradRxSFused,
                                                  solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
-                                                 solver::fusion::BnFwdInferActivationFused>{};
+                                                 solver::fusion::BnFwdInferActivationFused,
+                                                 solver::fusion::BnFwdTrgActivationFused,
+                                                 solver::fusion::BnBwdTrgActivationFused>{};
     auto exec_ctx         = ExecutionContext{&handle};
     exec_ctx.DetectRocm();
     const auto fusion_ctx = FusionContext{this, handle};
@@ -1118,7 +1120,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     if(sols.empty())
     {
         use_fall_back_path = true;
-        return miopenStatusSuccess;
+        return miopenStatusUnsupportedOp;
     }
     else
     {
@@ -1130,6 +1132,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             const auto invoker = handle.PrepareInvoker(
                 *sol.invoker_factory, sol.construction_params); // force compilation
             network_config = NetworkConfig{ss.str()};
+            std::cout << "NetworkConfig: " << ss.str() << std::endl;
+            std::cout << "SolverID: " << sol.solver_id << std::endl;
             handle.RegisterInvoker(invoker, network_config, sol.solver_id, {});
             solutions.push_back(sol);
         }
@@ -1174,6 +1178,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
         std::vector<std::shared_ptr<fusion::FusionOpInvokeParamBase>> params;
         for(const auto& op : op_map)
             params.push_back(op->GetArgs());
+        std::cout << " SolverID: " << solution.solver_id << std::endl;
         const auto invoker = handle.GetInvoker(network_config, solver::Id{solution.solver_id}, {});
         const auto plan_params =
             fusion::FusionInvokeParams{params, inputDesc, input, outputDesc, output, false};
