@@ -169,8 +169,7 @@ namespace {
     }
 // clang-format on
 
-inline bool IsShaderContraintsMet(const ExecutionContext& ctx,
-                                  const ProblemDescription& problem,
+inline bool IsShaderContraintsMet(const ProblemDescription& problem,
                                   const int R,
                                   const int S,
                                   const int C,
@@ -508,8 +507,7 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
     {
         if(problem.kernel_stride_w == 2)
             return false;
-        return IsShaderContraintsMet(ctx,
-                                     problem,
+        return IsShaderContraintsMet(problem,
                                      problem.in_height,
                                      problem.in_width,
                                      problem.batch_sz,   // N
@@ -522,8 +520,7 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
     }
     else
     {
-        return IsShaderContraintsMet(ctx,
-                                     problem,
+        return IsShaderContraintsMet(problem,
                                      problem.kernel_size_h, // RxS
                                      problem.kernel_size_w,
                                      n_inputs_per_group,  // C
