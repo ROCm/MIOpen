@@ -48,6 +48,7 @@
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/conv/heur/heur.hpp>
 
 #include <cassert>
 #include <type_traits>
@@ -386,18 +387,18 @@ static void DirConvFindCore(Handle& handle,
         AutoUseFastDynamicSolutions tmp{ctx};
         return conv.FindWinogradSolutions(ctx, invoke_ctx);
     }();
-    const auto gemm     = !use_winograd_only ? conv.FindDataGemmSolutions(ctx, invoke_ctx)
-                                             : std::vector<miopen::solver::ConvSolution>{};
-    const auto direct   = !use_winograd_only
-                              ? conv.FindDataDirectSolutions(
+    const auto gemm = !use_winograd_only ? conv.FindDataGemmSolutions(ctx, invoke_ctx)
+                                         : std::vector<miopen::solver::ConvSolution>{};
+    const auto direct = !use_winograd_only
+                            ? conv.FindDataDirectSolutions(
                                   handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, invoke_ctx)
-                              : std::vector<miopen::solver::ConvSolution>{};
-    const auto igemm    = !use_winograd_only
-                              ? conv.FindDataImplicitGemmSolutions(
+                            : std::vector<miopen::solver::ConvSolution>{};
+    const auto igemm = !use_winograd_only
+                           ? conv.FindDataImplicitGemmSolutions(
                                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, invoke_ctx)
-                              : std::vector<miopen::solver::ConvSolution>{};
-    const auto fft      = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx)
-                                             : std::vector<miopen::solver::ConvSolution>{};
+                           : std::vector<miopen::solver::ConvSolution>{};
+    const auto fft = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx)
+                                        : std::vector<miopen::solver::ConvSolution>{};
 
     // Precompile
     {
@@ -750,8 +751,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
 
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
-    const auto& inDesc      = problem.direction.IsForward() ? problem.conv_problem.GetIn()
-                                                            : problem.conv_problem.GetOut();
+    const auto& inDesc = problem.direction.IsForward() ? problem.conv_problem.GetIn()
+                                                       : problem.conv_problem.GetOut();
     const auto& weightsDesc = problem.conv_problem.GetWeights();
     // This check is needed on fallback path only.
     // On regular path (find-db hit) this was checked during Find().
@@ -764,55 +765,98 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
-    const auto wti2time = [](const float& wti) {
-        assert(wti != 0.0f);
-        if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
-            return wti;
-        return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
-    };
-
-    for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Convolution))
+    if(MIOPEN_ENABLE_HEUR && ConvHeur::IsApplicable(handle.GetDeviceName(), problem.conv_problem))
     {
-        // solver_id is always valid here, because taken from registry.
-        // Validity check is not required.
-        const auto algo = solver_id.GetAlgo();
-        if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
-            continue;
-        const auto& s = solver_id.GetSolver();
-        if(s.IsEmpty())
-            continue;
-        if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
-            continue;
-        if(!s.IsApplicable(ctx))
-            continue;
+        int idx = 1; // Each solution to have a successively more negative values keeping
+        // sorting logic intact in frameworks
+        bool is_cached = false;
+        auto solvers = ConvHeur{}.Estimate(handle.GetDeviceName(), problem.conv_problem, is_cached);
+        for(const auto kinder : solvers)
+        {
+            const auto solver_id = solver::Id{kinder};
+            const auto sol       = solver_id.GetSolver();
+            if(!sol.IsDynamic())
+                continue; // branch should never be taken
+            if(!sol.IsApplicable(ctx))
+                continue;
+            const auto algo = solver_id.GetAlgo();
+            if(IsAlgorithmDisabled(algo))
+                continue;
+            interim.emplace_back(
+                static_cast<float>(-1 * idx), sol.GetWorkspaceSize(ctx), solver_id.Value(), algo);
+            ++idx;
+        }
+        auto i = std::size_t{0};
+        MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount
+                                            << ", available = " << interim.size());
+        for(const auto& s : interim)
+            MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm
+                                 << ", time: " << s.time << " ms, ws: " << s.workspace_size
+                                 << ", name: " << miopen::solver::Id(s.solution_id).ToString());
 
-        const auto wti = s.GetWti(ctx);
-        MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
-        if(wti < 0.0f) // Skip unknown WTIs.
-            continue;
-
-        interim.emplace_back(wti2time(wti), s.GetWorkspaceSize(ctx), solver_id.Value(), algo);
+        for(const auto& entry : interim)
+        {
+            if(i >= maxSolutionCount)
+                break;
+            if(solutions != nullptr)
+                solutions[i] = entry;
+            ++i;
+        }
+        *solutionCount = i;
     }
-
-    MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
-    for(const auto& s : interim)
-        MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
-                             << " ms, ws: " << s.workspace_size
-                             << ", name: " << miopen::solver::Id(s.solution_id).ToString());
-    // Dual purpose variable:
-    // * Used as index for writing into output array (solutions).
-    // * Counts the number of entries written, yielding value for solutionsCount.
-    auto i = std::size_t{0};
-    std::sort(begin(interim), end(interim));
-    for(const auto& entry : interim)
+    else
     {
-        if(i >= maxSolutionCount)
-            break;
-        if(solutions != nullptr)
-            solutions[i] = entry;
-        ++i;
+        const auto wti2time = [](const float& wti) {
+            assert(wti != 0.0f);
+            if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
+                return wti;
+            return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
+        };
+
+        for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Convolution))
+        {
+            // solver_id is always valid here, because taken from registry.
+            // Validity check is not required.
+            const auto algo = solver_id.GetAlgo();
+            if(IsAlgorithmDisabled(algo)) // Algos can be disabled globally.
+                continue;
+            const auto& s = solver_id.GetSolver();
+            if(s.IsEmpty())
+                continue;
+            if(!s.IsDynamic()) // Let's allow non-dynamic later, if necessary.
+                continue;
+            if(!s.IsApplicable(ctx))
+                continue;
+
+            const auto wti = s.GetWti(ctx);
+            MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
+            if(wti < 0.0f) // Skip unknown WTIs.
+                continue;
+
+            interim.emplace_back(wti2time(wti), s.GetWorkspaceSize(ctx), solver_id.Value(), algo);
+        }
+
+        MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount
+                                            << ", available = " << interim.size());
+        for(const auto& s : interim)
+            MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm
+                                 << ", time: " << s.time << " ms, ws: " << s.workspace_size
+                                 << ", name: " << miopen::solver::Id(s.solution_id).ToString());
+        // Dual purpose variable:
+        // * Used as index for writing into output array (solutions).
+        // * Counts the number of entries written, yielding value for solutionsCount.
+        auto i = std::size_t{0};
+        std::sort(begin(interim), end(interim));
+        for(const auto& entry : interim)
+        {
+            if(i >= maxSolutionCount)
+                break;
+            if(solutions != nullptr)
+                solutions[i] = entry;
+            ++i;
+        }
+        *solutionCount = i;
     }
-    *solutionCount = i;
 }
 
 void GetSolutions(Handle& handle,
@@ -903,8 +947,13 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
                  solutions,
                  StringToConvolutionFwdAlgo);
 
+#if MIOPEN_ENABLE_HEUR
+    if(fallbackPathTaken != nullptr)
+        *fallbackPathTaken = false;
+#else
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = (*solutionCount == 0);
+#endif
     if(*solutionCount == 0)
         GetSolutionsFallback(handle, ctx.problem, maxSolutionCount, solutionCount, solutions);
 }
@@ -1338,8 +1387,13 @@ void ConvolutionDescriptor::GetBackwardSolutions(Handle& handle,
                  solutions,
                  StringToConvolutionBwdDataAlgo);
 
+#if MIOPEN_ENABLE_HEUR
+    if(fallbackPathTaken != nullptr)
+        *fallbackPathTaken = false;
+#else
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = (*solutionCount == 0);
+#endif
     if(*solutionCount == 0)
         GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
@@ -1497,15 +1551,15 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                           this->attribute.gfx90aFp16alt.GetWrW()};
 
             // Find solutions
-            const auto gemm        = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
-                                         ? FindAllGemmSolutions(ctx, invoke_ctx)
-                                         : std::vector<miopen::solver::ConvSolution>{};
-            const auto direct      = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
-                                         ? FindAllBwdWrW2DSolutions(ctx, invoke_ctx)
-                                         : std::vector<miopen::solver::ConvSolution>{};
-            const auto winograd    = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
-                                         ? FindWinogradWrWAllSolutions(ctx, invoke_ctx)
-                                         : std::vector<miopen::solver::ConvSolution>{};
+            const auto gemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
+                                  ? FindAllGemmSolutions(ctx, invoke_ctx)
+                                  : std::vector<miopen::solver::ConvSolution>{};
+            const auto direct = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
+                                    ? FindAllBwdWrW2DSolutions(ctx, invoke_ctx)
+                                    : std::vector<miopen::solver::ConvSolution>{};
+            const auto winograd = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
+                                      ? FindWinogradWrWAllSolutions(ctx, invoke_ctx)
+                                      : std::vector<miopen::solver::ConvSolution>{};
             const auto implictgemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{})
                                          ? FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx)
                                          : std::vector<miopen::solver::ConvSolution>{};
@@ -1682,8 +1736,13 @@ void ConvolutionDescriptor::GetWrwSolutions(Handle& handle,
                  solutions,
                  StringToConvolutionBwdWeightsAlgo);
 
+#if MIOPEN_ENABLE_HEUR
+    if(fallbackPathTaken != nullptr)
+        *fallbackPathTaken = false;
+#else
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = (*solutionCount == 0);
+#endif
     if(*solutionCount == 0)
         GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }

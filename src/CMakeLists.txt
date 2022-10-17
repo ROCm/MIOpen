@@ -131,6 +131,7 @@ set( MIOpen_Source
     problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
+    anyramdb.cpp
     reducetensor.cpp
     reducetensor_api.cpp
     rnn.cpp
@@ -601,6 +602,22 @@ if(MIOPEN_USE_COMGR)
     list(APPEND MIOpen_Source comgr.cpp)
 endif()
 
+if(MIOPEN_ENABLE_HEUR)
+    # install(CODE "execute_process(COMMAND ln -s /usr/local/include/eigen3/Eigen /usr/local/include/Eigen)")
+    add_library(Eigen INTERFACE)
+    target_include_directories(Eigen INTERFACE $<BUILD_INTERFACE:/usr/local/include/eigen3/Eigen>)
+    target_link_libraries(MIOpen INTERFACE Eigen)
+    list(APPEND MIOpen_Source conv/heur/metadata.cpp)
+    list(APPEND MIOPEN_Source include/miopen/conv/heur/metadata.hpp)
+    list(APPEND MIOPEN_Source include/miopen/conv/heur/heur.hpp)
+    file(GLOB MODEL_FILES conv/heur/*.model)
+    install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
+    foreach(MODEL_FILE ${MODEL_FILES})
+        get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+        configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
+    endforeach()
+endif()
+
 if(MIOPEN_USE_MLIR)
     list(APPEND MIOpen_Source
         mlir_build.cpp
@@ -827,6 +844,8 @@ else()
 
     endif()
 endif()
+
+
 
 if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
   #Generating Wrapper of each headers for backward compatibility
