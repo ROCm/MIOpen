@@ -40,17 +40,22 @@ namespace miopen {
 namespace solver {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-using DeviceConvFwdPtr_t = std::unique_ptr<
+template <typename DataType>
+using DeviceOp =
     ck::tensor_operation::device::DeviceConvFwd<2,
                                                 ck::tensor_layout::convolution::NHWC,
                                                 ck::tensor_layout::convolution::KYXC,
                                                 ck::tensor_layout::convolution::NHWK,
-                                                int8_t,
-                                                int8_t,
-                                                int8_t,
+                                                DataType,
+                                                DataType,
+                                                DataType,
                                                 ck::tensor_operation::element_wise::PassThrough,
                                                 ck::tensor_operation::element_wise::PassThrough,
-                                                ck::tensor_operation::element_wise::PassThrough>>;
+                                                ck::tensor_operation::element_wise::PassThrough>;
+
+template <typename DataType>
+using DeviceOpPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOp<DataType>>;
 
 struct CKArgs
 {
@@ -85,6 +90,140 @@ struct CKArgs
     std::vector<int> lPadding;
     std::vector<int> rPadding;
 };
+
+template <typename DataType>
+void PerformanceConfigHipImplicitGemmFwdXdlops::Init(const ConvolutionContext& ctx)
+{
+    const auto args      = CKArgs{ctx};
+    const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
+    assert(!conv_ptrs.empty());
+    this->total_size = conv_ptrs.size();
+    for(int i = 0; i < conv_ptrs.size(); i++)
+    {
+        auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
+                                                              nullptr,
+                                                              nullptr,
+                                                              args.N,
+                                                              args.K,
+                                                              args.C,
+                                                              args.input,
+                                                              args.filter,
+                                                              args.output,
+                                                              args.strides,
+                                                              args.dilation,
+                                                              args.lPadding,
+                                                              args.rPadding,
+                                                              {},
+                                                              {},
+                                                              {});
+        if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
+        {
+            this->kernel_id = conv_ptrs[i]->GetTypeString();
+            break;
+        }
+        ++this->index;
+    }
+}
+
+template <typename DataType>
+bool PerformanceConfigHipImplicitGemmFwdXdlops::CheckIsSupportCKArgs(
+    const ConvolutionContext& ctx) const
+{
+    const auto args      = CKArgs{ctx};
+    const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
+    auto argument_ptr    = conv_ptrs[this->index]->MakeArgumentPointer(nullptr,
+                                                                    nullptr,
+                                                                    nullptr,
+                                                                    args.N,
+                                                                    args.K,
+                                                                    args.C,
+                                                                    args.input,
+                                                                    args.filter,
+                                                                    args.output,
+                                                                    args.strides,
+                                                                    args.dilation,
+                                                                    args.lPadding,
+                                                                    args.rPadding,
+                                                                    {},
+                                                                    {},
+                                                                    {});
+    return conv_ptrs[this->index]->IsSupportedArgument(argument_ptr.get());
+}
+
+template <typename DataType>
+bool ConvHipImplicitGemmFwdXdlops::CheckCKApplicability(const ConvolutionContext& ctx) const
+{
+    const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
+    assert(!conv_ptrs.empty());
+    const auto args = CKArgs{ctx};
+    if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
+        return false;
+    for(int i = 0; i < conv_ptrs.size(); i++)
+    {
+        auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
+                                                              nullptr,
+                                                              nullptr,
+                                                              args.N,
+                                                              args.K,
+                                                              args.C,
+                                                              args.input,
+                                                              args.filter,
+                                                              args.output,
+                                                              args.strides,
+                                                              args.dilation,
+                                                              args.lPadding,
+                                                              args.rPadding,
+                                                              {},
+                                                              {},
+                                                              {});
+        if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
+            return true;
+    }
+    return false;
+}
+
+template <typename DataType>
+void ConvHipImplicitGemmFwdXdlops::RunCKSolution(
+    const Handle& handle,
+    const AnyInvokeParams& primitive_parameters,
+    const ConvolutionContext& ctx,
+    const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
+{
+    const auto args      = CKArgs{ctx};
+    const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
+    auto& conv_ptr       = conv_ptrs.at(config.index);
+    const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+    const auto& tensors  = data_ctx.tensors;
+    auto argument_ptr    = conv_ptr->MakeArgumentPointer(
+        const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            static_cast<const void*>(tensors.in)),
+        const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            static_cast<const void*>(tensors.w)),
+        static_cast<void*>(tensors.out),
+        args.N,
+        args.K,
+        args.C,
+        args.input,
+        args.filter,
+        args.output,
+        args.strides,
+        args.dilation,
+        args.lPadding,
+        args.rPadding,
+        {},
+        {},
+        {});
+    auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
+    const auto enable_profiling = handle.IsProfilingEnabled();
+
+    float elapsed_time =
+        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+    if(enable_profiling)
+    {
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(elapsed_time);
+    }
+}
 #endif
 
 void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionContext& ctx)
@@ -93,37 +232,18 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ConvolutionC
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
 #else
-    this->index = 0;
-    std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-    ck::tensor_operation::device::instance::add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances(
-        conv_ptrs);
-    assert(!conv_ptrs.empty());
-    this->total_size = conv_ptrs.size();
-    const auto args  = CKArgs{ctx};
-    for(auto& conv_ptr : conv_ptrs)
+    this->index      = 0;
+    this->total_size = 0;
+    this->kernel_id  = "";
+    switch(ctx.problem.conv_problem.GetInDataType())
     {
-        auto argument_ptr = conv_ptr->MakeArgumentPointer(nullptr,
-                                                          nullptr,
-                                                          nullptr,
-                                                          args.N,
-                                                          args.K,
-                                                          args.C,
-                                                          args.input,
-                                                          args.filter,
-                                                          args.output,
-                                                          args.strides,
-                                                          args.dilation,
-                                                          args.lPadding,
-                                                          args.rPadding,
-                                                          {},
-                                                          {},
-                                                          {});
-        if(conv_ptr->IsSupportedArgument(argument_ptr.get()))
-        {
-            this->kernel_id = conv_ptr->GetTypeString();
-            break;
-        }
-        ++this->index;
+    case miopenInt8: Init<int8_t>(ctx); break;
+    case miopenHalf: Init<ck::half_t>(ctx); break;
+    case miopenFloat: Init<float>(ctx); break;
+    case miopenInt32:
+    case miopenInt8x4:
+    case miopenBFloat16:
+    case miopenDouble: break;
     }
 #endif
 }
@@ -150,27 +270,17 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(const ConvolutionContext
     std::ignore = ctx;
     return false;
 #else
-    std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-    ck::tensor_operation::device::instance::add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances(
-        conv_ptrs);
-    const auto args   = CKArgs{ctx};
-    auto argument_ptr = conv_ptrs[this->index]->MakeArgumentPointer(nullptr,
-                                                                    nullptr,
-                                                                    nullptr,
-                                                                    args.N,
-                                                                    args.K,
-                                                                    args.C,
-                                                                    args.input,
-                                                                    args.filter,
-                                                                    args.input,
-                                                                    args.strides,
-                                                                    args.dilation,
-                                                                    args.lPadding,
-                                                                    args.rPadding,
-                                                                    {},
-                                                                    {},
-                                                                    {});
-    return conv_ptrs[this->index]->IsSupportedArgument(argument_ptr.get());
+    switch(ctx.problem.conv_problem.GetInDataType())
+    {
+    case miopenInt8: return CheckIsSupportCKArgs<int8_t>(ctx);
+    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(ctx);
+    case miopenFloat: return CheckIsSupportCKArgs<float>(ctx);
+    case miopenInt32:
+    case miopenInt8x4:
+    case miopenBFloat16:
+    case miopenDouble: break;
+    }
+    return false;
 #endif
 }
 
@@ -217,9 +327,9 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
         return false;
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
-    if(!(ctx.problem.conv_problem.GetInDataType() == miopenInt8 &&
-         ctx.problem.conv_problem.GetWeightsDataType() == miopenInt8 &&
-         ctx.problem.conv_problem.GetOutDataType() == miopenInt8))
+    if(ctx.problem.conv_problem.GetInDataType() != ctx.problem.conv_problem.GetWeightsDataType() ||
+       ctx.problem.conv_problem.GetWeightsDataType() != ctx.problem.conv_problem.GetOutDataType() ||
+       ctx.problem.conv_problem.GetInDataType() != ctx.problem.conv_problem.GetOutDataType())
         return false;
     if(!ctx.problem.direction.IsForward())
         return false;
@@ -229,36 +339,15 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx) c
         return false;
     if(!ctx.problem.IsLayoutNHWC())
         return false;
-
-    const auto args = CKArgs{ctx};
-    if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
-        return false;
-
-    std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-    ck::tensor_operation::device::instance::add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances(
-        conv_ptrs);
-    assert(!conv_ptrs.empty());
-
-    for(auto& conv_ptr : conv_ptrs)
+    switch(ctx.problem.conv_problem.GetInDataType())
     {
-        auto argument_ptr = conv_ptr->MakeArgumentPointer(nullptr,
-                                                          nullptr,
-                                                          nullptr,
-                                                          args.N,
-                                                          args.K,
-                                                          args.C,
-                                                          args.input,
-                                                          args.filter,
-                                                          args.input,
-                                                          args.strides,
-                                                          args.dilation,
-                                                          args.lPadding,
-                                                          args.rPadding,
-                                                          {},
-                                                          {},
-                                                          {});
-        if(conv_ptr->IsSupportedArgument(argument_ptr.get()))
-            return true;
+    case miopenInt8: return CheckCKApplicability<int8_t>(ctx);
+    case miopenHalf: return CheckCKApplicability<ck::half_t>(ctx);
+    case miopenFloat: return CheckCKApplicability<float>(ctx);
+    case miopenInt32:
+    case miopenInt8x4:
+    case miopenBFloat16:
+    case miopenDouble: break;
     }
     return false;
 #endif
@@ -273,44 +362,24 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     return {};
 #else
     ConvSolution result;
-    const auto args        = CKArgs{ctx};
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            std::vector<DeviceConvFwdPtr_t> conv_ptrs;
-            ck::tensor_operation::device::instance::
-                add_device_conv2d_fwd_xdl_nhwc_kyxc_nhwk_int8_instances(conv_ptrs);
-            auto& conv_ptr       = conv_ptrs.at(config.index);
-            const auto& data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-            const auto& tensors  = data_ctx.tensors;
-            auto argument_ptr    = conv_ptr->MakeArgumentPointer(
-                const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
-                    static_cast<const void*>(tensors.in)),
-                const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
-                    static_cast<const void*>(tensors.w)),
-                static_cast<void*>(tensors.out),
-                args.N,
-                args.K,
-                args.C,
-                args.input,
-                args.filter,
-                args.input,
-                args.strides,
-                args.dilation,
-                args.lPadding,
-                args.rPadding,
-                {},
-                {},
-                {});
-            auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
-            const auto enable_profiling = handle.IsProfilingEnabled();
-
-            float elapsed_time =
-                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-            if(enable_profiling)
+            switch(ctx.problem.conv_problem.GetInDataType())
             {
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(elapsed_time);
+            case miopenInt8:
+                RunCKSolution<int8_t>(handle, primitive_parameters, ctx, config);
+                break;
+            case miopenHalf:
+                RunCKSolution<ck::half_t>(handle, primitive_parameters, ctx, config);
+                break;
+            case miopenFloat:
+                RunCKSolution<float>(handle, primitive_parameters, ctx, config);
+                break;
+            case miopenInt32:
+            case miopenInt8x4:
+            case miopenBFloat16:
+            case miopenDouble: break;
             }
         };
     };
