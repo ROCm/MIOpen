@@ -61,6 +61,15 @@
 #endif
 #endif
 
+#if MIOPEN_USE_INT32 == 1
+#define _FLOAT unsigned
+#ifndef FLT_MAX
+#define MAX_VAL 4294967295 /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
 #ifndef WORK_LENGTH_0
 #define WORK_LENGTH_0 1
 #endif
