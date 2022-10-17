@@ -61,7 +61,7 @@
 #endif
 
 #if MIOPEN_USE_INT32 == 1
-#define _FLOAT unsigned
+#define _FLOAT int
 #endif
 
 #ifndef WORK_LENGTH_0
