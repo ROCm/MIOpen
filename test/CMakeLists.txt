@@ -1910,4 +1910,4 @@ add_custom_test(test_regression_half_mi200 GFX900_DISABLED GFX906_DISABLED GFX90
 )
 #override if we need to install gtests
 set(INSTALL_GTEST OFF)
-add_subdirectory(gtest)
+add_subdirectory(gtest EXCLUDE_FROM_ALL)
