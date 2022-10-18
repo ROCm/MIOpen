@@ -1022,19 +1022,23 @@ struct PerformanceImplicitGemmBwdDataV4R1 : PerfConfigBase<PerformanceImplicitGe
         f(self.GemmNPerThread, "GemmNPerThread");
     }
 
-    std::tuple<int, bool> CalculateGridSize(const ConvolutionContext& ctx) const;
+    std::tuple<int, bool> CalculateGridSize(const ProblemDescription&) const;
     std::tuple<int, int, int, int, bool>
-    CalculateBlockGemmPerformanceParameters(const ConvolutionContext& ctx) const;
+    CalculateBlockGemmPerformanceParameters() const;
     std::tuple<int, int, int, int, bool>
-    CalculateGemmABlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    CalculateGemmABlockCopyPerformanceParameters(const ProblemDescription&) const;
     std::tuple<int, int, int, int, bool>
-    CalculateGemmBBlockCopyPerformanceParameters(const ConvolutionContext& ctx) const;
+    CalculateGemmBBlockCopyPerformanceParameters(const ProblemDescription&) const;
     std::tuple<int, bool>
-    CalculateGemmCThreadCopyPerformanceParameters(const ConvolutionContext& ctx) const;
-    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ConvolutionContext& ctx) const;
+    CalculateGemmCThreadCopyPerformanceParameters(const ProblemDescription&) const;
+    std::tuple<std::size_t, bool> CalculateLdsNumberOfByte(const ProblemDescription&) const;
     bool IsValidValue() const;
-    bool IsValid(const ConvolutionContext& ctx) const;
-    void HeuristicInit(const ConvolutionContext& ctx);
+    bool IsValid(const ConvolutionContext& ctx) const
+    {
+        return IsValid(ctx.problem);
+    }
+    bool IsValid(const ProblemDescription&) const;
+    void HeuristicInit(const ConvolutionContext&, const ProblemDescription&);
     bool SetNextValue(const ConvolutionContext&);
 };
 
@@ -1978,24 +1982,58 @@ private:
 
 struct ConvHipImplicitGemmBwdDataV4R1 final : ConvTunableSolver<PerformanceImplicitGemmBwdDataV4R1>
 {
+    // To suppress -Woverloaded-virtual
+    using ConvTunableSolver::IsApplicable;
+    using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::IsValidPerformanceConfig;
+    using ConvTunableSolver::Search;
+    using ConvTunableSolver::GetSolution;
+
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvHipImplicitGemmBwdDataV4R1>();
     }
 
-    bool IsApplicable(const ConvolutionContext& ctx) const override;
+    bool IsApplicable(const ConvolutionContext& ctx) const override
+    {
+        return IsApplicable(ctx, ctx.problem);
+    }
     PerformanceImplicitGemmBwdDataV4R1
-    GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
+    {
+        return GetDefaultPerformanceConfig(ctx, ctx.problem);
+    }
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmBwdDataV4R1& config) const override;
-    PerformanceImplicitGemmBwdDataV4R1 Search(const ConvolutionContext&,
-                                              const AnyInvokeParams& invoke_ctx) const override;
+                                  const PerformanceImplicitGemmBwdDataV4R1& config) const override
+    {
+        return IsValidPerformanceConfig(ctx.problem, config);
+    }
+    PerformanceImplicitGemmBwdDataV4R1 Search(const ConvolutionContext& ctx,
+                                              const AnyInvokeParams& invoke_ctx) const override
+    {
+        return Search(ctx, ctx.problem, invoke_ctx);
+    }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmBwdDataV4R1& config) const override;
+                             const PerformanceImplicitGemmBwdDataV4R1& config) const override
+    {
+        return GetSolution(ctx, ctx.problem, config);
+    }
 
 private:
-    static int CalculateNumberOfGemm(const ConvolutionContext& ctx);
-    static std::tuple<int, int, int> CalculateGemmSize(const ConvolutionContext& ctx, int gemm_id);
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
+    PerformanceImplicitGemmBwdDataV4R1
+    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const;
+    bool IsValidPerformanceConfig(const ProblemDescription&,
+                                  const PerformanceImplicitGemmBwdDataV4R1&) const;
+    PerformanceImplicitGemmBwdDataV4R1 Search(const ConvolutionContext&,
+                                              const ProblemDescription&,
+                                              const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const PerformanceImplicitGemmBwdDataV4R1&) const;
+
+    static int CalculateNumberOfGemm(const ProblemDescription&);
+    static std::tuple<int, int, int> CalculateGemmSize(const ProblemDescription&, int gemm_id);
 
     friend struct PerformanceImplicitGemmBwdDataV4R1;
 };
