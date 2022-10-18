@@ -362,9 +362,8 @@ PerformanceImplicitGemmBwdDataV4R1::CalculateGemmCThreadCopyPerformanceParameter
 
         if(problem.Is3d())
         {
-            const auto z = ProblemInterpreter::GetFilterDepthZ(problem);
-            const auto conv_stride_d =
-                ProblemInterpreter::GetAdjustedConvolutionStrideD(problem);
+            const auto z              = ProblemInterpreter::GetFilterDepthZ(problem);
+            const auto conv_stride_d  = ProblemInterpreter::GetAdjustedConvolutionStrideD(problem);
             const auto in_left_pad_d  = ProblemInterpreter::GetInputLeftPadD(problem);
             const auto in_right_pad_d = ProblemInterpreter::GetAdjustedInputRightPadD(problem);
 
@@ -404,8 +403,8 @@ PerformanceImplicitGemmBwdDataV4R1::CalculateGemmCThreadCopyPerformanceParameter
     return std::make_tuple(DstDataPerWrite_GemmN1, true);
 }
 
-std::tuple<std::size_t, bool>
-PerformanceImplicitGemmBwdDataV4R1::CalculateLdsNumberOfByte(const ProblemDescription& problem) const
+std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV4R1::CalculateLdsNumberOfByte(
+    const ProblemDescription& problem) const
 {
     std::size_t lds_size = 0;
 
@@ -524,7 +523,8 @@ bool PerformanceImplicitGemmBwdDataV4R1::IsValid(const ProblemDescription& probl
     return (valid and lds_size <= get_lds_max_number_of_byte());
 }
 
-void PerformanceImplicitGemmBwdDataV4R1::HeuristicInit(const ConvolutionContext& ctx, const ProblemDescription& problem)
+void PerformanceImplicitGemmBwdDataV4R1::HeuristicInit(const ConvolutionContext& ctx,
+                                                       const ProblemDescription& problem)
 {
     std::ignore = ctx;
     PerformanceImplicitGemmBwdDataV4R1 config;
@@ -619,9 +619,8 @@ int ConvHipImplicitGemmBwdDataV4R1::CalculateNumberOfGemm(const ProblemDescripti
 
     if(problem.Is3d())
     {
-        const auto conv_stride_d = ProblemInterpreter::GetAdjustedConvolutionStrideD(problem);
-        const auto conv_dilation_d =
-            ProblemInterpreter::GetAdjustedConvolutionDilationD(problem);
+        const auto conv_stride_d   = ProblemInterpreter::GetAdjustedConvolutionStrideD(problem);
+        const auto conv_dilation_d = ProblemInterpreter::GetAdjustedConvolutionDilationD(problem);
         const auto gcd_stride_dilation_d = gcd(conv_stride_d, conv_dilation_d);
         const auto ztilda                = conv_stride_d / gcd_stride_dilation_d;
 
@@ -683,13 +682,12 @@ ConvHipImplicitGemmBwdDataV4R1::CalculateGemmSize(const ProblemDescription& prob
         const auto ydot_slice = (i_ytilda + 1) * ydot <= y ? ydot : y % ydot;
         const auto xdot_slice = (i_xtilda + 1) * xdot <= x ? xdot : x % xdot;
 
-        const auto di            = ProblemInterpreter::GetInputDepthDi(problem);
-        const auto dout          = ProblemInterpreter::GetOutputDepthDo(problem);
-        const auto z             = ProblemInterpreter::GetFilterDepthZ(problem);
-        const auto conv_stride_d = ProblemInterpreter::GetAdjustedConvolutionStrideD(problem);
-        const auto conv_dilation_d =
-            ProblemInterpreter::GetAdjustedConvolutionDilationD(problem);
-        const auto in_left_pad_d         = ProblemInterpreter::GetInputLeftPadD(problem);
+        const auto di              = ProblemInterpreter::GetInputDepthDi(problem);
+        const auto dout            = ProblemInterpreter::GetOutputDepthDo(problem);
+        const auto z               = ProblemInterpreter::GetFilterDepthZ(problem);
+        const auto conv_stride_d   = ProblemInterpreter::GetAdjustedConvolutionStrideD(problem);
+        const auto conv_dilation_d = ProblemInterpreter::GetAdjustedConvolutionDilationD(problem);
+        const auto in_left_pad_d   = ProblemInterpreter::GetInputLeftPadD(problem);
         const auto gcd_stride_dilation_z = gcd(conv_stride_d, conv_dilation_d);
         const auto ztilda                = conv_stride_d / gcd_stride_dilation_z;
         const auto zdot                  = integer_divide_ceil(z, ztilda);
@@ -726,7 +724,8 @@ ConvHipImplicitGemmBwdDataV4R1::CalculateGemmSize(const ProblemDescription& prob
     }
 }
 
-bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx,
+                                                  const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_229277_227616_229195
     if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1{}))
@@ -779,7 +778,8 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceImplicitGemmBwdDataV4R1
-ConvHipImplicitGemmBwdDataV4R1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+ConvHipImplicitGemmBwdDataV4R1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+                                                            const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1>(ctx, problem);
 }
@@ -949,8 +949,7 @@ ConvHipImplicitGemmBwdDataV4R1::GetSolution(const ConvolutionContext& ctx,
                     std::string(" -DCK_PARAM_PROBLEM_CONV_STRIDE_D=") +
                     std::to_string(ProblemInterpreter::GetAdjustedConvolutionStrideD(problem)) +
                     std::string(" -DCK_PARAM_PROBLEM_CONV_DILATION_D=") +
-                    std::to_string(
-                        ProblemInterpreter::GetAdjustedConvolutionDilationD(problem)) +
+                    std::to_string(ProblemInterpreter::GetAdjustedConvolutionDilationD(problem)) +
                     std::string(" -DCK_PARAM_PROBLEM_IN_LEFT_PAD_D=") +
                     std::to_string(ProblemInterpreter::GetInputLeftPadD(problem)) +
                     std::string(" -DCK_PARAM_PROBLEM_IN_RIGHT_PAD_D=") +
