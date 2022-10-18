@@ -194,8 +194,8 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
                 kernel.l_wk.push_back(local_wk1);
                 kernel.l_wk.push_back(1);
 
-                size_t imagesizeAlign = ((params.problem.out_width * params.problem.out_height *
-                                              params.problem.batch_sz +
+                size_t imagesizeAlign = ((static_cast<size_t>(params.problem.out_width) *
+                                              params.problem.out_height * params.problem.batch_sz +
                                           FIXED_WORKGROUP_SIZE - 1) /
                                          FIXED_WORKGROUP_SIZE) *
                                         FIXED_WORKGROUP_SIZE;
@@ -220,11 +220,11 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
                 kernel.l_wk.push_back(1);
                 kernel.l_wk.push_back(1);
 
-                size_t imagesizeAlign =
-                    ((params.problem.in_width * params.problem.in_height * params.problem.batch_sz +
-                      FIXED_WORKGROUP_SIZE - 1) /
-                     FIXED_WORKGROUP_SIZE) *
-                    FIXED_WORKGROUP_SIZE;
+                size_t imagesizeAlign = ((static_cast<size_t>(params.problem.in_width) *
+                                              params.problem.in_height * params.problem.batch_sz +
+                                          FIXED_WORKGROUP_SIZE - 1) /
+                                         FIXED_WORKGROUP_SIZE) *
+                                        FIXED_WORKGROUP_SIZE;
                 size_t N_OUT_GROUPS = (K / N_LCL_OUT_MAPS);
 
                 size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
@@ -387,7 +387,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             kernel.l_wk.push_back(1);
             kernel.l_wk.push_back(1);
 
-            size_t gbl_wk0 = params.problem.batch_sz * MAP_SZ4;
+            size_t gbl_wk0 = static_cast<size_t>(params.problem.batch_sz) * MAP_SZ4;
 
             size_t gbl_wk1 =
                 (params.problem.n_outputs + result.n_out_pix_tiles - 1) / result.n_out_pix_tiles;

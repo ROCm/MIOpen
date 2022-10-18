@@ -116,7 +116,8 @@ ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ExecutionConte
 
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
     constr_params.g_wk.push_back(AlignUp(out_w, 64));
-    constr_params.g_wk.push_back(AlignUp(out_h, 4) / 4 * AlignUp(problem.n_outputs / 2, 8));
+    constr_params.g_wk.push_back(
+        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.n_outputs / 2, 8)));
     constr_params.g_wk.push_back(problem.batch_sz);
 
     constr_params.kernel_file = "conv7x7c3h224w224k64u2v2p3q3f1.s";
