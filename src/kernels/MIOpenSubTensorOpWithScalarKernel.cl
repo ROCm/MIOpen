@@ -50,15 +50,18 @@
 #define MIOPEN_USE_INT8x4 0
 #endif
 
+#ifndef MIOPEN_USE_INT32
+#define MIOPEN_USE_INT32 0
+#endif
+
 #include "float_types.h"
 
 #if MIOPEN_USE_INT8 == 1 || MIOPEN_USE_INT8x4 == 1
 #define _FLOAT char
-#ifndef FLT_MAX
-#define MAX_VAL 127 /* max value */
-#else
-#define MAX_VAL FLT_MAX
 #endif
+
+#if MIOPEN_USE_INT32 == 1
+#define _FLOAT int
 #endif
 
 #ifndef WORK_LENGTH_0
