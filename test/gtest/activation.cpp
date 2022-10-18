@@ -75,7 +75,7 @@ protected:
         double beta                        = 2.3;
         double gamma                       = 3.4;
         std::tie(activ_mode, activ_config) = GetParam();
-        input = tensor<float>{activ_config.N, activ_config.C, activ_config.H, activ_config.W};
+        input = tensor<double>{activ_config.N, activ_config.C, activ_config.H, activ_config.W};
         input.generate(tensor_elem_gen_integer{17});
         dinput_cpu = input;
         dinput_gpu = input;
@@ -97,15 +97,15 @@ protected:
         ASSERT_LT(total_mem, device_mem) << "Tensor exceeds system memory size";
 
         output_gpu =
-            tensor<float>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
-                          static_cast<size_t>(c),
-                          static_cast<size_t>(h),
-                          static_cast<size_t>(w)};
+            tensor<double>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
+                           static_cast<size_t>(c),
+                           static_cast<size_t>(h),
+                           static_cast<size_t>(w)};
         output_cpu_ref =
-            tensor<float>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
-                          static_cast<size_t>(c),
-                          static_cast<size_t>(h),
-                          static_cast<size_t>(w)};
+            tensor<double>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
+                           static_cast<size_t>(c),
+                           static_cast<size_t>(h),
+                           static_cast<size_t>(w)};
 
         std::fill(output_gpu.begin(), output_gpu.end(), NULL);
         std::fill(output_cpu_ref.begin(), output_cpu_ref.end(), NULL);
@@ -146,23 +146,23 @@ protected:
     {
         auto&& handle = get_handle();
         // Read data from GPU
-        output_gpu.data = handle.Read<float>(out_dev, output_gpu.data.size());
+        output_gpu.data = handle.Read<double>(out_dev, output_gpu.data.size());
 
         CompareTensors(output_cpu_ref, output_gpu);
 
-        dinput_gpu.data = handle.Read<float>(din_dev, dinput_gpu.data.size());
+        dinput_gpu.data = handle.Read<double>(din_dev, dinput_gpu.data.size());
 
         CompareTensors(dinput_cpu, dinput_gpu);
         miopenDestroyActivationDescriptor(activ_desc);
     }
 
-    tensor<float> input; // x
-    tensor<float> output_gpu;
-    tensor<float> output_cpu_ref; // y
+    tensor<double> input; // x
+    tensor<double> output_gpu;
+    tensor<double> output_cpu_ref; // y
 
-    tensor<float> dinput_cpu; // dx
-    tensor<float> dinput_gpu;
-    tensor<float> doutput;
+    tensor<double> dinput_cpu; // dx
+    tensor<double> dinput_gpu;
+    tensor<double> doutput;
 
     ActivationConfig activ_config;
     miopenActivationMode_t activ_mode;
