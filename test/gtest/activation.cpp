@@ -251,18 +251,18 @@ TEST_P(TestActivation, ActivationFwdBwdTest)
 
     if(data_type == miopenFloat)
     {
-        RunActivation(get_handle(),
-                      activ_desc,
-                      &alpha,
-                      std::get<0>(input).desc, // x
-                      in_dev.get(),
-                      &beta,
-                      std::get<0>(output_gpu).desc, // y
-                      out_dev.get(),
-                      std::get<0>(doutput).desc, // dy
-                      dout_dev.get(),
-                      std::get<0>(dinput_gpu).desc, // dx
-                      din_dev.get());
+        status = RunActivation(get_handle(),
+                               activ_desc,
+                               &alpha,
+                               std::get<0>(input).desc, // x
+                               in_dev.get(),
+                               &beta,
+                               std::get<0>(output_gpu).desc, // y
+                               out_dev.get(),
+                               std::get<0>(doutput).desc, // dy
+                               dout_dev.get(),
+                               std::get<0>(dinput_gpu).desc, // dx
+                               din_dev.get());
     }
 
     EXPECT_EQ(status, miopenStatusSuccess);
