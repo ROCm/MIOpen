@@ -135,59 +135,26 @@ struct WinogradUltraDescription
         pad_H           = desc.pad_h;
         pad_W           = desc.pad_w;
 
-        flags = 0;
-        BuffInfo d_buf, o_buf;
+        flags = problem.direction.IsForward() ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
+        H     = problem.in_height;
+        W     = problem.in_width;
+        C     = C / problem.group_counts;
+        K     = K / problem.group_counts;
 
-        if(!problem.direction.IsBackwardWrW())
-        {
-            const auto is_forward = problem.direction.IsForward();
-
-            flags = is_forward ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
-            H     = problem.in_height;
-            W     = problem.in_width;
-            C     = C / problem.group_counts;
-            K     = K / problem.group_counts;
-
-            d_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(problem.in_layout), true),
-                             N,
-                             C,
-                             H,
-                             W,
-                             problem.group_counts,
-                             GetTypeSize(problem.in_data_type));
-            o_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(problem.out_layout), true),
-                             N,
-                             K,
-                             out_H,
-                             out_W,
-                             problem.group_counts,
-                             GetTypeSize(problem.out_data_type));
-        }
-        else
-        {
-            flags = F_FLIP_K_C;
-            H     = problem.out_height;
-            W     = problem.out_width;
-            N     = N / problem.group_counts;
-            K     = K / problem.group_counts;
-
-            d_buf = BuffInfo(
-                GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.in_layout)), true),
-                N,
-                C,
-                H,
-                W,
-                problem.group_counts,
-                GetTypeSize(problem.in_data_type));
-            o_buf = BuffInfo(
-                GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.out_layout)), false),
-                N,
-                K,
-                out_H,
-                out_W,
-                problem.group_counts,
-                GetTypeSize(problem.out_data_type));
-        }
+        const auto d_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(problem.in_layout), true),
+                                  N,
+                                  C,
+                                  H,
+                                  W,
+                                  problem.group_counts,
+                                  GetTypeSize(problem.in_data_type));
+        const auto o_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(problem.out_layout), true),
+                                  N,
+                                  K,
+                                  out_H,
+                                  out_W,
+                                  problem.group_counts,
+                                  GetTypeSize(problem.out_data_type));
 
         const unsigned tiles_n_row    = (out_W + o_tile_step_W - 1) / o_tile_step_W;
         const unsigned tiles_n_column = (out_H + o_tile_step_H - 1) / o_tile_step_H;
@@ -208,9 +175,10 @@ struct WinogradUltraDescription
         o_step_1_pitch = o_tile_step_H * o_H_pitch - tiles_n_row * o_tile_step_W * o_W_pitch;
         o_step_2_pitch = o_N_pitch - tiles_n_column * o_tile_step_H * o_H_pitch;
 
-        flush = d_step_2_pitch >= std::pow(2, 23)   ? flush_control::FLUSH_N
-                : o_step_2_pitch >= std::pow(2, 23) ? flush_control::FLUSH_N
-                                                    : flush_control::FLUSH_NONE;
+        flush = d_step_2_pitch >= std::pow(2, 23)
+                    ? flush_control::FLUSH_N
+                    : o_step_2_pitch >= std::pow(2, 23) ? flush_control::FLUSH_N
+                                                        : flush_control::FLUSH_NONE;
     }
 };
 
@@ -568,8 +536,8 @@ size_t ConvBinWinogradUltraRxSf2x3::GetWorkspaceSize(const ProblemDescription& p
     const size_t num_tiles_W = Ceil(desc.out_W, o_tile_W);
     const size_t N           = desc.N;
     const size_t works       = desc.flush == flush_control::FLUSH_N
-                                   ? N * Ceil(num_tiles_H * num_tiles_W, group_size)
-                                   : Ceil(N * num_tiles_H * num_tiles_W, group_size);
+                             ? N * Ceil(num_tiles_H * num_tiles_W, group_size)
+                             : Ceil(N * num_tiles_H * num_tiles_W, group_size);
 
     return works * group_size * sizeof(uint32_t);
 }
@@ -607,9 +575,9 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ExecutionContext& ct
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    std::string kernel_name    = "miopenSp3AsmConv_Ultra_v1_0_14_gfx10";
-    std::string kernel_file    = "Conv_Winograd_Ultra_v1_0_14";
-    std::string kernel_postfix = "_fp16_pk_stride1";
+    const std::string kernel_name    = "miopenSp3AsmConv_Ultra_v1_0_14_gfx10";
+    const std::string kernel_file    = "Conv_Winograd_Ultra_v1_0_14";
+    const std::string kernel_postfix = "_fp16_pk_stride1";
 
     kernel.kernel_name = kernel_name + kernel_postfix;
     kernel.kernel_file = kernel_file + kernel_postfix + ".s";
@@ -627,42 +595,21 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ExecutionContext& ct
     solution.workspace_sz = workspace_req;
     solution.construction_params.push_back(kernel);
 
-    solution.invoker_factory = [=](std::vector<Kernel> kernels) {
+    solution.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto kern = handle.Run(kernels.front());
-            ConstData_t in, wei, out;
-            Data_t workspace;
-            size_t workspace_size;
+            const auto kern           = handle.Run(kernels.front());
+            const auto& invoke_params = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& tensors       = invoke_params.tensors;
 
-            if(!problem.direction.IsBackwardWrW())
-            {
-                const auto& invoke_params = primitive_params.CastTo<conv::DataInvokeParams>();
-                workspace                 = invoke_params.workSpace;
-                workspace_size            = invoke_params.workSpaceSize;
+            const auto workspace_ptr  = invoke_params.workSpace;
+            const auto workspace_size = invoke_params.workSpaceSize;
 
-                const auto& tensors = invoke_params.tensors;
-                in                  = tensors.in;
-                wei                 = tensors.w;
-                out                 = tensors.out;
-            }
-            else
-            {
-                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
-                workspace                 = invoke_params.workSpace;
-                workspace_size            = invoke_params.workSpaceSize;
-
-                const auto& tensors = invoke_params.tensors;
-                in                  = tensors.x;
-                wei                 = tensors.dy;
-                out                 = tensors.dw;
-            }
-
-            if((workspace == nullptr && workspace_req > 0) || workspace_size < workspace_req)
+            if((workspace_ptr == nullptr && workspace_req > 0) || workspace_size < workspace_req)
                 MIOPEN_THROW("Not enough workspace for Winograd Ultra (" +
                              std::to_string(workspace_size) + " provided, " +
                              std::to_string(workspace_req) + " required)");
 
-            CopyDataToBuffer(ctx.GetStream(), control_buf, workspace);
+            CopyDataToBuffer(ctx.GetStream(), control_buf, workspace_ptr);
 
             MIOPEN_LOG_I2(desc << " n_groups=" << n_groups << " n_works=" << n_works
                                << " workspace_req=" << workspace_req);
@@ -679,10 +626,10 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ExecutionContext& ct
                  desc.o_H_pitch,
                  desc.o_step_1_pitch,
                  desc.o_step_2_pitch,
-                 in,
-                 out,
-                 workspace,
-                 wei,
+                 tensors.in,
+                 tensors.out,
+                 workspace_ptr,
+                 tensors.w,
                  reserved_ptr, // Unused bias_addr.
                  relu_alpha,
                  desc.flags,
