@@ -167,7 +167,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             {
                 variant    = 0;
                 xlocalsize = 1024;
-                xgridsize  = 1024 * c;
+                xgridsize  = static_cast<size_t>(1024) * c;
                 ldsgcn     = xlocalsize / wavesize;
                 ldsnogcn   = xlocalsize;
             }

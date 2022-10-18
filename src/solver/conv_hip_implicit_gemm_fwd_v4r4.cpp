@@ -398,7 +398,7 @@ PerformanceImplicitGemmV4R4Fwd::CalculateLdsNumberOfByte(const ConvolutionContex
         const auto b_block_space =
             GemmKPerBlock * integer_least_multiple(GemmNPerBlock, max_lds_align);
 
-        lds_size = 2 * (a_block_space + b_block_space) * sizeof(float);
+        lds_size = 2 * (static_cast<std::size_t>(a_block_space) + b_block_space) * sizeof(float);
     }
     catch(...)
     {
@@ -642,7 +642,7 @@ ConvHipImplicitGemmV4R4Fwd::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.l_wk.push_back(1);
     construction_parameters.l_wk.push_back(1);
 
-    construction_parameters.g_wk.push_back(config.BlockSize * grid_size);
+    construction_parameters.g_wk.push_back(static_cast<std::size_t>(config.BlockSize) * grid_size);
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 

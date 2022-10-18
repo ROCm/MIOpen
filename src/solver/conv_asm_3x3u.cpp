@@ -293,7 +293,8 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& ctx,
     construction_params.l_wk.push_back(1);
 
     construction_params.g_wk.push_back(
-        active_lanes * ((problem.n_outputs + pcfg->filters_per_wave - 1) / pcfg->filters_per_wave));
+        static_cast<size_t>(active_lanes * ((problem.n_outputs + pcfg->filters_per_wave - 1) /
+                                            pcfg->filters_per_wave)));
     construction_params.g_wk.push_back((problem.in_height + pcfg->output_lines_per_wave - 1) /
                                        pcfg->output_lines_per_wave);
     construction_params.g_wk.push_back(problem.batch_sz);

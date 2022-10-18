@@ -96,9 +96,9 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
                 ((out_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
 
             _g_wk.clear();
-            _g_wk.push_back(g_wk_width * _grp_tile0);
-            _g_wk.push_back(g_wk_height * _grp_tile1);
-            _g_wk.push_back(n_outputs * batch_sz);
+            _g_wk.push_back(static_cast<size_t>(g_wk_width) * _grp_tile0);
+            _g_wk.push_back(static_cast<size_t>(g_wk_height) * _grp_tile1);
+            _g_wk.push_back(static_cast<size_t>(n_outputs) * batch_sz);
 
             ss << "_nout" << xDesc.GetLengths()[1];
             ss << "_tile" << static_cast<int>(_out_pix_tile1);

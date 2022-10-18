@@ -586,7 +586,7 @@ void verify_forward_lstm<T>::LSTMFwdCPUVerify(
             if(use_dropout)
             {
                 auto dropout_states_tmp = dropout_states_host;
-                size_t drop_out_offset  = (li - 1) * batch_n_cpu * hy_h * bi;
+                size_t drop_out_offset  = (static_cast<size_t>(li) - 1) * batch_n_cpu * hy_h * bi;
 
                 DropoutForwardVerify<T>(handle,
                                         dropoutDesc,
@@ -2600,7 +2600,7 @@ verify_backward_data_lstm<T>::cpu() const
 
     size_t inputBatchLenSum = std::accumulate(batch_seq.begin(), batch_seq.begin() + seqLength, 0);
     size_t reserveSpaceSize;
-    reserveSpaceSize = 2 * 6 * miopen::deref(rnnDesc).nLayers * inputBatchLenSum * hiddenSize *
+    reserveSpaceSize = 2ULL * 6 * miopen::deref(rnnDesc).nLayers * inputBatchLenSum * hiddenSize *
                        ((dirMode != 0) ? 2 : 1);
     if(use_dropout)
     {
@@ -3039,7 +3039,7 @@ struct lstm_basic_driver : test_driver
         // Create input tensor
         // If we are in skip mode, take the real input size to be the vector length.
         auto inVecReal    = (inputMode != 0) ? hiddenSize : inVecLen;
-        std::size_t in_sz = inVecReal * batch_n;
+        std::size_t in_sz = static_cast<std::size_t>(inVecReal) * batch_n;
         std::vector<T> input(in_sz);
         srand(0);
         for(std::size_t i = 0; i < in_sz; i++)
@@ -3047,7 +3047,7 @@ struct lstm_basic_driver : test_driver
             input[i] = /*(((GET_RAND()%2)==1)?-1:1)**/ 0.001 * float(GET_RAND() % 100);
         }
 
-        std::size_t hx_sz = ((dirMode != 0) ? 2 : 1) * hiddenSize * batchSize * numLayers;
+        std::size_t hx_sz = ((dirMode != 0) ? 2ULL : 1ULL) * hiddenSize * batchSize * numLayers;
         std::vector<T> hx(hx_sz);
         std::vector<T> cx(hx_sz);
         std::vector<T> dhyin(hx_sz);
@@ -3158,7 +3158,7 @@ struct lstm_basic_driver : test_driver
         size_t inputBatchLenSum =
             std::accumulate(batchSeq.begin(), batchSeq.begin() + seqLength, 0);
         reserveSpaceSize =
-            2 * 6 * numLayers * inputBatchLenSum * hiddenSize * ((dirMode != 0) ? 2 : 1);
+            2ULL * 6 * numLayers * inputBatchLenSum * hiddenSize * ((dirMode != 0) ? 2 : 1);
         if(useDropout != 0)
         {
             reserveSpaceSize +=

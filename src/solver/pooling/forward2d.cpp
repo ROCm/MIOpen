@@ -129,9 +129,9 @@ ConvSolution PoolingForward2d::GetSolution(const ExecutionContext&,
         int g_wk_height =
             ((out_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
 
-        kernel.g_wk.push_back(g_wk_width * _grp_tile0);
-        kernel.g_wk.push_back(g_wk_height * _grp_tile1);
-        kernel.g_wk.push_back(n_outputs * batch_sz);
+        kernel.g_wk.push_back(static_cast<std::size_t>(g_wk_width) * _grp_tile0);
+        kernel.g_wk.push_back(static_cast<std::size_t>(g_wk_height) * _grp_tile1);
+        kernel.g_wk.push_back(static_cast<std::size_t>(n_outputs) * batch_sz);
 
         result.construction_params.push_back(kernel);
     }

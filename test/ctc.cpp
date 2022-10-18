@@ -108,7 +108,7 @@ void ctc_alpha_cpu(std::vector<int>& probsDesc,
         label_prime[2 * i + 1] = label[i];
     blank_lb = blank_lb < 0 ? 0 : (blank_lb >= class_sz ? class_sz - 1 : blank_lb);
     for(int i = 0; i <= label_length; i++)
-        label_prime[2 * i] = blank_lb;
+        label_prime[2 * i + 0] = blank_lb;
 
     int aidx0 = (label_length + label_repeat - input_length) < 0 ? 0 : 1;
     int aidx1 = 1;
@@ -528,13 +528,14 @@ void GetCTCLossWorkspaceSizeCPU(std::vector<int> probsDesc,
     wksp_sz_lb += total_label_len;
 
     // labels with blanks
-    wksp_sz_lb += batch_size * (2 * max_label_len + 1);
+    wksp_sz_lb += static_cast<unsigned long>(batch_size) * (2UL * max_label_len + 1);
 
     // logsoftmax of probs
-    wksp_sz_dat += max_time_step * batch_size * class_sz;
+    wksp_sz_dat += static_cast<unsigned long>(max_time_step) * batch_size * class_sz;
 
     // alphas
-    wksp_sz_dat += max_time_step * batch_size * (2 * max_label_len + 1);
+    wksp_sz_dat +=
+        static_cast<unsigned long>(max_time_step) * batch_size * (2UL * max_label_len + 1);
 
     *workSpaceSizeCPU = (wksp_sz_dat + wksp_sz_lb) * sizeof(T);
 }
