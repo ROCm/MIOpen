@@ -57,7 +57,8 @@ bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) c
     // clang-format on
 }
 
-bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx,
+                                      const ProblemDescription& problem) const
 {
     std::size_t N = KernelBatchN(problem);
     std::size_t K = KernelOutputChannelK(problem);
@@ -172,7 +173,8 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx, const Probl
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
 }
 
-bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx,
+                                          const ProblemDescription& problem) const
 {
     std::size_t N = KernelBatchN(problem);
     std::size_t K = KernelOutputChannelK(problem);
@@ -276,7 +278,8 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx, const P
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
 }
 
-void PerformanceImplicitGemm::HeuristicInit(const ConvolutionContext& ctx, const ProblemDescription& problem)
+void PerformanceImplicitGemm::HeuristicInit(const ConvolutionContext& ctx,
+                                            const ProblemDescription& problem)
 {
     // default
     {

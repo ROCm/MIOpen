@@ -774,10 +774,7 @@ struct PerformanceImplicitGemm : PerfConfigBase<PerformanceImplicitGemm>
     void HeuristicInit(const ConvolutionContext&, const ProblemDescription&);
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext&);
-    bool IsValid(const ConvolutionContext& ctx) const
-    {
-        return IsValid(ctx, ctx.problem);
-    }
+    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx, ctx.problem); }
     bool IsValid(const ConvolutionContext&, const ProblemDescription&) const;
     bool operator==(const PerformanceImplicitGemm& other) const;
 };
@@ -813,10 +810,7 @@ struct PerformanceImplicitGemmV4R1 : public PerformanceImplicitGemm
 
     PerformanceImplicitGemmV4R1(bool spare) : PerformanceImplicitGemm(spare) {}
 
-    bool IsValid(const ConvolutionContext& ctx) const
-    {
-        return IsValid(ctx, ctx.problem);
-    }
+    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx, ctx.problem); }
     bool IsValid(const ConvolutionContext&, const ProblemDescription&) const;
 };
 
@@ -1106,11 +1100,11 @@ struct PerformanceImplicitGemmBwdDataV4R1Xdlops
 struct ConvHipImplicitGemmV4R1Fwd final : ConvTunableSolver<PerformanceImplicitGemmV4R1>
 {
     // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::IsValidPerformanceConfig;
     using ConvTunableSolver::Search;
-    using ConvTunableSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
@@ -1146,8 +1140,8 @@ struct ConvHipImplicitGemmV4R1Fwd final : ConvTunableSolver<PerformanceImplicitG
 
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
-    PerformanceImplicitGemmV4R1
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const;
+    PerformanceImplicitGemmV4R1 GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                            const ProblemDescription&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmV4R1&) const;
@@ -1844,11 +1838,11 @@ struct ConvHipImplicitGemmForwardV4R5Xdlops final
 struct ConvHipImplicitGemmV4R1WrW final : ConvTunableSolver<PerformanceImplicitGemmV4R1>
 {
     // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::IsValidPerformanceConfig;
     using ConvTunableSolver::Search;
-    using ConvTunableSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
@@ -1863,7 +1857,7 @@ struct ConvHipImplicitGemmV4R1WrW final : ConvTunableSolver<PerformanceImplicitG
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmV4R1& config) const override
     {
-        return IsValidPerformanceConfig(ctx,ctx.problem, config);
+        return IsValidPerformanceConfig(ctx, ctx.problem, config);
     }
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
@@ -1882,8 +1876,8 @@ struct ConvHipImplicitGemmV4R1WrW final : ConvTunableSolver<PerformanceImplicitG
 
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
-    PerformanceImplicitGemmV4R1
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const;
+    PerformanceImplicitGemmV4R1 GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                            const ProblemDescription&) const;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmV4R1&) const;

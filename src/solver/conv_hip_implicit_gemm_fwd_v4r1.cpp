@@ -40,7 +40,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1)
 namespace miopen {
 namespace solver {
 
-bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx,
+                                              const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1{}))
         return false;
@@ -79,7 +80,8 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ConvolutionContext& ctx, con
            (c * y * x) % eMultiple == 0 && k % 16 == 0;
 }
 
-bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx,
+                                              const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1{}))
         return false;
@@ -130,26 +132,32 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ConvolutionContext& ctx, con
 }
 
 PerformanceImplicitGemmV4R1
-ConvHipImplicitGemmV4R1Fwd::GetDefaultPerformanceConfig(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+ConvHipImplicitGemmV4R1Fwd::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+                                                        const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx, problem);
 }
 
 PerformanceImplicitGemmV4R1
-ConvHipImplicitGemmV4R1WrW::GetDefaultPerformanceConfig(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+ConvHipImplicitGemmV4R1WrW::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+                                                        const ProblemDescription& problem) const
 {
     return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx, problem);
 }
 
 bool ConvHipImplicitGemmV4R1Fwd::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceImplicitGemmV4R1& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmV4R1& config) const
 {
     MIOPEN_LOG_I("");
     return config.IsValidValue() && config.IsValid(ctx, problem);
 }
 
 bool ConvHipImplicitGemmV4R1WrW::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceImplicitGemmV4R1& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmV4R1& config) const
 {
     MIOPEN_LOG_I("");
     return config.IsValidValue() && config.IsValid(ctx, problem);
@@ -272,12 +280,11 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
         // For fp16, E = C/EPack * Y * X
         // Since C/EPack are not in contiguous memory along with Y*X, vector length
         // can' be more than Y*X
-        if(KernelFilterHeightY(problem) * KernelFilterWidthX(problem) >=
-           WeiBlockCopySubLengths_E)
+        if(KernelFilterHeightY(problem) * KernelFilterWidthX(problem) >= WeiBlockCopySubLengths_E)
             WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(WeiBlockCopySubLengths_E);
         else
-            WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(static_cast<int>(
-                KernelFilterHeightY(problem) * KernelFilterWidthX(problem)));
+            WeiBlockCopySrcDataPerRead_E = GetReadWriteVectorSize(
+                static_cast<int>(KernelFilterHeightY(problem) * KernelFilterWidthX(problem)));
     }
 
     const auto& InBlockCopySubLengths_B  = b_per_block / config.InBlockCopyClusterLengths_B;
@@ -286,11 +293,10 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ConvolutionContext& ctx,
     auto InBlockCopySrcDataPerRead_B = GetReadWriteVectorSize(InBlockCopySubLengths_B);
 
     // Borrowed from non-padded version of v4
-    InBlockCopySrcDataPerRead_B =
-        problem.kernel_size_w > 1
-            ? std::min(InBlockCopySrcDataPerRead_B,
-                       GetReadWriteVectorSize(problem.kernel_dilation_w))
-            : InBlockCopySrcDataPerRead_B;
+    InBlockCopySrcDataPerRead_B = problem.kernel_size_w > 1
+                                      ? std::min(InBlockCopySrcDataPerRead_B,
+                                                 GetReadWriteVectorSize(problem.kernel_dilation_w))
+                                      : InBlockCopySrcDataPerRead_B;
     InBlockCopySrcDataPerRead_B = problem.kernel_stride_w > 1 ? 1 : InBlockCopySrcDataPerRead_B;
 
     const auto WeiBlockCopyDstDataPerWrite_K =
