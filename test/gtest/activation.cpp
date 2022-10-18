@@ -65,7 +65,6 @@ void CompareTensors(T1&& t1, T2&& t2)
     return;
 }
 
-//#define EXTRACT(name) std::get<tensor<T>>(##name)
 struct TestActivation : public ::testing::TestWithParam<
                             std::tuple<miopenDataType_t, miopenActivationMode_t, ActivationConfig>>
 {
@@ -247,32 +246,28 @@ miopenStatus_t RunActivation(miopen::Handle& handle,
 TEST_P(TestActivation, ActivationFwdBwdTest)
 {
     const float alpha = 1.0f, beta = 0;
-    miopenStatus_t status = RunActivation(get_handle(),
-                                          activ_desc,
-                                          &alpha,
-                                          std::get<0>(input).desc, // x
-                                          in_dev.get(),
-                                          &beta,
-                                          std::get<0>(output_gpu).desc, // y
-                                          out_dev.get(),
-                                          std::get<0>(doutput).desc, // dy
-                                          dout_dev.get(),
-                                          std::get<0>(dinput_gpu).desc, // dx
-                                          din_dev.get());
+
+    miopenStatus_t status = miopenStatusNotImplemented;
+
+    if(data_type == miopenFloat)
+    {
+        RunActivation(get_handle(),
+                      activ_desc,
+                      &alpha,
+                      std::get<0>(input).desc, // x
+                      in_dev.get(),
+                      &beta,
+                      std::get<0>(output_gpu).desc, // y
+                      out_dev.get(),
+                      std::get<0>(doutput).desc, // dy
+                      dout_dev.get(),
+                      std::get<0>(dinput_gpu).desc, // dx
+                      din_dev.get());
+    }
 
     EXPECT_EQ(status, miopenStatusSuccess);
 }
-/*
-typedef enum {
-    miopenHalf     = 0,  half_float::half
-    miopenFloat    = 1,   float
-    miopenInt32    = 2,
-    miopenInt8     = 3,   int8_t
-    miopenInt8x4   = 4,
-    miopenBFloat16 = 5,   bfloat16
-    miopenDouble          double
-} miopenDataType_t;
-*/
+
 INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
                          TestActivation,
                          ::testing::Combine(::testing::Values(miopenFloat),
