@@ -65,63 +65,70 @@ void CompareTensors(T1&& t1, T2&& t2)
     return;
 }
 
-struct TestActivation
-    : public ::testing::TestWithParam<std::tuple<miopenActivationMode_t, ActivationConfig>>
+//#define EXTRACT(name) std::get<tensor<T>>(##name)
+struct TestActivation : public ::testing::TestWithParam<
+                            std::tuple<miopenDataType_t, miopenActivationMode_t, ActivationConfig>>
 {
 protected:
-    void SetUp() override
+    template <typename T>
+    void setup_impl()
     {
-        double alpha                       = 0.95;
-        double beta                        = 2.3;
-        double gamma                       = 3.4;
-        std::tie(activ_mode, activ_config) = GetParam();
-        input = tensor<float>{activ_config.N, activ_config.C, activ_config.H, activ_config.W};
-        input.generate(tensor_elem_gen_integer{17});
-        dinput_cpu = input;
-        dinput_gpu = input;
+        double alpha = 0.95;
+        double beta  = 2.3;
+        double gamma = 3.4;
+
+        input = tensor<T>{activ_config.N, activ_config.C, activ_config.H, activ_config.W};
+
+        std::get<tensor<T>>(input).generate(tensor_elem_gen_integer{17});
+        std::get<tensor<T>>(dinput_cpu) = std::get<tensor<T>>(input);
+        std::get<tensor<T>>(dinput_gpu) = std::get<tensor<T>>(input);
 
         miopenCreateActivationDescriptor(&activ_desc);
         miopenSetActivationDescriptor(activ_desc, activ_mode, alpha, beta, gamma);
 
         std::size_t n, c, h, w;
         auto&& handle        = get_handle();
-        std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
+        std::tie(n, c, h, w) = miopen::tien<4>(std::get<tensor<T>>(input).desc.GetLengths());
         EXPECT_EQ(n, activ_config.N);
         EXPECT_EQ(c, activ_config.C);
         EXPECT_EQ(h, activ_config.H);
         EXPECT_EQ(w, activ_config.W);
         size_t total_mem =
-            4 * input.desc.GetNumBytes(); // estimate based on both forward and backward passes
+            4 * std::get<tensor<T>>(input)
+                    .desc.GetNumBytes(); // estimate based on both forward and backward passes
         size_t device_mem = handle.GetGlobalMemorySize();
 
         ASSERT_LT(total_mem, device_mem) << "Tensor exceeds system memory size";
 
-        output_gpu =
-            tensor<float>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
-                          static_cast<size_t>(c),
-                          static_cast<size_t>(h),
-                          static_cast<size_t>(w)};
-        output_cpu_ref =
-            tensor<float>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
-                          static_cast<size_t>(c),
-                          static_cast<size_t>(h),
-                          static_cast<size_t>(w)};
+        std::get<tensor<T>>(output_gpu) =
+            tensor<T>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
+                      static_cast<size_t>(c),
+                      static_cast<size_t>(h),
+                      static_cast<size_t>(w)};
+        std::get<tensor<T>>(output_cpu_ref) =
+            tensor<T>{static_cast<size_t>(n), // n from miopenGetConvolutionForwardOutputDim ?
+                      static_cast<size_t>(c),
+                      static_cast<size_t>(h),
+                      static_cast<size_t>(w)};
 
-        std::fill(output_gpu.begin(), output_gpu.end(), NULL);
-        std::fill(output_cpu_ref.begin(), output_cpu_ref.end(), NULL);
+        std::fill(
+            std::get<tensor<T>>(output_gpu).begin(), std::get<tensor<T>>(output_gpu).end(), NULL);
+        std::fill(std::get<tensor<T>>(output_cpu_ref).begin(),
+                  std::get<tensor<T>>(output_cpu_ref).end(),
+                  NULL);
 
         // Infer on CPU, forward
         activationHostInfer(activ_mode,
-                            gamma,                // 0.0f?
-                            beta,                 // 0.0f?
-                            alpha,                // 0.0f?
-                            input.data,           // Input
-                            output_cpu_ref.data); // Output
+                            gamma,                                     // 0.0f?
+                            beta,                                      // 0.0f?
+                            alpha,                                     // 0.0f?
+                            std::get<tensor<T>>(input).data,           // Input
+                            std::get<tensor<T>>(output_cpu_ref).data); // Output
 
         // Infer on CPU, backward
-        doutput = output_cpu_ref;
-        doutput.generate([&](int n1, int c1, int h1, int w1) {
-            float x = output_cpu_ref(n1, c1, h1, w1);
+        std::get<tensor<T>>(doutput) = std::get<tensor<T>>(output_cpu_ref);
+        std::get<tensor<T>>(doutput).generate([&](int n1, int c1, int h1, int w1) {
+            float x = std::get<tensor<T>>(output_cpu_ref)(n1, c1, h1, w1);
             double y =
                 (877 * n1 + 547 * c1 + 701 * h1 + 1049 * w1 + static_cast<int>(769 * x)) % 2503;
             return ((x * y) / 1301.0);
@@ -131,38 +138,57 @@ protected:
                           gamma,
                           beta,
                           alpha,
-                          doutput.data,        // dy
-                          input.data,          // x
-                          output_cpu_ref.data, // y
-                          dinput_cpu.data);    // dx
+                          std::get<tensor<T>>(doutput).data,        // dy
+                          std::get<tensor<T>>(input).data,          // x
+                          std::get<tensor<T>>(output_cpu_ref).data, // y
+                          std::get<tensor<T>>(dinput_cpu).data);    // dx
 
-        in_dev   = handle.Write(input.data);
-        out_dev  = handle.Write(output_gpu.data);
-        din_dev  = handle.Write(dinput_gpu.data);
-        dout_dev = handle.Write(doutput.data);
+        in_dev   = handle.Write(std::get<tensor<T>>(input).data);
+        out_dev  = handle.Write(std::get<tensor<T>>(output_gpu).data);
+        din_dev  = handle.Write(std::get<tensor<T>>(dinput_gpu).data);
+        dout_dev = handle.Write(std::get<tensor<T>>(doutput).data);
+    }
+
+    template <typename T>
+    void teardown_impl()
+    {
+        auto&& handle = get_handle();
+        // Read data from GPU
+        std::get<tensor<T>>(output_gpu).data =
+            handle.Read<T>(out_dev, std::get<tensor<T>>(output_gpu).data.size());
+
+        CompareTensors(std::get<tensor<T>>(output_cpu_ref), std::get<tensor<T>>(output_gpu));
+
+        std::get<tensor<T>>(dinput_gpu).data =
+            handle.Read<T>(din_dev, std::get<tensor<T>>(dinput_gpu).data.size());
+
+        CompareTensors(std::get<tensor<T>>(dinput_cpu), std::get<tensor<T>>(dinput_gpu));
+        miopenDestroyActivationDescriptor(activ_desc);
+    }
+
+    void SetUp() override
+    {
+        std::tie(data_type, activ_mode, activ_config) = GetParam();
+
+        if(data_type == miopenFloat)
+            setup_impl<float>();
     }
 
     void TearDown() override
     {
-        auto&& handle = get_handle();
-        // Read data from GPU
-        output_gpu.data = handle.Read<float>(out_dev, output_gpu.data.size());
-
-        CompareTensors(output_cpu_ref, output_gpu);
-
-        dinput_gpu.data = handle.Read<float>(din_dev, dinput_gpu.data.size());
-
-        CompareTensors(dinput_cpu, dinput_gpu);
-        miopenDestroyActivationDescriptor(activ_desc);
+        if(data_type == miopenFloat)
+            teardown_impl<float>();
     }
 
-    tensor<float> input; // x
-    tensor<float> output_gpu;
-    tensor<float> output_cpu_ref; // y
+    miopenDataType_t data_type;
 
-    tensor<float> dinput_cpu; // dx
-    tensor<float> dinput_gpu;
-    tensor<float> doutput;
+    std::variant<tensor<float>, tensor<double>> input;          // x
+    std::variant<tensor<float>, tensor<double>> output_gpu;     // share
+    std::variant<tensor<float>, tensor<double>> output_cpu_ref; // y share
+
+    std::variant<tensor<float>, tensor<double>> dinput_cpu; // dx
+    std::variant<tensor<float>, tensor<double>> dinput_gpu;
+    std::variant<tensor<float>, tensor<double>> doutput;
 
     ActivationConfig activ_config;
     miopenActivationMode_t activ_mode;
@@ -218,9 +244,41 @@ miopenStatus_t RunActivation(miopen::Handle& handle,
         return bwdStatus;
 }
 
+TEST_P(TestActivation, ActivationFwdBwdTest)
+{
+    const float alpha = 1.0f, beta = 0;
+    miopenStatus_t status = RunActivation(get_handle(),
+                                          activ_desc,
+                                          &alpha,
+                                          std::get<0>(input).desc, // x
+                                          in_dev.get(),
+                                          &beta,
+                                          std::get<0>(output_gpu).desc, // y
+                                          out_dev.get(),
+                                          std::get<0>(doutput).desc, // dy
+                                          dout_dev.get(),
+                                          std::get<0>(dinput_gpu).desc, // dx
+                                          din_dev.get());
+
+    EXPECT_EQ(status, miopenStatusSuccess);
+}
+/*
+typedef enum {
+    miopenHalf     = 0,  half_float::half
+    miopenFloat    = 1,   float
+    miopenInt32    = 2,
+    miopenInt8     = 3,   int8_t
+    miopenInt8x4   = 4,
+    miopenBFloat16 = 5,   bfloat16
+    miopenDouble          double
+} miopenDataType_t;
+*/
 INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
                          TestActivation,
-                         ::testing::Combine(::testing::Values(miopenActivationLOGISTIC,
+                         ::testing::Combine(::testing::Values(miopenFloat),
+                                            // miopenDouble),
+
+                                            ::testing::Values(miopenActivationLOGISTIC,
                                                               miopenActivationTANH,
                                                               miopenActivationRELU,
                                                               miopenActivationSOFTRELU,
@@ -237,22 +295,3 @@ INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
                                                               ActivationConfig{32, 16, 8, 8},
                                                               ActivationConfig{2, 16, 5, 4},
                                                               ActivationConfig{2, 2, 2, 2})));
-
-TEST_P(TestActivation, ActivationFwdBwdTest)
-{
-    const float alpha = 1.0f, beta = 0;
-    miopenStatus_t status = RunActivation(get_handle(),
-                                          activ_desc,
-                                          &alpha,
-                                          input.desc, // x
-                                          in_dev.get(),
-                                          &beta,
-                                          output_gpu.desc, // y
-                                          out_dev.get(),
-                                          doutput.desc, // dy
-                                          dout_dev.get(),
-                                          dinput_gpu.desc, // dx
-                                          din_dev.get());
-
-    EXPECT_EQ(status, miopenStatusSuccess);
-}
