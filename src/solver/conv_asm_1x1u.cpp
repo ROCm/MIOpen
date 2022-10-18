@@ -256,7 +256,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidValue() const
 
 bool PerformanceConfigConvAsm1x1U::IsValid(const ProblemDescription& problem) const
 {
-    const auto elements_in_dword = 4 / GetTypeSize(problem.in_data_type);
+    const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.in_data_type));
 
     if(!IsValidValue())
         return false;
@@ -470,7 +470,7 @@ size_t ConvAsm1x1U::GetWorkspaceSize(const ProblemDescription& problem) const
         int in_batch_stride = AsmImgWidth(problem) * AsmImgHeight(problem) *
                               (UseSubsample(problem) ? problem.n_inputs : problem.n_outputs);
         int data_len = GetTypeSize(problem.out_data_type);
-        return in_batch_stride * problem.batch_sz * data_len;
+        return static_cast<size_t>(in_batch_stride) * problem.batch_sz * data_len;
     }
     return 0;
 }
@@ -583,7 +583,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
         buff_info(MemLayout layout, int nk, int c, int h, int w, int vec_c, int data_len_t)
         {
             int c_hi        = (c + vec_c - 1) / vec_c;
-            int count       = nk * c_hi * h * w * vec_c;
+            auto count      = static_cast<size_t>(nk) * c_hi * h * w * vec_c;
             total_byte_size = count * data_len_t;
             size.nk         = nk;
             size.c          = c;
@@ -701,7 +701,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
 
     const int waves_in_group = pcfg->GetWavesCInGroup() * pcfg->GetWavesKInGroup();
     main_kernel.l_wk.clear(); // workgroupsize
-    main_kernel.l_wk.push_back(64 * waves_in_group);
+    main_kernel.l_wk.push_back(64ULL * waves_in_group);
     main_kernel.l_wk.push_back(1);
     main_kernel.l_wk.push_back(1);
 

@@ -428,7 +428,7 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdDataV1R1::CalculateLdsNu
         const auto b_block_space =
             GemmKPerBlock * integer_least_multiple(GemmNPerBlock, max_lds_align);
 
-        lds_size = 2 * (a_block_space + b_block_space) * sizeof(float);
+        lds_size = 2 * (static_cast<std::size_t>(a_block_space) + b_block_space) * sizeof(float);
     }
     catch(...)
     {
@@ -713,7 +713,7 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.l_wk.push_back(1);
     construction_parameters.l_wk.push_back(1);
 
-    construction_parameters.g_wk.push_back(config.BlockSize * grid_size);
+    construction_parameters.g_wk.push_back(static_cast<std::size_t>(config.BlockSize) * grid_size);
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 

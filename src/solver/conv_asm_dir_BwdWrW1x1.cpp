@@ -354,7 +354,8 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& ctx,
     }
     if(n_part_cnt > 1)
     {
-        auto lds_size = ((n_part_cnt - 1) * solver::wave_size * sizeof(float) * acc_gprs);
+        auto lds_size =
+            (n_part_cnt - 1) * solver::wave_size * static_cast<int>(sizeof(float)) * acc_gprs;
         if(!(lds_size <= (1 << 16)))
             return false;
     }
@@ -547,7 +548,7 @@ size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ProblemDescription& problem) con
     {
         int data_len        = GetTypeSize(problem.out_data_type);
         int in_batch_stride = problem.in_stride * problem.in_height * problem.n_outputs;
-        return in_batch_stride * problem.batch_sz * data_len;
+        return static_cast<size_t>(in_batch_stride) * problem.batch_sz * data_len;
     }
     else
         return 0;
@@ -654,7 +655,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
         buff_info(MemLayout layout, int nk, int c, int h, int w, int vec_c, int data_len_t)
         {
             int c_hi        = (c + vec_c - 1) / vec_c;
-            int count       = nk * c_hi * h * w * vec_c;
+            auto count      = static_cast<size_t>(nk) * c_hi * h * w * vec_c;
             total_byte_size = count * data_len_t;
             size.nk         = nk;
             size.c          = c;
@@ -766,12 +767,12 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
     kernel.comp_options = options.str();
 
     kernel.l_wk.clear(); // workgroupsize
-    kernel.l_wk.push_back(solver::wave_size * pcfg->GetNPartCnt());
+    kernel.l_wk.push_back(static_cast<size_t>(solver::wave_size) * pcfg->GetNPartCnt());
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
     kernel.g_wk.clear(); // gridsize
-    kernel.g_wk.push_back(solver::wave_size * pcfg->GetNPartCnt());
+    kernel.g_wk.push_back(static_cast<size_t>(solver::wave_size) * pcfg->GetNPartCnt());
     kernel.g_wk.push_back(
         divide_round_plus_inf(problem.n_outputs, pcfg->GetCPerGpr() * pcfg->GetCMult()));
     kernel.g_wk.push_back(

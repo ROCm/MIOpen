@@ -276,7 +276,7 @@ size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ProblemDescript
         extra_groups = 0;
     else
         extra_groups = 1 << gemmk_groups;
-    return k * c * y * x * ele_size * extra_groups;
+    return static_cast<std::size_t>(k) * c * y * x * ele_size * extra_groups;
 }
 
 static int GetGemmkGroups(const ProblemDescription& problem)
@@ -366,7 +366,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionConte
      * grid dims is in unit of work item.
      * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
      */
-    kernel.g_wk.push_back(grid_size * block_size);
+    kernel.g_wk.push_back(static_cast<std::size_t>(grid_size) * block_size);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
     kernel.l_wk.clear();
@@ -393,7 +393,8 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionConte
         int grid_size_redcution  = problem.n_outputs * problem.n_inputs * problem.kernel_size_h *
                                   problem.kernel_size_w /
                                   (reduction_per_thread * block_size_reduction);
-        kernel_reduction.g_wk.push_back(grid_size_redcution * block_size_reduction);
+        kernel_reduction.g_wk.push_back(static_cast<std::size_t>(grid_size_redcution) *
+                                        block_size_reduction);
         kernel_reduction.g_wk.push_back(1);
         kernel_reduction.g_wk.push_back(1);
         kernel_reduction.l_wk.clear();

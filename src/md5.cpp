@@ -123,6 +123,7 @@ static const void* body(MD5_CTX* ctx, const void* data, size_t size)
         uint32_t saved_a = a, saved_b = b, saved_c = c, saved_d = d;
 
         /* Round 1 */
+        // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
         STEP(F, a, b, c, d, SET(0), 0xd76aa478, 7)
         STEP(F, d, a, b, c, SET(1), 0xe8c7b756, 12)
         STEP(F, c, d, a, b, SET(2), 0x242070db, 17)
@@ -193,6 +194,7 @@ static const void* body(MD5_CTX* ctx, const void* data, size_t size)
         STEP(I, d, a, b, c, GET(11), 0xbd3af235, 10)
         STEP(I, c, d, a, b, GET(2), 0x2ad7d2bb, 15)
         STEP(I, b, c, d, a, GET(9), 0xeb86d391, 21)
+        // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
         a += saved_a;
         b += saved_b;

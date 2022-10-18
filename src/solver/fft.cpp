@@ -195,7 +195,7 @@ size_t fft::GetWorkspaceSize(const ProblemDescription& problem) const
         temp_size      = std::max(temp_size1, temp_size2);
     }
 
-    return 2 * 2 * N * temp_size * sizeof(float);
+    return sizeof(float) * 2 * 2 * N * temp_size;
 }
 
 ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescription& problem) const
@@ -245,13 +245,13 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     else
     {
         local_work_size[0][0]  = 64;
-        global_work_size[0][0] = in_c * out_n * local_work_size[0][0];
+        global_work_size[0][0] = local_work_size[0][0] * in_c * out_n;
 
         local_work_size[1][0]  = 64;
-        global_work_size[1][0] = in_c * out_c * local_work_size[1][0];
+        global_work_size[1][0] = local_work_size[1][0] * in_c * out_c;
 
         local_work_size[6][0]  = 64;
-        global_work_size[6][0] = out_n * out_c * local_work_size[6][0];
+        global_work_size[6][0] = local_work_size[6][0] * out_n * out_c;
     }
 
     // decide tranpose kernel options based on params
@@ -262,19 +262,23 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     // grid for transpose kernels
     if((in_h == 7) && (in_w == 7))
     {
-        local_work_size[5][0]  = 256;
-        global_work_size[5][0] = (1 + N / 16) * (out_n * out_c / 16) * local_work_size[5][0];
+        local_work_size[5][0] = 256;
+        global_work_size[5][0] =
+            static_cast<size_t>((1 + N / 16) * (out_n * out_c / 16)) * local_work_size[5][0];
     }
     else if((in_h == 14) && (in_w == 14))
     {
-        local_work_size[2][0]  = 256;
-        global_work_size[2][0] = (1 + N / 16) * (in_c * out_n / 16) * local_work_size[2][0];
+        local_work_size[2][0] = 256;
+        global_work_size[2][0] =
+            static_cast<size_t>((1 + N / 16) * (in_c * out_n / 16)) * local_work_size[2][0];
 
-        local_work_size[3][0]  = 256;
-        global_work_size[3][0] = (1 + N / 16) * (in_c * out_c / 16) * local_work_size[3][0];
+        local_work_size[3][0] = 256;
+        global_work_size[3][0] =
+            static_cast<size_t>((1 + N / 16) * (in_c * out_c / 16)) * local_work_size[3][0];
 
-        local_work_size[5][0]  = 256;
-        global_work_size[5][0] = (1 + N / 16) * (out_n * out_c / 16) * local_work_size[5][0];
+        local_work_size[5][0] = 256;
+        global_work_size[5][0] =
+            static_cast<size_t>((1 + N / 16) * (out_n * out_c / 16)) * local_work_size[5][0];
     }
     else
     {
@@ -291,15 +295,18 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
 
         local_work_size[2][0] = 256;
         global_work_size[2][0] =
-            (N / in_tranpose_bwidth) * (in_c * out_n / in_tranpose_bwidth) * local_work_size[2][0];
+            static_cast<size_t>((N / in_tranpose_bwidth) * (in_c * out_n / in_tranpose_bwidth)) *
+            local_work_size[2][0];
 
         local_work_size[3][0] = 256;
         global_work_size[3][0] =
-            (N / wt_tranpose_bwidth) * (in_c * out_c / wt_tranpose_bwidth) * local_work_size[3][0];
+            static_cast<size_t>((N / wt_tranpose_bwidth) * (in_c * out_c / wt_tranpose_bwidth)) *
+            local_work_size[3][0];
 
         local_work_size[5][0] = 256;
         global_work_size[5][0] =
-            (N / ot_tranpose_bwidth) * (out_n * out_c / ot_tranpose_bwidth) * local_work_size[5][0];
+            static_cast<size_t>((N / ot_tranpose_bwidth) * (out_n * out_c / ot_tranpose_bwidth)) *
+            local_work_size[5][0];
     }
 
     // cgemm kernel options
@@ -354,7 +361,7 @@ ConvSolution fft::GetSolution(const ExecutionContext& ctx, const ProblemDescript
     parms += " -DCFF_CHANNELS=";
     parms += std::to_string(in_c);
     parms += " -DCFF_HALFW=";
-    parms += std::to_string(workSpaceSize / (2 * 2 * sizeof(float)));
+    parms += std::to_string(workSpaceSize / (sizeof(float) * 2 * 2));
 
     if(!problem.direction.IsForward())
     {

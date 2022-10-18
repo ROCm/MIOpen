@@ -237,7 +237,8 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
                     1,
                     GetConvStrides()[i] * (std::ptrdiff_t(in_spatial[i]) - 1) + 1 +
                         GetConvDilations()[i] * (std::ptrdiff_t(wei_spatial[i]) - 1) -
-                        2 * GetConvPads()[i] + GetTransposeConvPads()[i]);
+                        2 * static_cast<std::ptrdiff_t>(GetConvPads()[i]) +
+                        GetTransposeConvPads()[i]);
             }
         }
         else
@@ -250,7 +251,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
                     1,
                     (ptrdiff_t(in_spatial[i]) -
                      (1 + GetConvDilations()[i] * (std::ptrdiff_t(wei_spatial[i]) - 1)) +
-                     2 * GetConvPads()[i]) /
+                     2 * static_cast<std::ptrdiff_t>(GetConvPads()[i])) /
                             GetConvStrides()[i] +
                         1);
             }

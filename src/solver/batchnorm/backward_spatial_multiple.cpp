@@ -157,12 +157,12 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
                 if(bfp32parm)
                 {
                     xlocalsize = 1024;
-                    xgridsize  = 1024 * c;
+                    xgridsize  = static_cast<size_t>(1024) * c;
                 }
                 else
                 {
                     xlocalsize = 256;
-                    xgridsize  = 256 * c;
+                    xgridsize  = static_cast<size_t>(256) * c;
                 }
                 ldsgcn   = xlocalsize / 64;
                 ldsnogcn = xlocalsize;

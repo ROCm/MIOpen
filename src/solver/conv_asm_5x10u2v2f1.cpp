@@ -141,7 +141,8 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ExecutionContext& ctx,
 
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_k/2,8), batch_n]
     construction_params.g_wk.push_back(AlignUp(out_w, 64));
-    construction_params.g_wk.push_back(AlignUp(out_h, 4) / 4 * AlignUp(problem.n_outputs / 2, 8));
+    construction_params.g_wk.push_back(
+        static_cast<size_t>(AlignUp(out_h, 4) / 4 * AlignUp(problem.n_outputs / 2, 8)));
     construction_params.g_wk.push_back(problem.batch_sz);
 
     construction_params.kernel_file = "conv5x10u2v2f1.s";

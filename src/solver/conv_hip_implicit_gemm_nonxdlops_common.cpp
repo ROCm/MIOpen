@@ -71,10 +71,10 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
 
     const int N1 = GemmNRepeat;
     const int N2 = GemmNPerThreadSubC;
-    if(N % (N1 * N2) != 0)
+    if(N % static_cast<std::size_t>(N1 * N2) != 0)
         return false; // wrong! cannot divice N evenly among thread
 
-    const auto N0 = N / (N1 * N2);
+    const auto N0 = N / static_cast<std::size_t>(N1 * N2);
 
     const auto B = N0 * Ho * Wo;
 
@@ -99,7 +99,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
         return false; // wrong! cannot divice N evenly among thread
 
 #if WORKAROUND_ISSUE_659
-    if(E % (2 * EPerBlock) != 0)
+    if(E % static_cast<std::size_t>(2 * EPerBlock) != 0)
         return false;
 #endif
 
@@ -166,7 +166,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
                                                         WeiBlockCopySubLengths_K,
                                                         GetEPackLength(ctx, ctx.problem, false));
 
-    if(lds_size > 64 * 1024)
+    if(lds_size > static_cast<std::size_t>(64) * 1024)
         return false;
 
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
@@ -186,10 +186,10 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
 
     const int N1 = GemmNRepeat;
     const int N2 = GemmNPerThreadSubC;
-    if(N % (N1 * N2) != 0)
+    if(N % static_cast<std::size_t>(N1 * N2) != 0)
         return false; // wrong! cannot divice N evenly among thread
 
-    const auto N0 = N / (N1 * N2);
+    const auto N0 = N / static_cast<std::size_t>(N1 * N2);
 
     const auto B = N0 * Ho * Wo;
 
@@ -270,7 +270,7 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
                                                         WeiBlockCopySubLengths_K,
                                                         GetEPackLength(ctx, ctx.problem, false));
 
-    if(lds_size > 64 * 1024)
+    if(lds_size > static_cast<std::size_t>(64) * 1024)
         return false;
 
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);

@@ -1410,15 +1410,15 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
     int n = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k =
         in_c * std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
-    int lda               = k;
-    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
-    int ldc               = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int lda         = k;
+    int ldb         = wDesc.GetType() == miopenInt8 ? k : n;
+    int ldc         = n;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1464,12 +1464,12 @@ GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
     int lda = m;
     int ldb = n;
     int ldc = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1515,12 +1515,12 @@ GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
     int lda = k;
     int ldb = k;
     int ldc = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 1.;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 1.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1564,16 +1564,16 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
     int m           = wei_k;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                 = in_c;
-    int lda               = k;
-    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
-    int ldc               = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int k           = in_c;
+    int lda         = k;
+    int ldb         = wDesc.GetType() == miopenInt8 ? k : n;
+    int ldc         = n;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1615,16 +1615,16 @@ GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc
     int m           = in_c;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                 = wei_k;
-    int lda               = m;
-    int ldb               = n;
-    int ldc               = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int k           = wei_k;
+    int lda         = m;
+    int ldb         = n;
+    int ldc         = n;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1673,12 +1673,12 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
     int lda = k;
     int ldb = wDesc.GetType() == miopenInt8 ? k : n;
     int ldc = n;
-    int batch_count       = in_n;
-    long long int strideA = 0;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int batch_count = in_n;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1725,12 +1725,12 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDesc
     int lda = m;
     int ldb = n;
     int ldc = n;
-    int batch_count       = in_n;
-    long long int strideA = 0;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0;
+    int batch_count = in_n;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1777,12 +1777,12 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDe
     int lda = k;
     int ldb = k;
     int ldc = n;
-    int batch_count       = in_n;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 1.;
+    int batch_count = in_n;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 1.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1826,15 +1826,15 @@ GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
     int n = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k = (in_c / groupCount) *
             std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
-    int lda               = k;
-    int ldb               = n;
-    int ldc               = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int lda         = k;
+    int ldb         = n;
+    int ldc         = n;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1881,12 +1881,12 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDes
     int lda = m;
     int ldb = n;
     int ldc = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1933,12 +1933,12 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dy
     int lda = k;
     int ldb = k;
     int ldc = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 1.;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 1.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1981,16 +1981,16 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDes
     int m           = wei_k / groupCount;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                 = in_c / groupCount;
-    int lda               = k;
-    int ldb               = n;
-    int ldc               = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int k           = in_c / groupCount;
+    int lda         = k;
+    int ldb         = n;
+    int ldc         = n;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -2033,16 +2033,16 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& 
     int m           = in_c / groupCount;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                 = wei_k / groupCount;
-    int lda               = m;
-    int ldb               = n;
-    int ldc               = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int k           = wei_k / groupCount;
+    int lda         = m;
+    int ldb         = n;
+    int ldc         = n;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
