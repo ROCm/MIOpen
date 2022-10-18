@@ -2175,7 +2175,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
     auto ref_solution_id = miopen::deref(convDesc).mode == miopenTranspose
                                ? miopen::solver::Id("ConvDirectNaiveConvBwd").Value()
                                : miopen::solver::Id("ConvDirectNaiveConvFwd").Value();
-    auto rc = miopenConvolutionForwardImmediate(handle,
+    auto rc              = miopenConvolutionForwardImmediate(handle,
                                                 weightTensor,
                                                 wei_dev->GetMem(),
                                                 inputTensor,
@@ -3140,7 +3140,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
     auto ref_solution_id = miopen::deref(convDesc).mode == miopenTranspose
                                ? miopen::solver::Id("ConvDirectNaiveConvFwd").Value()
                                : miopen::solver::Id("ConvDirectNaiveConvBwd").Value();
-    auto rc = miopenConvolutionBackwardDataImmediate(handle,
+    auto rc              = miopenConvolutionBackwardDataImmediate(handle,
                                                      outputTensor,
                                                      dout_dev->GetMem(),
                                                      weightTensor,
@@ -3317,8 +3317,8 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
 
     const auto isInt8 = (data_type == miopenInt8 || data_type == miopenInt8x4);
     auto error        = is_fwd_run_failed ? std::numeric_limits<double>::max()
-                                   : (isInt8 ? miopen::rms_range(outhost.data, out_int8)
-                                             : miopen::rms_range(outhost.data, out.data));
+                                          : (isInt8 ? miopen::rms_range(outhost.data, out_int8)
+                                                    : miopen::rms_range(outhost.data, out.data));
 
     auto tolerance = GetDefaultTolerance();
     // iGemm's deviation is higher than other algorithms.

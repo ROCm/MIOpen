@@ -30,6 +30,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/execution_context.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/search_options.hpp>
@@ -37,6 +38,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <boost/variant/apply_visitor.hpp>
 #include <boost/hof/match.hpp>
 
 namespace miopen {
@@ -142,6 +144,43 @@ const TensorDescriptor& Problem::GetTensorDescriptorChecked(miopenTensorArgument
     return found->second;
 }
 
+Problem Problem::MakeTransposed() const
+{
+    auto transposed = Problem{};
+    transposed.SetOperatorDescriptor(GetOperatorDescriptor());
+
+    switch(GetDirection())
+    {
+    case miopenProblemDirectionForward:
+        transposed.SetDirection(miopenProblemDirectionBackward);
+        break;
+    case miopenProblemDirectionBackward:
+        transposed.SetDirection(miopenProblemDirectionForward);
+        break;
+    case miopenProblemDirectionBackwardWeights:
+        transposed.SetDirection(miopenProblemDirectionBackwardWeights);
+        break;
+    default: MIOPEN_THROW(miopenStatusNotImplemented);
+    }
+
+    transposed.tensor_descriptors.reserve(tensor_descriptors.size());
+    for(const auto& descriptor : tensor_descriptors)
+        transposed.tensor_descriptors.emplace(descriptor.first, descriptor.second);
+
+    const auto transpose_tensors = boost::hof::match(
+        [&](const ConvolutionDescriptor& op_desc) { return transposed.TransposeImpl(op_desc); });
+
+    boost::apply_visitor(transpose_tensors, operator_descriptor);
+
+    return transposed;
+}
+
+void Problem::TransposeImpl(const ConvolutionDescriptor& /*conv_desc*/)
+{
+    std::swap(tensor_descriptors.at(miopenTensorConvolutionX),
+              tensor_descriptors.at(miopenTensorConvolutionY));
+}
+
 conv::ProblemDescription Problem::AsConvolution() const
 {
     const auto& conv_desc = boost::get<ConvolutionDescriptor>(operator_descriptor);
@@ -165,20 +204,20 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const AllocatedBuffers& buffers,
                                                  const ConvolutionDescriptor& conv_desc) const
 {
-    auto ret = std::vector<Solution>{};
+    const auto& actual = conv_desc.mode == miopenTranspose ? MakeTransposed() : *this;
+    auto ret           = std::vector<Solution>{};
 
     if(tensor_descriptors.size() != 3)
         MIOPEN_THROW(miopenStatusInvalidValue,
                      "Convolution problem should have exactly three tensor descriptors.");
 
+    // These are not swapped for now to preserve argument order in calls
     const auto& x_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
     const auto& w_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
     const auto& y_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
-
-    ValidateGroupCount(x_desc, w_desc, conv_desc);
 
     const auto& x = buffers.at(miopenTensorConvolutionX);
     const auto& w = buffers.at(miopenTensorConvolutionW);
@@ -293,8 +332,15 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
     ret.reserve(found);
 
-    const auto conv_dir = static_cast<conv::Direction>(direction);
-    const auto netcfg   = AsConvolution().BuildConfKey();
+    const auto conv_dir = ([&]() {
+        const auto dir = static_cast<conv::Direction>(direction);
+        if(dir == conv::Direction::BackwardWeights || conv_desc.mode != miopenTranspose)
+            return dir;
+        return dir == conv::Direction::Forward ? conv::Direction::BackwardData
+                                               : conv::Direction::Forward;
+    })();
+
+    const auto netcfg = actual.AsConvolution().BuildConfKey();
 
     for(auto i = 0; i < found; ++i)
     {
