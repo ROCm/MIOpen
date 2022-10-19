@@ -2,6 +2,8 @@ include(googletest) #include googletest.cmake
 enable_testing()
 include(GoogleTest)
 
+find_package(rocblas)
+
 set(SOURCES ${SOURCES}
     "${CMAKE_CURRENT_SOURCE_DIR}/log_test_helper.cpp"
     )
