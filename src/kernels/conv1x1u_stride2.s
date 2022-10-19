@@ -1172,7 +1172,7 @@ amdhsa.kernels:
     - { .size: 4, .offset: 28, .value_kind: by_value, .value_type: i32, .name: unused_1 }
     - { .size: 8, .offset: 32, .value_kind: global_buffer, .value_type: f32, .name: x,  .address_space: global, .is_const: true }
     - { .size: 8, .offset: 40, .value_kind: global_buffer, .value_type: f32, .name: w,  .address_space: global, .is_const: true }
-    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: y,  .address_space: global, .is_const: false }
+    - { .size: 8, .offset: 48, .value_kind: global_buffer, .value_type: f32, .name: y_,  .address_space: global, .is_const: false }
     - { .size: 8, .offset: 56, .value_kind: global_buffer, .value_type: i32, .name: unused_dbg_ptr, .address_space: global, .is_const: false }
 ...
 .end_amdgpu_metadata
