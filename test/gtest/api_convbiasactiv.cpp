@@ -68,7 +68,7 @@ protected:
         std::tie(algo, cba_config) = GetParam();
         const double double_zero   = 0.0f;
         input   = tensor<float>{cba_config.N, cba_config.C, cba_config.H, cba_config.W};
-        weights = tensor<float>{1, cba_config.k, cba_config.x, cba_config.y};
+        weights = tensor<float>{cba_config.k, cba_config.C, cba_config.x, cba_config.y};
         input.generate(tensor_elem_gen_integer{17});
         weights.generate(tensor_elem_gen_integer{17});
         miopenCreateConvolutionDescriptor(&conv_desc);

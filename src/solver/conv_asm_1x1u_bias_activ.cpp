@@ -257,6 +257,21 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& problem) const
             return false;
     }
     ConvAsm1x1U sol{};
+    const auto conv_ctx = problem.GetConvContext(0, conv::Direction::Forward);
+    if(conv_ctx.problem.pad_h != conv_ctx.problem.pad_w)
+        return false;
+    if(conv_ctx.problem.pad_h != 0)
+        return false;
+    if(conv_ctx.problem.conv_problem.GetKernelStrideH() !=
+       conv_ctx.problem.conv_problem.GetKernelStrideW())
+        return false;
+    if(conv_ctx.problem.conv_problem.GetKernelStrideH() != 1)
+        return false;
+    if(conv_ctx.problem.conv_problem.GetDilationH() != conv_ctx.problem.conv_problem.GetDilationW())
+        return false;
+    if(conv_ctx.problem.conv_problem.GetDilationH() != 1)
+        return false;
+
     // Check if the conovlution part is applicable
     return sol.IsApplicable(problem.GetConvContext(0, conv::Direction::Forward));
 }

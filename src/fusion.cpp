@@ -42,9 +42,6 @@
 #include <string>
 #include <half.hpp>
 
-#define MIOPEN_CHECK(x)          \
-    if(x != miopenStatusSuccess) \
-        return x;
 namespace miopen {
 
 miopenStatus_t ConvBiasActivFusion(Handle& handle,
@@ -1105,11 +1102,10 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                                                  solver::fusion::BnFwdInferActivationFused,
                                                  solver::fusion::BnFwdTrgActivationFused,
                                                  solver::fusion::BnBwdTrgActivationFused>{};
-    auto exec_ctx         = ExecutionContext{&handle};
-    exec_ctx.DetectRocm();
-    const auto fusion_ctx = FusionContext{this, handle};
+    auto fusion_ctx       = FusionContext{this, handle};
+    fusion_ctx.DetectRocm();
     const auto sols =
-        solvers.SearchForAllSolutions(fusion_ctx, miopen::GetDb(exec_ctx), AnyInvokeParams{});
+        solvers.SearchForAllSolutions(fusion_ctx, miopen::GetDb(fusion_ctx), AnyInvokeParams{});
     std::ostringstream ss;
     for(const auto& op : op_map)
     {

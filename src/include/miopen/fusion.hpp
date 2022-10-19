@@ -40,6 +40,10 @@
 #include <vector>
 #include <unordered_map>
 
+#define MIOPEN_CHECK(x)          \
+    if(x != miopenStatusSuccess) \
+        return x;
+
 namespace miopen {
 
 struct Handle;
