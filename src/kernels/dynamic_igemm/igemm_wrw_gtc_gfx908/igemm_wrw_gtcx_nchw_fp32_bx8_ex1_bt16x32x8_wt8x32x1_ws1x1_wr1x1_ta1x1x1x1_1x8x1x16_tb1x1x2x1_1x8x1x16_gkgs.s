@@ -889,7 +889,7 @@ amdhsa.kernels:
     - { .name: p_out     , .size: 8, .offset:  16, .value_kind: global_buffer, .value_type: f32, .address_space: global, .is_const: true}
     - { .name: hi        , .size: 4, .offset:  24, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: ho        , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
@@ -900,7 +900,7 @@ amdhsa.kernels:
     - { .name: dilation_w, .size: 4, .offset:  64, .value_kind: by_value, .value_type: i32}
     - { .name: pad_h     , .size: 4, .offset:  68, .value_kind: by_value, .value_type: i32}
     - { .name: pad_w     , .size: 4, .offset:  72, .value_kind: by_value, .value_type: i32}
-    - { .name: y         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
+    - { .name: y_         , .size: 4, .offset:  76, .value_kind: by_value, .value_type: i32}
     - { .name: x         , .size: 4, .offset:  80, .value_kind: by_value, .value_type: i32}
     - { .name: gemm_k_global_split, .size: 4, .offset:  84, .value_kind: by_value, .value_type: i32}
     - { .name: group     , .size: 4, .offset:  88, .value_kind: by_value, .value_type: i32}
