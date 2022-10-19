@@ -264,8 +264,10 @@ void PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::HeuristicInit(
     // second round: really valid
     if(!tmp.IsReallyValid(problem))
     {
-        get_euristic_config(
-            [&ctx, &problem](const auto& config) { std::ignore = ctx; return config.IsReallyValid(problem); });
+        get_euristic_config([&ctx, &problem](const auto& config) {
+            std::ignore = ctx;
+            return config.IsReallyValid(problem);
+        });
     }
 
     // final check
@@ -338,9 +340,8 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmABlockCopyPer
     int SrcDataPerRead_GemmKPack  = problem.IsFp32()
                                         ? amd_buffer_load_max_length<float>()
                                         : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = problem.IsFp32()
-                                        ? amd_lds_write_max_length<float>()
-                                        : amd_lds_write_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? amd_lds_write_max_length<float>()
+                                                     : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -438,12 +439,10 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmBBlockCopyPer
     int ClusterLengths_GemmK      = -1;
     int ClusterLengths_GemmN      = -1;
     int ClusterLengths_GemmKPack  = -1;
-    int SrcDataPerRead_GemmN      = problem.IsFp32()
-                                        ? amd_buffer_load_max_length<float>()
-                                        : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = problem.IsFp32()
-                                        ? amd_lds_write_max_length<float>()
-                                        : amd_lds_write_max_length<half_float::half>();
+    int SrcDataPerRead_GemmN      = problem.IsFp32() ? amd_buffer_load_max_length<float>()
+                                                     : amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? amd_lds_write_max_length<float>()
+                                                     : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -458,18 +457,17 @@ PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmBBlockCopyPer
 
         // GemmN is src vector read dimension
         // calculate vector length on gemmn dimension based on global tensor layout
-        const auto y             = ProblemInterpreter::GetFilterHeightY(problem);
-        const auto x             = ProblemInterpreter::GetFilterWidthX(problem);
-        const auto ho            = ProblemInterpreter::GetOutputHeightHo(problem);
-        const auto wo            = ProblemInterpreter::GetOutputWidthWo(problem);
-        const auto conv_stride_h = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
-        const auto conv_stride_w = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
-        const auto conv_dilation_w =
-            ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
-        const auto in_left_pad_h  = ProblemInterpreter::GetInputLeftPadH(problem);
-        const auto in_left_pad_w  = ProblemInterpreter::GetInputLeftPadW(problem);
-        const auto in_right_pad_h = ProblemInterpreter::GetAdjustedInputRightPadH(problem);
-        const auto in_right_pad_w = ProblemInterpreter::GetAdjustedInputRightPadW(problem);
+        const auto y               = ProblemInterpreter::GetFilterHeightY(problem);
+        const auto x               = ProblemInterpreter::GetFilterWidthX(problem);
+        const auto ho              = ProblemInterpreter::GetOutputHeightHo(problem);
+        const auto wo              = ProblemInterpreter::GetOutputWidthWo(problem);
+        const auto conv_stride_h   = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
+        const auto conv_stride_w   = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
+        const auto conv_dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
+        const auto in_left_pad_h   = ProblemInterpreter::GetInputLeftPadH(problem);
+        const auto in_left_pad_w   = ProblemInterpreter::GetInputLeftPadW(problem);
+        const auto in_right_pad_h  = ProblemInterpreter::GetAdjustedInputRightPadH(problem);
+        const auto in_right_pad_w  = ProblemInterpreter::GetAdjustedInputRightPadW(problem);
 
         // GemmN is src vector read dimension, bounded by input tensor global memory layout
         // TODO this logic need to be more aggresive
@@ -830,7 +828,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsFastToBeUsedForTuni
                          std::ignore,
                          SrcDataPerRead_GemmN,
                          DstDataPerWrite_GemmKPack,
-                         valid)               = CalculateGemmBBlockCopyPerformanceParameters(problem);
+                         valid) = CalculateGemmBBlockCopyPerformanceParameters(problem);
                 if(valid)
                 {
                     if((SrcDataPerRead_GemmN > 1) &&
@@ -863,10 +861,8 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValidPerformanceConfig(
 }
 
 std::tuple<int, int, int, int, int, int, int>
-ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(const ProblemDescription& problem,
-                                                                    int GemmMFactor,
-                                                                    int GemmNFactor,
-                                                                    int GemmKFactor)
+ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::CalculateGemmSize(
+    const ProblemDescription& problem, int GemmMFactor, int GemmNFactor, int GemmKFactor)
 {
     const auto g  = ProblemInterpreter::GetGroupCountG(problem);
     const auto n  = ProblemInterpreter::GetBatchN(problem);
@@ -1096,14 +1092,13 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
 #if WORKAROUND_MI100_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS
     if(ctx.GetStream().GetDeviceName() == "gfx908" && problem.IsFp32())
     {
-        if((problem.n_inputs == 3 && problem.n_outputs == 1 &&
-            problem.in_width == 227 && problem.in_height == 227 &&
-            problem.kernel_size_w == 3 && problem.kernel_size_h == 3) //
-           || (problem.n_inputs == 64 && problem.n_outputs == 1 &&
-               problem.in_width == 112 && problem.in_height == 112 &&
-               problem.kernel_size_w == 3 && problem.kernel_size_h == 3 &&
-               problem.kernel_stride_w >= 2 && problem.kernel_stride_h >= 2 &&
-               problem.kernel_dilation_w >= 3 && problem.kernel_dilation_h >= 3))
+        if((problem.n_inputs == 3 && problem.n_outputs == 1 && problem.in_width == 227 &&
+            problem.in_height == 227 && problem.kernel_size_w == 3 && problem.kernel_size_h == 3) //
+           ||
+           (problem.n_inputs == 64 && problem.n_outputs == 1 && problem.in_width == 112 &&
+            problem.in_height == 112 && problem.kernel_size_w == 3 && problem.kernel_size_h == 3 &&
+            problem.kernel_stride_w >= 2 && problem.kernel_stride_h >= 2 &&
+            problem.kernel_dilation_w >= 3 && problem.kernel_dilation_h >= 3))
         {
             return false;
         }
