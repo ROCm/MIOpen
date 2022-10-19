@@ -1551,10 +1551,7 @@ struct PerformanceImplicitGemmForwardV4R4Xdlops
     void HeuristicInit(const ConvolutionContext&, const ProblemDescription&);
     bool SetNextValue(const ConvolutionContext&);
     bool IsValidValue() const;
-    bool IsValid(const ConvolutionContext& ctx) const
-    {
-        return IsValid(ctx, ctx.problem);
-    }
+    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx, ctx.problem); }
     bool IsValid(const ConvolutionContext&, const ProblemDescription&) const;
     bool IsReallyValid(const ProblemDescription&) const;
     bool IsFastToBeUsedForTuning(const ConvolutionContext&, const ProblemDescription&) const;
@@ -1735,11 +1732,11 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops final
     : ConvTunableSolver<PerformanceImplicitGemmForwardV4R4Xdlops>
 {
     // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::IsValidPerformanceConfig;
     using ConvTunableSolver::Search;
-    using ConvTunableSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
@@ -1751,8 +1748,9 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops final
     {
         return GetDefaultPerformanceConfig(ctx, ctx.problem);
     }
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmForwardV4R4Xdlops& config) const override
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmForwardV4R4Xdlops& config) const override
     {
         return IsValidPerformanceConfig(ctx.problem, config);
     }
@@ -1777,8 +1775,9 @@ private:
     GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const;
     bool IsValidPerformanceConfig(const ProblemDescription&,
                                   const PerformanceImplicitGemmForwardV4R4Xdlops&) const;
-    PerformanceImplicitGemmForwardV4R4Xdlops
-    Search(const ConvolutionContext&, const ProblemDescription&, const AnyInvokeParams& invoke_ctx) const;
+    PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext&,
+                                                    const ProblemDescription&,
+                                                    const AnyInvokeParams& invoke_ctx) const;
     ConvSolution GetSolution(const ConvolutionContext&,
                              const ProblemDescription&,
                              const PerformanceImplicitGemmForwardV4R4Xdlops&) const;
