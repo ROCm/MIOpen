@@ -285,12 +285,12 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
                 if(bfp32parm)
                 {
                     xlocalsize = 1024;
-                    xgridsize  = 1024 * c;
+                    xgridsize  = 1024 * static_cast<size_t>(c);
                 }
                 else
                 {
                     xlocalsize = 256;
-                    xgridsize  = 256 * c;
+                    xgridsize  = 256 * static_cast<size_t>(c);
                 }
                 ldsgcn = xlocalsize / 64;
             }

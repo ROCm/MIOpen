@@ -116,7 +116,7 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
         return false;
 
     if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 &&
-         GemmK % (GemmKPerBlock * GemmKBlocks) == 0))
+         GemmK % static_cast<std::size_t>(GemmKPerBlock * GemmKBlocks) == 0))
         return false; // wrong! cannot divice N evenly among thread
 
     // unsupported xdlops-gemm
@@ -159,7 +159,7 @@ bool PerformanceImplicitGemmXdlops::IsValid(const ConvolutionContext& ctx) const
                                                  GemmBBlockCopyThreadSliceLengths_GemmN,
                                                  GemmABlockCopyThreadSliceLengths_GemmM,
                                                  EPACKSize);
-    return lds_size <= 64 * 1024;
+    return lds_size <= static_cast<std::size_t>(64) * 1024;
 }
 
 PerformanceImplicitGemmXdlops::PerformanceImplicitGemmXdlops(bool spare)
@@ -243,7 +243,7 @@ bool PerformanceImplicitGemmXdlops::IsValidValue() const
         && IsTwoPower<4,128>(WeiBlockCopyClusterLengths_K); // clang-format on
 }
 
-bool PerformanceImplicitGemmXdlops::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceImplicitGemmXdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
 {
     do
     {

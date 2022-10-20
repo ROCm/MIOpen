@@ -278,16 +278,16 @@ static inline bool IsValidXdlopsGemm(const int GemmMPerBlock,
     return (GemmMPerBlock % GemmMPerWave) == 0 && (GemmNPerBlock % GemmNPerWave) == 0;
 }
 
-static inline bool IsIndexRangeLargeEnough(const ConvolutionContext& ctx)
+static inline bool IsIndexRangeLargeEnough(const ProblemDescription& problem)
 {
     // composable kernel use int32_t for memory offset, which covers 2GB of memory maximum
     const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
 
-    return ctx.problem.bot_sz < max_index_range && ctx.problem.weights_sz < max_index_range &&
-           ctx.problem.top_sz < max_index_range;
+    return problem.bot_sz < max_index_range && problem.weights_sz < max_index_range &&
+           problem.top_sz < max_index_range;
 }
 
-static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
+static inline bool IsValidBlockwiseGemmXdlops(const ProblemDescription& problem,
                                               const int GemmMPerBlock,
                                               const int GemmNPerBlock,
                                               const int GemmKPerBlock,
@@ -296,14 +296,14 @@ static inline bool IsValidBlockwiseGemmXdlops(const ConvolutionContext& ctx,
                                               const int GemmKPack)
 {
 #if WORKAROUND_SWDEV_251757
-    if(ctx.problem.IsFp32() && GemmKPerBlock == 1 && GemmKPack == 8)
+    if(problem.IsFp32() && GemmKPerBlock == 1 && GemmKPack == 8)
         return false;
 #endif
 
     // check k
-    if(ctx.problem.IsFp16() && GemmKPack % 4 != 0)
+    if(problem.IsFp16() && GemmKPack % 4 != 0)
         return false;
-    if(ctx.problem.IsBfp16() && GemmKPack % 2 != 0)
+    if(problem.IsBfp16() && GemmKPack % 2 != 0)
         return false;
 
     // check M, N and K
@@ -422,6 +422,17 @@ inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
 }
 
 ///\todo remove
+template <class PerformanceImplicitGemm_t>
+inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx,
+                                            const ProblemDescription& problem)
+{
+    PerformanceImplicitGemm_t pp;
+    pp.HeuristicInit(ctx, problem);
+    MIOPEN_LOG_I(pp.ToString());
+    return pp;
+}
+
+///\todo remove
 static inline size_t ComputeLDSRequiredSize(const ProblemDescription& problem,
                                             const int BPerBlock,
                                             const int KPerBlock,
@@ -445,14 +456,15 @@ static inline size_t ComputeLDSRequiredSize(const ProblemDescription& problem,
 
     // Multiplied worst_case_alignment_adjustment by 2 as
     // Both A and B matrix LDS size is increased.
-    const std::size_t lds_size =
-        (BPerBlock + KPerBlock) * EPerBlock * EPACKSize * GetTypeSize(problem.in_data_type) * 2 +
-        2 * worst_case_alignment_adjustment;
+    const std::size_t lds_size = (static_cast<std::size_t>(BPerBlock) + KPerBlock) * EPerBlock *
+                                     EPACKSize * GetTypeSize(problem.in_data_type) * 2 +
+                                 2 * static_cast<std::size_t>(worst_case_alignment_adjustment);
 
     return lds_size;
 }
 
-static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
+static inline bool use_amd_inline_asm(const ConvolutionContext& ctx,
+                                      const ProblemDescription& problem)
 {
 
     if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx8"))
@@ -461,7 +473,7 @@ static inline bool use_amd_inline_asm(const ConvolutionContext& ctx)
     // disable fp16 inline asm for <= gfx900
     const auto device_name = ctx.GetStream().GetDeviceName();
     if(!(StartsWith(device_name, "gfx906") || StartsWith(device_name, "gfx908")) &&
-       ctx.problem.IsFp16())
+       problem.IsFp16())
         return false;
 
     return !miopen::IsDisabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM{});

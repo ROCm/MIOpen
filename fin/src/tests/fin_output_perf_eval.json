@@ -16,7 +16,6 @@
             "TERM=xterm",
             "SHLVL=1",
             "PYTHONPATH=/root/Tuna",
-            "TUNA_DB_USER_PASSWORD=root1234",
             "MIOPEN_LOG_LEVEL=6",
             "PATH=/opt/rocm/miopen/bin:/opt/rocm/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "TUNA_DB_HOSTNAME=localhost",

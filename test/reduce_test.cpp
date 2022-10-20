@@ -803,15 +803,13 @@ struct reduce_driver : test_driver
         auto outLengths = this->inLengths;
 
         assert(toReduceDims.size() <= outLengths.size());
-        for(auto toReduceDim : toReduceDims)
-        {
-            assert(toReduceDim < inLengths.size());
-            (void)toReduceDim;
-        }
 
         // set the lengths of the dimensions to be reduced to 1 to represent the output Tensor
         for(const int& toReduceDim : toReduceDims)
+        {
+            assert(toReduceDim < inLengths.size());
             outLengths[toReduceDim] = static_cast<std::size_t>(1);
+        }
 
         unsigned long max_value;
 

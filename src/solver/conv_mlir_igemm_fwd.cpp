@@ -85,28 +85,31 @@ bool PerformanceConvMlirIgemm::operator==(const PerformanceConvMlirIgemm& other)
     // clang-format on
 }
 
-bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx) const
+bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx,
+                                       const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
     if(*this == MlirHeuristicInitRequest())
         return true;
 
-    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, false));
+    int kernel_count = MiirGetKernelCount(mlir::ConstructBuildOptions(ctx, problem, *this, false));
     bool isValid     = false;
     for(int kernel_id = 0; kernel_id < kernel_count; ++kernel_id)
     {
-        isValid = MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, *this, false, kernel_id));
+        isValid = MiirIsConfigApplicable(
+            mlir::ConstructBuildOptions(ctx, problem, *this, false, kernel_id));
         if(!isValid)
             return false;
     }
     return isValid;
 #else
     std::ignore = ctx;
+    std::ignore = problem;
     return false;
 #endif
 }
 
-bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*ctx*/)
 {
     if(use_spare_set)
         return false;
@@ -140,26 +143,29 @@ ConvMlirIgemmFwd::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) con
 }
 
 bool ConvMlirIgemmFwd::IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                                const ProblemDescription& problem,
                                                 const PerformanceConvMlirIgemm& config) const
 {
     MIOPEN_LOG_I("");
-    return config.IsValid(ctx);
+    return config.IsValid(ctx, problem);
 }
 
-PerformanceConvMlirIgemm ConvMlirIgemmFwd::Search(const ConvolutionContext& context,
+PerformanceConvMlirIgemm ConvMlirIgemmFwd::Search(const ConvolutionContext& ctx,
+                                                  const ProblemDescription& problem,
                                                   const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, context, invoke_ctx);
+    return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx,
+                                    const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_MLIR
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD{}))
         return false;
-    if(ctx.problem.conv_problem.GetConv().attribute.deterministic)
+    if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
-    if(!ctx.problem.direction.IsForward())
+    if(!problem.direction.IsForward())
         return false;
     if(!IsComposableKernelSupportedHardware(ctx))
         return false;
@@ -173,23 +179,25 @@ bool ConvMlirIgemmFwd::IsApplicable(const ConvolutionContext& ctx) const
     if(StartsWith(device_name, "gfx900"))
         return false;
 
-    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, false));
+    return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, problem, false));
 #else
     std::ignore = ctx;
+    std::ignore = problem;
     return false;
 #endif
 }
 
 ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx,
+                                           const ProblemDescription& problem,
                                            const PerformanceConvMlirIgemm& config) const
 {
 #if MIOPEN_USE_MLIR
     ConvSolution result;
     KernelInfo construction_parameters;
 
-    construction_parameters.kernel_name  = mlir::GetKernelName(ctx, false);
+    construction_parameters.kernel_name  = mlir::GetKernelName(problem, false);
     construction_parameters.kernel_file  = construction_parameters.kernel_name + ".mlir";
-    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, config, false);
+    construction_parameters.comp_options = mlir::ConstructBuildOptions(ctx, problem, config, false);
 
     size_t local_size  = 0;
     size_t global_size = 0;
@@ -203,11 +211,12 @@ ConvSolution ConvMlirIgemmFwd::GetSolution(const ConvolutionContext& ctx,
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
-    result.invoker_factory = conv::MakeMlirFwdInvokerFactory(ctx);
+    result.invoker_factory = conv::MakeMlirFwdInvokerFactory(problem);
     result.construction_params.push_back(construction_parameters);
     return result;
 #else
     std::ignore = ctx;
+    std::ignore = problem;
     std::ignore = config;
     return {};
 #endif
