@@ -4,22 +4,6 @@ include(GoogleTest)
 
 find_package(rocblas)
 
-set(SOURCES ${SOURCES}
-    "${CMAKE_CURRENT_SOURCE_DIR}/log_test_helper.cpp"
-    )
-
-if(MIOPEN_BACKEND_OPENCL)
-  set(SKIP_TESTS dumpTensorTest)
-endif()
-
-set(SOURCES ${SOURCES}
-    "${CMAKE_CURRENT_SOURCE_DIR}/log_test_helper.cpp"
-    )
-
-if(MIOPEN_BACKEND_OPENCL)
-  set(SKIP_TESTS dumpTensorTest)
-endif()
-
 function(add_gtest TEST_NAME)
   if( NOT (TEST_NAME IN_LIST SKIP_TESTS))
     message("Adding Test: " ${TEST_NAME})

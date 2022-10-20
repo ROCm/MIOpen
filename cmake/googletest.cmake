@@ -1,5 +1,4 @@
 include(FetchContent)
-include(GoogleTest)
 
 set(GOOGLETEST_DIR "" CACHE STRING "Location of local GoogleTest repo to build against")
 
