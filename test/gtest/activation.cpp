@@ -158,10 +158,13 @@ protected:
 
         CompareTensors(std::get<tensor<T>>(output_cpu_ref), std::get<tensor<T>>(output_gpu));
 
-        std::get<tensor<T>>(dinput_gpu).data =
-            handle.Read<T>(din_dev, std::get<tensor<T>>(dinput_gpu).data.size());
+        if(isBwdActivation)
+        {
+            std::get<tensor<T>>(dinput_gpu).data =
+                handle.Read<T>(din_dev, std::get<tensor<T>>(dinput_gpu).data.size());
 
-        CompareTensors(std::get<tensor<T>>(dinput_cpu), std::get<tensor<T>>(dinput_gpu));
+            CompareTensors(std::get<tensor<T>>(dinput_cpu), std::get<tensor<T>>(dinput_gpu));
+        }
         miopenDestroyActivationDescriptor(activ_desc);
     }
 
@@ -179,6 +182,7 @@ protected:
             teardown_impl<float>();
     }
 
+    bool isBwdActivation;
     miopenDataType_t data_type;
 
     std::variant<tensor<float>, tensor<double>> input;          // x
@@ -198,18 +202,42 @@ protected:
     miopen::Allocator::ManageDataPtr dout_dev; // dy
 };
 
-miopenStatus_t RunActivation(miopen::Handle& handle,
-                             miopenActivationDescriptor_t activationDesc,
-                             const void* alpha,
-                             const miopen::TensorDescriptor& xDesc,
-                             ConstData_t x,
-                             const void* beta,
-                             const miopen::TensorDescriptor& yDesc,
-                             Data_t y,
-                             const miopen::TensorDescriptor& dyDesc,
-                             ConstData_t dy,
-                             const miopen::TensorDescriptor& dxDesc,
-                             Data_t dx)
+miopenStatus_t RunFwdActivation(miopen::Handle& handle,
+                                miopenActivationDescriptor_t activationDesc,
+                                const void* alpha,
+                                const miopen::TensorDescriptor& xDesc,
+                                ConstData_t x,
+                                const void* beta,
+                                const miopen::TensorDescriptor& yDesc,
+                                Data_t y)
+{
+    if(alpha == nullptr || beta == nullptr)
+        MIOPEN_THROW(miopenStatusBadParm, "alpha or beta is NULL");
+
+    miopen::ActivationDescriptor desc = miopen::deref(activationDesc);
+    miopenStatus_t status             = desc.Forward(handle,
+                                         alpha,
+                                         xDesc, // input.desc
+                                         x,     // in_dev.get()
+                                         beta,
+                                         yDesc, // output_gpu.desc
+                                         y);    // out_dev.get()
+
+    return status;
+}
+
+miopenStatus_t RunFwdBwdActivation(miopen::Handle& handle,
+                                   miopenActivationDescriptor_t activationDesc,
+                                   const void* alpha,
+                                   const miopen::TensorDescriptor& xDesc,
+                                   ConstData_t x,
+                                   const void* beta,
+                                   const miopen::TensorDescriptor& yDesc,
+                                   Data_t y,
+                                   const miopen::TensorDescriptor& dyDesc,
+                                   ConstData_t dy,
+                                   const miopen::TensorDescriptor& dxDesc,
+                                   Data_t dx)
 {
     if(alpha == nullptr || beta == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "alpha or beta is NULL");
@@ -243,26 +271,49 @@ miopenStatus_t RunActivation(miopen::Handle& handle,
         return bwdStatus;
 }
 
-TEST_P(TestActivation, ActivationFwdBwdTest)
+TEST_P(TestActivation, ActivationFwdTest)
 {
     const float alpha = 1.0f, beta = 0;
+    isBwdActivation = false;
 
-    miopenStatus_t status = miopenStatusNotImplemented;
+    miopenStatus_t status = miopenStatusUnknownError;
 
     if(data_type == miopenFloat)
     {
-        status = RunActivation(get_handle(),
-                               activ_desc,
-                               &alpha,
-                               std::get<0>(input).desc, // x
-                               in_dev.get(),
-                               &beta,
-                               std::get<0>(output_gpu).desc, // y
-                               out_dev.get(),
-                               std::get<0>(doutput).desc, // dy
-                               dout_dev.get(),
-                               std::get<0>(dinput_gpu).desc, // dx
-                               din_dev.get());
+        status = RunFwdActivation(get_handle(),
+                                  activ_desc,
+                                  &alpha,
+                                  std::get<0>(input).desc, // x
+                                  in_dev.get(),
+                                  &beta,
+                                  std::get<0>(output_gpu).desc, // y
+                                  out_dev.get());
+    }
+
+    EXPECT_EQ(status, miopenStatusSuccess);
+}
+
+TEST_P(TestActivation, ActivationBwdTest)
+{
+    const float alpha = 1.0f, beta = 0;
+    isBwdActivation = true;
+
+    miopenStatus_t status = miopenStatusUnknownError;
+
+    if(data_type == miopenFloat)
+    {
+        status = RunFwdBwdActivation(get_handle(),
+                                     activ_desc,
+                                     &alpha,
+                                     std::get<0>(input).desc, // x
+                                     in_dev.get(),
+                                     &beta,
+                                     std::get<0>(output_gpu).desc, // y
+                                     out_dev.get(),
+                                     std::get<0>(doutput).desc, // dy
+                                     dout_dev.get(),
+                                     std::get<0>(dinput_gpu).desc, // dx
+                                     din_dev.get());
     }
 
     EXPECT_EQ(status, miopenStatusSuccess);
