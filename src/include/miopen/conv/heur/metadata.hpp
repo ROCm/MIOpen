@@ -28,9 +28,11 @@
 #define GUARD_MIOPEN_METADATA_HPP_
 
 #include <miopen/problem_description.hpp>
+#if MIOPEN_ENABLE_HEUR
 #include <fdeep/fdeep.hpp>
 #include <fdeep/tensor.hpp>
 #include <fdeep/tensor_shape.hpp>
+#endif
 #include <unordered_map>
 #include <vector>
 #include <miopen/db_path.hpp>

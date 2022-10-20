@@ -23,10 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/miopen.h>
 
+#if MIOPEN_ENABLE_HEUR
 #include "../tensor_holder.hpp"
 #include <gtest/gtest.h>
-#include <miopen/miopen.h>
 #include <iostream>
 #include <miopen/convolution.hpp>
 #include <miopen/conv/problem_description.hpp>
@@ -321,3 +322,4 @@ TEST(HEUR_TEST, TestMetadata)
 }
 
 TEST(HEUR_TEST, TestModelAccuracy) { TestModelAccuracy(); }
+#endif
