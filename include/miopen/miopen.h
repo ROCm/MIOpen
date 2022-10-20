@@ -4848,6 +4848,27 @@ miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
  */
 miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, size_t value);
 
+/*! @brief Attachs the preallocated workspace to find options. Allocated by the library by default.
+ *
+ * @param options    Options object to upfate
+ * @param buffer     Specifies the workspace for find call
+ * @param size       Specifies the size of the buffer passed
+ * @return           miopenStatus_t
+ */
+miopenStatus_t
+miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buffer, size_t size);
+
+/*! @brief Attaches a preallocated tensor to find options. Allocated by the library by default.
+ *
+ * @param options    Options object to upfate
+ * @param id         Specifies the id of the tensor passed
+ * @param buffer     Specifies the tensor for find call
+ * @return           miopenStatus_t
+ */
+miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options,
+                                                     miopenTensorArgumentId_t id,
+                                                     void* buffer);
+
 /*! @brief The miopenSolution object describes a prepared solution.
  */
 MIOPEN_DECLARE_OBJECT(miopenSolution);
