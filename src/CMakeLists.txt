@@ -131,6 +131,7 @@ set( MIOpen_Source
     problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
+    anyramdb.cpp
     reducetensor.cpp
     reducetensor_api.cpp
     rnn.cpp
@@ -601,6 +602,7 @@ if(MIOPEN_USE_COMGR)
     list(APPEND MIOpen_Source comgr.cpp)
 endif()
 
+
 if(MIOPEN_USE_MLIR)
     list(APPEND MIOpen_Source
         mlir_build.cpp
@@ -609,6 +611,11 @@ if(MIOPEN_USE_MLIR)
         )
 endif()
 
+if(MIOPEN_ENABLE_HEUR)
+    list(APPEND MIOpen_Source conv/heur/metadata.cpp)
+    list(APPEND MIOPEN_Source include/miopen/conv/heur/metadata.hpp)
+    list(APPEND MIOPEN_Source include/miopen/conv/heur/heur.hpp)
+endif()
 # build library
 add_library( MIOpen
     ${MIOpen_Source}
@@ -641,13 +648,24 @@ set(MIOPEN_CK_LINK_FLAGS)
 if(MIOPEN_USE_COMPOSABLEKERNEL)
 set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations hip::host)
 endif()
-
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
 target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
+if(MIOPEN_ENABLE_HEUR)
+    find_path(FDEEP_INCLUDE_DIR "fdeep/fdeep.hpp")
+    find_path(EIGEN_INCLUDE_DIR "eigen3/Eigen/Core")
+    target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
+    target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIR}/eigen3>)
+    file(GLOB MODEL_FILES conv/heur/*.model)
+    install(FILES ${MODEL_FILES} DESTINATION ${DATA_INSTALL_DIR}/db)
+    foreach(MODEL_FILE ${MODEL_FILES})
+        get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+        configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/share/miopen/db/${MODEL_FILE_FILENAME}" COPYONLY)
+    endforeach()
+endif()
 set(PACKAGE_DEPENDS)
 set(PACKAGE_STATIC_DEPENDS)
 ############################################################
@@ -827,6 +845,8 @@ else()
 
     endif()
 endif()
+
+
 
 if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
   #Generating Wrapper of each headers for backward compatibility
