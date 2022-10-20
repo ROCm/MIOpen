@@ -43,6 +43,7 @@ struct Exec_arg_t
 
 struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
+    FusionPlanDescriptor() {}
     FusionPlanDescriptor(miopenFusionDirection_t dir, const TensorDescriptor& inDesc);
     ~FusionPlanDescriptor();
     bool isValid() const { return is_valid; };

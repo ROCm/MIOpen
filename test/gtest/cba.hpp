@@ -25,6 +25,8 @@
  *******************************************************************************/
 #pragma once
 
+#include <random>
+
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
@@ -52,10 +54,10 @@ struct ConvTestCase
     size_t dilation_y;
     friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
     {
-        return os << "N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
+        return os << "(N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
                   << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
                   << " pad_x:" << tc.pad_x << " stride_y:" << tc.stride_y
-                  << " dilation_y:" << tc.dilation_y;
+                  << " dilation_y:" << tc.dilation_y << " )";
     }
     std::vector<size_t> GetInput() { return {N, C, H, W}; }
     std::vector<size_t> GetWeights() { return {k, C, y, x}; }
@@ -105,43 +107,62 @@ protected:
     {
         test_skipped                      = false;
         std::tie(activ_mode, conv_config) = GetParam();
-        const double double_zero          = 0.0f;
         input                             = tensor<T>{conv_config.GetInput()};
         weights                           = tensor<T>{conv_config.GetWeights()};
-        input.generate(tensor_elem_gen_integer{17});
-        weights.generate(tensor_elem_gen_integer{17});
+        std::random_device rd{};
+        std::mt19937 gen{rd()};
+        std::uniform_real_distribution<> d{-3, 3};
+        auto gen_value = [&](auto...) { return d(gen); };
+        input.generate(gen_value);
+        weights.generate(gen_value);
         activ_desc = {activ_mode, 0.0f, 0.0f, 0.0f};
         conv_desc  = conv_config.GetConv();
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopenFloat);
-        output  = tensor<T>{output_desc.GetLengths()};
-        ref_out = tensor<T>{output_desc.GetLengths()};
-        bias    = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
-        bias.generate(tensor_elem_gen_integer{17});
-        std::fill(output.begin(), output.end(), 0.0f);
-        std::fill(ref_out.begin(), ref_out.end(), 0.0f);
-        std::fill(bias.begin(), bias.end(), 0.0f);
-        conv_stats stats;
-        ref_out = ref_conv_fwd(input, weights, output, conv_desc);
-        cpu_bias_forward(ref_out, bias);
-        activationHostInfer(
-            activ_mode, double_zero, double_zero, double_zero, ref_out.data, ref_out.data);
+        output = tensor<T>{output_desc.GetLengths()};
+        bias   = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
+        bias.generate(gen_value);
         auto&& handle = get_handle();
-        in_dev        = handle.Write(input.data);
-        wei_dev       = handle.Write(weights.data);
-        out_dev       = handle.Write(output.data);
-        bias_dev      = handle.Write(bias.data);
+        std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
+        in_dev   = handle.Write(input.data);
+        wei_dev  = handle.Write(weights.data);
+        out_dev  = handle.Write(output.data);
+        bias_dev = handle.Write(bias.data);
+
+        // Setup the Fusionplan
+        fusePlanDesc = miopen::FusionPlanDescriptor(miopenVerticalFusion, input.desc);
+        auto convOp  = std::make_shared<miopen::ConvForwardOpDescriptor>(conv_desc, weights.desc);
+        auto biasOp  = std::make_shared<miopen::BiasFusionOpDescriptor>(bias.desc);
+        auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(activ_desc.GetMode());
+        EXPECT_EQ(fusePlanDesc.AddOp(convOp), miopenStatusSuccess);
+        convOp->SetArgs(&alpha, &beta, wei_dev.get());
+        EXPECT_EQ(fusePlanDesc.AddOp(biasOp), miopenStatusSuccess);
+        biasOp->SetArgs(&alpha, &beta, bias_dev.get());
+        EXPECT_EQ(fusePlanDesc.AddOp(activOp), miopenStatusSuccess);
+        activOp->SetArgs(&alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+        // Setup the params
+        std::vector<std::shared_ptr<miopen::fusion::FusionOpInvokeParamBase>> params;
+        for(const auto& op : fusePlanDesc.op_map)
+            params.push_back(op->GetArgs());
+        plan_params = miopen::fusion::FusionInvokeParams{
+            params, input.desc, in_dev.get(), output.desc, out_dev.get(), false};
     }
     void TearDown() override
     {
         if(test_skipped)
             return;
+        conv_stats stats;
+        miopen::TensorDescriptor output_desc =
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopenFloat);
+        ref_out = tensor<T>{output_desc.GetLengths()};
+        ref_out = ref_conv_fwd(input, weights, output, conv_desc);
+        cpu_bias_forward(ref_out, bias);
+        activationHostInfer(
+            activ_mode, activ_gamma, activ_beta, activ_alpha, ref_out.data, ref_out.data);
         auto&& handle = get_handle();
         output.data   = handle.Read<T>(out_dev, output.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU data is all zeros";
         EXPECT_FALSE(miopen::range_zero(output)) << "GPU data is all zeros";
-        const auto mxdiff = miopen::max_diff(output, ref_out);
-        std::ignore       = mxdiff;
         EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
         const double tolerance = 80;
         double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
@@ -165,4 +186,11 @@ protected:
     miopen::Allocator::ManageDataPtr bias_dev;
     bool test_skipped = false;
     miopenActivationMode_t activ_mode;
+    miopen::FusionPlanDescriptor fusePlanDesc;
+    miopen::fusion::FusionInvokeParams plan_params;
+    const float alpha       = static_cast<float>(1.0f);
+    const float beta        = static_cast<float>(0);
+    const float activ_alpha = static_cast<double>(0.5f);
+    const float activ_beta  = static_cast<double>(0.5f);
+    const float activ_gamma = static_cast<double>(0.5f);
 };

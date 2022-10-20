@@ -39,48 +39,75 @@
 struct ConvBiasActivInferTestFloat : ConvBiasActivInferTest<float>
 {
 };
+//
 
-TEST_P(ConvBiasActivInferTestFloat, SolverTest)
+template <typename Solver>
+void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
+               const miopen::fusion::FusionInvokeParams plan_params,
+               const ConvTestCase& conv_config,
+               bool& test_skipped)
 {
-    auto& handle            = get_handle();
-    const float alpha       = static_cast<float>(1.0f);
-    const float beta        = static_cast<float>(0);
-    const float activ_alpha = static_cast<double>(0.5f);
-    const float activ_beta  = static_cast<double>(0.5f);
-    const float activ_gamma = static_cast<double>(0.5f);
-    miopen::FusionPlanDescriptor fusePlanDesc(miopenVerticalFusion, input.desc);
-    auto convOp  = std::make_shared<miopen::ConvForwardOpDescriptor>(conv_desc, weights.desc);
-    auto biasOp  = std::make_shared<miopen::BiasFusionOpDescriptor>(bias.desc);
-    auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(activ_desc.GetMode());
-    EXPECT_EQ(fusePlanDesc.AddOp(convOp), miopenStatusSuccess);
-    convOp->SetArgs(&alpha, &beta, wei_dev.get());
-    EXPECT_EQ(fusePlanDesc.AddOp(biasOp), miopenStatusSuccess);
-    biasOp->SetArgs(&alpha, &beta, bias_dev.get());
-    EXPECT_EQ(fusePlanDesc.AddOp(activOp), miopenStatusSuccess);
-    activOp->SetArgs(&alpha, &beta, activ_alpha, activ_beta, activ_gamma);
-    miopen::solver::fusion::ConvBiasActivAsm1x1U solv{};
-
+    auto& handle = get_handle();
+    Solver solv{};
     auto fusion_ctx = miopen::FusionContext{&fusePlanDesc, handle};
     fusion_ctx.DetectRocm();
     if(!solv.IsApplicable(fusion_ctx))
     {
         test_skipped = true;
-        GTEST_SKIP() << "ConvBiasActivAsm1x1U Not Applicable" << conv_config;
+        GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << conv_config;
+    }
+    ASSERT_TRUE(solv.IsApplicable(fusion_ctx));
+    auto sol = solv.GetSolution(fusion_ctx);
+    ASSERT_TRUE(sol.Succeeded());
+    ASSERT_TRUE(sol.invoker_factory);
+    const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
+    (invoker)(handle, plan_params);
+    handle.Finish();
+}
+template <typename Solver>
+void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
+                      const miopen::fusion::FusionInvokeParams plan_params,
+                      const ConvTestCase& conv_config,
+                      bool& test_skipped)
+{
+    auto& handle = get_handle();
+    Solver solv{};
+    auto fusion_ctx = miopen::FusionContext{&fusePlanDesc, handle};
+    fusion_ctx.DetectRocm();
+    if(!solv.IsApplicable(fusion_ctx))
+    {
+        test_skipped = true;
+        GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << conv_config;
     }
     ASSERT_TRUE(solv.IsApplicable(fusion_ctx));
     auto sol = solv.GetSolution(fusion_ctx, solv.GetDefaultPerformanceConfig(fusion_ctx));
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
-    std::vector<std::shared_ptr<miopen::fusion::FusionOpInvokeParamBase>> params;
-    for(const auto& op : fusePlanDesc.op_map)
-        params.push_back(op->GetArgs());
-    const auto plan_params = miopen::fusion::FusionInvokeParams{
-        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false};
     (invoker)(handle, plan_params);
     handle.Finish();
 }
 
+// TEST_P(ConvBiasActivInferTestFloat, ConvBiasActivAsm1x1UFloat)
+// {
+//     RunTunableSolver<miopen::solver::fusion::ConvBiasActivAsm1x1U>(fusePlanDesc, plan_params,
+//     conv_config, test_skipped);
+// }
+// TEST_P(ConvBiasActivInferTestFloat, ConvOclDirectFwdFused)
+// {
+//     RunTunableSolver<miopen::solver::fusion::ConvOclDirectFwdFused>(fusePlanDesc, plan_params,
+//     conv_config, test_skipped);
+// }
+TEST_P(ConvBiasActivInferTestFloat, ConvBinWinogradRxSFused)
+{
+    RunSolver<miopen::solver::fusion::ConvBinWinogradRxSFused>(
+        fusePlanDesc, plan_params, conv_config, test_skipped);
+}
+TEST_P(ConvBiasActivInferTestFloat, ConvBinWinogradRxSf2x3g1Fused)
+{
+    RunSolver<miopen::solver::fusion::ConvBinWinogradRxSf2x3g1Fused>(
+        fusePlanDesc, plan_params, conv_config, test_skipped);
+}
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          ConvBiasActivInferTestFloat,
                          testing::Combine(testing::Values(miopenActivationRELU),

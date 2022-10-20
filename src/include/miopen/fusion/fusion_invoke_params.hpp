@@ -101,6 +101,7 @@ struct BatchNormBwdTrainingOpInvokeParam : FusionOpInvokeParamBase
 
 struct FusionInvokeParams : InvokeParams
 {
+    FusionInvokeParams(){};
     FusionInvokeParams(std::vector<std::shared_ptr<FusionOpInvokeParamBase>> op_invokers_,
                        TensorDescriptor in_desc,
                        ConstData_t in_,
