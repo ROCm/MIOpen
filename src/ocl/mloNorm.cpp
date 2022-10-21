@@ -266,15 +266,17 @@ int mlo_construct_norm::mloConstructFwd()
     else
     {
 
-        _g_wk.push_back(g_wk_width * _grp_tile0);
-        _g_wk.push_back(g_wk_height * _grp_tile1);
-        _g_wk.push_back(_search_params.problem.n_outputs * _search_params.problem.batch_sz);
+        _g_wk.push_back(static_cast<size_t>(g_wk_width) * _grp_tile0);
+        _g_wk.push_back(static_cast<size_t>(g_wk_height) * _grp_tile1);
+        _g_wk.push_back(static_cast<size_t>(_search_params.problem.n_outputs) *
+                        _search_params.problem.batch_sz);
     }
     int data_len = miopen::GetTypeSize(_search_params.problem.out_data_type);
 
     // calculate workspace
-    size_t scale_sz = _search_params.problem.batch_sz * scale_batch_stride * data_len;
-    _workspace_sz   = (doBackward()) ? scale_sz : 0;
+    size_t scale_sz =
+        static_cast<size_t>(_search_params.problem.batch_sz) * scale_batch_stride * data_len;
+    _workspace_sz = (doBackward()) ? scale_sz : 0;
 
     return (ret);
 }
@@ -395,9 +397,10 @@ int mlo_construct_norm::mloConstructBwd()
         int g_wk_height =
             ((_in_df_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
 
-        _g_wk.push_back(g_wk_width * _grp_tile0);
-        _g_wk.push_back(g_wk_height * _grp_tile1);
-        _g_wk.push_back(_search_params.problem.n_inputs * _search_params.problem.batch_sz);
+        _g_wk.push_back(static_cast<size_t>(g_wk_width) * _grp_tile0);
+        _g_wk.push_back(static_cast<size_t>(g_wk_height) * _grp_tile1);
+        _g_wk.push_back(static_cast<size_t>(_search_params.problem.n_inputs) *
+                        _search_params.problem.batch_sz);
         _kernel_name = "MIOpenLRNWithinChannelBwd";
     }
 

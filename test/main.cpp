@@ -176,13 +176,13 @@ struct conv_forward : output_tensor_fixture
 
         int n, h, c, w;
         STATUS(miopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w));
-        size_t sz_in = n * c * h * w;
+        size_t sz_in = static_cast<size_t>(n) * c * h * w;
 
         STATUS(miopenGet4dTensorDescriptorLengths(convFilter, &n, &c, &h, &w));
-        size_t sz_wei = n * c * h * w;
+        size_t sz_wei = static_cast<size_t>(n) * c * h * w;
 
         STATUS(miopenGet4dTensorDescriptorLengths(outputTensor, &n, &c, &h, &w));
-        size_t sz_out = n * c * h * w;
+        size_t sz_out = static_cast<size_t>(n) * c * h * w;
 
         size_t sz_fwd_workspace;
         STATUS(miopenConvolutionForwardGetWorkSpaceSize(
