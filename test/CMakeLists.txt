@@ -815,7 +815,9 @@ set(IMPLICITGEMM_TESTING_ENV
 )
 
 if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
+    SET(SAVE_IMPLICITGEMM_TESTING_ENV ${IMPLICITGEMM_TESTING_ENV})
     LIST(APPEND IMPLICITGEMM_TESTING_ENV MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0 MIOPEN_FIND_MODE=normal)
+    SET(SAVE_IMPLICITGEMM_ARGS ${IMPLICITGEMM_ARGS})
     LIST(APPEND IMPLICITGEMM_ARGS --disable-forward --disable-backward-data)
     #Afther fix need to remove '| grep -v "cannot be executed due to incorrect params"'
 endif()
@@ -903,6 +905,12 @@ COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_AR
 COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 64	 32	14 14 --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
 COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${IMPLICITGEMM_ARGS} --verbose   --input 64	 32	7 7   --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
 )
+
+if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
+    SET(IMPLICITGEMM_TESTING_ENV ${SAVE_IMPLICITGEMM_TESTING_ENV})
+    SET(IMPLICITGEMM_ARGS ${SAVE_IMPLICITGEMM_ARGS})
+endif()
+
 
 add_custom_test(test_conv_group SKIP_UNLESS_ALL MIOTENSILE_ENABLED GFX103X_ENABLED
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	128	56	56	--weights	256	4	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
