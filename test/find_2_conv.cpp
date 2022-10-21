@@ -183,19 +183,22 @@ private:
                         switch(direction)
                         {
                         case miopenProblemDirectionForward:
-                            EXPECT_EQUAL(miopenConvolutionForwardGetWorkSpaceSize(
+                            EXPECT_EQUAL(
+                                miopenConvolutionForwardGetWorkSpaceSize(
                                     handle, &x.desc, &w.desc, &filter, &y.desc, &workspace_max),
-                                            miopenStatusSuccess);
+                                miopenStatusSuccess);
                             break;
                         case miopenProblemDirectionBackward:
-                            EXPECT_EQUAL(miopenConvolutionBackwardDataGetWorkSpaceSize(
+                            EXPECT_EQUAL(
+                                miopenConvolutionBackwardDataGetWorkSpaceSize(
                                     handle, &y.desc, &w.desc, &filter, &x.desc, &workspace_max),
-                                            miopenStatusSuccess);
+                                miopenStatusSuccess);
                             break;
                         case miopenProblemDirectionBackwardWeights:
-                            EXPECT_EQUAL(miopenConvolutionBackwardWeightsGetWorkSpaceSize(
+                            EXPECT_EQUAL(
+                                miopenConvolutionBackwardWeightsGetWorkSpaceSize(
                                     handle, &y.desc, &x.desc, &filter, &w.desc, &workspace_max),
-                                            miopenStatusSuccess);
+                                miopenStatusSuccess);
                             break;
                         default: MIOPEN_THROW(miopenStatusNotImplemented);
                         }

@@ -124,8 +124,8 @@ miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buff
 }
 
 miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options,
-    miopenTensorArgumentId_t id,
-    void* buffer)
+                                                     miopenTensorArgumentId_t id,
+                                                     void* buffer)
 {
     MIOPEN_LOG_FUNCTION(options, id, buffer);
 

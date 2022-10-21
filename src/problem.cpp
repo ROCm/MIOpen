@@ -97,13 +97,13 @@ std::vector<Solution>
 Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t max_solutions) const
 {
     auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
-    auto buffers = std::unordered_map<miopenTensorArgumentId_t, Data_t>{};
+    auto buffers       = std::unordered_map<miopenTensorArgumentId_t, Data_t>{};
 
     for(const auto& pair : tensor_descriptors)
     {
         const auto preallocated = options.preallocated_tensors.find(pair.first);
 
-        if (preallocated != options.preallocated_tensors.end())
+        if(preallocated != options.preallocated_tensors.end())
         {
             buffers.emplace(pair.first, preallocated->second);
             continue;
