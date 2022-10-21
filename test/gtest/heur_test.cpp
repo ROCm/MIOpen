@@ -154,7 +154,8 @@ void TestEstimateCaching(void)
 
 void TestSolverMap(void)
 {
-    const auto& solver_map                 = miopen::GetSolverMap("gfx908");
+    const auto& solver_map = miopen::GetSolverMap("gfx908");
+
     const std::vector<std::string> solvers = {"ConvBinWinogradRxSf2x3g1",
                                               "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC",
                                               "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC",
