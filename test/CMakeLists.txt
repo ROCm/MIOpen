@@ -1874,11 +1874,16 @@ endif()
 add_custom_test(smoke_conv_solver_ConvAsm5x10_7x7 SKIP_XNACK_ON GFX90A_DISABLED SKIP_UNLESS_ALL
     # GFX90A_DISABLED is because of WORKAROUND_ISSUE_1146
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm5x10u2v2f1 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_F} --input  1 1   5  10 --weights 16  1 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+      ${TEST_CONV_VERBOSE_F} --input 1 1 5 10 --weights 16 1 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm5x10u2v2b1 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_B} --input  1 1  16 160 --weights 16 16 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+      ${TEST_CONV_VERBOSE_B} --input 1 1 16 160 --weights 16 16 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm7x7c3h224w224k64u2v2p3q3f1 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_F} --input  1 3 224 224 --weights 64  3 7  7 --pads_strides_dilations 3 3 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+      ${TEST_CONV_VERBOSE_F} --input 1 3 224 224 --weights 64 3 7  7 --pads_strides_dilations 3 3 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(smoke_conv_solver_ConvOclDirectFwd11x11 HALF_ENABLED BF16_ENABLED GFX103X_ENABLED SKIP_UNLESS_ALL
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd11x11 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
+      ${TEST_CONV_VERBOSE_F} --input 1 1 44 44 --weights 1 1 11 11 --pads_strides_dilations 0 0 4 4 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 # Add here regression tests that should be run on Vega10/20 and GFX908 only with FP16.
