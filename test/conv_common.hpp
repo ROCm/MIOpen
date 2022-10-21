@@ -1885,7 +1885,7 @@ struct conv_driver : test_driver
         for(int i = 2; i < 4; i++)
         {
             if(input_dims.size() == i + 2 and weight_tensor_dims.size() == i + 2 and
-               pads_strides_dilations.size() == i * 3 and trans_output_pads.size() == i)
+               pads_strides_dilations.size() == i * 3ULL and trans_output_pads.size() == i)
                 return i;
         }
         std::cout << "FAILED: get_spatial_dim() can't calculate dims count." << std::endl;

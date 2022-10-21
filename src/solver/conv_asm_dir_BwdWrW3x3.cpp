@@ -216,7 +216,8 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& ctx,
                 return false;
         if(limit_wave_cnt != 0 && limit_wave_cnt * 4 < n_per_group)
             return false;
-        const auto lds_size = (n_per_group - 1) * 64 /*wavesize*/ * sizeof(float) * accums_cnt;
+        const auto lds_size = static_cast<std::size_t>(n_per_group - 1) * solver::wave_size *
+                              sizeof(float) * accums_cnt;
         if(!(lds_size <= 65536))
             return false;
 
@@ -497,12 +498,12 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& ctx,
     kernel.comp_options = options.str();
 
     kernel.l_wk.clear(); // workgroupsize
-    kernel.l_wk.push_back(64 * pcfg->GetNPerGroup());
+    kernel.l_wk.push_back(static_cast<std::size_t>(64) * pcfg->GetNPerGroup());
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
     kernel.g_wk.clear(); // gridsize
-    kernel.g_wk.push_back(64 * pcfg->GetNPerGroup());
+    kernel.g_wk.push_back(static_cast<std::size_t>(64) * pcfg->GetNPerGroup());
 
     if(pcfg->GetReverseInout() == 0)
     {

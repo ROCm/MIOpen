@@ -893,7 +893,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     construction_parameters.l_wk.push_back(1);
     construction_parameters.l_wk.push_back(1);
 
-    construction_parameters.g_wk.push_back(block_size * grid_size);
+    construction_parameters.g_wk.push_back(static_cast<std::size_t>(block_size) * grid_size);
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
@@ -1107,7 +1107,7 @@ std::size_t ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const Convolution
         const auto y = ProblemInterpreter::GetFilterHeightY(ctx.problem);
         const auto x = ProblemInterpreter::GetFilterWidthX(ctx.problem);
 
-        return k * c * y * x * miopen::GetTypeSize(miopenFloat);
+        return miopen::GetTypeSize(miopenFloat) * k * c * y * x;
     }
 }
 } // namespace solver

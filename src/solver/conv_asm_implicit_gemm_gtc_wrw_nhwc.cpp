@@ -335,7 +335,8 @@ GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(
 
     const auto gemm_m = k / group;
     size_t block_size = config.BlockSize();
-    size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
+    size_t grid_size  = static_cast<size_t>(group) *
+                       integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
                        integer_divide_ceil(gemm_n, config.gemm_n_per_block);
     std::string kernel_name = config.ToKernelName(ctx);
     size_t occupancy        = config.ComputeKernelOccupancy();
@@ -349,8 +350,8 @@ size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy(
     size_t aux_vgpr_usage;
     size_t a_elements_per_vgpr = 1;
     size_t b_elements_per_vgpr = 1;
-    size_t lds_a               = gemm_m_per_block * gemm_k_per_block * GetTypeSize(precision);
-    size_t lds_b               = gemm_n_per_block * gemm_k_per_block * GetTypeSize(precision);
+    size_t lds_a               = GetTypeSize(precision) * gemm_m_per_block * gemm_k_per_block;
+    size_t lds_b               = GetTypeSize(precision) * gemm_n_per_block * gemm_k_per_block;
 
     size_t lds_single = lds_a >= lds_b ? lds_a * 2 : lds_b * 2;
     size_t lds_usage;
@@ -385,10 +386,14 @@ size_t PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::ComputeKernelOccupancy(
 
     size_t sz_per_element = precision == "fp16" ? 2 : 1;
 
-    vgpr_usage = tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / a_elements_per_vgpr +
-                 tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / b_elements_per_vgpr +
-                 tensor_a_thread_lengths[1] * tensor_a_thread_lengths[3] / sz_per_element +
-                 tensor_b_thread_lengths[1] * tensor_b_thread_lengths[3] / sz_per_element +
+    vgpr_usage = static_cast<size_t>(tensor_a_thread_lengths[1]) * tensor_a_thread_lengths[3] /
+                     a_elements_per_vgpr +
+                 static_cast<size_t>(tensor_b_thread_lengths[1]) * tensor_b_thread_lengths[3] /
+                     b_elements_per_vgpr +
+                 static_cast<size_t>(tensor_a_thread_lengths[1]) * tensor_a_thread_lengths[3] /
+                     sz_per_element +
+                 static_cast<size_t>(tensor_b_thread_lengths[1]) * tensor_b_thread_lengths[3] /
+                     sz_per_element +
                  aux_vgpr_usage;
     if(GetTypeSize(precision) == 2)
     {
