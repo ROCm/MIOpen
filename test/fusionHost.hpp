@@ -301,7 +301,7 @@ void batchNormSpatialHostBwdTrain(const tensor<T>& x_input,
         double mean   = savedMean(0, cidx, 0, 0);   // HxW elements
         double invVar = savedInvVar(0, cidx, 0, 0); // HxW elements
         double dyelem = 0.;
-        std::vector<double> xhat(n_batch * in_cstride, 0.0);
+        std::vector<double> xhat(static_cast<std::size_t>(n_batch) * in_cstride, 0.0);
         // process the batch per channel
         dscale(0, cidx, 0, 0) = 0.;
         dbias(0, cidx, 0, 0)  = 0.;
@@ -370,7 +370,7 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
         double mean   = static_cast<double>(savedMean(0, cidx, 0, 0));   // HxW elements
         double invVar = static_cast<double>(savedInvVar(0, cidx, 0, 0)); // HxW elements
         double dyelem = 0.;
-        std::vector<double> xhat(n_batch * in_cstride, 0.0);
+        std::vector<double> xhat(static_cast<std::size_t>(n_batch) * in_cstride, 0.0);
         // process the batch per channel
         dscale(0, cidx, 0, 0) = 0.;
         dbias(0, cidx, 0, 0)  = 0.;
@@ -530,7 +530,7 @@ void batchNormPerActHostBwdTrain(const tensor<T>& x_input,
         double dxhat      = 0.;
         double dxhathat   = 0.;
         double tmp1       = 0.;
-        std::vector<double> xhat(n_batch * in_cstride);
+        std::vector<double> xhat(static_cast<std::size_t>(n_batch) * in_cstride);
 
         // process the batch per channel
         for(int row = 0; row < height; row++)
@@ -605,7 +605,7 @@ void batchNormActivPerActHostBwdTrain(miopenActivationMode_t activMode,
         double dxhat      = 0.;
         double dxhathat   = 0.;
         double tmp1       = 0.;
-        std::vector<double> xhat(n_batch * in_cstride);
+        std::vector<double> xhat(static_cast<std::size_t>(n_batch) * in_cstride);
 
         // process the batch per channel
         for(int row = 0; row < height; row++)

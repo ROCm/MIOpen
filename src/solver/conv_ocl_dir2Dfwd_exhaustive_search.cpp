@@ -375,7 +375,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             n_grp_tiles0       = 1;
             grp_tl_ln[0]       = 64;
 
-            runs_left  = out_pix_tl_cnt * n_out_tls * n_in_tls * (n_grp_tiles0 + 1);
+            runs_left =
+                static_cast<long long>(out_pix_tl_cnt) * n_out_tls * n_in_tls * (n_grp_tiles0 + 1);
             total_runs = runs_left;
 
             result.out_pix_tile1 = 1;
@@ -422,8 +423,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             int n_grp_tiles = n_grp_tiles1 * n_grp_tiles0;
             n_out_tls       = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
             n_in_tls        = 2;
-            runs_left       = n_grp_tiles * out_pix_tl_cnt * n_out_tls * n_in_tls;
-            total_runs      = runs_left;
+            runs_left = static_cast<long long>(n_grp_tiles) * out_pix_tl_cnt * n_out_tls * n_in_tls;
+            total_runs = runs_left;
 
             result.out_pix_tile1 = 0;
         }
@@ -505,8 +506,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     else
     {
         MIOPEN_LOG_W("Searching the best solution in the 9 dim space. Please, be patient...");
-        runs_left = /*n_grp_tiles * */ n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
-                    n_in_tls * stack_cnt;
+        runs_left = static_cast<long long>(n_tiles_cnt) * out_pix_tl_cnt * out_pix_tl_cnt *
+                    n_out_tls * n_in_tls * stack_cnt;
         total_runs = runs_left;
 
         // tile1

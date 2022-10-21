@@ -241,7 +241,8 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
     // Check 1: n_back_loops
     // Ensure that the total amount of system memory used by intermediate object
     // that holds the weights of x number of batches doesn't exceed system memory
-    size_t wei_cstride = params.problem.kernel_size_h * params.problem.kernel_size_w;
+    size_t wei_cstride =
+        static_cast<size_t>(params.problem.kernel_size_h) * params.problem.kernel_size_w;
     size_t wei_bstride = (params.problem.n_outputs / params.problem.group_counts) * wei_cstride;
 
     // number  of batch iterations
@@ -283,7 +284,8 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
         return false;
     }
 
-    size_t total_out_channels = n_out_channels_tiles * n_out_channels_per_tile;
+    size_t total_out_channels =
+        static_cast<std::size_t>(n_out_channels_tiles) * n_out_channels_per_tile;
     if(total_out_channels > n_output_channels_per_group)
     {
         return false;
@@ -309,14 +311,14 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
         size_t in_width     = params.problem.out_width; // out is in, in is out
         size_t out_width    = params.problem.in_width;
 
-        size_t in_lcl_width_effective = std::max(
-            in_width + 2 * params.problem.pad_w,
+        size_t in_lcl_width_effective = std::max<size_t>(
+            in_width + 2ULL * params.problem.pad_w,
             std::max(params.problem.pad_w + ((in_width + read_size - 1) / read_size) * read_size,
                      params.problem.kernel_size_w +
                          (out_width - 1) * params.problem.kernel_stride_w));
 
         size_t in_lcl_width_right_buffer = std::max(
-            static_cast<int>(in_lcl_width_effective - (in_width + 2 * params.problem.pad_w)), 0);
+            static_cast<int>(in_lcl_width_effective - (in_width + 2ULL * params.problem.pad_w)), 0);
 
         in_lcl_width = params.problem.pad_w + in_width + in_lcl_width_right_buffer;
 
@@ -582,7 +584,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
                                   (out_width - 1) * params.problem.kernel_stride_w));
 
         size_t in_lcl_width_right_buffer = std::max(
-            static_cast<int>(in_lcl_width_effective - (in_width + 2 * params.problem.pad_w)), 0);
+            static_cast<int>(in_lcl_width_effective - (in_width + 2ULL * params.problem.pad_w)), 0);
 
         in_lcl_width = params.problem.pad_w + in_width + in_lcl_width_right_buffer;
 
