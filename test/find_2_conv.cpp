@@ -179,11 +179,10 @@ private:
             EXPECT_EQUAL(miopenCreateFindOptions(&options), miopenStatusSuccess);
 
             EXPECT_EQUAL(miopenSetFindOptionTuning(options, tune), miopenStatusSuccess);
-            EXPECT_EQUAL(
-                miopenSetFindOptionResultsOrder(options, miopenFindResultsOrderByTime),
-                miopenStatusSuccess);
+            EXPECT_EQUAL(miopenSetFindOptionResultsOrder(options, miopenFindResultsOrderByTime),
+                         miopenStatusSuccess);
             EXPECT_EQUAL(miopenSetFindOptionWorkspaceLimit(options, workspace_limit),
-                            miopenStatusSuccess);
+                         miopenStatusSuccess);
 
             Allocator::ManageDataPtr workspace_dev;
 
@@ -193,53 +192,48 @@ private:
                 switch(direction)
                 {
                 case miopenProblemDirectionForward:
-                    EXPECT_EQUAL(
-                        miopenConvolutionForwardGetWorkSpaceSize(
-                            handle, &x.desc, &w.desc, &filter, &y.desc, &workspace_max),
-                        miopenStatusSuccess);
+                    EXPECT_EQUAL(miopenConvolutionForwardGetWorkSpaceSize(
+                                     handle, &x.desc, &w.desc, &filter, &y.desc, &workspace_max),
+                                 miopenStatusSuccess);
                     break;
                 case miopenProblemDirectionBackward:
-                    EXPECT_EQUAL(
-                        miopenConvolutionBackwardDataGetWorkSpaceSize(
-                            handle, &y.desc, &w.desc, &filter, &x.desc, &workspace_max),
-                        miopenStatusSuccess);
+                    EXPECT_EQUAL(miopenConvolutionBackwardDataGetWorkSpaceSize(
+                                     handle, &y.desc, &w.desc, &filter, &x.desc, &workspace_max),
+                                 miopenStatusSuccess);
                     break;
                 case miopenProblemDirectionBackwardWeights:
-                    EXPECT_EQUAL(
-                        miopenConvolutionBackwardWeightsGetWorkSpaceSize(
-                            handle, &y.desc, &x.desc, &filter, &w.desc, &workspace_max),
-                        miopenStatusSuccess);
+                    EXPECT_EQUAL(miopenConvolutionBackwardWeightsGetWorkSpaceSize(
+                                     handle, &y.desc, &x.desc, &filter, &w.desc, &workspace_max),
+                                 miopenStatusSuccess);
                     break;
                 default: MIOPEN_THROW(miopenStatusNotImplemented);
                 }
 
                 const auto workspace_size = std::min(workspace_limit, workspace_max);
-                workspace_dev =
-                    workspace_size != 0
-                        ? miopen::deref(handle).Write(std::vector<char>(workspace_size))
-                        : nullptr;
+                workspace_dev             = workspace_size != 0
+                                                ? miopen::deref(handle).Write(std::vector<char>(workspace_size))
+                                                : nullptr;
 
                 EXPECT_EQUAL(miopenSetFindOptionPreallocatedWorkspace(
-                                    options, workspace_dev.get(), workspace_size),
-                                miopenStatusSuccess);
+                                 options, workspace_dev.get(), workspace_size),
+                             miopenStatusSuccess);
 
                 EXPECT_EQUAL(miopenSetFindOptionPreallocatedTensor(
-                                    options, miopenTensorConvolutionX, x_dev.get()),
-                                miopenStatusSuccess);
+                                 options, miopenTensorConvolutionX, x_dev.get()),
+                             miopenStatusSuccess);
 
                 EXPECT_EQUAL(miopenSetFindOptionPreallocatedTensor(
-                                    options, miopenTensorConvolutionW, w_dev.get()),
-                                miopenStatusSuccess);
+                                 options, miopenTensorConvolutionW, w_dev.get()),
+                             miopenStatusSuccess);
 
                 EXPECT_EQUAL(miopenSetFindOptionPreallocatedTensor(
-                                    options, miopenTensorConvolutionY, y_dev.get()),
-                                miopenStatusSuccess);
+                                 options, miopenTensorConvolutionY, y_dev.get()),
+                             miopenStatusSuccess);
             }
 
-            EXPECT_EQUAL(
-                miopenFindSolutions(
-                    handle, problem, options, solutions.data(), &found, solutions.size()),
-                miopenStatusSuccess);
+            EXPECT_EQUAL(miopenFindSolutions(
+                             handle, problem, options, solutions.data(), &found, solutions.size()),
+                         miopenStatusSuccess);
 
             EXPECT_EQUAL(miopenDestroyFindOptions(options), miopenStatusSuccess);
         }
