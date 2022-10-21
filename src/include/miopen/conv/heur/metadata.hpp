@@ -28,7 +28,7 @@
 #define GUARD_MIOPEN_METADATA_HPP_
 
 #include <miopen/problem_description.hpp>
-#if MIOPEN_ENABLE_HEUR
+#if MIOPEN_ENABLE_AI_HEUR
 #include <fdeep/fdeep.hpp>
 #include <fdeep/tensor.hpp>
 #include <fdeep/tensor_shape.hpp>

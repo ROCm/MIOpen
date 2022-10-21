@@ -827,7 +827,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
-    if(MIOPEN_ENABLE_HEUR && ConvHeur::IsApplicable(handle.GetDeviceName(), problem.conv_problem))
+    if(MIOPEN_ENABLE_AI_HEUR &&
+       ConvHeur::IsApplicable(handle.GetDeviceName(), problem.conv_problem))
     {
         int idx = 1; // Each solution to have a successively more negative values keeping
         // sorting logic intact in frameworks
@@ -1009,7 +1010,7 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
                  solutions,
                  StringToConvolutionFwdAlgo);
 
-#if MIOPEN_ENABLE_HEUR
+#if MIOPEN_ENABLE_AI_HEUR
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = false;
 #else
@@ -1460,7 +1461,7 @@ void ConvolutionDescriptor::GetBackwardSolutions(Handle& handle,
                  solutions,
                  StringToConvolutionBwdDataAlgo);
 
-#if MIOPEN_ENABLE_HEUR
+#if MIOPEN_ENABLE_AI_HEUR
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = false;
 #else
@@ -1820,7 +1821,7 @@ void ConvolutionDescriptor::GetWrwSolutions(Handle& handle,
                  solutions,
                  StringToConvolutionBwdWeightsAlgo);
 
-#if MIOPEN_ENABLE_HEUR
+#if MIOPEN_ENABLE_AI_HEUR
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = false;
 #else

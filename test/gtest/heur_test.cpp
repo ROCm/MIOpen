@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include <miopen/miopen.h>
 
-#if MIOPEN_ENABLE_HEUR
+#if MIOPEN_ENABLE_AI_HEUR
 #include "../tensor_holder.hpp"
 #include <gtest/gtest.h>
 #include <iostream>

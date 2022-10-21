@@ -611,7 +611,7 @@ if(MIOPEN_USE_MLIR)
         )
 endif()
 
-if(MIOPEN_ENABLE_HEUR)
+if(MIOPEN_ENABLE_AI_HEUR)
     list(APPEND MIOpen_Source conv/heur/metadata.cpp)
     list(APPEND MIOPEN_Source include/miopen/conv/heur/metadata.hpp)
     list(APPEND MIOPEN_Source include/miopen/conv/heur/heur.hpp)
@@ -654,7 +654,7 @@ target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
-if(MIOPEN_ENABLE_HEUR)
+if(MIOPEN_ENABLE_AI_HEUR)
     find_path(FDEEP_INCLUDE_DIR "fdeep/fdeep.hpp")
     find_path(EIGEN_INCLUDE_DIR "eigen3/Eigen/Core")
     target_include_directories(MIOpen SYSTEM PRIVATE $<BUILD_INTERFACE:${FDEEP_INCLUDE_DIR}>)
