@@ -4848,7 +4848,7 @@ miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
  */
 miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, size_t value);
 
-/*! @brief Attachs the preallocated workspace to find options. Allocated by the library by default.
+/*! @brief Attaches the preallocated workspace to find options. Allocated by the library by default.
  *
  * @param options    Options object to upfate
  * @param buffer     Specifies the workspace for find call
