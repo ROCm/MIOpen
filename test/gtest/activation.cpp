@@ -47,23 +47,12 @@ struct ActivationConfig
     size_t C;
     size_t H;
     size_t W;
+    friend std::ostream& operator<<(std::ostream& outStream, const ActivationConfig& activConfig)
+    {
+        return outStream << "N:" << activConfig.N << " C:" << activConfig.C
+                         << " H:" << activConfig.H << " W:" << activConfig.W;
+    }
 };
-
-template <class T1, class T2>
-void CompareTensors(T1&& t1, T2&& t2)
-{
-    double tolerance = 80;
-    EXPECT_FALSE(miopen::range_zero(t1)) << "CPU data is all zeros";
-    EXPECT_FALSE(miopen::range_zero(t2)) << "GPU data is all zeros";
-    EXPECT_EQ(miopen::range_distance(t1), miopen::range_distance(t2))
-        << "range distance b/w CPU and GPU not equal";
-
-    using value_type = miopen::range_value<decltype(t2)>;
-    double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
-    std::vector<double> error{miopen::rms_range(t1, t2)};
-    EXPECT_FALSE(error.front() > threshold);
-    return;
-}
 
 struct TestActivation : public ::testing::TestWithParam<
                             std::tuple<miopenDataType_t, miopenActivationMode_t, ActivationConfig>>
@@ -88,10 +77,10 @@ protected:
         std::size_t n, c, h, w;
         auto&& handle        = get_handle();
         std::tie(n, c, h, w) = miopen::tien<4>(std::get<tensor<T>>(input).desc.GetLengths());
-        EXPECT_EQ(n, activ_config.N);
-        EXPECT_EQ(c, activ_config.C);
-        EXPECT_EQ(h, activ_config.H);
-        EXPECT_EQ(w, activ_config.W);
+        EXPECT_EQ(n, activ_config.N) << "Config: " << activ_config;
+        EXPECT_EQ(c, activ_config.C) << "Config: " << activ_config;
+        EXPECT_EQ(h, activ_config.H) << "Config: " << activ_config;
+        EXPECT_EQ(w, activ_config.W) << "Config: " << activ_config;
         size_t total_mem =
             4 * std::get<tensor<T>>(input)
                     .desc.GetNumBytes(); // estimate based on both forward and backward passes
@@ -180,6 +169,22 @@ protected:
     {
         if(data_type == miopenFloat)
             teardown_impl<float>();
+    }
+
+    template <class T1, class T2>
+    void CompareTensors(T1&& t1, T2&& t2)
+    {
+        double tolerance = 80;
+        EXPECT_FALSE(miopen::range_zero(t1)) << "CPU data is all zeros. Config: " << activ_config;
+        EXPECT_FALSE(miopen::range_zero(t2)) << "GPU data is all zeros. Config: " << activ_config;
+        EXPECT_EQ(miopen::range_distance(t1), miopen::range_distance(t2))
+            << "range distance b/w CPU and GPU not equal. Config:" << activ_config;
+
+        using value_type = miopen::range_value<decltype(t2)>;
+        double threshold = std::numeric_limits<value_type>::epsilon() * tolerance;
+        std::vector<double> error{miopen::rms_range(t1, t2)};
+        EXPECT_FALSE(error.front() > threshold) << "Config:" << activ_config;
+        return;
     }
 
     bool isBwdActivation;
@@ -290,7 +295,7 @@ TEST_P(TestActivation, ActivationFwdTest)
                                   out_dev.get());
     }
 
-    EXPECT_EQ(status, miopenStatusSuccess);
+    EXPECT_EQ(status, miopenStatusSuccess) << "Forward activation failed. Config: " << activ_config;
 }
 
 TEST_P(TestActivation, ActivationBwdTest)
@@ -316,7 +321,8 @@ TEST_P(TestActivation, ActivationBwdTest)
                                      din_dev.get());
     }
 
-    EXPECT_EQ(status, miopenStatusSuccess);
+    EXPECT_EQ(status, miopenStatusSuccess)
+        << "Backward activation failed. Config: " << activ_config;
 }
 
 INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
