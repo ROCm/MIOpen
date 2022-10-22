@@ -1895,6 +1895,11 @@ add_custom_test(smoke_conv_solver_ConvAsmImplicitGemmV4R1Dynamic_Fwd_WrW GFX908_
       ${TEST_CONV_VERBOSE_W} --input 1 32 28 28 --weights 32 32 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
+add_custom_test(smoke_conv_solver_ConvAsmImplicitGemmGTCDynamicWrwXdlops GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED HALF_ENABLED SKIP_XNACK_ON
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicWrwXdlops $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
+      ${TEST_CONV_VERBOSE_W} --input 2 256 12 18 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
 # Add here regression tests that should be run on Vega10/20 and GFX908 only with FP16.
 add_custom_test(test_regression_half_vega_gfx908 FLOAT_DISABLED HALF_ENABLED GFX90A_DISABLED
 # REGRESSION TEST for issue #894.
