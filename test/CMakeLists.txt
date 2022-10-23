@@ -191,7 +191,7 @@ if(NOT MIOPEN_TEST_MIOTENSILE)
 	elseif(MIOPEN_TEST_INT8)
 	    set(SKIP_ALL_EXCEPT_TESTS
                 test_tensor_vec test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set
-                test_tensor_transform test_conv2d)
+                test_tensor_transform test_conv2d test_conv2d_find2)
 	elseif(MIOPEN_TEST_BFLOAT16)
 	    set(SKIP_ALL_EXCEPT_TESTS
                 test_conv2d test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d
@@ -1910,5 +1910,4 @@ add_custom_test(test_regression_half_mi200 GFX900_DISABLED GFX906_DISABLED GFX90
 )
 #override if we need to install gtests
 set(INSTALL_GTEST OFF)
-
-add_subdirectory(gtest)
+add_subdirectory(gtest EXCLUDE_FROM_ALL)

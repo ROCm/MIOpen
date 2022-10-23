@@ -312,7 +312,7 @@ solver::KernelInfo BatchedTransposeSolution::GetKernelInfo() const
 #else
     uint32_t dim_h = (height + kernel_param_heuristic.tile_y - 1) / kernel_param_heuristic.tile_y;
     uint32_t dim_w = (width + kernel_param_heuristic.tile_x - 1) / kernel_param_heuristic.tile_x;
-    std::size_t grid_size = batch * dim_h * dim_w;
+    std::size_t grid_size = static_cast<std::size_t>(batch) * dim_h * dim_w;
 #endif
     std::string kernel_name = GetKernelName();
     solver::KernelInfo kernel;
@@ -338,9 +338,9 @@ std::vector<OpKernelArg> BatchedTransposeSolution::GetKernelArg() const
     uint32_t dim_w = (width + kernel_param_heuristic.tile_x - 1) / kernel_param_heuristic.tile_x;
     uint32_t dim_total = batch * dim_h * dim_w;
 #if BATCHED_TRANSPOSE_PERSISTENT
-    std::size_t grid_size = num_cu * BATCHED_TRANSPOSE_OCCUPANCY;
+    std::size_t grid_size = static_cast<std::size_t>(num_cu) * BATCHED_TRANSPOSE_OCCUPANCY;
 #else
-    std::size_t grid_size = batch * dim_h * dim_w;
+    std::size_t grid_size = static_cast<std::size_t>(batch) * dim_h * dim_w;
 #endif
 
     magic_div_u32_t magic_h = magic_div_u32_gen(dim_h);

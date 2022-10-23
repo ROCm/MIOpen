@@ -162,8 +162,9 @@ static inline miopenStatus_t ComputeInputParams(
     // it should include complete kernel filter in horizontal span.
     const uint filter_adjustment = problem.kernel_size_w - 1;
 
-    const auto lds_size         = 64 * 1024; /// TBD Obtain this from device info.
-    const auto max_lds_elements = lds_size / (2 * GetTypeSize(problem.in_data_type));
+    const auto lds_size = 64 * 1024; /// TBD Obtain this from device info.
+    const auto max_lds_elements =
+        lds_size / (2 * static_cast<int>(GetTypeSize(problem.in_data_type)));
 
     while(num_out_channels * out_n_vert_reads * (out_n_horizon_reads + filter_adjustment) >
           max_lds_elements)
@@ -316,7 +317,7 @@ size_t ConvOclBwdWrW53::GetWorkspaceSize(const ProblemDescription& problem) cons
         int wei_bstride = (problem.n_outputs / problem.group_counts) *
                           (problem.kernel_size_w * problem.kernel_size_h);
         int data_len = GetTypeSize(problem.out_data_type);
-        return wei_bstride * problem.n_inputs * n_batch_blks * data_len;
+        return static_cast<size_t>(wei_bstride) * problem.n_inputs * n_batch_blks * data_len;
     }
     else
         return 0;
