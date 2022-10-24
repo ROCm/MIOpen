@@ -162,8 +162,9 @@ static inline miopenStatus_t ComputeInputParams(
     // it should include complete kernel filter in horizontal span.
     const uint filter_adjustment = problem.kernel_size_w - 1;
 
-    const auto lds_size         = 64 * 1024; /// TBD Obtain this from device info.
-    const auto max_lds_elements = lds_size / (2 * GetTypeSize(problem.in_data_type));
+    const auto lds_size = 64 * 1024; /// TBD Obtain this from device info.
+    const auto max_lds_elements =
+        lds_size / (2 * static_cast<int>(GetTypeSize(problem.in_data_type)));
 
     while(num_out_channels * out_n_vert_reads * (out_n_horizon_reads + filter_adjustment) >
           max_lds_elements)
@@ -219,10 +220,10 @@ static inline void ComputeOutputParams(int output_width,
                                        int& n_out_stacks)
 {
 
-    size_t out_pixels_per_wkitem_by_mod =
-        (output_width_chunk % 4 == 0)
-            ? 4
-            : (output_width_chunk % 3 == 0) ? 3 : (output_width_chunk % 2 == 0) ? 2 : 1;
+    size_t out_pixels_per_wkitem_by_mod = (output_width_chunk % 4 == 0)   ? 4
+                                          : (output_width_chunk % 3 == 0) ? 3
+                                          : (output_width_chunk % 2 == 0) ? 2
+                                                                          : 1;
 
     assert(workgroup_size != 0);
 
@@ -305,11 +306,10 @@ static inline void ComputeNumInputWidthLoops(
 size_t ConvOclBwdWrW53::GetWorkspaceSize(const ProblemDescription& problem) const
 {
     int n_stacks      = std::min(problem.batch_sz, 1);
-    int N_BATCH_LOOPS = (problem.n_inputs * problem.n_outputs <= 8 * 1024)
-                            ? 1
-                            : (problem.batch_sz <= 16 || problem.in_width <= 32)
-                                  ? (problem.batch_sz / n_stacks)
-                                  : 4;
+    int N_BATCH_LOOPS = (problem.n_inputs * problem.n_outputs <= 8 * 1024) ? 1
+                        : (problem.batch_sz <= 16 || problem.in_width <= 32)
+                            ? (problem.batch_sz / n_stacks)
+                            : 4;
     int n_batch_blks =
         (problem.batch_sz + N_BATCH_LOOPS * n_stacks - 1) / (N_BATCH_LOOPS * n_stacks);
     if(n_batch_blks > 1)
@@ -317,7 +317,7 @@ size_t ConvOclBwdWrW53::GetWorkspaceSize(const ProblemDescription& problem) cons
         int wei_bstride = (problem.n_outputs / problem.group_counts) *
                           (problem.kernel_size_w * problem.kernel_size_h);
         int data_len = GetTypeSize(problem.out_data_type);
-        return wei_bstride * problem.n_inputs * n_batch_blks * data_len;
+        return static_cast<size_t>(wei_bstride) * problem.n_inputs * n_batch_blks * data_len;
     }
     else
         return 0;
@@ -341,12 +341,11 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
     result.n_stacks = std::min(problem.batch_sz, result.n_stacks);
     // defines how to proceed : 1 grouop per batch or with a loop over all batches
     // loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
-    int N_BATCH_LOOPS = (problem.n_inputs * problem.n_outputs <= 8 * 1024)
-                            ? 1
-                            : (problem.batch_sz <= 16 || problem.in_width <= 32)
-                                  ? (problem.batch_sz / result.n_stacks)
-                                  : 4;
-    int n_batch_blks = (problem.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) /
+    int N_BATCH_LOOPS = (problem.n_inputs * problem.n_outputs <= 8 * 1024) ? 1
+                        : (problem.batch_sz <= 16 || problem.in_width <= 32)
+                            ? (problem.batch_sz / result.n_stacks)
+                            : 4;
+    int n_batch_blks  = (problem.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) /
                        (N_BATCH_LOOPS * result.n_stacks);
 
     result.out_pix_tile0 = problem.kernel_size_w;
@@ -355,18 +354,19 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
     // n of wavefronts per group
     int n_waves = ((result.out_pix_tile0 * result.out_pix_tile1) <= 16 && (problem.in_width > 8))
                       ? 4
-                      : (problem.in_width <= 16) ? 1 : 2;
-    int GRP_SZ = hw_wave_sz * n_waves;
+                  : (problem.in_width <= 16) ? 1
+                                             : 2;
+    int GRP_SZ  = hw_wave_sz * n_waves;
     result.n_in_data_tiles =
         (problem.in_width <= 32 && (result.out_pix_tile0 * result.out_pix_tile1) <= 16) ? 4 : 1;
 
     result.n_in_data_tiles =
         std::min(result.n_in_data_tiles, (problem.n_outputs / problem.group_counts));
 
-    static const int read_unit =
-        (problem.out_width % 4 == 0)
-            ? 4
-            : (problem.out_width % 3 == 0) ? 3 : (problem.out_width % 2 == 0) ? 2 : 1;
+    static const int read_unit = (problem.out_width % 4 == 0)   ? 4
+                                 : (problem.out_width % 3 == 0) ? 3
+                                 : (problem.out_width % 2 == 0) ? 2
+                                                                : 1;
 
     static const std::string READ_TYPE =
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
@@ -468,10 +468,11 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& ctx,
     int grp_tile2    = 1;
 
     // utility parameters
-    int n_ut_waves = 4;
-    int UT_GRP_SZ0 = hw_wave_sz * n_ut_waves;
-    int ut_read_unit =
-        ((wei_cstride / 4) * 4 == wei_cstride) ? 4 : ((wei_cstride / 2) * 2 == wei_cstride) ? 2 : 1;
+    int n_ut_waves   = 4;
+    int UT_GRP_SZ0   = hw_wave_sz * n_ut_waves;
+    int ut_read_unit = ((wei_cstride / 4) * 4 == wei_cstride)   ? 4
+                       : ((wei_cstride / 2) * 2 == wei_cstride) ? 2
+                                                                : 1;
     std::string UT_READ_TYPE =
         (ut_read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((ut_read_unit));
 

@@ -346,10 +346,9 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
     {
         float proc_data_ratio = static_cast<float>(result.in_tile1 * result.in_tile0) /
                                 static_cast<float>(result.grp_tile1 * result.grp_tile0);
-        n_read_procs = (proc_data_ratio <= 0.25)
-                           ? (result.grp_tile1 * result.grp_tile0) / 4
-                           : (proc_data_ratio <= 0.5) ? (result.grp_tile1 * result.grp_tile0) / 2
-                                                      : (result.grp_tile1 * result.grp_tile0);
+        n_read_procs = (proc_data_ratio <= 0.25)  ? (result.grp_tile1 * result.grp_tile0) / 4
+                       : (proc_data_ratio <= 0.5) ? (result.grp_tile1 * result.grp_tile0) / 2
+                                                  : (result.grp_tile1 * result.grp_tile0);
     }
 
     int n_out_tile_blocks0 = (params.problem.out_width + result.in_tile0 - 1) / (result.in_tile0);
@@ -445,11 +444,11 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         kernel_params.comp_options += std::string(" -DGRP_MOD_ENABLE");
     }
 
-    kernel_params.l_wk.push_back(result.grp_tile1 * result.grp_tile0);
+    kernel_params.l_wk.push_back(static_cast<size_t>(result.grp_tile1) * result.grp_tile0);
     kernel_params.l_wk.push_back(1);
     kernel_params.l_wk.push_back(1);
 
-    size_t gbl_wk0 = n_out_tile_blocks0 * n_out_tile_blocks1;
+    size_t gbl_wk0 = static_cast<size_t>(n_out_tile_blocks0) * n_out_tile_blocks1;
 
     if(n_out_tiles_perstack == 0 /* DIV/0 */)
     {

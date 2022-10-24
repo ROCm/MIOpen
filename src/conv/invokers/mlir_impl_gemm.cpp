@@ -90,7 +90,6 @@ void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
     (void)weights_strides;
     (void)out_dims;
     (void)out_strides;
-    return;
 }
 
 MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
@@ -289,14 +288,14 @@ void SetMlirConvArgsPtr(
 #endif // MIOPEN_BACKEND_HIP
 } // Anonymous namespace
 
-InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
+InvokerFactory MakeMlirFwdInvokerFactory(const miopen::ProblemDescription& problem)
 {
-    assert((ctx.problem.direction.IsForward()));
+    assert((problem.direction.IsForward()));
 
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    ComputeMlirDimsStrides(ctx.problem.conv_problem,
+    ComputeMlirDimsStrides(problem.conv_problem,
                            in_dims,
                            in_strides,
                            weights_dims,
@@ -307,17 +306,17 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
     MlirConvArgs args = MakeMlirConvArgs(
         in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides, 0);
 
-    const auto& conv             = ctx.problem.conv_problem.GetConv();
+    const auto& conv             = problem.conv_problem.GetConv();
     const auto& lowp_quant       = conv.lowp_quant;
-    const auto& outDesc          = ctx.problem.conv_problem.GetOut();
+    const auto& outDesc          = problem.conv_problem.GetOut();
     TensorDescriptor outConvDesc = outDesc;
     // outConvDesc is only functional when this is a int8 convolution. It allows the output type to
     // be cast to a different than int32_t. This gives the solver a wider applicable range and
     // mimics the behavior of the gemm solver.
     bool needs_output_cast = false;
-    if(ctx.problem.conv_problem.GetIn().GetType() == miopenInt8 &&
-       ctx.problem.conv_problem.GetWeights().GetType() == miopenInt8 &&
-       ctx.problem.conv_problem.GetOut().GetType() != miopenInt32)
+    if(problem.conv_problem.GetIn().GetType() == miopenInt8 &&
+       problem.conv_problem.GetWeights().GetType() == miopenInt8 &&
+       problem.conv_problem.GetOut().GetType() != miopenInt32)
     {
         needs_output_cast = true;
         outConvDesc = TensorDescriptor(miopenInt32, outDesc.GetLengths(), outDesc.GetStrides());
@@ -332,6 +331,7 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
 #if MIOPEN_BACKEND_OPENCL
 #if MIIR_BARE_POINTER_ABI
             handle.Run(kernels[0])(tensors.w, tensors.in, tensors.out);
+            (void)args;
 #else
             handle.Run(kernels[0])(tensors.w,
                                    tensors.w,
@@ -360,14 +360,14 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
     };
 }
 
-InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
+InvokerFactory MakeMlirBwdInvokerFactory(const miopen::ProblemDescription& problem)
 {
-    assert(ctx.problem.direction.IsBackwardData());
+    assert(problem.direction.IsBackwardData());
 
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    ComputeMlirDimsStrides(ctx.problem.conv_problem,
+    ComputeMlirDimsStrides(problem.conv_problem,
                            in_dims,
                            in_strides,
                            weights_dims,
@@ -388,6 +388,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
             {
 #if MIIR_BARE_POINTER_ABI
                 handle.Run(k)(tensors.w, tensors.out, tensors.in);
+                (void)args;
 #else
                 handle.Run(k)(tensors.w,
                               tensors.w,
@@ -419,14 +420,15 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
     };
 }
 
-InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t workspace_req)
+InvokerFactory MakeMlirWrWInvokerFactory(const miopen::ProblemDescription& problem,
+                                         size_t workspace_req)
 {
-    assert((ctx.problem.direction.IsBackwardWrW()));
+    assert((problem.direction.IsBackwardWrW()));
 
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    ComputeMlirDimsStrides(ctx.problem.conv_problem,
+    ComputeMlirDimsStrides(problem.conv_problem,
                            in_dims,
                            in_strides,
                            weights_dims,
@@ -460,6 +462,7 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t w
                 {
 #if MIIR_BARE_POINTER_ABI
                     handle.Run(k)(tensors.dw, tensors.x, tensors.dy, workspace);
+                    (void)args;
 #else
                     handle.Run(k)(tensors.dw,
                                   tensors.dw,

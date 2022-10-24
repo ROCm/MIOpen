@@ -135,9 +135,9 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& xDesc) const
     assert(window_w < (input_w + 2 * pad_w));
 
     auto output_h = std::max<std::ptrdiff_t>(
-        1, std::ptrdiff_t((input_h + 2 * pad_h - window_h) / stride_h + 1));
+        1, ((input_h + 2 * static_cast<std::ptrdiff_t>(pad_h) - window_h) / stride_h + 1));
     auto output_w = std::max<std::ptrdiff_t>(
-        1, std::ptrdiff_t((input_w + 2 * pad_w - window_w) / stride_w + 1));
+        1, ((input_w + 2 * static_cast<std::ptrdiff_t>(pad_w) - window_w) / stride_w + 1));
 
     if(_pMode == miopenPaddingSame)
     {
@@ -185,7 +185,7 @@ void PoolingDescriptor::GetForwardOutputDimNd(const TensorDescriptor& xDesc,
     while(in_itr != input_dim.end())
     {
         int out_tmp = std::max<std::ptrdiff_t>(
-            1, std::ptrdiff_t((*in_itr + 2 * *pad_itr - *ker_itr) / (*str_itr) + 1));
+            1, ((*in_itr + 2 * static_cast<std::ptrdiff_t>(*pad_itr) - *ker_itr) / (*str_itr) + 1));
 
         if(_pMode == miopenPaddingSame)
         {

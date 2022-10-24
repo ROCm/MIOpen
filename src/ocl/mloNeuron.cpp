@@ -32,8 +32,9 @@ void mlo_construct_neuron::mloConstruct()
 
     const size_t read_unit = 4;
 
-    size_t map_size = _search_params.problem.in_width * _search_params.problem.in_height *
-                      _search_params.problem.n_inputs * _search_params.problem.batch_sz;
+    size_t map_size = static_cast<size_t>(_search_params.problem.in_width) *
+                      _search_params.problem.in_height * _search_params.problem.n_inputs *
+                      _search_params.problem.batch_sz;
     size_t map_size_aligned = (map_size + read_unit - 1) / read_unit;
     size_t N_PIXS_OFF       = map_size - (map_size / read_unit) * read_unit;
 

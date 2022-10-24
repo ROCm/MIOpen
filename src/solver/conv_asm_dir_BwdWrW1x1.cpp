@@ -44,23 +44,23 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1)
 namespace miopen {
 namespace solver {
 
-static inline bool UseSubsample(const ConvolutionContext& c)
+static inline bool UseSubsample(const ProblemDescription& problem)
 {
-    return c.problem.kernel_stride_w > 1 || c.problem.kernel_stride_h > 1;
+    return problem.kernel_stride_w > 1 || problem.kernel_stride_h > 1;
 }
 
 /// After 2x subsampling kernel, image size on asm kernel input becomes 4x (2*2) smaller.
 /// As padding = 0, we can simply re-use output image size (no computations required).
 /// \note For backward convolutions input image size is held in
 /// out_height/out_width and vice versa.
-static inline int AsmImgHeight(const ConvolutionContext& c)
+static inline int AsmImgHeight(const ProblemDescription& problem)
 {
-    return UseSubsample(c) ? c.problem.in_height : c.problem.out_height;
+    return UseSubsample(problem) ? problem.in_height : problem.out_height;
 }
 
-static inline int AsmImgWidth(const ConvolutionContext& c)
+static inline int AsmImgWidth(const ProblemDescription& problem)
 {
-    return UseSubsample(c) ? c.problem.in_width : c.problem.out_width;
+    return UseSubsample(problem) ? problem.in_width : problem.out_width;
 }
 
 inline static bool Inc_1_2_4_8_16(int& v)
@@ -142,7 +142,7 @@ inline static bool Inc_1_2_4(int& v)
 
 inline static bool Is_1_2_4(const int& v) { return v == 1 || v == 2 || v == 4; }
 
-bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue(const ConvolutionContext& /*ctx*/)
 {
     // Increment with wrap-around:
     // select fast or full method
@@ -307,7 +307,8 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
         && IsFromPack<0, 1, 2, 3, 4>(data_prefetch); // clang-format on
 }
 
-bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config) const
+bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& ctx,
+                                                const ProblemDescription& problem) const
 {
 
     if(!IsValidValue())
@@ -320,13 +321,13 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
     if(!(c_per_gpr * n_per_gpr * GetHWPerGpr() * chunk_size == wave_size))
         return false;
-    if(config.problem.out_data_type == miopenHalf || config.problem.out_data_type == miopenBFloat16)
+    if(problem.out_data_type == miopenHalf || problem.out_data_type == miopenBFloat16)
     {
         if(short_store == 0)
         {
             const int sequential_channels = 2;
             if((c_mult % sequential_channels) != 0 ||
-               (config.problem.n_outputs % sequential_channels) != 0)
+               (problem.n_outputs % sequential_channels) != 0)
                 return false;
         }
     }
@@ -339,12 +340,12 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
     int acc_gprs      = c_mult * k_mult * k_per_gpr;
     int bfp16_convert = 0;
 
-    const std::string name = config.GetStream().GetDeviceName();
+    const std::string name = ctx.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
         bfp16_convert = 0;
     else
         bfp16_convert =
-            (config.problem.out_data_type == miopenBFloat16) ? ((c_mult + k_mult) * read_size) : 0;
+            (problem.out_data_type == miopenBFloat16) ? ((c_mult + k_mult) * read_size) : 0;
 
     if(!(acc_gprs + 12 + (c_mult + k_mult) * read_size * (data_prefetch + 1) + bfp16_convert <=
          (n_part_cnt > 4 ? 128 : 256)))
@@ -353,25 +354,24 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
     }
     if(n_part_cnt > 1)
     {
-        auto lds_size = ((n_part_cnt - 1) * solver::wave_size * sizeof(float) * acc_gprs);
+        auto lds_size =
+            (n_part_cnt - 1) * solver::wave_size * static_cast<int>(sizeof(float)) * acc_gprs;
         if(!(lds_size <= (1 << 16)))
             return false;
     }
     return true;
 }
 
-void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& ctx,
+                                                      const ProblemDescription& problem)
 {
-    short_store = (config.problem.out_data_type == miopenHalf ||
-                   config.problem.out_data_type == miopenBFloat16)
-                      ? 1
-                      : 0;
+    short_store =
+        (problem.out_data_type == miopenHalf || problem.out_data_type == miopenBFloat16) ? 1 : 0;
     read_size = 4;
     n_per_gpr =
-        (config.problem.batch_sz >= 4 && (AsmImgHeight(config) * AsmImgWidth(config)) <= 128) ? 4
-                                                                                              : 1;
+        (problem.batch_sz >= 4 && (AsmImgHeight(problem) * AsmImgWidth(problem)) <= 128) ? 4 : 1;
     data_prefetch      = 1;
-    const auto c_k_256 = config.problem.n_outputs * config.problem.n_inputs / 256; // C*K/256
+    const auto c_k_256 = problem.n_outputs * problem.n_inputs / 256; // C*K/256
     if(c_k_256 < 2)
     {
         c_per_gpr  = 1;
@@ -428,7 +428,7 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& 
         read_size  = 4;
     }
 
-    if(!IsValid(config))
+    if(!IsValid(ctx, problem))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
 
@@ -441,87 +441,91 @@ void PerformanceConfigConvAsmBwdWrW1x1::HeuristicInit(const ConvolutionContext& 
         n_part_cnt    = 1;
         read_size     = 1;
         data_prefetch = 0;
-        assert(IsValid(config));
+        assert(IsValid(ctx, problem));
     }
     MIOPEN_LOG_I(ToString());
 }
 
 PerformanceConfigConvAsmBwdWrW1x1
-ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ConvolutionContext& params) const
+ConvAsmBwdWrW1x1::GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+                                              const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsmBwdWrW1x1 pp;
-    pp.HeuristicInit(params);
+    pp.HeuristicInit(ctx, problem);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
 
-bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(const ConvolutionContext& problem,
-                                                const PerformanceConfigConvAsmBwdWrW1x1& c) const
+bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceConfigConvAsmBwdWrW1x1& config) const
 {
-    return c.IsValidValue() && c.IsValid(problem);
+    return config.IsValidValue() && config.IsValid(ctx, problem);
 }
 
-bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
+bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& ctx,
+                                    const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1{}))
         return false;
-    if(!params.use_asm_kernels)
+    if(!ctx.use_asm_kernels)
         return false;
-    if(!params.problem.Is2d())
+    if(!problem.Is2d())
         return false;
-    if(!params.problem.direction.IsBackwardWrW())
+    if(!problem.direction.IsBackwardWrW())
         return false;
-    if(params.problem.IsAsymmetricPadH() || params.problem.IsAsymmetricPadW())
+    if(problem.IsAsymmetricPadH() || problem.IsAsymmetricPadW())
         return false;
-    if(!params.rmv.IsV2orV3())
+    if(!ctx.rmv.IsV2orV3())
         return false;
 
-    const auto target = params.GetStream().GetTargetProperties();
+    const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 
-    const std::string name = params.GetStream().GetDeviceName();
+    const std::string name = ctx.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
     {
         return false;
     }
-    if(!params.problem.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
 
-    if(name == "gfx90a" && params.problem.conv_problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     // clang-format off
-    bool ok = (params.problem.pad_w == 0         // -q  pad_w
-        && params.problem.pad_h == 0             // -p  pad_h
-        && params.problem.kernel_stride_w <= 2     // -v  stride_w
-        && params.problem.kernel_stride_h <= 2     // -u  stride_h
-        && params.problem.kernel_stride_w == params.problem.kernel_stride_h
-        && params.problem.kernel_size_w == 1     // -x  S wei_w
-        && params.problem.kernel_size_h == 1     // -y  R wei_h
-        && params.problem.kernel_dilation_w == 1
-        && params.problem.kernel_dilation_h == 1
-        && params.problem.bias == 0
-        && (params.problem.IsFp32() || params.problem.IsFp16() || params.problem.IsBfp16())
-        && params.problem.in_layout == "NCHW"
-        && params.problem.group_counts == 1);
+    bool ok = (problem.pad_w == 0         // -q  pad_w
+        && problem.pad_h == 0             // -p  pad_h
+        && problem.kernel_stride_w <= 2     // -v  stride_w
+        && problem.kernel_stride_h <= 2     // -u  stride_h
+        && problem.kernel_stride_w == problem.kernel_stride_h
+        && problem.kernel_size_w == 1     // -x  S wei_w
+        && problem.kernel_size_h == 1     // -y  R wei_h
+        && problem.kernel_dilation_w == 1
+        && problem.kernel_dilation_h == 1
+        && problem.bias == 0
+        && (problem.IsFp32() || problem.IsFp16() || problem.IsBfp16())
+        && problem.in_layout == "NCHW"
+        && problem.group_counts == 1);
     if(!ok)
     {
         return false; // Early exit to speed up the check.
     }
     // Check limits:
-    const auto h_w     = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params);
-    const auto r_s     = static_cast<long>(params.problem.kernel_size_h) * params.problem.kernel_size_w;
-    const auto c_h_w   = static_cast<long>(params.problem.n_outputs) * h_w;   // C*H*W
-    const auto k_h_w   = static_cast<long>(params.problem.n_inputs) * h_w;    // K*H*W
-    const auto n_c_h_w = static_cast<long>(params.problem.batch_sz) * c_h_w;  // N*C*H*W
-    const auto n_k_h_w = static_cast<long>(params.problem.batch_sz) * k_h_w;  // N*K*H*W
-    const auto c_k_r_s = static_cast<long>(params.problem.n_outputs) * params.problem.n_inputs * r_s; // C*K*R*S
-    ok = params.problem.batch_sz < std::pow(2, 16)      // -n   N batch_size
-         && params.problem.n_outputs < std::pow(2, 16)  // -c   C input_channels
-         && params.problem.n_inputs < std::pow(2, 16)   // -k   K output_channels
+    const auto h_w     = static_cast<long>(AsmImgHeight(problem)) * AsmImgWidth(problem);
+    const auto r_s     = static_cast<long>(problem.kernel_size_h) * problem.kernel_size_w;
+    const auto c_h_w   = static_cast<long>(problem.n_outputs) * h_w;   // C*H*W
+    const auto k_h_w   = static_cast<long>(problem.n_inputs) * h_w;    // K*H*W
+    const auto n_c_h_w = static_cast<long>(problem.batch_sz) * c_h_w;  // N*C*H*W
+    const auto n_k_h_w = static_cast<long>(problem.batch_sz) * k_h_w;  // N*K*H*W
+    const auto c_k_r_s = static_cast<long>(problem.n_outputs) * problem.n_inputs * r_s; // C*K*R*S
+    ok = problem.batch_sz < std::pow(2, 16)      // -n   N batch_size
+         && problem.n_outputs < std::pow(2, 16)  // -c   C input_channels
+         && problem.n_inputs < std::pow(2, 16)   // -k   K output_channels
          && c_h_w < std::pow(2, 24)
          && k_h_w < std::pow(2, 24)
          && n_c_h_w < std::pow(2, 29)
@@ -538,55 +542,51 @@ static int divide_round_plus_inf(const int x, const int y)
     return x / y;
 }
 
-size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext& params) const
+size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ProblemDescription& problem) const
 {
-    if(UseSubsample(params))
+    if(UseSubsample(problem))
     {
-        int data_len = GetTypeSize(params.problem.out_data_type);
-        int in_batch_stride =
-            params.problem.in_stride * params.problem.in_height * params.problem.n_outputs;
-        return in_batch_stride * params.problem.batch_sz * data_len;
+        int data_len        = GetTypeSize(problem.out_data_type);
+        int in_batch_stride = problem.in_stride * problem.in_height * problem.n_outputs;
+        return static_cast<size_t>(in_batch_stride) * problem.batch_sz * data_len;
     }
     else
         return 0;
 }
 
-ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
+ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
+                                           const ProblemDescription& problem,
                                            const PerformanceConfigConvAsmBwdWrW1x1& config) const
 {
 
     ConvSolution result;
     std::ostringstream options;
 
-    assert(params.problem.pad_h == 0 && params.problem.pad_w == 0);
-    int data_len = GetTypeSize(params.problem.out_data_type);
-    if(UseSubsample(params))
+    assert(problem.pad_h == 0 && problem.pad_w == 0);
+    int data_len = GetTypeSize(problem.out_data_type);
+    if(UseSubsample(problem))
     {
         // subsampled input, in_height equals to image size after downsampling
-        int in_batch_stride =
-            params.problem.in_stride * params.problem.in_height * params.problem.n_outputs;
-        int write_unit = (params.problem.in_width % 4 == 0)
-                             ? 4
-                             : (params.problem.in_width % 3 == 0)
-                                   ? 3
-                                   : (params.problem.in_width % 2 == 0) ? 2 : 1;
-        int n_grp0_size0 = 256;
+        int in_batch_stride = problem.in_stride * problem.in_height * problem.n_outputs;
+        int write_unit      = (problem.in_width % 4 == 0)   ? 4
+                              : (problem.in_width % 3 == 0) ? 3
+                              : (problem.in_width % 2 == 0) ? 2
+                                                            : 1;
+        int n_grp0_size0    = 256;
 
         const auto subsample_kernel_compilation_options =
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
-            std::string(" -DMLO_FILTER0_STRIDE0=") +
-            std::to_string(params.problem.kernel_stride_w) +
-            std::string(" -DMLO_FILTER0_STRIDE1=") +
-            std::to_string(params.problem.kernel_stride_h) + std::string(" -DMLO_WRITE_UNIT=") +
-            std::to_string(write_unit) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-            std::to_string(params.problem.in_channel_stride) + std::string(" -DMLO_OUT_STRIDE=") +
-            std::to_string(params.problem.in_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
-            std::to_string(in_batch_stride) + std::string(" -DMLO_IN0_BATCH_STRIDE=") +
-            std::to_string(params.problem.out_batch_stride) +
-            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") +
-            std::to_string(params.problem.out_channel_stride) + std::string(" -DMLO_IN0_STRIDE=") +
-            std::to_string(params.problem.out_stride) + params.general_compile_options;
+            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(problem.kernel_stride_w) +
+            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(problem.kernel_stride_h) +
+            std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
+            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(problem.in_channel_stride) +
+            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(problem.in_stride) +
+            std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
+            std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(problem.out_batch_stride) +
+            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(problem.out_channel_stride) +
+            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(problem.out_stride) +
+            ctx.general_compile_options;
 
         KernelInfo kernel;
 
@@ -595,7 +595,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         kernel.l_wk.push_back(1);
         // output is number of subsampled input maps
         size_t gbl_wk0 = (in_batch_stride / write_unit);
-        size_t gbl_wk1 = params.problem.batch_sz;
+        size_t gbl_wk1 = problem.batch_sz;
         size_t gbl_wk2 = 1;
 
         kernel.g_wk.push_back(gbl_wk0);
@@ -610,32 +610,32 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
         result.construction_params.push_back(kernel);
     }
-    result.workspace_sz = GetWorkspaceSize(params);
+    result.workspace_sz = GetWorkspaceSize(problem);
     GenerateClangDefsym(options, "stride_h", 1);
     GenerateClangDefsym(options, "stride_w", 1);
-    GenerateClangDefsym(options, "img_h", AsmImgHeight(params)); // H
-    GenerateClangDefsym(options, "img_w", AsmImgWidth(params));  // W
-    GenerateClangDefsym(options, "out_h", AsmImgHeight(params)); // output H
-    GenerateClangDefsym(options, "out_w", AsmImgWidth(params));  // output W
+    GenerateClangDefsym(options, "img_h", AsmImgHeight(problem)); // H
+    GenerateClangDefsym(options, "img_w", AsmImgWidth(problem));  // W
+    GenerateClangDefsym(options, "out_h", AsmImgHeight(problem)); // output H
+    GenerateClangDefsym(options, "out_w", AsmImgWidth(problem));  // output W
 
-    GenerateClangDefsym(options, "batch_size", params.problem.batch_sz); // N
+    GenerateClangDefsym(options, "batch_size", problem.batch_sz); // N
     // Note that problem.n_outputs and problem.n_inputs are swapped for backward convolutions.
-    GenerateClangDefsym(options, "input_channels", params.problem.n_outputs); // C
-    GenerateClangDefsym(options, "output_channels", params.problem.n_inputs); // K
-    GenerateClangDefsym(options, "wei_h", params.problem.kernel_size_h);      // R
-    GenerateClangDefsym(options, "wei_w", params.problem.kernel_size_w);      // S
-    GenerateClangDefsym(options, "pad_h", params.problem.pad_h);
-    GenerateClangDefsym(options, "pad_w", params.problem.pad_w);
+    GenerateClangDefsym(options, "input_channels", problem.n_outputs); // C
+    GenerateClangDefsym(options, "output_channels", problem.n_inputs); // K
+    GenerateClangDefsym(options, "wei_h", problem.kernel_size_h);      // R
+    GenerateClangDefsym(options, "wei_w", problem.kernel_size_w);      // S
+    GenerateClangDefsym(options, "pad_h", problem.pad_h);
+    GenerateClangDefsym(options, "pad_w", problem.pad_w);
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
-    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4);
+    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
     // Perf tune:
     GenerateClangDefsym(options, "do_not_use_default_perf_params", 1);
 
     GenerateClangDefsym(options, "acc_type", 1);
-    const unsigned int buf_type = params.problem.out_data_type == miopenHalf
-                                      ? 2
-                                      : params.problem.out_data_type == miopenFloat ? 1 : 3;
+    const unsigned int buf_type = problem.out_data_type == miopenHalf    ? 2
+                                  : problem.out_data_type == miopenFloat ? 1
+                                                                         : 3;
     GenerateClangDefsym(options, "buf_type", buf_type);
 
     enum class MemLayout : int
@@ -655,7 +655,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         buff_info(MemLayout layout, int nk, int c, int h, int w, int vec_c, int data_len_t)
         {
             int c_hi        = (c + vec_c - 1) / vec_c;
-            int count       = nk * c_hi * h * w * vec_c;
+            auto count      = static_cast<size_t>(nk) * c_hi * h * w * vec_c;
             total_byte_size = count * data_len_t;
             size.nk         = nk;
             size.c          = c;
@@ -690,23 +690,22 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
     // cppcheck-suppress unreadVariable
     buff_info ibuf(MemLayout::NCHW,
-                   params.problem.batch_sz,
-                   params.problem.n_outputs,
-                   AsmImgHeight(params),
-                   AsmImgWidth(params),
+                   problem.batch_sz,
+                   problem.n_outputs,
+                   AsmImgHeight(problem),
+                   AsmImgWidth(problem),
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
     buff_info obuf(MemLayout::NCHW,
-                   params.problem.batch_sz,
-                   params.problem.n_inputs,
-                   AsmImgHeight(params),
-                   AsmImgWidth(params),
+                   problem.batch_sz,
+                   problem.n_inputs,
+                   AsmImgHeight(problem),
+                   AsmImgWidth(problem),
                    1,
                    data_len);
     // cppcheck-suppress unreadVariable
-    buff_info fbuf(
-        MemLayout::NCHW, params.problem.n_inputs, params.problem.n_outputs, 1, 1, 1, data_len);
+    buff_info fbuf(MemLayout::NCHW, problem.n_inputs, problem.n_outputs, 1, 1, 1, data_len);
     GenerateClangDefsym(options, "input_n_stride", ibuf.byte_stride.nk);
     GenerateClangDefsym(options, "input_c_stride", ibuf.byte_stride.c);
     GenerateClangDefsym(options, "input_h_stride", ibuf.byte_stride.h);
@@ -736,7 +735,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
             s = std::string(p_asciz);
             if(!s.empty()) // else nothing to parse.
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
+                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(ctx, problem))
                 {
                     MIOPEN_LOG_E("MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS: "
                                  "Bad format or invalid for the problem config: "
@@ -768,16 +767,16 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     kernel.comp_options = options.str();
 
     kernel.l_wk.clear(); // workgroupsize
-    kernel.l_wk.push_back(solver::wave_size * pcfg->GetNPartCnt());
+    kernel.l_wk.push_back(static_cast<size_t>(solver::wave_size) * pcfg->GetNPartCnt());
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
     kernel.g_wk.clear(); // gridsize
-    kernel.g_wk.push_back(solver::wave_size * pcfg->GetNPartCnt());
+    kernel.g_wk.push_back(static_cast<size_t>(solver::wave_size) * pcfg->GetNPartCnt());
     kernel.g_wk.push_back(
-        divide_round_plus_inf(params.problem.n_outputs, pcfg->GetCPerGpr() * pcfg->GetCMult()));
+        divide_round_plus_inf(problem.n_outputs, pcfg->GetCPerGpr() * pcfg->GetCMult()));
     kernel.g_wk.push_back(
-        divide_round_plus_inf(params.problem.n_inputs, pcfg->GetKPerGpr() * pcfg->GetKMult()));
+        divide_round_plus_inf(problem.n_inputs, pcfg->GetKPerGpr() * pcfg->GetKMult()));
 
     kernel.kernel_file = "conv1x1wrw.s";
     kernel.kernel_name = "miopenGcnAsmConv1x1WrW";
@@ -785,9 +784,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     result.construction_params.push_back(kernel);
 
     int N, C, H, W, K, n_groups;
-    GetCompiledInParameters(params, params.problem, &N, &C, &H, &W, &K, &n_groups);
+    GetCompiledInParameters(ctx, problem, &N, &C, &H, &W, &K, &n_groups);
 
-    if(UseSubsample(params))
+    if(UseSubsample(problem))
     {
         result.invoker_factory = [N, C, H, W, K, n_groups](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -839,10 +838,11 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context,
+PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& ctx,
+                                                           const ProblemDescription& problem,
                                                            const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, context, invoke_ctx);
+    return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
 } // namespace solver

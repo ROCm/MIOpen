@@ -95,7 +95,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::operator==(
 }
 
 bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::SetNextValue(
-    const ConvolutionContext& /*config*/)
+    const ConvolutionContext& /*ctx*/)
 {
     do
     {
@@ -313,12 +313,12 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::CalculateGemmABlockCopyPerform
     const ConvolutionContext& ctx) const
 {
     // A tensor shape [GemmG, GemmK, GemmM, GemmKPack]
-    int ClusterLengths_GemmK     = -1;
-    int ClusterLengths_GemmM     = -1;
-    int ClusterLengths_GemmKPack = -1;
-    int SrcDataPerRead_GemmKPack = ctx.problem.IsFp32()
-                                       ? amd_buffer_load_max_length<float>()
-                                       : amd_buffer_load_max_length<half_float::half>();
+    int ClusterLengths_GemmK      = -1;
+    int ClusterLengths_GemmM      = -1;
+    int ClusterLengths_GemmKPack  = -1;
+    int SrcDataPerRead_GemmKPack  = ctx.problem.IsFp32()
+                                        ? amd_buffer_load_max_length<float>()
+                                        : amd_buffer_load_max_length<half_float::half>();
     int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
                                         ? amd_lds_write_max_length<float>()
                                         : amd_lds_write_max_length<half_float::half>();
@@ -415,9 +415,9 @@ PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::CalculateGemmBBlockCopyPerform
     int ClusterLengths_GemmN     = -1;
     int ClusterLengths_GemmKPack = -1;
 
-    int SrcDataPerRead_GemmKPack = ctx.problem.IsFp32()
-                                       ? amd_buffer_load_max_length<float>()
-                                       : amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmKPack  = ctx.problem.IsFp32()
+                                        ? amd_buffer_load_max_length<float>()
+                                        : amd_buffer_load_max_length<half_float::half>();
     int DstDataPerWrite_GemmKPack = ctx.problem.IsFp32()
                                         ? amd_lds_write_max_length<float>()
                                         : amd_lds_write_max_length<half_float::half>();
@@ -568,8 +568,13 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsReallyValid(
     if(!IsValidValue())
         return false;
 
-    if(!IsValidBlockwiseGemmXdlops(
-           ctx, GemmMPerBlock, GemmNPerBlock, GemmKPerBlock, GemmMPerWave, GemmNPerWave, GemmKPack))
+    if(!IsValidBlockwiseGemmXdlops(ctx.problem,
+                                   GemmMPerBlock,
+                                   GemmNPerBlock,
+                                   GemmKPerBlock,
+                                   GemmMPerWave,
+                                   GemmNPerWave,
+                                   GemmKPack))
         return false;
 
     bool valid = false;
@@ -945,7 +950,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
     construction_parameters.l_wk.push_back(1);
     construction_parameters.l_wk.push_back(1);
 
-    construction_parameters.g_wk.push_back(block_size * grid_size);
+    construction_parameters.g_wk.push_back(static_cast<std::size_t>(block_size) * grid_size);
     construction_parameters.g_wk.push_back(1);
     construction_parameters.g_wk.push_back(1);
 
@@ -1126,7 +1131,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(const Convolutio
        ctx.problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
-    if(!IsIndexRangeLargeEnough(ctx))
+    if(!IsIndexRangeLargeEnough(ctx.problem))
         return false;
 
     if(!ctx.problem.IsLayoutDefault())
@@ -1180,7 +1185,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::Search(const ConvolutionContext& c
                                                      const AnyInvokeParams& invoke_ctx) const
 {
     // fp16/bfp16 uses fp32 workspace to leverage fp32 atomic add
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, ctx.problem, invoke_ctx);
 }
 
 std::size_t
@@ -1195,7 +1200,7 @@ ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetWorkspaceSize(const Convolution
         const auto y = ProblemInterpreter::GetFilterHeightY(ctx.problem);
         const auto x = ProblemInterpreter::GetFilterWidthX(ctx.problem);
 
-        return k * c * y * x * miopen::GetTypeSize(miopenFloat);
+        return miopen::GetTypeSize(miopenFloat) * k * c * y * x;
     }
 }
 } // namespace solver

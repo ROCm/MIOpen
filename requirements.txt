@@ -1,7 +1,6 @@
-RadeonOpenCompute/rocm-cmake@04f694df2a8dc9d7e35fa4dee4ba5fa407ec04f8 --build
 sqlite3@3.17 -DCMAKE_POSITION_INDEPENDENT_CODE=On
 boost@1.79 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build
 half,https://github.com/pfultz2/half/archive/1.12.0.tar.gz -X header -H sha256:0a08660b68abb176ebc2a0cdf8de46e3182a7f46c66443bb80dbfaaec98cf969 --build
-ROCmSoftwarePlatform/llvm-project-mlir@rocm-5.3.0 -DBUILD_FAT_LIBMLIRMIOPEN=1
+ROCmSoftwarePlatform/rocMLIR@rocm-5.4.0 -H sha256:3823f455ee392118c3281e27d45fa0e5381f3c4070eb4e06ba13bc6b34a90a60 -DBUILD_FAT_LIBROCKCOMPILER=1
 nlohmann/json@v3.9.1 -DJSON_MultipleHeaders=ON -DJSON_BuildTests=Off
-ROCmSoftwarePlatform/composable_kernel@91d8b7d67ae9dbf8a6e691ea3e17c0b9705c6ba7 -D CMAKE_CXX_FLAGS=" --offload-arch=gfx900 --offload-arch=gfx906 --offload-arch=gfx908 --offload-arch=gfx90a --offload-arch=gfx1030 -O3 " 
+ROCmSoftwarePlatform/composable_kernel@eef009d001b928db1bb377a105c93b75e0dccc7b -DGPU_TARGETS="gfx900;gfx906;gfx908;gfx90a;gfx1030"

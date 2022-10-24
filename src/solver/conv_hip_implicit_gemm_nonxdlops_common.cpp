@@ -57,28 +57,29 @@ bool PerformanceImplicitGemm::operator==(const PerformanceImplicitGemm& other) c
     // clang-format on
 }
 
-bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
+bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx,
+                                      const ProblemDescription& problem) const
 {
-    std::size_t N = KernelBatchN(ctx.problem);
-    std::size_t K = KernelOutputChannelK(ctx.problem);
-    std::size_t C = KernelInputChannelC(ctx.problem);
+    std::size_t N = KernelBatchN(problem);
+    std::size_t K = KernelOutputChannelK(problem);
+    std::size_t C = KernelInputChannelC(problem);
 
-    std::size_t Ho = KernelOutputHeightHo(ctx.problem);
-    std::size_t Wo = KernelOutputWidthWo(ctx.problem);
+    std::size_t Ho = KernelOutputHeightHo(problem);
+    std::size_t Wo = KernelOutputWidthWo(problem);
 
-    std::size_t Y = KernelFilterHeightY(ctx.problem);
-    std::size_t X = KernelFilterWidthX(ctx.problem);
+    std::size_t Y = KernelFilterHeightY(problem);
+    std::size_t X = KernelFilterWidthX(problem);
 
     const int N1 = GemmNRepeat;
     const int N2 = GemmNPerThreadSubC;
-    if(N % (N1 * N2) != 0)
+    if(N % static_cast<std::size_t>(N1 * N2) != 0)
         return false; // wrong! cannot divice N evenly among thread
 
-    const auto N0 = N / (N1 * N2);
+    const auto N0 = N / static_cast<std::size_t>(N1 * N2);
 
     const auto B = N0 * Ho * Wo;
 
-    const auto nonVectorizedC = C / GetEPackLength(ctx, ctx.problem, false);
+    const auto nonVectorizedC = C / GetEPackLength(ctx, problem, false);
     const auto E              = nonVectorizedC * Y * X;
 
     if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
@@ -88,7 +89,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
          N2 % InBlockCopyClusterLengths_N2 == 0))
         return false;
 
-    if(ctx.problem.direction.IsBackwardWrW())
+    if(problem.direction.IsBackwardWrW())
     {
         if(!((X * Y) % (EPerBlock / WeiBlockCopyClusterLengths_E) == 0))
             return false;
@@ -99,28 +100,28 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
         return false; // wrong! cannot divice N evenly among thread
 
 #if WORKAROUND_ISSUE_659
-    if(E % (2 * EPerBlock) != 0)
+    if(E % static_cast<std::size_t>(2 * EPerBlock) != 0)
         return false;
 #endif
 
     const auto KBlockWork = K / KPerBlock;
-    if(KBlockWork % ctx.problem.group_counts != 0)
+    if(KBlockWork % problem.group_counts != 0)
         return false;
 
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
         return false;
 
     // fp16/bfp16: doesn't support asymmetric matrix mul
-    if((ctx.problem.IsFp16() || ctx.problem.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
+    if((problem.IsFp16() || problem.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
         return false;
 
     // fp16/bfp16: vector read of length 8 or greater is not supported
     // as vector_type<vector<half,4>, 2> is not working. So, restrict epack*gemmreada <= 4
     // and epack*gemmreadb <= 4
-    // if((ctx.problem.IsFp16()  || ctx.problem.IsBfp16()) && ((GetEPackLength(ctx, ctx.problem,
+    // if((problem.IsFp16()  || problem.IsBfp16()) && ((GetEPackLength(ctx, problem,
     // false)*GemmNPerThreadSubC > 4)
     // ||
-    //   (GetEPackLength(ctx, ctx.problem, false)*GemmMPerThreadSubC > 4)))
+    //   (GetEPackLength(ctx, problem, false)*GemmMPerThreadSubC > 4)))
     //  return false;
 
     // sanity check
@@ -156,7 +157,7 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
     const int InBlockCopySubLengths_B  = BPerBlock / InBlockCopyClusterLengths_B;
     const int WeiBlockCopySubLengths_K = KPerBlock / WeiBlockCopyClusterLengths_K;
 
-    const std::size_t lds_size = ComputeLDSRequiredSize(ctx.problem,
+    const std::size_t lds_size = ComputeLDSRequiredSize(problem,
                                                         BPerBlock,
                                                         KPerBlock,
                                                         EPerBlock,
@@ -164,36 +165,37 @@ bool PerformanceImplicitGemm::IsValid(const ConvolutionContext& ctx) const
                                                         GemmNPerThreadSubC,
                                                         InBlockCopySubLengths_B,
                                                         WeiBlockCopySubLengths_K,
-                                                        GetEPackLength(ctx, ctx.problem, false));
+                                                        GetEPackLength(ctx, problem, false));
 
-    if(lds_size > 64 * 1024)
+    if(lds_size > static_cast<std::size_t>(64) * 1024)
         return false;
 
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
 }
 
-bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
+bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx,
+                                          const ProblemDescription& problem) const
 {
-    std::size_t N = KernelBatchN(ctx.problem);
-    std::size_t K = KernelOutputChannelK(ctx.problem);
-    std::size_t C = KernelInputChannelC(ctx.problem);
+    std::size_t N = KernelBatchN(problem);
+    std::size_t K = KernelOutputChannelK(problem);
+    std::size_t C = KernelInputChannelC(problem);
 
-    std::size_t Ho = KernelOutputHeightHo(ctx.problem);
-    std::size_t Wo = KernelOutputWidthWo(ctx.problem);
+    std::size_t Ho = KernelOutputHeightHo(problem);
+    std::size_t Wo = KernelOutputWidthWo(problem);
 
-    std::size_t Y = KernelFilterHeightY(ctx.problem);
-    std::size_t X = KernelFilterWidthX(ctx.problem);
+    std::size_t Y = KernelFilterHeightY(problem);
+    std::size_t X = KernelFilterWidthX(problem);
 
     const int N1 = GemmNRepeat;
     const int N2 = GemmNPerThreadSubC;
-    if(N % (N1 * N2) != 0)
+    if(N % static_cast<std::size_t>(N1 * N2) != 0)
         return false; // wrong! cannot divice N evenly among thread
 
-    const auto N0 = N / (N1 * N2);
+    const auto N0 = N / static_cast<std::size_t>(N1 * N2);
 
     const auto B = N0 * Ho * Wo;
 
-    const auto nonVectorizedC = C / GetEPackLength(ctx, ctx.problem, false);
+    const auto nonVectorizedC = C / GetEPackLength(ctx, problem, false);
     const auto E              = nonVectorizedC * Y * X;
 
     if(!(EPerBlock % InBlockCopyClusterLengths_E == 0 &&
@@ -208,23 +210,23 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
         return false; // wrong! cannot divice N evenly among thread
 
     const auto KBlockWork = K / KPerBlock;
-    if(KBlockWork % ctx.problem.group_counts != 0)
+    if(KBlockWork % problem.group_counts != 0)
         return false;
 
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
         return false;
 
     // fp16/bfp16: doesn't support asymmetric matrix mul
-    if((ctx.problem.IsFp16() || ctx.problem.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
+    if((problem.IsFp16() || problem.IsBfp16()) && GemmNPerThreadSubC != GemmMPerThreadSubC)
         return false;
 
     // fp16/bfp16: vector read of length 8 or greater is not supported
     // as vector_type<vector<half,4>, 2> is not working. So, restrict epack*gemmreada <= 4
     // and epack*gemmreadb <= 4
-    // if((ctx.problem.IsFp16()  || ctx.problem.IsBfp16()) && ((GetEPackLength(ctx, ctx.problem,
+    // if((problem.IsFp16()  || problem.IsBfp16()) && ((GetEPackLength(ctx, problem,
     // false)*GemmNPerThreadSubC > 4)
     // ||
-    //   (GetEPackLength(ctx, ctx.problem, false)*GemmMPerThreadSubC > 4)))
+    //   (GetEPackLength(ctx, problem, false)*GemmMPerThreadSubC > 4)))
     //  return false;
 
     // sanity check
@@ -260,7 +262,7 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
     const int InBlockCopySubLengths_B  = BPerBlock / InBlockCopyClusterLengths_B;
     const int WeiBlockCopySubLengths_K = KPerBlock / WeiBlockCopyClusterLengths_K;
 
-    const std::size_t lds_size = ComputeLDSRequiredSize(ctx.problem,
+    const std::size_t lds_size = ComputeLDSRequiredSize(problem,
                                                         BPerBlock,
                                                         KPerBlock,
                                                         EPerBlock,
@@ -268,15 +270,16 @@ bool PerformanceImplicitGemmV4R1::IsValid(const ConvolutionContext& ctx) const
                                                         GemmNPerThreadSubC,
                                                         InBlockCopySubLengths_B,
                                                         WeiBlockCopySubLengths_K,
-                                                        GetEPackLength(ctx, ctx.problem, false));
+                                                        GetEPackLength(ctx, problem, false));
 
-    if(lds_size > 64 * 1024)
+    if(lds_size > static_cast<std::size_t>(64) * 1024)
         return false;
 
     return (InBlockCopySubLengths_E == 1 && InBlockCopySubLengths_B == 1);
 }
 
-void PerformanceImplicitGemm::HeuristicInit(const ConvolutionContext& config)
+void PerformanceImplicitGemm::HeuristicInit(const ConvolutionContext& ctx,
+                                            const ProblemDescription& problem)
 {
     // default
     {
@@ -303,7 +306,7 @@ void PerformanceImplicitGemm::HeuristicInit(const ConvolutionContext& config)
         WeiBlockCopyClusterLengths_K = 128;
     }
 
-    if(!IsValid(config))
+    if(!IsValid(ctx, problem))
     {
         BPerBlock = 8;
         KPerBlock = 128;
@@ -323,7 +326,7 @@ void PerformanceImplicitGemm::HeuristicInit(const ConvolutionContext& config)
         WeiBlockCopyClusterLengths_K = 64;
     }
 
-    if(!IsValid(config))
+    if(!IsValid(ctx, problem))
     {
         BPerBlock = 8;
         KPerBlock = 64;
@@ -343,7 +346,7 @@ void PerformanceImplicitGemm::HeuristicInit(const ConvolutionContext& config)
         WeiBlockCopyClusterLengths_K = 16;
     }
 
-    if(!IsValid(config))
+    if(!IsValid(ctx, problem))
     {
         BPerBlock = 16;
         KPerBlock = 32;
@@ -360,7 +363,7 @@ void PerformanceImplicitGemm::HeuristicInit(const ConvolutionContext& config)
         InBlockCopyClusterLengths_N2 = 1;
     }
 
-    if(!IsValid(config))
+    if(!IsValid(ctx, problem))
     {
         BPerBlock = 16;
         KPerBlock = 16;
@@ -375,7 +378,7 @@ void PerformanceImplicitGemm::HeuristicInit(const ConvolutionContext& config)
         GemmNLevel1Cluster = 4;
     }
 
-    if(!IsValid(config))
+    if(!IsValid(ctx, problem))
     {
         BPerBlock = 8;
         KPerBlock = 32;
@@ -400,7 +403,7 @@ void PerformanceImplicitGemm::HeuristicInit(const ConvolutionContext& config)
         WeiBlockCopyClusterLengths_K = 16;
     }
 
-    if(!IsValid(config))
+    if(!IsValid(ctx, problem))
     {
         MIOPEN_LOG_E("All attempts failed");
         assert(false);
@@ -429,7 +432,7 @@ bool PerformanceImplicitGemm::IsValidValue() const
         && IsTwoPower<16,128>(WeiBlockCopyClusterLengths_K); // clang-format on
 }
 
-bool PerformanceImplicitGemm::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceImplicitGemm::SetNextValue(const ConvolutionContext& /*ctx*/)
 {
     // GemmNRepeat = 2 cosntant
     do

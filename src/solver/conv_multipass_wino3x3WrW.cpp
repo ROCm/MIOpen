@@ -36,6 +36,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/solver.hpp>
+
 #if(MIOPEN_BACKEND_HIP && (MIOPEN_USE_ROCBLAS || MIOPEN_USE_MIOPENTENSILE))
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
 #define WORKAROUND_SWDEV_234193 1
@@ -303,7 +304,7 @@ struct OutTransform
         auto dwords_per_ld = 1;
         const std::vector<size_t> l_wk{wave_size, 1, 1};
         auto ceil_val       = dwords_per_ld * l_wk[0];
-        const size_t g_wk_0 = ((N * K + ceil_val - 1) / ceil_val) * l_wk[0];
+        const size_t g_wk_0 = ((static_cast<size_t>(N * K) + ceil_val - 1) / ceil_val) * l_wk[0];
 
         const std::vector<size_t> g_wk{g_wk_0, 1, 1};
 
@@ -493,7 +494,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     // clang-format off
     {
-        const long input_line_size = 4 * params.problem.in_width;
+        const long input_line_size = 4L * params.problem.in_width;
         const long input_feature_map_size = input_line_size * params.problem.in_height;
         const long input_stack_size = input_feature_map_size * params.problem.n_inputs;
         if (! (input_stack_size < (1U << 24)))
@@ -596,8 +597,8 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
             K, C, R, S,
             GetTypeSize(params.problem.weights_data_type));
 
-    int wino_xform_h = GetSolverWinoXformHWSize(params,0),
-        wino_xform_w = GetSolverWinoXformHWSize(params,1);
+    int wino_xform_h = GetSolverWinoXformHWSize(params.problem, 0),
+        wino_xform_w = GetSolverWinoXformHWSize(params.problem, 1);
     WinogradBufferInfo <WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         // cppcheck-suppress unreadVariable
         wino_in(N,K,C,out_H,out_W,R,S,
@@ -678,8 +679,8 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
                     int m = N, n = K, k = wino_in.buff_info.size.c;
                     int lda = k, ldb = k, ldc = n;
                     int batch_count       = wino_xform_h * wino_xform_w;
-                    long long int strideA = m * k * 1LL, strideB = k * n * 1LL,
-                                  strideC = m * n * 1LL;
+                    long long int strideA = 1LL * m * k, strideB = 1LL * k * n,
+                                  strideC = 1LL * m * n;
                     float alpha = 1., beta = 0.0;
                     // clang-format off
                     GemmDescriptor wino_gemm_desc{false,false,true,m,n,k,

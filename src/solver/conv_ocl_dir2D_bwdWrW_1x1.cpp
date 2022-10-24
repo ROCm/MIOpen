@@ -98,7 +98,7 @@ size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ProblemDescription& problem) con
     {
         const auto in_channel_stride = problem.in_stride * problem.in_height;
         const auto in_batch_stride   = in_channel_stride * problem.n_outputs;
-        return in_batch_stride * problem.batch_sz * GetTypeSize(problem.out_data_type);
+        return GetTypeSize(problem.out_data_type) * in_batch_stride * problem.batch_sz;
     }
     else
         return 0;
@@ -269,9 +269,10 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
         if(problem.pad_w > 0 || problem.pad_h > 0 ||
            (n_passes == 1 && (problem.kernel_stride_w > 1 || problem.kernel_stride_h > 1)))
         {
-            read_unit = (out_pad_width % 4 == 0)
-                            ? 4
-                            : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2 == 0) ? 2 : 1;
+            read_unit = (out_pad_width % 4 == 0)   ? 4
+                        : (out_pad_width % 3 == 0) ? 3
+                        : (out_pad_width % 2 == 0) ? 2
+                                                   : 1;
             // read_unit = (out_pad_width % 7 == 0) ? 7 : (out_pad_width % 5 == 0) ? 5 :
             // (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2
             // == 0) ? 2 : 1;
@@ -297,9 +298,10 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
         int n_lcl_in_map_once   = 8;
         int accum_sz            = n_lcl_out_map_once * n_lcl_in_map_once;
 
-        int write_unit = (out_pad_width % 4 == 0)
-                             ? 4
-                             : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2 == 0) ? 2 : 1;
+        int write_unit   = (out_pad_width % 4 == 0)   ? 4
+                           : (out_pad_width % 3 == 0) ? 3
+                           : (out_pad_width % 2 == 0) ? 2
+                                                      : 1;
         int n_grp0_size0 = 256;
         // real input strides
         int in0_stride         = problem.out_stride;
@@ -401,13 +403,13 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             // input is output
 
             // Traverse Smaller Batch_stride first
-            size_t gbl_wk0 = n_grp_size0 * n_out_blocks;
+            size_t gbl_wk0 = static_cast<std::size_t>(n_grp_size0) * n_out_blocks;
             size_t gbl_wk1 = n_in_blocks;
             size_t gbl_wk2 = 1;
 
             if(in_batch_stride < out_batch_stride)
             {
-                gbl_wk0 = n_grp_size0 * n_in_blocks;
+                gbl_wk0 = static_cast<std::size_t>(n_grp_size0) * n_in_blocks;
                 gbl_wk1 = n_out_blocks;
                 gbl_wk2 = 1;
             }

@@ -380,10 +380,10 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
                                           bool isXdlops                 = false)
 {
 #if MIOPEN_BACKEND_HIP
-    const int pad_H = params.problem.direction.IsForward() ? params.problem.pad_h
-                                                           : params.problem.GetBackwardPadH();
-    const int pad_W = params.problem.direction.IsForward() ? params.problem.pad_w
-                                                           : params.problem.GetBackwardPadW();
+    const int pad_H    = params.problem.direction.IsForward() ? params.problem.pad_h
+                                                              : params.problem.GetBackwardPadH();
+    const int pad_W    = params.problem.direction.IsForward() ? params.problem.pad_w
+                                                              : params.problem.GetBackwardPadW();
     const int n_groups = params.GetStream().GetMaxComputeUnits();
     DEFINE_SHADER_ALIASES(params.problem)
     DEFINE_GETXFORMHWSIZE(params.problem)
@@ -449,8 +449,10 @@ InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& params,
         int m = K, k = C,
             n   = wino_in.buff_info.size.nk * wino_in.buff_info.size.w * wino_in.buff_info.size.h;
         int lda = m, ldb = n, ldc = n;
-        int batch_count       = wino_xform_h * wino_xform_w * group_cnt;
-        long long int strideA = m * k * 1LL, strideB = k * n * 1LL, strideC = m * n * 1LL;
+        int batch_count = wino_xform_h * wino_xform_w * group_cnt;
+        auto strideA    = static_cast<long long>(m) * k;
+        auto strideB    = static_cast<long long>(k) * n;
+        auto strideC    = static_cast<long long>(m) * n;
         float alpha = 1., beta = 0.0;
         const bool isColMajor = false, transA = true, transB = false;
         // clang-format off

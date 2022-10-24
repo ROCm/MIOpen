@@ -834,9 +834,9 @@ FindImplicitGemmGtcDynamicBwdKernel(const ProblemDescription& problem)
 
     for(const auto& cfg : tunables)
     {
-        const auto b = (cfg.nxe == 0 || problem.IsFp32())
-                           ? h_tilda_slice * w_tilda_slice
-                           : ((h_tilda_slice * w_tilda_slice + cfg.nxb - 1) / cfg.nxb) * cfg.nxb;
+        const auto b             = (cfg.nxe == 0 || problem.IsFp32())
+                                       ? h_tilda_slice * w_tilda_slice
+                                       : ((h_tilda_slice * w_tilda_slice + cfg.nxb - 1) / cfg.nxb) * cfg.nxb;
         const auto gemm_n_packed = problem.IsFp16() ? n * b : gemm_n;
 
         assert((cfg.gemm_n_per_block != 0) && (cfg.gemm_m_per_block != 0) && (cfg.nxb != 0) &&
@@ -1035,7 +1035,7 @@ ConvAsmImplicitGemmGTCDynamicBwdXdlops::GetSolution(const ExecutionContext& ctx,
     kernel.kernel_file = kernel_name + ".s";
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
-    kernel.g_wk.push_back(grid_size * block_size);
+    kernel.g_wk.push_back(static_cast<std::size_t>(grid_size) * block_size);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
     kernel.l_wk.clear();

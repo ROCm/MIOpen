@@ -130,18 +130,25 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
     clEnqueueWriteBuffer(q,
                          workSpace,
                          CL_FALSE,
-                         2 * batch_bytes,
+                         2ULL * batch_bytes,
                          batch_bytes,
                          labels_offset.data(),
                          0,
                          nullptr,
                          nullptr);
-    clEnqueueWriteBuffer(
-        q, workSpace, CL_FALSE, 3 * batch_bytes, batch_bytes, repeat.data(), 0, nullptr, nullptr);
     clEnqueueWriteBuffer(q,
                          workSpace,
                          CL_FALSE,
-                         4 * batch_bytes,
+                         3ULL * batch_bytes,
+                         batch_bytes,
+                         repeat.data(),
+                         0,
+                         nullptr,
+                         nullptr);
+    clEnqueueWriteBuffer(q,
+                         workSpace,
+                         CL_FALSE,
+                         4ULL * batch_bytes,
                          total_label_len * sizeof(int),
                          labels,
                          0,
@@ -155,15 +162,15 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
               labelLengths,
               batch_bytes,
               hipMemcpyHostToDevice);
-    hipMemcpy(static_cast<int*>(workSpace) + 2 * batch_size,
+    hipMemcpy(static_cast<int*>(workSpace) + 2 * static_cast<ptrdiff_t>(batch_size),
               labels_offset.data(),
               batch_bytes,
               hipMemcpyHostToDevice);
-    hipMemcpy(static_cast<int*>(workSpace) + 3 * batch_size,
+    hipMemcpy(static_cast<int*>(workSpace) + 3 * static_cast<ptrdiff_t>(batch_size),
               repeat.data(),
               batch_bytes,
               hipMemcpyHostToDevice);
-    hipMemcpy(static_cast<int*>(workSpace) + 4 * batch_size,
+    hipMemcpy(static_cast<int*>(workSpace) + 4 * static_cast<ptrdiff_t>(batch_size),
               labels,
               total_label_len * sizeof(int),
               hipMemcpyHostToDevice);
@@ -219,8 +226,9 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
 
         size_t work_per_grp = batch_size <= 64 ? 256 : batch_size <= 128 ? 128 : 64;
         assert(512 >= work_per_grp && work_per_grp > 0);
-        size_t glb_sz = batch_size < MAX_ACTIVE_THREADS / work_per_grp ? batch_size * work_per_grp
-                                                                       : MAX_ACTIVE_THREADS;
+        size_t glb_sz  = batch_size < static_cast<size_t>(MAX_ACTIVE_THREADS) / work_per_grp
+                             ? batch_size * work_per_grp
+                             : static_cast<size_t>(MAX_ACTIVE_THREADS);
         size_t grp_num = glb_sz / work_per_grp;
 
         size_t lcl_mem_per_grp = MAX_LOCAL_MEM / 2 / (512 / work_per_grp);
@@ -255,14 +263,14 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
             params += " -DOPT_LCL_MEM_GRAD";
 #endif
 
-        if(max_S_len * 2
+        if(static_cast<size_t>(max_S_len) * 2
 #if MIOPEN_BACKEND_OPENCL
                + class_sz
 #endif
            <= lcl_mem_per_grp)
             params += " -DOPT_LCL_MEM_BETA";
 
-        if(max_S_len * 3
+        if(static_cast<size_t>(max_S_len) * 3
 #if MIOPEN_BACKEND_OPENCL
                + class_sz
 #endif
