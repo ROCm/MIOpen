@@ -1010,13 +1010,9 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
                  solutions,
                  StringToConvolutionFwdAlgo);
 
-#if MIOPEN_ENABLE_AI_HEUR
-    if(fallbackPathTaken != nullptr)
-        *fallbackPathTaken = false;
-#else
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = (*solutionCount == 0);
-#endif
+
     if(*solutionCount == 0)
         GetSolutionsFallback(handle, ctx.problem, maxSolutionCount, solutionCount, solutions);
 }
@@ -1461,13 +1457,9 @@ void ConvolutionDescriptor::GetBackwardSolutions(Handle& handle,
                  solutions,
                  StringToConvolutionBwdDataAlgo);
 
-#if MIOPEN_ENABLE_AI_HEUR
-    if(fallbackPathTaken != nullptr)
-        *fallbackPathTaken = false;
-#else
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = (*solutionCount == 0);
-#endif
+
     if(*solutionCount == 0)
         GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
@@ -1821,13 +1813,9 @@ void ConvolutionDescriptor::GetWrwSolutions(Handle& handle,
                  solutions,
                  StringToConvolutionBwdWeightsAlgo);
 
-#if MIOPEN_ENABLE_AI_HEUR
-    if(fallbackPathTaken != nullptr)
-        *fallbackPathTaken = false;
-#else
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = (*solutionCount == 0);
-#endif
+
     if(*solutionCount == 0)
         GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
