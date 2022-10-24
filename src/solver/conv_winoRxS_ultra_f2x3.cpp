@@ -301,7 +301,6 @@ inline void WU_control_make_3x3_w_info(const WinogradUltraDescription& desc,
             }
         }
         w_info.push_back(cur_w_i);
-        n++;
     }
 }
 
