@@ -35,9 +35,6 @@
 #include <miopen/tensor.hpp>
 #include <utility>
 #include <fusionHost.hpp>
-#include "activ_driver.hpp"
-#include "InputFlags.hpp"
-#include "get_handle.hpp"
 #include "verify.hpp"
 #include "gtest/gtest.h"
 
