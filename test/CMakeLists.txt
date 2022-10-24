@@ -192,14 +192,14 @@ elseif(MIOPEN_TEST_INT8)
               test_tensor_transform test_conv2d test_conv2d_find2)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(SKIP_ALL_EXCEPT_TESTS
-              test_conv2d test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d
+              test_conv2d test_conv2d_find2 test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d
               test_check_numerics_test test_conv_extra test_conv_for_implicit_gemm test_miopen_conv
               test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16_gfx90a
               test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16_gfx90a
               test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16_gfx90a)
   endif()
   if(${CODECOV_TEST})
-      list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric)
+      list(APPEND SKIP_TESTS test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric)
       # replaced by smaller tests with suffix _codecov
   endif()
 
@@ -221,7 +221,7 @@ if(MIOPEN_BACKEND_OPENCL AND MIOPEN_TEST_ALL)
         list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d test_conv3d_find2)
     endif()
     if(MIOPEN_TEST_GFX103X)
-        list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d)
+        list(APPEND SKIP_TESTS test_conv3d test_immed_conv3d test_immed_conv2d test_conv3d_find2)
     endif()
 endif()
 
@@ -351,7 +351,9 @@ file(GLOB TESTS *.cpp)
 set(LONG_TESTS
     test_dropout
     test_conv2d
+    test_conv2d_find2
     test_conv3d
+    test_conv3d_find2
     test_conv_group
     test_soft_max
     test_lrn_test
