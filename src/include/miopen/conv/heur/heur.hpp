@@ -58,7 +58,6 @@ struct ConvHeur
 
     static bool IsHeurApplicable(const std::string& arch, const conv::ProblemDescription& problem)
     {
-        MIOPEN_LOG_I2("");
         if(problem.GetInLayout() != "NCHW" && problem.GetInLayout() != "NCDHW")
             return false;
         if(problem.GetWeightsHeight() != problem.GetWeightsWidth())
@@ -75,15 +74,13 @@ struct ConvHeur
         const auto& supported_archs = GetSupportedArchs();
         if(std::find(supported_archs.begin(), supported_archs.end(), arch) == supported_archs.end())
             return false;
-        MIOPEN_LOG_I("Heuristic is applicable");
+        MIOPEN_LOG_I2("Heuristic is applicable");
         return true;
     }
 
     std::vector<uint64_t>
     Estimate(const std::string& arch, const conv::ProblemDescription& problem, bool& cached)
     {
-        MIOPEN_LOG_SCOPE_TIME;
-        MIOPEN_LOG_I2("");
         std::string est_name = ":memory:" + arch;
         auto& db             = AnyRamDb::GetCached(est_name);
         auto db_res          = db.FindRecord(problem);
@@ -152,7 +149,7 @@ struct ConvHeur
             const auto sol_id = solver::Id{solvers.at(id)};
             if(!sol_id.IsValid())
             {
-                MIOPEN_LOG_I("Invalid solver " << solvers.at(id) << " removed");
+                MIOPEN_LOG_I2("Invalid solver " << solvers.at(id) << " removed");
                 continue;
             }
             sol.push_back(sol_id.Value());
