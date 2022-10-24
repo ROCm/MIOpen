@@ -828,7 +828,7 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.DetectRocm();
 
     if(MIOPEN_ENABLE_AI_HEUR &&
-       ConvHeur::IsApplicable(handle.GetDeviceName(), problem.conv_problem))
+       ConvHeur::IsHeurApplicable(handle.GetDeviceName(), problem.conv_problem))
     {
         int idx = 1; // Each solution to have a successively more negative values keeping
         // sorting logic intact in frameworks

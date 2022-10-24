@@ -34,7 +34,7 @@
 #include <miopen/conv/heur/heur.hpp>
 #include <miopen/conv/heur/metadata.hpp>
 
-void TestIsApplicable(void)
+void TestIsHeurApplicable(void)
 {
     tensor<float> test_in = tensor<float>(miopenFloat, miopenTensorNCHW, 64, 3, 224, 224);
     tensor<float> test_in_bad_layout =
@@ -111,20 +111,20 @@ void TestIsApplicable(void)
                                                                  conv_desc_bad_dilation,
                                                                  miopen::conv::Direction::Forward);
 
-    EXPECT_EQ(miopen::ConvHeur::IsApplicable("gfx908", conv_prob_desc_bad_type), false)
-        << "IsApplicable not catching bad type" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsApplicable("gfx908", conv_prob_desc_bad_layout), false)
-        << "IsApplicable not catching bad layout" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsApplicable("gfx908", conv_prob_desc_mismatch_height), false)
-        << "IsApplicable not catching mismatch kernel heights" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsApplicable("gfx908", conv_prob_desc_mimatch_pads), false)
-        << "IsApplicable not mismatch padding" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsApplicable("gfx908", conv_prob_desc_mismatch_stride), false)
-        << "IsApplicable not catching mismatch strides" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsApplicable("gfx908", conv_prob_desc_bad_dilation), false)
-        << "IsApplicable not catching bad dilation" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsApplicable("gfx906", conv_prob_desc), false)
-        << "IsApplicable not catching un supported arch" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_type), false)
+        << "IsHeurApplicable not catching bad type" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_layout), false)
+        << "IsHeurApplicable not catching bad layout" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_mismatch_height), false)
+        << "IsHeurApplicable not catching mismatch kernel heights" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_mimatch_pads), false)
+        << "IsHeurApplicable not mismatch padding" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_mismatch_stride), false)
+        << "IsHeurApplicable not catching mismatch strides" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_dilation), false)
+        << "IsHeurApplicable not catching bad dilation" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx906", conv_prob_desc), false)
+        << "IsHeurApplicable not catching un supported arch" << std::endl;
 }
 
 void TestEstimateCaching(void)
@@ -138,7 +138,7 @@ void TestEstimateCaching(void)
                                                     test_out.desc,
                                                     conv_desc,
                                                     miopen::conv::Direction::Forward);
-    ASSERT_EQ(miopen::ConvHeur::IsApplicable("gfx908", conv_prob_desc), true)
+    ASSERT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc), true)
         << "Problem description or arch is not applicable" << std::endl;
     bool is_cached = false;
     auto solvers   = miopen::ConvHeur{}.Estimate("gfx908", conv_prob_desc, is_cached);
@@ -311,7 +311,7 @@ void TestModelAccuracy(void)
 
 TEST(HEUR_TEST, TestEstimateCaching) { TestEstimateCaching(); }
 
-TEST(HEUR_TEST, TestIsApplicable) { TestIsApplicable(); }
+TEST(HEUR_TEST, TestIsHeurApplicable) { TestIsHeurApplicable(); }
 
 TEST(HEUR_TEST, TestMetadata)
 {

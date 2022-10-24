@@ -56,7 +56,7 @@ struct ConvHeur
         return supported_archs;
     }
 
-    static bool IsApplicable(const std::string& arch, const conv::ProblemDescription& problem)
+    static bool IsHeurApplicable(const std::string& arch, const conv::ProblemDescription& problem)
     {
         MIOPEN_LOG_I2("");
         if(problem.GetInLayout() != "NCHW" && problem.GetInLayout() != "NCDHW")
