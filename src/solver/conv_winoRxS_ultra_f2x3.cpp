@@ -142,19 +142,19 @@ struct WinogradUltraDescription
         K     = K / problem.group_counts;
 
         const auto d_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(problem.in_layout), true),
-                                  N,
-                                  C,
-                                  H,
-                                  W,
-                                  problem.group_counts,
-                                  GetTypeSize(problem.in_data_type));
+                                    N,
+                                    C,
+                                    H,
+                                    W,
+                                    problem.group_counts,
+                                    GetTypeSize(problem.in_data_type));
         const auto o_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(problem.out_layout), true),
-                                  N,
-                                  K,
-                                  out_H,
-                                  out_W,
-                                  problem.group_counts,
-                                  GetTypeSize(problem.out_data_type));
+                                    N,
+                                    K,
+                                    out_H,
+                                    out_W,
+                                    problem.group_counts,
+                                    GetTypeSize(problem.out_data_type));
 
         const unsigned tiles_n_row    = (out_W + o_tile_step_W - 1) / o_tile_step_W;
         const unsigned tiles_n_column = (out_H + o_tile_step_H - 1) / o_tile_step_H;
@@ -223,7 +223,6 @@ inline void WU_control_make_3x3_w_info(const WinogradUltraDescription& desc,
     int64_t o_cur_w = 0;
     int64_t o_cur_h = 0;
     int64_t cur_n   = 0;
-    int64_t n       = 0;
 
     while((o_cur_w < desc.out_W) && (o_cur_h < desc.out_H) && (cur_n < desc.N))
     {
@@ -609,7 +608,7 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ExecutionContext& ct
                              std::to_string(workspace_size) + " provided, " +
                              std::to_string(workspace_req) + " required)");
 
-            CopyDataToBuffer(ctx.GetStream(), control_buf, workspace_ptr);
+            CopyDataToBuffer(handle, control_buf, workspace_ptr);
 
             MIOPEN_LOG_I2(desc << " n_groups=" << n_groups << " n_works=" << n_works
                                << " workspace_req=" << workspace_req);
