@@ -175,10 +175,9 @@ struct WinogradUltraDescription
         o_step_1_pitch = o_tile_step_H * o_H_pitch - tiles_n_row * o_tile_step_W * o_W_pitch;
         o_step_2_pitch = o_N_pitch - tiles_n_column * o_tile_step_H * o_H_pitch;
 
-        flush = d_step_2_pitch >= std::pow(2, 23)
-                    ? flush_control::FLUSH_N
-                    : o_step_2_pitch >= std::pow(2, 23) ? flush_control::FLUSH_N
-                                                        : flush_control::FLUSH_NONE;
+        flush = d_step_2_pitch >= std::pow(2, 23)   ? flush_control::FLUSH_N
+                : o_step_2_pitch >= std::pow(2, 23) ? flush_control::FLUSH_N
+                                                    : flush_control::FLUSH_NONE;
     }
 };
 
@@ -535,8 +534,8 @@ size_t ConvBinWinogradUltraRxSf2x3::GetWorkspaceSize(const ProblemDescription& p
     const size_t num_tiles_W = Ceil(desc.out_W, o_tile_W);
     const size_t N           = desc.N;
     const size_t works       = desc.flush == flush_control::FLUSH_N
-                             ? N * Ceil(num_tiles_H * num_tiles_W, group_size)
-                             : Ceil(N * num_tiles_H * num_tiles_W, group_size);
+                                   ? N * Ceil(num_tiles_H * num_tiles_W, group_size)
+                                   : Ceil(N * num_tiles_H * num_tiles_W, group_size);
 
     return works * group_size * sizeof(uint32_t);
 }
