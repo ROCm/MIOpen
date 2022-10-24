@@ -54,23 +54,23 @@ namespace solver {
 
 namespace {
 
-constexpr unsigned group_size = 64;
-constexpr unsigned o_tile_W   = 2;
-constexpr unsigned o_tile_H   = 2;
-constexpr unsigned d_tile_W   = 4;
-constexpr unsigned d_tile_H   = 4;
+constexpr size_t group_size = 64;
+constexpr size_t o_tile_W   = 2;
+constexpr size_t o_tile_H   = 2;
+constexpr size_t d_tile_W   = 4;
+constexpr size_t d_tile_H   = 4;
 
 // step is alwas based on the output tile size
-constexpr unsigned o_tile_step_W = o_tile_W;
-constexpr unsigned o_tile_step_H = o_tile_H;
-constexpr unsigned d_tile_step_W = o_tile_W;
-constexpr unsigned d_tile_step_H = o_tile_H;
+constexpr size_t o_tile_step_W = o_tile_W;
+constexpr size_t o_tile_step_H = o_tile_H;
+constexpr size_t d_tile_step_W = o_tile_W;
+constexpr size_t d_tile_step_H = o_tile_H;
 
 //
 // Number of tile lanes (QWORDs for packed clip bits)
 //
-constexpr unsigned d_clip_tiles_QW = group_size * d_tile_W / (sizeof(uint64_t) * CHAR_BIT);
-constexpr unsigned o_clip_tiles_QW = group_size * o_tile_W / (sizeof(uint64_t) * CHAR_BIT);
+constexpr size_t d_clip_tiles_QW = group_size * d_tile_W / (sizeof(uint64_t) * CHAR_BIT);
+constexpr size_t o_clip_tiles_QW = group_size * o_tile_W / (sizeof(uint64_t) * CHAR_BIT);
 
 struct work_info
 {
@@ -421,7 +421,7 @@ inline bool IsShaderContraintsMet(const int R,
         return false;
     }
 
-    constexpr auto ELEM_SZ    = static_cast<int64_t>(sizeof(half_float::half));
+    constexpr auto ELEM_SZ    = static_cast<size_t>(sizeof(half_float::half));
     constexpr auto D_W_PITCH  = ELEM_SZ * 1;
     constexpr auto O_W_PITCH  = ELEM_SZ * 1;
     const auto D_H_PITCH      = D_W_PITCH * W;
@@ -433,10 +433,10 @@ inline bool IsShaderContraintsMet(const int R,
     const auto TILES_N_ROW    = (OW + o_tile_step_W - 1) / o_tile_step_W;
     const auto TILES_N_COLUMN = (OH + o_tile_step_H - 1) / o_tile_step_H;
 
-    const auto D_STEP_1_PITCH = d_tile_step_H * D_H_PITCH - TILES_N_ROW * d_tile_step_W * D_W_PITCH;
-    const auto O_STEP_1_PITCH = o_tile_step_H * O_H_PITCH - TILES_N_ROW * o_tile_step_W * O_W_PITCH;
-    const auto D_STEP_2_PITCH = D_N_PITCH - TILES_N_COLUMN * d_tile_step_H * D_H_PITCH;
-    const auto O_STEP_2_PITCH = O_N_PITCH - TILES_N_COLUMN * o_tile_step_H * O_H_PITCH;
+    const long D_STEP_1_PITCH = d_tile_step_H * D_H_PITCH - TILES_N_ROW * d_tile_step_W * D_W_PITCH;
+    const long O_STEP_1_PITCH = o_tile_step_H * O_H_PITCH - TILES_N_ROW * o_tile_step_W * O_W_PITCH;
+    const long D_STEP_2_PITCH = D_N_PITCH - TILES_N_COLUMN * d_tile_step_H * D_H_PITCH;
+    const long O_STEP_2_PITCH = O_N_PITCH - TILES_N_COLUMN * o_tile_step_H * O_H_PITCH;
 
     // clang-format off
     return C <= 240
