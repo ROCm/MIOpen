@@ -83,10 +83,10 @@ static inline magic_div_u32_t magic_div_u32_gen(uint32_t d)
 
 static inline uint32_t magic_div_u32_pack_shift(uint8_t s0, uint8_t s1, uint8_t s2, uint8_t s3)
 {
-    uint32_t shift_0 = s0;
-    uint32_t shift_1 = s1;
-    uint32_t shift_2 = s2;
-    uint32_t shift_3 = s3;
+    uint32_t shift_0 = static_cast<uint32_t>(s0);
+    uint32_t shift_1 = static_cast<uint32_t>(s1);
+    uint32_t shift_2 = static_cast<uint32_t>(s2);
+    uint32_t shift_3 = static_cast<uint32_t>(s3);
     return (shift_3 << 24) | (shift_2 << 16) | (shift_1 << 8) | shift_0;
 }
 

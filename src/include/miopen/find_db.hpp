@@ -27,6 +27,7 @@
 #ifndef GUARD_MIOPEN_FIND_DB_HPP_
 #define GUARD_MIOPEN_FIND_DB_HPP_
 
+#include <miopen/config.h>
 #include <miopen/db.hpp>
 #include <miopen/db_path.hpp>
 #include <miopen/db_record.hpp>
@@ -62,10 +63,14 @@ using FindDb           = MultiFileDb<SystemFindDb, UserFindDb, false>;
 using FindDbRecord     = FindDbRecord_t<FindDb>;
 using UserFindDbRecord = FindDbRecord_t<UserFindDb>;
 
+namespace debug {
+
 // For unit tests.
 extern bool testing_find_db_enabled; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 extern boost::optional<std::string>&
 testing_find_db_path_override(); /// \todo Remove when #1723 is resolved.
+
+} // namespace debug
 
 bool CheckInvokerSupport(const std::string& algo);
 
@@ -85,11 +90,12 @@ public:
 
     template <class TProblemDescription, class TTestDb = TDb>
     FindDbRecord_t(Handle& handle, const TProblemDescription& problem, is_immediate_t<TTestDb> = 0)
-        : path(testing_find_db_path_override() ? *testing_find_db_path_override()
-                                               : GetUserPath(handle)),
-          installed_path(testing_find_db_path_override() ? *testing_find_db_path_override()
-                                                         : GetInstalledPath(handle)),
-          db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
+        : path(debug::testing_find_db_path_override() ? *debug::testing_find_db_path_override()
+                                                      : GetUserPath(handle)),
+          installed_path(debug::testing_find_db_path_override()
+                             ? *debug::testing_find_db_path_override()
+                             : GetInstalledPath(handle)),
+          db(boost::make_optional<DbTimer<TDb>>(debug::testing_find_db_enabled &&
                                                     !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
                                                 DbTimer<TDb>{installed_path, path}))
     {
@@ -102,12 +108,12 @@ public:
 
     template <class TProblemDescription, class TTestDb = TDb>
     FindDbRecord_t(Handle& handle, const TProblemDescription& problem, is_find_t<TTestDb> = 0)
-        : path(testing_find_db_path_override() ? *testing_find_db_path_override()
-                                               : GetUserPath(handle)),
+        : path(debug::testing_find_db_path_override() ? *debug::testing_find_db_path_override()
+                                                      : GetUserPath(handle)),
 #if MIOPEN_DISABLE_USERDB
           db(boost::optional<DbTimer<TDb>>{})
 #else
-          db(boost::make_optional<DbTimer<TDb>>(testing_find_db_enabled &&
+          db(boost::make_optional<DbTimer<TDb>>(debug::testing_find_db_enabled &&
                                                     !IsEnabled(MIOPEN_DEBUG_DISABLE_FIND_DB{}),
                                                 DbTimer<TDb>{path, false}))
 #endif

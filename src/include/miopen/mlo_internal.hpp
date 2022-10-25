@@ -98,14 +98,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <fstream>
-#include <iomanip>
 #include <sstream>
-#include <string>
 #include <ctime>
-#include <cmath>
-#include <ctime>
-#include <cstdlib>
-#include <cstdio>
 #include <cstring>
 #include <vector>
 #include <numeric>
@@ -144,18 +138,6 @@ template <class TInnerDb>
 class DbTimer;
 
 struct AnyInvokeParams;
-
-template <class TInstance>
-class StaticContainer
-{
-public:
-    inline static TInstance& Instance()
-    {
-        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-        static TInstance data{};
-        return data;
-    }
-};
 
 #if MIOPEN_ENABLE_SQLITE
 using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
@@ -289,21 +271,21 @@ struct mlo_construct_base
 {
     mlo_construct_base(miopen::conv::Direction dir, bool do_bias = false) : _search_params(dir)
     {
-        _search_params.bias              = (do_bias) ? 1 : 0;
-        _search_params.pad_w             = 1;
-        _search_params.pad_h             = 1;
-        _search_params.kernel_size_d     = 3;
-        _search_params.kernel_size_w     = 3;
-        _search_params.kernel_size_h     = 3;
-        _search_params.kernel_stride_w   = 1;
-        _search_params.kernel_stride_h   = 1;
-        _search_params.kernel_dilation_w = 1;
-        _search_params.kernel_dilation_h = 1;
-        _search_params.bot_sz            = 0; // bytes
-        _search_params.top_sz            = 0; // bytes
-        _search_params.weights_sz        = 0; // bytes
-        _search_params.bias_sz           = 0; // bytes
-        _search_params.group_counts      = 1;
+        _search_params.problem.bias              = (do_bias) ? 1 : 0;
+        _search_params.problem.pad_w             = 1;
+        _search_params.problem.pad_h             = 1;
+        _search_params.problem.kernel_size_d     = 3;
+        _search_params.problem.kernel_size_w     = 3;
+        _search_params.problem.kernel_size_h     = 3;
+        _search_params.problem.kernel_stride_w   = 1;
+        _search_params.problem.kernel_stride_h   = 1;
+        _search_params.problem.kernel_dilation_w = 1;
+        _search_params.problem.kernel_dilation_h = 1;
+        _search_params.problem.bot_sz            = 0; // bytes
+        _search_params.problem.top_sz            = 0; // bytes
+        _search_params.problem.weights_sz        = 0; // bytes
+        _search_params.problem.bias_sz           = 0; // bytes
+        _search_params.problem.group_counts      = 1;
     }
 
     mlo_construct_base(const miopen::TensorDescriptor& in,
@@ -334,9 +316,10 @@ struct mlo_construct_base
      */
     inline bool isForwardDirection() const
     {
-        if(!_search_params.direction.IsKnown())
-            MIOPEN_THROW("!_search_params.direction.IsKnown()");
-        return _search_params.direction.IsForward(); // convolutions: backward data OR wrw otherwise
+        if(!_search_params.problem.direction.IsKnown())
+            MIOPEN_THROW("!_search_params.problem.direction.IsKnown()");
+        return _search_params.problem.direction
+            .IsForward(); // convolutions: backward data OR wrw otherwise
     }
 
     /*
@@ -347,7 +330,7 @@ struct mlo_construct_base
     // MD: Hack to get the key outside of mlo_internal
     int mloBuildConf_Key(std::string& conf_key) const
     {
-        return _search_params.mloBuildConf_Key(conf_key);
+        return _search_params.problem.mloBuildConf_Key(conf_key);
     }
 
     std::string db_path() const
@@ -411,10 +394,6 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
 
     void setupFloats();
 
-    inline void setBufs(const miopen::ConvolutionUserBuffers& bufs)
-    {
-        _search_params.SetBufs(bufs);
-    }
     /*
      * set top tensor
      */
@@ -430,17 +409,17 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                      int stride,
                      int w_stride)
     {
-        _search_params.setTopDescr(layout,
-                                   data_type,
-                                   batch,
-                                   channels,
-                                   depth,
-                                   height,
-                                   width,
-                                   batch_stride,
-                                   channel_stride,
-                                   stride,
-                                   w_stride);
+        _search_params.problem.setTopDescr(layout,
+                                           data_type,
+                                           batch,
+                                           channels,
+                                           depth,
+                                           height,
+                                           width,
+                                           batch_stride,
+                                           channel_stride,
+                                           stride,
+                                           w_stride);
     }
 
     /*
@@ -458,17 +437,17 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                      int stride,
                      int w_stride)
     {
-        _search_params.setBotDescr(layout,
-                                   data_type,
-                                   batch,
-                                   channels,
-                                   depth,
-                                   height,
-                                   width,
-                                   batch_stride,
-                                   channel_stride,
-                                   stride,
-                                   w_stride);
+        _search_params.problem.setBotDescr(layout,
+                                           data_type,
+                                           batch,
+                                           channels,
+                                           depth,
+                                           height,
+                                           width,
+                                           batch_stride,
+                                           channel_stride,
+                                           stride,
+                                           w_stride);
     }
 
     /*
@@ -486,22 +465,22 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                        int stride,
                        int w_stride)
     {
-        _search_params.setTopDfDescr(layout,
-                                     data_type,
-                                     batch,
-                                     channels,
-                                     depth,
-                                     height,
-                                     width,
-                                     batch_stride,
-                                     channel_stride,
-                                     stride,
-                                     w_stride);
+        _search_params.problem.setTopDfDescr(layout,
+                                             data_type,
+                                             batch,
+                                             channels,
+                                             depth,
+                                             height,
+                                             width,
+                                             batch_stride,
+                                             channel_stride,
+                                             stride,
+                                             w_stride);
 
         int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * channels * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+                           ? batch * channels * depth * height * width * data_len
+                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         _out_df_width          = width;
         _out_df_height         = height;
@@ -528,22 +507,22 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                        int stride,
                        int w_stride)
     {
-        _search_params.setBotDfDescr(layout,
-                                     data_type,
-                                     batch,
-                                     channels,
-                                     depth,
-                                     height,
-                                     width,
-                                     batch_stride,
-                                     channel_stride,
-                                     stride,
-                                     w_stride);
+        _search_params.problem.setBotDfDescr(layout,
+                                             data_type,
+                                             batch,
+                                             channels,
+                                             depth,
+                                             height,
+                                             width,
+                                             batch_stride,
+                                             channel_stride,
+                                             stride,
+                                             w_stride);
 
         int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * channels * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+                           ? batch * channels * depth * height * width * data_len
+                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         _in_df_width          = width;
         _in_df_height         = height;
@@ -557,22 +536,22 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
 
     size_t setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setTopDescFromMLDesc(_search_params.spatial_dims, *this, tensor);
+        return miopen::setTopDescFromMLDesc(_search_params.problem.spatial_dims, *this, tensor);
     }
 
     size_t setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setBotDescFromMLDesc(_search_params.spatial_dims, *this, tensor);
+        return miopen::setBotDescFromMLDesc(_search_params.problem.spatial_dims, *this, tensor);
     }
 
     size_t setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setTopDfDescFromMLDesc(_search_params.spatial_dims, *this, tensor);
+        return miopen::setTopDfDescFromMLDesc(_search_params.problem.spatial_dims, *this, tensor);
     }
 
     size_t setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return miopen::setBotDfDescFromMLDesc(_search_params.spatial_dims, *this, tensor);
+        return miopen::setBotDfDescFromMLDesc(_search_params.problem.spatial_dims, *this, tensor);
     }
 
     /*

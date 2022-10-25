@@ -67,8 +67,8 @@ static boost::filesystem::path ComputeUserCachePath()
 
     const char* const custom = miopen::GetStringEnv(MIOPEN_CUSTOM_CACHE_DIR{});
     const auto p             = (custom != nullptr && strlen(custom) > 0)
-                       ? boost::filesystem::path{miopen::ExpandUser(custom)}
-                       : boost::filesystem::path{miopen::ExpandUser(cache_dir)} / version;
+                                   ? boost::filesystem::path{miopen::ExpandUser(custom)}
+                                   : boost::filesystem::path{miopen::ExpandUser(cache_dir)} / version;
 
     if(!boost::filesystem::exists(p) && !MIOPEN_DISABLE_USERDB)
         boost::filesystem::create_directories(p);
@@ -169,7 +169,7 @@ std::string LoadBinary(const TargetProperties& target,
     auto record = db.FindRecord(cfg);
     if(record)
     {
-        MIOPEN_LOG_I2("Sucessfully loaded binary for: " << verbose_name << "; args: " << args);
+        MIOPEN_LOG_I2("Successfully loaded binary for: " << verbose_name << "; args: " << args);
         return record.get();
     }
     else

@@ -28,7 +28,6 @@
 #include <miopen/check_numerics.hpp>
 #include <miopen/config.h>
 #include <miopen/convolution.hpp>
-#include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
@@ -66,6 +65,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DUMP_TENSOR_PATH)
 
 size_t GetKernelGlobalWorkDim(const KernelInvoke& kernel, int dim) { return kernel.gdims[dim]; }
 
@@ -109,18 +109,39 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
                                       const TensorDescriptor& wDesc,
                                       const ConvolutionDescriptor& conv)
 {
+    ///\todo How make these validation clearly
     if(conv.group_count == 1)
     {
-        if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
+        if((((wDesc.GetLayout_t() == miopenTensorNCHW) ||
+             (wDesc.GetLayout_t() == miopenTensorNCHWc4) ||
+             (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
+            (xDesc.GetLengths()[1] != wDesc.GetLengths()[1])) ||
+           ((wDesc.GetLayout_t() == miopenTensorCHWNc4 ||
+             wDesc.GetLayout_t() == miopenTensorCHWNc8) &&
+            (xDesc.GetLengths()[1] != wDesc.GetLengths()[0])))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
     }
     if(conv.group_count > 1)
     {
         if(xDesc.GetLengths()[1] % conv.group_count != 0 ||
-           wDesc.GetLengths()[0] % conv.group_count != 0 ||
-           conv.group_count > xDesc.GetLengths()[1] || conv.group_count > wDesc.GetLengths()[0])
+           conv.group_count > xDesc.GetLengths()[1] ||
+           (((wDesc.GetLayout_t() == miopenTensorNCHW) ||
+             (wDesc.GetLayout_t() == miopenTensorNCHWc4) ||
+             (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
+            (wDesc.GetLengths()[0] % conv.group_count != 0 ||
+             conv.group_count > wDesc.GetLengths()[0])) ||
+           ((wDesc.GetLayout_t() == miopenTensorCHWNc4 ||
+             wDesc.GetLayout_t() == miopenTensorCHWNc8) &&
+            (wDesc.GetLengths()[3] % conv.group_count != 0 ||
+             conv.group_count > wDesc.GetLengths()[3])))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
-        if(xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])
+        if((((wDesc.GetLayout_t() == miopenTensorNCHW) ||
+             (wDesc.GetLayout_t() == miopenTensorNCHWc4) ||
+             (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
+            (xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])) ||
+           ((wDesc.GetLayout_t() == miopenTensorCHWNc4 ||
+             wDesc.GetLayout_t() == miopenTensorCHWNc8) &&
+            (xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[0])))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
     }
 }
@@ -172,7 +193,6 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
                                                const TensorDescriptor& yDesc,
                                                bool exhaustiveSearch,
                                                bool isForward,
-                                               const ConvolutionUserBuffers& bufs,
                                                const AnyInvokeParams& invoke_ctx) const
 {
 
@@ -186,7 +206,6 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     ctx.save_srch_req              = true;
     ctx.general_compile_options    = "";
     ctx.SetStream(&handle);
-    ctx.SetBufs(bufs);
     ctx.DetectRocm();
     ctx.SetupFloats();
 
@@ -208,7 +227,6 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
                                                      const TensorDescriptor& yDesc,
                                                      bool exhaustiveSearch,
                                                      bool isForward,
-                                                     const ConvolutionUserBuffers& bufs,
                                                      const AnyInvokeParams& invoke_ctx) const
 {
 
@@ -223,7 +241,6 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
     ctx.save_srch_req              = true;
     ctx.general_compile_options    = "";
     ctx.SetStream(&handle);
-    ctx.SetBufs(bufs);
     ctx.DetectRocm();
     ctx.SetupFloats();
 
@@ -358,7 +375,7 @@ static void DirConvFindCore(Handle& handle,
     AutoEnableProfiling enableProfiling{handle};
     ValidateGroupCount(xDesc, wDesc, conv);
 
-    const auto network_config = ctx.BuildConfKey();
+    const auto network_config = ctx.problem.BuildConfKey();
     const auto invoke_ctx     = conv::DataInvokeParams{InvokeType::Evaluate,
                                                    {xDesc, x, wDesc, w, yDesc, y},
                                                    workSpace,
@@ -370,22 +387,18 @@ static void DirConvFindCore(Handle& handle,
         AutoUseFastDynamicSolutions tmp{ctx};
         return conv.FindWinogradSolutions(ctx, invoke_ctx);
     }();
-    ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-    bufs.SetFwd(x, w, y);
-    const auto gemm = !use_winograd_only ? conv.FindDataGemmSolutions(ctx, invoke_ctx)
-                                         : std::vector<miopen::solver::ConvSolution>{};
-    const auto direct =
-        !use_winograd_only
-            ? conv.FindDataDirectSolutions(
-                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx)
-            : std::vector<miopen::solver::ConvSolution>{};
-    const auto igemm =
-        !use_winograd_only
-            ? conv.FindDataImplicitGemmSolutions(
-                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, bufs, invoke_ctx)
-            : std::vector<miopen::solver::ConvSolution>{};
-    const auto fft = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx)
-                                        : std::vector<miopen::solver::ConvSolution>{};
+    const auto gemm     = !use_winograd_only ? conv.FindDataGemmSolutions(ctx, invoke_ctx)
+                                             : std::vector<miopen::solver::ConvSolution>{};
+    const auto direct   = !use_winograd_only
+                              ? conv.FindDataDirectSolutions(
+                                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, invoke_ctx)
+                              : std::vector<miopen::solver::ConvSolution>{};
+    const auto igemm    = !use_winograd_only
+                              ? conv.FindDataImplicitGemmSolutions(
+                                 handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, invoke_ctx)
+                              : std::vector<miopen::solver::ConvSolution>{};
+    const auto fft      = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx)
+                                             : std::vector<miopen::solver::ConvSolution>{};
 
     // Precompile
     {
@@ -487,9 +500,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     else
     {
         ctx.DetectRocm();
-        ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-        bufs.SetFwd(x, w, y);
-        ctx.SetBufs(bufs);
         ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
             DirConvFindCore(handle,
@@ -543,10 +553,9 @@ void ValidateConvTensors(const ConvTensors& tensors)
     const auto tensor_sizes_not_matched = tensors.xDesc.GetSize() != tensors.yDesc.GetSize() ||
                                           tensors.xDesc.GetSize() != tensors.wDesc.GetSize();
 
-    const auto tensor_types_not_matched =
-        (tensors.xDesc.GetType() != tensors.yDesc.GetType() &&
-         tensors.xDesc.GetType() != miopenInt8 && tensors.xDesc.GetType() != miopenInt8x4) ||
-        tensors.xDesc.GetType() != tensors.wDesc.GetType();
+    const auto trivial_tensor_types_not_matched =
+        tensors.xDesc.GetType() != tensors.yDesc.GetType() &&
+        tensors.xDesc.GetType() != miopenInt8 && tensors.xDesc.GetType() != miopenInt8x4;
 
     // if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
     //    MIOPEN_THROW(miopenStatusBadParm);
@@ -554,8 +563,8 @@ void ValidateConvTensors(const ConvTensors& tensors)
 
     const auto x_tensor_invalid = tensors.xDesc.GetSize() < 3;
 
-    const auto bad_parameters =
-        invalid_buffers || tensor_sizes_not_matched || tensor_types_not_matched || x_tensor_invalid;
+    const auto bad_parameters = invalid_buffers || tensor_sizes_not_matched ||
+                                trivial_tensor_types_not_matched || x_tensor_invalid;
 
     if(bad_parameters)
         MIOPEN_THROW(miopenStatusBadParm);
@@ -570,6 +579,56 @@ void ValidateAlphaBeta(const void* alpha, const void* beta)
     }
 }
 
+void DumpTensorToFileFromDevice(const miopen::Handle& handle,
+                                const miopen::TensorDescriptor& tDesc,
+                                ConstData_t dData,
+                                const std::string& filename)
+{
+    if(dData == nullptr)
+    {
+        MIOPEN_LOG_E("Dereferencing nullptr when trying to dump tensor from gpu");
+        return;
+    }
+    namespace fs = boost::filesystem;
+
+    fs::path file_name_with_path(filename);
+    fs::path path = file_name_with_path.parent_path();
+
+    // dump to current folder if full path not provided.
+    if(path.empty())
+    {
+        path                = fs::current_path();
+        file_name_with_path = path / file_name_with_path; // append paths
+    }
+    if(!fs::exists(path))
+    {
+        MIOPEN_LOG_E("Directory does not exists : " << path);
+        return;
+    }
+    std::string file_name_with_path_str = file_name_with_path.string();
+
+    std::ofstream file_stream;
+    file_stream.open(file_name_with_path_str);
+
+    if(!file_stream.is_open())
+    {
+        MIOPEN_LOG_E("Cannot write to file : " << file_name_with_path_str);
+        return;
+    }
+
+    // read tensor data from gpu
+    size_t num_bytes = tDesc.GetNumBytes();
+    MIOPEN_LOG_I2("Start bringing tensor from device to host");
+    std::vector<char> hdata(num_bytes);
+    handle.ReadTo(hdata.data(), dData, num_bytes);
+    MIOPEN_LOG_I2("Done bringing tensor from device to host");
+    // write tensor data to file
+    const char* pointer = reinterpret_cast<const char*>(&hdata[0]);
+    file_stream.write(pointer, num_bytes);
+    file_stream.close();
+    MIOPEN_LOG_I("Dumping tensor to file : " << file_name_with_path_str);
+}
+
 static void ConvForwardCheckNumerics(const Handle& handle,
                                      const ConvFwdTensors& tensors,
                                      std::function<void()>&& worker)
@@ -580,12 +639,23 @@ static void ConvForwardCheckNumerics(const Handle& handle,
         return;
     }
 
-    miopen::checkNumericsInput(handle, tensors.xDesc, tensors.x);
-    miopen::checkNumericsInput(handle, tensors.wDesc, tensors.w);
+    bool flag = false;
+
+    flag |= miopen::checkNumericsInput(handle, tensors.xDesc, tensors.x);
+    flag |= miopen::checkNumericsInput(handle, tensors.wDesc, tensors.w);
 
     worker();
 
-    miopen::checkNumericsOutput(handle, tensors.yDesc, tensors.y);
+    flag |= miopen::checkNumericsOutput(handle, tensors.yDesc, tensors.y);
+
+    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+    if(flag && static_cast<bool>(file_name))
+    {
+        std::string file_name_str = file_name;
+        DumpTensorToFileFromDevice(handle, tensors.xDesc, tensors.x, file_name_str + "_x.bin");
+        DumpTensorToFileFromDevice(handle, tensors.wDesc, tensors.w, file_name_str + "_w.bin");
+        DumpTensorToFileFromDevice(handle, tensors.yDesc, tensors.y, file_name_str + "_y.bin");
+    }
 }
 
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
@@ -606,8 +676,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     ValidateConvTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
-    if(algo != miopenConvolutionFwdAlgoGEMM &&
-       (xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4))
+    if(algo != miopenConvolutionFwdAlgoGEMM && xDesc.GetType() == miopenInt8x4)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -621,7 +690,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         auto ctx =
             ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward}; // forward
         ctx.SetStream(&handle);
-        const auto network_config = ctx.BuildConfKey();
+        const auto network_config = ctx.problem.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(invoker)
@@ -743,8 +812,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
 
     /// \todo This is terrible. Should do away when we converge to
     /// single conv::ProblemDescription type.
-    const auto& inDesc = problem.direction.IsForward() ? problem.conv_problem.GetIn()
-                                                       : problem.conv_problem.GetOut();
+    const auto& inDesc      = problem.direction.IsForward() ? problem.conv_problem.GetIn()
+                                                            : problem.conv_problem.GetOut();
     const auto& weightsDesc = problem.conv_problem.GetWeights();
     // This check is needed on fallback path only.
     // On regular path (find-db hit) this was checked during Find().
@@ -886,16 +955,20 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
     if(solutions == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "solutions cannot be nullptr");
 
-    auto problem = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-    problem.SetStream(&handle);
+    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    ctx.SetStream(&handle);
 
-    GetSolutions(
-        handle, problem, maxSolutionCount, solutionCount, solutions, StringToConvolutionFwdAlgo);
+    GetSolutions(handle,
+                 ctx.problem,
+                 maxSolutionCount,
+                 solutionCount,
+                 solutions,
+                 StringToConvolutionFwdAlgo);
 
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = (*solutionCount == 0);
     if(*solutionCount == 0)
-        GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
+        GetSolutionsFallback(handle, ctx.problem, maxSolutionCount, solutionCount, solutions);
 }
 std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handle,
                                                                    const TensorDescriptor& wDesc,
@@ -957,12 +1030,12 @@ static Invoker PrepareInvoker(Handle& handle,
     return invoker; // NOLINT (performance-no-automatic-move)
 }
 
-static Invoker LoadOrPrepareInvoker(Handle& handle,
-                                    ConvolutionContext& ctx,
-                                    solver::Id solver_id,
-                                    conv::Direction dir)
+Invoker LoadOrPrepareInvoker(Handle& handle,
+                             ConvolutionContext& ctx,
+                             solver::Id solver_id,
+                             conv::Direction dir)
 {
-    const auto config = ctx.BuildConfKey();
+    const auto config = ctx.problem.BuildConfKey();
     auto invoker      = handle.GetInvoker(config, solver_id);
     if(invoker)
         return *invoker;
@@ -989,7 +1062,7 @@ static void CompileSolution(Handle& handle,
         return;
     }
 
-    const FindDbRecord fdb_record{handle, ctx};
+    const FindDbRecord fdb_record{handle, ctx.problem};
     for(const auto& pair : fdb_record)
     {
         if(solver::Id{pair.second.solver_id} != solver_id)
@@ -1084,8 +1157,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "perfResults cannot be nullptr");
     if(requestAlgoCount < 1)
         MIOPEN_THROW(miopenStatusBadParm, "requestAlgoCount cannot be < 1");
-    if(wDesc.GetType() == miopenInt8)
-        MIOPEN_THROW(miopenStatusBadParm);
 
     *returnedAlgoCount = 0;
 
@@ -1138,19 +1209,17 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     AutoUseFastDynamicSolutions tmp{ctx};
                     return FindWinogradSolutions(ctx, invoke_ctx);
                 }();
-            ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-            bufs.SetBwd(dx, w, dy);
             const auto gemm = !use_winograd_only ? FindDataGemmSolutions(ctx, invoke_ctx)
                                                  : std::vector<miopen::solver::ConvSolution>{};
             const auto direct =
                 !use_winograd_only
                     ? FindDataDirectSolutions(
-                          handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx)
+                          handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, invoke_ctx)
                     : std::vector<miopen::solver::ConvSolution>{};
             const auto igemm =
                 !use_winograd_only
                     ? FindDataImplicitGemmSolutions(
-                          handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, bufs, invoke_ctx)
+                          handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, invoke_ctx)
                     : std::vector<miopen::solver::ConvSolution>{};
             const auto fft = !use_winograd_only ? FindFftSolutions(ctx, invoke_ctx)
                                                 : std::vector<miopen::solver::ConvSolution>{};
@@ -1239,14 +1308,25 @@ static void ConvBwdCheckNumerics(const Handle& handle,
         return;
     }
 
-    miopen::checkNumericsInput(handle, tensors.dyDesc, tensors.dy);
-    miopen::checkNumericsInput(handle, tensors.wDesc, tensors.w);
+    bool flag = false;
+
+    flag |= miopen::checkNumericsInput(handle, tensors.dyDesc, tensors.dy);
+    flag |= miopen::checkNumericsInput(handle, tensors.wDesc, tensors.w);
     if(!float_equal(*(static_cast<const float*>(beta)), 0))
-        miopen::checkNumericsInput(handle, tensors.dxDesc, tensors.dx);
+        flag |= miopen::checkNumericsInput(handle, tensors.dxDesc, tensors.dx);
 
     worker();
 
-    miopen::checkNumericsOutput(handle, tensors.dxDesc, tensors.dx);
+    flag |= miopen::checkNumericsOutput(handle, tensors.dxDesc, tensors.dx);
+
+    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+    if(flag && static_cast<bool>(file_name))
+    {
+        std::string file_name_str = file_name;
+        DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name_str + "_dy.bin");
+        DumpTensorToFileFromDevice(handle, tensors.wDesc, tensors.w, file_name_str + "_w.bin");
+        DumpTensorToFileFromDevice(handle, tensors.dxDesc, tensors.dx, file_name_str + "_dx.bin");
+    }
 }
 
 // BackwardDataAlgorithm()
@@ -1269,9 +1349,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     ValidateConvTensors(tensors);
     ValidateAlphaBeta(alpha, beta);
 
-    if(wDesc.GetType() == miopenInt8)
-        MIOPEN_THROW(miopenStatusBadParm);
-
     ConvBwdCheckNumerics(handle, tensors, beta, [&]() {
         if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[0])
         {
@@ -1284,7 +1361,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
         auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
         ctx.SetStream(&handle);
-        const auto network_config = ctx.BuildConfKey();
+        const auto network_config = ctx.problem.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(!invoker)
@@ -1395,9 +1472,6 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
 
     ValidateConvTensors(tensors);
 
-    if(wDesc.GetType() == miopenInt8)
-        MIOPEN_THROW(miopenStatusBadParm);
-
     static const float beta = 0.0f;
     ConvBwdCheckNumerics(handle, tensors, &beta, [&]() {
         if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[0])
@@ -1483,15 +1557,12 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     else
     {
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
-            ConvolutionUserBuffers bufs(workSpace, workSpaceSize);
-            bufs.SetWrW(x, dw, dy);
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             ctx.do_search                  = exhaustiveSearch;
             ctx.SetStream(&handle);
-            ctx.SetBufs(bufs);
             ctx.SetupFloats();
             ctx.DetectRocm();
-            const auto network_config = ctx.BuildConfKey();
+            const auto network_config = ctx.problem.BuildConfKey();
             const auto invoke_ctx     = conv::WrWInvokeParams{InvokeType::Evaluate,
                                                           {dyDesc, dy, xDesc, x, dwDesc, dw},
                                                           workSpace,
@@ -1499,15 +1570,15 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                           this->attribute.gfx90aFp16alt.GetWrW()};
 
             // Find solutions
-            const auto gemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
-                                  ? FindAllGemmSolutions(ctx, invoke_ctx)
-                                  : std::vector<miopen::solver::ConvSolution>{};
-            const auto direct = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
-                                    ? FindAllBwdWrW2DSolutions(ctx, invoke_ctx)
-                                    : std::vector<miopen::solver::ConvSolution>{};
-            const auto winograd = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
-                                      ? FindWinogradWrWAllSolutions(ctx, invoke_ctx)
-                                      : std::vector<miopen::solver::ConvSolution>{};
+            const auto gemm        = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
+                                         ? FindAllGemmSolutions(ctx, invoke_ctx)
+                                         : std::vector<miopen::solver::ConvSolution>{};
+            const auto direct      = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
+                                         ? FindAllBwdWrW2DSolutions(ctx, invoke_ctx)
+                                         : std::vector<miopen::solver::ConvSolution>{};
+            const auto winograd    = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
+                                         ? FindWinogradWrWAllSolutions(ctx, invoke_ctx)
+                                         : std::vector<miopen::solver::ConvSolution>{};
             const auto implictgemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{})
                                          ? FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx)
                                          : std::vector<miopen::solver::ConvSolution>{};
@@ -1588,14 +1659,25 @@ static void ConvWrwCheckNumerics(const Handle& handle,
         return;
     }
 
-    miopen::checkNumericsInput(handle, tensors.dyDesc, tensors.dy);
-    miopen::checkNumericsInput(handle, tensors.xDesc, tensors.x);
+    bool flag = false;
+
+    flag |= miopen::checkNumericsInput(handle, tensors.dyDesc, tensors.dy);
+    flag |= miopen::checkNumericsInput(handle, tensors.xDesc, tensors.x);
     if(!float_equal(*(static_cast<const float*>(beta)), 0))
-        miopen::checkNumericsInput(handle, tensors.dwDesc, tensors.dw);
+        flag |= miopen::checkNumericsInput(handle, tensors.dwDesc, tensors.dw);
 
     worker();
 
-    miopen::checkNumericsOutput(handle, tensors.dwDesc, tensors.dw);
+    flag |= miopen::checkNumericsOutput(handle, tensors.dwDesc, tensors.dw);
+
+    const char* file_name = miopen::GetStringEnv(MIOPEN_DUMP_TENSOR_PATH{});
+    if(flag && static_cast<bool>(file_name))
+    {
+        std::string file_name_str = file_name;
+        DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name_str + "_dy.bin");
+        DumpTensorToFileFromDevice(handle, tensors.xDesc, tensors.x, file_name_str + "_x.bin");
+        DumpTensorToFileFromDevice(handle, tensors.dwDesc, tensors.dw, file_name_str + "_dw.bin");
+    }
 }
 
 // BackwardWeightsAlgorithm()

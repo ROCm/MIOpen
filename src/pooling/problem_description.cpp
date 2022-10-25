@@ -79,10 +79,11 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
                     std::min(16, std::max(1, prePow2(_out_pix_tile1 * pooling.strides[0])));
 
             int _grp_tile0 = out_width <= 8 ? 8 : (out_width % 32 <= 16 ? 16 : 32);
-            int _grp_tile1 =
-                out_height <= 8
-                    ? 8
-                    : out_height < 16 ? 16 : out_height <= 32 ? 32 : out_height <= 64 ? 64 : 128;
+            int _grp_tile1 = out_height <= 8    ? 8
+                             : out_height < 16  ? 16
+                             : out_height <= 32 ? 32
+                             : out_height <= 64 ? 64
+                                                : 128;
             _grp_tile1 /= _out_pix_tile1;
             while(_grp_tile0 * _grp_tile1 > 256 && _grp_tile0 > 1)
                 _grp_tile0 >>= 1;
@@ -95,9 +96,9 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
                 ((out_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
 
             _g_wk.clear();
-            _g_wk.push_back(g_wk_width * _grp_tile0);
-            _g_wk.push_back(g_wk_height * _grp_tile1);
-            _g_wk.push_back(n_outputs * batch_sz);
+            _g_wk.push_back(static_cast<size_t>(g_wk_width) * _grp_tile0);
+            _g_wk.push_back(static_cast<size_t>(g_wk_height) * _grp_tile1);
+            _g_wk.push_back(static_cast<size_t>(n_outputs) * batch_sz);
 
             ss << "_nout" << xDesc.GetLengths()[1];
             ss << "_tile" << static_cast<int>(_out_pix_tile1);

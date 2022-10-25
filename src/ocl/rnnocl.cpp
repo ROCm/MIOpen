@@ -257,22 +257,24 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             }
             else
             {
-                miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
-                                                                  false,
-                                                                  true,
-                                                                  batch_n,
-                                                                  wei_len * bi,
-                                                                  in_h,
-                                                                  in_stride,
-                                                                  in_stride,
-                                                                  hy_stride,
-                                                                  1, // batch count
-                                                                  0, // Stride A
-                                                                  0, // Stride B
-                                                                  0, // Stride C
-                                                                  1, // alpha
-                                                                  1, // beta
-                                                                  xDesc[0].GetType()};
+                miopen::GemmDescriptor gemm_desc =
+                    GemmDescriptor{false,
+                                   false,
+                                   true,
+                                   batch_n,
+                                   wei_len * bi,
+                                   in_h,
+                                   in_stride,
+                                   in_stride,
+                                   hy_stride,
+                                   1, // batch count
+                                   0, // Stride A
+                                   0, // Stride B
+                                   0, // Stride C
+                                   1, // alpha
+                                   1, // beta
+                                   xDesc[0].GetType(),
+                                   false}; // RNN does not support determinism
 
                 miopenStatus_t gemm_status = CallGemm(handle,
                                                       gemm_desc,
@@ -320,7 +322,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                               0, // Stride C
                                                               1, // alpha
                                                               1, // beta
-                                                              xDesc[0].GetType()};
+                                                              xDesc[0].GetType(),
+                                                              false};
             miopenStatus_t gemm_status       = CallGemm(handle,
                                                   gemm_desc,
                                                   workSpace,
@@ -583,7 +586,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              xDesc[0].GetType()};
+                                                                              xDesc[0].GetType(),
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -632,7 +636,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                0, // Stride C
                                                1, // alpha
                                                1, // beta
-                                               xDesc[0].GetType()};
+                                               xDesc[0].GetType(),
+                                               false};
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
                                          gemm_desc,
@@ -678,7 +683,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              xDesc[0].GetType()};
+                                                                              xDesc[0].GetType(),
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -723,8 +729,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                           &beta,
                                           sp_desc,
                                           workSpace,
-                                          offset + ri * wei_len,
-                                          offset + ri * wei_len);
+                                          offset + static_cast<size_t>(ri) * wei_len,
+                                          offset + static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -732,29 +738,34 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                     {
                         if(algoMode == miopenRNNdefault)
                         {
-                            LSTMForwardHiddenStateUpdate(handle,
-                                                         wDesc.GetType(),
-                                                         true,
-                                                         ti == 0,
-                                                         ri,
-                                                         in_n.at(0),
-                                                         in_n.at(cur_time),
-                                                         in_n.at(use_time),
-                                                         hy_h,
-                                                         hy_stride,
-                                                         wei_len,
-                                                         wei_stride,
-                                                         cx,
-                                                         hx_shift + ri * hy_n * hy_h,
-                                                         workSpace,
-                                                         offset + ri * wei_len,
-                                                         offset + hy_h + ri * wei_len,
-                                                         offset + 2 * hy_h + ri * wei_len,
-                                                         offset + 3 * hy_h + ri * wei_len,
-                                                         offset + bi * wei_len + ri * hy_h,
-                                                         pretime_shift + bi * wei_len + ri * hy_h,
-                                                         0,
-                                                         offset + hid_off + ri * hy_h);
+                            LSTMForwardHiddenStateUpdate(
+                                handle,
+                                wDesc.GetType(),
+                                true,
+                                ti == 0,
+                                ri,
+                                in_n.at(0),
+                                in_n.at(cur_time),
+                                in_n.at(use_time),
+                                hy_h,
+                                hy_stride,
+                                wei_len,
+                                wei_stride,
+                                cx,
+                                hx_shift + ri * hy_n * hy_h,
+                                workSpace,
+                                offset + static_cast<size_t>(ri) * wei_len,
+                                offset + hy_h + static_cast<size_t>(ri) * wei_len,
+                                offset + 2 * static_cast<size_t>(hy_h) +
+                                    static_cast<size_t>(ri) * wei_len,
+                                offset + 3 * static_cast<size_t>(hy_h) +
+                                    static_cast<size_t>(ri) * wei_len,
+                                offset + static_cast<size_t>(bi) * wei_len +
+                                    static_cast<size_t>(ri) * hy_h,
+                                pretime_shift + static_cast<size_t>(bi) * wei_len +
+                                    static_cast<size_t>(ri) * hy_h,
+                                0,
+                                offset + hid_off + static_cast<size_t>(ri) * hy_h);
 
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -773,8 +784,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                         &beta,
                                         sp_desc,
                                         workSpace,
-                                        offset + ri * wei_len,
-                                        offset + ri * wei_len);
+                                        offset + static_cast<size_t>(ri) * wei_len,
+                                        offset + static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -790,8 +801,10 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          &beta,
                                          sp_desc,
                                          workSpace,
-                                         offset + 3 * hy_h + ri * wei_len,
-                                         offset + 3 * hy_h + ri * wei_len);
+                                         offset + 3 * static_cast<size_t>(hy_h) +
+                                             static_cast<size_t>(ri) * wei_len,
+                                         offset + 3 * static_cast<size_t>(hy_h) +
+                                             static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -811,9 +824,11 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + ri * wei_len,
-                                 offset + 3 * hy_h + ri * wei_len,
-                                 offset + bi * wei_len + ri * hy_h);
+                                 offset + static_cast<size_t>(ri) * wei_len,
+                                 offset + 3 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len,
+                                 offset + static_cast<size_t>(bi) * wei_len +
+                                     static_cast<size_t>(ri) * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -837,9 +852,10 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          workSpace,
-                                         offset + hy_h + ri * wei_len,
+                                         offset + hy_h + static_cast<size_t>(ri) * wei_len,
                                          hx_shift + ri * hy_n * hy_h,
-                                         offset + bi * wei_len + ri * hy_h);
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -868,11 +884,12 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          workSpace,
-                                         offset + hy_h + ri * wei_len +
-                                             in_n.at(use_time) * hy_stride,
+                                         offset + hy_h + static_cast<size_t>(ri) * wei_len +
+                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride,
                                          hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
-                                         offset + bi * wei_len + ri * hy_h +
-                                             in_n.at(use_time) * hy_stride);
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h +
+                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -901,9 +918,11 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          workSpace,
-                                         offset + hy_h + ri * wei_len,
-                                         pretime_shift + bi * wei_len + ri * hy_h,
-                                         offset + bi * wei_len + ri * hy_h);
+                                         offset + hy_h + static_cast<size_t>(ri) * wei_len,
+                                         pretime_shift + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h,
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -924,8 +943,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          &beta,
                                          sp_desc,
                                          workSpace,
-                                         offset + bi * wei_len + ri * hy_h,
-                                         offset + hid_off + ri * hy_h);
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h,
+                                         offset + hid_off + static_cast<size_t>(ri) * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -942,9 +962,10 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + 2 * hy_h + ri * wei_len,
-                                 offset + hid_off + ri * hy_h,
-                                 offset + hid_off + ri * hy_h);
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len,
+                                 offset + hid_off + static_cast<size_t>(ri) * hy_h,
+                                 offset + hid_off + static_cast<size_t>(ri) * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -962,8 +983,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                         &beta,
                                         sp_desc,
                                         workSpace,
-                                        offset + ri * wei_len,
-                                        offset + ri * wei_len);
+                                        offset + static_cast<size_t>(ri) * wei_len,
+                                        offset + static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -987,9 +1008,11 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + hy_h + ri * wei_len,
-                                 offset + 2 * hy_h + ri * wei_len,
-                                 offset + 2 * hy_h + ri * wei_len);
+                                 offset + hy_h + static_cast<size_t>(ri) * wei_len,
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len,
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -1004,9 +1027,11 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + 2 * hy_h + ri * wei_len,
-                                 offset + hid_off + ri * hy_h,
-                                 offset + 2 * hy_h + ri * wei_len);
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len,
+                                 offset + hid_off + static_cast<size_t>(ri) * hy_h,
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -1018,8 +1043,10 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          &beta,
                                          sp_desc,
                                          workSpace,
-                                         offset + 2 * hy_h + ri * wei_len,
-                                         offset + 2 * hy_h + ri * wei_len);
+                                         offset + 2 * static_cast<size_t>(hy_h) +
+                                             static_cast<size_t>(ri) * wei_len,
+                                         offset + 2 * static_cast<size_t>(hy_h) +
+                                             static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -1038,9 +1065,10 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + ri * wei_len,
-                                 offset + 2 * hy_h + ri * wei_len,
-                                 offset + hid_off + ri * hy_h);
+                                 offset + static_cast<size_t>(ri) * wei_len,
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len,
+                                 offset + hid_off + static_cast<size_t>(ri) * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -1059,9 +1087,10 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + 2 * hy_h + ri * wei_len,
-                                 offset + hid_off + ri * hy_h,
-                                 offset + hid_off + ri * hy_h);
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len,
+                                 offset + hid_off + static_cast<size_t>(ri) * hy_h,
+                                 offset + hid_off + static_cast<size_t>(ri) * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -1088,9 +1117,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          workSpace,
-                                         offset + ri * wei_len,
+                                         offset + static_cast<size_t>(ri) * wei_len,
                                          hx_shift + ri * hy_n * hy_h,
-                                         offset + hid_off + ri * hy_h);
+                                         offset + hid_off + static_cast<size_t>(ri) * hy_h);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -1119,10 +1148,11 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          workSpace,
-                                         offset + ri * wei_len + in_n.at(use_time) * hy_stride,
+                                         offset + static_cast<size_t>(ri) * wei_len +
+                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride,
                                          hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
-                                         offset + hid_off + ri * hy_h +
-                                             in_n.at(use_time) * hy_stride);
+                                         offset + hid_off + static_cast<size_t>(ri) * hy_h +
+                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -1151,9 +1181,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          workSpace,
-                                         offset + ri * wei_len,
+                                         offset + static_cast<size_t>(ri) * wei_len,
                                          pretime_shift + hid_off + ri * hy_h,
-                                         offset + hid_off + ri * hy_h);
+                                         offset + hid_off + static_cast<size_t>(ri) * hy_h);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -1502,7 +1532,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                                   0, // Stride C
                                                                   1, // alpha
                                                                   1, // beta
-                                                                  xDesc[0].GetType()};
+                                                                  xDesc[0].GetType(),
+                                                                  false};
 
                 miopenStatus_t gemm_status = CallGemm(handle,
                                                       gemm_desc,
@@ -1555,8 +1586,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         ? nLayers * batch_n * hy_stride + nLayers * batch_n * hy_h * bi
                         : 2 * nLayers * batch_n * hy_stride;
 
-                size_t drop_in_offset  = prelayer_shift;
-                size_t drop_out_offset = drop_rsv_start + (li - 1) * batch_n * hy_h * bi;
+                size_t drop_in_offset = prelayer_shift;
+                size_t drop_out_offset =
+                    drop_rsv_start + (static_cast<size_t>(li) - 1) * batch_n * hy_h * bi;
                 size_t drop_rsv_offset = (drop_rsv_start + (nLayers - 1) * batch_n * hy_h * bi) *
                                              (wDesc.GetType() == miopenFloat ? 4 : 2) +
                                          (li - 1) * drop_rsv_size;
@@ -1594,7 +1626,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                               0, // Stride C
                                                               1, // alpha
                                                               1, // beta
-                                                              xDesc[0].GetType()};
+                                                              xDesc[0].GetType(),
+                                                              false};
 
             miopenStatus_t gemm_status = CallGemm(handle,
                                                   gemm_desc,
@@ -1858,7 +1891,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              xDesc[0].GetType()};
+                                                                              xDesc[0].GetType(),
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -1907,7 +1941,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                0, // Stride C
                                                1, // alpha
                                                1, // beta
-                                               xDesc[0].GetType()};
+                                               xDesc[0].GetType(),
+                                               false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -1954,7 +1989,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              xDesc[0].GetType()};
+                                                                              xDesc[0].GetType(),
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -1999,8 +2035,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                           &beta,
                                           sp_desc,
                                           reserveSpace,
-                                          offset + ri * wei_len,
-                                          offset + ri * wei_len + nLayers * batch_n * hy_stride);
+                                          offset + static_cast<size_t>(ri) * wei_len,
+                                          offset + static_cast<size_t>(ri) * wei_len +
+                                              static_cast<size_t>(nLayers) * batch_n * hy_stride);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -2008,31 +2045,35 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     {
                         if(algoMode == miopenRNNdefault)
                         {
-                            LSTMForwardHiddenStateUpdate(handle,
-                                                         wDesc.GetType(),
-                                                         false,
-                                                         ti == 0,
-                                                         ri,
-                                                         in_n.at(0),
-                                                         in_n.at(cur_time),
-                                                         in_n.at(use_time),
-                                                         hy_h,
-                                                         hy_stride,
-                                                         wei_len,
-                                                         wei_stride,
-                                                         cx,
-                                                         hx_shift + ri * hy_n * hy_h,
-                                                         reserveSpace,
-                                                         offset + ri * wei_len,
-                                                         offset + hy_h + ri * wei_len,
-                                                         offset + 2 * hy_h + ri * wei_len,
-                                                         offset + 3 * hy_h + ri * wei_len,
-                                                         offset + bi * wei_len + ri * hy_h,
-                                                         pretime_shift + bi * wei_len + ri * hy_h,
-                                                         (li * batch_n + cur_batch) * bi * hy_h +
-                                                             ri * hy_h +
-                                                             nLayers * batch_n * hy_stride,
-                                                         offset + hid_off + ri * hy_h);
+                            LSTMForwardHiddenStateUpdate(
+                                handle,
+                                wDesc.GetType(),
+                                false,
+                                ti == 0,
+                                ri,
+                                in_n.at(0),
+                                in_n.at(cur_time),
+                                in_n.at(use_time),
+                                hy_h,
+                                hy_stride,
+                                wei_len,
+                                wei_stride,
+                                cx,
+                                hx_shift + ri * hy_n * hy_h,
+                                reserveSpace,
+                                offset + static_cast<size_t>(ri) * wei_len,
+                                offset + hy_h + static_cast<size_t>(ri) * wei_len,
+                                offset + 2 * static_cast<size_t>(hy_h) +
+                                    static_cast<size_t>(ri) * wei_len,
+                                offset + 3 * static_cast<size_t>(hy_h) +
+                                    static_cast<size_t>(ri) * wei_len,
+                                offset + static_cast<size_t>(bi) * wei_len +
+                                    static_cast<size_t>(ri) * hy_h,
+                                pretime_shift + static_cast<size_t>(bi) * wei_len +
+                                    static_cast<size_t>(ri) * hy_h,
+                                (li * batch_n + cur_batch) * bi * hy_h + ri * hy_h +
+                                    nLayers * batch_n * hy_stride,
+                                offset + hid_off + static_cast<size_t>(ri) * hy_h);
 
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
@@ -2051,8 +2092,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                         &beta,
                                         sp_desc,
                                         reserveSpace,
-                                        offset + ri * wei_len,
-                                        offset + ri * wei_len + nLayers * batch_n * hy_stride);
+                                        offset + static_cast<size_t>(ri) * wei_len,
+                                        offset + static_cast<size_t>(ri) * wei_len +
+                                            static_cast<size_t>(nLayers) * batch_n * hy_stride);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -2068,8 +2110,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          &beta,
                                          sp_desc,
                                          reserveSpace,
-                                         offset + 3 * hy_h + ri * wei_len,
-                                         offset + 3 * hy_h + ri * wei_len +
+                                         offset + 3 * static_cast<size_t>(hy_h) +
+                                             static_cast<size_t>(ri) * wei_len,
+                                         offset + 3 * static_cast<size_t>(hy_h) +
+                                             static_cast<size_t>(ri) * wei_len +
                                              nLayers * batch_n * hy_stride);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
@@ -2090,9 +2134,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  reserveSpace,
-                                 offset + ri * wei_len + nLayers * batch_n * hy_stride,
-                                 offset + 3 * hy_h + ri * wei_len + nLayers * batch_n * hy_stride,
-                                 offset + bi * wei_len + ri * hy_h);
+                                 offset + static_cast<size_t>(ri) * wei_len +
+                                     static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                 offset + 3 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len +
+                                     static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                 offset + static_cast<size_t>(bi) * wei_len +
+                                     static_cast<size_t>(ri) * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -2116,10 +2164,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          reserveSpace,
-                                         offset + hy_h + ri * wei_len +
+                                         offset + hy_h + static_cast<size_t>(ri) * wei_len +
                                              nLayers * batch_n * hy_stride,
                                          hx_shift + ri * hy_n * hy_h,
-                                         offset + bi * wei_len + ri * hy_h);
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -2148,12 +2197,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          reserveSpace,
-                                         offset + hy_h + ri * wei_len +
-                                             in_n.at(use_time) * hy_stride +
+                                         offset + hy_h + static_cast<size_t>(ri) * wei_len +
+                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride +
                                              nLayers * batch_n * hy_stride,
                                          hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
-                                         offset + bi * wei_len + ri * hy_h +
-                                             in_n.at(use_time) * hy_stride);
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h +
+                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -2182,10 +2232,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          reserveSpace,
-                                         offset + hy_h + ri * wei_len +
-                                             nLayers * batch_n * hy_stride,
-                                         pretime_shift + bi * wei_len + ri * hy_h,
-                                         offset + bi * wei_len + ri * hy_h);
+                                         offset + hy_h + static_cast<size_t>(ri) * wei_len +
+                                             static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                         pretime_shift + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h,
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -2206,8 +2258,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          &beta,
                                          sp_desc,
                                          reserveSpace,
-                                         offset + bi * wei_len + ri * hy_h,
-                                         offset + bi * wei_len + ri * hy_h +
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h,
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h +
                                              nLayers * batch_n * hy_stride);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
@@ -2224,9 +2278,13 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  reserveSpace,
-                                 offset + 2 * hy_h + ri * wei_len + nLayers * batch_n * hy_stride,
-                                 offset + bi * wei_len + ri * hy_h + nLayers * batch_n * hy_stride,
-                                 offset + hid_off + ri * hy_h);
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len +
+                                     static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                 offset + static_cast<size_t>(bi) * wei_len +
+                                     static_cast<size_t>(ri) * hy_h +
+                                     static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                 offset + hid_off + static_cast<size_t>(ri) * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -2244,8 +2302,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                         &beta,
                                         sp_desc,
                                         reserveSpace,
-                                        offset + ri * wei_len,
-                                        offset + ri * wei_len + nLayers * batch_n * hy_stride);
+                                        offset + static_cast<size_t>(ri) * wei_len,
+                                        offset + static_cast<size_t>(ri) * wei_len +
+                                            static_cast<size_t>(nLayers) * batch_n * hy_stride);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -2280,9 +2339,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  reserveSpace,
-                                 offset + hy_h + ri * wei_len + nLayers * batch_n * hy_stride,
-                                 offset + 2 * hy_h + ri * wei_len,
-                                 offset + 2 * hy_h + ri * wei_len);
+                                 offset + hy_h + static_cast<size_t>(ri) * wei_len +
+                                     static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len,
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -2297,9 +2359,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  reserveSpace,
-                                 offset + 2 * hy_h + ri * wei_len,
-                                 offset + hid_off + ri * hy_h,
-                                 offset + 2 * hy_h + ri * wei_len);
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len,
+                                 offset + hid_off + static_cast<size_t>(ri) * hy_h,
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -2311,9 +2375,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          &beta,
                                          sp_desc,
                                          reserveSpace,
-                                         offset + 2 * hy_h + ri * wei_len,
-                                         offset + 2 * hy_h + ri * wei_len +
-                                             nLayers * batch_n * hy_stride);
+                                         offset + 2 * static_cast<size_t>(hy_h) +
+                                             static_cast<size_t>(ri) * wei_len,
+                                         offset + 2 * static_cast<size_t>(hy_h) +
+                                             static_cast<size_t>(ri) * wei_len +
+                                             static_cast<size_t>(nLayers) * batch_n * hy_stride);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -2333,9 +2399,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  reserveSpace,
-                                 offset + ri * wei_len + nLayers * batch_n * hy_stride,
-                                 offset + 2 * hy_h + ri * wei_len + nLayers * batch_n * hy_stride,
-                                 offset + hid_off + ri * hy_h);
+                                 offset + static_cast<size_t>(ri) * wei_len +
+                                     static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len +
+                                     static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                 offset + hid_off + static_cast<size_t>(ri) * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -2354,9 +2423,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  reserveSpace,
-                                 offset + 2 * hy_h + ri * wei_len + nLayers * batch_n * hy_stride,
-                                 offset + hid_off + ri * hy_h,
-                                 offset + hid_off + ri * hy_h);
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len +
+                                     static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                 offset + hid_off + static_cast<size_t>(ri) * hy_h,
+                                 offset + hid_off + static_cast<size_t>(ri) * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -2384,9 +2455,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          reserveSpace,
-                                         offset + ri * wei_len + nLayers * batch_n * hy_stride,
+                                         offset + static_cast<size_t>(ri) * wei_len +
+                                             static_cast<size_t>(nLayers) * batch_n * hy_stride,
                                          hx_shift + ri * hy_n * hy_h,
-                                         offset + hid_off + ri * hy_h);
+                                         offset + hid_off + static_cast<size_t>(ri) * hy_h);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -2415,11 +2487,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          reserveSpace,
-                                         offset + ri * wei_len + in_n.at(use_time) * hy_stride +
-                                             nLayers * batch_n * hy_stride,
+                                         offset + static_cast<size_t>(ri) * wei_len +
+                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride +
+                                             static_cast<size_t>(nLayers) * batch_n * hy_stride,
                                          hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
-                                         offset + hid_off + ri * hy_h +
-                                             in_n.at(use_time) * hy_stride);
+                                         offset + hid_off + static_cast<size_t>(ri) * hy_h +
+                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -2448,9 +2521,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          reserveSpace,
-                                         offset + ri * wei_len + nLayers * batch_n * hy_stride,
+                                         offset + static_cast<size_t>(ri) * wei_len +
+                                             static_cast<size_t>(nLayers) * batch_n * hy_stride,
                                          pretime_shift + hid_off + ri * hy_h,
-                                         offset + hid_off + ri * hy_h);
+                                         offset + hid_off + static_cast<size_t>(ri) * hy_h);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -2813,7 +2887,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                               0, // Stride C
                                                               1, // alpha
                                                               1, // beta
-                                                              yDesc[0].GetType()};
+                                                              yDesc[0].GetType(),
+                                                              false};
 
             miopenStatus_t gemm_status = CallGemm(handle,
                                                   gemm_desc,
@@ -2933,8 +3008,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      sp_desc,
                                      workSpace,
                                      hx_shift + ri * hy_n * hy_h,
-                                     offset + dhd_off + ri * hy_h,
-                                     offset + dhd_off + ri * hy_h);
+                                     offset + dhd_off + static_cast<size_t>(ri) * hy_h,
+                                     offset + dhd_off + static_cast<size_t>(ri) * hy_h);
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
                         }
@@ -2968,8 +3043,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      sp_desc,
                                      workSpace,
                                      hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
-                                     offset + dhd_off + ri * hy_h + in_n.at(use_time) * hy_stride,
-                                     offset + dhd_off + ri * hy_h + in_n.at(use_time) * hy_stride);
+                                     offset + dhd_off + static_cast<size_t>(ri) * hy_h +
+                                         static_cast<size_t>(in_n.at(use_time)) * hy_stride,
+                                     offset + dhd_off + static_cast<size_t>(ri) * hy_h +
+                                         static_cast<size_t>(in_n.at(use_time)) * hy_stride);
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
                         }
@@ -3003,7 +3080,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          workSpace,
                                          pretime_shift - ri * 2 * hy_h + dhd_off,
                                          pretime_shift + nLayers * batch_n * hy_stride,
-                                         offset + dhd_off + ri * hy_h);
+                                         offset + dhd_off + static_cast<size_t>(ri) * hy_h);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -3043,7 +3120,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              yDesc[0].GetType()};
+                                                                              yDesc[0].GetType(),
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -3106,10 +3184,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            &beta,
                                            sp_desc,
                                            workSpace,
-                                           offset + ri * wei_len + nLayers * batch_n * hy_stride,
-                                           offset + ri * wei_len,
-                                           offset + ri * wei_len,
-                                           offset + ri * wei_len);
+                                           offset + static_cast<size_t>(ri) * wei_len +
+                                               static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                           offset + static_cast<size_t>(ri) * wei_len,
+                                           offset + static_cast<size_t>(ri) * wei_len,
+                                           offset + static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -3134,10 +3213,12 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 cx,
                                 hx_shift + ri * hy_n * hy_h,
                                 reserveSpace,
-                                offset + ri * wei_len,
-                                offset + hy_h + ri * wei_len,
-                                offset + 2 * hy_h + ri * wei_len,
-                                offset + 3 * hy_h + ri * wei_len,
+                                offset + static_cast<size_t>(ri) * wei_len,
+                                offset + hy_h + static_cast<size_t>(ri) * wei_len,
+                                offset + 2 * static_cast<size_t>(hy_h) +
+                                    static_cast<size_t>(ri) * wei_len,
+                                offset + 3 * static_cast<size_t>(hy_h) +
+                                    static_cast<size_t>(ri) * wei_len,
                                 (li * batch_n + cur_batch) * bi * hy_h + ri * hy_h +
                                     nLayers * batch_n * hy_stride,
                                 li * batch_n * hy_stride + pre_batch2 * hy_stride + bi * wei_len +
@@ -3145,14 +3226,17 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                 dcy,
                                 hx_shift + ri * hy_n * hy_h,
                                 workSpace,
-                                offset + ri * wei_len,
-                                offset + hy_h + ri * wei_len,
-                                offset + 2 * hy_h + ri * wei_len,
-                                offset + 3 * hy_h + ri * wei_len,
-                                offset + bi * wei_len + ri * hy_h,
+                                offset + static_cast<size_t>(ri) * wei_len,
+                                offset + hy_h + static_cast<size_t>(ri) * wei_len,
+                                offset + 2 * static_cast<size_t>(hy_h) +
+                                    static_cast<size_t>(ri) * wei_len,
+                                offset + 3 * static_cast<size_t>(hy_h) +
+                                    static_cast<size_t>(ri) * wei_len,
+                                offset + static_cast<size_t>(bi) * wei_len +
+                                    static_cast<size_t>(ri) * hy_h,
                                 li * batch_n * hy_stride + pre_batch * hy_stride + bi * wei_len +
                                     ri * hy_h,
-                                offset + dhd_off + ri * hy_h,
+                                offset + dhd_off + static_cast<size_t>(ri) * hy_h,
                                 li * batch_n * hy_stride + pre_batch * hy_stride + hy_h +
                                     ri * wei_len);
 
@@ -3177,9 +3261,12 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + dhd_off + ri * hy_h,
-                                 offset + 2 * hy_h + ri * wei_len + nLayers * batch_n * hy_stride,
-                                 offset + bi * wei_len + ri * hy_h);
+                                 offset + dhd_off + static_cast<size_t>(ri) * hy_h,
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len +
+                                     static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                 offset + static_cast<size_t>(bi) * wei_len +
+                                     static_cast<size_t>(ri) * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3194,11 +3281,15 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                           &beta,
                                           sp_desc,
                                           workSpace,
-                                          offset + bi * wei_len + ri * hy_h +
+                                          offset + static_cast<size_t>(bi) * wei_len +
+                                              static_cast<size_t>(ri) * hy_h +
                                               nLayers * batch_n * hy_stride,
-                                          offset + bi * wei_len + ri * hy_h,
-                                          offset + bi * wei_len + ri * hy_h,
-                                          offset + bi * wei_len + ri * hy_h);
+                                          offset + static_cast<size_t>(bi) * wei_len +
+                                              static_cast<size_t>(ri) * hy_h,
+                                          offset + static_cast<size_t>(bi) * wei_len +
+                                              static_cast<size_t>(ri) * hy_h,
+                                          offset + static_cast<size_t>(bi) * wei_len +
+                                              static_cast<size_t>(ri) * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3223,8 +3314,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          sp_desc,
                                          workSpace,
                                          hx_shift + ri * hy_n * hy_h,
-                                         offset + bi * wei_len + ri * hy_h,
-                                         offset + bi * wei_len + ri * hy_h);
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h,
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -3254,10 +3347,12 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          sp_desc,
                                          workSpace,
                                          hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
-                                         offset + bi * wei_len + ri * hy_h +
-                                             in_n.at(use_time) * hy_stride,
-                                         offset + bi * wei_len + ri * hy_h +
-                                             in_n.at(use_time) * hy_stride);
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h +
+                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride,
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h +
+                                             static_cast<size_t>(in_n.at(use_time)) * hy_stride);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -3289,10 +3384,12 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      &beta_t,
                                      sp_desc,
                                      workSpace,
-                                     pretime_shift + bi * wei_len + ri * hy_h,
+                                     pretime_shift + static_cast<size_t>(bi) * wei_len +
+                                         static_cast<size_t>(ri) * hy_h,
                                      pretime_shift + hy_h + ri * wei_len +
                                          nLayers * batch_n * hy_stride,
-                                     offset + bi * wei_len + ri * hy_h);
+                                     offset + static_cast<size_t>(bi) * wei_len +
+                                         static_cast<size_t>(ri) * hy_h);
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
 
@@ -3329,9 +3426,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          workSpace,
-                                         offset + bi * wei_len + ri * hy_h,
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h,
                                          hx_shift + ri * hy_n * hy_h,
-                                         offset + hy_h + ri * wei_len);
+                                         offset + hy_h + static_cast<size_t>(ri) * wei_len);
                             }
                         }
                         else
@@ -3358,11 +3456,12 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          workSpace,
-                                         offset + bi * wei_len + ri * hy_h +
-                                             in_n.at(use_time2) * hy_stride,
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h +
+                                             static_cast<size_t>(in_n.at(use_time2)) * hy_stride,
                                          hx_shift + ri * hy_n * hy_h + in_n.at(use_time2) * hy_h,
-                                         offset + hy_h + ri * wei_len +
-                                             in_n.at(use_time2) * hy_stride);
+                                         offset + hy_h + static_cast<size_t>(ri) * wei_len +
+                                             static_cast<size_t>(in_n.at(use_time2)) * hy_stride);
 
                                 sp_size[1] = in_n.at(cur_time);
                                 sp_desc    = miopen::TensorDescriptor(
@@ -3391,9 +3490,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          &beta_t,
                                          sp_desc,
                                          workSpace,
-                                         offset + bi * wei_len + ri * hy_h,
-                                         pretime_shift + bi * wei_len + ri * hy_h,
-                                         offset + hy_h + ri * wei_len);
+                                         offset + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h,
+                                         pretime_shift + static_cast<size_t>(bi) * wei_len +
+                                             static_cast<size_t>(ri) * hy_h,
+                                         offset + hy_h + static_cast<size_t>(ri) * wei_len);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -3418,9 +3519,12 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + bi * wei_len + ri * hy_h,
-                                 offset + 3 * hy_h + ri * wei_len + nLayers * batch_n * hy_stride,
-                                 offset + ri * wei_len);
+                                 offset + static_cast<size_t>(bi) * wei_len +
+                                     static_cast<size_t>(ri) * hy_h,
+                                 offset + 3 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len +
+                                     nLayers * batch_n * hy_stride,
+                                 offset + static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3436,9 +3540,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + dhd_off + ri * hy_h,
-                                 offset + bi * wei_len + ri * hy_h + nLayers * batch_n * hy_stride,
-                                 offset + 2 * hy_h + ri * wei_len);
+                                 offset + dhd_off + static_cast<size_t>(ri) * hy_h,
+                                 offset + static_cast<size_t>(bi) * wei_len +
+                                     static_cast<size_t>(ri) * hy_h + nLayers * batch_n * hy_stride,
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3454,9 +3560,12 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + bi * wei_len + ri * hy_h,
-                                 offset + ri * wei_len + nLayers * batch_n * hy_stride,
-                                 offset + 3 * hy_h + ri * wei_len);
+                                 offset + static_cast<size_t>(bi) * wei_len +
+                                     static_cast<size_t>(ri) * hy_h,
+                                 offset + static_cast<size_t>(ri) * wei_len +
+                                     static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                 offset + 3 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3471,11 +3580,15 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                           &beta,
                                           sp_desc,
                                           workSpace,
-                                          offset + 3 * hy_h + ri * wei_len +
+                                          offset + 3 * static_cast<size_t>(hy_h) +
+                                              static_cast<size_t>(ri) * wei_len +
                                               nLayers * batch_n * hy_stride,
-                                          offset + 3 * hy_h + ri * wei_len,
-                                          offset + 3 * hy_h + ri * wei_len,
-                                          offset + 3 * hy_h + ri * wei_len);
+                                          offset + 3 * static_cast<size_t>(hy_h) +
+                                              static_cast<size_t>(ri) * wei_len,
+                                          offset + 3 * static_cast<size_t>(hy_h) +
+                                              static_cast<size_t>(ri) * wei_len,
+                                          offset + 3 * static_cast<size_t>(hy_h) +
+                                              static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3494,10 +3607,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          &beta,
                                          sp_desc,
                                          workSpace,
-                                         offset + ri * wei_len + nLayers * batch_n * hy_stride,
-                                         offset + ri * wei_len,
-                                         offset + ri * wei_len,
-                                         offset + ri * wei_len);
+                                         offset + static_cast<size_t>(ri) * wei_len +
+                                             static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                         offset + static_cast<size_t>(ri) * wei_len,
+                                         offset + static_cast<size_t>(ri) * wei_len,
+                                         offset + static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -3519,9 +3633,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + dhd_off + ri * hy_h,
-                                 offset + ri * wei_len + nLayers * batch_n * hy_stride,
-                                 offset + 2 * hy_h + ri * wei_len);
+                                 offset + dhd_off + static_cast<size_t>(ri) * hy_h,
+                                 offset + static_cast<size_t>(ri) * wei_len +
+                                     static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3540,9 +3656,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + dhd_off + ri * hy_h,
-                                 offset + 2 * hy_h + ri * wei_len,
-                                 offset + 2 * hy_h + ri * wei_len);
+                                 offset + dhd_off + static_cast<size_t>(ri) * hy_h,
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len,
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3557,11 +3675,15 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                           &beta,
                                           sp_desc,
                                           workSpace,
-                                          offset + 2 * hy_h + ri * wei_len +
-                                              nLayers * batch_n * hy_stride,
-                                          offset + 2 * hy_h + ri * wei_len,
-                                          offset + 2 * hy_h + ri * wei_len,
-                                          offset + 2 * hy_h + ri * wei_len);
+                                          offset + 2 * static_cast<size_t>(hy_h) +
+                                              static_cast<size_t>(ri) * wei_len +
+                                              static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                          offset + 2 * static_cast<size_t>(hy_h) +
+                                              static_cast<size_t>(ri) * wei_len,
+                                          offset + 2 * static_cast<size_t>(hy_h) +
+                                              static_cast<size_t>(ri) * wei_len,
+                                          offset + 2 * static_cast<size_t>(hy_h) +
+                                              static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3577,9 +3699,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + 2 * hy_h + ri * wei_len,
-                                 offset + dhd_off + ri * hy_h + nLayers * batch_n * hy_stride,
-                                 offset + hy_h + ri * wei_len);
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len,
+                                 offset + dhd_off + static_cast<size_t>(ri) * hy_h +
+                                     nLayers * batch_n * hy_stride,
+                                 offset + hy_h + static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3594,9 +3718,12 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  reserveSpace,
-                                 offset + 2 * hy_h + ri * wei_len,
-                                 offset + hy_h + ri * wei_len + nLayers * batch_n * hy_stride,
-                                 offset + dhd_off + ri * hy_h + nLayers * batch_n * hy_stride);
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len,
+                                 offset + hy_h + static_cast<size_t>(ri) * wei_len +
+                                     nLayers * batch_n * hy_stride,
+                                 offset + dhd_off + static_cast<size_t>(ri) * hy_h +
+                                     nLayers * batch_n * hy_stride);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3622,8 +3749,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          sp_desc,
                                          workSpace,
                                          hx_shift + ri * hy_n * hy_h,
-                                         offset + dhd_off + ri * hy_h,
-                                         offset + ri * wei_len);
+                                         offset + dhd_off + static_cast<size_t>(ri) * hy_h,
+                                         offset + static_cast<size_t>(ri) * wei_len);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -3652,9 +3779,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          sp_desc,
                                          workSpace,
                                          hx_shift + ri * hy_n * hy_h + in_n.at(use_time2) * hy_h,
-                                         offset + dhd_off + ri * hy_h +
-                                             in_n.at(use_time2) * hy_stride,
-                                         offset + ri * wei_len + in_n.at(use_time2) * hy_stride);
+                                         offset + dhd_off + static_cast<size_t>(ri) * hy_h +
+                                             static_cast<size_t>(in_n.at(use_time2)) * hy_stride,
+                                         offset + static_cast<size_t>(ri) * wei_len +
+                                             static_cast<size_t>(in_n.at(use_time2)) * hy_stride);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -3684,8 +3812,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          sp_desc,
                                          workSpace,
                                          hid_shift + pre_batch2 * hy_stride + dhd_off + ri * hy_h,
-                                         offset + dhd_off + ri * hy_h,
-                                         offset + ri * wei_len);
+                                         offset + dhd_off + static_cast<size_t>(ri) * hy_h,
+                                         offset + static_cast<size_t>(ri) * wei_len);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -3713,9 +3841,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
-                                 offset + 2 * hy_h + ri * wei_len + nLayers * batch_n * hy_stride,
-                                 offset + dhd_off + ri * hy_h,
-                                 offset + ri * wei_len);
+                                 offset + 2 * static_cast<size_t>(hy_h) +
+                                     static_cast<size_t>(ri) * wei_len +
+                                     static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                 offset + dhd_off + static_cast<size_t>(ri) * hy_h,
+                                 offset + static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3733,10 +3863,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          &beta,
                                          sp_desc,
                                          workSpace,
-                                         offset + ri * wei_len + nLayers * batch_n * hy_stride,
-                                         offset + ri * wei_len,
-                                         offset + ri * wei_len,
-                                         offset + ri * wei_len);
+                                         offset + static_cast<size_t>(ri) * wei_len +
+                                             static_cast<size_t>(nLayers) * batch_n * hy_stride,
+                                         offset + static_cast<size_t>(ri) * wei_len,
+                                         offset + static_cast<size_t>(ri) * wei_len,
+                                         offset + static_cast<size_t>(ri) * wei_len);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -3827,7 +3958,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                    0, // Stride C
                                                    1, // alpha
                                                    0, // beta
-                                                   yDesc[0].GetType()};
+                                                   yDesc[0].GetType(),
+                                                   false};
 
                                 miopenStatus_t gemm_status = CallGemm(
                                     handle,
@@ -3895,7 +4027,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                0, // Stride C
                                                1, // alpha
                                                1, // beta
-                                               yDesc[0].GetType()};
+                                               yDesc[0].GetType(),
+                                               false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -3943,7 +4076,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                          hx_desc,
                                          dcx,
                                          pretime_shift + bi * wei_len + ri * hy_h +
-                                             use_batch * hy_stride,
+                                             static_cast<size_t>(use_batch) * hy_stride,
                                          pretime_shift + hy_h + ri * wei_len +
                                              use_batch * hy_stride,
                                          hx_shift + ri * hy_n * hy_h + use_batch * hy_h);
@@ -3963,7 +4096,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                      hx_desc,
                                      dcx,
                                      pretime_shift + bi * wei_len + ri * hy_h +
-                                         use_batch * hy_stride,
+                                         static_cast<size_t>(use_batch) * hy_stride,
                                      pretime_shift + hy_h + ri * wei_len + use_batch * hy_stride +
                                          nLayers * batch_n * hy_stride,
                                      hx_shift + ri * hy_n * hy_h + use_batch * hy_h);
@@ -4004,7 +4137,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                      &beta_t,
                      x_desc,
                      dx,
-                     gi * hy_h,
+                     static_cast<size_t>(gi) * hy_h,
                      0,
                      0);
             // Update time
@@ -4028,7 +4161,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                           0, // Stride C
                                                           1, // alpha
                                                           0, // beta
-                                                          yDesc[0].GetType()};
+                                                          yDesc[0].GetType(),
+                                                          false};
         miopenStatus_t gemm_status       = CallGemm(
             handle, gemm_desc, workSpace, 0, w, 0, dx, 0, nullptr, GemmBackend_t::miopengemm);
         if(gemm_status != miopenStatusSuccess)
@@ -4231,7 +4365,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                                   0, // Stride C
                                                                   1, // alpha
                                                                   1, // beta
-                                                                  xDesc[0].GetType()};
+                                                                  xDesc[0].GetType(),
+                                                                  false};
 
                 miopenStatus_t gemm_status = CallGemm(handle,
                                                       gemm_desc,
@@ -4266,7 +4401,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 use_dropout ? (algoMode == miopenRNNdefault && rnnMode == miopenLSTM
                                    ? nLayers * batch_n * hy_stride + nLayers * batch_n * hy_h * bi
                                    : 2 * nLayers * batch_n * hy_stride) +
-                                  (li - 1) * batch_n * hy_h * bi
+                                  (static_cast<size_t>(li) - 1) * batch_n * hy_h * bi
                             : (li - 1) * batch_n * hy_stride + hid_off);
 
             miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
@@ -4284,7 +4419,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                               0, // Stride C
                                                               1, // alpha
                                                               1, // beta
-                                                              xDesc[0].GetType()};
+                                                              xDesc[0].GetType(),
+                                                              false};
 
             miopenStatus_t gemm_status = CallGemm(handle,
                                                   gemm_desc,
@@ -4531,7 +4667,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                                       0, // Stride C
                                                                       1, // alpha
                                                                       1, // beta
-                                                                      xDesc[0].GetType()};
+                                                                      xDesc[0].GetType(),
+                                                                      false};
 
                     miopenStatus_t gemm_status = CallGemm(handle,
                                                           gemm_desc,
@@ -4583,7 +4720,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                            0, // Stride C
                                            1, // alpha
                                            1, // beta
-                                           xDesc[0].GetType()};
+                                           xDesc[0].GetType(),
+                                           false};
 
                         miopenStatus_t gemm_status =
                             CallGemm(handle,
@@ -4635,7 +4773,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        0, // Stride C
                                        1, // alpha
                                        1, // beta
-                                       xDesc[0].GetType()};
+                                       xDesc[0].GetType(),
+                                       false};
 
                     miopenStatus_t gemm_status = CallGemm(handle,
                                                           gemm_desc,
@@ -4682,7 +4821,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 {
                     hid_shift = ri == 0 ? (li * batch_n * hy_stride + bacc * hy_stride)
                                         : (li * batch_n * hy_stride + baccbi * hy_stride);
-                    cur_time = ri == 0 ? ti : seqLen - 1 - ti;
+                    cur_time  = ri == 0 ? ti : seqLen - 1 - ti;
                     if(ti > 0)
                     {
                         pre_batch =
@@ -4712,7 +4851,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                    0, // Stride C
                                                    1, // alpha
                                                    1, // beta
-                                                   xDesc[0].GetType()};
+                                                   xDesc[0].GetType(),
+                                                   false};
 
                                 miopenStatus_t gemm_status =
                                     CallGemm(handle,
@@ -4764,7 +4904,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                    0, // Stride C
                                                    1, // alpha
                                                    1, // beta
-                                                   xDesc[0].GetType()};
+                                                   xDesc[0].GetType(),
+                                                   false};
 
                                 miopenStatus_t gemm_status = CallGemm(
                                     handle,
@@ -4814,7 +4955,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                    0, // Stride C
                                                    1, // alpha
                                                    1, // beta
-                                                   xDesc[0].GetType()};
+                                                   xDesc[0].GetType(),
+                                                   false};
 
                                 miopenStatus_t gemm_status =
                                     CallGemm(handle,

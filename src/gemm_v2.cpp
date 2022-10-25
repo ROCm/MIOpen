@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
 #include <miopen/gemm_v2.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
@@ -40,7 +41,11 @@
 
 #if MIOPEN_USE_ROCBLAS
 #include <half.hpp>
+#if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
+#else
+#include <rocblas/rocblas.h>
+#endif
 #include <miopen/perf_field.hpp>
 #endif
 
@@ -53,21 +58,19 @@
 
 #if MIOPEN_USE_ROCBLAS
 
-#define MIOPEN_ROCBLAS_VERSION_DECIMAL (ROCBLAS_VERSION_MAJOR * 100 + ROCBLAS_VERSION_MINOR)
-
 /// Avoid warnings "The workspace_size and workspace arguments are obsolete" and
 /// "disabled expansion of recursive macro" injected by rocblas headers.
-#define AVOID_ROCBLAS_WRAPPERS_204 (MIOPEN_ROCBLAS_VERSION_DECIMAL >= 204)
+#define AVOID_ROCBLAS_WRAPPERS_204 (MIOPEN_ROCBLAS_VERSION_FLAT >= 2004000)
 
 /// Maintain API compatibility with various rocBLAS version
-#define USE_GEMM_FLAGS_PACK_INT8X4 (MIOPEN_ROCBLAS_VERSION_DECIMAL >= 238)
+#define USE_GEMM_FLAGS_PACK_INT8X4 (MIOPEN_ROCBLAS_VERSION_FLAT >= 2038000)
 
 /// Maintain API compatibility for versions not supporting FP16 alternate implementations
-#define USE_GEMM_FLAGS_FP16_ALT_IMPL (MIOPEN_ROCBLAS_VERSION_DECIMAL >= 243)
+#define USE_GEMM_FLAGS_FP16_ALT_IMPL (MIOPEN_ROCBLAS_VERSION_FLAT >= 2043000)
 /// Some 2.42 versions have rocblas_gemm_flags_fp16_alt_impl, but
 /// some do not, and that leads to build errors.
 /// Let's pass literal value as a workaround; there should be no harm.
-#define USE_GEMM_FLAGS_FP16_ALT_IMPL_242 (MIOPEN_ROCBLAS_VERSION_DECIMAL == 242)
+#define USE_GEMM_FLAGS_FP16_ALT_IMPL_242 (MIOPEN_ROCBLAS_VERSION_FLAT == 2042000)
 
 template <class... Ts>
 auto miopen_rocblas_gemm_ex(Ts... xs)
@@ -117,6 +120,34 @@ std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
                   << "beta " << gemm_desc.beta << ", "
                   << "dataType " << gemm_desc.dataType << "} ";
 }
+
+#if MIOPEN_USE_ROCBLAS
+
+inline rocblas_atomics_mode DisableRocblasAtomics(const miopen::Handle& handle)
+{
+    MIOPEN_LOG_I2("");
+    rocblas_atomics_mode cur_mode;
+    rocblas_status status = rocblas_get_atomics_mode(handle.rhandle().get(), &cur_mode);
+    assert(status == rocblas_status::rocblas_status_success);
+    (void)status; // WA till C++17 [[maybe_unused]]
+    if(cur_mode == rocblas_atomics_allowed)
+    {
+        status = rocblas_set_atomics_mode(handle.rhandle().get(), rocblas_atomics_not_allowed);
+        assert(status == rocblas_status::rocblas_status_success);
+        (void)status; // WA till C++17 [[maybe_unused]]
+    }
+    return cur_mode;
+}
+
+inline void SetRocblasAtomics(const miopen::Handle& handle, rocblas_atomics_mode mode)
+{
+    MIOPEN_LOG_I2("");
+    rocblas_status status = rocblas_set_atomics_mode(handle.rhandle().get(), mode);
+    assert(status == rocblas_status::rocblas_status_success);
+    (void)status; // WA till C++17 [[maybe_unused]]
+}
+
+#endif
 
 #if MIOPEN_BACKEND_HIP
 inline void ProfilingRecordStart(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
@@ -492,6 +523,10 @@ miopenStatus_t CallGemm(const Handle& handle,
         {
             ProfilingRecordStart(handle, start, stop);
         }
+        rocblas_atomics_mode cur_mode =
+            rocblas_atomics_mode::rocblas_atomics_allowed; // default value from rocblas
+        if(gemm_desc.deterministic)
+            cur_mode = DisableRocblasAtomics(handle);
 
         rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
 
@@ -538,6 +573,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         break;
         case miopenInt32: break;
         case miopenHalf: {
+
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -650,6 +686,8 @@ miopenStatus_t CallGemm(const Handle& handle,
         if(kcache_key != nullptr)
             *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
+        if(gemm_desc.deterministic)
+            SetRocblasAtomics(handle, cur_mode);
         return miopenStatusSuccess;
 #else
         return miopenStatusNotImplemented;
@@ -795,6 +833,10 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
             ProfilingRecordStart(handle, start, stop);
         }
+        rocblas_atomics_mode cur_mode =
+            rocblas_atomics_mode::rocblas_atomics_allowed; // default value from rocblas
+        if(gemm_desc.deterministic)
+            cur_mode = DisableRocblasAtomics(handle);
 
         rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
 
@@ -845,7 +887,9 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
         break;
         case miopenInt32: break;
+
         case miopenHalf: {
+
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -969,6 +1013,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
 
+        if(gemm_desc.deterministic)
+            SetRocblasAtomics(handle, cur_mode);
         if(kcache_key != nullptr)
             *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
@@ -1045,6 +1091,12 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
             ProfilingRecordStart(handle, start, stop);
         }
 
+        rocblas_atomics_mode cur_mode =
+            rocblas_atomics_mode::rocblas_atomics_allowed; // default value from rocblas
+        if(gemm_desc.deterministic)
+        {
+            cur_mode = DisableRocblasAtomics(handle);
+        }
         rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
 
         switch(gemm_desc.dataType)
@@ -1093,6 +1145,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         break;
         case miopenInt32: break;
         case miopenHalf: {
+
             float alpha = gemm_desc.alpha;
             float beta  = gemm_desc.beta;
 
@@ -1210,6 +1263,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         if(rb_status != rocblas_status::rocblas_status_success)
             MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
 
+        if(gemm_desc.deterministic)
+            SetRocblasAtomics(handle, cur_mode);
         if(kcache_key != nullptr)
             *kcache_key = FindDbKCacheKey::MakeUnused("rocBlas");
 
@@ -1355,15 +1410,15 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
     int n = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k =
         in_c * std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
-    int lda               = k;
-    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
-    int ldc               = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int lda         = k;
+    int ldb         = wDesc.GetType() == miopenInt8 ? k : n;
+    int ldc         = n;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1380,7 +1435,8 @@ GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx = Col2Im(transpose(w) * dy)
@@ -1408,12 +1464,12 @@ GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
     int lda = m;
     int ldb = n;
     int ldc = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1430,7 +1486,8 @@ GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 // dw = dy * transpose(Im2Col(x))
@@ -1458,12 +1515,12 @@ GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
     int lda = k;
     int ldb = k;
     int ldc = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 1.;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 1.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1480,7 +1537,8 @@ GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
@@ -1506,16 +1564,16 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
     int m           = wei_k;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                 = in_c;
-    int lda               = k;
-    int ldb               = wDesc.GetType() == miopenInt8 ? k : n;
-    int ldc               = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int k           = in_c;
+    int lda         = k;
+    int ldb         = wDesc.GetType() == miopenInt8 ? k : n;
+    int ldc         = n;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1532,7 +1590,8 @@ GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
@@ -1556,16 +1615,16 @@ GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc
     int m           = in_c;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                 = wei_k;
-    int lda               = m;
-    int ldb               = n;
-    int ldc               = n;
-    int batch_count       = 1;
-    long long int strideA = 0;
-    long long int strideB = 0;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int k           = wei_k;
+    int lda         = m;
+    int ldb         = n;
+    int ldc         = n;
+    int batch_count = 1;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(0);
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1582,7 +1641,8 @@ GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 // y[i] = w * x[i], i is batch id
@@ -1613,12 +1673,12 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
     int lda = k;
     int ldb = wDesc.GetType() == miopenInt8 ? k : n;
     int ldc = n;
-    int batch_count       = in_n;
-    long long int strideA = 0;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int batch_count = in_n;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1635,7 +1695,8 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescript
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx[i] = transpose(w) * dy[i], i is batch id
@@ -1664,12 +1725,12 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDesc
     int lda = m;
     int ldb = n;
     int ldc = n;
-    int batch_count       = in_n;
-    long long int strideA = 0;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0;
+    int batch_count = in_n;
+    auto strideA    = static_cast<long long>(0);
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1686,7 +1747,8 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDesc
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
@@ -1715,12 +1777,12 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDe
     int lda = k;
     int ldb = k;
     int ldc = n;
-    int batch_count       = in_n;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = 0;
-    float alpha           = 1.;
-    float beta            = 1.;
+    int batch_count = in_n;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(0);
+    float alpha     = 1.;
+    float beta      = 1.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1737,7 +1799,8 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDe
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // y = w * Im2Col(x)
@@ -1763,15 +1826,15 @@ GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
     int n = std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
     int k = (in_c / groupCount) *
             std::accumulate(wei_spatial.begin(), wei_spatial.end(), 1, std::multiplies<int>());
-    int lda               = k;
-    int ldb               = n;
-    int ldc               = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int lda         = k;
+    int ldb         = n;
+    int ldc         = n;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1788,7 +1851,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx = Col2Im(transpose(w) * dy)
@@ -1817,12 +1881,12 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDes
     int lda = m;
     int ldb = n;
     int ldc = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1839,7 +1903,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDes
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 // dw = dy * transpose(Im2Col(x))
@@ -1868,12 +1933,12 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dy
     int lda = k;
     int ldb = k;
     int ldc = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 1.;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 1.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1890,7 +1955,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dy
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
@@ -1915,16 +1981,16 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDes
     int m           = wei_k / groupCount;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                 = in_c / groupCount;
-    int lda               = k;
-    int ldb               = n;
-    int ldc               = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int k           = in_c / groupCount;
+    int lda         = k;
+    int ldb         = n;
+    int ldc         = n;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1941,7 +2007,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDes
                           strideC,
                           alpha,
                           beta,
-                          xDesc.GetType()};
+                          xDesc.GetType(),
+                          false};
 }
 
 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
@@ -1966,16 +2033,16 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& 
     int m           = in_c / groupCount;
     int n =
         in_n * std::accumulate(out_spatial.begin(), out_spatial.end(), 1, std::multiplies<int>());
-    int k                 = wei_k / groupCount;
-    int lda               = m;
-    int ldb               = n;
-    int ldc               = n;
-    int batch_count       = groupCount;
-    long long int strideA = m * k;
-    long long int strideB = k * n;
-    long long int strideC = m * n;
-    float alpha           = 1.;
-    float beta            = 0.;
+    int k           = wei_k / groupCount;
+    int lda         = m;
+    int ldb         = n;
+    int ldc         = n;
+    int batch_count = groupCount;
+    auto strideA    = static_cast<long long>(m) * k;
+    auto strideB    = static_cast<long long>(k) * n;
+    auto strideC    = static_cast<long long>(m) * n;
+    float alpha     = 1.;
+    float beta      = 0.;
 
     return GemmDescriptor{isColMajor,
                           transA,
@@ -1992,7 +2059,8 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& 
                           strideC,
                           alpha,
                           beta,
-                          dxDesc.GetType()};
+                          dxDesc.GetType(),
+                          false};
 }
 
 } // namespace miopen

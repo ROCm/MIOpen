@@ -255,8 +255,8 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
     size_t RD_BLCK    = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
     size_t total_work = (in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0];
 
-    size_t max_wk_grp =
-        use_mask ? MAX_WORKITEM_NUM : std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth());
+    size_t max_wk_grp = use_mask ? size_t(MAX_WORKITEM_NUM)
+                                 : std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth());
     size_t wk_grp_num =
         std::min(max_wk_grp / 256,
                  ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256));
@@ -320,7 +320,9 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
 
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_DAT_TYPE=" + READ_DAT_TYPE +
                   " -DREAD_BOOL_TYPE=" +
-                  std::string(RD_BLCK == 4 ? "uint" : RD_BLCK == 2 ? "ushort" : "uchar");
+                  std::string(RD_BLCK == 4   ? "uint"
+                              : RD_BLCK == 2 ? "ushort"
+                                             : "uchar");
 
         if(xDesc.GetType() == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
@@ -456,8 +458,8 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
     size_t RD_BLCK    = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
     size_t total_work = (in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0];
 
-    size_t max_wk_grp =
-        use_prng ? std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth()) : MAX_WORKITEM_NUM;
+    size_t max_wk_grp = use_prng ? std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth())
+                                 : size_t(MAX_WORKITEM_NUM);
     size_t wk_grp_num =
         std::min(max_wk_grp / 256,
                  ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256));
@@ -523,7 +525,9 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
 
         params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_DAT_TYPE=" + READ_DAT_TYPE +
                   " -DREAD_BOOL_TYPE=" +
-                  std::string(RD_BLCK == 4 ? "uint" : RD_BLCK == 2 ? "ushort" : "uchar");
+                  std::string(RD_BLCK == 4   ? "uint"
+                              : RD_BLCK == 2 ? "ushort"
+                                             : "uchar");
 
         if(use_prng)
         {

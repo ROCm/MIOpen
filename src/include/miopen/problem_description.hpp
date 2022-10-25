@@ -75,6 +75,7 @@ struct ProblemDescription
     int in_height         = 0;
     int in_width          = 0;
     int in_depth          = 0;
+    int vectorLength      = 1;
     int kernel_size_h     = 0;
     int kernel_size_w     = 0;
     int kernel_size_d     = 0;
@@ -117,6 +118,8 @@ struct ProblemDescription
 
     bool IsLayoutNHWC() const;
 
+    bool IsLayoutNCHWC() const;
+
     template <class Self>
     static void Visit(Self&& self, std::function<void(int, std::string)> f)
     {
@@ -155,8 +158,9 @@ struct ProblemDescription
         std::string data_type =
             EncodeDataTypesForKey(self.in_data_type, self.weights_data_type, self.out_data_type);
         f(data_type, "data_type");
-        std::string dir =
-            self.direction.IsForward() ? "F" : self.direction.IsBackwardData() ? "B" : "W";
+        std::string dir = self.direction.IsForward()        ? "F"
+                          : self.direction.IsBackwardData() ? "B"
+                                                            : "W";
         f(dir, "direction");
     }
     struct Direction
@@ -200,6 +204,16 @@ struct ProblemDescription
         return in_data_type == miopenBFloat16 && weights_data_type == miopenBFloat16 &&
                out_data_type == miopenBFloat16;
     }
+    bool IsInt8() const { return conv_problem.IsInt8(); }
+    bool IsNCHWc_NCHWc() const
+    {
+        return in_layout == "NCHWc" && weights_layout == "NCHWc" && out_layout == "NCHWc";
+    }
+
+    bool IsNCHWc_CHWNc() const
+    {
+        return in_layout == "NCHWc" && weights_layout == "CHWNc" && out_layout == "NCHWc";
+    }
 
     ProblemDescription() = default;
 
@@ -241,8 +255,8 @@ struct ProblemDescription
         batch_sz     = batch;
         int data_len = GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * channels * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+                           ? batch * channels * depth * height * width * data_len
+                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         out_width          = width;
         out_height         = height;
@@ -276,8 +290,8 @@ struct ProblemDescription
         batch_sz     = batch;
         int data_len = GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
-                          ? batch * channels * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
+                           ? batch * channels * depth * height * width * data_len
+                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
         in_width          = width;
         in_height         = height;

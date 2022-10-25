@@ -122,7 +122,7 @@ struct verify_forward_sofmax
                         double neg_inf = input.desc.GetType() == miopenHalf
                                              ? NEGATIVE_CUTOFF_VAL_FP16
                                              : NEGATIVE_CUTOFF_VAL_FP32;
-                        double sum = neg_inf;
+                        double sum     = neg_inf;
                         ford(in_c, in_h, in_w)([&](int w, int i, int j) {
                             sum = logaddexp(
                                 double(input[o * in_nstr + w * in_cstr + i * in_hstr + j] - max_c),
@@ -183,7 +183,7 @@ struct verify_forward_sofmax
                         double neg_inf = input.desc.GetType() == miopenHalf
                                              ? NEGATIVE_CUTOFF_VAL_FP16
                                              : NEGATIVE_CUTOFF_VAL_FP32;
-                        double sum = neg_inf;
+                        double sum     = neg_inf;
                         ford(in_c)([&](int w) {
                             sum = logaddexp(
                                 double(input[o * in_nstr + w * in_cstr + i * in_hstr + j] - max_c),

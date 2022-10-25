@@ -40,30 +40,30 @@
 
 #include <tuple>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3_CONST)
 
 namespace miopen {
 namespace solver {
 
 namespace {
 
-constexpr unsigned group_size = 64;
-constexpr unsigned o_tile_W   = 2;
-constexpr unsigned o_tile_H   = 2;
-constexpr unsigned d_tile_W   = 4;
-constexpr unsigned d_tile_H   = 4;
+constexpr uint64_t group_size = 64;
+constexpr uint64_t o_tile_W   = 2;
+constexpr uint64_t o_tile_H   = 2;
+constexpr uint64_t d_tile_W   = 4;
+constexpr uint64_t d_tile_H   = 4;
 
 // step is alwas based on the output tile size
-constexpr unsigned o_tile_step_W = o_tile_W;
-constexpr unsigned o_tile_step_H = o_tile_H;
-constexpr unsigned d_tile_step_W = o_tile_W;
-constexpr unsigned d_tile_step_H = o_tile_H;
+constexpr uint64_t o_tile_step_W = o_tile_W;
+constexpr uint64_t o_tile_step_H = o_tile_H;
+constexpr uint64_t d_tile_step_W = o_tile_W;
+constexpr uint64_t d_tile_step_H = o_tile_H;
 
 //
 // Number of tile lanes (QWORDs for packed clip bits)
 //
-constexpr unsigned d_clip_tiles_QW = group_size * d_tile_W / (sizeof(uint64_t) * CHAR_BIT);
-constexpr unsigned o_clip_tiles_QW = group_size * o_tile_W / (sizeof(uint64_t) * CHAR_BIT);
+constexpr uint64_t d_clip_tiles_QW = group_size * d_tile_W / (sizeof(uint64_t) * CHAR_BIT);
+constexpr uint64_t o_clip_tiles_QW = group_size * o_tile_W / (sizeof(uint64_t) * CHAR_BIT);
 
 struct work_info
 {
@@ -75,19 +75,134 @@ struct work_info
     uint64_t o_clip[o_clip_tiles_QW][o_tile_H];
 };
 
-inline void WU_control_make_3x3_w_info(unsigned N,
-                                       unsigned H,
-                                       unsigned W,
-                                       unsigned o_H,
-                                       unsigned o_W,
-                                       int pad_H,
-                                       int pad_W,
-                                       unsigned d_stride_N,
-                                       unsigned d_stride_H,
-                                       unsigned d_stride_W,
-                                       unsigned o_stride_N,
-                                       unsigned o_stride_H,
-                                       unsigned o_stride_W,
+enum struct flush_control
+{
+    FLUSH_NONE,
+    FLUSH_N,
+};
+
+struct WinogradUltraDescription
+{
+    uint32_t N;
+    uint32_t C;
+    uint32_t H;
+    uint32_t W;
+    uint32_t K;
+    uint32_t R;
+    uint32_t S;
+    int32_t pad_H;
+    int32_t pad_W;
+    uint32_t out_H;
+    uint32_t out_W;
+    uint32_t d_N_pitch;
+    uint32_t d_C_pitch;
+    uint32_t d_H_pitch;
+    uint32_t d_W_pitch;
+    uint32_t o_N_pitch;
+    uint32_t o_K_pitch;
+    uint32_t o_H_pitch;
+    uint32_t o_W_pitch;
+    int32_t d_step_1_pitch;
+    int32_t d_step_2_pitch;
+    int32_t o_step_1_pitch;
+    int32_t o_step_2_pitch;
+    flush_control flush;
+    uint32_t flags;
+
+    WinogradUltraDescription() = delete;
+
+    WinogradUltraDescription(const ProblemDescription& problem)
+    {
+        constexpr unsigned F_REVERSE_R = 1 << 0;
+        constexpr unsigned F_REVERSE_S = 1 << 1;
+        constexpr unsigned F_FLIP_K_C  = 1 << 2;
+
+        const auto desc = UnifiedDescriptionConv2d(problem);
+        N               = desc.N;
+        C               = desc.C;
+        K               = desc.K;
+        out_H           = desc.out_h;
+        out_W           = desc.out_w;
+        R               = desc.R;
+        S               = desc.S;
+        pad_H           = desc.pad_h;
+        pad_W           = desc.pad_w;
+
+        flags = problem.direction.IsForward() ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
+        H     = problem.in_height;
+        W     = problem.in_width;
+        C     = C / problem.group_counts;
+        K     = K / problem.group_counts;
+
+        const auto d_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(problem.in_layout), true),
+                                    N,
+                                    C,
+                                    H,
+                                    W,
+                                    problem.group_counts,
+                                    GetTypeSize(problem.in_data_type));
+        const auto o_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(problem.out_layout), true),
+                                    N,
+                                    K,
+                                    out_H,
+                                    out_W,
+                                    problem.group_counts,
+                                    GetTypeSize(problem.out_data_type));
+
+        const unsigned tiles_n_row    = (out_W + o_tile_step_W - 1) / o_tile_step_W;
+        const unsigned tiles_n_column = (out_H + o_tile_step_H - 1) / o_tile_step_H;
+
+        d_N_pitch = d_buf.byte_stride.nk;
+        d_C_pitch = d_buf.byte_stride.c;
+        d_H_pitch = d_buf.byte_stride.h;
+        d_W_pitch = d_buf.byte_stride.w;
+
+        d_step_1_pitch = d_tile_step_H * d_H_pitch - tiles_n_row * d_tile_step_W * d_W_pitch;
+        d_step_2_pitch = d_N_pitch - tiles_n_column * d_tile_step_H * d_H_pitch;
+
+        o_N_pitch = o_buf.byte_stride.nk;
+        o_K_pitch = o_buf.byte_stride.c;
+        o_H_pitch = o_buf.byte_stride.h;
+        o_W_pitch = o_buf.byte_stride.w;
+
+        o_step_1_pitch = o_tile_step_H * o_H_pitch - tiles_n_row * o_tile_step_W * o_W_pitch;
+        o_step_2_pitch = o_N_pitch - tiles_n_column * o_tile_step_H * o_H_pitch;
+
+        flush = d_step_2_pitch >= std::pow(2, 23)   ? flush_control::FLUSH_N
+                : o_step_2_pitch >= std::pow(2, 23) ? flush_control::FLUSH_N
+                                                    : flush_control::FLUSH_NONE;
+    }
+};
+
+inline std::ostream& operator<<(std::ostream& stream, const WinogradUltraDescription& desc)
+{
+    // clang-format off
+        stream << "N=" << desc.N << " C=" << desc.C << " H=" << desc.H << " W=" << desc.W
+               << " K=" << desc.K << " R=" << desc.R << " S=" << desc.S 
+               << " pad_H=" << desc.pad_H << " pad_W=" << desc.pad_W
+               << " out_H=" << desc.out_H << " out_W=" << desc.out_W
+               << " d_N_pitch=" << desc.d_N_pitch << " d_C_pitch=" << desc.d_C_pitch
+               << " d_H_pitch=" << desc.d_H_pitch << " d_W_pitch=" << desc.d_W_pitch
+               << " o_N_pitch=" << desc.o_N_pitch << " o_K_pitch=" << desc.o_K_pitch
+               << " o_H_pitch=" << desc.o_H_pitch << " o_W_pitch=" << desc.o_W_pitch
+               << " d_step_1_pitch=" << desc.d_step_1_pitch
+               << " d_step_2_pitch=" << desc.d_step_2_pitch
+               << " o_step_1_pitch=" << desc.o_step_1_pitch
+               << " o_step_2_pitch=" << desc.o_step_2_pitch
+               << " flags=" << desc.flags;
+    // clang-format on
+
+    stream << " flush=";
+    switch(desc.flush)
+    {
+    case flush_control::FLUSH_N: stream << "FLUSH_N"; break;
+    case flush_control::FLUSH_NONE: stream << "FLUSH_NONE"; break;
+    }
+
+    return stream;
+}
+
+inline void WU_control_make_3x3_w_info(const WinogradUltraDescription& desc,
                                        std::vector<work_info>& w_info)
 {
     //
@@ -100,19 +215,18 @@ inline void WU_control_make_3x3_w_info(unsigned N,
     int64_t o_cur_w = 0;
     int64_t o_cur_h = 0;
     int64_t cur_n   = 0;
-    int64_t n       = 0;
 
-    while((o_cur_w < o_W) && (o_cur_h < o_H) && (cur_n < N))
+    while((o_cur_w < desc.out_W) && (o_cur_h < desc.out_H) && (cur_n < desc.N))
     {
-
+        bool flush_tail   = false;
         work_info cur_w_i = {};
-        int64_t d_cur_w   = o_cur_w - pad_W;
-        int64_t d_cur_h   = o_cur_h - pad_H;
+        int64_t d_cur_w   = o_cur_w - desc.pad_W;
+        int64_t d_cur_h   = o_cur_h - desc.pad_H;
 
         cur_w_i.d_load_offset_addr =
-            d_cur_w * d_stride_W + d_cur_h * d_stride_H + cur_n * d_stride_N;
+            d_cur_w * desc.d_W_pitch + d_cur_h * desc.d_H_pitch + cur_n * desc.d_N_pitch;
         cur_w_i.o_store_offset_addr =
-            o_cur_w * o_stride_W + o_cur_h * o_stride_H + cur_n * o_stride_N;
+            o_cur_w * desc.o_W_pitch + o_cur_h * desc.o_H_pitch + cur_n * desc.o_N_pitch;
 
         for(unsigned n_tile = 0; n_tile < group_size; n_tile++)
         {
@@ -125,9 +239,9 @@ inline void WU_control_make_3x3_w_info(unsigned N,
                     // clang-format off
                     cur_w_i.d_clip[k][j] <<= 1;
                     cur_w_i.d_clip[k][j] |= static_cast<uint64_t>(
-                                            (d_cur_w + i < 0) || (W <= d_cur_w + i) ||
-                                            (d_cur_h + j < 0) || (H <= d_cur_h + j) ||
-                                            (cur_n < 0) || (N <= cur_n));
+                                            (d_cur_w + i < 0) || (desc.W <= d_cur_w + i) ||
+                                            (d_cur_h + j < 0) || (desc.H <= d_cur_h + j) ||
+                                            (cur_n < 0) || (desc.N <= cur_n) || flush_tail);
                     // clang-format on
                 }
             }
@@ -140,50 +254,56 @@ inline void WU_control_make_3x3_w_info(unsigned N,
                     // clang-format off
                     cur_w_i.o_clip[k][j] <<= 1;
                     cur_w_i.o_clip[k][j] |= static_cast<uint64_t>(
-                                            (o_cur_w + i < 0) || (o_W <= o_cur_w + i) ||
-                                            (o_cur_h + j < 0) || (o_H <= o_cur_h + j) ||
-                                            (cur_n < 0) || (N <= cur_n));
+                                            (o_cur_w + i < 0) || (desc.out_W <= o_cur_w + i) ||
+                                            (o_cur_h + j < 0) || (desc.out_H <= o_cur_h + j) ||
+                                            (cur_n < 0) || (desc.N <= cur_n) || flush_tail);
                     // clang-format on
                 }
             }
 
-            d_cur_w += d_tile_step_W;
-            o_cur_w += o_tile_step_W;
             cur_w_i.step_1_pos <<= 1;
             cur_w_i.step_2_pos <<= 1;
 
-            if(o_W <= o_cur_w)
+            if(!flush_tail)
             {
-                cur_w_i.step_1_pos |= 1;
+                d_cur_w += d_tile_step_W;
+                o_cur_w += o_tile_step_W;
 
-                o_cur_w = 0;
-                d_cur_w = o_cur_w - pad_W;
+                if(desc.out_W <= o_cur_w)
+                {
+                    cur_w_i.step_1_pos |= 1;
 
-                o_cur_h += o_tile_step_H;
-                d_cur_h += d_tile_step_H;
-            }
-            if(o_H <= o_cur_h)
-            {
-                cur_w_i.step_2_pos |= 1;
+                    o_cur_w = 0;
+                    d_cur_w = o_cur_w - desc.pad_W;
 
-                o_cur_h = 0;
-                d_cur_h = o_cur_h - pad_H;
+                    o_cur_h += o_tile_step_H;
+                    d_cur_h += d_tile_step_H;
+                }
+                if(desc.out_H <= o_cur_h)
+                {
+                    cur_w_i.step_2_pos |= 1;
 
-                cur_n += 1;
+                    o_cur_h = 0;
+                    d_cur_h = o_cur_h - desc.pad_H;
+
+                    cur_n += 1;
+
+                    if(desc.flush == flush_control::FLUSH_N)
+                        flush_tail = true;
+                }
             }
         }
         w_info.push_back(cur_w_i);
-        n++;
     }
 }
 
-inline void WU_control_w_info_bit_encode(std::vector<work_info>& w_info,
+inline void WU_control_w_info_bit_encode(const std::vector<work_info>& w_info,
                                          std::vector<uint32_t>& gpu_control)
 {
     for(auto i = 0; i < w_info.size(); i++)
     {
-        std::array<uint32_t, 64> block = {0};
-        work_info w_i                  = w_info[i];
+        std::array<uint32_t, group_size> block = {0};
+        work_info w_i                          = w_info[i];
 
         for(auto j = 0; j < 32; j++)
         {
@@ -234,9 +354,9 @@ inline void WU_control_w_info_bit_encode(std::vector<work_info>& w_info,
                 bit_reverse = false;
             }
 
-            for(auto k = 0; k < 64; k++)
+            for(auto k = 0; k < group_size; k++)
             {
-                auto idx = bit_reverse ? 63 - k : k;
+                auto idx = bit_reverse ? group_size - 1 - k : k;
                 block[idx] <<= 1;
                 block[idx] |= (qword & 1);
                 qword >>= 1;
@@ -247,38 +367,13 @@ inline void WU_control_w_info_bit_encode(std::vector<work_info>& w_info,
     }
 }
 
-inline void WU_control_make_3x3(unsigned N,
-                                unsigned H,
-                                unsigned W,
-                                unsigned o_H,
-                                unsigned o_W,
-                                unsigned pad_H,
-                                unsigned pad_W,
-                                unsigned d_stride_N,
-                                unsigned d_stride_H,
-                                unsigned d_stride_W,
-                                unsigned o_stride_N,
-                                unsigned o_stride_H,
-                                unsigned o_stride_W,
+inline void WU_control_make_3x3(const WinogradUltraDescription& desc,
                                 std::vector<uint32_t>& gpu_control,
                                 unsigned n_groups,
                                 unsigned intl_factor)
 {
     std::vector<work_info> w_info;
-    WU_control_make_3x3_w_info(N,
-                               H,
-                               W,
-                               o_H,
-                               o_W,
-                               pad_H,
-                               pad_W,
-                               d_stride_N,
-                               d_stride_H,
-                               d_stride_W,
-                               o_stride_N,
-                               o_stride_H,
-                               o_stride_W,
-                               w_info);
+    WU_control_make_3x3_w_info(desc, w_info);
 
     std::vector<work_info> w_info_intl;
     for(int i = 0; i < w_info.size(); i += intl_factor * n_groups)
@@ -301,24 +396,25 @@ inline bool IsShaderContraintsMet(const int R,
                                   const int OH,
                                   const int OW,
                                   const int,
-                                  const ConvolutionContext& params)
+                                  const ExecutionContext& ctx,
+                                  const ProblemDescription& problem)
 {
     // Padding for bwd data shall not be negative.
     /// \todo Either remove WrW related code or re-use function from RxS
-    if(params.direction.IsBackwardData())
+    if(problem.direction.IsBackwardData())
     {
-        if(!(0 <= params.GetBackwardPadW() && params.GetBackwardPadW() < std::pow(2, 16)))
+        if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
-        if(!(0 <= params.GetBackwardPadH() && params.GetBackwardPadH() < std::pow(2, 16)))
+        if(!(0 <= problem.GetBackwardPadH() && problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
-    const auto grid_workgroup_count_x = params.GetStream().GetMaxHardwareComputeUnits();
-    if(!params.IsLayoutDefault())
+    const auto grid_workgroup_count_x = ctx.GetStream().GetMaxHardwareComputeUnits();
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
 
-    constexpr auto ELEM_SZ    = static_cast<int64_t>(sizeof(half_float::half));
+    constexpr auto ELEM_SZ    = static_cast<size_t>(sizeof(half_float::half));
     constexpr auto D_W_PITCH  = ELEM_SZ * 1;
     constexpr auto O_W_PITCH  = ELEM_SZ * 1;
     const auto D_H_PITCH      = D_W_PITCH * W;
@@ -330,10 +426,12 @@ inline bool IsShaderContraintsMet(const int R,
     const auto TILES_N_ROW    = (OW + o_tile_step_W - 1) / o_tile_step_W;
     const auto TILES_N_COLUMN = (OH + o_tile_step_H - 1) / o_tile_step_H;
 
-    const auto D_STEP_1_PITCH = d_tile_step_H * D_H_PITCH - TILES_N_ROW * d_tile_step_W * D_W_PITCH;
-    const auto O_STEP_1_PITCH = o_tile_step_H * O_H_PITCH - TILES_N_ROW * o_tile_step_W * O_W_PITCH;
-    const auto D_STEP_2_PITCH = D_N_PITCH - TILES_N_COLUMN * d_tile_step_H * D_H_PITCH;
-    const auto O_STEP_2_PITCH = O_N_PITCH - TILES_N_COLUMN * o_tile_step_H * O_H_PITCH;
+    const int64_t D_STEP_1_PITCH =
+        d_tile_step_H * D_H_PITCH - TILES_N_ROW * d_tile_step_W * D_W_PITCH;
+    const int64_t O_STEP_1_PITCH =
+        o_tile_step_H * O_H_PITCH - TILES_N_ROW * o_tile_step_W * O_W_PITCH;
+    const int64_t D_STEP_2_PITCH = D_N_PITCH - TILES_N_COLUMN * d_tile_step_H * D_H_PITCH;
+    const int64_t O_STEP_2_PITCH = O_N_PITCH - TILES_N_COLUMN * o_tile_step_H * O_H_PITCH;
 
     // clang-format off
     return C <= 240
@@ -356,7 +454,7 @@ inline bool IsShaderContraintsMet(const int R,
 template <typename T>
 void* CopyDataToSymbol(const Handle& handle,
                        const Kernel& kernel,
-                       const std::vector<T> data,
+                       const std::vector<T>& data,
                        const std::string& name)
 {
 #if MIOPEN_BACKEND_HIP
@@ -386,218 +484,84 @@ void* CopyDataToSymbol(const Handle& handle,
 
 } // namespace
 
-bool ConvBinWinogradUltraRxSf2x3::IsApplicable(const ConvolutionContext& params) const
+bool ConvBinWinogradUltraRxSf2x3Const::IsApplicable(const ExecutionContext& ctx,
+                                                    const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_ULTRA_RXS_F2X3_CONST{}))
         return false;
 
 #if MIOPEN_BACKEND_HIP
-    if(!params.Is2d())
+    if(!problem.Is2d())
         return false;
-    if(!params.IsFp16())
+    if(!problem.IsFp16())
         return false;
-    if(!params.use_asm_kernels)
+    if(!ctx.use_asm_kernels)
         return false;
-    if(!params.rmv.IsV3())
+    if(!ctx.rmv.IsV3())
+        return false;
+    if(problem.direction.IsBackwardWrW())
         return false;
 
-    const auto name = params.GetStream().GetDeviceName();
+    const auto name = ctx.GetStream().GetDeviceName();
     if(!StartsWith(name, "gfx10"))
         return false;
 
     // clang-format off
-    if (!( params.kernel_stride_w == 1
-        && params.kernel_stride_w == params.kernel_stride_h
-        && params.kernel_dilation_w == 1
-        && params.kernel_dilation_h == 1
-        && params.bias == 0
-        && params.group_counts == 1
-        && params.in_layout == "NCHW"))
+    if (!( problem.kernel_stride_w == 1
+        && problem.kernel_stride_w == problem.kernel_stride_h
+        && problem.kernel_dilation_w == 1
+        && problem.kernel_dilation_h == 1
+        && problem.bias == 0
+        && problem.group_counts == 1
+        && problem.in_layout == "NCHW"))
         return false;
     // clang-format on
 
-    const auto n_inputs_per_group  = params.n_inputs / params.group_counts,
-               n_outputs_per_group = params.n_outputs / params.group_counts;
+    const auto n_inputs_per_group  = problem.n_inputs / problem.group_counts,
+               n_outputs_per_group = problem.n_outputs / problem.group_counts;
 
-    if(!params.direction.IsBackwardWrW())
-    {
-        return IsShaderContraintsMet(params.kernel_size_h, // RxS
-                                     params.kernel_size_w,
-                                     params.kernel_stride_h,
-                                     params.kernel_stride_w,
-                                     n_inputs_per_group,  // C
-                                     n_outputs_per_group, // K
-                                     params.in_height,    // HxW
-                                     params.in_width,
-                                     params.out_height, // OHxOW
-                                     params.out_width,
-                                     params.batch_sz, // N
-                                     params);
-    }
-    else
-    {
-        return IsShaderContraintsMet(params.in_height,
-                                     params.in_width,
-                                     params.kernel_dilation_h,
-                                     params.kernel_dilation_w,
-                                     params.batch_sz,    // N
-                                     n_inputs_per_group, // K
-                                     params.out_height,
-                                     params.out_width,
-                                     params.kernel_size_h,
-                                     params.kernel_size_w,
-                                     n_outputs_per_group, // C
-                                     params);
-    }
+    return IsShaderContraintsMet(problem.kernel_size_h, // RxS
+                                 problem.kernel_size_w,
+                                 problem.kernel_stride_h,
+                                 problem.kernel_stride_w,
+                                 n_inputs_per_group,  // C
+                                 n_outputs_per_group, // K
+                                 problem.in_height,   // HxW
+                                 problem.in_width,
+                                 problem.out_height, // OHxOW
+                                 problem.out_width,
+                                 problem.batch_sz, // N
+                                 ctx,
+                                 problem);
 #else
-    std::ignore = params;
+    std::ignore = ctx;
+    std::ignore = problem;
     return false;
 #endif
 }
 
-ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& params) const
+ConvSolution ConvBinWinogradUltraRxSf2x3Const::GetSolution(const ExecutionContext& ctx,
+                                                           const ProblemDescription& problem) const
 {
-    const unsigned n_groups = params.GetStream().GetMaxHardwareComputeUnits();
-    const auto group_cnt    = params.group_counts;
+    const unsigned n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
+    const auto desc         = WinogradUltraDescription(problem);
     const auto intl_factor  = 1;
 
-    constexpr unsigned F_REVERSE_R = 1 << 0;
-    constexpr unsigned F_REVERSE_S = 1 << 1;
-    constexpr unsigned F_FLIP_K_C  = 1 << 2;
-
-    const auto desc = UnifiedDescriptionConv2d(params.conv_problem);
-    int H, W;
-    int N           = desc.N;
-    int C           = desc.C;
-    int K           = desc.K;
-    const int out_H = desc.out_h;
-    const int out_W = desc.out_w;
-    const int R     = desc.R;
-    const int S     = desc.S;
-    const int pad_H = desc.pad_h;
-    const int pad_W = desc.pad_w;
-    BuffInfo d_buf, o_buf, f_buf;
-
-    int flags                = 0;
     uint64_t reserved_offset = 0;
     int* reserved_ptr        = nullptr;
     float relu_alpha         = 1.0;
 
-    if(!params.direction.IsBackwardWrW())
-    {
-        const auto is_forward = params.direction.IsForward();
+    std::vector<uint32_t> control_buf;
+    WU_control_make_3x3(desc, control_buf, n_groups, intl_factor);
 
-        flags = is_forward ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
-        H     = params.in_height;
-        W     = params.in_width;
-        C     = C / group_cnt;
-        K     = K / group_cnt;
-
-        // cppcheck-suppress unreadVariable
-        d_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(params.in_layout), true),
-                         N,
-                         C,
-                         H,
-                         W,
-                         group_cnt,
-                         GetTypeSize(params.in_data_type));
-        // cppcheck-suppress unreadVariable
-        o_buf = BuffInfo(GetGroupConvLayout(GetMemLayout_t(params.out_layout), true),
-                         N,
-                         K,
-                         out_H,
-                         out_W,
-                         group_cnt,
-                         GetTypeSize(params.out_data_type));
-        // cppcheck-suppress unreadVariable
-        f_buf = BuffInfo(GetGroupConvLayout(is_forward ? (MemLayout_t::NCHW)
-                                                       : GetSwappedNCLayout(MemLayout_t::NCHW),
-                                            false),
-                         K,
-                         C,
-                         R,
-                         S,
-                         group_cnt,
-                         GetTypeSize(params.weights_data_type));
-    }
-    else
-    {
-        flags = F_FLIP_K_C;
-        H     = params.out_height;
-        W     = params.out_width;
-        N     = N / group_cnt;
-        K     = K / group_cnt;
-
-        d_buf =
-            BuffInfo(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.in_layout)), true),
-                     N,
-                     C,
-                     H,
-                     W,
-                     group_cnt,
-                     GetTypeSize(params.in_data_type));
-        o_buf = BuffInfo(
-            GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.out_layout)), false),
-            N,
-            K,
-            out_H,
-            out_W,
-            group_cnt,
-            GetTypeSize(params.out_data_type));
-        f_buf = BuffInfo(GetGroupConvLayout(GetSwappedNCLayout(MemLayout_t::NCHW), true),
-                         K,
-                         C,
-                         R,
-                         S,
-                         group_cnt,
-                         GetTypeSize(params.weights_data_type));
-    }
-
-    const unsigned tiles_n_row    = (out_W + o_tile_step_W - 1) / o_tile_step_W;
-    const unsigned tiles_n_column = (out_H + o_tile_step_H - 1) / o_tile_step_H;
-
-    const unsigned d_N_pitch = d_buf.byte_stride.nk;
-    const unsigned d_C_pitch = d_buf.byte_stride.c;
-    const unsigned d_H_pitch = d_buf.byte_stride.h;
-    const unsigned d_W_pitch = d_buf.byte_stride.w;
-
-    const int d_step_1_pitch = d_tile_step_H * d_H_pitch - tiles_n_row * d_tile_step_W * d_W_pitch;
-    const int d_step_2_pitch = d_N_pitch - tiles_n_column * d_tile_step_H * d_H_pitch;
-
-    const unsigned o_N_pitch = o_buf.byte_stride.nk;
-    const unsigned o_K_pitch = o_buf.byte_stride.c;
-    const unsigned o_H_pitch = o_buf.byte_stride.h;
-    const unsigned o_W_pitch = o_buf.byte_stride.w;
-
-    const int o_step_1_pitch = o_tile_step_H * o_H_pitch - tiles_n_row * o_tile_step_W * o_W_pitch;
-    const int o_step_2_pitch = o_N_pitch - tiles_n_column * o_tile_step_H * o_H_pitch;
-
-    std::vector<uint32_t> gpu_control;
-    WU_control_make_3x3(N,
-                        H,
-                        W,
-                        out_H,
-                        out_W,
-                        pad_H,
-                        pad_W,
-                        d_N_pitch,
-                        d_H_pitch,
-                        d_W_pitch,
-                        o_N_pitch,
-                        o_H_pitch,
-                        o_W_pitch,
-                        gpu_control,
-                        n_groups,
-                        intl_factor);
-
-    const unsigned n_works      = gpu_control.size() / 64;
-    const size_t control_buf_sz = gpu_control.size() * sizeof(decltype(gpu_control)::value_type);
+    const unsigned n_works      = control_buf.size() / group_size;
+    const size_t control_buf_sz = control_buf.size() * sizeof(decltype(control_buf)::value_type);
 
     const size_t wg_size = 256;
 
     KernelInfo kernel;
 
-    kernel.g_wk.push_back(wg_size * n_groups * params.group_counts);
+    kernel.g_wk.push_back(wg_size * n_groups * problem.group_counts);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
 
@@ -605,89 +569,81 @@ ConvSolution ConvBinWinogradUltraRxSf2x3::GetSolution(const ConvolutionContext& 
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    std::string kernel_name    = "miopenSp3AsmConv_Ultra_v1_1_3_gfx10";
-    std::string kernel_file    = "Conv_Winograd_Ultra_v1_1_3";
-    std::string kernel_postfix = "_fp16_pk_stride1";
+    const std::string kernel_name    = "miopenSp3AsmConv_Ultra_v1_0_14_gfx10";
+    const std::string kernel_file    = "Conv_Winograd_Ultra_v1_0_14";
+    const std::string kernel_postfix = "_fp16_pk_stride1";
 
-    kernel.kernel_name = kernel_name + kernel_postfix;
+    std::stringstream ss;
+    // clang-format off
+    ss << "_" << desc.N << "x" << desc.H << "x" << desc.W
+       << "_" << desc.out_H << "x" << desc.out_W
+       << "_" << desc.pad_H << "x" << desc.pad_W
+       << "_" << n_groups << "_" << intl_factor;
+    // clang-format on
+
+    kernel.kernel_name = kernel_name + kernel_postfix + ss.str();
     kernel.kernel_file = kernel_file + kernel_postfix + ".s";
 
     KernelBuildParameters options{
         {"ROCM_METADATA_VERSION", 5},
-        {"control_buf_sz", control_buf_sz},
+        {"control_buf_alloc_type", 1},
+        {kbp::Option{}, "mcumode"},
+        {kbp::Option{}, "mwavefrontsize64"},
 
         // Control buffer is part of kernel and depends on the following parameters.
         // The following unused compile options ensure the uniqueness of the control buffer
         // and the correct program caching.
-        {"hash_N", N},
-        {"hash_H", H},
-        {"hash_W", W},
-        {"hash_out_H", out_H},
-        {"hash_out_W", out_W},
-        {"hash_pad_H", pad_H},
-        {"hash_pad_W", pad_W},
+        {"control_buf_sz", control_buf_sz},
+        {"hash_N", desc.N},
+        {"hash_H", desc.H},
+        {"hash_W", desc.W},
+        {"hash_out_H", desc.out_H},
+        {"hash_out_W", desc.out_H},
+        {"hash_pad_H", desc.pad_H},
+        {"hash_pad_W", desc.pad_W},
         {"hash_n_groups", n_groups},
-        {"hash_intl_factor", intl_factor},
-        {kbp::Option{}, "mcumode"},
-        {kbp::Option{}, "mwavefrontsize64"},
-    };
+        {"hash_intl_factor", intl_factor}};
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
     ConvSolution solution;
 
     solution.construction_params.push_back(kernel);
-    solution.invoker_factory = [=](std::vector<Kernel> kernels) {
-        const auto& k              = kernels.front();
-        const auto& h              = params.GetStream();
-        const auto control_buf_ptr = CopyDataToSymbol(h, k, gpu_control, "control_buf");
 
+    solution.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto kern = handle.Run(kernels.front());
-            ConstData_t in, wei, out;
+            const auto kern            = kernels.front();
+            const auto& invoke_params  = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& tensors        = invoke_params.tensors;
+            const auto control_buf_ptr = CopyDataToSymbol(handle, kern, control_buf, "control_buf");
 
-            if(!params.direction.IsBackwardWrW())
-            {
-                const auto& invoke_params = primitive_params.CastTo<conv::DataInvokeParams>();
-                const auto& tensors       = invoke_params.tensors;
-                in                        = tensors.in;
-                wei                       = tensors.w;
-                out                       = tensors.out;
-            }
-            else
-            {
-                const auto& invoke_params = primitive_params.CastTo<conv::WrWInvokeParams>();
-                const auto& tensors       = invoke_params.tensors;
-                in                        = tensors.x;
-                wei                       = tensors.dy;
-                out                       = tensors.dw;
-            }
+            MIOPEN_LOG_I2(desc << " n_groups=" << n_groups << " n_works=" << n_works);
 
-            kern(C,
-                 K,
-                 n_groups,
-                 n_works,
-                 d_C_pitch,
-                 d_H_pitch,
-                 d_step_1_pitch,
-                 d_step_2_pitch,
-                 o_K_pitch,
-                 o_H_pitch,
-                 o_step_1_pitch,
-                 o_step_2_pitch,
-                 in,
-                 out,
-                 control_buf_ptr,
-                 wei,
-                 reserved_ptr, // Unused bias_addr.
-                 relu_alpha,
-                 flags,
-                 R,
-                 S,
-                 reserved_offset,
-                 reserved_offset,
-                 reserved_offset,
-                 reserved_offset,
-                 reserved_offset);
+            handle.Run(kern)(desc.C,
+                             desc.K,
+                             n_groups,
+                             n_works,
+                             desc.d_C_pitch,
+                             desc.d_H_pitch,
+                             desc.d_step_1_pitch,
+                             desc.d_step_2_pitch,
+                             desc.o_K_pitch,
+                             desc.o_H_pitch,
+                             desc.o_step_1_pitch,
+                             desc.o_step_2_pitch,
+                             tensors.in,
+                             tensors.out,
+                             control_buf_ptr,
+                             tensors.w,
+                             reserved_ptr, // Unused bias_addr.
+                             relu_alpha,
+                             desc.flags,
+                             desc.R,
+                             desc.S,
+                             reserved_offset,
+                             reserved_offset,
+                             reserved_offset,
+                             reserved_offset,
+                             reserved_offset);
         };
     };
 

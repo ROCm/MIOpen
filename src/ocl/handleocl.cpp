@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  *
  * MIT License
  *
@@ -189,13 +189,24 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
     MIOPEN_LOG_NQI(*this);
 }
 
+static bool PrintOpenCLDeprecateMsg()
+{
+    MIOPEN_LOG_W("Please note that the OpenCL backend to MIOpen is being deprecated, ");
+    MIOPEN_LOG_W(
+        "please port your application to the better supported and functional HIP backend. ");
+    MIOPEN_LOG_W("If you have any questions, please reach out to the MIOpen developers at ");
+    MIOPEN_LOG_W("https://github.com/ROCmSoftwarePlatform/MIOpen");
+    return true;
+}
+
 Handle::Handle() : impl(new HandleImpl())
 {
     /////////////////////////////////////////////////////////////////
     // Create an OpenCL context
     /////////////////////////////////////////////////////////////////
-
-    impl->context = impl->create_context();
+    static const auto run_once = PrintOpenCLDeprecateMsg();
+    std::ignore                = run_once;
+    impl->context              = impl->create_context();
     /* First, get the size of device list data */
     cl_uint deviceListSize;
     if(clGetContextInfo(impl->context.get(),
@@ -526,10 +537,15 @@ Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t s
 
 void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz) const
 {
+    ReadTo(data, ddata.get(), sz);
+}
+
+void Handle::ReadTo(void* data, ConstData_t ddata, std::size_t sz) const
+{
     MIOPEN_HANDLE_LOCK
     this->Finish();
-    auto status = clEnqueueReadBuffer(
-        this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
+    auto status =
+        clEnqueueReadBuffer(this->GetStream(), ddata, CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if(status != CL_SUCCESS)
     {
         MIOPEN_THROW_CL_STATUS(status, "OpenCL error reading from buffer: " + std::to_string(sz));

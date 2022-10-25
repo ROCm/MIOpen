@@ -39,6 +39,8 @@
 #include <miopen/tensor_layout.hpp>
 #include <miopen/algorithm.hpp>
 
+#include <nlohmann/json.hpp>
+
 #include <cassert>
 #include <cstddef>
 #include <algorithm>
@@ -163,6 +165,12 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
 
     auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
+    if(wDesc.GetLayout_str() == "CHWNc")
+    {
+        std::tie(wei_k, wei_c) = miopen::tie_pick<3, 0>{}(wDesc.GetLengths());
+        wei_spatial            = boost::adaptors::slice(wDesc.GetLengths(), 1, 1 + spatial_dim);
+    }
+
     if(mode == miopenConvolution)
     {
         // for depthwise conv wei_c must be 1 while group_count must be wei_c
@@ -229,12 +237,13 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
                     1,
                     GetConvStrides()[i] * (std::ptrdiff_t(in_spatial[i]) - 1) + 1 +
                         GetConvDilations()[i] * (std::ptrdiff_t(wei_spatial[i]) - 1) -
-                        2 * GetConvPads()[i] + GetTransposeConvPads()[i]);
+                        2 * static_cast<std::ptrdiff_t>(GetConvPads()[i]) +
+                        GetTransposeConvPads()[i]);
             }
         }
         else
         {
-            out_c = wei_k;
+            out_c = wei_k / wDesc.GetVectorLength();
 
             for(int i = 0; i < spatial_dim; ++i)
             {
@@ -242,7 +251,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
                     1,
                     (ptrdiff_t(in_spatial[i]) -
                      (1 + GetConvDilations()[i] * (std::ptrdiff_t(wei_spatial[i]) - 1)) +
-                     2 * GetConvPads()[i]) /
+                     2 * static_cast<std::ptrdiff_t>(GetConvPads()[i])) /
                             GetConvStrides()[i] +
                         1);
             }
@@ -256,11 +265,13 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
 
     const std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
     std::vector<std::size_t> out_strides;
-    tensor_layout_to_strides(out_lens, default_layout, yLayout, out_strides);
-
+    tensor_layout_to_strides(
+        out_lens, default_layout, yLayout, xDesc.GetVectorLength(), out_strides);
     return {(xDesc.GetType() == miopenInt8 || xDesc.GetType() == miopenInt8x4
-                 ? (yType == miopenInt32 ? yType : miopenFloat)
-                 : xDesc.GetType()),
+                 ? (yType)
+                 : xDesc.GetType()), // TODO: This function overrides the output type with
+                                     // essentially the input which is incorrect.
+            xDesc.GetLayout_t(),
             out_lens,
             out_strides};
 }
@@ -291,7 +302,7 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(miopen::ConvolutionCon
         return false;
 
     // Filter out configs where 3x3 Winograd does not have high WTI.
-    if(!(ctx.n_outputs >= 16 && ctx.n_outputs % 2 == 0))
+    if(!(ctx.problem.n_outputs >= 16 && ctx.problem.n_outputs % 2 == 0))
         return false;
 
     return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx);
@@ -772,6 +783,16 @@ std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)
     return stream;
 }
 
+void to_json(nlohmann::json& json, const ConvolutionAttribute::Gfx90aFp16alt& attribute)
+{
+    json = {{"value", attribute.value}};
+}
+
+void from_json(const nlohmann::json& json, ConvolutionAttribute::Gfx90aFp16alt& attribute)
+{
+    json.at("value").get_to(attribute.value);
+}
+
 void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
 {
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
@@ -782,6 +803,15 @@ void ConvolutionAttribute::Set(miopenConvolutionAttrib_t attr, int value)
                          "MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL: " +
                              std::to_string(value));
         gfx90aFp16alt.value = value;
+    }
+    else if(attr == MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC)
+    {
+        if(value < 0 || value > 1)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "[Set conv attribute] Error: Attemp to set invalid value for "
+                         "MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC: " +
+                             std::to_string(value));
+        deterministic.value = value;
     }
     else
     {
@@ -795,9 +825,51 @@ int ConvolutionAttribute::Get(miopenConvolutionAttrib_t attr) const
 {
     if(attr == MIOPEN_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
         return gfx90aFp16alt.value;
+    else if(attr == MIOPEN_CONVOLUTION_ATTRIB_DETERMINISTIC)
+        return deterministic.value;
     MIOPEN_THROW(miopenStatusBadParm,
                  "[Get conv attribute] Error: Attribute [" +
                      std::to_string(static_cast<int>(attr)) + "] does not exist.");
+}
+
+void to_json(nlohmann::json& json, const ConvolutionAttribute& conv)
+{
+    json = {{"gfx90aFp16alt", conv.gfx90aFp16alt}};
+}
+
+void from_json(const nlohmann::json& json, ConvolutionAttribute& conv)
+{
+    json.at("gfx90aFp16alt").get_to(conv.gfx90aFp16alt);
+}
+
+void to_json(nlohmann::json& json, const ConvolutionDescriptor& conv)
+{
+    json = nlohmann::json{
+        {"spatialDim", conv.spatialDim},
+        {"mode", conv.mode},
+        {"paddingMode", conv.paddingMode},
+        {"pads", conv.pads},
+        {"strides", conv.strides},
+        {"dilations", conv.dilations},
+        {"transOutputPads", conv.trans_output_pads},
+        {"groupCount", conv.group_count},
+        {"lowpQuant", conv.lowp_quant},
+        {"attribute", conv.attribute},
+    };
+}
+
+void from_json(const nlohmann::json& json, ConvolutionDescriptor& conv)
+{
+    json.at("spatialDim").get_to(conv.spatialDim);
+    json.at("mode").get_to(conv.mode);
+    json.at("paddingMode").get_to(conv.paddingMode);
+    json.at("pads").get_to(conv.pads);
+    json.at("strides").get_to(conv.strides);
+    json.at("dilations").get_to(conv.dilations);
+    json.at("transOutputPads").get_to(conv.trans_output_pads);
+    json.at("groupCount").get_to(conv.group_count);
+    json.at("lowpQuant").get_to(conv.lowp_quant);
+    json.at("attribute").get_to(conv.attribute);
 }
 
 } // namespace miopen

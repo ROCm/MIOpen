@@ -1563,7 +1563,7 @@ int RNNDriver<Tgpu, Tref>::VerifyForward()
 
     if(CheckGuard(in_h, out_h, hy_d, hy_n, hy_h, dirMode, inputMode))
     {
-        printf("Bad Parameters! Verification failed\n");
+        printf("Bad Parameters! Verification FAILED\n");
         return miopenStatusBadParm;
     }
 
@@ -1653,7 +1653,7 @@ int RNNDriver<Tgpu, Tref>::VerifyBackward()
 
     if(CheckGuard(in_h, out_h, hy_d, hy_n, hy_h, dirMode, inputMode))
     {
-        printf("Bad Parameters! Verification failed\n");
+        printf("Bad Parameters! Verification FAILED\n");
         return miopenStatusBadParm;
     }
 

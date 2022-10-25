@@ -313,7 +313,7 @@ void BatchNormBwdTrainFusionOpDescriptor::calcBNParams(Handle& handle,
     int n, c, h, w;
     variant              = 0;
     std::tie(n, c, h, w) = tien<4>(in_lens);
-    in_cstride           = h * w;
+    in_cstride           = static_cast<size_t>(h) * w;
     in_nstride           = c * in_cstride;
     in_nchw              = n * in_nstride;
 
@@ -433,7 +433,7 @@ BatchNormBwdTrainFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
     size_t xlocalsize, ylocalsize, zlocalsize;
     int h, w;
     std::tie(std::ignore, std::ignore, h, w) = tien<4>(input_desc.GetLengths());
-    size_t in_cstride                        = h * w;
+    size_t in_cstride                        = static_cast<size_t>(h) * w;
 
     xlocalsize = 1;
     ylocalsize = 1;
@@ -469,7 +469,7 @@ std::vector<size_t> BatchNormBwdTrainFusionOpDescriptor::GetGlobalWGSz(Handle& h
     size_t zgridsize = 1;
     size_t ygridsize = 1;
 
-    size_t in_cstride = h * w;
+    size_t in_cstride = static_cast<size_t>(h) * w;
 
     if(mode == miopenBNSpatial)
     {
@@ -479,7 +479,7 @@ std::vector<size_t> BatchNormBwdTrainFusionOpDescriptor::GetGlobalWGSz(Handle& h
         }
         else
         {
-            xgridsize = 1024 * c;
+            xgridsize = 1024 * static_cast<size_t>(c);
         }
     }
     else
@@ -512,7 +512,7 @@ void BatchNormFwdTrainFusionOpDescriptor::calcBNParams(Handle& handle,
     int n, c, h, w;
     variant              = 0;
     std::tie(n, c, h, w) = tien<4>(in_lens);
-    in_cstride           = h * w;
+    in_cstride           = static_cast<size_t>(h) * w;
     in_nstride           = c * in_cstride;
     in_nchw              = n * in_nstride;
 
@@ -631,6 +631,7 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetCompileParms(
            " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
            " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
            " -DMIOPEN_READ_UNIT=" + std::to_string(read_unit) + " -DMIOPEN_READ_TYPE=" + READ_TYPE +
+           // cppcheck-suppress knownConditionTrueFalse
            " -DMIO_SAVE_MEAN_VARIANCE=" + (saveBatchStats ? "1" : "0") +
            " -DMIO_RUNNING_RESULT=" + ((savePopStats) ? "1" : "0") +
            " -DMIO_BN_VARIANT=" + std::to_string(variant) +
@@ -648,7 +649,7 @@ BatchNormFwdTrainFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
     size_t xlocalsize, ylocalsize, zlocalsize;
     int h, w;
     std::tie(std::ignore, std::ignore, h, w) = tien<4>(input_desc.GetLengths());
-    size_t in_cstride                        = h * w;
+    size_t in_cstride                        = static_cast<size_t>(h) * w;
 
     xlocalsize = 1024;
     ylocalsize = 1;
@@ -682,7 +683,7 @@ std::vector<size_t> BatchNormFwdTrainFusionOpDescriptor::GetGlobalWGSz(Handle& h
     size_t zgridsize = 1;
     size_t ygridsize = 1;
 
-    size_t in_cstride = h * w;
+    size_t in_cstride = static_cast<size_t>(h) * w;
 
     if(mode != miopenBNSpatial)
     {

@@ -83,6 +83,7 @@ endfunction()
 set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
+    api/find2_0_commons.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -123,9 +124,11 @@ set( MIOpen_Source
     mdg_expr.cpp
     op_args.cpp
     operator.cpp
+    performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
     problem_description.cpp
+    problem.cpp
     ramdb.cpp
     readonlyramdb.cpp
     reducetensor.cpp
@@ -133,6 +136,7 @@ set( MIOpen_Source
     rnn.cpp
     rnn_api.cpp
     softmax_api.cpp
+    solution.cpp
     solver.cpp
     solver/activ/bwd_0.cpp
     solver/activ/bwd_1.cpp
@@ -159,6 +163,7 @@ set( MIOpen_Source
     solver/conv_asm_implicit_gemm_gtc_bwd_nhwc.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd.cpp
     solver/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
+    solver/conv_asm_implicit_gemm_gtc_fwd_nchwc.cpp
     solver/conv_asm_implicit_gemm_gtc_perf_config.cpp
     solver/conv_asm_implicit_gemm_gtc_wrw_nhwc.cpp
     solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
@@ -180,6 +185,7 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
     solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
+    solver/conv_hip_implicit_gemm_fwd_xdlops.cpp
     solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
@@ -201,8 +207,7 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
-    solver/conv_winoRxS_f2x3.cpp
-    solver/conv_winoRxS_f3x2.cpp
+    solver/conv_winoRxS.cpp
     solver/conv_winoRxS_ultra_f2x3.cpp
     solver/fft.cpp
     solver/gemm.cpp
@@ -279,8 +284,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9_stride_2_dil.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9_stride_2_dec.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9.inc
-        kernels/Conv_Winograd_Ultra_v1_1_3_gfx10_fp16_pk_stride1.inc
-        kernels/Conv_Winograd_Ultra_v1_1_3_metadata.inc
+        kernels/Conv_Winograd_Ultra_v1_0_14_gfx10_fp16_pk_stride1.inc
+        kernels/Conv_Winograd_Ultra_v1_0_14_metadata.inc
         kernels/Conv_Winograd_v21_1_3_gfx9_f3x2_fp16_dot2_edc_stride1_group.inc
         kernels/Conv_Winograd_v21_1_3_gfx90a_f3x2_fp16_dot2_edc_stride1_group.inc
         kernels/Conv_Winograd_v21_1_3_gfx10_f3x2_fp16_dot2_edc_stride1_group.inc
@@ -423,7 +428,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v3_0b.s
         kernels/conv_3x3_wheel_alpha_v9_2_7.s
         kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec.s
-        kernels/Conv_Winograd_Ultra_v1_1_3_fp16_pk_stride1.s
+        kernels/Conv_Winograd_Ultra_v1_0_14_fp16_pk_stride1.s
         kernels/Conv_Winograd_v21_1_3_f3x2_fp16_dot2_edc_stride1_group.s
         kernels/Conv_Winograd_v21_1_3_f3x2_fp32_stride1_group.s
         kernels/Conv_Winograd_v21_1_3_fp16_dot2_edc_dilation2.s
@@ -636,9 +641,14 @@ target_include_directories(MIOpen PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
 )
 
+set(MIOPEN_CK_LINK_FLAGS)
+if(MIOPEN_USE_COMPOSABLEKERNEL)
+set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations hip::host)
+endif()
+
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
-target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES})
+target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
@@ -687,9 +697,18 @@ if(miopentensile_FOUND)
     target_link_libraries(MIOpen PRIVATE MIOpenTensile)
 endif()
 
+# For backward compatibility with ROCm 5.3
+# Build with library libMLIRMIOpen
 if(LIBMLIRMIOPEN)
-  target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
+    target_link_libraries(MIOpen PRIVATE ${LIBMLIRMIOPEN})
 endif()
+
+# Build with package rocMLIR
+if(rocMLIR_FOUND)
+    target_link_libraries(MIOpen PRIVATE rocMLIR::rockCompiler)
+endif()
+
+target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)
 
 if(WIN32 AND NOT MSVC)
     if(BUILD_DEV)
@@ -769,6 +788,16 @@ rocm_export_targets(
 # Install db files
 if(NOT MIOPEN_EMBED_DB STREQUAL "")
     include(embed)
+    if(MIOPEN_EMBED_BINCACHE AND MIOPEN_BINCACHE_PATH STREQUAL "")
+        if(MIOPEN_NO_LFS_PULLED)
+            message(WARNING "Binary cache files have not been pulled down from git-lfs, will not embed.")
+        else()
+            set(MIOPEN_BINCACHE_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
+            message("MIOPEN_BINCACHE_PATH: ${MIOPEN_BINCACHE_PATH}")
+        endif()
+    else()
+        message(WARNING "MIOPEN_EMBED_BINCACHE is set and MIOPEN_BINCACHE_PATH was used to override default binary cache files. Proceed at your own risk!")
+    endif()
     set(CODE_OBJECTS)
 # embed find db
     foreach(EMBED_ARCH ${MIOPEN_EMBED_DB})
@@ -809,7 +838,7 @@ if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
     export.h config.h version.h miopen.h
     HEADER_LOCATION include/miopen
     GUARDS WRAPPER
-    WRAPPER_LOCATIONS miopen/include/miopen
+    WRAPPER_LOCATIONS miopen/${CMAKE_INSTALL_INCLUDEDIR}/miopen
     ORIGINAL_FILES ${PROJECT_BINARY_DIR}/include/miopen/version.h ${PROJECT_BINARY_DIR}/include/miopen/config.h
   )
 

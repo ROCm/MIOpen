@@ -41,36 +41,88 @@ bool AlwaysEnableConvDirectNaive = false;
 
 namespace solver {
 
-bool ConvDirectNaiveConvIsAssemblyKernel(const ConvolutionContext& ctx)
+bool ConvDirectNaiveConvIsAssemblyKernel(const ExecutionContext& ctx,
+                                         const ProblemDescription& problem)
 {
     const auto device_name = ctx.GetStream().GetDeviceName();
     return (device_name == "gfx906" || device_name == "gfx908") && ctx.rmv.IsV3() &&
-           ctx.IsLayoutDefault();
+           problem.IsLayoutDefault() && (!problem.IsInt8());
 }
 
-std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
+// Check tensor data type respectively
+bool IsInputFp32(const ProblemDescription& problem)
+{
+    return (problem.in_data_type == miopenFloat && problem.weights_data_type == miopenFloat) ||
+           (problem.out_data_type == miopenFloat && problem.weights_data_type == miopenFloat) ||
+           (problem.in_data_type == miopenFloat && problem.out_data_type == miopenFloat);
+}
+bool IsInputFp16(const ProblemDescription& problem)
+{
+    return (problem.in_data_type == miopenHalf && problem.weights_data_type == miopenHalf) ||
+           (problem.out_data_type == miopenHalf && problem.weights_data_type == miopenHalf) ||
+           (problem.in_data_type == miopenHalf && problem.out_data_type == miopenHalf);
+}
+bool IsInputBfp16(const ProblemDescription& problem)
+{
+    return (problem.in_data_type == miopenBFloat16 &&
+            problem.weights_data_type == miopenBFloat16) ||
+           (problem.out_data_type == miopenBFloat16 &&
+            problem.weights_data_type == miopenBFloat16) ||
+           (problem.in_data_type == miopenBFloat16 && problem.out_data_type == miopenBFloat16);
+}
+bool IsInputInt8(const ProblemDescription& problem)
+{
+    return (problem.in_data_type == miopenInt8 && problem.weights_data_type == miopenInt8) ||
+           (problem.out_data_type == miopenInt8 && problem.weights_data_type == miopenInt8) ||
+           (problem.in_data_type == miopenInt8 && problem.out_data_type == miopenInt8);
+}
+bool IsAccFp64(const ProblemDescription& problem)
+{
+    return IsInputFp32(problem) || IsInputFp16(problem) || IsInputBfp16(problem);
+}
+bool IsAccInt32(const ProblemDescription& problem) { return IsInputInt8(problem); }
+bool IsOutputFp32(const ProblemDescription& problem)
+{
+    return problem.IsFp32() ||
+           (problem.in_data_type == miopenInt8 && problem.weights_data_type == miopenInt8 &&
+            problem.out_data_type == miopenFloat);
+}
+bool IsOutputFp16(const ProblemDescription& problem) { return problem.IsFp16(); }
+bool IsOutputBfp16(const ProblemDescription& problem) { return problem.IsBfp16(); }
+bool IsOutputInt8(const ProblemDescription& problem)
+{
+    return problem.in_data_type == miopenInt8 && problem.weights_data_type == miopenInt8 &&
+           problem.out_data_type == miopenInt8;
+}
+bool IsOutputInt32(const ProblemDescription& problem)
+{
+    return problem.in_data_type == miopenInt8 && problem.weights_data_type == miopenInt8 &&
+           problem.out_data_type == miopenInt32;
+}
+
+std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 {
     std::ostringstream kernel_name;
     kernel_name << "naive_conv_";
-    if(ctx.direction.IsForward())
+    if(problem.direction.IsForward())
         kernel_name << "fwd_";
-    else if(ctx.direction.IsBackwardData())
+    else if(problem.direction.IsBackwardData())
         kernel_name << "bwd_";
-    else if(ctx.direction.IsBackwardWrW())
+    else if(problem.direction.IsBackwardWrW())
         kernel_name << "wrw_";
     else
         MIOPEN_THROW("unsupported convolution direction");
 
-    if(ctx.IsLayoutDefault())
+    if(problem.IsLayoutDefault())
     {
-        if(ctx.Is2d())
+        if(problem.Is2d())
             kernel_name << "nchw_";
         else
             kernel_name << "ncdhw_";
     }
-    else if(ctx.IsLayoutNHWC())
+    else if(problem.IsLayoutNHWC())
     {
-        if(ctx.Is2d())
+        if(problem.Is2d())
             kernel_name << "nhwc_";
         else
             kernel_name << "ndhwc_";
@@ -78,29 +130,45 @@ std::string ConvDirectNaiveConvKernelName(const ConvolutionContext& ctx)
     else
         MIOPEN_THROW("unsupported tensor layout");
 
-    if(ctx.IsFp32())
-        kernel_name << "fp32";
-    else if(ctx.IsFp16())
-        kernel_name << "fp16";
-    else if(ctx.IsBfp16())
-        kernel_name << "bf16";
+    if(IsInputFp32(problem))
+        kernel_name << "float_";
+    else if(IsInputFp16(problem))
+        kernel_name << "half_";
+    else if(IsInputBfp16(problem))
+        kernel_name << "ushort_";
+    else if(IsInputInt8(problem))
+        kernel_name << "int8_t_";
+    else
+        MIOPEN_THROW("unsupported data type:");
+
+    if(IsAccInt32(problem))
+        kernel_name << "int32_t_";
+    else if(IsAccFp64(problem))
+        kernel_name << "double_";
+    else
+        MIOPEN_THROW("unsupported data type:");
+
+    if(IsOutputFp32(problem))
+        kernel_name << "float";
+    else if(IsOutputFp16(problem))
+        kernel_name << "half";
+    else if(IsOutputBfp16(problem))
+        kernel_name << "ushort";
+    else if(IsOutputInt8(problem))
+        kernel_name << "int8_t";
+    else if(IsOutputInt32(problem))
+        kernel_name << "int32_t";
     else
         MIOPEN_THROW("unsupported data type:");
 
     return kernel_name.str();
 }
 
-std::string ConvDirectNaiveConvKernelFile(const ConvolutionContext& ctx)
-{
-    if(ConvDirectNaiveConvIsAssemblyKernel(ctx))
-        return "naive_conv_gcn.s";
-    else
-        return "naive_conv.cpp";
-}
+std::string ConvDirectNaiveConvKernelFile() { return "naive_conv.cpp"; }
 
 std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
 {
-    std::string filename = ConvDirectNaiveConvKernelFile(ctx);
+    std::string filename = ConvDirectNaiveConvKernelFile();
     if(miopen::EndsWith(filename, ".s"))
     {
         std::ostringstream options;
@@ -110,9 +178,10 @@ std::string ConvDirectNaiveConvCompileOption(const ConvolutionContext& ctx)
     return ctx.general_compile_options;
 }
 
-bool ConvDirectNaiveConvIsApplicableByKernelType(const ConvolutionContext& ctx)
+bool ConvDirectNaiveConvIsApplicableByKernelType(const ExecutionContext& ctx,
+                                                 const ProblemDescription& problem)
 {
-    if(ConvDirectNaiveConvIsAssemblyKernel(ctx))
+    if(ConvDirectNaiveConvIsAssemblyKernel(ctx, problem))
     {
         if(!ctx.use_asm_kernels)
             return false;
