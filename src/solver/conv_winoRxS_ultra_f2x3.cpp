@@ -522,6 +522,7 @@ bool ConvBinWinogradUltraRxSf2x3::IsApplicable(const ExecutionContext& ctx,
                                  problem);
 #else
     std::ignore = ctx;
+    std::ignore = problem;
     return false;
 #endif
 }
