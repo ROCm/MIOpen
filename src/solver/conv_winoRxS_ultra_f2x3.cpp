@@ -414,7 +414,7 @@ inline bool IsShaderContraintsMet(const int R,
         return false;
     }
 
-    constexpr auto ELEM_SZ    = static_cast<size_t>(sizeof(half_float::half));
+    constexpr auto ELEM_SZ    = static_cast<uint64_t>(sizeof(half_float::half));
     constexpr auto D_W_PITCH  = ELEM_SZ * 1;
     constexpr auto O_W_PITCH  = ELEM_SZ * 1;
     const auto D_H_PITCH      = D_W_PITCH * W;
