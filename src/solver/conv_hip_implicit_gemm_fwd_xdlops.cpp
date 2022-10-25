@@ -299,7 +299,8 @@ ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ProblemDescripti
 }
 
 bool ConvHipImplicitGemmFwdXdlops::IsValidPerformanceConfig(
-    const ProblemDescription& problem, const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
+    const ProblemDescription& problem,
+    const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {
     return config.IsValid(problem);
 }
@@ -318,7 +319,8 @@ size_t ConvHipImplicitGemmFwdXdlops::GetWorkspaceSize(const ConvolutionContext& 
     return 0;
 }
 
-bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
+                                                const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
@@ -356,7 +358,9 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx, c
 }
 
 ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {
     std::ignore = ctx;
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL

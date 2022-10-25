@@ -5433,16 +5433,10 @@ struct PerformanceConfigHipImplicitGemmFwdXdlops
     {
     }
     void HeuristicInit(const ProblemDescription&);
-    bool SetNextValue(const ConvolutionContext& ctx)
-    {
-        return SetNextValue(ctx.problem);
-    }
+    bool SetNextValue(const ConvolutionContext& ctx) { return SetNextValue(ctx.problem); }
     bool SetNextValue(const ProblemDescription&);
     bool IsValidValue() const;
-    bool IsValid(const ConvolutionContext& ctx) const
-    {
-        return IsValid(ctx.problem);
-    }
+    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx.problem); }
     bool IsValid(const ProblemDescription&) const;
     template <typename Self, typename F>
     static void Visit(Self&& s, F f)
@@ -5462,11 +5456,11 @@ struct ConvHipImplicitGemmFwdXdlops final
     : ConvTunableSolver<PerformanceConfigHipImplicitGemmFwdXdlops>
 {
     // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::IsValidPerformanceConfig;
     using ConvTunableSolver::Search;
-    using ConvTunableSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
@@ -5478,8 +5472,9 @@ struct ConvHipImplicitGemmFwdXdlops final
     {
         return GetDefaultPerformanceConfig(ctx.problem);
     }
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceConfigHipImplicitGemmFwdXdlops& config) const override
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                             const PerformanceConfigHipImplicitGemmFwdXdlops& config) const override
     {
         return IsValidPerformanceConfig(ctx.problem, config);
     }
@@ -5495,9 +5490,8 @@ struct ConvHipImplicitGemmFwdXdlops final
         return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }
-    ConvSolution
-    GetSolution(const ConvolutionContext& ctx,
-                const PerformanceConfigHipImplicitGemmFwdXdlops& config) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConfigHipImplicitGemmFwdXdlops& config) const override
     {
         return GetSolution(ctx, ctx.problem, config);
     }
@@ -5519,12 +5513,12 @@ private:
     GetDefaultPerformanceConfig(const ProblemDescription&) const;
     bool IsValidPerformanceConfig(const ProblemDescription&,
                                   const PerformanceConfigHipImplicitGemmFwdXdlops&) const;
-    PerformanceConfigHipImplicitGemmFwdXdlops
-    Search(const ConvolutionContext&, const ProblemDescription&, const AnyInvokeParams& invoke_ctx) const;
-    ConvSolution
-    GetSolution(const ConvolutionContext&,
-                const ProblemDescription&,
-                const PerformanceConfigHipImplicitGemmFwdXdlops&) const;
+    PerformanceConfigHipImplicitGemmFwdXdlops Search(const ConvolutionContext&,
+                                                     const ProblemDescription&,
+                                                     const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const PerformanceConfigHipImplicitGemmFwdXdlops&) const;
 
     template <typename DataType>
     bool CheckCKApplicability(const ProblemDescription&) const;
