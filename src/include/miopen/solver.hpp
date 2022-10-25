@@ -2626,7 +2626,6 @@ private:
     ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const;
 };
 
-
 struct ConvBinWinogradUltraRxSf2x3Const final : ConvSolver
 {
     // To suppress -Woverloaded-virtual
