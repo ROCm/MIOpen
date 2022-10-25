@@ -610,11 +610,13 @@ ConvSolution ConvBinWinogradUltraRxSf2x3Const::GetSolution(const ExecutionContex
     solution.construction_params.push_back(kernel);
 
     solution.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        const auto kern = kernels.front();
+        const auto control_buf_ptr =
+            CopyDataToSymbol(ctx.GetStream(), kern, control_buf, "control_buf");
+
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto kern            = kernels.front();
-            const auto& invoke_params  = primitive_params.CastTo<conv::DataInvokeParams>();
-            const auto& tensors        = invoke_params.tensors;
-            const auto control_buf_ptr = CopyDataToSymbol(handle, kern, control_buf, "control_buf");
+            const auto& invoke_params = primitive_params.CastTo<conv::DataInvokeParams>();
+            const auto& tensors       = invoke_params.tensors;
 
             MIOPEN_LOG_I2(desc << " n_groups=" << n_groups << " n_works=" << n_works);
 
