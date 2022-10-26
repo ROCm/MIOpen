@@ -360,7 +360,8 @@ IsValidGridGemmXdlops(const std::size_t GemmM, const std::size_t GemmN, const st
 }
 
 ///\todo remove
-static inline bool IsApplicableXdlops(const ExecutionContext& ctx, const ProblemDescription& problem)
+static inline bool IsApplicableXdlops(const ExecutionContext& ctx,
+                                      const ProblemDescription& problem)
 {
     if(!IsXdlopsSupport(ctx))
         return false;
