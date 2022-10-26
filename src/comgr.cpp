@@ -1028,7 +1028,8 @@ void BuildAsm(const std::string& name,
 
 #if MIOPEN_USE_HIPRTC
 
-#define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838 Issue #1648
+#define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838, issue #1648.
+#define WORKAROUND_ISSUE_1674 (HIP_PACKAGE_VERSION_FLAT >= 5003022305ULL)
 
 namespace hiprtc {
 
@@ -1250,7 +1251,7 @@ private:
                 return {error_handling ? "warning: HIPRTC error log empty" : ""};
             std::vector<char> buffer(n);
             HIPRTC_CALL_INFO_THROW(hiprtcGetProgramLog(prog.get(), buffer.data()), n);
-            assert(buffer.back() == 0);
+            assert(buffer.back() == 0 || buffer.back() == '\n' || buffer.back() == '\0');
             return {buffer.begin(), buffer.end() - 1};
         }
         catch(Error&)
@@ -1292,6 +1293,9 @@ void BuildHip(const std::string& name,
         opts.push_back("-Wno-newline-eof");
         opts.push_back("-Wno-reserved-identifier");
         opts.push_back("-Wno-old-style-cast");
+#endif
+#if WORKAROUND_ISSUE_1674
+        opts.push_back("-Wno-gnu-line-marker");
 #endif
         opts.push_back("-Wno-cuda-compat");
         opts.push_back("-fno-gpu-rdc");

@@ -1372,7 +1372,7 @@ amdhsa.kernels:
     - { .name: ntile_hw  , .size: 4, .offset:  28, .value_kind: by_value, .value_type: i32}
     - { .name: hi        , .size: 4, .offset:  32, .value_kind: by_value, .value_type: i32}
     - { .name: wi        , .size: 4, .offset:  36, .value_kind: by_value, .value_type: i32}
-    - { .name: n         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
+    - { .name: n_         , .size: 4, .offset:  40, .value_kind: by_value, .value_type: i32}
     - { .name: k         , .size: 4, .offset:  44, .value_kind: by_value, .value_type: i32}
     - { .name: c         , .size: 4, .offset:  48, .value_kind: by_value, .value_type: i32}
     - { .name: group     , .size: 4, .offset:  52, .value_kind: by_value, .value_type: i32}

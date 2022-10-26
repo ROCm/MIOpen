@@ -72,7 +72,7 @@ struct ReductionKernelConfigurator
     {
         GredDirectThreadWiseUpperReductionLen = warpSize;
         GredDirectWarpWiseUpperReductionLen   = blockSize;
-        GredBlockWiseUpperReductionLen        = blockSize * 4;
+        GredBlockWiseUpperReductionLen        = static_cast<size_t>(blockSize) * 4;
         GredUpperNumBlocksPerReduction        = 32;
 
         numWarpsPerBlock = blockSize / warpSize;
@@ -432,8 +432,9 @@ static std::pair<bool, bool> get_padding_need(ReductionMethod_t reduceImpl,
     {
     case Reduce_DirectThreadWise:
         copySliceLen     = tunable->GredThreadBufferLength;
-        src_need_padding = (invariantLen < GridSize * BlockSize || toReduceLen % copySliceLen > 0);
-        dst_need_padding = (invariantLen < GridSize * BlockSize);
+        src_need_padding = (invariantLen < static_cast<size_t>(GridSize) * BlockSize ||
+                            toReduceLen % copySliceLen > 0);
+        dst_need_padding = (invariantLen < static_cast<size_t>(GridSize) * BlockSize);
         break;
     case Reduce_DirectWarpWise:
         copySliceLen = warpSize * tunable->GredAccessesPerThreadInWarp;
@@ -450,7 +451,7 @@ static std::pair<bool, bool> get_padding_need(ReductionMethod_t reduceImpl,
         reduceSizePerBlock =
             (((toReduceLen + BlkGroupSize - 1) / BlkGroupSize + copySliceLen - 1) / copySliceLen) *
             copySliceLen;
-        src_need_padding = (toReduceLen < reduceSizePerBlock * BlkGroupSize);
+        src_need_padding = (toReduceLen < static_cast<size_t>(reduceSizePerBlock) * BlkGroupSize);
         break;
     default: MIOPEN_THROW("Invalid reduction method ID!"); break;
     };
@@ -684,9 +685,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
     float alphaVal = (srcDataType == miopenDouble)
                          ? static_cast<float>(*reinterpret_cast<const double*>(alpha))
                          : *reinterpret_cast<const float*>(alpha);
-    float betaVal = (srcDataType == miopenDouble)
-                        ? static_cast<float>(*reinterpret_cast<const double*>(beta))
-                        : *reinterpret_cast<const float*>(beta);
+    float betaVal  = (srcDataType == miopenDouble)
+                         ? static_cast<float>(*reinterpret_cast<const double*>(beta))
+                         : *reinterpret_cast<const float*>(beta);
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION{}))
     { // use static reduction

@@ -76,7 +76,8 @@ inline void mat_vec(const unsigned int* matrix, unsigned int* vector)
             {
                 std::transform(result,
                                result + XORWOW_DIM,
-                               matrix + (XORWOW_DIM * (i * XORWOW_BITS + j)),
+                               matrix +
+                                   static_cast<std::ptrdiff_t>(XORWOW_DIM * (i * XORWOW_BITS + j)),
                                result,
                                std::bit_xor<unsigned int>{});
             }
@@ -89,7 +90,7 @@ inline void mat_mat(unsigned int* matrixA, const unsigned int* matrixB)
 {
     for(int i = 0; i < XORWOW_DIM * XORWOW_BITS; i++)
     {
-        mat_vec(matrixB, matrixA + i * XORWOW_DIM);
+        mat_vec(matrixB, matrixA + static_cast<std::ptrdiff_t>(i * XORWOW_DIM));
     }
 }
 
@@ -113,7 +114,9 @@ inline void mat_pow(unsigned int* matrixP, const unsigned int* matrix, unsigned 
 
     unsigned int matrixA[XORWOW_PRECALC_MATRICES_SZ];
     unsigned int matrixB[XORWOW_PRECALC_MATRICES_SZ];
-    std::copy(matrix, matrix + XORWOW_PRECALC_MATRICES_SZ, std::begin(matrixA));
+    std::copy(matrix,
+              matrix + static_cast<std::ptrdiff_t>(XORWOW_PRECALC_MATRICES_SZ),
+              std::begin(matrixA));
     while(bool(power))
     {
         if(bool(power & 1))

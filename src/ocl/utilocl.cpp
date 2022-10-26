@@ -195,7 +195,7 @@ float Im2d2ColGPU(const Handle& handle,
 
         const int group_size_x = 256;
         const std::vector<size_t> vld{group_size_x, 1, 1};
-        size_t group_cnt      = std::max(1, (c_pack / num_ch_per_wg)) * num_blks;
+        size_t group_cnt = std::max(1, (c_pack / num_ch_per_wg)) * static_cast<size_t>(num_blks);
         size_t global_threads = group_size_x * group_cnt;
         const std::vector<size_t> vgd{global_threads, 1, 1};
 
@@ -463,7 +463,7 @@ float Col2Im2dGPU(const Handle& handle,
         std::string params = GetDataTypeKernelParams(type);
 
         const std::vector<size_t> vld{256, 1, 1};
-        size_t global_threads = in_c * in_h * in_w;
+        size_t global_threads = static_cast<size_t>(in_c) * in_h * in_w;
         const std::vector<size_t> vgd{global_threads, 1, 1};
 
         handle.AddKernel(
@@ -568,7 +568,7 @@ float Col2Im3dGPU(const Handle& handle,
         std::string params = GetDataTypeKernelParams(type);
 
         const std::vector<size_t> vld{256, 1, 1};
-        size_t global_threads = in_c * in_d * in_h * in_w;
+        size_t global_threads = static_cast<size_t>(in_c) * in_d * in_h * in_w;
         const std::vector<size_t> vgd{global_threads, 1, 1};
 
         handle.AddKernel(
@@ -775,7 +775,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
 
         int RD_BLCK      = ((h_in * w_in) % 4 == 0) ? 4 : ((h_in * w_in) % 2 == 0) ? 2 : 1;
         int HW_RD        = (h_in * w_in) / RD_BLCK;
-        size_t MAP_RD    = HW_RD * c;
+        size_t MAP_RD    = static_cast<size_t>(HW_RD) * c;
         size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
 
         std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
@@ -783,7 +783,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
         const std::vector<size_t> vld{lcl_size0, 1, 1};
         std::vector<size_t> vgd{MAP_RD, 1, 1};
 
-        if(MAP_RD < MAX_ACTIVE_THREADS)
+        if(MAP_RD < static_cast<size_t>(MAX_ACTIVE_THREADS))
         {
             vgd = {MAP_RD, static_cast<size_t>(n), 1};
             kernel_name += "_2D_WG";
@@ -819,7 +819,7 @@ float transpose_NCHW2CNHW(const Handle& handle,
         const int hw_out = h_out * w_out;
 
         size_t ld0 = WG_SIZE;
-        size_t gd0 = h_out * w_out;
+        size_t gd0 = static_cast<size_t>(h_out) * w_out;
         const std::vector<size_t> vld{ld0, 1, 1};
         std::vector<size_t> vgd{gd0, 1, static_cast<size_t>(c)};
 
@@ -914,7 +914,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
 
         int RD_BLCK      = ((h_out * w_out) % 4 == 0) ? 4 : ((h_out * w_out) % 2 == 0) ? 2 : 1;
         int HW_RD        = (h_out * w_out) / RD_BLCK;
-        size_t MAP_RD    = HW_RD * c;
+        size_t MAP_RD    = static_cast<size_t>(HW_RD) * c;
         size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
 
         std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
@@ -922,7 +922,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
         const std::vector<size_t> vld{lcl_size0, 1, 1};
         std::vector<size_t> vgd{MAP_RD, 1, 1};
 
-        if(MAP_RD < MAX_ACTIVE_THREADS)
+        if(MAP_RD < static_cast<size_t>(MAX_ACTIVE_THREADS))
         {
             vgd = {MAP_RD, static_cast<size_t>(n), 1};
             kernel_name += "_2D_WG";
@@ -954,7 +954,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
         kernel_name += "_V2";
 
         size_t ld0 = WG_SIZE;
-        size_t gd0 = h_out * w_out;
+        size_t gd0 = static_cast<size_t>(h_out) * w_out;
         const std::vector<size_t> vld{ld0, 1, 1};
         std::vector<size_t> vgd{gd0, 1, static_cast<size_t>(c)};
 
@@ -1073,8 +1073,8 @@ float transpose_NCHW2Vec(const Handle& handle,
         const std::vector<size_t> vld{WG_SIZE, 1, 1};
         std::vector<size_t> vgd{1, 1, 1};
 
-        int RD_BLCK = ((hw) % (vec_size * 2) == 0) ? static_cast<int>(vec_size) * 2
-                                                   : static_cast<int>(vec_size);
+        int RD_BLCK   = ((hw) % (vec_size * 2) == 0) ? static_cast<int>(vec_size) * 2
+                                                     : static_cast<int>(vec_size);
         int HW_RD     = (static_cast<int>(hw) + RD_BLCK - 1) / RD_BLCK;
         size_t MAP_RD = HW_RD * (trans ? c : (c_vec / vec_size));
 
@@ -1175,7 +1175,7 @@ float transpose_packed_MN2NM(const Handle& handle,
     }
 
     size_t ld0 = WG_SIZE;
-    size_t gd0 = m * n;
+    size_t gd0 = static_cast<size_t>(m) * n;
     const std::vector<size_t> vld{ld0, 1, 1};
     std::vector<size_t> vgd{gd0, 1, 1};
 

@@ -86,9 +86,10 @@ static float CallImplGemmDynamicForward1x1(const miopen::Handle& handle,
     return elapsed;
 }
 
-InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionContext& ctx)
+InvokerFactory
+MakeImplGemmDynamicForward1x1InvokerFactory(const miopen::ProblemDescription& problem)
 {
-    const auto& conv_problem = ctx.conv_problem;
+    const auto& conv_problem = problem.conv_problem;
     return [conv_problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
@@ -113,10 +114,11 @@ InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionCont
 }
 
 template <>
-InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const ConvolutionContext& ctx,
-                                                                  const int& cfg)
+InvokerFactory
+MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescription& problem,
+                                                   const int& cfg)
 {
-    const auto& conv_problem = ctx.conv_problem;
+    const auto& conv_problem = problem.conv_problem;
     int hi                   = conv_problem.GetOutHeight();
     int wi                   = conv_problem.GetOutWidth();
     int n                    = conv_problem.GetInBatchSize();
@@ -252,9 +254,9 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const Convolut
 template <>
 InvokerFactory
 MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDynamic_t>(
-    const ConvolutionContext& ctx, const solver::TunableImplicitGemmGTCDynamic_t& cfg)
+    const miopen::ProblemDescription& problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg)
 {
-    const auto& conv_problem = ctx.conv_problem;
+    const auto& conv_problem = problem.conv_problem;
     int hi                   = conv_problem.GetOutHeight();
     int wi                   = conv_problem.GetOutWidth();
     int n                    = conv_problem.GetInBatchSize();
@@ -440,9 +442,10 @@ MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDyna
 
 InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     const ConvolutionContext& ctx,
+    const miopen::ProblemDescription& problem,
     const solver::PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
 {
-    const auto& conv_problem = ctx.conv_problem;
+    const auto& conv_problem = problem.conv_problem;
     int hi                   = conv_problem.GetInHeight();
     int wi                   = conv_problem.GetInWidth();
     int n                    = conv_problem.GetInBatchSize();
@@ -464,7 +467,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     int x_karg               = x;
 
     int splits_4G = solver::igemm_split_batch_size(
-        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
     splits_4G = splits_4G == 0 ? n : splits_4G;
 
     uint32_t gemm_m = (n / splits_4G) * ho * wo;
@@ -536,18 +539,18 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
 
     std::vector<std::vector<OpKernelArg>> opArgsTrans;
 
-    const auto lowp_quant = ctx.conv_problem.GetConv().lowp_quant;
+    const auto lowp_quant = problem.conv_problem.GetConv().lowp_quant;
     const auto isGfx90aFp16altSupport =
         (ctx.GetStream().GetDeviceName() == "gfx90a") && conv_problem.IsFp16();
 
     const bool need_cast = [&]() {
-        if(ctx.conv_problem.GetOut().GetType() == miopenHalf)
+        if(problem.conv_problem.GetOut().GetType() == miopenHalf)
             return use_fp32_global_split_on_fp16;
-        if(ctx.conv_problem.GetOut().GetType() == miopenBFloat16)
+        if(problem.conv_problem.GetOut().GetType() == miopenBFloat16)
             return need_set_zero;
         return false;
     }();
-    const auto is_nchw = ctx.IsLayoutDefault();
+    const auto is_nchw = problem.IsLayoutDefault();
 
     size_t trans_input_offset = 0;
     size_t trans_input_size   = 0;
@@ -570,14 +573,14 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
 
     if(is_nchw)
     {
-        TransposeSolutionDefault2Nhwc trans_input(ctx, ctx.in_data_type, n, c, hi, wi);
+        TransposeSolutionDefault2Nhwc trans_input(ctx, problem.in_data_type, n, c, hi, wi);
         TransposeSolutionDefault2Nhwc trans_weight(ctx,
-                                                   ctx.weights_data_type,
+                                                   problem.weights_data_type,
                                                    k,
                                                    c / group,
                                                    y,
                                                    x); // group * k_per_group as batch for weight
-        TransposeSolutionNhwc2Default trans_output(ctx, ctx.out_data_type, n, k, ho, wo);
+        TransposeSolutionNhwc2Default trans_output(ctx, problem.out_data_type, n, k, ho, wo);
 
         trans_input_skippable  = trans_input.IsSkippable();
         trans_weight_skippable = trans_weight.IsSkippable();
@@ -617,8 +620,8 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
     const TensorDescriptor cast_desc(miopenFloat,
-                                     ctx.conv_problem.GetOut().GetLengths(),
-                                     ctx.conv_problem.GetOut().GetStrides());
+                                     problem.conv_problem.GetOut().GetLengths(),
+                                     problem.conv_problem.GetOut().GetStrides());
     auto null_buf = shared<Data_t>{};
 
     return [=](const std::vector<Kernel>& kernels) mutable {
@@ -734,9 +737,10 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
 
 InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     const ConvolutionContext& ctx,
+    const miopen::ProblemDescription& problem,
     const solver::PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
 {
-    const auto& conv_problem = ctx.conv_problem;
+    const auto& conv_problem = problem.conv_problem;
     int hi                   = conv_problem.GetOutHeight();
     int wi                   = conv_problem.GetOutWidth();
     int n                    = conv_problem.GetInBatchSize();
@@ -774,7 +778,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     int num_of_gemms = x_tilda * y_tilda;
 
     int splits_4G = solver::igemm_split_batch_size(
-        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
     int n_in_1_block = splits_4G == 0 ? 1 : (n / splits_4G);
 
     uint32_t gemm_m = n_in_1_block * h_tilda_slice * w_tilda_slice;
@@ -855,17 +859,17 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 
     std::vector<std::vector<OpKernelArg>> opArgsTrans;
 
-    const auto lowp_quant = ctx.conv_problem.GetConv().lowp_quant;
+    const auto lowp_quant = problem.conv_problem.GetConv().lowp_quant;
     const auto isGfx90aFp16altSupport =
         (ctx.GetStream().GetDeviceName() == "gfx90a") && conv_problem.IsFp16();
     const bool need_cast = [&]() {
-        if(ctx.conv_problem.GetOut().GetType() == miopenHalf)
+        if(problem.conv_problem.GetOut().GetType() == miopenHalf)
             return use_fp32_global_split_on_fp16;
-        if(ctx.conv_problem.GetOut().GetType() == miopenBFloat16)
+        if(problem.conv_problem.GetOut().GetType() == miopenBFloat16)
             return need_set_zero;
         return false;
     }();
-    const auto is_nchw = ctx.IsLayoutDefault();
+    const auto is_nchw = problem.IsLayoutDefault();
 
     size_t trans_input_offset = 0;
     size_t trans_input_size   = 0;
@@ -888,14 +892,14 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 
     if(is_nchw)
     {
-        TransposeSolutionNhwc2Default trans_input(ctx, ctx.out_data_type, n, c, hi, wi);
+        TransposeSolutionNhwc2Default trans_input(ctx, problem.out_data_type, n, c, hi, wi);
         TransposeSolutionDefault2Nhwc trans_weight(ctx,
-                                                   ctx.weights_data_type,
+                                                   problem.weights_data_type,
                                                    k,
                                                    c / group,
                                                    y,
                                                    x); // group * k_per_group as batch for weight
-        TransposeSolutionDefault2Nhwc trans_output(ctx, ctx.in_data_type, n, k, ho, wo);
+        TransposeSolutionDefault2Nhwc trans_output(ctx, problem.in_data_type, n, k, ho, wo);
 
         trans_input_skippable  = trans_input.IsSkippable();
         trans_weight_skippable = trans_weight.IsSkippable();
@@ -935,8 +939,8 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     const int kID_trans_start = isGfx90aFp16altSupport ? 2 : 1;
 
     const TensorDescriptor cast_desc(miopenFloat,
-                                     ctx.conv_problem.GetOut().GetLengths(),
-                                     ctx.conv_problem.GetOut().GetStrides());
+                                     problem.conv_problem.GetOut().GetLengths(),
+                                     problem.conv_problem.GetOut().GetStrides());
     auto null_buf = shared<Data_t>{};
 
     return [=](const std::vector<Kernel>& kernels) mutable {
@@ -1050,10 +1054,10 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 }
 
 InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
-    const ConvolutionContext& ctx,
+    const miopen::ProblemDescription& problem,
     const solver::PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
 {
-    const auto& conv_problem = ctx.conv_problem;
+    const auto& conv_problem = problem.conv_problem;
     int hi                   = conv_problem.GetInHeight();
     int wi                   = conv_problem.GetInWidth();
     int n                    = conv_problem.GetInBatchSize();
@@ -1104,7 +1108,7 @@ InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
     int move_slice_k = (s_move_slice_k_y << 16) | (s_move_slice_k_x << 8) | s_move_slice_k_c;
 
     int splits_4G = solver::igemm_split_batch_size(
-        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
     splits_4G       = (splits_4G == 0 ? n : splits_4G);
     uint32_t gemm_n = 1;
     uint32_t gemm_m = 1;
