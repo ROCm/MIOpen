@@ -122,7 +122,8 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::SetNextValue(const ConvolutionContext
     return true;
 }
 
-void PerformanceImplicitGemmWrwV4R4Xdlops::HeuristicInit(const ConvolutionContext& ctx, const ProblemDescription& problem)
+void PerformanceImplicitGemmWrwV4R4Xdlops::HeuristicInit(const ConvolutionContext& ctx,
+                                                         const ProblemDescription& problem)
 {
     PerformanceImplicitGemmWrwV4R4Xdlops tmp;
 
@@ -270,7 +271,8 @@ std::tuple<int, bool> PerformanceImplicitGemmWrwV4R4Xdlops::CalculateBlockSize()
 }
 
 std::tuple<int, bool>
-PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGridSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGridSize(const ConvolutionContext& ctx,
+                                                        const ProblemDescription& problem) const
 {
     int GridSize = 0;
 
@@ -381,9 +383,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmABlockCopyPerformanceParamete
     int SrcDataPerRead_GemmKPack  = problem.IsFp32()
                                         ? amd_buffer_load_max_length<float>()
                                         : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = problem.IsFp32()
-                                        ? amd_lds_write_max_length<float>()
-                                        : amd_lds_write_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? amd_lds_write_max_length<float>()
+                                                     : amd_lds_write_max_length<half_float::half>();
     try
     {
         bool valid = false;
@@ -480,9 +481,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
     int SrcDataPerRead_GemmKPack  = problem.IsFp32()
                                         ? amd_buffer_load_max_length<float>()
                                         : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = problem.IsFp32()
-                                        ? amd_lds_write_max_length<float>()
-                                        : amd_lds_write_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? amd_lds_write_max_length<float>()
+                                                     : amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -497,18 +497,17 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
 
         // GemmN is src vector read dimension
         // calculate vector length on gemmn dimension based on global tensor layout
-        const auto y             = ProblemInterpreter::GetFilterHeightY(problem);
-        const auto x             = ProblemInterpreter::GetFilterWidthX(problem);
-        const auto ho            = ProblemInterpreter::GetOutputHeightHo(problem);
-        const auto wo            = ProblemInterpreter::GetOutputWidthWo(problem);
-        const auto conv_stride_h = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
-        const auto conv_stride_w = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
-        const auto conv_dilation_w =
-            ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
-        const auto in_left_pad_h  = ProblemInterpreter::GetInputLeftPadH(problem);
-        const auto in_left_pad_w  = ProblemInterpreter::GetInputLeftPadW(problem);
-        const auto in_right_pad_h = ProblemInterpreter::GetAdjustedInputRightPadH(problem);
-        const auto in_right_pad_w = ProblemInterpreter::GetAdjustedInputRightPadW(problem);
+        const auto y               = ProblemInterpreter::GetFilterHeightY(problem);
+        const auto x               = ProblemInterpreter::GetFilterWidthX(problem);
+        const auto ho              = ProblemInterpreter::GetOutputHeightHo(problem);
+        const auto wo              = ProblemInterpreter::GetOutputWidthWo(problem);
+        const auto conv_stride_h   = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
+        const auto conv_stride_w   = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
+        const auto conv_dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
+        const auto in_left_pad_h   = ProblemInterpreter::GetInputLeftPadH(problem);
+        const auto in_left_pad_w   = ProblemInterpreter::GetInputLeftPadW(problem);
+        const auto in_right_pad_h  = ProblemInterpreter::GetAdjustedInputRightPadH(problem);
+        const auto in_right_pad_w  = ProblemInterpreter::GetAdjustedInputRightPadW(problem);
 
         // GemmKPack is src vector read dimension, bounded by input tensor global memory layout
         // TODO this logic need to be more aggresive
@@ -596,8 +595,8 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
                            true);
 }
 
-std::tuple<std::size_t, bool>
-PerformanceImplicitGemmWrwV4R4Xdlops::CalculateLdsNumberOfByte(const ProblemDescription& problem) const
+std::tuple<std::size_t, bool> PerformanceImplicitGemmWrwV4R4Xdlops::CalculateLdsNumberOfByte(
+    const ProblemDescription& problem) const
 {
     const auto a_block_space = GemmKPerBlock * GemmMPerBlock * GemmKPack;
     const auto b_block_space = GemmKPerBlock * GemmNPerBlock * GemmKPack;
@@ -623,7 +622,8 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsValidValue() const
 
 // Used by HeuristicInit() and GenericSearch
 // Only return false if a performance config will violate requirements given by kernel algorithm
-bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ConvolutionContext& ctx,
+                                                         const ProblemDescription& problem) const
 {
     if(!IsValidValue())
         return false;
@@ -842,20 +842,23 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsFastToBeUsedForTuning(
 // Return false, if you don't want to this to be included in tuning range used by generic search
 // A performance config may still be valid w.r.t algorithm correctness, even when IsValid() return
 // false
-bool PerformanceImplicitGemmWrwV4R4Xdlops::IsValid(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool PerformanceImplicitGemmWrwV4R4Xdlops::IsValid(const ConvolutionContext& ctx,
+                                                   const ProblemDescription& problem) const
 {
     return IsReallyValid(ctx, problem) && IsFastToBeUsedForTuning(ctx, problem);
 }
 
 // Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmWrwV4R4Xdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceImplicitGemmWrwV4R4Xdlops& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmWrwV4R4Xdlops& config) const
 {
     return config.IsReallyValid(ctx, problem);
 }
 
-PerformanceImplicitGemmWrwV4R4Xdlops
-ConvHipImplicitGemmWrwV4R4Xdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+PerformanceImplicitGemmWrwV4R4Xdlops ConvHipImplicitGemmWrwV4R4Xdlops::GetDefaultPerformanceConfig(
+    const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceImplicitGemmWrwV4R4Xdlops config;
     config.HeuristicInit(ctx, problem);
@@ -864,7 +867,9 @@ ConvHipImplicitGemmWrwV4R4Xdlops::GetDefaultPerformanceConfig(const ConvolutionC
 }
 
 ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceImplicitGemmWrwV4R4Xdlops& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmWrwV4R4Xdlops& config) const
 {
     ConvSolution result;
 
@@ -1031,7 +1036,8 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
     return result;
 }
 
-bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ConvolutionContext& ctx,
+                                                    const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS{}))
         return false;
@@ -1097,7 +1103,8 @@ ConvHipImplicitGemmWrwV4R4Xdlops::Search(const ConvolutionContext& ctx,
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-std::size_t ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ProblemDescription& problem) const
+std::size_t
+ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;
