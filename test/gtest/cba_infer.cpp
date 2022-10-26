@@ -41,10 +41,10 @@ struct ConvBiasActivInferTestFloat : ConvBiasActivInferTest<float>
 };
 //
 
-template <typename Solver>
+template <typename Solver, typename TestCase>
 void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
                const miopen::fusion::FusionInvokeParams plan_params,
-               const ConvTestCase& conv_config,
+               const TestCase& conv_config,
                bool& test_skipped)
 {
     auto& handle = get_handle();

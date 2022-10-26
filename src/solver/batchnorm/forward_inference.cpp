@@ -96,6 +96,8 @@ ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& fusion_
         }
         std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
         const auto build_params = KernelBuildParameters{
+            {"MIOPEN_USE_FP16", static_cast<int>(input_desc.GetType() == miopenHalf)},
+            {"MIOPEN_USE_FP32", static_cast<int>(input_desc.GetType() == miopenFloat)},
             {"SPATIAL_BN", static_cast<int>(problem.GetMode() == miopenBNSpatial)},
             {"PERACT_BN", static_cast<int>(problem.GetMode() == miopenBNPerActivation)},
             {"MIOPEN_USE_FPMIX", static_cast<int>(input_desc.GetType() == miopenHalf)},

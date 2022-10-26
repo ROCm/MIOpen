@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,21 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 #include "conv_common.hpp"
+
+template <typename T>
+miopenDataType_t GetDataType();
+
+template <>
+miopenDataType_t GetDataType<float>()
+{
+    return miopenFloat;
+}
+
+template <>
+miopenDataType_t GetDataType<half_float::half>()
+{
+    return miopenHalf;
+}
 
 struct ConvTestCase
 {
@@ -115,10 +130,10 @@ protected:
         auto gen_value = [&](auto...) { return d(gen); };
         input.generate(gen_value);
         weights.generate(gen_value);
-        activ_desc = {activ_mode, 0.0f, 0.0f, 0.0f};
+        activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
         conv_desc  = conv_config.GetConv();
         miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopenFloat);
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
         output = tensor<T>{output_desc.GetLengths()};
         bias   = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
         bias.generate(gen_value);
