@@ -805,9 +805,9 @@ struct verify_forward_conv : conv_base<T, Tout>
             {
                 size_t workspace_size = filter.mode == miopenTranspose
                                             ? filter.BackwardDataGetWorkSpaceSize(
-                                                    handle, weights.desc, input.desc, rout.desc)
+                                                  handle, weights.desc, input.desc, rout.desc)
                                             : filter.ForwardGetWorkSpaceSize(
-                                                    handle, weights.desc, input.desc, rout.desc);
+                                                  handle, weights.desc, input.desc, rout.desc);
 
                 std::vector<char> workspace(workspace_size);
                 auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
