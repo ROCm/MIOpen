@@ -55,6 +55,8 @@ using OperatorDescriptor = boost::variant<ConvolutionDescriptor>;
 
 struct Problem : miopenProblem
 {
+    using Buffers = std::unordered_map<miopenTensorArgumentId_t, Data_t>;
+
     Problem() = default;
 
     const TensorDescriptor& GetTensorDescriptor(miopenTensorArgumentId_t name) const
@@ -78,8 +80,12 @@ struct Problem : miopenProblem
 
     const OperatorDescriptor& GetOperatorDescriptor() const { return operator_descriptor; }
 
-    std::vector<Solution>
-    FindSolutions(Handle& handle, const FindOptions& options, std::size_t max_solutions) const;
+    std::vector<Solution> FindSolutions(Handle& handle,
+                                        const FindOptions& options,
+                                        const Buffers& buffers,
+                                        const Data_t workspace,
+                                        const std::size_t workspace_size,
+                                        std::size_t max_solutions) const;
 
     conv::ProblemDescription AsConvolution() const;
 
@@ -100,12 +106,12 @@ private:
     std::unordered_map<miopenTensorArgumentId_t, TensorDescriptor> tensor_descriptors;
     OperatorDescriptor operator_descriptor;
 
-    using AllocatedBuffers = std::unordered_map<miopenTensorArgumentId_t, Allocator::ManageDataPtr>;
-
     std::vector<Solution> FindSolutionsImpl(Handle& handle,
                                             const FindOptions& options,
                                             std::size_t max_solutions,
-                                            const AllocatedBuffers& buffers,
+                                            const Buffers& buffers,
+                                            const Data_t workspace,
+                                            const std::size_t workspace_size,
                                             const ConvolutionDescriptor& conv_desc) const;
 
     void TransposeImpl(const ConvolutionDescriptor& conv_desc);

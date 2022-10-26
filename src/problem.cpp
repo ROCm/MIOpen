@@ -93,27 +93,16 @@ void VisitType(int id, Args... args)
     detail::VisitType<Visitor, Variant>{}(id, args...);
 }
 
-std::vector<Solution>
-Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t max_solutions) const
+std::vector<Solution> Problem::FindSolutions(Handle& handle,
+                                             const FindOptions& options,
+                                             const Buffers& buffers,
+                                             const Data_t workspace,
+                                             const std::size_t workspace_size,
+                                             std::size_t max_solutions) const
 {
-    auto buffers = AllocatedBuffers{};
-
-    for(const auto& pair : tensor_descriptors)
-    {
-        const auto& descriptor  = pair.second;
-        const auto element_size = get_data_size(descriptor.GetType());
-        auto buffer             = handle.Create(descriptor.GetElementSpace() * element_size);
-
-        visit_float(descriptor.GetType(), [&](auto as_float) {
-            const auto zero = as_float(0.f);
-            SetTensor(handle, descriptor, buffer.get(), &zero);
-        });
-
-        buffers.emplace(pair.first, std::move(buffer));
-    }
-
     const auto find = boost::hof::match([&](const ConvolutionDescriptor& op_desc) {
-        return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
+        return FindSolutionsImpl(
+            handle, options, max_solutions, buffers, workspace, workspace_size, op_desc);
     });
 
     auto ret = boost::apply_visitor(find, operator_descriptor);
@@ -201,7 +190,9 @@ conv::ProblemDescription Problem::AsConvolution() const
 std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const FindOptions& options,
                                                  std::size_t max_solutions,
-                                                 const AllocatedBuffers& buffers,
+                                                 const Buffers& buffers,
+                                                 const Data_t workspace,
+                                                 const std::size_t workspace_size,
                                                  const ConvolutionDescriptor& conv_desc) const
 {
     const auto& actual = conv_desc.mode == miopenTranspose ? MakeTransposed() : *this;
@@ -222,28 +213,6 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     const auto& x = buffers.at(miopenTensorConvolutionX);
     const auto& w = buffers.at(miopenTensorConvolutionW);
     const auto& y = buffers.at(miopenTensorConvolutionY);
-
-    const auto workspace_max = [&]() {
-        switch(direction)
-        {
-        case miopenProblemDirectionForward:
-            if(conv_desc.mode == miopenTranspose)
-                return conv_desc.BackwardDataGetWorkSpaceSize(handle, w_desc, x_desc, y_desc);
-            return conv_desc.ForwardGetWorkSpaceSize(handle, w_desc, x_desc, y_desc);
-        case miopenProblemDirectionBackward:
-            if(conv_desc.mode == miopenTranspose)
-                return conv_desc.ForwardGetWorkSpaceSize(handle, w_desc, y_desc, x_desc);
-            return conv_desc.BackwardDataGetWorkSpaceSize(handle, w_desc, y_desc, x_desc);
-        case miopenProblemDirectionBackwardWeights:
-            if(conv_desc.mode == miopenTranspose)
-                return conv_desc.BackwardWeightsGetWorkSpaceSize(handle, x_desc, y_desc, w_desc);
-            return conv_desc.BackwardWeightsGetWorkSpaceSize(handle, y_desc, x_desc, w_desc);
-        default: MIOPEN_THROW(miopenStatusNotImplemented);
-        }
-    }();
-
-    const auto workspace_size = std::min(options.workspace_limit, workspace_max);
-    auto workspace            = workspace_size != 0 ? handle.Create(workspace_size) : nullptr;
 
     auto find1_solutions = std::vector<miopenConvAlgoPerf_t>{};
     find1_solutions.resize(max_solutions);
@@ -274,15 +243,15 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
         (conv_desc.*method)(handle,
                             x_desc,
-                            x.get(),
+                            x,
                             w_desc,
-                            w.get(),
+                            w,
                             y_desc,
-                            y.get(),
+                            y,
                             max_solutions,
                             &found,
                             find1_solutions.data(),
-                            workspace.get(),
+                            workspace,
                             workspace_size,
                             options.exhaustive_search);
         break;
@@ -294,15 +263,15 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
         (conv_desc.*method)(handle,
                             y_desc,
-                            y.get(),
+                            y,
                             w_desc,
-                            w.get(),
+                            w,
                             x_desc,
-                            x.get(),
+                            x,
                             max_solutions,
                             &found,
                             find1_solutions.data(),
-                            workspace.get(),
+                            workspace,
                             workspace_size,
                             options.exhaustive_search);
         break;
@@ -315,15 +284,15 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
         conv_desc.FindConvBwdWeightsAlgorithm(handle,
                                               y_desc_,
-                                              y_.get(),
+                                              y_,
                                               x_desc_,
-                                              x_.get(),
+                                              x_,
                                               w_desc,
-                                              w.get(),
+                                              w,
                                               max_solutions,
                                               &found,
                                               find1_solutions.data(),
-                                              workspace.get(),
+                                              workspace,
                                               workspace_size,
                                               options.exhaustive_search);
         break;

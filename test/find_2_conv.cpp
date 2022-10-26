@@ -130,6 +130,42 @@ private:
         std::cerr << "Created conv tensor descriptos." << std::endl;
     }
 
+    std::tuple<Allocator::ManageDataPtr, std::size_t>
+    AllocateWorkspace(miopenHandle_t handle,
+                      std::size_t limit = std::numeric_limits<std::size_t>::max())
+    {
+        std::size_t workspace_size = 0;
+
+        switch(direction)
+        {
+        case miopenProblemDirectionForward:
+            EXPECT_EQUAL(miopenConvolutionForwardGetWorkSpaceSize(
+                             handle, &w.desc, &x.desc, &filter, &y.desc, &workspace_size),
+                         miopenStatusSuccess);
+            break;
+        case miopenProblemDirectionBackward:
+            EXPECT_EQUAL(miopenConvolutionBackwardDataGetWorkSpaceSize(
+                             handle, &y.desc, &w.desc, &filter, &x.desc, &workspace_size),
+                         miopenStatusSuccess);
+            break;
+        case miopenProblemDirectionBackwardWeights:
+            EXPECT_EQUAL(miopenConvolutionBackwardWeightsGetWorkSpaceSize(
+                             handle, &y.desc, &x.desc, &filter, &w.desc, &workspace_size),
+                         miopenStatusSuccess);
+            break;
+        default: MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+
+        if(workspace_size > limit)
+            workspace_size = limit;
+
+        auto workspace_dev = workspace_size != 0
+                                 ? miopen::deref(handle).Write(std::vector<char>(workspace_size))
+                                 : nullptr;
+
+        return {std::move(workspace_dev), workspace_size};
+    }
+
     std::vector<miopenSolution_t> TestFindSolutions(miopenHandle_t handle, miopenProblem_t problem)
     {
         std::cerr << "Testing miopenFindSolutions..." << std::endl;
@@ -139,8 +175,24 @@ private:
 
         solutions.resize(100);
 
-        EXPECT_EQUAL(miopenFindSolutions(
-                         handle, problem, nullptr, solutions.data(), &found, solutions.size()),
+        const auto buffers = std::array<miopenTensorArgument_t, 3>{{
+            {miopenTensorConvolutionX, nullptr, x_dev.get()},
+            {miopenTensorConvolutionW, nullptr, w_dev.get()},
+            {miopenTensorConvolutionY, nullptr, y_dev.get()},
+        }};
+
+        const auto ws = AllocateWorkspace(handle);
+
+        EXPECT_EQUAL(miopenFindSolutions(handle,
+                                         problem,
+                                         nullptr,
+                                         buffers.size(),
+                                         buffers.data(),
+                                         std::get<0>(ws).get(),
+                                         std::get<1>(ws),
+                                         solutions.data(),
+                                         &found,
+                                         solutions.size()),
                      miopenStatusSuccess);
         EXPECT_OP(found, >=, 0);
 
@@ -164,6 +216,12 @@ private:
         const auto workspace_limit_values =
             std::vector<std::size_t>({std::numeric_limits<std::size_t>::max(), 0});
 
+        const auto buffers = std::array<miopenTensorArgument_t, 3>{{
+            {miopenTensorConvolutionX, nullptr, x_dev.get()},
+            {miopenTensorConvolutionW, nullptr, w_dev.get()},
+            {miopenTensorConvolutionY, nullptr, y_dev.get()},
+        }};
+
         for(const auto search : search_values)
             for(const auto workspace_limit : workspace_limit_values)
             {
@@ -177,10 +235,19 @@ private:
                 EXPECT_EQUAL(miopenSetFindOptionWorkspaceLimit(options, workspace_limit),
                              miopenStatusSuccess);
 
-                EXPECT_EQUAL(
-                    miopenFindSolutions(
-                        handle, problem, options, solutions.data(), &found, solutions.size()),
-                    miopenStatusSuccess);
+                const auto ws = AllocateWorkspace(handle, workspace_limit);
+
+                EXPECT_EQUAL(miopenFindSolutions(handle,
+                                                 problem,
+                                                 options,
+                                                 buffers.size(),
+                                                 buffers.data(),
+                                                 std::get<0>(ws).get(),
+                                                 std::get<1>(ws),
+                                                 solutions.data(),
+                                                 &found,
+                                                 solutions.size()),
+                             miopenStatusSuccess);
 
                 EXPECT_EQUAL(miopenDestroyFindOptions(options), miopenStatusSuccess);
             }

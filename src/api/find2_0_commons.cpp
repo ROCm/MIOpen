@@ -112,32 +112,6 @@ miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, si
     });
 }
 
-miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
-                                   miopenProblem_t problem,
-                                   miopenFindOptions_t options,
-                                   miopenSolution_t* solutions,
-                                   size_t* numSolutions,
-                                   size_t maxSolutions)
-{
-    MIOPEN_LOG_FUNCTION(handle, problem, options, solutions, numSolutions, maxSolutions);
-
-    return miopen::try_([&] {
-        auto& handle_deref        = miopen::deref(handle);
-        const auto& problem_deref = miopen::deref(problem);
-        const auto& options_deref =
-            options == nullptr ? miopen::FindOptions{} : miopen::deref(options);
-
-        auto solutions_deref =
-            problem_deref.FindSolutions(handle_deref, options_deref, maxSolutions);
-
-        for(auto i = 0; i < solutions_deref.size(); ++i)
-            miopen::deref(solutions + i) = new miopen::Solution{std::move(solutions_deref[i])};
-
-        if(numSolutions != nullptr)
-            *numSolutions = solutions_deref.size();
-    });
-}
-
 inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument_t& tensor)
 {
     switch(tensor.id)
@@ -158,6 +132,59 @@ inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument
     stream << ",";
 
     return stream;
+}
+
+miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
+                                   miopenProblem_t problem,
+                                   miopenFindOptions_t options,
+                                   size_t nInputs,
+                                   const miopenTensorArgument_t* tensors,
+                                   void* workspace,
+                                   size_t workspaceSize,
+                                   miopenSolution_t* solutions,
+                                   size_t* numSolutions,
+                                   size_t maxSolutions)
+{
+    const auto tensors_vector = std::vector<miopenTensorArgument_t>{tensors, tensors + nInputs};
+    MIOPEN_LOG_FUNCTION(handle,
+                        problem,
+                        options,
+                        tensors_vector,
+                        workspace,
+                        workspaceSize,
+                        solutions,
+                        numSolutions,
+                        maxSolutions);
+
+    return miopen::try_([&] {
+        auto& handle_deref        = miopen::deref(handle);
+        const auto& problem_deref = miopen::deref(problem);
+        const auto& options_deref =
+            options == nullptr ? miopen::FindOptions{} : miopen::deref(options);
+
+        const auto inputs_deref = [&]() {
+            auto ret = std::unordered_map<miopenTensorArgumentId_t, Data_t>{};
+
+            ret.reserve(tensors_vector.size());
+            for(auto&& tensor : tensors_vector)
+                ret.emplace(std::make_pair(tensor.id, DataCast(tensor.buffer)));
+
+            return ret;
+        }();
+
+        auto solutions_deref = problem_deref.FindSolutions(handle_deref,
+                                                           options_deref,
+                                                           inputs_deref,
+                                                           DataCast(workspace),
+                                                           workspaceSize,
+                                                           maxSolutions);
+
+        for(auto i = 0; i < solutions_deref.size(); ++i)
+            miopen::deref(solutions + i) = new miopen::Solution{std::move(solutions_deref[i])};
+
+        if(numSolutions != nullptr)
+            *numSolutions = solutions_deref.size();
+    });
 }
 
 miopenStatus_t miopenRunSolution(miopenHandle_t handle,

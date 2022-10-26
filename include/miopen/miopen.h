@@ -4852,24 +4852,6 @@ miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, si
  */
 MIOPEN_DECLARE_OBJECT(miopenSolution);
 
-/*! @brief Finds solutions to a problem by running different applicable solutions. Memory is
- * automatically allocated.
- *
- * @param handle       Handle to execute the kernels
- * @param problem      Problem to solve
- * @param options      Find options. When null default values would be used
- * @param solutions    Pointer to the first result. Must not be null
- * @param numSolutions Pointer to the amount of results. Ignored if null
- * @param maxSolutions Limits the amount of results
- * @return             miopenStatus_t
- */
-miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
-                                   miopenProblem_t problem,
-                                   miopenFindOptions_t options,
-                                   miopenSolution_t* solutions,
-                                   size_t* numSolutions,
-                                   size_t maxSolutions);
-
 /*! @brief Values of a tensor argument for the miopenRunSolution function.
  */
 struct miopenTensorArgument_t
@@ -4887,6 +4869,31 @@ struct miopenTensorArgument_t
      */
     void* buffer;
 };
+
+/*! @brief Finds solutions to a problem by running different applicable solutions. Memory is
+ * automatically allocated.
+ *
+ * @param handle        Handle to execute the kernels
+ * @param problem       Problem to solve
+ * @param options       Find options. When null default values would be used
+ * @param tensors       Buffers to use for kernel profiling. "descriptor" field is not used
+ * @param workspace     Workspace to use for kernel profiling
+ * @param workspaceSize Workspace size
+ * @param solutions     Pointer to the first result. Must not be null
+ * @param numSolutions  Pointer to the amount of results. Ignored if null
+ * @param maxSolutions  Limits the amount of results
+ * @return              miopenStatus_t
+ */
+miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
+                                   miopenProblem_t problem,
+                                   miopenFindOptions_t options,
+                                   size_t nInputs,
+                                   const miopenTensorArgument_t* tensors,
+                                   void* workspace,
+                                   size_t workspaceSize,
+                                   miopenSolution_t* solutions,
+                                   size_t* numSolutions,
+                                   size_t maxSolutions);
 
 /*! @brief Runs the solution using the passed in buffers.
  *
