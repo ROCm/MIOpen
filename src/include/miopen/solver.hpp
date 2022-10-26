@@ -3339,10 +3339,7 @@ struct PerformanceConfigConvOclBwdWrw2
     void HeuristicInit(const ProblemDescription&);
     bool IsValidValue() const;
     bool SetNextValue(const ConvolutionContext&);
-    bool IsValid(const ConvolutionContext& ctx) const
-    {
-        return IsValid(ctx, ctx.problem);
-    }
+    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx, ctx.problem); }
     bool IsValid(const ConvolutionContext&, const ProblemDescription&) const;
     bool operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const;
 };
@@ -3353,8 +3350,10 @@ struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATC
     // To suppress -Woverloaded-virtual
     using ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>::IsApplicable;
     using ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>::GetWorkspaceSize;
-    using ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>::GetDefaultPerformanceConfig;
-    using ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>::IsValidPerformanceConfig;
+    using ConvTunableSolver<
+        PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>::GetDefaultPerformanceConfig;
+    using ConvTunableSolver<
+        PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>::IsValidPerformanceConfig;
     using ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>::Search;
     using ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>::GetSolution;
 
@@ -3368,9 +3367,9 @@ struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATC
     {
         return GetDefaultPerformanceConfig(ctx.problem);
     }
-    bool
-    IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                             const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const override
+    bool IsValidPerformanceConfig(
+        const ConvolutionContext& ctx,
+        const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const override
     {
         return IsValidPerformanceConfig(ctx, ctx.problem, config);
     }
@@ -3400,16 +3399,15 @@ protected:
     size_t GetWorkspaceSize(const ProblemDescription&) const;
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
     GetDefaultPerformanceConfig(const ProblemDescription&) const;
-    bool
-    IsValidPerformanceConfig(const ConvolutionContext&,
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const ProblemDescription&,
+                                  const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&) const;
+    PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> Search(const ConvolutionContext&,
+                                                          const ProblemDescription&,
+                                                          const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext&,
                              const ProblemDescription&,
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&) const;
-    PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-    Search(const ConvolutionContext&, const ProblemDescription&, const AnyInvokeParams& invoke_ctx) const;
-    ConvSolution
-    GetSolution(const ConvolutionContext&,
-                const ProblemDescription&,
-                const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&) const;
 
     bool IsApplicableBase(const ConvolutionContext&, const ProblemDescription&) const;
 };

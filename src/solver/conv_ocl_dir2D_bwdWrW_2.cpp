@@ -139,7 +139,8 @@ static bool IsTunable(const ProblemDescription& problem)
               (problem.kernel_size_w == 1 && problem.kernel_size_h == 1)));
 }
 
-bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& ctx,
+                                            const ProblemDescription& problem) const
 {
     // At present, auto-tuning is disabled for non-group 3x3 and 1x1 filters for multiple
     // reasons: after tuning ocl kernel for 3x3 and 1x1 filters, assembly kernel still
@@ -147,7 +148,8 @@ bool ConvOclBwdWrW2NonTunable::IsApplicable(const ConvolutionContext& ctx, const
     return ConvOclBwdWrW2<1>::IsApplicableBase(ctx, problem) && !IsTunable(problem);
 }
 
-ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& ctx,
+                                                   const ProblemDescription& problem) const
 {
     // Invoking base class GetSolution with default values for params obtained
     // from GetDefaultPerformanceConfig()
@@ -167,8 +169,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::operator==(
 }
 
 template <int N_BATCH_LOOPS>
-bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue(
-    const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::SetNextValue(const ConvolutionContext& /*ctx*/)
 {
     // Increment with wrap-around:
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2_SEARCH_OPTIMIZED{}))
@@ -228,7 +229,8 @@ static size_t GetNBatchBlks(const ProblemDescription& problem)
 }
 
 template <int N_BATCH_LOOPS>
-bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(
+    const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
     if(!IsValidValue())
     {
@@ -241,16 +243,15 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
     // Check 1: n_back_loops
     // Ensure that the total amount of system memory used by intermediate object
     // that holds the weights of x number of batches doesn't exceed system memory
-    size_t wei_cstride =
-        static_cast<size_t>(problem.kernel_size_h) * problem.kernel_size_w;
+    size_t wei_cstride = static_cast<size_t>(problem.kernel_size_h) * problem.kernel_size_w;
     size_t wei_bstride = (problem.n_outputs / problem.group_counts) * wei_cstride;
 
     // number  of batch iterations
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(problem);
 
     // guard not to grab too much system memory
-    if(n_batch_blks < 1 || (wei_bstride * problem.n_inputs * n_batch_blks) >
-                               ctx.GetStream().GetMaxMemoryAllocSize())
+    if(n_batch_blks < 1 ||
+       (wei_bstride * problem.n_inputs * n_batch_blks) > ctx.GetStream().GetMaxMemoryAllocSize())
     {
         return false;
     }
@@ -314,8 +315,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
         size_t in_lcl_width_effective = std::max<size_t>(
             in_width + 2ULL * problem.pad_w,
             std::max(problem.pad_w + ((in_width + read_size - 1) / read_size) * read_size,
-                     problem.kernel_size_w +
-                         (out_width - 1) * problem.kernel_stride_w));
+                     problem.kernel_size_w + (out_width - 1) * problem.kernel_stride_w));
 
         size_t in_lcl_width_right_buffer = std::max(
             static_cast<int>(in_lcl_width_effective - (in_width + 2ULL * problem.pad_w)), 0);
@@ -335,8 +335,7 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
 
     // check LDS consumption
     size_t wei_per_wkitem =
-        (problem.kernel_size_w <= 7 ||
-         (((problem.kernel_size_w / 2) * 2) != problem.kernel_size_w))
+        (problem.kernel_size_w <= 7 || (((problem.kernel_size_w / 2) * 2) != problem.kernel_size_w))
             ? problem.kernel_size_w
             : problem.kernel_size_w / 2;
 
@@ -418,7 +417,8 @@ bool PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::IsValid(const ConvolutionCo
 }
 
 template <int N_BATCH_LOOPS>
-void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(const ProblemDescription& problem)
+void PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>::HeuristicInit(
+    const ProblemDescription& problem)
 {
     n_waves                                = 1;
     read_size                              = 6;
@@ -445,7 +445,8 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsValidPerformanceConfig(
 }
 
 template <int N_BATCH_LOOPS>
-bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& ctx,
+                                                     const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2{}))
         return false;
@@ -498,7 +499,8 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& c
 }
 
 template <int N_BATCH_LOOPS>
-bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& ctx,
+                                                 const ProblemDescription& problem) const
 {
     return IsApplicableBase(ctx, problem) && IsTunable(problem);
 }
@@ -518,13 +520,11 @@ size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ProblemDescription&
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(problem);
     if(n_batch_blks > 1)
     {
-        const auto n_input_channels_per_group =
-            problem.n_outputs / problem.group_counts;
-        const auto wei_cstride = problem.kernel_size_w * problem.kernel_size_h;
-        const auto wei_bstride = n_input_channels_per_group * wei_cstride;
-        int data_len           = GetTypeSize(problem.out_data_type);
-        return static_cast<std::size_t>(wei_bstride) *
-               static_cast<std::size_t>(problem.n_inputs) *
+        const auto n_input_channels_per_group = problem.n_outputs / problem.group_counts;
+        const auto wei_cstride                = problem.kernel_size_w * problem.kernel_size_h;
+        const auto wei_bstride                = n_input_channels_per_group * wei_cstride;
+        int data_len                          = GetTypeSize(problem.out_data_type);
+        return static_cast<std::size_t>(wei_bstride) * static_cast<std::size_t>(problem.n_inputs) *
                static_cast<std::size_t>(n_batch_blks) * static_cast<std::size_t>(data_len);
     }
     else
@@ -543,27 +543,25 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
 
     const auto n_input_channels_per_group  = problem.n_outputs / problem.group_counts;
     const auto n_output_channels_per_group = problem.n_inputs / problem.group_counts;
-    const auto wei_cstride = problem.kernel_size_w * problem.kernel_size_h;
-    const auto wei_bstride = n_input_channels_per_group * wei_cstride;
+    const auto wei_cstride                 = problem.kernel_size_w * problem.kernel_size_h;
+    const auto wei_bstride                 = n_input_channels_per_group * wei_cstride;
 
     result.n_in_data_tiles    = 1;
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(problem);
     size_t total_out_maps     = config.n_out_channels_per_tile * config.n_out_channels_tiles;
     size_t wei_per_wkitem =
-        (problem.kernel_size_w <= 7 ||
-         (((problem.kernel_size_w / 2) * 2) != problem.kernel_size_w))
+        (problem.kernel_size_w <= 7 || (((problem.kernel_size_w / 2) * 2) != problem.kernel_size_w))
             ? problem.kernel_size_w
             : problem.kernel_size_w / 2;
 
     // each wave is a filter row
     std::string READ_TYPE =
         (config.read_size == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((config.read_size));
-    size_t aligned_out_scan_lane = std::ceil(static_cast<float>(problem.in_width) /
-                                             config.read_size); // image aligned scan
-    size_t n_out_blk =
-        std::ceil(static_cast<float>(problem.in_height) / config.n_out_rows_in_lcl);
-    size_t in_lcl_height = (config.n_out_rows_in_lcl - 1) * problem.kernel_stride_h +
-                           problem.kernel_size_h;
+    size_t aligned_out_scan_lane =
+        std::ceil(static_cast<float>(problem.in_width) / config.read_size); // image aligned scan
+    size_t n_out_blk = std::ceil(static_cast<float>(problem.in_height) / config.n_out_rows_in_lcl);
+    size_t in_lcl_height =
+        (config.n_out_rows_in_lcl - 1) * problem.kernel_stride_h + problem.kernel_size_h;
     size_t in_lcl_width = 0;
     size_t in_lcl_sz    = 0;
     {
@@ -637,12 +635,10 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         std::to_string(problem.batch_sz) + std::string(" -DMLO_N_BATCH_LOOPS=") +
         std::to_string(N_BATCH_LOOPS) + std::string(" -DMLO_N_BATCH_BLKS=") +
         std::to_string(n_batch_blks) + std::string(" -DMLO_OUT_BATCH_STRIDE=") +
-        std::to_string((problem.in_batch_stride)) +
-        std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
+        std::to_string((problem.in_batch_stride)) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
         std::to_string((problem.in_channel_stride)) + std::string(" -DMLO_OUT_STRIDE=") +
         std::to_string((problem.in_stride)) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
-        std::to_string((problem.out_batch_stride)) +
-        std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
+        std::to_string((problem.out_batch_stride)) + std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
         std::to_string((problem.out_channel_stride)) + std::string(" -DMLO_IN_STRIDE=") +
         std::to_string((problem.out_stride)) + std::string(" -DMLO_WEI_BATCH_STRIDE=") +
         std::to_string((wei_bstride)) + std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
@@ -723,8 +719,8 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         kernel.l_wk.push_back(1);
 
         assert(utility_read_unit != 0);
-        int gbl_ut_wk0 = static_cast<int>(static_cast<int>(wei_bstride) * problem.n_inputs /
-                                          utility_read_unit);
+        int gbl_ut_wk0 =
+            static_cast<int>(static_cast<int>(wei_bstride) * problem.n_inputs / utility_read_unit);
 
         kernel.g_wk.push_back(gbl_ut_wk0);
         kernel.g_wk.push_back(1);
