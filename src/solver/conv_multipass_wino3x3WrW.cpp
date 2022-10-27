@@ -59,11 +59,11 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX)
 // Introduces a number of shader-specific aliases (names) in the current scope at zero cost.
 // These names represent shader parameters, e.g. shader C is batch_size etc and useful for
 // programming.
-#define DEFINE_GETXFORMHWSIZE(problem)                                                             \
+#define DEFINE_GETXFORMHWSIZE(problem)                                                            \
     const auto                                                                                    \
         wino_xform_h =                                                                            \
             solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
-                GetSolverWinoXformHWSize(problem, 0),                                              \
+                GetSolverWinoXformHWSize(problem, 0),                                             \
         wino_xform_w =                                                                            \
             solver::ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
                 GetSolverWinoXformHWSize(problem, 1);
@@ -298,8 +298,7 @@ struct OutTransform
 {
     static bool IsApplicable(const ProblemDescription& problem)
     {
-        return (problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()) &&
-               problem.Is2d();
+        return (problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()) && problem.Is2d();
     }
 
     static KernelInfo GetKernel(const ExecutionContext& ctx, const ProblemDescription& problem)
@@ -451,7 +450,8 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 
     if(!(InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(ctx, problem) &&
          OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(problem) &&
-         FilterTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(ctx, problem)))
+         FilterTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsApplicable(ctx,
+                                                                                       problem)))
         return false;
 
     if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
@@ -466,8 +466,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 #if WORKAROUND_SWDEV_203031
         if(limit == 0)
         {
-            if(name == "gfx900" ||
-               (name == "gfx906" && ctx.GetStream().GetMaxComputeUnits() <= 60))
+            if(name == "gfx900" || (name == "gfx906" && ctx.GetStream().GetMaxComputeUnits() <= 60))
                 limit = 2000000000ULL; // ~1.862 GiB
             else
                 limit = std::numeric_limits<std::size_t>::max();
@@ -574,20 +573,8 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Pre
     int unused        = 0;
     int N, C, H, W, K, n_groups, out_H, out_W, R, S;
 
-    GetCompiledInParameters(ctx,
-                            problem,
-                            &C,
-                            &K,
-                            &R,
-                            &S,
-                            &N,
-                            &n_groups,
-                            &H,
-                            &W,
-                            &out_H,
-                            &out_W,
-                            &unused,
-                            &unused);
+    GetCompiledInParameters(
+        ctx, problem, &C, &K, &R, &S, &N, &n_groups, &H, &W, &out_H, &out_W, &unused, &unused);
     // clang-format off
     BuffInfo
         in_buff_info(

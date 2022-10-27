@@ -2972,8 +2972,8 @@ template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFil
 struct ConvWinograd3x3MultipassWrW final : ConvSolver
 {
     // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
     using ConvSolver::GetWorkspaceSize;
+    using ConvSolver::IsApplicable;
 
     const std::string& SolverDbId() const override
     {
@@ -3030,7 +3030,9 @@ private:
     size_t GetWorkspaceSize(const ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const;
 
-    InvokerFactory PrepareInvokerFactory(const ExecutionContext&, const ProblemDescription&, std::size_t ws_sz) const;
+    InvokerFactory PrepareInvokerFactory(const ExecutionContext&,
+                                         const ProblemDescription&,
+                                         std::size_t ws_sz) const;
 };
 
 // To suppress misleading clang warnings
