@@ -83,8 +83,8 @@ struct Problem : miopenProblem
     std::vector<Solution> FindSolutions(Handle& handle,
                                         const FindOptions& options,
                                         const Buffers& buffers,
-                                        const Data_t workspace,
-                                        const std::size_t workspace_size,
+                                        Data_t workspace,
+                                        std::size_t workspace_size,
                                         std::size_t max_solutions) const;
 
     conv::ProblemDescription AsConvolution() const;
@@ -110,8 +110,8 @@ private:
                                             const FindOptions& options,
                                             std::size_t max_solutions,
                                             const Buffers& buffers,
-                                            const Data_t workspace,
-                                            const std::size_t workspace_size,
+                                            Data_t workspace,
+                                            std::size_t workspace_size,
                                             const ConvolutionDescriptor& conv_desc) const;
 
     void TransposeImpl(const ConvolutionDescriptor& conv_desc);

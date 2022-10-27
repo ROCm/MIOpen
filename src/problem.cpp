@@ -96,8 +96,8 @@ void VisitType(int id, Args... args)
 std::vector<Solution> Problem::FindSolutions(Handle& handle,
                                              const FindOptions& options,
                                              const Buffers& buffers,
-                                             const Data_t workspace,
-                                             const std::size_t workspace_size,
+                                             Data_t workspace,
+                                             std::size_t workspace_size,
                                              std::size_t max_solutions) const
 {
     const auto find = boost::hof::match([&](const ConvolutionDescriptor& op_desc) {
@@ -191,8 +191,8 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const FindOptions& options,
                                                  std::size_t max_solutions,
                                                  const Buffers& buffers,
-                                                 const Data_t workspace,
-                                                 const std::size_t workspace_size,
+                                                 Data_t workspace,
+                                                 std::size_t workspace_size,
                                                  const ConvolutionDescriptor& conv_desc) const
 {
     const auto& actual = conv_desc.mode == miopenTranspose ? MakeTransposed() : *this;
