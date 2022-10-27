@@ -185,10 +185,10 @@ ComputeDynamicIGemmForwardKernelArgs<solver::TunableImplicitGemmGTCDynamic_t>(
 }
 
 template <typename T>
-static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const ConvolutionContext& ctx,
-                                                                      const T& cfg)
+static inline InvokerFactory
+MakeImplGemmDynamicForwardInvokerFactory(const miopen::ProblemDescription& problem, const T& cfg)
 {
-    const auto& conv_problem = ctx.conv_problem;
+    const auto& conv_problem = problem.conv_problem;
     auto opArgs              = ComputeDynamicIGemmForwardKernelArgs<T>(conv_problem, cfg);
     return [opArgs](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
@@ -205,29 +205,34 @@ static inline InvokerFactory MakeImplGemmDynamicForwardInvokerFactory(const Conv
     };
 }
 
-InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ConvolutionContext& ctx);
+InvokerFactory
+MakeImplGemmDynamicForward1x1InvokerFactory(const miopen::ProblemDescription& problem);
 
 template <typename T = int>
-InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ConvolutionContext& ctx,
-                                                             const T& cfg);
+InvokerFactory
+MakeImplGemmDynamicBackwardDataInvokerFactory(const miopen::ProblemDescription& problem,
+                                              const T& cfg);
 
 template <>
-InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const ConvolutionContext& ctx,
-                                                                  const int& cfg);
+InvokerFactory
+MakeImplGemmDynamicBackwardDataInvokerFactory<int>(const miopen::ProblemDescription& problem,
+                                                   const int& cfg);
 
 template <>
 InvokerFactory
 MakeImplGemmDynamicBackwardDataInvokerFactory<solver::TunableImplicitGemmGTCDynamic_t>(
-    const ConvolutionContext& ctx, const solver::TunableImplicitGemmGTCDynamic_t& cfg);
+    const miopen::ProblemDescription& problem, const solver::TunableImplicitGemmGTCDynamic_t& cfg);
 
 InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     const ConvolutionContext& ctx,
+    const miopen::ProblemDescription& problem,
     const solver::PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config);
 InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     const ConvolutionContext& ctx,
+    const miopen::ProblemDescription& problem,
     const solver::PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config);
 InvokerFactory MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(
-    const ConvolutionContext& ctx,
+    const miopen::ProblemDescription& problem,
     const solver::PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config);
 } // namespace conv
 } // namespace miopen

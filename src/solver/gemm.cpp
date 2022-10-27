@@ -87,6 +87,13 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx,
     const auto& xDesc = problem.GetIn();
     const auto& wDesc = problem.GetWeights();
     const auto& yDesc = problem.GetOut();
+    if(xDesc.GetType() == miopenInt8x4 || xDesc.GetType() == miopenInt8)
+    {
+        // rocBlas needs the output to be int32 always
+        if(yDesc.GetType() != miopenFloat && yDesc.GetType() != miopenInt32 &&
+           yDesc.GetType() != miopenInt8x4)
+            return false;
+    }
     return problem.GetDirection() == conv::Direction::Forward && problem.IsLayoutDefault() &&
            !(IsAnyBufferBF16(xDesc, yDesc, wDesc) && !IsBf16Supported) &&
            !(IsAnyBufferFp16(xDesc, yDesc, wDesc) && !IsFp16Supported);
@@ -268,9 +275,9 @@ ConvSolution GemmFwd1x1_0_2::GetSolution(const ExecutionContext& context,
     decltype(auto) yDesc = problem.GetOut();
 
     const GemmDescriptor gemm_desc = [&]() {
-        auto tmp = conv.group_count > 1
-                       ? CreateGemmDescriptorGroupConvCNHWFwd(wDesc, xDesc, yDesc, conv.group_count)
-                       : CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
+        auto tmp          = conv.group_count > 1
+                                ? CreateGemmDescriptorGroupConvCNHWFwd(wDesc, xDesc, yDesc, conv.group_count)
+                                : CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
         tmp.deterministic = problem.GetConv().attribute.deterministic;
         return tmp;
     }();
@@ -759,8 +766,9 @@ ConvSolution GemmFwd1x1_0_1::GetSolution(const ExecutionContext& context,
                 // y = w * x
                 miopenStatus_t gemm_status = miopenStatusNotInitialized;
 
-                const auto runs =
-                    group_count <= 1 ? 1 : conv_params.type == InvokeType::Run ? in_n : 1;
+                const auto runs = group_count <= 1                      ? 1
+                                  : conv_params.type == InvokeType::Run ? in_n
+                                                                        : 1;
 
                 for(std::size_t i = 0; i < runs; i++)
                 {
@@ -1037,9 +1045,9 @@ ConvSolution GemmFwdRest::GetSolution(const ExecutionContext& context,
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
         const auto gemm_desc = [&]() {
-            auto tmp = conv.group_count > 1
-                           ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
-                           : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
+            auto tmp          = conv.group_count > 1
+                                    ? CreateGemmDescriptorGroupConvFwd(wDesc, xDesc, yDesc, conv.group_count)
+                                    : CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
             tmp.deterministic = problem.GetConv().attribute.deterministic;
             return tmp;
         }();

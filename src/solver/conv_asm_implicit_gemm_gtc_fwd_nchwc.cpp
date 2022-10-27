@@ -257,20 +257,22 @@ static std::tuple<std::string, // kernel_name
                   size_t,      // grid_size
                   size_t>      // splits_4G
 GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
-    const ConvolutionContext& ctx, const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config)
 {
-    const auto& n     = ctx.batch_sz;
-    const auto& k     = ctx.n_outputs * config.vector_c;
-    const auto& ho    = ctx.out_height;
-    const auto& wo    = ctx.out_width;
-    const auto& group = ctx.group_counts;
+    const auto& n     = problem.batch_sz;
+    const auto& k     = problem.n_outputs * config.vector_c;
+    const auto& ho    = problem.out_height;
+    const auto& wo    = problem.out_width;
+    const auto& group = problem.group_counts;
 
-    const auto& hi = ctx.in_height;
-    const auto& wi = ctx.in_width;
-    const auto& c  = ctx.n_inputs;
+    const auto& hi = problem.in_height;
+    const auto& wi = problem.in_width;
+    const auto& c  = problem.n_inputs;
 
     auto splits_4G =
-        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(ctx.in_data_type));
+        igemm_split_batch_size(hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.in_data_type));
 
     const auto gemm_m = k / group;
     const auto gemm_n = (n / splits_4G) * ho * wo;
@@ -280,13 +282,15 @@ GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
     // config.gemm_m_per_block, config.gemm_n_per_block);
 
     size_t block_size = config.BlockSize();
-    size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
+    size_t grid_size  = static_cast<size_t>(group) *
+                       integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
                        integer_divide_ceil(gemm_n, config.gemm_n_per_block);
     std::string kernel_name = config.ToKernelName(ctx);
     return std::make_tuple(kernel_name, block_size, grid_size, splits_4G);
 }
 
-void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const ConvolutionContext& ctx)
+void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(
+    const ProblemDescription& problem)
 {
 
     static const std::vector<std::tuple<int, int, int>> tile_list_Halfx4 = {
@@ -366,18 +370,18 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
     }
 #endif
 
-    const auto& n     = ctx.batch_sz;
-    const auto& c     = ctx.n_inputs;
-    const auto& k     = ctx.n_outputs;
-    const auto& ho    = ctx.out_height;
-    const auto& wo    = ctx.out_width;
-    const auto& y     = ctx.kernel_size_h;
-    const auto& x     = ctx.kernel_size_w;
-    const auto& group = ctx.group_counts;
+    const auto& n     = problem.batch_sz;
+    const auto& c     = problem.n_inputs;
+    const auto& k     = problem.n_outputs;
+    const auto& ho    = problem.out_height;
+    const auto& wo    = problem.out_width;
+    const auto& y     = problem.kernel_size_h;
+    const auto& x     = problem.kernel_size_w;
+    const auto& group = problem.group_counts;
 
-    size_t gemm_m = n * ho * wo;
+    size_t gemm_m = static_cast<size_t>(n) * ho * wo;
     size_t gemm_n = k / group;
-    size_t gemm_k = (c / group) * y * x;
+    size_t gemm_k = (static_cast<size_t>(c) / group) * y * x;
 
     int m_per_block, n_per_block, k_per_block;
 
@@ -385,7 +389,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
         gemm_m,
         gemm_n,
         gemm_k,
-        (ctx.IsFp16() && ctx.vectorLength == 4) ? tile_list_Halfx4 : tile_list_Halfx8);
+        (problem.IsFp16() && problem.vectorLength == 4) ? tile_list_Halfx4 : tile_list_Halfx8);
 
     auto find_with_gemm_k_pad = [&]() {
         const auto& config_list = GetFwdDlopsNCHWCConfigList();
@@ -394,12 +398,13 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
         for(size_t i = 0; i < config_list.size(); i++)
         {
             const auto& config = config_list[i];
-            if(!(((ctx.IsFp16() && ctx.vectorLength == 4) && config.precision == "Halfx4") ||
-                 ((ctx.IsFp16() && ctx.vectorLength == 8) && config.precision == "Halfx8")))
+            if(!(((problem.IsFp16() && problem.vectorLength == 4) &&
+                  config.precision == "Halfx4") ||
+                 ((problem.IsFp16() && problem.vectorLength == 8) && config.precision == "Halfx8")))
                 continue;
 
-            if(!((ctx.IsNCHWc_NCHWc() && config.tensor_layout == "nchwc_kcyxc") ||
-                 (ctx.IsNCHWc_CHWNc() && config.tensor_layout == "nchwc_cyxkc")))
+            if(!((problem.IsNCHWc_NCHWc() && config.tensor_layout == "nchwc_kcyxc") ||
+                 (problem.IsNCHWc_CHWNc() && config.tensor_layout == "nchwc_cyxkc")))
                 continue;
 
             if(!(config.tensor_a_thread_lengths[1] == 1 && config.tensor_b_thread_lengths[1] == 1))
@@ -426,7 +431,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(const Convo
 }
 
 bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::SetNextValue(
-    const ConvolutionContext& /*config*/)
+    const ConvolutionContext& /*ctx*/)
 {
     if(use_spare_set)
     {
@@ -459,26 +464,27 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValidValue() const
         return false;
     return *this == config_list[index];
 }
-bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(const ConvolutionContext& ctx) const
+bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(
+    const ProblemDescription& problem) const
 {
     if(IsDefaultConstructed())
         return false;
 
-    if(!(((ctx.IsFp16() && ctx.vectorLength == 4) && precision == "Halfx4") ||
-         ((ctx.IsFp16() && ctx.vectorLength == 8) && precision == "Halfx8")))
+    if(!(((problem.IsFp16() && problem.vectorLength == 4) && precision == "Halfx4") ||
+         ((problem.IsFp16() && problem.vectorLength == 8) && precision == "Halfx8")))
         return false;
 
-    const auto& c         = ctx.n_inputs;
-    const auto& k         = ctx.n_outputs;
-    const auto& group     = ctx.group_counts;
-    const auto stride_h   = ctx.out_height > 1 ? ctx.kernel_stride_h : 1;
-    const auto stride_w   = ctx.out_width > 1 ? ctx.kernel_stride_w : 1;
-    const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
-    const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
-    const auto& pad_h     = ctx.pad_h;
-    const auto& pad_w     = ctx.pad_w;
-    const auto& y         = ctx.kernel_size_h;
-    const auto& x         = ctx.kernel_size_w;
+    const auto& c         = problem.n_inputs;
+    const auto& k         = problem.n_outputs;
+    const auto& group     = problem.group_counts;
+    const auto stride_h   = problem.out_height > 1 ? problem.kernel_stride_h : 1;
+    const auto stride_w   = problem.out_width > 1 ? problem.kernel_stride_w : 1;
+    const auto dilation_h = problem.kernel_size_h > 1 ? problem.kernel_dilation_h : 1;
+    const auto dilation_w = problem.kernel_size_w > 1 ? problem.kernel_dilation_w : 1;
+    const auto& pad_h     = problem.pad_h;
+    const auto& pad_w     = problem.pad_w;
+    const auto& y         = problem.kernel_size_h;
+    const auto& x         = problem.kernel_size_w;
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
@@ -510,28 +516,30 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(const Convolution
 
 PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
 ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetDefaultPerformanceConfig(
-    const ConvolutionContext& params) const
+    const ProblemDescription& problem) const
 {
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC pp;
-    pp.HeuristicInit(params);
+    pp.HeuristicInit(problem);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsValidPerformanceConfig(
-    const ConvolutionContext& problem,
+    const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);
 }
 PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
 ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::Search(const ConvolutionContext& ctx,
+                                                   const ProblemDescription& problem,
                                                    const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(
+    const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_DLOPS_NCHWC{}))
         return false;
@@ -543,16 +551,17 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionC
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!ctx.direction.IsForward())
+    if(!problem.direction.IsForward())
         return false;
 
-    if(!ctx.Is2d())
+    if(!problem.Is2d())
         return false;
 
-    if(!ctx.IsLayoutNCHWC())
+    if(!problem.IsLayoutNCHWC())
         return false;
 
-    if(!(ctx.IsFp16() && ctx.vectorLength == 4) && !(ctx.IsFp16() && ctx.vectorLength == 8))
+    if(!(problem.IsFp16() && problem.vectorLength == 4) &&
+       !(problem.IsFp16() && problem.vectorLength == 8))
         return false;
 
     if(!ctx.rmv.IsV3())
@@ -562,14 +571,14 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionC
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
-    if(0 == igemm_split_batch_size(ctx.in_height,
-                                   ctx.in_width,
-                                   ctx.out_height,
-                                   ctx.out_width,
-                                   ctx.batch_sz,
-                                   ctx.n_outputs,
-                                   ctx.n_inputs,
-                                   miopen::GetTypeSize(ctx.in_data_type)))
+    if(0 == igemm_split_batch_size(problem.in_height,
+                                   problem.in_width,
+                                   problem.out_height,
+                                   problem.out_width,
+                                   problem.batch_sz,
+                                   problem.n_outputs,
+                                   problem.n_inputs,
+                                   miopen::GetTypeSize(problem.in_data_type)))
         return false;
 
     return true;
@@ -577,6 +586,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsApplicable(const ConvolutionC
 
 ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config) const
 {
     ConvSolution result;
@@ -589,7 +599,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     int splits_4G;
 
     std::tie(kernel_name, block_size, grid_size, splits_4G) =
-        GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(ctx, config);
+        GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(ctx, problem, config);
     kernel.kernel_file = kernel_name + ".s";
     kernel.kernel_name = kernel_name;
     kernel.g_wk.clear();
@@ -601,7 +611,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    if(!ctx.IsLayoutNCHWC())
+    if(!problem.IsLayoutNCHWC())
         MIOPEN_THROW("Tensor layout is not in vectorized");
 
     result.construction_params.push_back(kernel);
@@ -614,7 +624,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetSolution(
     std::ostringstream msg;
     MIOPEN_LOG_I2(SolverDbId() << ": " << config.ToString() << msg.str());
 
-    result.invoker_factory = conv::MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(ctx, config);
+    result.invoker_factory =
+        conv::MakeImplGemmDynamicForwardDlopsNCHWCInvokerFactory(problem, config);
     return result;
 }
 

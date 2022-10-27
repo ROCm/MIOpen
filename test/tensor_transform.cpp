@@ -158,8 +158,9 @@ struct verify_tensor_transform_layout
                 {
                     float tmp_fp =
                         alpha * float(srcSuper(l, k, i, j)) + beta * float(dstSuperCpu(l, k, i, j));
-                    int8_t tmp_int =
-                        tmp_fp >= 127 ? 127 : tmp_fp <= -128 ? -128 : int8_t(std::lround(tmp_fp));
+                    int8_t tmp_int          = tmp_fp >= 127    ? 127
+                                              : tmp_fp <= -128 ? -128
+                                                               : int8_t(std::lround(tmp_fp));
                     dstSuperCpu(l, k, i, j) = tmp_int;
                 }
                 else
@@ -391,8 +392,9 @@ struct tensor_transform_driver : test_driver
         float alpha = scales[0];
         float beta  = scales[1];
 
-        unsigned long max_value =
-            miopen_type<T>{} == miopenHalf ? 5 : miopen_type<T>{} == miopenInt8 ? 127 : 17;
+        unsigned long max_value = miopen_type<T>{} == miopenHalf   ? 5
+                                  : miopen_type<T>{} == miopenInt8 ? 127
+                                                                   : 17;
 
         bool skip_layout = !(miopen::float_equal(static_cast<const float>(alpha), 1.0) &&
                              miopen::float_equal(static_cast<const float>(beta), 0.0) &&

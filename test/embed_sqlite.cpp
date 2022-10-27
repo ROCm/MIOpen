@@ -78,12 +78,12 @@ struct EmbedSQLite : test_driver
             // find all the entries in perf db
             // Assert result is non-empty
             auto pdb = GetDb(ctx);
-            EXPECT(pdb.FindRecord(ctx));
+            EXPECT(pdb.FindRecord(ctx.problem));
         }
         // Check FindDb
         {
             // FindDb will throw if the file is not present
-            FindDbRecord rec{handle, ctx};
+            FindDbRecord rec{handle, ctx.problem};
             EXPECT(!rec.empty());
         }
     }

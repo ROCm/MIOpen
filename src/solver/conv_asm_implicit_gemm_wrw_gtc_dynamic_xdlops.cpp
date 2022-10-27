@@ -411,18 +411,18 @@ static inline int find_tunable(const std::vector<TunableImplicitGemmGTCDynamic_t
     return i;
 }
 
-static inline int if_gemm_k_global_split(const ConvolutionContext& ctx,
+static inline int if_gemm_k_global_split(const ProblemDescription& problem,
                                          const int gemm_m_per_block,
                                          const int gemm_n_per_block,
                                          const int gemm_k_per_block,
                                          const int b)
 {
     int gemm_k_global_split = 0;
-    const auto& n           = ctx.batch_sz;
-    const auto& k           = ctx.n_inputs;
-    const auto& c           = ctx.n_outputs;
-    const auto& y           = ctx.kernel_size_h;
-    const auto& x           = ctx.kernel_size_w;
+    const auto& n           = problem.batch_sz;
+    const auto& k           = problem.n_inputs;
+    const auto& c           = problem.n_outputs;
+    const auto& y           = problem.kernel_size_h;
+    const auto& x           = problem.kernel_size_w;
 
     const auto& gemm_m = k;
     const auto gemm_n  = c * y * x;
@@ -532,22 +532,22 @@ static inline std::tuple<bool, // is valid
                          int,  // block_size
                          int,  // grid_size
                          int>  // gemm_k_split
-FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
+FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ProblemDescription& problem)
 {
-    const auto& n         = ctx.batch_sz;
-    const auto& k         = ctx.n_inputs;
-    const auto& c         = ctx.n_outputs;
-    const auto& ho        = ctx.in_height;
-    const auto& wo        = ctx.in_width;
-    const auto& y         = ctx.kernel_size_h;
-    const auto& x         = ctx.kernel_size_w;
-    const auto stride_h   = ctx.kernel_stride_h;
-    const auto stride_w   = ctx.kernel_stride_w;
-    const auto dilation_h = ctx.kernel_size_h > 1 ? ctx.kernel_dilation_h : 1;
-    const auto dilation_w = ctx.kernel_size_w > 1 ? ctx.kernel_dilation_w : 1;
-    const auto& pad_h     = ctx.pad_h;
-    const auto& pad_w     = ctx.pad_w;
-    const auto& precision = ctx.IsFp16() ? miopenHalf : miopenFloat;
+    const auto& n         = problem.batch_sz;
+    const auto& k         = problem.n_inputs;
+    const auto& c         = problem.n_outputs;
+    const auto& ho        = problem.in_height;
+    const auto& wo        = problem.in_width;
+    const auto& y         = problem.kernel_size_h;
+    const auto& x         = problem.kernel_size_w;
+    const auto stride_h   = problem.kernel_stride_h;
+    const auto stride_w   = problem.kernel_stride_w;
+    const auto dilation_h = problem.kernel_size_h > 1 ? problem.kernel_dilation_h : 1;
+    const auto dilation_w = problem.kernel_size_w > 1 ? problem.kernel_dilation_w : 1;
+    const auto& pad_h     = problem.pad_h;
+    const auto& pad_w     = problem.pad_w;
+    const auto& precision = problem.IsFp16() ? miopenHalf : miopenFloat;
 
     const auto gemm_n  = c * y * x;
     const auto& gemm_m = k;
@@ -635,8 +635,12 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
                                     }
                                 }
 
-                                int gemm_k_global_split = if_gemm_k_global_split(
-                                    ctx, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, b);
+                                int gemm_k_global_split = if_gemm_k_global_split(problem,
+                                                                                 gemm_m_per_block,
+                                                                                 gemm_n_per_block,
+                                                                                 gemm_k_per_block,
+                                                                                 b);
+
                                 int tunable_index = find_tunable(tunables,
                                                                  gemm_m_per_block,
                                                                  gemm_n_per_block,
@@ -756,7 +760,7 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
             }
 
             int gemm_k_global_split = if_gemm_k_global_split(
-                ctx, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, b);
+                problem, gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, b);
 
             // if conv cannot be split, gkgs kernels cannot be used
             if(gemm_k_global_split != cfg.gemm_k_global_split)
@@ -788,29 +792,31 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ConvolutionContext& ctx)
         is_valid, sel_index, sel_block_size, sel_grid_size, sel_log2_gemm_k_global_splits);
 }
 
-size_t ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
+size_t
+ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ProblemDescription& problem) const
 {
-    if(ctx.IsFp32())
+    if(problem.IsFp32())
         return 0;
     else
     {
-        const auto k       = ctx.n_inputs;
-        const auto c       = ctx.n_outputs;
-        const auto y       = ctx.kernel_size_h;
-        const auto x       = ctx.kernel_size_w;
-        const auto ngroups = ctx.group_counts;
+        const auto k       = problem.n_inputs;
+        const auto c       = problem.n_outputs;
+        const auto y       = problem.kernel_size_h;
+        const auto x       = problem.kernel_size_w;
+        const auto ngroups = problem.group_counts;
 
         return static_cast<size_t>(ngroups) * (k / ngroups) * (c / ngroups) * y * x *
                miopen::GetTypeSize(miopenFloat);
     }
 }
 
-bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ExecutionContext& ctx,
+                                                          const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS{}))
         return false;
 
-    if(ctx.conv_problem.GetConv().attribute.deterministic)
+    if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
@@ -820,22 +826,22 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionConte
     if(!ctx.use_asm_kernels)
         return false;
 
-    if(!ctx.direction.IsBackwardWrW())
+    if(!problem.direction.IsBackwardWrW())
         return false;
 
-    if(!ctx.Is2d())
+    if(!problem.Is2d())
         return false;
 
-    if(!ctx.IsFp32() && !ctx.IsFp16())
+    if(!problem.IsFp32() && !problem.IsFp16())
         return false;
 
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(ctx.group_counts != 1)
+    if(problem.group_counts != 1)
         return false;
 
-    if(!ctx.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
@@ -845,13 +851,14 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlops::IsApplicable(const ConvolutionConte
         return false;
     bool is_valid;
     std::tie(is_valid, std::ignore, std::ignore, std::ignore, std::ignore) =
-        FindImplicitGemmWrwGTCDynamicXdlopsKernel(ctx);
+        FindImplicitGemmWrwGTCDynamicXdlopsKernel(problem);
 
     return is_valid;
 }
 
 ConvSolution
-ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ctx) const
+ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
+                                                    const ProblemDescription& problem) const
 {
     ConvSolution result;
 
@@ -871,7 +878,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     int gemm_k_per_block;
 
     std::tie(is_valid, kernel_index, block_size, grid_size, log2_gemm_k_global_splits) =
-        FindImplicitGemmWrwGTCDynamicXdlopsKernel(ctx);
+        FindImplicitGemmWrwGTCDynamicXdlopsKernel(problem);
 
     if(!is_valid)
         MIOPEN_THROW("this kernel should not run with igemm dynamic!");
@@ -883,7 +890,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
     // MIOPEN_LOG_I2(kernel_name << " with groups for reduction: "
     //                           << (1 << log2_gemm_k_global_splits));
 
-    const auto required_workspace_size = GetWorkspaceSize(ctx);
+    const auto required_workspace_size = GetWorkspaceSize(problem);
     result.workspace_sz                = required_workspace_size;
 
     std::ostringstream kernel_file_name;
@@ -896,7 +903,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
      * grid dims is in unit of work item.
      * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
      */
-    kernel.g_wk.push_back(grid_size * block_size);
+    kernel.g_wk.push_back(static_cast<std::size_t>(grid_size) * block_size);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
     kernel.l_wk.clear();
@@ -912,8 +919,8 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ConvolutionContext& ct
 
     result.construction_params.push_back(kernel);
 
-    const auto& conv_problem = ctx.conv_problem;
-    const auto& lowp_quant   = ctx.conv_problem.GetConv().lowp_quant;
+    const auto& conv_problem = problem.conv_problem;
+    const auto& lowp_quant   = problem.conv_problem.GetConv().lowp_quant;
 
     auto opArgs = ComputeDynamicIGemmWrwKernelArgs(
         conv_problem, log2_gemm_k_global_splits, nxb, gemm_k_per_block);
