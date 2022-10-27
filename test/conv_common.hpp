@@ -340,17 +340,9 @@ protected:
 
         for(const auto& solution : solutions)
         {
-            auto workspace_size = std::size_t{};
-            EXPECT_EQUAL(miopenStatusSuccess,
-                         miopenGetSolutionWorkspaceSize(solution, &workspace_size));
-
-            const auto workspace_dev = workspace_size != 0
-                                           ? get_handle().Write(std::vector<char>(workspace_size))
-                                           : nullptr;
-
-            EXPECT_EQUAL(miopenStatusSuccess,
-                         miopenRunSolution(
-                             handle, solution, 3, arguments, workspace_dev.get(), workspace_size));
+            EXPECT_EQUAL(
+                miopenStatusSuccess,
+                miopenRunSolution(handle, solution, 3, arguments, workspace, workspace_size));
         }
 
         const auto& solution_deref = miopen::deref(solutions.front());
