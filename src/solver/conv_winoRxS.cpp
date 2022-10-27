@@ -200,11 +200,11 @@ inline bool IsShaderContraintsMet(const ProblemDescription& problem,
         return false;
     }
 
-    uint64_t o_K_stride      = OH * OW;
+    uint64_t o_K_stride      = static_cast<uint64_t>(OH) * OW;
     uint64_t o_N_stride      = o_K_stride * K;
     uint64_t o_N_stride_OHOW = o_N_stride + o_K_stride;
 
-    uint64_t d_C_stride    = H * W;
+    uint64_t d_C_stride    = static_cast<uint64_t>(H) * W;
     uint64_t d_N_stride    = d_C_stride * C;
     uint64_t d_N_stride_HW = d_N_stride + d_C_stride;
 
