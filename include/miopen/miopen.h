@@ -265,7 +265,7 @@ MIOPEN_DECLARE_OBJECT(miopenFusionOpDescriptor);
  * @brief Creates the miopenTensorDescriptor_t type
  *
  * Tensor descriptor is an object that allows the user to specify a layer's size for each
- * dimension and dimension strides. Currently only 4-D fully packed tensors are supported.
+ * dimension and dimension strides.
  *
  */
 MIOPEN_DECLARE_OBJECT(miopenTensorDescriptor);
@@ -1048,7 +1048,7 @@ typedef enum
     miopenConvolutionFwdAlgoDirect       = 1, /*!< Direct convolutions */
     miopenConvolutionFwdAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionFwdAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
-    miopenConvolutionFwdAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
+    miopenConvolutionFwdAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions */
 } miopenConvFwdAlgorithm_t;
 
 /*! @enum miopenConvBwdWeightsAlgorithm_t
@@ -1073,7 +1073,7 @@ typedef enum
     miopenConvolutionBwdDataAlgoWinograd = 3, /*!< Winograd indirect convolutions */
     miopenTransposeBwdDataAlgoGEMM =
         4, /*!< Deprecated Transpose GEMM variant legacy, ToBe Removed */
-    miopenConvolutionBwdDataAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
+    miopenConvolutionBwdDataAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions */
 } miopenConvBwdDataAlgorithm_t;
 
 /*! @enum miopenConvAlgorithm_t
@@ -1085,7 +1085,7 @@ typedef enum
     miopenConvolutionAlgoDirect       = 1, /*!< Direct convolutions */
     miopenConvolutionAlgoFFT          = 2, /*!< Fast Fourier Transform indirect convolutions */
     miopenConvolutionAlgoWinograd     = 3, /*!< Winograd indirect convolutions */
-    miopenConvolutionAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions, fp32 only */
+    miopenConvolutionAlgoImplicitGEMM = 5, /*!< Implicit GEMM convolutions */
 } miopenConvAlgorithm_t;
 
 /*! @brief Perf struct for forward, backward filter, or backward data algorithms
@@ -3346,7 +3346,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rn
  * @param rnnMode      RNN model type (input)
  * @param biasMode     RNN bias included (input)
  * @param algo         RNN algorithm selected (input)
- * @param dataType     Only fp32 currently supported for RNNs (input)
+ * @param dataType     MIOpen datatype (input)
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
@@ -3374,7 +3374,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDes
  * @param rnnMode      RNN model type (input)
  * @param biasMode     RNN bias included (input)
  * @param algo         RNN algorithm selected (input)
- * @param dataType     Only fp32 currently supported for RNNs (input)
+ * @param dataType     MIOpen datatype (input)
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor_V2(miopenRNNDescriptor_t rnnDesc,
@@ -3459,7 +3459,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsSize(miopenHandle_t handle,
  * @param rnnDesc         Fully populated RNN layer descriptor type (input)
  * @param xDesc           A previously populated tensor descriptor (input)
  * @param wDesc           A previously allocated tensor descriptor (output)
- * @param dtype           MIOpen data type enum, currently only fp32 is supported (input)
+ * @param dtype           MIOpen data type enum (input)
  * @return                miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNParamsDescriptor(miopenHandle_t handle,
