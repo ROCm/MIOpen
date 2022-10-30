@@ -59,36 +59,36 @@ namespace solver {
 
 // these functions map the dimensions of a bwd-wrw problem into a fwd problem
 // they are not supposed to be called by backward-data
-static inline std::size_t KernelFilterStrideH(const ConvolutionContext& c)
+static inline std::size_t KernelFilterStrideH(const ProblemDescription& problem)
 {
-    if(c.problem.direction.IsBackwardWrW())
-        return c.problem.kernel_dilation_h;
+    if(problem.direction.IsBackwardWrW())
+        return problem.kernel_dilation_h;
     else
-        return c.problem.kernel_stride_h;
+        return problem.kernel_stride_h;
 }
 
-static inline std::size_t KernelFilterStrideW(const ConvolutionContext& c)
+static inline std::size_t KernelFilterStrideW(const ProblemDescription& problem)
 {
-    if(c.problem.direction.IsBackwardWrW())
-        return c.problem.kernel_dilation_w;
+    if(problem.direction.IsBackwardWrW())
+        return problem.kernel_dilation_w;
     else
-        return c.problem.kernel_stride_w;
+        return problem.kernel_stride_w;
 }
 
-static inline std::size_t KernelFilterDilationH(const ConvolutionContext& c)
+static inline std::size_t KernelFilterDilationH(const ProblemDescription& problem)
 {
-    if(c.problem.direction.IsBackwardWrW())
-        return c.problem.kernel_stride_h;
+    if(problem.direction.IsBackwardWrW())
+        return problem.kernel_stride_h;
     else
-        return c.problem.kernel_dilation_h;
+        return problem.kernel_dilation_h;
 }
 
-static inline std::size_t KernelFilterDilationW(const ConvolutionContext& c)
+static inline std::size_t KernelFilterDilationW(const ProblemDescription& problem)
 {
-    if(c.problem.direction.IsBackwardWrW())
-        return c.problem.kernel_stride_w;
+    if(problem.direction.IsBackwardWrW())
+        return problem.kernel_stride_w;
     else
-        return c.problem.kernel_dilation_w;
+        return problem.kernel_dilation_w;
 }
 
 static inline std::size_t KernelOutputChannelK(const ProblemDescription& problem)
@@ -360,39 +360,40 @@ IsValidGridGemmXdlops(const std::size_t GemmM, const std::size_t GemmN, const st
 }
 
 ///\todo remove
-static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
+static inline bool IsApplicableXdlops(const ExecutionContext& ctx,
+                                      const ProblemDescription& problem)
 {
     if(!IsXdlopsSupport(ctx))
         return false;
 
-    std::size_t n  = ProblemInterpreter::GetBatchN(ctx.problem);
-    std::size_t k  = ProblemInterpreter::GetOutputChannelK(ctx.problem) / ctx.problem.group_counts;
-    std::size_t c  = ProblemInterpreter::GetInputChannelC(ctx.problem) / ctx.problem.group_counts;
-    std::size_t y  = ProblemInterpreter::GetFilterHeightY(ctx.problem);
-    std::size_t x  = ProblemInterpreter::GetFilterWidthX(ctx.problem);
-    std::size_t ho = ProblemInterpreter::GetOutputHeightHo(ctx.problem);
-    std::size_t wo = ProblemInterpreter::GetOutputWidthWo(ctx.problem);
+    std::size_t n  = ProblemInterpreter::GetBatchN(problem);
+    std::size_t k  = ProblemInterpreter::GetOutputChannelK(problem) / problem.group_counts;
+    std::size_t c  = ProblemInterpreter::GetInputChannelC(problem) / problem.group_counts;
+    std::size_t y  = ProblemInterpreter::GetFilterHeightY(problem);
+    std::size_t x  = ProblemInterpreter::GetFilterWidthX(problem);
+    std::size_t ho = ProblemInterpreter::GetOutputHeightHo(problem);
+    std::size_t wo = ProblemInterpreter::GetOutputWidthWo(problem);
 
     std::size_t GemmM, GemmN, GemmK;
     // forward
-    if(ctx.problem.direction.IsForward())
+    if(problem.direction.IsForward())
     {
         // TBD/ Since bfp16/fp16 fwd kernel extracts epack from c*y*x,
         //      one could relax the following restriction for bfp16/fp16,
         //      allowing c=1 when y*x=epack.
-        if(c % GetEPackLength(ctx, ctx.problem, true) != 0)
+        if(c % GetEPackLength(ctx, problem, true) != 0)
             return false;
-        const auto nonVectorizedC = c / GetEPackLength(ctx, ctx.problem, true);
+        const auto nonVectorizedC = c / GetEPackLength(ctx, problem, true);
         GemmM                     = k;
         GemmN                     = static_cast<std::size_t>(n) * ho * wo;
         GemmK                     = static_cast<std::size_t>(nonVectorizedC) * y * x;
     }
     // backwardData
-    else if(ctx.problem.direction.IsBackwardData())
+    else if(problem.direction.IsBackwardData())
     {
-        if(k % GetEPackLength(ctx, ctx.problem, true) != 0)
+        if(k % GetEPackLength(ctx, problem, true) != 0)
             return false;
-        const auto nonVectorizedK = k / GetEPackLength(ctx, ctx.problem, true);
+        const auto nonVectorizedK = k / GetEPackLength(ctx, problem, true);
         GemmM                     = static_cast<std::size_t>(c) * y * x;
         GemmN                     = static_cast<std::size_t>(n) * ho * wo;
         GemmK                     = nonVectorizedK;
@@ -400,25 +401,15 @@ static inline bool IsApplicableXdlops(const ConvolutionContext& ctx)
     // backwardWeights
     else
     {
-        if(n % GetEPackLength(ctx, ctx.problem, true) != 0)
+        if(n % GetEPackLength(ctx, problem, true) != 0)
             return false;
-        const auto nonVectorizedN = n / GetEPackLength(ctx, ctx.problem, true);
+        const auto nonVectorizedN = n / GetEPackLength(ctx, problem, true);
         GemmM                     = k;
         GemmN                     = static_cast<std::size_t>(c) * y * x;
         GemmK                     = static_cast<std::size_t>(nonVectorizedN) * ho * wo;
     }
 
     return IsValidGridGemmXdlops(GemmM, GemmN, GemmK);
-}
-
-///\todo remove
-template <class PerformanceImplicitGemm_t>
-inline static auto GetPerformanceConfigBase(const ConvolutionContext& ctx)
-{
-    PerformanceImplicitGemm_t pp;
-    pp.HeuristicInit(ctx);
-    MIOPEN_LOG_I(pp.ToString());
-    return pp;
 }
 
 ///\todo remove
