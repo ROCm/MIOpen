@@ -133,7 +133,7 @@ struct ConvHeur
         const auto res             = CallModel(features, arch);
         static const auto& solvers = GetSolverMap(arch);
 
-        std::vector<std::pair<int, float>> sort_res;
+        std::vector<std::pair<int, float>> sort_res(res.size());
         for(auto idx = 0; idx < res.size(); idx++)
             sort_res.push_back({idx, res[idx]});
         const auto cmp = [](const std::pair<int, float>& a,

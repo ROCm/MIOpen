@@ -50,17 +50,17 @@ const std::unordered_map<size_t, std::string>& GetSolverMap(const std::string& a
 
     static std::unordered_map<std::string, size_t> solver_map_rev = metadata["encodings"]["solver"];
     static std::unordered_map<size_t, std::string> solver_map{};
-    if(solver_map.size() == 0)
+    if(solver_map.empty())
     {
-        for(auto it = solver_map_rev.begin(); it != solver_map_rev.end(); it++)
+        for(auto& it : solver_map_rev)
         {
-            solver_map.emplace(make_pair(it->second, it->first));
+            solver_map.emplace(make_pair(it.second, it.first));
         }
     }
     return solver_map;
 }
 
-const size_t GetDirectionMap(const miopen::conv::Direction dir, const std::string& arch)
+size_t GetDirectionMap(const miopen::conv::Direction dir, const std::string& arch)
 {
     static const auto& metadata = ConvHeur::GetMetadata(arch);
 
@@ -72,7 +72,7 @@ const size_t GetDirectionMap(const miopen::conv::Direction dir, const std::strin
         return metadata["encodings"]["Direction"]["F"];
 }
 
-const size_t GetPrecisionMap(const miopenDataType_t data_type, const std::string& arch)
+size_t GetPrecisionMap(const miopenDataType_t data_type, const std::string& arch)
 {
     static const auto& metadata = ConvHeur::GetMetadata(arch);
 
@@ -84,17 +84,17 @@ const size_t GetPrecisionMap(const miopenDataType_t data_type, const std::string
         return metadata["encodings"]["Precision"]["FP32"];
 }
 
-const size_t GetLayoutMap(const std::string& layout, const std::string& arch)
+size_t GetLayoutMap(const std::string& layout, const std::string& arch)
 {
     static const auto& metadata = ConvHeur::GetMetadata(arch);
 
-    if(layout.compare("NCDHW") == 0)
+    if(layout == "NCDHW")
         return metadata["encodings"]["Layout"]["NCDHW"];
     else
         return metadata["encodings"]["Layout"]["NCHW"];
 }
 
-const std::vector<float> GetStat(const std::string& stat, const std::string& arch)
+std::vector<float> GetStat(const std::string& stat, const std::string& arch)
 {
     static const auto& metadata = ConvHeur::GetMetadata(arch);
 
@@ -102,9 +102,9 @@ const std::vector<float> GetStat(const std::string& stat, const std::string& arc
         metadata["stats"]["overall"]["features"][stat];
     std::vector<float> stats;
     std::vector<std::string> features = GetFeatureNames();
-    for(size_t i = 0; i < features.size(); i++)
+    for(auto & feature : features)
     {
-        stats.push_back(stat_map[features[i]]);
+        stats.push_back(stat_map[feature]);
     }
     return stats;
 }
@@ -113,7 +113,7 @@ void TransformFeatures(std::vector<float>& features, const std::string& arch)
 {
     static std::vector<float> mu  = GetStat("mean", arch);
     static std::vector<float> sig = GetStat("std", arch);
-    for(auto idx = 0; idx < features.size(); ++idx)
+    for(size_t idx = 0; idx < features.size(); ++idx)
     {
         features[idx] = (features[idx] - mu[idx]) / sig[idx];
     }
@@ -131,7 +131,7 @@ std::vector<float> CallModel(std::vector<float>& features, const std::string& ar
     static boost::filesystem::path model_file =
         boost::filesystem::path(GetSystemDbPath() + arch + ".model");
     static const fdeep::model model =
-        fdeep::load_model(model_file.generic_string(), fdeep::dev_null_logger);
+        fdeep::load_model(model_file.generic_string(), true, fdeep::dev_null_logger);
     auto input = fdeep::tensor(fdeep::tensor_shape(features.size()), features);
     std::vector<fdeep::tensor> output = model.predict({input});
     std::vector<float> output_vector  = output.front().to_vector();

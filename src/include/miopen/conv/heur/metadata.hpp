@@ -41,9 +41,9 @@ namespace miopen {
 const std::unordered_map<size_t, std::string>& GetSolverMap(const std::string& arch);
 void TransformFeatures(std::vector<float>& features, const std::string& arch);
 const std::vector<std::string>& GetFeatureNames(const std::string& arch);
-const size_t GetDirectionMap(const miopen::conv::Direction dir, const std::string& arch);
-const size_t GetPrecisionMap(const miopenDataType_t data_type, const std::string& arch);
-const size_t GetLayoutMap(const std::string& layout, const std::string& arch);
+size_t GetDirectionMap(miopen::conv::Direction dir, const std::string& arch);
+size_t GetPrecisionMap(miopenDataType_t data_type, const std::string& arch);
+size_t GetLayoutMap(const std::string& layout, const std::string& arch);
 std::vector<float> CallModel(std::vector<float>& features, const std::string& arch);
 } // namespace miopen
 #endif
