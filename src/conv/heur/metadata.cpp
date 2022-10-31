@@ -100,8 +100,8 @@ std::vector<float> GetStat(const std::string& stat, const std::string& arch)
 
     std::unordered_map<std::string, float> stat_map =
         metadata["stats"]["overall"]["features"][stat];
-    std::vector<float> stats;
     std::vector<std::string> features = GetFeatureNames();
+    std::vector<float> stats(features.size());
     for(auto& feature : features)
     {
         stats.push_back(stat_map[feature]);
