@@ -5,5 +5,5 @@ ROCmSoftwarePlatform/rocMLIR@rocm-5.4.0 -H sha256:3823f455ee392118c3281e27d45fa0
 Dobiasd/FunctionalPlus@v0.2.18-p0
 https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
 nlohmann/json@v3.9.1 -DJSON_MultipleHeaders=ON -DJSON_BuildTests=Off
-Dobiasd/frugally-deep@v0.15.19-p0
+ROCmSoftwarePlatform/frugally-deep
 ROCmSoftwarePlatform/composable_kernel@eef009d001b928db1bb377a105c93b75e0dccc7b -DGPU_TARGETS="gfx900;gfx906;gfx908;gfx90a;gfx1030"
