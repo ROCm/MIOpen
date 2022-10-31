@@ -2826,8 +2826,8 @@ template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFil
 struct ConvMPBidirectWinograd final : ConvSolver
 {
     // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
     using ConvSolver::GetWorkspaceSize;
+    using ConvSolver::IsApplicable;
 
     const std::string& SolverDbId() const override
     {
@@ -2900,12 +2900,12 @@ struct ConvMPBidirectWinograd_xdlops final
     : ConvTunableSolver<PerformanceImplicitGemmForwardV4R4Xdlops>
 {
     // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::IsApplicable;
-    using ConvTunableSolver::GetWorkspaceSize;
     using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::GetWorkspaceSize;
+    using ConvTunableSolver::IsApplicable;
     using ConvTunableSolver::IsValidPerformanceConfig;
     using ConvTunableSolver::Search;
-    using ConvTunableSolver::GetSolution;
 
     const std::string& SolverDbId() const override
     {
@@ -2932,17 +2932,18 @@ struct ConvMPBidirectWinograd_xdlops final
         return GetDefaultPerformanceConfig(ctx, ctx.problem);
     }
     PerformanceImplicitGemmForwardV4R4Xdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+                                const ProblemDescription& problem) const
     {
         const auto xdlops_problem = GetTransformedProblem(problem);
-        const auto xdlops_ctx = GetTransformedConvContext(ctx, xdlops_problem);
+        const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
-        return ConvHipImplicitGemmForwardV4R4Xdlops{}.GetDefaultPerformanceConfig(
-            xdlops_ctx);
+        return ConvHipImplicitGemmForwardV4R4Xdlops{}.GetDefaultPerformanceConfig(xdlops_ctx);
     }
 
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmForwardV4R4Xdlops& config) const override
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmForwardV4R4Xdlops& config) const override
     {
         return IsValidPerformanceConfig(ctx, ctx.problem, config);
     }
@@ -2951,10 +2952,9 @@ struct ConvMPBidirectWinograd_xdlops final
                                   const PerformanceImplicitGemmForwardV4R4Xdlops& config) const
     {
         const auto xdlops_problem = GetTransformedProblem(problem);
-        const auto xdlops_ctx = GetTransformedConvContext(ctx, xdlops_problem);
+        const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
-        return ConvHipImplicitGemmForwardV4R4Xdlops{}.IsValidPerformanceConfig(
-            xdlops_ctx, config);
+        return ConvHipImplicitGemmForwardV4R4Xdlops{}.IsValidPerformanceConfig(xdlops_ctx, config);
     }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
@@ -2964,18 +2964,17 @@ struct ConvMPBidirectWinograd_xdlops final
     size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const
     {
         const auto xdlops_problem = GetTransformedProblem(problem);
-        const auto xdlops_ctx = GetTransformedConvContext(ctx, xdlops_problem);
+        const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
         return ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>()
                    .GetWorkspaceSize(ctx.problem) +
-               ConvHipImplicitGemmForwardV4R4Xdlops{}.GetWorkspaceSize(
-                   xdlops_ctx);
+               ConvHipImplicitGemmForwardV4R4Xdlops{}.GetWorkspaceSize(xdlops_ctx);
     }
 
     bool MayNeedWorkspace() const override { return true; }
 
-    PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext& ctx,
-                                                    const AnyInvokeParams& invoke_ctx) const override
+    PerformanceImplicitGemmForwardV4R4Xdlops
+    Search(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const override
     {
         return Search(ctx, ctx.problem, invoke_ctx);
     }
@@ -2995,7 +2994,9 @@ private:
                                                     const ProblemDescription&,
                                                     const AnyInvokeParams& invoke_ctx) const;
 
-    ConvolutionContext GetTransformedConvContext(const ConvolutionContext& ctx, const ProblemDescription& transformed_problem) const;
+    ConvolutionContext
+    GetTransformedConvContext(const ConvolutionContext& ctx,
+                              const ProblemDescription& transformed_problem) const;
     ProblemDescription GetTransformedProblem(const ProblemDescription& problem) const;
 
     // kernel_file_name for solver identification

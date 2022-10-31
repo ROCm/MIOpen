@@ -80,7 +80,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 // Introduces a number of shader-specific aliases (names) in the current scope at zero cost.
 // These names represent shader parameters, e.g. shader C is batch_size etc and useful for
 // programming.
-#define DEFINE_GETXFORMHWSIZE()                                                        \
+#define DEFINE_GETXFORMHWSIZE()                                                              \
     const auto                                                                               \
         wino_xform_h =                                                                       \
             solver::ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>:: \
@@ -102,15 +102,15 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
     const auto& out_W     = (problem).out_width;
 
 #if MIOPEN_BACKEND_HIP
-#define GENERATE_MAIN_OPTIONS(options)                                             \
-    GenerateClangDefsym((options), "acc_type", 1);                                 \
-    GenerateClangDefsym((options), "ROCM_METADATA_VERSION", 5);                    \
-    GenerateClangDefsym((options), "xformx_o_size", WinoDataW);                    \
-    GenerateClangDefsym((options), "xformy_o_size", WinoDataH);                    \
-    GenerateClangDefsym((options), "xformx_d_size", wino_xform_w);                 \
-    GenerateClangDefsym((options), "xformy_d_size", wino_xform_h);                 \
-    GenerateClangDefsym((options), "xformx_f_size", WinoFilterW);                  \
-    GenerateClangDefsym((options), "xformy_f_size", WinoFilterH);                  \
+#define GENERATE_MAIN_OPTIONS(options)                                      \
+    GenerateClangDefsym((options), "acc_type", 1);                          \
+    GenerateClangDefsym((options), "ROCM_METADATA_VERSION", 5);             \
+    GenerateClangDefsym((options), "xformx_o_size", WinoDataW);             \
+    GenerateClangDefsym((options), "xformy_o_size", WinoDataH);             \
+    GenerateClangDefsym((options), "xformx_d_size", wino_xform_w);          \
+    GenerateClangDefsym((options), "xformy_d_size", wino_xform_h);          \
+    GenerateClangDefsym((options), "xformx_f_size", WinoFilterW);           \
+    GenerateClangDefsym((options), "xformy_f_size", WinoFilterH);           \
     GenerateClangDefsym((options), "fdilation_w", problem.kernel_stride_w); \
     GenerateClangDefsym((options), "fdilation_h", problem.kernel_stride_h);
 
@@ -208,8 +208,7 @@ static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDe
 #if WORKAROUND_SWDEV_203031
         if(limit == 0)
         {
-            if(name == "gfx900" ||
-               (name == "gfx906" && ctx.GetStream().GetMaxComputeUnits() <= 60))
+            if(name == "gfx900" || (name == "gfx906" && ctx.GetStream().GetMaxComputeUnits() <= 60))
                 limit = 2000000000ULL; // ~1.862 GiB
             else
                 limit = std::numeric_limits<std::size_t>::max();
@@ -377,15 +376,13 @@ size_t ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 static InvokerFactory MakeWinogradInvokerFactory(const ConvolutionContext& ctx,
-                                          const ProblemDescription& problem,
-                                          InvokerFactory xdlops_factory = InvokerFactory(),
-                                          bool isXdlops                 = false)
+                                                 const ProblemDescription& problem,
+                                                 InvokerFactory xdlops_factory = InvokerFactory(),
+                                                 bool isXdlops                 = false)
 {
 #if MIOPEN_BACKEND_HIP
-    const int pad_H    = problem.direction.IsForward() ? problem.pad_h
-                                                              : problem.GetBackwardPadH();
-    const int pad_W    = problem.direction.IsForward() ? problem.pad_w
-                                                              : problem.GetBackwardPadW();
+    const int pad_H    = problem.direction.IsForward() ? problem.pad_h : problem.GetBackwardPadH();
+    const int pad_W    = problem.direction.IsForward() ? problem.pad_w : problem.GetBackwardPadW();
     const int n_groups = ctx.GetStream().GetMaxComputeUnits();
     DEFINE_SHADER_ALIASES(problem)
     DEFINE_GETXFORMHWSIZE()
@@ -729,7 +726,8 @@ template struct ConvMPBidirectWinograd<6, 3>;
 // for winograd buffers calculation using xdlops_convolution
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 ConvolutionContext ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
-    GetTransformedConvContext(const ConvolutionContext& ctx, const ProblemDescription& transformed_problem) const
+    GetTransformedConvContext(const ConvolutionContext& ctx,
+                              const ProblemDescription& transformed_problem) const
 {
     ConvolutionContext transformed_ctx(transformed_problem);
     transformed_ctx.ExecutionContext::operator=(ctx);
@@ -870,7 +868,7 @@ bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilter
             return false;
 
     const auto xdlops_problem = GetTransformedProblem(problem);
-    const auto xdlops_ctx = GetTransformedConvContext(ctx, xdlops_problem);
+    const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
     return IsApplicableTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(ctx, problem) &&
            ConvHipImplicitGemmForwardV4R4Xdlops().IsApplicable(xdlops_ctx);
@@ -879,13 +877,16 @@ bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilter
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 ConvSolution
 ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetSolution(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const PerformanceImplicitGemmForwardV4R4Xdlops& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmForwardV4R4Xdlops& config) const
 {
     ConvSolution wino_transform =
-        ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>{}.GetSolution(ctx, problem);
+        ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>{}.GetSolution(
+            ctx, problem);
 
     const auto xdlops_problem = GetTransformedProblem(problem);
-    const auto xdlops_ctx = GetTransformedConvContext(ctx, xdlops_problem);
+    const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
     ConvSolution xdlops_conv =
         ConvHipImplicitGemmForwardV4R4Xdlops{}.GetSolution(xdlops_ctx, config);
@@ -916,16 +917,17 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 PerformanceImplicitGemmForwardV4R4Xdlops
 ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Search(
-    const ConvolutionContext& ctx, const ProblemDescription& problem, const AnyInvokeParams& invoke_ctx) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const AnyInvokeParams& invoke_ctx) const
 {
     const auto xdlops_invoke_ctx =
         GetTransformedInvokeContext<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(problem,
                                                                                     invoke_ctx);
     const auto xdlops_problem = GetTransformedProblem(problem);
-    const auto xdlops_ctx = GetTransformedConvContext(ctx, xdlops_problem);
+    const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
-    return ConvHipImplicitGemmForwardV4R4Xdlops().Search(xdlops_ctx,
-                                                         xdlops_invoke_ctx);
+    return ConvHipImplicitGemmForwardV4R4Xdlops().Search(xdlops_ctx, xdlops_invoke_ctx);
 }
 
 template struct ConvMPBidirectWinograd_xdlops<2, 3>;
