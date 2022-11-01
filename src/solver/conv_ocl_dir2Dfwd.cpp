@@ -35,7 +35,8 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD)
 namespace miopen {
 namespace solver {
 
-bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& ctx,
+                                    const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD{}))
         return false;
@@ -112,8 +113,8 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& ctx, const Problem
 /// and some logic from the corresponding opencl kernel source.
 /// The cases which lead to errors can be later omitted from the search.
 /// \todo Get rid the duplication of code where possible.
-bool ConvOclDirectFwd::IsValidPerformanceConfig(
-    const ProblemDescription& problem, const LegacyPerformanceConfig& config) const
+bool ConvOclDirectFwd::IsValidPerformanceConfig(const ProblemDescription& problem,
+                                                const LegacyPerformanceConfig& config) const
 {
     ConvSolution result;
 
@@ -127,21 +128,17 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     //     pad_w = problem.kernel_size_w - 1 - pad_w;
     //     pad_h = problem.kernel_size_h - 1 - pad_h;
     // }
-    auto group_counts = problem.group_counts;
-    result.n_in_data_tiles =
-        std::min(problem.n_inputs / group_counts, config.n_in_data_tiles);
-    result.n_out_pix_tiles =
-        std::min(problem.n_outputs / group_counts, config.n_out_pix_tiles);
+    auto group_counts      = problem.group_counts;
+    result.n_in_data_tiles = std::min(problem.n_inputs / group_counts, config.n_in_data_tiles);
+    result.n_out_pix_tiles = std::min(problem.n_outputs / group_counts, config.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 =
-        (!problem.direction.IsForward() && problem.kernel_stride_h > 1)
-            ? problem.kernel_stride_h
-            : config.out_pix_tile1;
-    result.out_pix_tile0 =
-        (!problem.direction.IsForward() && problem.kernel_stride_w > 1)
-            ? problem.kernel_stride_w
-            : config.out_pix_tile0;
+    result.out_pix_tile1 = (!problem.direction.IsForward() && problem.kernel_stride_h > 1)
+                               ? problem.kernel_stride_h
+                               : config.out_pix_tile1;
+    result.out_pix_tile0 = (!problem.direction.IsForward() && problem.kernel_stride_w > 1)
+                               ? problem.kernel_stride_w
+                               : config.out_pix_tile0;
 
     if(result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0 /* DIV/0 */)
     {
@@ -192,7 +189,7 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     // int n_out_tile_blocks1 = (problem.out_height + result.in_tile1 - 1) / (result.in_tile1);
     int n_alu_tiles_perstack = (n_alus_perstack + alu_tiles_sz - 1) / alu_tiles_sz;
     int n_out_tiles_perstack = n_alu_tiles_perstack * result.n_out_pix_tiles;
-    n_out_tiles_perstack = std::min(n_out_tiles_perstack, problem.n_outputs / group_counts);
+    n_out_tiles_perstack     = std::min(n_out_tiles_perstack, problem.n_outputs / group_counts);
 
     // const auto mlo_hw_wave_sz=hw_wave_sz;
     const auto mlo_filter_size0 = static_cast<long long>(problem.kernel_size_w);
@@ -292,20 +289,16 @@ static ConvSolution BaseGetSolution(const ConvolutionContext& ctx,
         pad_h = problem.kernel_size_h - 1 - pad_h;
     }
 
-    result.n_in_data_tiles =
-        std::min(problem.n_inputs / group_counts, config.n_in_data_tiles);
-    result.n_out_pix_tiles =
-        std::min(problem.n_outputs / group_counts, config.n_out_pix_tiles);
+    result.n_in_data_tiles = std::min(problem.n_inputs / group_counts, config.n_in_data_tiles);
+    result.n_out_pix_tiles = std::min(problem.n_outputs / group_counts, config.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 =
-        (!problem.direction.IsForward() && problem.kernel_stride_h > 1)
-            ? problem.kernel_stride_h
-            : config.out_pix_tile1;
-    result.out_pix_tile0 =
-        (!problem.direction.IsForward() && problem.kernel_stride_w > 1)
-            ? problem.kernel_stride_w
-            : config.out_pix_tile0;
+    result.out_pix_tile1 = (!problem.direction.IsForward() && problem.kernel_stride_h > 1)
+                               ? problem.kernel_stride_h
+                               : config.out_pix_tile1;
+    result.out_pix_tile0 = (!problem.direction.IsForward() && problem.kernel_stride_w > 1)
+                               ? problem.kernel_stride_w
+                               : config.out_pix_tile0;
 
     if(result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0 /* DIV/0 */)
     {
@@ -377,10 +370,8 @@ static ConvSolution BaseGetSolution(const ConvolutionContext& ctx,
         std::to_string(static_cast<long long>(problem.kernel_stride_h)) +
         std::string(" -DMLO_N_OUTPUTS=") +
         std::to_string(static_cast<long long>(problem.n_outputs)) +
-        std::string(" -DMLO_N_INPUTS=") +
-        std::to_string(static_cast<long long>(problem.n_inputs)) +
-        std::string(" -DMLO_BATCH_SZ=") +
-        std::to_string(static_cast<long long>(problem.batch_sz)) +
+        std::string(" -DMLO_N_INPUTS=") + std::to_string(static_cast<long long>(problem.n_inputs)) +
+        std::string(" -DMLO_BATCH_SZ=") + std::to_string(static_cast<long long>(problem.batch_sz)) +
         std::string(" -DMLO_OUT_WIDTH=") +
         std::to_string(static_cast<long long>(problem.out_width)) +
         std::string(" -DMLO_OUT_HEIGHT=") +
@@ -391,8 +382,7 @@ static ConvSolution BaseGetSolution(const ConvolutionContext& ctx,
         std::to_string(static_cast<long long>(problem.out_channel_stride)) +
         std::string(" -DMLO_OUT_STRIDE=") +
         std::to_string(static_cast<long long>(problem.out_stride)) +
-        std::string(" -DMLO_IN_WIDTH=") +
-        std::to_string(static_cast<long long>(problem.in_width)) +
+        std::string(" -DMLO_IN_WIDTH=") + std::to_string(static_cast<long long>(problem.in_width)) +
         std::string(" -DMLO_IN_HEIGHT=") +
         std::to_string(static_cast<long long>(problem.in_height)) +
         std::string(" -DMLO_IN_BATCH_STRIDE=") +
@@ -456,12 +446,11 @@ static ConvSolution BaseGetSolution(const ConvolutionContext& ctx,
         MIOPEN_LOG_E("n_out_tiles_perstack == 0");
         return {miopenStatusInternalError};
     }
-    size_t gbl_wk1 =
-        group_counts >= 2
-            ? (((problem.n_outputs / group_counts + n_out_tiles_perstack - 1) /
-                n_out_tiles_perstack) *
-               group_counts)
-            : ((problem.n_outputs + n_out_tiles_perstack - 1) / n_out_tiles_perstack);
+    size_t gbl_wk1 = group_counts >= 2
+                         ? (((problem.n_outputs / group_counts + n_out_tiles_perstack - 1) /
+                             n_out_tiles_perstack) *
+                            group_counts)
+                         : ((problem.n_outputs + n_out_tiles_perstack - 1) / n_out_tiles_perstack);
     size_t gbl_wk2 = (problem.batch_sz + result.n_stacks - 1) / result.n_stacks;
 
     kernel_params.g_wk.push_back(gbl_wk0 * kernel_params.l_wk[0]);
@@ -489,17 +478,15 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& ctx,
     if(result.Succeeded())
     {
         result.construction_params[0].comp_options +=
-            std::string(" -DMLO_CONV_BIAS=") +
-            std::to_string(static_cast<long long>(problem.bias));
+            std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(problem.bias));
     }
 
     return result;
 }
 
-ConvSolution
-ConvOclDirectFwdFused::GetSolution(const ConvolutionContext& ctx,
-                                   const ProblemDescription& problem,
-                                   const LegacyPerformanceConfig& config) const
+ConvSolution ConvOclDirectFwdFused::GetSolution(const ConvolutionContext& ctx,
+                                                const ProblemDescription& problem,
+                                                const LegacyPerformanceConfig& config) const
 {
     ConvSolution result = BaseGetSolution(ctx, problem, config);
     return result;

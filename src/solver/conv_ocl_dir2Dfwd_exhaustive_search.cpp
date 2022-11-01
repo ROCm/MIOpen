@@ -56,16 +56,15 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
     LegacyPerformanceConfig result{};
     result.in_tile0 = (problem.in_width <= 8)    ? 8
                       : (problem.in_width <= 16) ? 16
-                                                        : 32; // size of input data per ALU plane
+                                                 : 32; // size of input data per ALU plane
     result.in_tile1 = (problem.in_height <= 8)    ? 8
                       : (problem.in_height <= 16) ? 16
-                                                         : 32; // size of input data per ALU plane
+                                                  : 32; // size of input data per ALU plane
 
     result.out_pix_tile0 =
         std::max(problem.kernel_stride_w,
                  ((result.in_tile0 == 8) ? 1 : 2)); // size of ouptput tile per wk-item (ALU))
-    result.out_pix_tile1 =
-        std::max(problem.kernel_stride_h, ((result.in_tile1 == 8) ? 1 : 2)); //
+    result.out_pix_tile1 = std::max(problem.kernel_stride_h, ((result.in_tile1 == 8) ? 1 : 2)); //
 
     result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
     result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
@@ -78,8 +77,7 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
     result.n_stacks = 1; // # of diff stacks (part of batch).
 
     if(problem.kernel_size_w == 1 && problem.kernel_size_h == 1 &&
-       problem.group_counts ==
-           1) // Group conv: None 1x1 version yet, fallback to universal kernel.
+       problem.group_counts == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
     {
 
         // version
@@ -109,10 +107,8 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
                 }
                 else
                 {
-                    result.out_pix_tile0 = (((problem.out_width & 1) != 0) ||
-                                            ((problem.in_width & 1) != 0))
-                                               ? 1
-                                               : 2;
+                    result.out_pix_tile0 =
+                        (((problem.out_width & 1) != 0) || ((problem.in_width & 1) != 0)) ? 1 : 2;
                 }
             }
 
@@ -345,8 +341,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
     long long runs_left = 0, total_runs = 0;
 
     if(problem.kernel_size_w == 1 && problem.kernel_size_h == 1 &&
-       problem.group_counts ==
-           1) // Group conv: None 1x1 version yet, fallback to universal kernel.
+       problem.group_counts == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
     {
         MIOPEN_LOG_W("Searching the best solution in the 4 dim space. Please, be patient...");
         int n_grp_tiles0 = 3;
@@ -399,10 +394,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
                 }
                 else
                 {
-                    out_pix_tl_cnt = (((problem.out_width & 1) != 0) ||
-                                      ((problem.in_width & 1) != 0))
-                                         ? 1
-                                         : 2;
+                    out_pix_tl_cnt =
+                        (((problem.out_width & 1) != 0) || ((problem.in_width & 1) != 0)) ? 1 : 2;
                 }
             }
             out_pix_tile_sz[0] = 1;
@@ -412,7 +405,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
             n_out_tiles_rg[0] = 2;
             n_out_tiles_rg[1] = (problem.n_outputs % 64 == 0)   ? 6
                                 : (problem.n_outputs % 32 == 0) ? 5
-                                                                       : 4;
+                                                                : 4;
 
             n_in_tiles_rg[0] = 2;
             n_in_tiles_rg[1] = (problem.n_inputs % 8 == 0) ? 3 : 2;
@@ -529,8 +522,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
             for(int i = 0; i < n_tile0_sz; ++i)
             {
                 result.in_tile0 = tile_sz0[i];
-                if((problem.out_width * 2 <= result.in_tile0 &&
-                    result.in_tile0 > tile_sz[0]))
+                if((problem.out_width * 2 <= result.in_tile0 && result.in_tile0 > tile_sz[0]))
                 {
                     --runs_left;
                     continue;

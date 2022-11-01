@@ -2606,7 +2606,8 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : ConvTunableSolver<LegacyPerforma
     using ConvTunableSolver::GetDefaultPerformanceConfig;
     using ConvTunableSolver::Search;
 
-    LegacyPerformanceConfig GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
+    LegacyPerformanceConfig
+    GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
     {
         return GetDefaultPerformanceConfig(ctx, ctx.problem);
     }
@@ -2617,7 +2618,8 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : ConvTunableSolver<LegacyPerforma
     }
 
 protected:
-    LegacyPerformanceConfig GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const;
+    LegacyPerformanceConfig GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                        const ProblemDescription&) const;
 
 private:
     LegacyPerformanceConfig Search(const ConvolutionContext&,
@@ -2633,9 +2635,9 @@ private:
 struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
 {
     // To suppress -Woverloaded-virtual
+    using ConvOclDirectFwdLegacyExhaustiveSearch::GetSolution;
     using ConvOclDirectFwdLegacyExhaustiveSearch::IsApplicable;
     using ConvOclDirectFwdLegacyExhaustiveSearch::IsValidPerformanceConfig;
-    using ConvOclDirectFwdLegacyExhaustiveSearch::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd>(); }
 
@@ -2658,8 +2660,7 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
     {
         return IsValidPerformanceConfig(ctx.problem, config);
     }
-    bool IsValidPerformanceConfig(const ProblemDescription&,
-                                  const LegacyPerformanceConfig&) const;
+    bool IsValidPerformanceConfig(const ProblemDescription&, const LegacyPerformanceConfig&) const;
 };
 
 struct ConvOclDirectFwdFused final : ConvOclDirectFwd
@@ -2684,9 +2685,9 @@ private:
 struct ConvOclDirectFwd1x1 final : ConvOclDirectFwdLegacyExhaustiveSearch
 {
     // To suppress -Woverloaded-virtual
+    using ConvOclDirectFwdLegacyExhaustiveSearch::GetSolution;
     using ConvOclDirectFwdLegacyExhaustiveSearch::IsApplicable;
     using ConvOclDirectFwdLegacyExhaustiveSearch::IsValidPerformanceConfig;
-    using ConvOclDirectFwdLegacyExhaustiveSearch::GetSolution;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd1x1>(); }
 
@@ -2708,8 +2709,7 @@ struct ConvOclDirectFwd1x1 final : ConvOclDirectFwdLegacyExhaustiveSearch
     {
         return IsValidPerformanceConfig(ctx.problem, config);
     }
-    bool IsValidPerformanceConfig(const ProblemDescription&,
-                                  const LegacyPerformanceConfig&) const
+    bool IsValidPerformanceConfig(const ProblemDescription&, const LegacyPerformanceConfig&) const
     {
         return true;
     }
