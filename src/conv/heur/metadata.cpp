@@ -47,11 +47,10 @@ const std::vector<std::string>& GetFeatureNames()
 const std::unordered_map<size_t, std::string>& GetSolverMap(const std::string& arch)
 {
     static const auto& metadata = ConvHeur::GetMetadata(arch);
-
-    static std::unordered_map<std::string, size_t> solver_map_rev = metadata["encodings"]["solver"];
     static std::unordered_map<size_t, std::string> solver_map{};
     if(solver_map.empty())
     {
+        std::unordered_map<std::string, size_t> solver_map_rev = metadata["encodings"]["solver"];
         for(auto& it : solver_map_rev)
         {
             solver_map.emplace(make_pair(it.second, it.first));

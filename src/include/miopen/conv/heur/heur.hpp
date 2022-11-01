@@ -88,9 +88,9 @@ struct ConvHeur
         {
             cached = true;
             MIOPEN_LOG_I2("Cached heuristic result found");
-            std::vector<uint64_t> db_sol;
+            std::vector<uint64_t> db_sol(db_res->size());
             std::transform(db_res->begin(), db_res->end(), db_sol.begin(), [](boost::any id) {
-                return boost::any_cast<size_t>(id);
+                return boost::any_cast<uint64_t>(id);
             });
             if(miopen::IsLogging(LoggingLevel::Info2))
             {
@@ -143,7 +143,7 @@ struct ConvHeur
         // map idx to solver id and then anysolver
         std::vector<uint64_t> sol;
         std::vector<boost::any> any_sol;
-        for(auto& kinder : sort_res)
+        for(const auto& kinder : sort_res)
         {
             const auto id     = kinder.first;
             const auto sol_id = solver::Id{solvers.at(id)};
