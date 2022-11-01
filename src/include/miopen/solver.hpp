@@ -2602,29 +2602,64 @@ private:
 /// "legacy exhaustive search" machinery.
 struct ConvOclDirectFwdLegacyExhaustiveSearch : ConvTunableSolver<LegacyPerformanceConfig>
 {
-    LegacyPerformanceConfig GetDefaultPerformanceConfig(const ConvolutionContext&) const override;
-    LegacyPerformanceConfig Search(const ConvolutionContext&,
-                                   const AnyInvokeParams& invoke_ctx) const override;
+    // To suppress -Woverloaded-virtual
+    using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::Search;
+
+    LegacyPerformanceConfig GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
+    {
+        return GetDefaultPerformanceConfig(ctx, ctx.problem);
+    }
+    LegacyPerformanceConfig Search(const ConvolutionContext& ctx,
+                                   const AnyInvokeParams& invoke_ctx) const override
+    {
+        return Search(ctx, ctx.problem, invoke_ctx);
+    }
+
+protected:
+    LegacyPerformanceConfig GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const;
 
 private:
+    LegacyPerformanceConfig Search(const ConvolutionContext&,
+                                   const ProblemDescription&,
+                                   const AnyInvokeParams& invoke_ctx) const;
+
     template <typename Tgpu>
     LegacyPerformanceConfig SearchImpl(const ConvolutionContext&,
+                                       const ProblemDescription&,
                                        const AnyInvokeParams& invoke_ctx) const;
 };
 
 struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
 {
+    // To suppress -Woverloaded-virtual
+    using ConvOclDirectFwdLegacyExhaustiveSearch::IsApplicable;
+    using ConvOclDirectFwdLegacyExhaustiveSearch::IsValidPerformanceConfig;
+    using ConvOclDirectFwdLegacyExhaustiveSearch::GetSolution;
+
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd>(); }
 
-    bool IsApplicable(const ConvolutionContext& params) const override;
+    bool IsApplicable(const ConvolutionContext& ctx) const override
+    {
+        return IsApplicable(ctx, ctx.problem);
+    }
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
 
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& searched_params) const override;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const LegacyPerformanceConfig&) const override;
-
-protected:
-    bool IsApplicableBase(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const LegacyPerformanceConfig& config) const override
+    {
+        return GetSolution(ctx, ctx.problem, config);
+    }
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const LegacyPerformanceConfig&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const LegacyPerformanceConfig& config) const override
+    {
+        return IsValidPerformanceConfig(ctx.problem, config);
+    }
+    bool IsValidPerformanceConfig(const ProblemDescription&,
+                                  const LegacyPerformanceConfig&) const;
 };
 
 struct ConvOclDirectFwdFused final : ConvOclDirectFwd
@@ -2634,19 +2669,47 @@ struct ConvOclDirectFwdFused final : ConvOclDirectFwd
         return GetSolverDbId<ConvOclDirectFwdFused>();
     }
 
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& searched_params) const override;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const LegacyPerformanceConfig& config) const override
+    {
+        return GetSolution(ctx, ctx.problem, config);
+    }
+
+private:
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const LegacyPerformanceConfig&) const;
 };
 
 struct ConvOclDirectFwd1x1 final : ConvOclDirectFwdLegacyExhaustiveSearch
 {
+    // To suppress -Woverloaded-virtual
+    using ConvOclDirectFwdLegacyExhaustiveSearch::IsApplicable;
+    using ConvOclDirectFwdLegacyExhaustiveSearch::IsValidPerformanceConfig;
+    using ConvOclDirectFwdLegacyExhaustiveSearch::GetSolution;
+
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd1x1>(); }
 
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& searched_params) const override;
-    bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                  const LegacyPerformanceConfig&) const override
+    bool IsApplicable(const ConvolutionContext& ctx) const override
+    {
+        return IsApplicable(ctx, ctx.problem);
+    }
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const LegacyPerformanceConfig& config) const override
+    {
+        return GetSolution(ctx, ctx.problem, config);
+    }
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const LegacyPerformanceConfig&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const LegacyPerformanceConfig& config) const override
+    {
+        return IsValidPerformanceConfig(ctx.problem, config);
+    }
+    bool IsValidPerformanceConfig(const ProblemDescription&,
+                                  const LegacyPerformanceConfig&) const
     {
         return true;
     }
