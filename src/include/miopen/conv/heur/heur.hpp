@@ -89,9 +89,7 @@ struct ConvHeur
             cached = true;
             MIOPEN_LOG_I2("Cached heuristic result found");
             std::vector<uint64_t> db_sol;
-            for(const auto& id : *db_res)
-                db_sol.push_back(boost::any_cast<uint64_t>(id));
-
+            std::transform(db_res->begin(), db_res->end(), db_sol.begin(), [](boost::any id) { return boost::any_cast<size_t>(id); });
             if(miopen::IsLogging(LoggingLevel::Info2))
             {
                 std::stringstream ss;
@@ -135,7 +133,7 @@ struct ConvHeur
 
         std::vector<std::pair<int, float>> sort_res(res.size());
         for(auto idx = 0; idx < res.size(); idx++)
-            sort_res.push_back({idx, res[idx]});
+            sort_res[idx] = {idx, res[idx]};
         const auto cmp = [](const std::pair<int, float>& a,
                             const std::pair<int, float>& b) -> bool { return a.second > b.second; };
 

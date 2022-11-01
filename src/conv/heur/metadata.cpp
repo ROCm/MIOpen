@@ -102,9 +102,9 @@ std::vector<float> GetStat(const std::string& stat, const std::string& arch)
         metadata["stats"]["overall"]["features"][stat];
     std::vector<std::string> features = GetFeatureNames();
     std::vector<float> stats(features.size());
-    for(auto& feature : features)
+    for(size_t idx = 0; idx < stats.size(); idx++)
     {
-        stats.push_back(stat_map[feature]);
+        stats[idx] = stat_map[features[idx]];
     }
     return stats;
 }
