@@ -89,7 +89,9 @@ struct ConvHeur
             cached = true;
             MIOPEN_LOG_I2("Cached heuristic result found");
             std::vector<uint64_t> db_sol;
-            std::transform(db_res->begin(), db_res->end(), db_sol.begin(), [](boost::any id) { return boost::any_cast<size_t>(id); });
+            std::transform(db_res->begin(), db_res->end(), db_sol.begin(), [](boost::any id) {
+                return boost::any_cast<size_t>(id);
+            });
             if(miopen::IsLogging(LoggingLevel::Info2))
             {
                 std::stringstream ss;
