@@ -364,6 +364,7 @@ set(LONG_TESTS
     test_pooling2d
     test_conv_igemm_mlir
     test_conv_igemm_mlir_xdlops
+    test_activation
     )
 
 function(rate_added_test NAME)
