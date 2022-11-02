@@ -78,7 +78,7 @@ struct ConvHeur
         return true;
     }
 
-    std::vector<uint64_t>
+    std::vector<std::pair<uint64_t, float>>
     Estimate(const std::string& arch, const conv::ProblemDescription& problem, bool& cached)
     {
         std::string est_name = ":memory:" + arch;
@@ -88,15 +88,15 @@ struct ConvHeur
         {
             cached = true;
             MIOPEN_LOG_I2("Cached heuristic result found");
-            std::vector<uint64_t> db_sol(db_res->size());
+            std::vector<std::pair<uint64_t, float>> db_sol(db_res->size());
             std::transform(db_res->begin(), db_res->end(), db_sol.begin(), [](boost::any id) {
-                return boost::any_cast<uint64_t>(id);
+                return boost::any_cast<std::pair<uint64_t, float>>(id);
             });
             if(miopen::IsLogging(LoggingLevel::Info2))
             {
                 std::stringstream ss;
                 for(auto& id : db_sol)
-                    ss << solver::Id{id}.ToString() << ", ";
+                    ss << solver::Id{id.first}.ToString() << ", ";
                 MIOPEN_LOG_I2("Cached solvers: " << ss.str());
             }
             return db_sol;
@@ -141,7 +141,7 @@ struct ConvHeur
 
         std::sort(sort_res.begin(), sort_res.end(), cmp);
         // map idx to solver id and then anysolver
-        std::vector<uint64_t> sol;
+        std::vector<std::pair<uint64_t, float>> sol;
         std::vector<boost::any> any_sol;
         for(const auto& kinder : sort_res)
         {
@@ -152,15 +152,15 @@ struct ConvHeur
                 MIOPEN_LOG_I2("Invalid solver " << solvers.at(id) << " removed");
                 continue;
             }
-            sol.push_back(sol_id.Value());
-            any_sol.push_back(sol_id.Value());
+            sol.push_back(std::make_pair(sol_id.Value(), kinder.second));
+            any_sol.push_back(std::make_pair(sol_id.Value(), kinder.second));
         }
         db.StoreRecord(problem, any_sol);
         if(miopen::IsLogging(LoggingLevel::Info2))
         {
             std::stringstream ss;
             for(auto& id : sol)
-                ss << solver::Id{id}.ToString() << ", ";
+                ss << solver::Id{id.first}.ToString() << ", ";
             MIOPEN_LOG_I2("Heuristic Result: " << ss.str());
         }
         return sol;
