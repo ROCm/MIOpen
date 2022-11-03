@@ -27,49 +27,14 @@
 #include <miopen/miopen.h>
 #include <miopen/fusion.hpp>
 #include <miopen/invoke_params.hpp>
+#include <miopen/fusion/fusion_invoke_params.hpp>
 #include <miopen/solver_id.hpp>
 #include <serialize.hpp>
 #include <fusionHost.hpp>
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
-
-struct FusionOpInvokeParamBase
-{
-    virtual ~FusionOpInvokeParamBase() = default;
-};
-
-struct FusionInvokeParams : miopen::InvokeParams
-{
-    FusionInvokeParams(){};
-    FusionInvokeParams(std::vector<std::shared_ptr<FusionOpInvokeParamBase>> op_invokers_,
-                       miopen::TensorDescriptor in_desc,
-                       ConstData_t in_,
-                       miopen::TensorDescriptor out_desc,
-                       Data_t out_,
-                       bool gfx90aFp16alt_)
-        : op_invokers(std::move(op_invokers_)),
-          inDesc(in_desc),
-          in(in_),
-          outDesc(out_desc),
-          out(out_),
-          gfx90aFp16alt(gfx90aFp16alt_)
-    {
-    }
-
-    FusionInvokeParams(miopen::InvokeType type_,
-                       std::vector<std::shared_ptr<FusionOpInvokeParamBase>> op_invokers_,
-                       bool gfx90aFp16alt_)
-        : InvokeParams{type_}, op_invokers(std::move(op_invokers_)), gfx90aFp16alt(gfx90aFp16alt_)
-    {
-    }
-    std::vector<std::shared_ptr<FusionOpInvokeParamBase>> op_invokers;
-    miopen::TensorDescriptor inDesc;
-    ConstData_t in = nullptr;
-    miopen::TensorDescriptor outDesc;
-    Data_t out = nullptr;
-    bool gfx90aFp16alt;
-};
+#include <miopen/miopen.h>
 
 struct CBATestCase
 {
@@ -186,7 +151,7 @@ protected:
     miopen::Allocator::ManageDataPtr out_dev;
     miopen::Allocator::ManageDataPtr bias_dev;
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
-    FusionInvokeParams plan_params;
+    miopen::fusion::FusionInvokeParams plan_params;
 };
 
 TEST_P(CBAFwdSolverTest, ConvASM3x3U)
@@ -218,14 +183,12 @@ TEST_P(CBAFwdSolverTest, ConvASM3x3U)
 
     // 4. Compile the plan, find solver here, to replace with user-specified solver?
     // EXPECT_EQ(fusePlanDesc.Compile(handle), miopenStatusSuccess);
-    /*
-        float alpha       = static_cast<float>(1.0);
-        float beta        = static_cast<float>(0);
-        float activ_alpha = activationDesc.GetAlpha();
-        float activ_beta  = activationDesc.GetBeta();
-        float activ_gamma = activationDesc.GetGamma();
-    */
-    // 5. Set the Args for each operator
+
+    // 5. Set the Args for each operator, same as
+    // miopenSetOpArgsConvForward
+    // miopenSetOpArgsActivForward
+    // miopenSetOpArgsBiasForward
+
     EXPECT_EQ(activOp->SetArgs(fusionArgs, &alpha, &beta, activ_alpha, activ_beta, activ_gamma),
               miopenStatusSuccess);
     EXPECT_EQ(biasOp->SetArgs(fusionArgs, &alpha, &beta, bias_dev.get()), miopenStatusSuccess);
@@ -233,8 +196,6 @@ TEST_P(CBAFwdSolverTest, ConvASM3x3U)
 
     // 6. Execute the fusion plan
     // EXPECT_EQ(fusePlanDesc.Execute(handle, xDesc, x, yDesc, y, fusionArgs),miopenStatusSuccess);
-
-    /***********************************/
 
     // Setup the params
     /*
@@ -246,6 +207,14 @@ TEST_P(CBAFwdSolverTest, ConvASM3x3U)
             params, input.desc, in_dev.get(), output.desc, out_dev.get(), false};
     */
 
+    /*
+       std::vector<std::shared_ptr<miopen::fusion::FusionOpInvokeParamBase>> params;
+            for(const auto& op : miopen::deref(fusePlanDesc).op_map)
+                params.push_back(op->GetArgs());
+
+         miopen::fusion::FusionInvokeParams plan_params  = miopen::fusion::FusionInvokeParams{
+                params, input.desc, in_dev.get(), output.desc, out_dev.get(), false};
+    */
     // create Problem. Default int bias_ = 0, is this an issue?
     miopen::solver::ConvAsm3x3U convAsm3x3Solv{};
     auto ctx = miopen::ConvolutionContext{input.desc,
@@ -268,42 +237,27 @@ TEST_P(CBAFwdSolverTest, ConvASM3x3U)
     // ASSERT_TRUE(solution.succeed())<<"Failed to get solution";
     ASSERT_TRUE(solution.invoker_factory) << "Invalid solution.invoker_factory";
 
+    // invoker to replace Execution
+    EXPECT_EQ(miopenExecuteFusionPlan(&handle,
+                                      fusePlanDesc,
+                                      &input.desc,
+                                      in_dev.get(),
+                                      &output.desc,
+                                      out_dev.get(),
+                                      &fusionArgs),
+              miopenStatusSuccess);
     /*
-        decltype(auto) invoker =
-            handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
+    using Invoker = std::function<void(const Handle&, const AnyInvokeParams& primitive_parameters)>;
+    using InvokerFactory = std::function<Invoker(const std::vector<Kernel>&)>;
 
-        const auto invoke_ctx = [&]() -> AnyInvokeParams {
-            switch(problem_.GetDirection())
-            {
-            case miopenProblemDirectionForward:
-                return conv::DataInvokeParams(
-                    {*x.descriptor, x.buffer, *w.descriptor, w.buffer, *y.descriptor, y.buffer},
-                    workspace,
-                    workspace_size,
-                    conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd());
-            case miopenProblemDirectionBackward:
-                return conv::DataInvokeParams(
-                    {*y.descriptor, y.buffer, *w.descriptor, w.buffer, *x.descriptor, x.buffer},
-                    workspace,
-                    workspace_size,
-                    conv_problem.GetConv().attribute.gfx90aFp16alt.GetBwd());
-            case miopenProblemDirectionBackwardWeights:
-                return conv::WrWInvokeParams{
-                    {*y.descriptor, y.buffer, *x.descriptor, x.buffer, *w.descriptor, w.buffer},
-                    workspace,
-                    workspace_size,
-                    conv_problem.GetConv().attribute.gfx90aFp16alt.GetWrW()};
-            default: MIOPEN_THROW(miopenStatusNotImplemented);
-            }
-        }();
-        //invoker(handle, invoke_ctx);
 
-        (invoker)(handle,plan_params);  //Create plan paramters
-        handle.Finish();
+            //invoker(handle, invoke_ctx);
+
+            (invoker)(handle,plan_params);  //Create plan paramters
+            handle.Finish();
+
+
     */
-
-    /***********************************/
-
     // EXPECT_EQ(status, miopenStatusSuccess);
 }
 
