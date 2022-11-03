@@ -1568,57 +1568,6 @@ private:
                              const PerformanceConvMlirIgemmXdlops&) const;
 };
 
-struct PerformanceImplicitGemmXdlops : PerfConfigBase<PerformanceImplicitGemmXdlops>
-{
-    int BPerBlock; // 2^n[8..16]
-    int KPerBlock; // 2^n[32..128]
-    int EPerBlock; // 2^n[4..16]
-    int EBlocks;   // 2*n[1..64]
-    int EPACKSize; // 2*n[1..4] // 1 - fp32; 2,4 - bfp16; 4 - fp16
-
-    int GemmMPerWave;
-    int GemmNPerWave;
-
-    int InBlockCopyClusterLengths_E; // 2^n[4..16]
-    int InBlockCopyClusterLengths_B; // 2^n[8..16]
-
-    int WeiBlockCopyClusterLengths_E; // 2^n[1..4]
-    int WeiBlockCopyClusterLengths_K; // 2^n[16..128]
-
-    bool use_spare_set;
-
-    PerformanceImplicitGemmXdlops(int, int, int, int, int, int, int, int, int, int, int, bool);
-
-    PerformanceImplicitGemmXdlops()
-        : PerformanceImplicitGemmXdlops(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false)
-    {
-    }
-
-    PerformanceImplicitGemmXdlops(bool spare);
-
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
-    {
-        f(self.BPerBlock, "BPerBlock");
-        f(self.KPerBlock, "KPerBlock");
-        f(self.EPerBlock, "EPerBlock");
-        f(self.EBlocks, "EBlocks");
-        f(self.EPACKSize, "EPACKSize");
-        f(self.GemmMPerWave, "GemmMPerWave");
-        f(self.GemmNPerWave, "GemmNPerWave");
-        f(self.InBlockCopyClusterLengths_E, "InBlockCopyClusterLengths_E");
-        f(self.InBlockCopyClusterLengths_B, "InBlockCopyClusterLengths_B");
-        f(self.WeiBlockCopyClusterLengths_E, "WeiBlockCopyClusterLengths_E");
-        f(self.WeiBlockCopyClusterLengths_K, "WeiBlockCopyClusterLengths_K");
-    }
-
-    void HeuristicInit(const ConvolutionContext& ctx);
-    bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext&);
-    bool IsValid(const ConvolutionContext& ctx) const;
-    bool operator==(const PerformanceImplicitGemmXdlops& other) const;
-};
-
 struct PerformanceImplicitGemmForwardV4R4Xdlops
     : PerfConfigBase<PerformanceImplicitGemmForwardV4R4Xdlops>
 {
