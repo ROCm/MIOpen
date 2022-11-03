@@ -633,40 +633,4 @@ protected:
     double _normK     = 0.0;
 };
 
-struct mlo_construct_neuron : mlo_construct_activ_lrn_pooling_common
-{
-    mlo_construct_neuron(miopen::conv::Direction dir) : mlo_construct_activ_lrn_pooling_common(dir)
-    {
-        _neuron_type = 0;
-        _gamma       = 0;
-        _beta        = 1;
-        _alpha       = 0;
-    }
-
-    inline void setNeuronDescr(int neuron_type, double gamma, double beta, double alpha)
-    {
-        _neuron_type = neuron_type;
-        _gamma       = gamma;
-        _beta        = beta;
-        _alpha       = alpha;
-    }
-
-    inline void getNeuronDescr(int& neuron_type, double& gamma, double& beta, double& alpha) const
-    {
-        neuron_type = _neuron_type;
-        gamma       = _gamma;
-        beta        = _beta;
-        alpha       = _alpha;
-    }
-
-    void mloConstruct();
-
-protected:
-    int mloConstructFwd();
-    int mloConstructBwd();
-    int _neuron_type;
-    double _gamma;
-    double _beta;
-    double _alpha;
-};
 #endif
