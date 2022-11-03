@@ -74,10 +74,6 @@ protected:
         std::size_t n, c, h, w;
         auto&& handle        = get_handle();
         std::tie(n, c, h, w) = miopen::tien<4>(std::get<tensor<T>>(input).desc.GetLengths());
-        EXPECT_EQ(n, activ_config.N) << "Config: " << activ_config;
-        EXPECT_EQ(c, activ_config.C) << "Config: " << activ_config;
-        EXPECT_EQ(h, activ_config.H) << "Config: " << activ_config;
-        EXPECT_EQ(w, activ_config.W) << "Config: " << activ_config;
         size_t total_mem =
             4 * std::get<tensor<T>>(input)
                     .desc.GetNumBytes(); // estimate based on both forward and backward passes
@@ -96,11 +92,12 @@ protected:
                       static_cast<size_t>(h),
                       static_cast<size_t>(w)};
 
-        std::fill(
-            std::get<tensor<T>>(output_gpu).begin(), std::get<tensor<T>>(output_gpu).end(), NULL);
+        std::fill(std::get<tensor<T>>(output_gpu).begin(),
+                  std::get<tensor<T>>(output_gpu).end(),
+                  std::numeric_limits<T>::quiet_NaN());
         std::fill(std::get<tensor<T>>(output_cpu_ref).begin(),
                   std::get<tensor<T>>(output_cpu_ref).end(),
-                  NULL);
+                  std::numeric_limits<T>::quiet_NaN());
 
         // Infer on CPU, forward
         activationHostInfer(activ_mode,
