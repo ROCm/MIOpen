@@ -96,7 +96,7 @@ struct ConvHeur
             {
                 std::stringstream ss;
                 for(auto& id : db_sol)
-                    ss << solver::Id{id}.ToString() << ", ";
+                    ss << solver::Id{id}.ToString() << " ID:" << id << ", ";
                 MIOPEN_LOG_I2("Cached solvers: " << ss.str());
             }
             return db_sol;
@@ -160,7 +160,7 @@ struct ConvHeur
         {
             std::stringstream ss;
             for(auto& id : sol)
-                ss << solver::Id{id}.ToString() << ", ";
+                ss << solver::Id{id}.ToString() << " ID:" << id << ", ";
             MIOPEN_LOG_I2("Heuristic Result: " << ss.str());
         }
         return sol;

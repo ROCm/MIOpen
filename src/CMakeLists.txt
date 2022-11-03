@@ -602,7 +602,6 @@ if(MIOPEN_USE_COMGR)
     list(APPEND MIOpen_Source comgr.cpp)
 endif()
 
-
 if(MIOPEN_USE_MLIR)
     list(APPEND MIOpen_Source
         mlir_build.cpp
@@ -648,6 +647,7 @@ set(MIOPEN_CK_LINK_FLAGS)
 if(MIOPEN_USE_COMPOSABLEKERNEL)
 set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_operations hip::host)
 endif()
+
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 target_include_directories(MIOpen SYSTEM PRIVATE ${BZIP2_INCLUDE_DIR})
 target_link_libraries(MIOpen PRIVATE ${CMAKE_THREAD_LIBS_INIT} ${BZIP2_LIBRARIES} ${MIOPEN_CK_LINK_FLAGS})
@@ -845,8 +845,6 @@ else()
 
     endif()
 endif()
-
-
 
 if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
   #Generating Wrapper of each headers for backward compatibility

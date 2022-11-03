@@ -34,6 +34,7 @@ function(add_gtest TEST_NAME)
     endif()
     #Enable CMake to discover the test binary
     gtest_discover_tests(test_${TEST_NAME})
+
   endif()
 endfunction()
 
