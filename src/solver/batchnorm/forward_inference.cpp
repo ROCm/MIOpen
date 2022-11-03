@@ -93,7 +93,9 @@ ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& fusion_
     {
         read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
     }
-    std::string READ_TYPE   = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
+    std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
+    const auto& activ_op =
+        dynamic_cast<ActivFwdFusionOpDescriptor&>(*fusion_ctx.problem.fusion_plan_desc->op_map[1]);
     const auto build_params = KernelBuildParameters{
         {"MIO_BN_CHW", static_cast<int>(c * h * w)},
         {"MIO_BN_HW", static_cast<int>(h * w)},
@@ -104,7 +106,7 @@ ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& fusion_
         {"MIOPEN_READ_UNIT", static_cast<int>(read_unit)},
         {"MIOPEN_READ_TYPE", READ_TYPE},
         {"MIOPEN_YES_ACTIV", static_cast<int>(1)},
-        {"MIOPEN_NRN_OP_ID", static_cast<int>(3)},
+        {"MIOPEN_NRN_OP_ID", static_cast<int>(activ_op.activMode)},
         {"MIOPEN_USE_FP16", static_cast<int>(input_desc.GetType() == miopenHalf)},
         {"MIOPEN_USE_FP32", static_cast<int>(input_desc.GetType() == miopenFloat)}};
     kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});

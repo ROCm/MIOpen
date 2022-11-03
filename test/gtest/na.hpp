@@ -60,14 +60,7 @@ std::vector<BNTestCase> Network1()
 {
     // pyt_mlperf_resnet50v1.5
     return {
-        {/*64*/ 1,
-         128,
-         56,
-         56,
-         miopenBNSpatial,
-         miopen::batchnorm::Direction::ForwardInference,
-         1,
-         0},
+        {64, 128, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
@@ -107,9 +100,8 @@ protected:
         test_skipped                    = false;
         std::tie(activ_mode, bn_config) = GetParam();
         bn_mode                         = bn_config.mode;
-        // input                             = tensor<T>{bn_config.GetInput()};
-        input              = tensor<T>{bn_config.N, bn_config.C, bn_config.H, bn_config.W};
-        auto derivedBnDesc = miopen::TensorDescriptor{};
+        input                           = tensor<T>{bn_config.GetInput()};
+        auto derivedBnDesc              = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, bn_mode);
         scale       = tensor<T>{derivedBnDesc.GetLengths()};
         shift       = tensor<T>{derivedBnDesc.GetLengths()};
@@ -117,17 +109,20 @@ protected:
         estVariance = tensor<T>{derivedBnDesc.GetLengths()};
         std::random_device rd{};
         std::mt19937 gen{rd()};
-        std::uniform_real_distribution<> d{-3, 3};
-        auto gen_value = [&](auto...) { return d(gen); };
+        std::uniform_int_distribution<> d{0, 100};
+        auto gen_value = [&](auto...) {
+            return 1e-2 * static_cast<T>(d(gen)) * ((d(gen) % 2 == 1) ? -1 : 1);
+        };
         input.generate(gen_value);
         scale.generate(gen_value);
         shift.generate(gen_value);
         estMean.generate(gen_value);
-        estVariance.generate(gen_value);
+        auto gen_var = [&](auto...) { return 1e-2 * (static_cast<T>(d(gen)) + 1); };
+        estVariance.generate(gen_var);
         activ_desc    = {activ_mode, activ_alpha, activ_beta, activ_gamma};
         output        = tensor<T>{bn_config.GetInput()};
         auto&& handle = get_handle();
-        std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
+        std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
         in_dev          = handle.Write(input.data);
         scale_dev       = handle.Write(scale.data);
         shift_dev       = handle.Write(shift.data);
@@ -160,6 +155,8 @@ protected:
 
     void TearDown() override
     {
+        if(test_skipped)
+            return;
         ref_out = tensor<T>{bn_config.GetInput()};
         if(bn_mode == miopenBNPerActivation)
         {
@@ -177,6 +174,8 @@ protected:
         output.data   = handle.Read<T>(out_dev, output.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU data is all zeros";
         EXPECT_FALSE(miopen::range_zero(output)) << "GPU data is all zeros";
+        EXPECT_FALSE(miopen::find_idx(output, miopen::not_finite) >= 0)
+            << "Non finite number found in the GPU data";
         EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
         const double tolerance = 80;
         double threshold       = std::numeric_limits<T>::epsilon() * tolerance;

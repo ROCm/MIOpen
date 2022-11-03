@@ -64,6 +64,7 @@ ConvSolution BnBwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
 
     int n, c, h, w;
     auto result = ConvSolution{miopenStatusSuccess};
+    miopenDataType_t input_type;
     {
         const auto& handle = fusion_ctx.GetStream();
         auto kernel        = KernelInfo{};
@@ -83,6 +84,7 @@ ConvSolution BnBwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
         }
         size_t xlocalsize, ylocalsize, zlocalsize;
         const auto& input_desc = problem.GetXDesc();
+        input_type             = input_desc.GetType();
         std::tie(n, c, h, w)   = tien<4>(input_desc.GetLengths());
         size_t in_cstride      = h * w;
 
@@ -148,11 +150,9 @@ ConvSolution BnBwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
                 variant = 0;
             }
         }
-
+        const auto& activ_op = dynamic_cast<ActivBwdFusionOpDescriptor&>(
+            *fusion_ctx.problem.fusion_plan_desc->op_map[1]);
         const auto build_params = KernelBuildParameters{
-            {"SPATIAL_BN", static_cast<int>(problem.GetMode() == miopenBNSpatial)},
-            {"PERACT_BN", static_cast<int>(problem.GetMode() == miopenBNPerActivation)},
-            {"MIOPEN_USE_FPMIX", static_cast<int>(input_desc.GetType() == miopenHalf)},
             {"MIO_BN_N", static_cast<int>(n)},
             {"MIO_BN_C", static_cast<int>(c)},
             {"MIO_BN_HW", static_cast<int>(in_cstride)},
@@ -166,9 +166,20 @@ ConvSolution BnBwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
             {"MIO_BN_LDSGCN_SIZE", static_cast<int>(ldsgcn)},
             {"MIO_BN_USESAVED", static_cast<int>(true)},
             {"MIO_BN_VARIANT", static_cast<int>(variant)},
-            {"MIO_BN_GFX103X", static_cast<int>(StartsWith(handle.GetDeviceName(), "gfx103"))}};
-
+            {"MIO_BN_GFX103X", static_cast<int>(StartsWith(handle.GetDeviceName(), "gfx103"))},
+            {"MIO_BN_CBA_WRITE_INTERMEDIATE", static_cast<int>(0)},
+            {"MIOPEN_YES_ACTIV", static_cast<int>(1)},
+            {"MIOPEN_NRN_OP_ID", static_cast<int>(activ_op.activMode)},
+            {"MIOPEN_USE_FP16", static_cast<int>(input_desc.GetType() == miopenHalf)},
+            {"MIOPEN_USE_FP32", static_cast<int>(input_desc.GetType() == miopenFloat)}};
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
+        if(problem.GetMode() == miopenBNSpatial)
+            kernel.comp_options += " -DSPATIAL_BN";
+        else
+            kernel.comp_options += " -DPERACT_BN";
+        if(input_desc.GetType() == miopenHalf)
+            kernel.comp_options += " -DMIOPEN_USE_FPMIX=1";
+
         result.construction_params.push_back(kernel);
     }
 
@@ -190,38 +201,81 @@ ConvSolution BnBwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
             const auto mode        = problem.GetMode();
             if(mode == miopenBNPerActivation)
             {
-                kernel(activ_invoker->x,
-                       activ_invoker->y,
-                       bot_ocl_buf,
-                       top_ocl_buf,
-                       activ_beta * activ_gamma, // activDiffScale
-                       activ_gamma,
-                       activ_beta,
-                       activ_alpha,
-                       bn_invoke->bnScale,
-                       bn_invoke->bnBias,
-                       bn_invoke->resBnScaleDiff,
-                       bn_invoke->resBnBiasDiff,
-                       bn_invoke->savedMean,
-                       bn_invoke->savedInvVariance);
+                if(input_type == miopenFloat)
+                {
+                    kernel(bn_invoke->x,
+                           activ_invoker->y,
+                           bot_ocl_buf,
+                           top_ocl_buf,
+                           static_cast<float>(activ_beta * activ_gamma), // activDiffScale
+                           static_cast<float>(activ_gamma),
+                           static_cast<float>(activ_beta),
+                           static_cast<float>(activ_alpha),
+                           bn_invoke->bnScale,
+                           bn_invoke->bnBias,
+                           bn_invoke->resBnScaleDiff,
+                           bn_invoke->resBnBiasDiff,
+                           bn_invoke->savedMean,
+                           bn_invoke->savedInvVariance);
+                }
+                else if(input_type == miopenHalf)
+                {
+                    kernel(
+                        bn_invoke->x,
+                        activ_invoker->y,
+                        bot_ocl_buf,
+                        top_ocl_buf,
+                        static_cast<half_float::half>(activ_beta * activ_gamma), // activDiffScale
+                        static_cast<half_float::half>(activ_gamma),
+                        static_cast<half_float::half>(activ_beta),
+                        static_cast<half_float::half>(activ_alpha),
+                        bn_invoke->bnScale,
+                        bn_invoke->bnBias,
+                        bn_invoke->resBnScaleDiff,
+                        bn_invoke->resBnBiasDiff,
+                        bn_invoke->savedMean,
+                        bn_invoke->savedInvVariance);
+                }
             }
             else if(mode == miopenBNSpatial)
             {
-                kernel(activ_invoker->x,
-                       activ_invoker->y,
-                       bot_ocl_buf,
-                       top_ocl_buf,
-                       activ_beta * activ_gamma, // activDiffScale
-                       activ_gamma,
-                       activ_beta,
-                       activ_alpha,
-                       bn_invoke->bnScale,
-                       bn_invoke->bnBias,
-                       bn_invoke->resBnScaleDiff,
-                       bn_invoke->resBnBiasDiff,
-                       bn_invoke->savedMean,
-                       bn_invoke->savedInvVariance,
-                       n * h * w);
+                if(input_type == miopenFloat)
+                {
+                    kernel(bn_invoke->x,
+                           activ_invoker->y,
+                           bot_ocl_buf,
+                           top_ocl_buf,
+                           static_cast<float>(activ_beta * activ_gamma), // activDiffScale
+                           static_cast<float>(activ_gamma),
+                           static_cast<float>(activ_beta),
+                           static_cast<float>(activ_alpha),
+                           bn_invoke->bnScale,
+                           bn_invoke->bnBias,
+                           bn_invoke->resBnScaleDiff,
+                           bn_invoke->resBnBiasDiff,
+                           bn_invoke->savedMean,
+                           bn_invoke->savedInvVariance,
+                           static_cast<float>(1.0f / (n * h * w)));
+                }
+                else if(input_type == miopenHalf)
+                {
+                    kernel(
+                        bn_invoke->x,
+                        activ_invoker->y,
+                        bot_ocl_buf,
+                        top_ocl_buf,
+                        static_cast<half_float::half>(activ_beta * activ_gamma), // activDiffScale
+                        static_cast<half_float::half>(activ_gamma),
+                        static_cast<half_float::half>(activ_beta),
+                        static_cast<half_float::half>(activ_alpha),
+                        bn_invoke->bnScale,
+                        bn_invoke->bnBias,
+                        bn_invoke->resBnScaleDiff,
+                        bn_invoke->resBnBiasDiff,
+                        bn_invoke->savedMean,
+                        bn_invoke->savedInvVariance,
+                        static_cast<float>(1.0f / (n * h * w)));
+                }
             }
         };
     };

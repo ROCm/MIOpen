@@ -1106,16 +1106,17 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     fusion_ctx.DetectRocm();
     const auto sols =
         solvers.SearchForAllSolutions(fusion_ctx, miopen::GetDb(fusion_ctx), AnyInvokeParams{});
-    std::ostringstream ss;
+    auto net_config =
+        input_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+    net_config += output_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+
     for(const auto& op : op_map)
     {
-        std::string op_cfg;
-        op->GetNetworkConfig(op_cfg, handle);
-        ss << op_cfg << '-';
+        op->GetNetworkConfig(net_config, handle);
     }
+    network_config = NetworkConfig{net_config};
     if(sols.empty())
     {
-        use_fall_back_path = true;
         return miopenStatusUnsupportedOp;
     }
     else
@@ -1127,9 +1128,6 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                              "Invoker missing from solver " + sol.solver_id);
             const auto invoker = handle.PrepareInvoker(
                 *sol.invoker_factory, sol.construction_params); // force compilation
-            network_config = NetworkConfig{ss.str()};
-            std::cout << "NetworkConfig: " << ss.str() << std::endl;
-            std::cout << "SolverID: " << sol.solver_id << std::endl;
             handle.RegisterInvoker(invoker, network_config, sol.solver_id, {});
             solutions.push_back(sol);
         }
@@ -1164,22 +1162,13 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "The Fusion Plan was not compiled");
     }
 
-    if(use_fall_back_path)
-    {
-        // We need real tensors for each op input and output
-        MIOPEN_THROW(miopenStatusNotImplemented);
-    }
-    else
-    {
-        std::vector<std::shared_ptr<fusion::FusionOpInvokeParamBase>> params;
-        for(const auto& op : op_map)
-            params.push_back(op->GetArgs());
-        std::cout << " SolverID: " << solution.solver_id << std::endl;
-        const auto invoker = handle.GetInvoker(network_config, solver::Id{solution.solver_id}, {});
-        const auto plan_params =
-            fusion::FusionInvokeParams{params, inputDesc, input, outputDesc, output, false};
-        (*invoker)(handle, plan_params);
-    }
+    std::vector<std::shared_ptr<fusion::FusionOpInvokeParamBase>> params;
+    for(const auto& op : op_map)
+        params.push_back(op->GetArgs());
+    const auto invoker = handle.GetInvoker(network_config, solver::Id{solution.solver_id}, {});
+    const auto plan_params =
+        fusion::FusionInvokeParams{params, inputDesc, input, outputDesc, output, false};
+    (*invoker)(handle, plan_params);
 
 #if 1
     return miopenStatusSuccess;

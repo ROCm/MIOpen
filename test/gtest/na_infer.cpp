@@ -33,6 +33,10 @@ struct BNActivInferFloat : BNActivInferTest<float>
 {
 };
 
+struct BNActivInferHalf : BNActivInferTest<half_float::half>
+{
+};
+
 template <typename Solver, typename TestCase>
 void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
                const miopen::fusion::FusionInvokeParams plan_params,
@@ -56,7 +60,7 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     (invoker)(handle, plan_params);
     handle.Finish();
 }
-TEST_P(BNActivInferFloat, Solver1)
+TEST_P(BNActivInferFloat, BnFwdInferActivationFused)
 {
     RunSolver<miopen::solver::fusion::BnFwdInferActivationFused>(
         fusePlanDesc, plan_params, bn_config, test_skipped);
@@ -64,5 +68,15 @@ TEST_P(BNActivInferFloat, Solver1)
 
 INSTANTIATE_TEST_CASE_P(BNActivInferFloatSuite,
                         BNActivInferFloat,
+                        testing::Combine(testing::Values(miopenActivationRELU),
+                                         testing::ValuesIn(Network1())));
+TEST_P(BNActivInferHalf, BnFwdInferActivationFused)
+{
+    RunSolver<miopen::solver::fusion::BnFwdInferActivationFused>(
+        fusePlanDesc, plan_params, bn_config, test_skipped);
+}
+
+INSTANTIATE_TEST_CASE_P(BNActivInferHalfSuite,
+                        BNActivInferHalf,
                         testing::Combine(testing::Values(miopenActivationRELU),
                                          testing::ValuesIn(Network1())));

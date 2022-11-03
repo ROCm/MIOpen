@@ -510,12 +510,12 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& params) const
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}))
         return false;
+    if(!WinoCommonIsApplicable(params))
+        return false;
     const miopen::ConvolutionContext conv_ctx =
         params.GetConvContext(0, miopen::conv::Direction::Forward);
     const std::string name = conv_ctx.GetStream().GetDeviceName();
     if(name != "gfx803")
-        return false;
-    if(!WinoCommonIsApplicable(params))
         return false;
     const auto c = conv_ctx.problem.conv_problem.GetInChannels();
     const auto x = conv_ctx.problem.conv_problem.GetWeightsWidth();
