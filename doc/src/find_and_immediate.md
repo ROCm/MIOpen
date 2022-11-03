@@ -139,19 +139,18 @@ miopenConvolutionForwardCompileSolution(handle,
 
 ## Immediate Mode Fall Back
 
-The immediate mode is underpinned by the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html), however it may not contain every configuration of interest.
-If Find-Db encounters a database miss it has two fallback paths it can take. Both fall back paths will return `miopenConvSolution_t` structure's that will have negative `time` members.
+The immediate mode is underpinned by the [Find-Db](https://rocmsoftwareplatform.github.io/MIOpen/doc/html/finddb.html), however it may not contain every configuration of interest. If Find-Db encounters a database miss it has two fallback paths it can take. However, if the user requires the best
+possible performance they should run the Find stage at least once.
 
 ### AI Based Heuristic Fall back
 
-Immediate mode's behavior on a database miss if MIOPEN_ENABLE_AI_HEUR is set to true, which it is by default, is to use an AI based heurisitic to pick the optimal solution. 
-First the applicability of the AI based heuristic for the given configuration is checked. If the AI based heuristic is applicable it will feed various parameters of the configuration
-into an Artifical Neural Network tuned to predict the optimal solution for the given convolution configuration with 90.93% accuracy.
+Immediate mode's behavior on a database miss if MIOPEN_ENABLE_AI_HEUR is set to ON, which it is by default, is to use an AI based heurisitic to pick the optimal solution. (MIOPEN_ENABLE_AI_HEUR is a CMake variable that can be set to ON or OFF)
+First the applicability of the AI based heuristic for the given configuration is checked. If the AI based heuristic is applicable it will feed various parameters of the configuration into an Artifical Neural Network tuned to predict the optimal solution for the given convolution configuration with 
+90.93% accuracy.
 
-### Default Fall Back
+### Weighted Throughput Index Based Fall Back
 
 Immediate mode's default behavior when encountering a database miss and when the AI based heuristic is not applicable is to estimate which solution would be optimal based upon parameters of the convolution configuration.
-However, if the user requires performance they should run the Find stage at least once.
 
 
 
