@@ -147,10 +147,8 @@ void TestEstimateCaching(void)
     ASSERT_EQ(is_cached, true);
     for(int i = 0; i < solvers.size(); i++)
     {
-        EXPECT_EQ(solvers[i].first, solvers_cached[i].first)
+        EXPECT_EQ(solvers[i], solvers_cached[i])
             << "solvers do not match at index " << i << std::endl;
-        EXPECT_FLOAT_EQ(solvers[i].second, solvers_cached[i].second)
-            << "solver times do not match at index " << i << std::endl;
     }
 }
 

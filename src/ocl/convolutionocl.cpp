@@ -827,21 +827,19 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
-    const auto wti2time = [](const float& wti) {
-        assert(wti != 0.0f);
-        if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
-            return wti;
-        return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
-    };
-
     if(MIOPEN_ENABLE_AI_HEUR &&
        ConvHeur::IsHeurApplicable(handle.GetDeviceName(), problem.conv_problem))
     {
+        const auto ai_time = [](const int& idx) {
+            return 10.0f * static_cast<float>(idx); // Assume idx == 1 (best solver) is 10 ms.
+        };
+
+        int idx        = 1;
         bool is_cached = false;
         auto solvers = ConvHeur{}.Estimate(handle.GetDeviceName(), problem.conv_problem, is_cached);
-        for(const auto& kinder : solvers)
+        for(const auto kinder : solvers)
         {
-            const auto solver_id = solver::Id{kinder.first};
+            const auto solver_id = solver::Id{kinder};
             const auto sol       = solver_id.GetSolver();
             if(!sol.IsDynamic())
                 continue; // branch should never be taken
@@ -850,8 +848,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
             const auto algo = solver_id.GetAlgo();
             if(IsAlgorithmDisabled(algo))
                 continue;
-            interim.emplace_back(
-                wti2time(kinder.second), sol.GetWorkspaceSize(ctx), solver_id.Value(), algo);
+            interim.emplace_back(ai_time(idx), sol.GetWorkspaceSize(ctx), solver_id.Value(), algo);
+            ++idx;
         }
         auto i = std::size_t{0};
         MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount
@@ -873,6 +871,13 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     }
     else
     {
+        const auto wti2time = [](const float& wti) {
+            assert(wti != 0.0f);
+            if(wti <= 0.0f) // Return negative values as is, avoid DIV/0.
+                return wti;
+            return 10.0f / wti; // Assume WTI == 1.0 (100%) is 10 ms.
+        };
+
         for(const auto& solver_id : solver::GetSolversByPrimitive(solver::Primitive::Convolution))
         {
             // solver_id is always valid here, because taken from registry.
