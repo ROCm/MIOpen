@@ -38,6 +38,7 @@
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
+#include "random.hpp"
 #include "verify.hpp"
 
 std::string to_name(miopenActivationMode_t m)
@@ -167,6 +168,18 @@ struct select_first
 {
     template <class T>
     auto operator()(const T& x) MIOPEN_RETURNS(x.first); // NOLINT (readability-const-return-type)
+};
+
+// Borrowed from conv_common.h
+struct scalar_gen_random_float
+{
+    double min_val = 0;
+    double max_val = 1;
+
+    double operator()() const
+    {
+        return min_val + (max_val - min_val) * double(GET_RAND()) / RAND_MAX;
+    }
 };
 
 template <class T>
@@ -304,6 +317,12 @@ struct activation_driver : test_driver
     void run(miopenActivationMode_t m, Forward f, Backward b)
     {
         auto desc = make_descriptor(m);
+
+        auto gen_sign_value = [=](auto... is) {
+            return scalar_gen_random_float{-4, 4}() * tensor_elem_gen_checkboard_sign{}(is...);
+        };
+        input.generate(gen_sign_value);
+
         auto out  = verify(verify_forward_activation<T>{input, desc}, f);
         auto dout = out.first;
         dout.generate([&](int n, int c, int h, int w) {
