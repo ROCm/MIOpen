@@ -1568,57 +1568,6 @@ private:
                              const PerformanceConvMlirIgemmXdlops&) const;
 };
 
-struct PerformanceImplicitGemmXdlops : PerfConfigBase<PerformanceImplicitGemmXdlops>
-{
-    int BPerBlock; // 2^n[8..16]
-    int KPerBlock; // 2^n[32..128]
-    int EPerBlock; // 2^n[4..16]
-    int EBlocks;   // 2*n[1..64]
-    int EPACKSize; // 2*n[1..4] // 1 - fp32; 2,4 - bfp16; 4 - fp16
-
-    int GemmMPerWave;
-    int GemmNPerWave;
-
-    int InBlockCopyClusterLengths_E; // 2^n[4..16]
-    int InBlockCopyClusterLengths_B; // 2^n[8..16]
-
-    int WeiBlockCopyClusterLengths_E; // 2^n[1..4]
-    int WeiBlockCopyClusterLengths_K; // 2^n[16..128]
-
-    bool use_spare_set;
-
-    PerformanceImplicitGemmXdlops(int, int, int, int, int, int, int, int, int, int, int, bool);
-
-    PerformanceImplicitGemmXdlops()
-        : PerformanceImplicitGemmXdlops(-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false)
-    {
-    }
-
-    PerformanceImplicitGemmXdlops(bool spare);
-
-    template <class Self, class F>
-    static void Visit(Self&& self, F f)
-    {
-        f(self.BPerBlock, "BPerBlock");
-        f(self.KPerBlock, "KPerBlock");
-        f(self.EPerBlock, "EPerBlock");
-        f(self.EBlocks, "EBlocks");
-        f(self.EPACKSize, "EPACKSize");
-        f(self.GemmMPerWave, "GemmMPerWave");
-        f(self.GemmNPerWave, "GemmNPerWave");
-        f(self.InBlockCopyClusterLengths_E, "InBlockCopyClusterLengths_E");
-        f(self.InBlockCopyClusterLengths_B, "InBlockCopyClusterLengths_B");
-        f(self.WeiBlockCopyClusterLengths_E, "WeiBlockCopyClusterLengths_E");
-        f(self.WeiBlockCopyClusterLengths_K, "WeiBlockCopyClusterLengths_K");
-    }
-
-    void HeuristicInit(const ConvolutionContext& ctx);
-    bool IsValidValue() const;
-    bool SetNextValue(const ConvolutionContext&);
-    bool IsValid(const ConvolutionContext& ctx) const;
-    bool operator==(const PerformanceImplicitGemmXdlops& other) const;
-};
-
 struct PerformanceImplicitGemmForwardV4R4Xdlops
     : PerfConfigBase<PerformanceImplicitGemmForwardV4R4Xdlops>
 {
@@ -2858,17 +2807,32 @@ private:
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
 struct ConvMPBidirectWinograd final : ConvSolver
 {
+    // To suppress -Woverloaded-virtual
+    using ConvSolver::GetWorkspaceSize;
+    using ConvSolver::IsApplicable;
+
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<
             ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>>();
     }
 
-    bool IsApplicable(const ConvolutionContext& params) const override;
+    bool IsApplicable(const ConvolutionContext& ctx) const override
+    {
+        return IsApplicable(ctx, ctx.problem);
+    }
     bool IsDynamic() const override { return true; }
-    size_t GetWorkspaceSize(const ConvolutionContext& params) const override;
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
+    {
+        return GetWorkspaceSize(ctx.problem);
+    }
+    size_t GetWorkspaceSize(const ProblemDescription&) const;
     bool MayNeedWorkspace() const override { return true; }
-    ConvSolution GetSolution(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& ctx) const
+    {
+        return GetSolution(ctx, ctx.problem);
+    }
+    ConvSolution GetSolution(const ConvolutionContext&, const ProblemDescription&) const;
 
     // kernel_file_name for solver identification
     static std::string GetSolverFileNames(int id)
@@ -2892,6 +2856,9 @@ struct ConvMPBidirectWinograd final : ConvSolver
     }
 
     static int GetSolverWinoXformHWSize() { return WinoDataH + WinoFilterH - 1; }
+
+private:
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
 };
 
 // To suppress misleading clang warnings
@@ -2914,13 +2881,24 @@ template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFil
 struct ConvMPBidirectWinograd_xdlops final
     : ConvTunableSolver<PerformanceImplicitGemmForwardV4R4Xdlops>
 {
+    // To suppress -Woverloaded-virtual
+    using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::GetWorkspaceSize;
+    using ConvTunableSolver::IsApplicable;
+    using ConvTunableSolver::IsValidPerformanceConfig;
+    using ConvTunableSolver::Search;
+
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<
             ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>>();
     }
 
-    bool IsApplicable(const ConvolutionContext& ctx) const override;
+    bool IsApplicable(const ConvolutionContext& ctx) const override
+    {
+        return IsApplicable(ctx, ctx.problem);
+    }
 
     bool IsDynamic() const override
     {
@@ -2933,35 +2911,75 @@ struct ConvMPBidirectWinograd_xdlops final
     PerformanceImplicitGemmForwardV4R4Xdlops
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
     {
-        return ConvHipImplicitGemmForwardV4R4Xdlops{}.GetDefaultPerformanceConfig(
-            GetTransformedConvContext(ctx));
+        return GetDefaultPerformanceConfig(ctx, ctx.problem);
+    }
+    PerformanceImplicitGemmForwardV4R4Xdlops
+    GetDefaultPerformanceConfig(const ConvolutionContext& ctx,
+                                const ProblemDescription& problem) const
+    {
+        const auto xdlops_problem = GetTransformedProblem(problem);
+        const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
+
+        return ConvHipImplicitGemmForwardV4R4Xdlops{}.GetDefaultPerformanceConfig(xdlops_ctx);
     }
 
-    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                                  const PerformanceImplicitGemmForwardV4R4Xdlops& c) const override
+    bool
+    IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                             const PerformanceImplicitGemmForwardV4R4Xdlops& config) const override
     {
-        return ConvHipImplicitGemmForwardV4R4Xdlops{}.IsValidPerformanceConfig(
-            GetTransformedConvContext(ctx), c);
+        return IsValidPerformanceConfig(ctx, ctx.problem, config);
+    }
+    bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                                  const ProblemDescription& problem,
+                                  const PerformanceImplicitGemmForwardV4R4Xdlops& config) const
+    {
+        const auto xdlops_problem = GetTransformedProblem(problem);
+        const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
+
+        return ConvHipImplicitGemmForwardV4R4Xdlops{}.IsValidPerformanceConfig(xdlops_ctx, config);
     }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
+        return GetWorkspaceSize(ctx, ctx.problem);
+    }
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+    {
+        const auto xdlops_problem = GetTransformedProblem(problem);
+        const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
+
         return ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>()
-                   .GetWorkspaceSize(ctx) +
-               ConvHipImplicitGemmForwardV4R4Xdlops{}.GetWorkspaceSize(
-                   GetTransformedConvContext(ctx));
+                   .GetWorkspaceSize(ctx.problem) +
+               ConvHipImplicitGemmForwardV4R4Xdlops{}.GetWorkspaceSize(xdlops_ctx);
     }
 
     bool MayNeedWorkspace() const override { return true; }
 
-    PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext&,
-                                                    const AnyInvokeParams&) const override;
+    PerformanceImplicitGemmForwardV4R4Xdlops
+    Search(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const override
+    {
+        return Search(ctx, ctx.problem, invoke_ctx);
+    }
 
     ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceImplicitGemmForwardV4R4Xdlops& config) const override;
+                             const PerformanceImplicitGemmForwardV4R4Xdlops& config) const override
+    {
+        return GetSolution(ctx, ctx.problem, config);
+    }
 
 private:
-    ConvolutionContext GetTransformedConvContext(const ConvolutionContext&) const;
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const PerformanceImplicitGemmForwardV4R4Xdlops&) const;
+    PerformanceImplicitGemmForwardV4R4Xdlops Search(const ConvolutionContext&,
+                                                    const ProblemDescription&,
+                                                    const AnyInvokeParams& invoke_ctx) const;
+
+    ConvolutionContext
+    GetTransformedConvContext(const ConvolutionContext& ctx,
+                              const ProblemDescription& transformed_problem) const;
+    ProblemDescription GetTransformedProblem(const ProblemDescription& problem) const;
 
     // kernel_file_name for solver identification
     static std::string GetSolverFileNames(int id)
