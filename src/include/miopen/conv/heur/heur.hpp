@@ -44,9 +44,9 @@ struct ConvHeur
 {
     static const nlohmann::json& GetMetadata(const std::string& arch)
     {
-        static const nlohmann::json metadata = nlohmann::json::parse(
-            std::ifstream(boost::filesystem::path(GetSystemDbPath() + arch + "_metadata.model")
-                              .generic_string()));
+        static const nlohmann::json metadata = nlohmann::json::parse(std::ifstream(
+            boost::filesystem::path(GetSystemDbPath() + "/" + arch + "_metadata.model")
+                .generic_string()));
         return metadata;
     }
 

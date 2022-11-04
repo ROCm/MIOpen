@@ -127,9 +127,8 @@ size_t GetOffset(const std::string& arch)
 
 std::vector<float> CallModel(std::vector<float>& features, const std::string& arch)
 {
-    std::cout << "GetSystemDbPath: " << GetSystemDbPath() << std::endl;
     static boost::filesystem::path model_file =
-        boost::filesystem::path(GetSystemDbPath() + arch + ".model");
+        boost::filesystem::path(GetSystemDbPath() + "/" + arch + ".model");
     static const fdeep::model model =
         fdeep::load_model(model_file.generic_string(), true, fdeep::dev_null_logger);
     auto input = fdeep::tensor(fdeep::tensor_shape(features.size()), features);
