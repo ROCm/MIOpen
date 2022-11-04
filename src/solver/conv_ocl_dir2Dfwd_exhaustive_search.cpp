@@ -50,22 +50,21 @@ namespace solver {
  * select default configuration if a known configuration has not been found.
  */
 LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerformanceConfig(
-    const ConvolutionContext& params) const
+    const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
     //
     LegacyPerformanceConfig result{};
-    result.in_tile0 = (params.problem.in_width <= 8)    ? 8
-                      : (params.problem.in_width <= 16) ? 16
-                                                        : 32; // size of input data per ALU plane
-    result.in_tile1 = (params.problem.in_height <= 8)    ? 8
-                      : (params.problem.in_height <= 16) ? 16
-                                                         : 32; // size of input data per ALU plane
+    result.in_tile0 = (problem.in_width <= 8)    ? 8
+                      : (problem.in_width <= 16) ? 16
+                                                 : 32; // size of input data per ALU plane
+    result.in_tile1 = (problem.in_height <= 8)    ? 8
+                      : (problem.in_height <= 16) ? 16
+                                                  : 32; // size of input data per ALU plane
 
     result.out_pix_tile0 =
-        std::max(params.problem.kernel_stride_w,
+        std::max(problem.kernel_stride_w,
                  ((result.in_tile0 == 8) ? 1 : 2)); // size of ouptput tile per wk-item (ALU))
-    result.out_pix_tile1 =
-        std::max(params.problem.kernel_stride_h, ((result.in_tile1 == 8) ? 1 : 2)); //
+    result.out_pix_tile1 = std::max(problem.kernel_stride_h, ((result.in_tile1 == 8) ? 1 : 2)); //
 
     result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
     result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
@@ -77,14 +76,13 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
 
     result.n_stacks = 1; // # of diff stacks (part of batch).
 
-    if(params.problem.kernel_size_w == 1 && params.problem.kernel_size_h == 1 &&
-       params.problem.group_counts ==
-           1) // Group conv: None 1x1 version yet, fallback to universal kernel.
+    if(problem.kernel_size_w == 1 && problem.kernel_size_h == 1 &&
+       problem.group_counts == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
     {
 
         // version
-        if(params.problem.in_data_type == miopenFloat && params.problem.direction.IsForward() &&
-           params.problem.n_inputs % 16 == 0 && params.problem.n_outputs % 16 == 0)
+        if(problem.in_data_type == miopenFloat && problem.direction.IsForward() &&
+           problem.n_inputs % 16 == 0 && problem.n_outputs % 16 == 0)
         {
             result.n_in_data_tiles = 128;
 
@@ -98,21 +96,19 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
         }
         else
         {
-            int i_sz             = params.problem.out_height * params.problem.out_width;
+            int i_sz             = problem.out_height * problem.out_width;
             result.out_pix_tile0 = (i_sz & 1) != 0 ? 1 : 2;
 
-            if(params.problem.pad_w > 0 || params.problem.kernel_stride_w > 1)
+            if(problem.pad_w > 0 || problem.kernel_stride_w > 1)
             {
-                if(params.problem.direction.IsForward())
+                if(problem.direction.IsForward())
                 {
-                    result.out_pix_tile0 = (params.problem.out_width & 1) != 0 ? 1 : 2;
+                    result.out_pix_tile0 = (problem.out_width & 1) != 0 ? 1 : 2;
                 }
                 else
                 {
-                    result.out_pix_tile0 = (((params.problem.out_width & 1) != 0) ||
-                                            ((params.problem.in_width & 1) != 0))
-                                               ? 1
-                                               : 2;
+                    result.out_pix_tile0 =
+                        (((problem.out_width & 1) != 0) || ((problem.in_width & 1) != 0)) ? 1 : 2;
                 }
             }
 
@@ -123,7 +119,7 @@ LegacyPerformanceConfig ConvOclDirectFwdLegacyExhaustiveSearch::GetDefaultPerfor
             result.out_pix_tile1 = 0;
         }
     }
-    if(!params.do_search) // Prevent spamming durign search.
+    if(!ctx.do_search) // Prevent spamming durign search.
         MIOPEN_LOG_I2("Returns: " << result);
     return result;
 }
@@ -138,8 +134,9 @@ static int MeasurePerfConfig(const Handle& handle,
                              ConstData_t wei_ocl_buf,
                              ConstData_t bias_ocl_buf,
                              double& processing_time,
-                             const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& result)
+                             const ConvolutionContext& ctx,
+                             const ProblemDescription& problem,
+                             const LegacyPerformanceConfig& config)
 {
     ConvSolution kernel_search_result{miopenStatusNotInitialized};
 
@@ -147,11 +144,11 @@ static int MeasurePerfConfig(const Handle& handle,
         [&](auto s) {
             if(!kernel_search_result.Succeeded()) // once
             {
-                if(s.IsApplicable(params))
+                if(s.IsApplicable(ctx, problem))
                 {
-                    if(s.IsValidPerformanceConfig(params, result))
+                    if(s.IsValidPerformanceConfig(problem, config))
                     {
-                        kernel_search_result = s.GetSolution(params, result);
+                        kernel_search_result = s.GetSolution(ctx, problem, config);
                     }
                 }
             }
@@ -163,14 +160,14 @@ static int MeasurePerfConfig(const Handle& handle,
         return 1;
     }
 #if !MIOPEN_ALLOC_BUFFERS
-    if(params.problem.bias && bias_ocl_buf == nullptr)
+    if(problem.bias && bias_ocl_buf == nullptr)
     {
         MIOPEN_LOG_WE("Legacy search: Bias buffer required");
         return 2;
     }
 #endif
 
-    MIOPEN_LOG_I2("Trying " << result);
+    MIOPEN_LOG_I2("Trying " << config);
     const auto kernel_params     = kernel_search_result.construction_params[0];
     std::string compiler_options = kernel_params.comp_options;
 
@@ -187,7 +184,7 @@ static int MeasurePerfConfig(const Handle& handle,
                                   kernel_params.g_wk,
                                   compiler_options);
 
-        if(params.problem.bias)
+        if(problem.bias)
         {
             k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
         }
@@ -208,15 +205,16 @@ static int MeasurePerfConfig(const Handle& handle,
 }
 
 LegacyPerformanceConfig
-ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params,
+ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& ctx,
+                                               const ProblemDescription& problem,
                                                const AnyInvokeParams& invoke_ctx) const
 {
-    if(params.problem.IsFp16())
-        return SearchImpl<half_float::half>(params, invoke_ctx);
-    else if(params.problem.IsFp32())
-        return SearchImpl<float>(params, invoke_ctx);
-    else if(params.problem.IsBfp16())
-        return SearchImpl<bfloat16>(params, invoke_ctx);
+    if(problem.IsFp16())
+        return SearchImpl<half_float::half>(ctx, problem, invoke_ctx);
+    else if(problem.IsFp32())
+        return SearchImpl<float>(ctx, problem, invoke_ctx);
+    else if(problem.IsBfp16())
+        return SearchImpl<bfloat16>(ctx, problem, invoke_ctx);
     else
     {
         MIOPEN_THROW("Unsupported float_size");
@@ -225,7 +223,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params,
 
 template <typename Tgpu>
 LegacyPerformanceConfig
-ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& params,
+ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx,
+                                                   const ProblemDescription& problem,
                                                    const AnyInvokeParams& invoke_ctx) const
 {
     LegacyPerformanceConfig result;
@@ -248,7 +247,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     miopen::Handle profile_h;
 
     // allocate input/output buffers
-    size_t bot_sz = params.problem.bot_sz / sizeof(Tgpu);
+    size_t bot_sz = problem.bot_sz / sizeof(Tgpu);
     std::vector<Tgpu> bot_sys_buf(bot_sz);
     for(size_t i = 0; i < bot_sz; i++)
     {
@@ -258,12 +257,12 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     auto bot_ocl_buf = profile_h.Write(bot_sys_buf);
     auto bot_ocl_ptr = bot_ocl_buf.get();
 
-    size_t top_sz = params.problem.top_sz / sizeof(Tgpu);
+    size_t top_sz = problem.top_sz / sizeof(Tgpu);
     std::vector<Tgpu> top_sys_buf(top_sz);
     auto top_ocl_buf = profile_h.Write(top_sys_buf);
     auto top_ocl_ptr = top_ocl_buf.get();
 
-    size_t weights_sz = params.problem.weights_sz / sizeof(Tgpu);
+    size_t weights_sz = problem.weights_sz / sizeof(Tgpu);
     std::vector<Tgpu> wei_sys_buf(weights_sz);
     for(size_t i = 0; i < weights_sz; i++)
     {
@@ -275,9 +274,9 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
 
     std::vector<Tgpu> bias_sys_buf;
     miopen::Allocator::ManageDataPtr bias_ocl_buf = nullptr;
-    if(params.problem.bias != 0)
+    if(problem.bias != 0)
     {
-        size_t bias_sz = params.problem.bias_sz / sizeof(Tgpu);
+        size_t bias_sz = problem.bias_sz / sizeof(Tgpu);
         bias_sys_buf   = std::vector<Tgpu>(bias_sz);
         for(size_t i = 0; i < bias_sz; i++)
         {
@@ -289,7 +288,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     }
     auto bias_ocl_ptr = bias_ocl_buf.get();
 #else
-    auto& profile_h           = params.GetStream();
+    auto& profile_h           = ctx.GetStream();
     const auto& invoke_params = invoke_ctx.CastTo<conv::DataInvokeParams>();
     const auto bot_ocl_ptr    = invoke_params.tensors.in;
     const auto top_ocl_ptr    = invoke_params.tensors.out;
@@ -317,18 +316,18 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     int out_pix_tl_cnt = 3; // out_pix_tile_sz[1];
     int n_out_tls      = 4;
     int n_in_tls       = 3;
-    int stack_cnt      = std::min(params.problem.batch_sz, 2);
+    int stack_cnt      = std::min(problem.batch_sz, 2);
     int n_tile0_sz     = 4;
     int n_tile1_sz     = 4;
 
-    if(params.problem.out_width >= 16)
+    if(problem.out_width >= 16)
     {
         tile_sz0[0] = 16;
         tile_sz0[1] = 32;
         n_tile0_sz  = 2;
     }
 
-    if(params.problem.out_height >= 16)
+    if(problem.out_height >= 16)
     {
         tile_sz1[0] = 16;
         tile_sz1[1] = 32;
@@ -341,9 +340,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
 
     long long runs_left = 0, total_runs = 0;
 
-    if(params.problem.kernel_size_w == 1 && params.problem.kernel_size_h == 1 &&
-       params.problem.group_counts ==
-           1) // Group conv: None 1x1 version yet, fallback to universal kernel.
+    if(problem.kernel_size_w == 1 && problem.kernel_size_h == 1 &&
+       problem.group_counts == 1) // Group conv: None 1x1 version yet, fallback to universal kernel.
     {
         MIOPEN_LOG_W("Searching the best solution in the 4 dim space. Please, be patient...");
         int n_grp_tiles0 = 3;
@@ -353,8 +351,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         report_inteval   = 5;
 
         // Add 1x1_stride : no padding support yet
-        if(params.problem.in_data_type == miopenFloat && params.problem.direction.IsForward() &&
-           params.problem.n_inputs % 16 == 0 && params.problem.n_outputs % 16 == 0)
+        if(problem.in_data_type == miopenFloat && problem.direction.IsForward() &&
+           problem.n_inputs % 16 == 0 && problem.n_outputs % 16 == 0)
         {
 
             // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
@@ -383,23 +381,21 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         }
         else
         {
-            int i_sz = params.problem.in_width * params.problem.in_height;
-            if(params.problem.kernel_stride_w == 1)
+            int i_sz = problem.in_width * problem.in_height;
+            if(problem.kernel_stride_w == 1)
             {
                 out_pix_tl_cnt = (i_sz & 1) != 0 ? 1 : (i_sz & 0x3) != 0 ? 2 : 3;
             }
             else
             {
-                if(params.problem.direction.IsForward())
+                if(problem.direction.IsForward())
                 {
-                    out_pix_tl_cnt = (params.problem.out_width & 1) != 0 ? 1 : 2;
+                    out_pix_tl_cnt = (problem.out_width & 1) != 0 ? 1 : 2;
                 }
                 else
                 {
-                    out_pix_tl_cnt = (((params.problem.out_width & 1) != 0) ||
-                                      ((params.problem.in_width & 1) != 0))
-                                         ? 1
-                                         : 2;
+                    out_pix_tl_cnt =
+                        (((problem.out_width & 1) != 0) || ((problem.in_width & 1) != 0)) ? 1 : 2;
                 }
             }
             out_pix_tile_sz[0] = 1;
@@ -407,12 +403,12 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             out_pix_tile_sz[2] = 4;
 
             n_out_tiles_rg[0] = 2;
-            n_out_tiles_rg[1] = (params.problem.n_outputs % 64 == 0)   ? 6
-                                : (params.problem.n_outputs % 32 == 0) ? 5
-                                                                       : 4;
+            n_out_tiles_rg[1] = (problem.n_outputs % 64 == 0)   ? 6
+                                : (problem.n_outputs % 32 == 0) ? 5
+                                                                : 4;
 
             n_in_tiles_rg[0] = 2;
-            n_in_tiles_rg[1] = (params.problem.n_inputs % 8 == 0) ? 3 : 2;
+            n_in_tiles_rg[1] = (problem.n_inputs % 8 == 0) ? 3 : 2;
 
             grp_tl_ln[0]     = 64;
             grp_tl_ln[1]     = 128;
@@ -467,7 +463,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                                                                          wei_ocl_ptr,
                                                                          bias_ocl_ptr,
                                                                          processing_time,
-                                                                         params,
+                                                                         ctx,
+                                                                         problem,
                                                                          result);
                         --runs_left;
                         if(ret != 0)
@@ -515,7 +512,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
         {
             int tile_sz[3]  = {8, 16, 32};
             result.in_tile1 = tile_sz1[j];
-            if(params.problem.out_height * 2 <= result.in_tile1 && result.in_tile1 > tile_sz[0])
+            if(problem.out_height * 2 <= result.in_tile1 && result.in_tile1 > tile_sz[0])
             {
                 --runs_left;
                 continue;
@@ -525,20 +522,19 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
             for(int i = 0; i < n_tile0_sz; ++i)
             {
                 result.in_tile0 = tile_sz0[i];
-                if((params.problem.out_width * 2 <= result.in_tile0 &&
-                    result.in_tile0 > tile_sz[0]))
+                if((problem.out_width * 2 <= result.in_tile0 && result.in_tile0 > tile_sz[0]))
                 {
                     --runs_left;
                     continue;
                 }
-                if(params.problem.out_height > 16 && params.problem.out_width > 16 &&
+                if(problem.out_height > 16 && problem.out_width > 16 &&
                    ((result.in_tile1 == 8 && result.in_tile0 == 8) ||
                     (result.grp_tile0 == 8 && result.grp_tile1 == 8)))
                 {
                     --runs_left;
                     continue;
                 }
-                if(params.problem.out_width > 32 && result.in_tile1 > result.in_tile0)
+                if(problem.out_width > 32 && result.in_tile1 > result.in_tile0)
                 {
                     --runs_left;
                     continue;
@@ -570,7 +566,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                         for(int o_t = 0; o_t < n_out_tls; ++o_t)
                         {
                             result.n_out_pix_tiles = n_out_tiles_rg[o_t];
-                            if(params.problem.n_outputs < result.n_out_pix_tiles)
+                            if(problem.n_outputs < result.n_out_pix_tiles)
                             {
                                 --runs_left;
                                 continue;
@@ -579,7 +575,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                             for(int i_t = 0; i_t < n_in_tls; ++i_t)
                             {
                                 result.n_in_data_tiles = n_in_tiles_rg[i_t];
-                                if(params.problem.n_inputs < result.n_in_data_tiles)
+                                if(problem.n_inputs < result.n_in_data_tiles)
                                 {
                                     --runs_left;
                                     continue;
@@ -589,7 +585,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                                 {
 
                                     result.n_stacks = n_in_stacks_sz[s];
-                                    if(result.n_stacks > params.problem.batch_sz)
+                                    if(result.n_stacks > problem.batch_sz)
                                     {
                                         --runs_left;
                                         continue;
@@ -610,7 +606,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                                                                                   wei_ocl_ptr,
                                                                                   bias_ocl_ptr,
                                                                                   processing_time,
-                                                                                  params,
+                                                                                  ctx,
+                                                                                  problem,
                                                                                   result);
 
                                     --runs_left;
@@ -657,9 +654,9 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
     {
         int ret                   = -1;
         double default_time       = std::numeric_limits<double>::max();
-        const auto default_config = GetDefaultPerformanceConfig(params);
-        if(params.problem.kernel_size_w == 1 && params.problem.kernel_size_h == 1 &&
-           params.problem.group_counts ==
+        const auto default_config = GetDefaultPerformanceConfig(ctx, problem);
+        if(problem.kernel_size_w == 1 && problem.kernel_size_h == 1 &&
+           problem.group_counts ==
                1) // Group conv: None 1x1 version yet, fallback to universal kernel.
         {
             ret = MeasurePerfConfig<Tgpu, ConvOclDirectFwd1x1>(profile_h,
@@ -668,7 +665,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                                                                wei_ocl_ptr,
                                                                bias_ocl_ptr,
                                                                default_time,
-                                                               params,
+                                                               ctx,
+                                                               problem,
                                                                default_config);
         }
         else
@@ -679,7 +677,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& par
                                                             wei_ocl_ptr,
                                                             bias_ocl_ptr,
                                                             default_time,
-                                                            params,
+                                                            ctx,
+                                                            problem,
                                                             default_config);
         }
         if(ret == 0)
