@@ -463,10 +463,10 @@ static void PrintVersion()
     std::ignore            = once;
 }
 
-static std::string GetStatusText(const amd_comgr_status_t status)
+static std::string GetStatusText(const amd_comgr_status_t status, const bool unknown_error = false)
 {
     const char* reason = nullptr;
-    if(AMD_COMGR_STATUS_SUCCESS != amd_comgr_status_string(status, &reason))
+    if(unknown_error || AMD_COMGR_STATUS_SUCCESS != amd_comgr_status_string(status, &reason))
         reason = "<Unknown>";
     return std::string(reason) + " (" + std::to_string(static_cast<int>(status)) + ')';
 }
@@ -520,17 +520,23 @@ static std::string GetLog(const Dataset& dataset, bool comgr_error_handling = fa
 struct ComgrError : std::exception
 {
     amd_comgr_status_t status;
+    bool unknown;
     std::string text;
 
-    ComgrError(const amd_comgr_status_t s) : status(s) {}
-    ComgrError(const amd_comgr_status_t s, const std::string& t) : status(s), text(t) {}
+    ComgrError(const amd_comgr_status_t s, bool u) : status(s), unknown(u) {}
+    ComgrError(const amd_comgr_status_t s, bool u, const std::string& t) : status(s), unknown(u), text(t) {}
     const char* what() const noexcept override { return text.c_str(); }
 };
 
-[[noreturn]] static void Throw(const amd_comgr_status_t s) { throw ComgrError{s}; }
+static std::string GetStatusText(const ComgrError& ex)
+{
+    return GetStatusText(ex.status, ex.unknown);
+}
+
+[[noreturn]] static void Throw(const amd_comgr_status_t s) { throw ComgrError{s, false}; }
 [[noreturn]] static void Throw(const amd_comgr_status_t s, const std::string& text)
 {
-    throw ComgrError{s, text};
+    throw ComgrError{s, false, text};
 }
 
 struct ComgrOwner
@@ -876,9 +882,8 @@ void BuildHip(const std::string& name,
             action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
         }
 
-        constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
         if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
-            throw ComgrError{INTENTIONALY_UNKNOWN, "Executable binary not found"};
+            throw ComgrError{AMD_COMGR_STATUS_ERROR, true, "Executable binary not found"};
         // Assume that the first exec data contains the binary we need.
         const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
         data.GetBytes(binary);
@@ -886,7 +891,7 @@ void BuildHip(const std::string& name,
     catch(ComgrError& ex)
     {
         binary.resize(0); // Necessary when "get binary" fails.
-        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
+        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
     }
@@ -962,9 +967,8 @@ void BuildOcl(const std::string& name,
         const Dataset exe;
         action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
 
-        constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
         if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
-            throw ComgrError{INTENTIONALY_UNKNOWN, "Executable binary not found"};
+            throw ComgrError{AMD_COMGR_STATUS_ERROR, true, "Executable binary not found"};
         // Assume that the first exec data contains the binary we need.
         const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
         data.GetBytes(binary);
@@ -972,7 +976,7 @@ void BuildOcl(const std::string& name,
     catch(ComgrError& ex)
     {
         binary.resize(0);
-        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
+        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
     }
@@ -1008,9 +1012,8 @@ void BuildAsm(const std::string& name,
         const Dataset exe;
         action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
 
-        constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
         if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
-            throw ComgrError{INTENTIONALY_UNKNOWN, "Executable binary not found"};
+            throw ComgrError{AMD_COMGR_STATUS_ERROR, true, "Executable binary not found"};
         // Assume that the first exec data contains the binary we need.
         const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
         data.GetBytes(binary);
@@ -1018,7 +1021,7 @@ void BuildAsm(const std::string& name,
     catch(ComgrError& ex)
     {
         binary.resize(0);
-        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex.status));
+        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex));
         if(!ex.text.empty())
             MIOPEN_LOG_W(ex.text);
     }
