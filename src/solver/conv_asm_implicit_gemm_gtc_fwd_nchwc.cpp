@@ -282,7 +282,8 @@ GetImplicitGemmGtcDynamicFwdDlopsNCHWCKernel(
     // config.gemm_m_per_block, config.gemm_n_per_block);
 
     size_t block_size = config.BlockSize();
-    size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
+    size_t grid_size  = static_cast<size_t>(group) *
+                       integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
                        integer_divide_ceil(gemm_n, config.gemm_n_per_block);
     std::string kernel_name = config.ToKernelName(ctx);
     return std::make_tuple(kernel_name, block_size, grid_size, splits_4G);
@@ -378,9 +379,9 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(
     const auto& x     = problem.kernel_size_w;
     const auto& group = problem.group_counts;
 
-    size_t gemm_m = n * ho * wo;
+    size_t gemm_m = static_cast<size_t>(n) * ho * wo;
     size_t gemm_n = k / group;
-    size_t gemm_k = (c / group) * y * x;
+    size_t gemm_k = (static_cast<size_t>(c) / group) * y * x;
 
     int m_per_block, n_per_block, k_per_block;
 

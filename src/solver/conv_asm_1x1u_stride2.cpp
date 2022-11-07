@@ -154,7 +154,7 @@ struct buff_info
     buff_info(MemLayout layout, int nk, int c, int h, int w, int vec_c, int data_len_t)
     {
         int c_hi        = (c + vec_c - 1) / vec_c;
-        int count       = nk * c_hi * h * w * vec_c;
+        auto count      = static_cast<size_t>(nk) * c_hi * h * w * vec_c;
         total_byte_size = count * data_len_t;
         size.nk         = nk;
         size.c          = c;
@@ -321,7 +321,7 @@ bool PerformanceConfigConvAsm1x1UV2::IsValidValue() const
 
 bool PerformanceConfigConvAsm1x1UV2::IsValid(const ProblemDescription& problem) const
 {
-    const auto elements_in_dword = 4 / GetTypeSize(problem.in_data_type);
+    const auto elements_in_dword = 4 / static_cast<int>(GetTypeSize(problem.in_data_type));
 
     if(!IsValidValue())
         return false;
@@ -338,7 +338,8 @@ bool PerformanceConfigConvAsm1x1UV2::IsValid(const ProblemDescription& problem) 
     const config_helper uv_lj(problem, *this);
 
     const auto elements_per_ld = (dwords_per_ld * elements_in_dword);
-    const auto active_elements = divide_round_plus_inf(elements_per_ld, uv_lj.stride_w);
+    const auto active_elements =
+        static_cast<int>(divide_round_plus_inf(elements_per_ld, uv_lj.stride_w));
 
     const auto in_gprs  = dwords_per_ld * w_mult * h_mult * c_mult * n_mult * 2;
     const auto acc_gprs = active_elements * w_mult * h_mult * k_mult * n_mult;
@@ -704,7 +705,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ConvolutionContext& ctx,
 
     const int waves_in_group = pcfg->GetWavesCInGroup() * pcfg->GetWavesKInGroup();
     kinfo.l_wk.clear(); // workgroupsize
-    kinfo.l_wk.push_back(64 * waves_in_group);
+    kinfo.l_wk.push_back(64ULL * waves_in_group);
     kinfo.l_wk.push_back(1);
     kinfo.l_wk.push_back(1);
 
