@@ -524,7 +524,10 @@ struct ComgrError : std::exception
     std::string text;
 
     ComgrError(const amd_comgr_status_t s, bool u) : status(s), unknown(u) {}
-    ComgrError(const amd_comgr_status_t s, bool u, const std::string& t) : status(s), unknown(u), text(t) {}
+    ComgrError(const amd_comgr_status_t s, bool u, const std::string& t)
+        : status(s), unknown(u), text(t)
+    {
+    }
     const char* what() const noexcept override { return text.c_str(); }
 };
 
