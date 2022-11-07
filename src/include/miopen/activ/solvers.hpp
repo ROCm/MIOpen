@@ -48,7 +48,8 @@ struct ActivFwdSolver0 final : ActivSolver
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver0>(); }
 
-    bool IsApplicable(const ActivContext& context, const miopen::activ::ProblemDescription& problem) const override
+    bool IsApplicable(const ActivContext& context,
+                      const miopen::activ::ProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(context), problem);
     }
@@ -71,7 +72,8 @@ struct ActivFwdSolver1 final : ActivSolver
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver1>(); }
 
-    bool IsApplicable(const ActivContext& context, const miopen::activ::ProblemDescription& problem) const override
+    bool IsApplicable(const ActivContext& context,
+                      const miopen::activ::ProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(context), problem);
     }
@@ -94,7 +96,8 @@ struct ActivBwdSolver0 final : ActivSolver
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver0>(); }
 
-    bool IsApplicable(const ActivContext& context, const miopen::activ::ProblemDescription& problem) const override
+    bool IsApplicable(const ActivContext& context,
+                      const miopen::activ::ProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(context), problem);
     }
@@ -117,7 +120,8 @@ struct ActivBwdSolver1 final : ActivSolver
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver1>(); }
 
-    bool IsApplicable(const ActivContext& context, const miopen::activ::ProblemDescription& problem) const override
+    bool IsApplicable(const ActivContext& context,
+                      const miopen::activ::ProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(context), problem);
     }

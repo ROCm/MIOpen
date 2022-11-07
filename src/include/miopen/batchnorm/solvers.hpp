@@ -56,7 +56,8 @@ struct BnFwdTrainingSpatialSingle final : BatchnormSolver
         return GetSolverDbId<BnFwdTrainingSpatialSingle>();
     }
 
-    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
+    bool IsApplicable(const BatchnormContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(context), problem);
     }
@@ -82,7 +83,8 @@ struct BnFwdTrainingSpatialMultiple final : BatchnormSolver
         return GetSolverDbId<BnFwdTrainingSpatialMultiple>();
     }
 
-    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
+    bool IsApplicable(const BatchnormContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(context), problem);
     }
@@ -108,7 +110,8 @@ struct BnFwdTrainingPerActivation final : BatchnormSolver
         return GetSolverDbId<BnFwdTrainingPerActivation>();
     }
 
-    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
+    bool IsApplicable(const BatchnormContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(context), problem);
     }
@@ -134,7 +137,8 @@ struct BnBwdTrainingSpatialSingle final : BatchnormSolver
         return GetSolverDbId<BnBwdTrainingSpatialSingle>();
     }
 
-    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
+    bool IsApplicable(const BatchnormContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(context), problem);
     }
@@ -160,7 +164,8 @@ struct BnBwdTrainingSpatialMultiple final : BatchnormSolver
         return GetSolverDbId<BnBwdTrainingSpatialMultiple>();
     }
 
-    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
+    bool IsApplicable(const BatchnormContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(context), problem);
     }
@@ -186,7 +191,8 @@ struct BnBwdTrainingPerActivation final : BatchnormSolver
         return GetSolverDbId<BnBwdTrainingPerActivation>();
     }
 
-    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
+    bool IsApplicable(const BatchnormContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(context), problem);
     }
@@ -209,7 +215,8 @@ struct BnFwdInference final : BatchnormSolver
 
     const std::string& SolverDbId() const override { return GetSolverDbId<BnFwdInference>(); }
 
-    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
+    bool IsApplicable(const BatchnormContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(context), problem);
     }

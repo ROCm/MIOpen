@@ -49,7 +49,8 @@ struct PoolingSolver : SolverMixin<PoolingContext, miopen::pooling::ProblemDescr
     using SolverMixin<PoolingContext, miopen::pooling::ProblemDescription>::GetWorkspaceSize;
     using SolverMixin<PoolingContext, miopen::pooling::ProblemDescription>::IsApplicable;
 
-    bool IsApplicable(const PoolingContext& context, const miopen::pooling::ProblemDescription& problem) const final
+    bool IsApplicable(const PoolingContext& context,
+                      const miopen::pooling::ProblemDescription& problem) const final
     {
         return IsApplicable(*std::get<0>(context), problem);
     }
