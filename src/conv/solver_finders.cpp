@@ -60,7 +60,9 @@ protected:
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
     {
-        return FindAllDirectSolutions(ctx, invoke_ctx);
+        return ctx.problem.conv_problem.GetDirection() != conv::Direction::BackwardWeights
+                   ? FindAllDirectSolutions(ctx, invoke_ctx)
+                   : FindAllBwdWrW2DSolutions(ctx, invoke_ctx);
     }
 };
 
@@ -83,7 +85,9 @@ protected:
                                                const AnyInvokeParams& invoke_ctx,
                                                bool /*use_winograd_only*/) const override
     {
-        return FindAllImplicitGemmSolutions(ctx, invoke_ctx);
+        return ctx.problem.conv_problem.GetDirection() != conv::Direction::BackwardWeights
+                   ? FindAllImplicitGemmSolutions(ctx, invoke_ctx)
+                   : FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx);
     }
 };
 
@@ -157,7 +161,9 @@ protected:
         auto ctx_copy = ctx;
         if(use_winograd_only)
             ctx_copy.use_dynamic_solutions_only = true;
-        return FindAllWinogradSolutions(ctx_copy, invoke_ctx);
+        return ctx_copy.problem.conv_problem.GetDirection() != conv::Direction::BackwardWeights
+                   ? FindAllWinogradSolutions(ctx_copy, invoke_ctx)
+                   : FindWinogradWrWAllSolutions(ctx_copy, invoke_ctx);
     }
 };
 
