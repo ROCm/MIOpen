@@ -80,6 +80,7 @@ struct PoolingSolver : SolverMixin<PoolingContext, miopen::pooling::ProblemDescr
 struct PoolingForward2d final : PoolingSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForward2d>(); }
+
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pooling::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
@@ -91,6 +92,7 @@ struct PoolingForward2d final : PoolingSolver
 struct PoolingForwardNd final : PoolingSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForwardNd>(); }
+
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pooling::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
@@ -159,6 +161,7 @@ struct PoolingBackward2d final : PoolingSolver
     using PoolingSolver::IsApplicable;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingBackward2d>(); }
+
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pooling::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,

@@ -40,8 +40,7 @@ namespace solver {
 
 namespace activ {
 
-using ActivContext =
-    std::tuple<const ExecutionContext*, const miopen::activ::ProblemDescription*>;
+using ActivContext = std::tuple<const ExecutionContext*, const miopen::activ::ProblemDescription*>;
 
 using ActivSolver = SolverMixin<ActivContext, miopen::activ::ProblemDescription>;
 
