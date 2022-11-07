@@ -144,7 +144,7 @@ private:
     }
 };
 
-template <class Context>
+template <class Context, class Problem>
 struct SolverMixin : SolverBase
 {
     virtual bool IsApplicable(const Context& ctx) const = 0;
@@ -168,7 +168,7 @@ struct SolverMixin : SolverBase
 };
 
 /// Typedef for convolution solvers
-using ConvSolver = SolverMixin<ConvolutionContext>;
+using ConvSolver = SolverMixin<ConvolutionContext, ProblemDescription>;
 
 /// Base class for tunable solvers
 struct ConvTunableSolverBase : ConvSolver

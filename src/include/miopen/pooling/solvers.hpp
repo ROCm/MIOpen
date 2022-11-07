@@ -44,28 +44,28 @@ namespace solver {
 
 namespace pooling {
 
-using OldStyleProblemDescription =
+using PoolingContext =
     std::tuple<const ExecutionContext*, const miopen::pooling::ProblemDescription*>;
 
-struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
+struct PoolingSolver : SolverMixin<PoolingContext, miopen::pooling::ProblemDescription>
 {
     // To suppress -Woverloaded-virtual
-    using SolverMixin<OldStyleProblemDescription>::GetWorkspaceSize;
-    using SolverMixin<OldStyleProblemDescription>::IsApplicable;
+    using SolverMixin<PoolingContext, miopen::pooling::ProblemDescription>::GetWorkspaceSize;
+    using SolverMixin<PoolingContext, miopen::pooling::ProblemDescription>::IsApplicable;
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const final
+    bool IsApplicable(const PoolingContext& context) const final
     {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
+        return IsApplicable(*std::get<0>(context), *std::get<1>(context));
     }
 
-    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const PoolingContext& context) const
     {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+        return GetSolution(*std::get<0>(context), *std::get<1>(context));
     }
 
-    std::size_t GetWorkspaceSize(const OldStyleProblemDescription& problem) const final
+    std::size_t GetWorkspaceSize(const PoolingContext& context) const final
     {
-        return GetWorkspaceSize(*std::get<0>(problem), *std::get<1>(problem));
+        return GetWorkspaceSize(*std::get<0>(context), *std::get<1>(context));
     }
 
     virtual bool IsApplicable(const ExecutionContext& context,
@@ -77,7 +77,7 @@ struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
                      const miopen::pooling::ProblemDescription& problem) const = 0;
 };
 
-struct PoolingForward2d final : OldStyleSolver
+struct PoolingForward2d final : PoolingSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForward2d>(); }
     bool IsApplicable(const ExecutionContext& context,
@@ -88,7 +88,7 @@ struct PoolingForward2d final : OldStyleSolver
                                  const miopen::pooling::ProblemDescription& problem) const override;
 };
 
-struct PoolingForwardNd final : OldStyleSolver
+struct PoolingForwardNd final : PoolingSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForwardNd>(); }
     bool IsApplicable(const ExecutionContext& context,
@@ -101,7 +101,7 @@ struct PoolingForwardNd final : OldStyleSolver
 
 template <class Inner>
 struct PoolingFwdNCHWTransposingSolver : TransposingSolver<PoolingFwdNCHWTransposingSolver<Inner>,
-                                                           OldStyleSolver,
+                                                           PoolingSolver,
                                                            miopen::pooling::ProblemDescription,
                                                            miopen::pooling::FwdInvokeParams,
                                                            Inner>
@@ -153,10 +153,10 @@ struct TransposedPoolingFwdNd final : PoolingFwdNCHWTransposingSolver<PoolingFor
     }
 };
 
-struct PoolingBackward2d final : OldStyleSolver
+struct PoolingBackward2d final : PoolingSolver
 {
     // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
+    using PoolingSolver::IsApplicable;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingBackward2d>(); }
     bool IsApplicable(const ExecutionContext& context,
@@ -167,10 +167,10 @@ struct PoolingBackward2d final : OldStyleSolver
                                  const miopen::pooling::ProblemDescription& problem) const override;
 };
 
-struct PoolingBackwardNd final : OldStyleSolver
+struct PoolingBackwardNd final : PoolingSolver
 {
     // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
+    using PoolingSolver::IsApplicable;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingBackwardNd>(); }
 
@@ -184,7 +184,7 @@ struct PoolingBackwardNd final : OldStyleSolver
 
 template <class Inner>
 struct PoolingBwdNCHWTransposingSolver : TransposingSolver<PoolingBwdNCHWTransposingSolver<Inner>,
-                                                           OldStyleSolver,
+                                                           PoolingSolver,
                                                            miopen::pooling::ProblemDescription,
                                                            miopen::pooling::BwdInvokeParams,
                                                            Inner>
