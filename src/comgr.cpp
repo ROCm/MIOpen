@@ -876,8 +876,12 @@ void BuildHip(const std::string& name,
             action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
         }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wenum-constexpr-conversion"
         constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
-        if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
+#pragma clang diagnostic pop
+
+	if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
             throw ComgrError{INTENTIONALY_UNKNOWN, "Executable binary not found"};
         // Assume that the first exec data contains the binary we need.
         const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
@@ -962,8 +966,11 @@ void BuildOcl(const std::string& name,
         const Dataset exe;
         action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wenum-constexpr-conversion"
         constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
-        if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
+#pragma clang diagnostic pop
+	if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
             throw ComgrError{INTENTIONALY_UNKNOWN, "Executable binary not found"};
         // Assume that the first exec data contains the binary we need.
         const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
@@ -1008,8 +1015,11 @@ void BuildAsm(const std::string& name,
         const Dataset exe;
         action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wenum-constexpr-conversion"
         constexpr auto INTENTIONALY_UNKNOWN = static_cast<amd_comgr_status_t>(0xffff);
-        if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
+#pragma clang diagnostic pop
+	if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
             throw ComgrError{INTENTIONALY_UNKNOWN, "Executable binary not found"};
         // Assume that the first exec data contains the binary we need.
         const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
