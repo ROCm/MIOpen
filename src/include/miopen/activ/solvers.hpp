@@ -27,14 +27,11 @@
 #pragma once
 
 #include <miopen/solver.hpp>
+#include <miopen/activ/problem_description.hpp>
 
 #include <utility>
 
 namespace miopen {
-
-namespace activ {
-struct ProblemDescription;
-} // namespace activ
 
 namespace solver {
 
@@ -51,9 +48,9 @@ struct ActivFwdSolver0 final : ActivSolver
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver0>(); }
 
-    bool IsApplicable(const ActivContext& context) const override
+    bool IsApplicable(const ActivContext& context, const miopen::activ::ProblemDescription& problem) const override
     {
-        return IsApplicable(*std::get<0>(context), *std::get<1>(context));
+        return IsApplicable(*std::get<0>(context), problem);
     }
 
     inline ConvSolution GetSolution(const ActivContext& context) const
@@ -74,9 +71,9 @@ struct ActivFwdSolver1 final : ActivSolver
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver1>(); }
 
-    bool IsApplicable(const ActivContext& context) const override
+    bool IsApplicable(const ActivContext& context, const miopen::activ::ProblemDescription& problem) const override
     {
-        return IsApplicable(*std::get<0>(context), *std::get<1>(context));
+        return IsApplicable(*std::get<0>(context), problem);
     }
 
     inline ConvSolution GetSolution(const ActivContext& context) const
@@ -97,9 +94,9 @@ struct ActivBwdSolver0 final : ActivSolver
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver0>(); }
 
-    bool IsApplicable(const ActivContext& context) const override
+    bool IsApplicable(const ActivContext& context, const miopen::activ::ProblemDescription& problem) const override
     {
-        return IsApplicable(*std::get<0>(context), *std::get<1>(context));
+        return IsApplicable(*std::get<0>(context), problem);
     }
 
     inline ConvSolution GetSolution(const ActivContext& context) const
@@ -120,9 +117,9 @@ struct ActivBwdSolver1 final : ActivSolver
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver1>(); }
 
-    bool IsApplicable(const ActivContext& context) const override
+    bool IsApplicable(const ActivContext& context, const miopen::activ::ProblemDescription& problem) const override
     {
-        return IsApplicable(*std::get<0>(context), *std::get<1>(context));
+        return IsApplicable(*std::get<0>(context), problem);
     }
 
     inline ConvSolution GetSolution(const ActivContext& context) const

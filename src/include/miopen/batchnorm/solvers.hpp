@@ -27,6 +27,7 @@
 #pragma once
 
 #include <miopen/solver.hpp>
+#include <miopen/batchnorm/problem_description.hpp>
 
 #include <utility>
 
@@ -35,10 +36,6 @@
 #define WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR 1
 
 namespace miopen {
-
-namespace batchnorm {
-struct ProblemDescription;
-} // namespace batchnorm
 
 namespace solver {
 
@@ -59,9 +56,9 @@ struct BnFwdTrainingSpatialSingle final : BatchnormSolver
         return GetSolverDbId<BnFwdTrainingSpatialSingle>();
     }
 
-    bool IsApplicable(const BatchnormContext& context) const override
+    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
     {
-        return IsApplicable(*std::get<0>(context), *std::get<1>(context));
+        return IsApplicable(*std::get<0>(context), problem);
     }
 
     inline ConvSolution GetSolution(const BatchnormContext& context) const
@@ -85,9 +82,9 @@ struct BnFwdTrainingSpatialMultiple final : BatchnormSolver
         return GetSolverDbId<BnFwdTrainingSpatialMultiple>();
     }
 
-    bool IsApplicable(const BatchnormContext& context) const override
+    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
     {
-        return IsApplicable(*std::get<0>(context), *std::get<1>(context));
+        return IsApplicable(*std::get<0>(context), problem);
     }
 
     inline ConvSolution GetSolution(const BatchnormContext& context) const
@@ -111,9 +108,9 @@ struct BnFwdTrainingPerActivation final : BatchnormSolver
         return GetSolverDbId<BnFwdTrainingPerActivation>();
     }
 
-    bool IsApplicable(const BatchnormContext& context) const override
+    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
     {
-        return IsApplicable(*std::get<0>(context), *std::get<1>(context));
+        return IsApplicable(*std::get<0>(context), problem);
     }
 
     inline ConvSolution GetSolution(const BatchnormContext& context) const
@@ -137,9 +134,9 @@ struct BnBwdTrainingSpatialSingle final : BatchnormSolver
         return GetSolverDbId<BnBwdTrainingSpatialSingle>();
     }
 
-    bool IsApplicable(const BatchnormContext& context) const override
+    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
     {
-        return IsApplicable(*std::get<0>(context), *std::get<1>(context));
+        return IsApplicable(*std::get<0>(context), problem);
     }
 
     inline ConvSolution GetSolution(const BatchnormContext& context) const
@@ -163,9 +160,9 @@ struct BnBwdTrainingSpatialMultiple final : BatchnormSolver
         return GetSolverDbId<BnBwdTrainingSpatialMultiple>();
     }
 
-    bool IsApplicable(const BatchnormContext& context) const override
+    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
     {
-        return IsApplicable(*std::get<0>(context), *std::get<1>(context));
+        return IsApplicable(*std::get<0>(context), problem);
     }
 
     inline ConvSolution GetSolution(const BatchnormContext& context) const
@@ -189,9 +186,9 @@ struct BnBwdTrainingPerActivation final : BatchnormSolver
         return GetSolverDbId<BnBwdTrainingPerActivation>();
     }
 
-    bool IsApplicable(const BatchnormContext& context) const override
+    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
     {
-        return IsApplicable(*std::get<0>(context), *std::get<1>(context));
+        return IsApplicable(*std::get<0>(context), problem);
     }
 
     inline ConvSolution GetSolution(const BatchnormContext& context) const
@@ -212,9 +209,9 @@ struct BnFwdInference final : BatchnormSolver
 
     const std::string& SolverDbId() const override { return GetSolverDbId<BnFwdInference>(); }
 
-    bool IsApplicable(const BatchnormContext& context) const override
+    bool IsApplicable(const BatchnormContext& context, const miopen::batchnorm::ProblemDescription& problem) const override
     {
-        return IsApplicable(*std::get<0>(context), *std::get<1>(context));
+        return IsApplicable(*std::get<0>(context), problem);
     }
 
     inline ConvSolution GetSolution(const BatchnormContext& context) const

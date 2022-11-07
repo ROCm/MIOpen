@@ -237,7 +237,7 @@ struct AnySolver
         AnySolver_tmpl(T obj) : value(std::move(obj)){};
         bool IsApplicable(const ConvolutionContext& ctx) const override
         {
-            return value.IsApplicable(ctx);
+            return value.IsApplicable(ctx, ctx.problem);
         }
         bool IsTunable() const override { return TunableSolver::Is; }
         bool IsDynamic() const override { return value.IsDynamic(); }

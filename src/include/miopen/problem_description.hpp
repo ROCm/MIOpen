@@ -227,7 +227,7 @@ struct ProblemDescription
                        conv::Direction dir,
                        int bias_ = 0);
 
-    ProblemDescription(conv::ProblemDescription desc);
+    explicit ProblemDescription(conv::ProblemDescription desc);
 
     void Serialize(std::ostream& stream) const;
 

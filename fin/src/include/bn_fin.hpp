@@ -33,7 +33,6 @@
 
 #include <miopen/execution_context.hpp>
 #include <miopen/miopen.h>
-#include <miopen/batchnorm/problem_description.hpp>
 #include <miopen/batch_norm.hpp>
 #include <miopen/batchnorm/invoke_params.hpp>
 #include <miopen/batchnorm/solvers.hpp>

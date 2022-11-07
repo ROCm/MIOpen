@@ -871,7 +871,7 @@ bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilter
     const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
     return IsApplicableTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(ctx, problem) &&
-           ConvHipImplicitGemmForwardV4R4Xdlops().IsApplicable(xdlops_ctx);
+           ConvHipImplicitGemmForwardV4R4Xdlops().IsApplicable(xdlops_ctx, xdlops_ctx.problem);
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>

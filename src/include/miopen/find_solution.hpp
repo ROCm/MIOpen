@@ -174,7 +174,7 @@ struct SolverContainer
                 {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
                 }
-                else if(!solver.IsApplicable(search_params))
+                else if(!solver.IsApplicable(search_params, search_params.problem))
                 {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
                 }
@@ -272,7 +272,7 @@ struct SolverContainer
                 // it is much faster than IsApplicable().
                 else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
-                else if(!solver.IsApplicable(search_params))
+                else if(!solver.IsApplicable(search_params, search_params.problem))
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
                 else
                 {
@@ -308,7 +308,7 @@ struct SolverContainer
                     return;
                 }
 
-                if(solver.IsApplicable(search_params))
+                if(solver.IsApplicable(search_params, search_params.problem))
                 {
                     found = true;
                     return;

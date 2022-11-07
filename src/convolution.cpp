@@ -305,7 +305,7 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(miopen::ConvolutionCon
     if(!(ctx.problem.n_outputs >= 16 && ctx.problem.n_outputs % 2 == 0))
         return false;
 
-    return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx);
+    return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx, ctx.problem);
 }
 
 std::size_t

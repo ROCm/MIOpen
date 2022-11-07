@@ -36,10 +36,6 @@
 
 namespace miopen {
 
-namespace pooling {
-struct ProblemDescription;
-} // namespace pooling
-
 namespace solver {
 
 namespace pooling {
@@ -53,9 +49,9 @@ struct PoolingSolver : SolverMixin<PoolingContext, miopen::pooling::ProblemDescr
     using SolverMixin<PoolingContext, miopen::pooling::ProblemDescription>::GetWorkspaceSize;
     using SolverMixin<PoolingContext, miopen::pooling::ProblemDescription>::IsApplicable;
 
-    bool IsApplicable(const PoolingContext& context) const final
+    bool IsApplicable(const PoolingContext& context, const miopen::pooling::ProblemDescription& problem) const final
     {
-        return IsApplicable(*std::get<0>(context), *std::get<1>(context));
+        return IsApplicable(*std::get<0>(context), problem);
     }
 
     ConvSolution GetSolution(const PoolingContext& context) const
