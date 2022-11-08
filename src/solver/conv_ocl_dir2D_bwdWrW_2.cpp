@@ -515,7 +515,8 @@ ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ProblemDescript
 }
 
 template <int N_BATCH_LOOPS>
-size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription& problem) const
+size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&,
+                                                       const ProblemDescription& problem) const
 {
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(problem);
     if(n_batch_blks > 1)

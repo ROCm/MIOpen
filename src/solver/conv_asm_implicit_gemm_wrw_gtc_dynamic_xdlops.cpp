@@ -793,7 +793,8 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ProblemDescription& problem)
 }
 
 size_t
-ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ExecutionContext&, const ProblemDescription& problem) const
+ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ExecutionContext&,
+                                                         const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;

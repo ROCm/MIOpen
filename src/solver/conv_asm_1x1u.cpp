@@ -463,7 +463,8 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
     return ok;
 }
 
-size_t ConvAsm1x1U::GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription& problem) const
+size_t ConvAsm1x1U::GetWorkspaceSize(const ConvolutionContext&,
+                                     const ProblemDescription& problem) const
 {
     if(UseSubsample(problem) || UseUpsample(problem))
     {

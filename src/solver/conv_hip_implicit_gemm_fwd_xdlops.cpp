@@ -313,7 +313,8 @@ ConvHipImplicitGemmFwdXdlops::Search(const ConvolutionContext& ctx,
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-size_t ConvHipImplicitGemmFwdXdlops::GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+size_t ConvHipImplicitGemmFwdXdlops::GetWorkspaceSize(const ConvolutionContext& ctx,
+                                                      const ProblemDescription& problem) const
 {
     std::ignore = ctx;
     std::ignore = problem;

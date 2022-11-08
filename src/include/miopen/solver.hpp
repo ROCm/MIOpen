@@ -2303,7 +2303,8 @@ struct ConvAsmImplicitGemmV4R1DynamicWrw final : ConvSolver
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
     bool IsDynamic() const override { return true; }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -2336,7 +2337,8 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlops final : ConvSolver
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
     bool IsDynamic() const override { return true; }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -2816,14 +2818,16 @@ struct ConvMPBidirectWinograd_xdlops final
                IsThisSolverDynamic();
     }
 
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         const auto xdlops_problem = GetTransformedProblem(problem);
         const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
         return ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>()
                    .GetWorkspaceSize(ctx, problem) +
-               ConvHipImplicitGemmForwardV4R4Xdlops{}.GetWorkspaceSize(xdlops_ctx, xdlops_ctx.problem);
+               ConvHipImplicitGemmForwardV4R4Xdlops{}.GetWorkspaceSize(xdlops_ctx,
+                                                                       xdlops_ctx.problem);
     }
 
     PerformanceImplicitGemmForwardV4R4Xdlops
@@ -2941,7 +2945,8 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
     bool IsDynamic() const override { return true; }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -3457,7 +3462,8 @@ struct fft final : ConvSolver
     {
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -3883,7 +3889,8 @@ struct GemmFwd1x1_0_2 final : GemmFwdBase
     {
         return IsApplicable(ctx, problem.conv_problem);
     }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(ctx, problem.conv_problem);
     }
@@ -3913,7 +3920,8 @@ struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
     {
         return IsApplicable(ctx, problem.conv_problem);
     }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(ctx, problem.conv_problem);
     }
@@ -3943,7 +3951,8 @@ struct GemmFwd1x1_0_1 final : GemmFwdBase
     {
         return IsApplicable(ctx, problem.conv_problem);
     }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(ctx, problem.conv_problem);
     }
@@ -3973,7 +3982,8 @@ struct GemmFwdRest final : GemmFwdBase
     {
         return IsApplicable(ctx, problem.conv_problem);
     }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(ctx, problem.conv_problem);
     }
@@ -4023,7 +4033,8 @@ struct GemmBwd1x1_stride2 final : GemmBwdBase
     {
         return IsApplicable(ctx, problem.conv_problem);
     }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(ctx, problem.conv_problem);
     }
@@ -4053,7 +4064,8 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
     {
         return IsApplicable(ctx, problem.conv_problem);
     }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(ctx, problem.conv_problem);
     }
@@ -4085,7 +4097,8 @@ struct GemmBwdRest final : GemmBwdBase
     {
         return IsApplicable(ctx, problem.conv_problem);
     }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(ctx, problem.conv_problem);
     }
@@ -4134,7 +4147,8 @@ struct GemmWrw1x1_stride1 final : GemmWrwBase
     {
         return IsApplicable(ctx, problem.conv_problem);
     }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(ctx, problem.conv_problem);
     }
@@ -4164,7 +4178,8 @@ struct GemmWrwUniversal final : GemmWrwBase
     {
         return IsApplicable(ctx, problem.conv_problem);
     }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(ctx, problem.conv_problem);
     }
@@ -5504,7 +5519,8 @@ struct ConvHipImplicitGemmFwdXdlops final
     {
         return 0.02f;
     };
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription&) const override;
 
     PerformanceConfigHipImplicitGemmFwdXdlops
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override

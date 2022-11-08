@@ -89,7 +89,8 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
     return ConvAsm1x1U{}.IsApplicable(ctx, problem);
 }
 
-size_t ConvBiasActivAsm1x1U::GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const
+size_t ConvBiasActivAsm1x1U::GetWorkspaceSize(const ConvolutionContext& ctx,
+                                              const ProblemDescription& problem) const
 {
     return ConvAsm1x1U{}.GetWorkspaceSize(ctx, problem);
 }

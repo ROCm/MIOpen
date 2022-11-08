@@ -607,7 +607,8 @@ ConvHipImplicitGemmBwdDataV1R1::CalculateGemmSize(const ConvolutionContext& ctx,
     return std::make_tuple(gemm_m, gemm_n, gemm_k);
 }
 
-size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription& problem) const
+size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ConvolutionContext&,
+                                                        const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;
