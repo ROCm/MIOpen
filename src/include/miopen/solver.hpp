@@ -112,7 +112,7 @@ struct SolverBase
     ///   if Direct computational algorithm is used.
     /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
     /// * @see https://github.com/ROCmSoftwarePlatform/MIOpen/issues/410
-    virtual float GetWti(const boost::any& ctx) const = 0;
+    virtual float GetWti(const boost::any& ctx, const boost::any& problem) const = 0;
 
     // Returns the workspace size required by the solver for a given ConvolutionContext
     virtual size_t GetWorkspaceSize(const boost::any& ctx) const = 0;
@@ -148,7 +148,7 @@ template <class Context, class Problem>
 struct SolverMixin : SolverBase
 {
     virtual bool IsApplicable(const Context& ctx, const Problem& problem) const = 0;
-    virtual float GetWti(const Context&) const { return -2.0; };
+    virtual float GetWti(const Context&, const Problem&) const { return -2.0; };
     virtual size_t GetWorkspaceSize(const Context&) const { return 0; };
 
     bool IsApplicable(const boost::any& ctx, const boost::any& problem) const final
@@ -157,9 +157,10 @@ struct SolverMixin : SolverBase
                             boost::any_cast<const Problem&>(problem));
     }
 
-    float GetWti(const boost::any& ctx) const final
+    float GetWti(const boost::any& ctx, const boost::any& problem) const final
     {
-        return GetWti(boost::any_cast<const Context&>(ctx));
+        return GetWti(boost::any_cast<const Context&>(ctx),
+                      boost::any_cast<const Problem&>(problem));
     }
 
     size_t GetWorkspaceSize(const boost::any& ctx) const final
@@ -2701,9 +2702,6 @@ extern template struct ConvBinWinoRxS<3, 2>;
 
 struct ConvBinWinogradRxSf2x3g1 final : ConvSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::GetWti;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvBinWinogradRxSf2x3g1>();
@@ -2711,14 +2709,13 @@ struct ConvBinWinogradRxSf2x3g1 final : ConvSolver
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
-    float GetWti(const ConvolutionContext& ctx) const override { return GetWti(ctx, ctx.problem); }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
         return GetSolution(ctx, ctx.problem);
     }
 
 private:
-    float GetWti(const ConvolutionContext&, const ProblemDescription&) const;
     ConvSolution GetSolution(const ConvolutionContext&, const ProblemDescription&) const;
 };
 
@@ -3865,7 +3862,7 @@ struct ConvDirectNaiveConvFwd final : ConvSolver
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const ConvolutionContext&) const override { return 0.01; }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.01; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
         return GetSolution(ctx, ctx.problem);
@@ -3886,7 +3883,7 @@ struct ConvDirectNaiveConvBwd final : ConvSolver
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const ConvolutionContext&) const override { return 0.01; }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.01; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
         return GetSolution(ctx, ctx.problem);
@@ -3907,7 +3904,7 @@ struct ConvDirectNaiveConvWrw final : ConvSolver
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const ConvolutionContext&) const override { return 0.01; }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.01; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
         return GetSolution(ctx, ctx.problem);
@@ -3924,9 +3921,9 @@ struct GemmFwdBase : ConvSolver
     using ConvSolver::IsApplicable;
 
     bool IsDynamic() const override { return true; }
-    float GetWti(const ConvolutionContext& ctx) const override
+    float GetWti(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(ctx, ctx.problem.conv_problem);
+        return GetWti(ctx, problem.conv_problem);
     }
 
 private:
@@ -4072,9 +4069,9 @@ struct GemmBwdBase : ConvSolver
     using ConvSolver::IsApplicable;
 
     bool IsDynamic() const override { return true; }
-    float GetWti(const ConvolutionContext& ctx) const override
+    float GetWti(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(ctx, ctx.problem.conv_problem);
+        return GetWti(ctx, problem.conv_problem);
     }
 
 private:
@@ -4190,9 +4187,9 @@ struct GemmWrwBase : ConvSolver
     using ConvSolver::IsApplicable;
 
     bool IsDynamic() const override { return true; }
-    float GetWti(const ConvolutionContext& ctx) const override
+    float GetWti(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(ctx, ctx.problem.conv_problem);
+        return GetWti(ctx, problem.conv_problem);
     }
 
 private:
@@ -5591,6 +5588,17 @@ struct ConvHipImplicitGemmFwdXdlops final
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
+    // Magic Number Alert:
+    // Naive convolutions have GetWti() that return very small value (0.01f).
+    // This allows MIOpen to use Naive Solvers if no other applicable Solvers
+    // have known WTIs. Right now this means that in case of find-db miss,
+    // the library will try to use Winograd or GEMM (whatever is faster according
+    //  to their GetWti's), but if both are not applicable, the library will
+    // use Naive Solver
+    // Since we would like to us CK before naive, and use it instead (because
+    // we do expect that CK is faster than Naive), therefore we use a
+    // value bigger than 0.01f, e.g. 0.02f.
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.02f; };
 
     PerformanceConfigHipImplicitGemmFwdXdlops
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
@@ -5615,17 +5623,6 @@ struct ConvHipImplicitGemmFwdXdlops final
     {
         return GetSolution(ctx, ctx.problem, config);
     }
-    // Magic Number Alert:
-    // Naive convolutions have GetWti() that return very small value (0.01f).
-    // This allows MIOpen to use Naive Solvers if no other applicable Solvers
-    // have known WTIs. Right now this means that in case of find-db miss,
-    // the library will try to use Winograd or GEMM (whatever is faster according
-    //  to their GetWti's), but if both are not applicable, the library will
-    // use Naive Solver
-    // Since we would like to us CK before naive, and use it instead (because
-    // we do expect that CK is faster than Naive), therefore we use a
-    // value bigger than 0.01f, e.g. 0.02f.
-    float GetWti(const ConvolutionContext&) const override { return 0.02f; };
 
 private:
     PerformanceConfigHipImplicitGemmFwdXdlops
