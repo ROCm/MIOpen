@@ -43,8 +43,9 @@ namespace batchnorm {
 
 struct BatchnormSolver : SolverMixin<ExecutionContext, miopen::batchnorm::ProblemDescription>
 {
-    virtual ConvSolution GetSolution(const ExecutionContext& context,
-                                     const miopen::batchnorm::ProblemDescription& problem) const = 0;
+    virtual ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::batchnorm::ProblemDescription& problem) const = 0;
 };
 
 struct BnFwdTrainingSpatialSingle final : BatchnormSolver
