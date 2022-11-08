@@ -41,7 +41,11 @@ namespace solver {
 
 namespace batchnorm {
 
-using BatchnormSolver = SolverMixin<ExecutionContext, miopen::batchnorm::ProblemDescription>;
+struct BatchnormSolver : SolverMixin<ExecutionContext, miopen::batchnorm::ProblemDescription>
+{
+    virtual ConvSolution GetSolution(const ExecutionContext& context,
+                                     const miopen::batchnorm::ProblemDescription& problem) const = 0;
+};
 
 struct BnFwdTrainingSpatialSingle final : BatchnormSolver
 {
@@ -53,7 +57,7 @@ struct BnFwdTrainingSpatialSingle final : BatchnormSolver
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
 struct BnFwdTrainingSpatialMultiple final : BatchnormSolver
@@ -66,7 +70,7 @@ struct BnFwdTrainingSpatialMultiple final : BatchnormSolver
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
 struct BnFwdTrainingPerActivation final : BatchnormSolver
@@ -79,7 +83,7 @@ struct BnFwdTrainingPerActivation final : BatchnormSolver
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
 struct BnBwdTrainingSpatialSingle final : BatchnormSolver
@@ -92,7 +96,7 @@ struct BnBwdTrainingSpatialSingle final : BatchnormSolver
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
 struct BnBwdTrainingSpatialMultiple final : BatchnormSolver
@@ -105,7 +109,7 @@ struct BnBwdTrainingSpatialMultiple final : BatchnormSolver
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
 struct BnBwdTrainingPerActivation final : BatchnormSolver
@@ -118,7 +122,7 @@ struct BnBwdTrainingPerActivation final : BatchnormSolver
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
 struct BnFwdInference final : BatchnormSolver
@@ -128,7 +132,7 @@ struct BnFwdInference final : BatchnormSolver
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
 } // namespace batchnorm
