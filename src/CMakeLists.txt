@@ -191,7 +191,6 @@ set( MIOpen_Source
     solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
     solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
-    solver/conv_hip_implicit_gemm_xdlops_common.cpp
     solver/conv_mlir_igemm_bwd.cpp
     solver/conv_mlir_igemm_bwd_xdlops.cpp
     solver/conv_mlir_igemm_fwd.cpp
@@ -484,7 +483,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/batchnormocl.cpp
         ocl/convolutionocl.cpp
         ocl/lrn_ocl.cpp
-        ocl/mloNeuron.cpp
         ocl/mloNorm.cpp
         ocl/pooling_ocl.cpp
         ocl/tensorocl.cpp
