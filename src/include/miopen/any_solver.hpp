@@ -241,7 +241,10 @@ struct AnySolver
         }
         bool IsTunable() const override { return TunableSolver::Is; }
         bool IsDynamic() const override { return value.IsDynamic(); }
-        float GetWti(const ConvolutionContext& ctx) const override { return value.GetWti(ctx, ctx.problem); }
+        float GetWti(const ConvolutionContext& ctx) const override
+        {
+            return value.GetWti(ctx, ctx.problem);
+        }
 
         ConvSolution FindSolution(const ConvolutionContext& ctx,
                                   Db& db,
