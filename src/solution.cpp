@@ -163,6 +163,7 @@ void Solution::RunImpl(Handle& handle,
 
     auto conv_ctx = ConvolutionContext{conv_problem, {&handle}};
     conv_ctx.DetectRocm();
+    conv_ctx.SetupFloats();
 
     decltype(auto) db        = GetDb(conv_ctx);
     const auto conv_solution = GetSolver().GetSolver().FindSolution(conv_ctx, db, invoke_ctx);
