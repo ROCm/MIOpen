@@ -277,7 +277,7 @@ struct SolverContainer
                 else
                 {
                     ++count;
-                    auto sz = solver.GetWorkspaceSize(search_params);
+                    auto sz = solver.GetWorkspaceSize(search_params, search_params.problem);
                     res.push_back(std::make_pair(solver.SolverDbId(), sz));
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": " << sz);
                 }

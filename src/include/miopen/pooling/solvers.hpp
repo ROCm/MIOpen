@@ -60,9 +60,10 @@ struct PoolingSolver : SolverMixin<PoolingContext, miopen::pooling::ProblemDescr
         return GetSolution(*std::get<0>(context), *std::get<1>(context));
     }
 
-    std::size_t GetWorkspaceSize(const PoolingContext& context) const final
+    std::size_t GetWorkspaceSize(const PoolingContext& context,
+                                 const miopen::pooling::ProblemDescription& problem) const final
     {
-        return GetWorkspaceSize(*std::get<0>(context), *std::get<1>(context));
+        return GetWorkspaceSize(*std::get<0>(context), problem);
     }
 
     virtual bool IsApplicable(const ExecutionContext& context,

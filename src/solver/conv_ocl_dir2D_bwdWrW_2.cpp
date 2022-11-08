@@ -515,7 +515,7 @@ ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ProblemDescript
 }
 
 template <int N_BATCH_LOOPS>
-size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ProblemDescription& problem) const
+size_t ConvOclBwdWrW2<N_BATCH_LOOPS>::GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription& problem) const
 {
     const size_t n_batch_blks = GetNBatchBlks<N_BATCH_LOOPS>(problem);
     if(n_batch_blks > 1)
@@ -728,7 +728,7 @@ ConvSolution ConvOclBwdWrW2<N_BATCH_LOOPS>::GetSolution(
         result.construction_params.push_back(kernel);
     }
 
-    const auto ws_sz       = GetWorkspaceSize(problem);
+    const auto ws_sz       = GetWorkspaceSize(ctx, problem);
     result.workspace_sz    = ws_sz;
     result.invoker_factory = conv::MakeOclWrWRdcInvokerFactory(n_batch_blks > 1, ws_sz);
 

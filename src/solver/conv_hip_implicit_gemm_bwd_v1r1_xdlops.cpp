@@ -715,7 +715,7 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdV1R1Xdlops::CalculateLds
 }
 
 std::size_t
-ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ProblemDescription& problem) const
+ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;
@@ -830,7 +830,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV1R1Xdlops::GetSolution(
         "gridwise_convolution_backward_data_implicit_gemm_v1r1_xdlops_nchw_kcyx_nkhw";
     // clang-format on
 
-    result.workspace_sz = GetWorkspaceSize(problem);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
 
     int grid_size  = 0;
     int block_size = 0;

@@ -195,7 +195,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
     sol.construction_params.push_back(kernel1_info);
 
     // workspace is used to save transformed tensor descriptors
-    sol.workspace_sz = GetWorkspaceSize(problem);
+    sol.workspace_sz = GetWorkspaceSize(ctx, problem);
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -244,7 +244,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
     return sol;
 }
 
-std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ProblemDescription& problem) const
+std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription& problem) const
 {
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetMaxWorkSpaceSize(
         ck_utility::get_ck_convolution_problem_descriptor(problem));

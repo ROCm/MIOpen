@@ -248,7 +248,7 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ProblemDescription
         return false;
 }
 
-size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ProblemDescription& problem) const
+size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ExecutionContext&, const ProblemDescription& problem) const
 {
     int k            = problem.n_inputs;
     int c            = problem.n_outputs;
@@ -357,7 +357,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicWrw::GetSolution(const ExecutionConte
     if(!ret)
         MIOPEN_THROW("this kernel should not run with igemm dynamic!");
 
-    result.workspace_sz = GetWorkspaceSize(problem);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
 
     kernel.kernel_file = "igemm_v4r1_wrw_dynamic.s";
     kernel.kernel_name = kernel_name;

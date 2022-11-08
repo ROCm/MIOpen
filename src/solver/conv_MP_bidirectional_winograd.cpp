@@ -221,7 +221,7 @@ static bool IsApplicableTransform(const ConvolutionContext& ctx, const ProblemDe
         {
             const auto required =
                 ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>{}
-                    .GetWorkspaceSize(problem);
+                    .GetWorkspaceSize(ctx, problem);
             MIOPEN_LOG_I2("Workspace required: " << required << ", limit: " << limit);
             if(required > limit)
                 return false;
@@ -356,7 +356,7 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 size_t ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorkspaceSize(
-    const ProblemDescription& problem) const
+    const ConvolutionContext&, const ProblemDescription& problem) const
 {
     const miopenDataType_t transform_data_type =
         miopen::IsEnabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM{})
@@ -641,7 +641,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
     const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
     ConvSolution result;
-    result.workspace_sz = GetWorkspaceSize(problem);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
 #if MIOPEN_BACKEND_HIP
 
     const int n_groups = ctx.GetStream().GetMaxComputeUnits();

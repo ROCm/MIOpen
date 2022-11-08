@@ -793,7 +793,7 @@ FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ProblemDescription& problem)
 }
 
 size_t
-ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ProblemDescription& problem) const
+ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetWorkspaceSize(const ExecutionContext&, const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;
@@ -890,7 +890,7 @@ ConvAsmImplicitGemmGTCDynamicWrwXdlops::GetSolution(const ExecutionContext& ctx,
     // MIOPEN_LOG_I2(kernel_name << " with groups for reduction: "
     //                           << (1 << log2_gemm_k_global_splits));
 
-    const auto required_workspace_size = GetWorkspaceSize(problem);
+    const auto required_workspace_size = GetWorkspaceSize(ctx, problem);
     result.workspace_sz                = required_workspace_size;
 
     std::ostringstream kernel_file_name;

@@ -968,7 +968,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 "gridwise_convolution_backward_data_implicit_gemm_v4r1_xdlops_nchw_kcyx_nkhw";
             // clang-format on
 
-            // TODO: add fp16 calculation by GetWorkspaceSize(ctx);
+            // TODO: add fp16 calculation by GetWorkspaceSize();
             result.workspace_sz = 0;
 
             int GemmABlockCopySrcDataPerRead_GemmM = 1;

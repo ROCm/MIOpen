@@ -463,7 +463,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& ctx,
     return ok;
 }
 
-size_t ConvAsm1x1U::GetWorkspaceSize(const ProblemDescription& problem) const
+size_t ConvAsm1x1U::GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription& problem) const
 {
     if(UseSubsample(problem) || UseUpsample(problem))
     {
@@ -543,7 +543,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& ctx,
 
         ss_us_kernel.comp_options = subsample_kernel_compilation_options;
     }
-    result.workspace_sz = GetWorkspaceSize(problem);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
 
     GenerateClangDefsym(options, "stride_h", 1);
     GenerateClangDefsym(options, "stride_w", 1);
