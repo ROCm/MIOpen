@@ -37,7 +37,11 @@ namespace solver {
 
 namespace activ {
 
-using ActivSolver = SolverMixin<ExecutionContext, miopen::activ::ProblemDescription>;
+struct ActivSolver : SolverMixin<ExecutionContext, miopen::activ::ProblemDescription>
+{
+    virtual ConvSolution GetSolution(const ExecutionContext& context,
+                                     const miopen::activ::ProblemDescription& problem) const = 0;
+};
 
 struct ActivFwdSolver0 final : ActivSolver
 {
@@ -46,7 +50,7 @@ struct ActivFwdSolver0 final : ActivSolver
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::activ::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::activ::ProblemDescription& problem) const;
+                             const miopen::activ::ProblemDescription& problem) const override;
 };
 
 struct ActivFwdSolver1 final : ActivSolver
@@ -56,7 +60,7 @@ struct ActivFwdSolver1 final : ActivSolver
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::activ::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::activ::ProblemDescription& problem) const;
+                             const miopen::activ::ProblemDescription& problem) const override;
 };
 
 struct ActivBwdSolver0 final : ActivSolver
@@ -66,7 +70,7 @@ struct ActivBwdSolver0 final : ActivSolver
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::activ::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::activ::ProblemDescription& problem) const;
+                             const miopen::activ::ProblemDescription& problem) const override;
 };
 
 struct ActivBwdSolver1 final : ActivSolver
@@ -76,7 +80,7 @@ struct ActivBwdSolver1 final : ActivSolver
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::activ::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::activ::ProblemDescription& problem) const;
+                             const miopen::activ::ProblemDescription& problem) const override;
 };
 
 } // namespace activ
