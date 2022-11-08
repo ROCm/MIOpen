@@ -37,102 +37,44 @@ namespace solver {
 
 namespace activ {
 
-using ActivContext = std::tuple<const ExecutionContext*, const miopen::activ::ProblemDescription*>;
-
-using ActivSolver = SolverMixin<ActivContext, miopen::activ::ProblemDescription>;
+using ActivSolver = SolverMixin<ExecutionContext, miopen::activ::ProblemDescription>;
 
 struct ActivFwdSolver0 final : ActivSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ActivSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver0>(); }
 
-    bool IsApplicable(const ActivContext& context,
-                      const miopen::activ::ProblemDescription& problem) const override
-    {
-        return IsApplicable(*std::get<0>(context), problem);
-    }
-
-    inline ConvSolution GetSolution(const ActivContext& context) const
-    {
-        return GetSolution(*std::get<0>(context), *std::get<1>(context));
-    }
-
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::activ::ProblemDescription& problem) const;
+                      const miopen::activ::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
 struct ActivFwdSolver1 final : ActivSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ActivSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivFwdSolver1>(); }
 
-    bool IsApplicable(const ActivContext& context,
-                      const miopen::activ::ProblemDescription& problem) const override
-    {
-        return IsApplicable(*std::get<0>(context), problem);
-    }
-
-    inline ConvSolution GetSolution(const ActivContext& context) const
-    {
-        return GetSolution(*std::get<0>(context), *std::get<1>(context));
-    }
-
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::activ::ProblemDescription& problem) const;
+                      const miopen::activ::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
 struct ActivBwdSolver0 final : ActivSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ActivSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver0>(); }
 
-    bool IsApplicable(const ActivContext& context,
-                      const miopen::activ::ProblemDescription& problem) const override
-    {
-        return IsApplicable(*std::get<0>(context), problem);
-    }
-
-    inline ConvSolution GetSolution(const ActivContext& context) const
-    {
-        return GetSolution(*std::get<0>(context), *std::get<1>(context));
-    }
-
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::activ::ProblemDescription& problem) const;
+                      const miopen::activ::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::activ::ProblemDescription& problem) const;
 };
 
 struct ActivBwdSolver1 final : ActivSolver
 {
-    // To suppress -Woverloaded-virtual
-    using ActivSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<ActivBwdSolver1>(); }
 
-    bool IsApplicable(const ActivContext& context,
-                      const miopen::activ::ProblemDescription& problem) const override
-    {
-        return IsApplicable(*std::get<0>(context), problem);
-    }
-
-    inline ConvSolution GetSolution(const ActivContext& context) const
-    {
-        return GetSolution(*std::get<0>(context), *std::get<1>(context));
-    }
-
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::activ::ProblemDescription& problem) const;
+                      const miopen::activ::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::activ::ProblemDescription& problem) const;
 };
