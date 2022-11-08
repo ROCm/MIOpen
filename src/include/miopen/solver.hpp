@@ -375,6 +375,7 @@ struct ConvAsm1x1U final : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     PerformanceConfigConvAsm1x1U
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
@@ -391,7 +392,6 @@ struct ConvAsm1x1U final : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
     {
         return Search(ctx, ctx.problem, invoke_ctx);
     }
-    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceConfigConvAsm1x1U& config) const override
     {
@@ -1464,6 +1464,7 @@ struct ConvMlirIgemmWrWXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     PerformanceConvMlirIgemmXdlops
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override;
@@ -1477,7 +1478,6 @@ struct ConvMlirIgemmWrWXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
     {
         return Search(ctx, ctx.problem, invoke_ctx);
     }
-    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceConvMlirIgemmXdlops& config) const override
     {
@@ -1941,6 +1941,7 @@ struct ConvHipImplicitGemmBwdDataV1R1 final : ConvTunableSolver<PerformanceImpli
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     PerformanceImplicitGemmBwdDataV1R1
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
@@ -1962,7 +1963,6 @@ struct ConvHipImplicitGemmBwdDataV1R1 final : ConvTunableSolver<PerformanceImpli
     {
         return GetSolution(ctx, ctx.problem, config);
     }
-    bool MayNeedWorkspace() const override { return true; }
 
 private:
     PerformanceImplicitGemmBwdDataV1R1 GetDefaultPerformanceConfig(const ConvolutionContext&,
@@ -2194,6 +2194,7 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops final
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     PerformanceImplicitGemmBwdV1R1Xdlops
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
@@ -2205,7 +2206,6 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops final
     {
         return IsValidPerformanceConfig(ctx.problem, config);
     }
-    bool MayNeedWorkspace() const override { return true; }
     PerformanceImplicitGemmBwdV1R1Xdlops Search(const ConvolutionContext& ctx,
                                                 const AnyInvokeParams& invoke_ctx) const override
     {
@@ -2830,6 +2830,8 @@ struct ConvMPBidirectWinograd_xdlops final
                                                                        xdlops_ctx.problem);
     }
 
+    bool MayNeedWorkspace() const override { return true; }
+
     PerformanceImplicitGemmForwardV4R4Xdlops
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
     {
@@ -2860,8 +2862,6 @@ struct ConvMPBidirectWinograd_xdlops final
 
         return ConvHipImplicitGemmForwardV4R4Xdlops{}.IsValidPerformanceConfig(xdlops_ctx, config);
     }
-
-    bool MayNeedWorkspace() const override { return true; }
 
     PerformanceImplicitGemmForwardV4R4Xdlops
     Search(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const override
@@ -3212,6 +3212,7 @@ struct ConvAsmBwdWrW1x1 final : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     PerformanceConfigConvAsmBwdWrW1x1
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
@@ -3228,7 +3229,6 @@ struct ConvAsmBwdWrW1x1 final : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW
     {
         return Search(ctx, ctx.problem, invoke_ctx);
     }
-    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceConfigConvAsmBwdWrW1x1& config) const override
     {
@@ -3328,6 +3328,7 @@ struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATC
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
@@ -3345,7 +3346,6 @@ struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATC
     {
         return Search(ctx, ctx.problem, invoke_ctx);
     }
-    bool MayNeedWorkspace() const override { return true; }
     ConvSolution
     GetSolution(const ConvolutionContext& ctx,
                 const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& config) const override
@@ -3550,13 +3550,13 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops final
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     PerformanceImplicitGemmWrwV4R4Xdlops
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
     {
         return GetDefaultPerformanceConfig(ctx, ctx.problem);
     }
-    bool MayNeedWorkspace() const override { return true; }
     bool IsValidPerformanceConfig(const ConvolutionContext& ctx,
                                   const PerformanceImplicitGemmWrwV4R4Xdlops& config) const override
     {
@@ -3664,13 +3664,13 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm final
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
     {
         return GetDefaultPerformanceConfig(ctx, ctx.problem);
     }
-    bool MayNeedWorkspace() const override { return true; }
     bool IsValidPerformanceConfig(
         const ConvolutionContext& ctx,
         const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm& config) const override
@@ -4585,6 +4585,7 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC final
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
@@ -4602,7 +4603,6 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC final
     {
         return Search(ctx, ctx.problem, invoke_ctx);
     }
-    bool MayNeedWorkspace() const override { return true; }
     ConvSolution
     GetSolution(const ConvolutionContext& ctx,
                 const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config) const override
@@ -4810,6 +4810,7 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC final
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
@@ -4827,7 +4828,6 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC final
     {
         return Search(ctx, ctx.problem, invoke_ctx);
     }
-    bool MayNeedWorkspace() const override { return true; }
     ConvSolution
     GetSolution(const ConvolutionContext& ctx,
                 const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config) const override
@@ -5040,6 +5040,7 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC final
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     size_t GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
@@ -5057,7 +5058,6 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC final
     {
         return Search(ctx, ctx.problem, invoke_ctx);
     }
-    bool MayNeedWorkspace() const override { return true; }
     ConvSolution
     GetSolution(const ConvolutionContext& ctx,
                 const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC& config) const override
@@ -5413,6 +5413,7 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
 
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
+    bool MayNeedWorkspace() const override { return false; }
 
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
@@ -5430,7 +5431,6 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
     {
         return Search(ctx, ctx.problem, invoke_ctx);
     }
-    bool MayNeedWorkspace() const override { return false; }
     ConvSolution
     GetSolution(const ConvolutionContext& ctx,
                 const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config) const override
@@ -5521,6 +5521,7 @@ struct ConvHipImplicitGemmFwdXdlops final
     };
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
                             const ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return false; }
 
     PerformanceConfigHipImplicitGemmFwdXdlops
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
@@ -5538,7 +5539,6 @@ struct ConvHipImplicitGemmFwdXdlops final
     {
         return Search(ctx, ctx.problem, invoke_ctx);
     }
-    bool MayNeedWorkspace() const override { return false; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
                              const PerformanceConfigHipImplicitGemmFwdXdlops& config) const override
     {
