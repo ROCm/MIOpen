@@ -65,6 +65,8 @@ ConvSolution BnFwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
     int n, c, h, w;
     auto result = ConvSolution{miopenStatusSuccess};
     miopenDataType_t input_type;
+    bool savePopStats         = true;
+    const bool saveBatchStats = true;
     {
         const auto& handle = fusion_ctx.GetStream();
         auto kernel        = KernelInfo{};
@@ -145,8 +147,7 @@ ConvSolution BnFwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
         {
             read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
         }
-        const bool saveBatchStats = true;
-        bool savePopStats         = problem.GetResultSave(); // TODO: double check this
+        savePopStats          = problem.GetResultSave(); // TODO: double check this
         std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
         const auto& activ_op  = dynamic_cast<ActivFwdFusionOpDescriptor&>(
             *fusion_ctx.problem.fusion_plan_desc->op_map[1]);
@@ -199,78 +200,42 @@ ConvSolution BnFwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
             const auto activ_beta  = activ_invoker->activBeta;
             const auto activ_gamma = activ_invoker->activGamma;
             const auto mode        = problem.GetMode();
-            if(mode == miopenBNPerActivation)
+            std::vector<OpKernelArg> kern_args;
+            if(mode == miopenBNSpatial)
+                kern_args.push_back({static_cast<float>(1.0f / (n * h * w))});
+
+            if(input_type == miopenFloat)
             {
-                if(input_type == miopenFloat)
-                {
-                    kernel(static_cast<float>(activ_alpha),
-                           static_cast<float>(activ_beta),
-                           static_cast<float>(activ_gamma),
-                           bn_invoke->epsilon,
-                           bn_invoke->expAvgFactor,
-                           bot_ocl_buf,
-                           top_ocl_buf,
-                           bn_invoke->bnBias,
-                           bn_invoke->bnScale,
-                           bn_invoke->runningMean,
-                           bn_invoke->runningVariance,
-                           bn_invoke->savedInvVariance,
-                           bn_invoke->savedMean);
-                }
-                else if(input_type == miopenHalf)
-                {
-                    kernel(static_cast<half_float::half>(activ_alpha),
-                           static_cast<half_float::half>(activ_beta),
-                           static_cast<half_float::half>(activ_gamma),
-                           bn_invoke->epsilon,
-                           bn_invoke->expAvgFactor,
-                           bot_ocl_buf,
-                           top_ocl_buf,
-                           bn_invoke->bnBias,
-                           bn_invoke->bnScale,
-                           bn_invoke->runningMean,
-                           bn_invoke->runningVariance,
-                           bn_invoke->savedInvVariance,
-                           bn_invoke->savedMean);
-                }
+                kern_args.push_back({static_cast<float>(activ_alpha)});
+                kern_args.push_back({static_cast<float>(activ_beta)});
+                kern_args.push_back({static_cast<float>(activ_gamma)});
             }
-            else if(mode == miopenBNSpatial)
+            else if(input_type == miopenHalf)
             {
-                if(input_type == miopenFloat)
-                {
-                    kernel(static_cast<float>(1.0f / (n * h * w)),
-                           static_cast<float>(activ_alpha),
-                           static_cast<float>(activ_beta),
-                           static_cast<float>(activ_gamma),
-                           bn_invoke->epsilon,
-                           bn_invoke->expAvgFactor,
-                           bot_ocl_buf,
-                           top_ocl_buf,
-                           bn_invoke->bnBias,
-                           bn_invoke->bnScale,
-                           bn_invoke->runningMean,
-                           bn_invoke->runningVariance,
-                           bn_invoke->savedInvVariance,
-                           bn_invoke->savedMean);
-                }
-                else if(input_type == miopenHalf)
-                {
-                    kernel(static_cast<float>(1.0f / (n * h * w)),
-                           static_cast<half_float::half>(activ_alpha),
-                           static_cast<half_float::half>(activ_beta),
-                           static_cast<half_float::half>(activ_gamma),
-                           bn_invoke->epsilon,
-                           bn_invoke->expAvgFactor,
-                           bot_ocl_buf,
-                           top_ocl_buf,
-                           bn_invoke->bnBias,
-                           bn_invoke->bnScale,
-                           bn_invoke->runningMean,
-                           bn_invoke->runningVariance,
-                           bn_invoke->savedInvVariance,
-                           bn_invoke->savedMean);
-                }
+                kern_args.push_back({static_cast<half_float::half>(activ_alpha)});
+                kern_args.push_back({static_cast<half_float::half>(activ_beta)});
+                kern_args.push_back({static_cast<half_float::half>(activ_gamma)});
             }
+            else
+                MIOPEN_THROW("Unsupported Precision");
+            kern_args.push_back({bn_invoke->epsilon});
+            if(savePopStats)
+                kern_args.push_back({bn_invoke->expAvgFactor});
+            kern_args.push_back({bot_ocl_buf});
+            kern_args.push_back({top_ocl_buf});
+            kern_args.push_back({bn_invoke->bnBias});
+            kern_args.push_back({bn_invoke->bnScale});
+            if(savePopStats)
+            {
+                kern_args.push_back({bn_invoke->runningMean});
+                kern_args.push_back({bn_invoke->runningVariance});
+            }
+            if(saveBatchStats)
+            {
+                kern_args.push_back({bn_invoke->savedInvVariance});
+                kern_args.push_back({bn_invoke->savedMean});
+            }
+            kernel(kern_args);
         };
     };
 

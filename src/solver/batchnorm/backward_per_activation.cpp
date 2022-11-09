@@ -199,84 +199,34 @@ ConvSolution BnBwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
             const auto activ_beta  = activ_invoker->activBeta;
             const auto activ_gamma = activ_invoker->activGamma;
             const auto mode        = problem.GetMode();
-            if(mode == miopenBNPerActivation)
+            std::vector<OpKernelArg> kern_args;
+            kern_args.push_back(bn_invoke->x);
+            kern_args.push_back(activ_invoker->y);
+            kern_args.push_back(bot_ocl_buf);
+            kern_args.push_back(top_ocl_buf);
+            if(input_type == miopenFloat)
             {
-                if(input_type == miopenFloat)
-                {
-                    kernel(bn_invoke->x,
-                           activ_invoker->y,
-                           bot_ocl_buf,
-                           top_ocl_buf,
-                           static_cast<float>(activ_beta * activ_gamma), // activDiffScale
-                           static_cast<float>(activ_gamma),
-                           static_cast<float>(activ_beta),
-                           static_cast<float>(activ_alpha),
-                           bn_invoke->bnScale,
-                           bn_invoke->bnBias,
-                           bn_invoke->resBnScaleDiff,
-                           bn_invoke->resBnBiasDiff,
-                           bn_invoke->savedMean,
-                           bn_invoke->savedInvVariance);
-                }
-                else if(input_type == miopenHalf)
-                {
-                    kernel(
-                        bn_invoke->x,
-                        activ_invoker->y,
-                        bot_ocl_buf,
-                        top_ocl_buf,
-                        static_cast<half_float::half>(activ_beta * activ_gamma), // activDiffScale
-                        static_cast<half_float::half>(activ_gamma),
-                        static_cast<half_float::half>(activ_beta),
-                        static_cast<half_float::half>(activ_alpha),
-                        bn_invoke->bnScale,
-                        bn_invoke->bnBias,
-                        bn_invoke->resBnScaleDiff,
-                        bn_invoke->resBnBiasDiff,
-                        bn_invoke->savedMean,
-                        bn_invoke->savedInvVariance);
-                }
+                kern_args.push_back(static_cast<float>(activ_beta * activ_gamma));
+                kern_args.push_back(static_cast<float>(activ_gamma));
+                kern_args.push_back(static_cast<float>(activ_beta));
+                kern_args.push_back(static_cast<float>(activ_alpha));
             }
-            else if(mode == miopenBNSpatial)
+            else if(input_type == miopenHalf)
             {
-                if(input_type == miopenFloat)
-                {
-                    kernel(bn_invoke->x,
-                           activ_invoker->y,
-                           bot_ocl_buf,
-                           top_ocl_buf,
-                           static_cast<float>(activ_beta * activ_gamma), // activDiffScale
-                           static_cast<float>(activ_gamma),
-                           static_cast<float>(activ_beta),
-                           static_cast<float>(activ_alpha),
-                           bn_invoke->bnScale,
-                           bn_invoke->bnBias,
-                           bn_invoke->resBnScaleDiff,
-                           bn_invoke->resBnBiasDiff,
-                           bn_invoke->savedMean,
-                           bn_invoke->savedInvVariance,
-                           static_cast<float>(1.0f / (n * h * w)));
-                }
-                else if(input_type == miopenHalf)
-                {
-                    kernel(
-                        bn_invoke->x,
-                        activ_invoker->y,
-                        bot_ocl_buf,
-                        top_ocl_buf,
-                        static_cast<half_float::half>(activ_beta * activ_gamma), // activDiffScale
-                        static_cast<half_float::half>(activ_gamma),
-                        static_cast<half_float::half>(activ_beta),
-                        static_cast<half_float::half>(activ_alpha),
-                        bn_invoke->bnScale,
-                        bn_invoke->bnBias,
-                        bn_invoke->resBnScaleDiff,
-                        bn_invoke->resBnBiasDiff,
-                        bn_invoke->savedMean,
-                        bn_invoke->savedInvVariance,
-                        static_cast<float>(1.0f / (n * h * w)));
-                }
+                kern_args.push_back(static_cast<half_float::half>(activ_beta * activ_gamma));
+                kern_args.push_back(static_cast<half_float::half>(activ_gamma));
+                kern_args.push_back(static_cast<half_float::half>(activ_beta));
+                kern_args.push_back(static_cast<half_float::half>(activ_alpha));
             }
+            kern_args.push_back(bn_invoke->bnScale);
+            kern_args.push_back(bn_invoke->bnBias);
+            kern_args.push_back(bn_invoke->resBnScaleDiff);
+            kern_args.push_back(bn_invoke->resBnBiasDiff);
+            kern_args.push_back(bn_invoke->savedMean);
+            kern_args.push_back(bn_invoke->savedInvVariance);
+            if(mode == miopenBNSpatial)
+                kern_args.push_back(static_cast<float>(1.0f / (n * h * w)));
+            kernel(kern_args);
         };
     };
 

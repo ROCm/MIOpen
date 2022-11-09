@@ -141,32 +141,30 @@ ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& fusion_
             const auto activ_alpha = activ_invoker->activAlpha;
             const auto activ_beta  = activ_invoker->activBeta;
             const auto activ_gamma = activ_invoker->activGamma;
-            if(input_desc.GetType() == miopenFloat)
+            std::vector<OpKernelArg> kern_args;
+            const auto input_type = input_desc.GetType();
+            if(input_type == miopenFloat)
             {
-                run_kernel(static_cast<float>(activ_alpha),
-                           static_cast<float>(activ_beta),
-                           static_cast<float>(activ_gamma),
-                           bn_invoke->epsilon, // double
-                           bot_ocl_buf,
-                           top_ocl_buf,
-                           bn_invoke->bnBias,
-                           bn_invoke->bnScale,
-                           bn_invoke->estimatedMean,
-                           bn_invoke->estimatedVariance);
+                kern_args.push_back({static_cast<float>(activ_alpha)});
+                kern_args.push_back({static_cast<float>(activ_beta)});
+                kern_args.push_back({static_cast<float>(activ_gamma)});
             }
-            else if(input_desc.GetType() == miopenHalf)
+            else if(input_type == miopenHalf)
             {
-                run_kernel(static_cast<half_float::half>(activ_alpha),
-                           static_cast<half_float::half>(activ_beta),
-                           static_cast<half_float::half>(activ_gamma),
-                           bn_invoke->epsilon, // double
-                           bot_ocl_buf,
-                           top_ocl_buf,
-                           bn_invoke->bnBias,
-                           bn_invoke->bnScale,
-                           bn_invoke->estimatedMean,
-                           bn_invoke->estimatedVariance);
+                kern_args.push_back({static_cast<half_float::half>(activ_alpha)});
+                kern_args.push_back({static_cast<half_float::half>(activ_beta)});
+                kern_args.push_back({static_cast<half_float::half>(activ_gamma)});
             }
+            else
+                MIOPEN_THROW("Unsupported Precision");
+            kern_args.push_back(bn_invoke->epsilon);
+            kern_args.push_back(bot_ocl_buf);
+            kern_args.push_back(top_ocl_buf);
+            kern_args.push_back(bn_invoke->bnBias);
+            kern_args.push_back(bn_invoke->bnScale);
+            kern_args.push_back(bn_invoke->estimatedMean);
+            kern_args.push_back(bn_invoke->estimatedVariance);
+            run_kernel(kern_args);
         };
     };
 
