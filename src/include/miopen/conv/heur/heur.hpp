@@ -56,23 +56,40 @@ struct ConvHeur
         return supported_archs;
     }
 
-    static bool IsHeurApplicable(const std::string& arch, const conv::ProblemDescription& problem)
+    static bool IsHeurApplicable(const std::string& arch,
+                                 const ProblemDescription& problem,
+                                 const ConvolutionContext& ctx)
     {
-        if(problem.GetInLayout() != "NCHW" && problem.GetInLayout() != "NCDHW")
+        const auto& conv_problem = problem.conv_problem;
+        if(conv_problem.GetInLayout() != "NCHW" && conv_problem.GetInLayout() != "NCDHW")
             return false;
-        if(problem.GetWeightsHeight() != problem.GetWeightsWidth())
+        if(conv_problem.GetWeightsHeight() != conv_problem.GetWeightsWidth())
             return false;
-        if(problem.GetPadH() != problem.GetPadW())
+        if(conv_problem.GetPadH() != conv_problem.GetPadW())
             return false;
-        if(problem.GetKernelStrideH() != problem.GetKernelStrideW())
+        if(conv_problem.GetKernelStrideH() != conv_problem.GetKernelStrideW())
             return false;
-        if(problem.GetDilationH() != 1 || problem.GetDilationW() != 1)
+        if(conv_problem.GetDilationH() != 1 || conv_problem.GetDilationW() != 1)
             return false;
-        const auto& data_type = problem.GetInDataType();
+        const auto& data_type = conv_problem.GetInDataType();
         if(data_type != miopenFloat && data_type != miopenHalf && data_type != miopenBFloat16)
             return false;
         const auto& supported_archs = GetSupportedArchs();
         if(std::find(supported_archs.begin(), supported_archs.end(), arch) == supported_archs.end())
+            return false;
+        const auto& solver_map = GetSolverMap(arch);
+        size_t count           = 0;
+        for(const auto& solver_name : solver_map)
+        {
+            auto solver_id = solver::Id{solver_name.second};
+            auto solver    = solver_id.GetSolver();
+            if(solver.IsApplicable(ctx))
+            {
+                count++;
+                break;
+            }
+        }
+        if(!count)
             return false;
         MIOPEN_LOG_I2("Heuristic is applicable");
         return true;

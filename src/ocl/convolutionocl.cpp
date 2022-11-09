@@ -827,8 +827,7 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
-    if(MIOPEN_ENABLE_AI_HEUR &&
-       ConvHeur::IsHeurApplicable(handle.GetDeviceName(), problem.conv_problem))
+    if(MIOPEN_ENABLE_AI_HEUR && ConvHeur::IsHeurApplicable(handle.GetDeviceName(), problem, ctx))
     {
         const auto ai_time = [](const int& idx) {
             return 10.0f * static_cast<float>(idx); // Assume idx == 1 (best solver) is 10 ms.

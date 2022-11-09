@@ -612,8 +612,6 @@ endif()
 
 if(MIOPEN_ENABLE_AI_HEUR)
     list(APPEND MIOpen_Source conv/heur/metadata.cpp)
-    list(APPEND MIOPEN_Source include/miopen/conv/heur/metadata.hpp)
-    list(APPEND MIOPEN_Source include/miopen/conv/heur/heur.hpp)
 endif()
 # build library
 add_library( MIOpen
