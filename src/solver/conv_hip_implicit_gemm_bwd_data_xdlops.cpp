@@ -262,10 +262,7 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::SetNextValue(const ProblemDescri
         return false;
 }
 
-bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValidValue() const
-{
-    return index < total_size;
-}
+bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValidValue() const { return index < total_size; }
 
 bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(const ProblemDescription& problem) const
 {
