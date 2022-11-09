@@ -34,14 +34,14 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/convolution_backward_data.hpp>
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_DATA_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DataType>
-using DeviceOp = ck::tensor_operation::device::DeviceConvBwdData<
+using DeviceOpBwd = ck::tensor_operation::device::DeviceConvBwdData<
     2,
     ck::tensor_layout::convolution::NHWC,
     ck::tensor_layout::convolution::KYXC,
@@ -54,30 +54,30 @@ using DeviceOp = ck::tensor_operation::device::DeviceConvBwdData<
     ck::tensor_operation::element_wise::PassThrough>;
 
 template <typename DataType>
-using DeviceOpPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOp<DataType>>;
+using DeviceOpBwdPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpBwd<DataType>>;
 
-struct CKArgs
+struct CKArgsBwd
 {
-    CKArgs(const ConvolutionContext& ctx)
+    CKArgsBwd(const ProblemDescription& problem)
     {
-        N        = ProblemInterpreter::GetBatchN(ctx.problem);
-        K        = ProblemInterpreter::GetOutputChannelK(ctx.problem);
-        C        = ProblemInterpreter::GetInputChannelC(ctx.problem);
-        input    = {ProblemInterpreter::GetInputHeightHi(ctx.problem),
-                 ProblemInterpreter::GetInputWidthWi(ctx.problem)};
-        output   = {ProblemInterpreter::GetOutputHeightHo(ctx.problem),
-                  ProblemInterpreter::GetOutputWidthWo(ctx.problem)};
-        filter   = {ProblemInterpreter::GetFilterHeightY(ctx.problem),
-                  ProblemInterpreter::GetFilterWidthX(ctx.problem)};
-        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(ctx.problem),
-                   ProblemInterpreter::GetAdjustedConvolutionStrideW(ctx.problem)};
-        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(ctx.problem),
-                    ProblemInterpreter::GetAdjustedConvolutionDilationW(ctx.problem)};
-        lPadding = {ProblemInterpreter::GetInputLeftPadH(ctx.problem),
-                    ProblemInterpreter::GetInputLeftPadW(ctx.problem)};
-        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadH(ctx.problem),
-                    ProblemInterpreter::GetAdjustedInputRightPadW(ctx.problem)};
+        N        = ProblemInterpreter::GetBatchN(problem);
+        K        = ProblemInterpreter::GetOutputChannelK(problem);
+        C        = ProblemInterpreter::GetInputChannelC(problem);
+        input    = {ProblemInterpreter::GetInputHeightHi(problem),
+                 ProblemInterpreter::GetInputWidthWi(problem)};
+        output   = {ProblemInterpreter::GetOutputHeightHo(problem),
+                  ProblemInterpreter::GetOutputWidthWo(problem)};
+        filter   = {ProblemInterpreter::GetFilterHeightY(problem),
+                  ProblemInterpreter::GetFilterWidthX(problem)};
+        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+                    ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
+        lPadding = {ProblemInterpreter::GetInputLeftPadH(problem),
+                    ProblemInterpreter::GetInputLeftPadW(problem)};
+        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+                    ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
     int N;
     int K;
@@ -92,10 +92,10 @@ struct CKArgs
 };
 
 template <typename DataType>
-void PerformanceConfigHipImplicitGemmBwdDataXdlops::Init(const ConvolutionContext& ctx)
+void PerformanceConfigHipImplicitGemmBwdXdlops::Init(const ProblemDescription& problem)
 {
-    const auto args      = CKArgs{ctx};
-    const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
+    const auto args      = CKArgsBwd{problem};
+    const auto conv_ptrs = DeviceOpBwdPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
     this->total_size = conv_ptrs.size();
     for(int i = 0; i < conv_ptrs.size(); i++)
@@ -126,11 +126,11 @@ void PerformanceConfigHipImplicitGemmBwdDataXdlops::Init(const ConvolutionContex
 }
 
 template <typename DataType>
-bool PerformanceConfigHipImplicitGemmBwdDataXdlops::CheckIsSupportCKArgs(
-    const ConvolutionContext& ctx) const
+bool PerformanceConfigHipImplicitGemmBwdXdlops::CheckIsSupportCKArgs(
+    const ProblemDescription& problem) const
 {
-    const auto args      = CKArgs{ctx};
-    const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
+    const auto args      = CKArgsBwd{problem};
+    const auto conv_ptrs = DeviceOpBwdPtrs<DataType>::GetInstances();
     auto argument_ptr    = conv_ptrs[this->index]->MakeArgumentPointer(nullptr,
                                                                     nullptr,
                                                                     nullptr,
@@ -151,11 +151,11 @@ bool PerformanceConfigHipImplicitGemmBwdDataXdlops::CheckIsSupportCKArgs(
 }
 
 template <typename DataType>
-bool ConvHipImplicitGemmBwdDataXdlops::CheckCKApplicability(const ConvolutionContext& ctx) const
+bool ConvHipImplicitGemmBwdXdlops::CheckCKApplicability(const ProblemDescription& problem) const
 {
-    const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
+    const auto conv_ptrs = DeviceOpBwdPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
-    const auto args = CKArgs{ctx};
+    const auto args = CKArgsBwd{problem};
     if(!std::all_of(args.strides.begin(), args.strides.end(), [&](auto x) { return x == 1; }))
         return false;
     for(int i = 0; i < conv_ptrs.size(); i++)
@@ -183,14 +183,14 @@ bool ConvHipImplicitGemmBwdDataXdlops::CheckCKApplicability(const ConvolutionCon
 }
 
 template <typename DataType>
-void ConvHipImplicitGemmBwdDataXdlops::RunCKSolution(
+void ConvHipImplicitGemmBwdXdlops::RunCKSolution(
     const Handle& handle,
     const AnyInvokeParams& primitive_parameters,
-    const ConvolutionContext& ctx,
-    const PerformanceConfigHipImplicitGemmBwdDataXdlops& config) const
+    const ProblemDescription& problem,
+    const PerformanceConfigHipImplicitGemmBwdXdlops& config) const
 {
-    const auto args      = CKArgs{ctx};
-    const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
+    const auto args      = CKArgsBwd{problem};
+    const auto conv_ptrs = DeviceOpBwdPtrs<DataType>::GetInstances();
     auto& conv_ptr       = conv_ptrs.at(config.index);
     auto& data_ctx       = primitive_parameters.CastTo<conv::DataInvokeParams>();
     const auto& tensors  = data_ctx.tensors;
@@ -226,20 +226,20 @@ void ConvHipImplicitGemmBwdDataXdlops::RunCKSolution(
 }
 #endif
 
-void PerformanceConfigHipImplicitGemmBwdDataXdlops::HeuristicInit(const ConvolutionContext& ctx)
+void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(const ProblemDescription& problem)
 {
     this->index = 0;
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = ctx;
+    std::ignore = problem;
 #else
     this->index      = 0;
     this->total_size = 0;
     this->kernel_id  = "";
-    switch(ctx.problem.conv_problem.GetInDataType())
+    switch(problem.conv_problem.GetInDataType())
     {
-    case miopenInt8: Init<int8_t>(ctx); break;
-    case miopenHalf: Init<ck::half_t>(ctx); break;
-    case miopenFloat: Init<float>(ctx); break;
+    case miopenHalf: Init<ck::half_t>(problem); break;
+    case miopenFloat: Init<float>(problem); break;
+    case miopenInt8:
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
@@ -248,10 +248,10 @@ void PerformanceConfigHipImplicitGemmBwdDataXdlops::HeuristicInit(const Convolut
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemmBwdDataXdlops::SetNextValue(const ConvolutionContext& ctx)
+bool PerformanceConfigHipImplicitGemmBwdXdlops::SetNextValue(const ProblemDescription& problem)
 {
     if(total_size == -1)
-        this->HeuristicInit(ctx);
+        this->HeuristicInit(problem);
     assert(total_size != -1);
     if((index + 1) < total_size)
     {
@@ -262,22 +262,22 @@ bool PerformanceConfigHipImplicitGemmBwdDataXdlops::SetNextValue(const Convoluti
         return false;
 }
 
-bool PerformanceConfigHipImplicitGemmBwdDataXdlops::IsValidValue() const
+bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValidValue() const
 {
     return index < total_size;
 }
 
-bool PerformanceConfigHipImplicitGemmBwdDataXdlops::IsValid(const ConvolutionContext& ctx) const
+bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = ctx;
+    std::ignore = problem;
     return false;
 #else
-    switch(ctx.problem.conv_problem.GetInDataType())
+    switch(problem.conv_problem.GetInDataType())
     {
-    case miopenInt8: return CheckIsSupportCKArgs<int8_t>(ctx);
-    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(ctx);
-    case miopenFloat: return CheckIsSupportCKArgs<float>(ctx);
+    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
+    case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
+    case miopenInt8:
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
@@ -287,67 +287,68 @@ bool PerformanceConfigHipImplicitGemmBwdDataXdlops::IsValid(const ConvolutionCon
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemmBwdDataXdlops::operator==(
-    const PerformanceConfigHipImplicitGemmBwdDataXdlops& other) const
+bool PerformanceConfigHipImplicitGemmBwdXdlops::operator==(
+    const PerformanceConfigHipImplicitGemmBwdXdlops& other) const
 {
     return this->index == other.index;
 }
 
-PerformanceConfigHipImplicitGemmBwdDataXdlops
-ConvHipImplicitGemmBwdDataXdlops::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
+PerformanceConfigHipImplicitGemmBwdXdlops
+ConvHipImplicitGemmBwdXdlops::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
 {
-    PerformanceConfigHipImplicitGemmBwdDataXdlops pp;
-    pp.HeuristicInit(ctx);
+    PerformanceConfigHipImplicitGemmBwdXdlops pp;
+    pp.HeuristicInit(problem);
     return pp;
 }
 
-bool ConvHipImplicitGemmBwdDataXdlops::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx,
-    const PerformanceConfigHipImplicitGemmBwdDataXdlops& config) const
+bool ConvHipImplicitGemmBwdXdlops::IsValidPerformanceConfig(
+    const ProblemDescription& problem,
+    const PerformanceConfigHipImplicitGemmBwdXdlops& config) const
 {
-    return config.IsValid(ctx);
+    return config.IsValid(problem);
 }
 
-PerformanceConfigHipImplicitGemmBwdDataXdlops
-ConvHipImplicitGemmBwdDataXdlops::Search(const ConvolutionContext& ctx,
-                                         const AnyInvokeParams& invoke_ctx) const
+PerformanceConfigHipImplicitGemmBwdXdlops
+ConvHipImplicitGemmBwdXdlops::Search(const ConvolutionContext& ctx,
+                                     const ProblemDescription& problem,
+                                     const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, ctx, invoke_ctx);
+    return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-size_t ConvHipImplicitGemmBwdDataXdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
+size_t ConvHipImplicitGemmBwdXdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
 {
     std::ignore = ctx;
     return 0;
 }
 
-bool ConvHipImplicitGemmBwdDataXdlops::IsApplicable(const ConvolutionContext& ctx) const
+bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
+                                                const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
+    std::ignore = problem;
     return false;
 #else
-    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_DATA_XDLOPS{}))
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS{}))
         return false;
     if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
         return false;
-    if(ctx.problem.conv_problem.GetInDataType() != ctx.problem.conv_problem.GetWeightsDataType() ||
-       ctx.problem.conv_problem.GetWeightsDataType() != ctx.problem.conv_problem.GetOutDataType() ||
-       ctx.problem.conv_problem.GetInDataType() != ctx.problem.conv_problem.GetOutDataType())
+    if(problem.conv_problem.GetInDataType() != problem.conv_problem.GetWeightsDataType() ||
+       problem.conv_problem.GetWeightsDataType() != problem.conv_problem.GetOutDataType() ||
+       problem.conv_problem.GetInDataType() != problem.conv_problem.GetOutDataType())
         return false;
-    if(!ctx.problem.direction.IsForward())
+    if(!problem.direction.IsBackwardData())
         return false;
-    if(!ctx.problem.Is2d())
+    if(!problem.Is2d())
         return false;
-    if(ctx.GetStream().GetDeviceName() != "gfx908")
+    if(!problem.IsLayoutNHWC())
         return false;
-    if(!ctx.problem.IsLayoutNHWC())
-        return false;
-    switch(ctx.problem.conv_problem.GetInDataType())
+    switch(problem.conv_problem.GetInDataType())
     {
-    case miopenInt8: return CheckCKApplicability<int8_t>(ctx);
-    case miopenHalf: return CheckCKApplicability<ck::half_t>(ctx);
-    case miopenFloat: return CheckCKApplicability<float>(ctx);
+    case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
+    case miopenFloat: return CheckCKApplicability<float>(problem);
+    case miopenInt8:
     case miopenInt32:
     case miopenInt8x4:
     case miopenBFloat16:
@@ -357,12 +358,14 @@ bool ConvHipImplicitGemmBwdDataXdlops::IsApplicable(const ConvolutionContext& ct
 #endif
 }
 
-ConvSolution ConvHipImplicitGemmBwdDataXdlops::GetSolution(
+ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
     const ConvolutionContext& ctx,
-    const PerformanceConfigHipImplicitGemmBwdDataXdlops& config) const
+    const ProblemDescription& problem,
+    const PerformanceConfigHipImplicitGemmBwdXdlops& config) const
 {
-#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
+#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
+    std::ignore = problem;
     std::ignore = config;
     return {};
 #else
@@ -370,17 +373,15 @@ ConvSolution ConvHipImplicitGemmBwdDataXdlops::GetSolution(
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(ctx.problem.conv_problem.GetInDataType())
+            switch(problem.conv_problem.GetInDataType())
             {
-            case miopenInt8:
-                RunCKSolution<int8_t>(handle, primitive_parameters, ctx, config);
-                break;
             case miopenHalf:
-                RunCKSolution<ck::half_t>(handle, primitive_parameters, ctx, config);
+                RunCKSolution<ck::half_t>(handle, primitive_parameters, problem, config);
                 break;
             case miopenFloat:
-                RunCKSolution<float>(handle, primitive_parameters, ctx, config);
+                RunCKSolution<float>(handle, primitive_parameters, problem, config);
                 break;
+            case miopenInt8:
             case miopenInt32:
             case miopenInt8x4:
             case miopenBFloat16:

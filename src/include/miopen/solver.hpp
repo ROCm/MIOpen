@@ -5740,70 +5740,108 @@ private:
                        const PerformanceConfigHipImplicitGemmFwdXdlops& config) const;
 };
 
-struct PerformanceConfigHipImplicitGemmBwdDataXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmBwdDataXdlops>
+struct PerformanceConfigHipImplicitGemmBwdXdlops
+    : PerfConfigBase<PerformanceConfigHipImplicitGemmBwdXdlops>
 {
     int index;
     std::string kernel_id;
     int total_size;
-    PerformanceConfigHipImplicitGemmBwdDataXdlops(int idx, std::string kernl_id)
+    PerformanceConfigHipImplicitGemmBwdXdlops(int idx, std::string kernl_id)
         : index(idx), kernel_id(kernl_id), total_size(-1)
     {
     }
-    PerformanceConfigHipImplicitGemmBwdDataXdlops()
-        : PerformanceConfigHipImplicitGemmBwdDataXdlops(0, "")
+    PerformanceConfigHipImplicitGemmBwdXdlops() : PerformanceConfigHipImplicitGemmBwdXdlops(0, "")
     {
     }
-    PerformanceConfigHipImplicitGemmBwdDataXdlops(bool)
-        : PerformanceConfigHipImplicitGemmBwdDataXdlops(0, "")
+    PerformanceConfigHipImplicitGemmBwdXdlops(bool)
+        : PerformanceConfigHipImplicitGemmBwdXdlops(0, "")
     {
     }
-    void HeuristicInit(const ConvolutionContext& ctx);
-    bool SetNextValue(const ConvolutionContext& ctx);
+    void HeuristicInit(const ProblemDescription&);
+    bool SetNextValue(const ConvolutionContext& ctx) { return SetNextValue(ctx.problem); }
+    bool SetNextValue(const ProblemDescription&);
     bool IsValidValue() const;
-    bool IsValid(const ConvolutionContext& ctx) const;
+    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx.problem); }
+    bool IsValid(const ProblemDescription&) const;
     template <typename Self, typename F>
     static void Visit(Self&& s, F f)
     {
         f(s.kernel_id, "kernel_id");
     }
-    bool operator==(const PerformanceConfigHipImplicitGemmBwdDataXdlops& other) const;
+    bool operator==(const PerformanceConfigHipImplicitGemmBwdXdlops& other) const;
+
+private:
     template <typename DataType>
-    void Init(const ConvolutionContext& ctx);
+    void Init(const ProblemDescription&);
     template <typename DataType>
-    bool CheckIsSupportCKArgs(const ConvolutionContext& ctx) const;
+    bool CheckIsSupportCKArgs(const ProblemDescription&) const;
 };
 
-struct ConvHipImplicitGemmBwdDataXdlops final
-    : ConvTunableSolver<PerformanceConfigHipImplicitGemmBwdDataXdlops>
+struct ConvHipImplicitGemmBwdXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemmBwdXdlops>
 {
+    // To suppress -Woverloaded-virtual
+    using ConvTunableSolver::GetDefaultPerformanceConfig;
+    using ConvTunableSolver::GetSolution;
+    using ConvTunableSolver::IsApplicable;
+    using ConvTunableSolver::IsValidPerformanceConfig;
+    using ConvTunableSolver::Search;
+
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ConvHipImplicitGemmBwdDataXdlops>();
+        return GetSolverDbId<ConvHipImplicitGemmBwdXdlops>();
     }
 
-    PerformanceConfigHipImplicitGemmBwdDataXdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext&) const override;
+    PerformanceConfigHipImplicitGemmBwdXdlops
+    GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
+    {
+        return GetDefaultPerformanceConfig(ctx.problem);
+    }
     bool
-    IsValidPerformanceConfig(const ConvolutionContext&,
-                             const PerformanceConfigHipImplicitGemmBwdDataXdlops&) const override;
-    PerformanceConfigHipImplicitGemmBwdDataXdlops
-    Search(const ConvolutionContext&, const AnyInvokeParams& invoke_ctx) const override;
+    IsValidPerformanceConfig(const ConvolutionContext& ctx,
+                             const PerformanceConfigHipImplicitGemmBwdXdlops& config) const override
+    {
+        return IsValidPerformanceConfig(ctx.problem, config);
+    }
+    PerformanceConfigHipImplicitGemmBwdXdlops
+    Search(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const override
+    {
+        return Search(ctx, ctx.problem, invoke_ctx);
+    }
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
     bool MayNeedWorkspace() const override { return false; }
-    bool IsApplicable(const ConvolutionContext& ctx) const override;
+    bool IsApplicable(const ConvolutionContext& ctx) const override
+    {
+        return IsApplicable(ctx, ctx.problem);
+    }
     bool IsDynamic() const override { return true; }
-    ConvSolution
-    GetSolution(const ConvolutionContext& ctx,
-                const PerformanceConfigHipImplicitGemmBwdDataXdlops& config) const override;
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const PerformanceConfigHipImplicitGemmBwdXdlops& config) const override
+    {
+        return GetSolution(ctx, ctx.problem, config);
+    }
     float GetWti(const ConvolutionContext&) const override { return 0.02f; };
+
+private:
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
+    PerformanceConfigHipImplicitGemmBwdXdlops
+    GetDefaultPerformanceConfig(const ProblemDescription&) const;
+    bool IsValidPerformanceConfig(const ProblemDescription&,
+                                  const PerformanceConfigHipImplicitGemmBwdXdlops&) const;
+    PerformanceConfigHipImplicitGemmBwdXdlops Search(const ConvolutionContext&,
+                                                     const ProblemDescription&,
+                                                     const AnyInvokeParams& invoke_ctx) const;
+    ConvSolution GetSolution(const ConvolutionContext&,
+                             const ProblemDescription&,
+                             const PerformanceConfigHipImplicitGemmBwdXdlops&) const;
+
     template <typename DataType>
-    bool CheckCKApplicability(const ConvolutionContext& ctx) const;
+    bool CheckCKApplicability(const ProblemDescription&) const;
     template <typename DataType>
     void RunCKSolution(const Handle& handle,
                        const AnyInvokeParams& primitive_parameters,
-                       const ConvolutionContext& ctx,
-                       const PerformanceConfigHipImplicitGemmBwdDataXdlops& config) const;
+                       const ProblemDescription& problem,
+                       const PerformanceConfigHipImplicitGemmBwdXdlops& config) const;
 };
 
 struct AnySolver;
