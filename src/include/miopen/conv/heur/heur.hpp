@@ -77,19 +77,19 @@ struct ConvHeur
         const auto& supported_archs = GetSupportedArchs();
         if(std::find(supported_archs.begin(), supported_archs.end(), arch) == supported_archs.end())
             return false;
-        const auto& solver_map = GetSolverMap(arch);
-        size_t count           = 0;
+        const auto& solver_map    = GetSolverMap(arch);
+        size_t applicable_solvers = 0;
         for(const auto& solver_name : solver_map)
         {
             auto solver_id = solver::Id{solver_name.second};
             auto solver    = solver_id.GetSolver();
             if(solver.IsApplicable(ctx))
             {
-                count++;
+                applicable_solvers++;
                 break;
             }
         }
-        if(!count)
+        if(applicable_solvers == 0)
             return false;
         MIOPEN_LOG_I2("Heuristic is applicable");
         return true;
