@@ -50,7 +50,7 @@
 // convolutions leads to performance drops. Let's enable ConvBinWinoRxS<2,3> for non-group
 // in order to quickly W/A the perf issue. When find-db fix is ready,
 // we will keep ConvBinWinoRxS<2,3> for group convolutions only.
-#define WORKAROUND_ISSUE_1681 1
+#define WORKAROUND_ISSUE_1681 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
@@ -79,6 +79,12 @@ static inline size_t Ceil(const size_t v, const size_t m)
 }
 
 static inline size_t RoundUpToMultiple(size_t val, size_t factor)
+{
+    return Ceil(val, factor) * factor;
+}
+
+// Let's avoid clang-tidy warnings without explicit casts.
+static inline size_t RoundUpToMultiple(size_t val, int factor)
 {
     return Ceil(val, factor) * factor;
 }
@@ -139,7 +145,7 @@ static inline int GetBestNGroupParam(const int R,
         size_t g_n_w_h_k =
             RoundUpToMultiple(g_n_w_h * g_k, nwh_factor * w_factor * h_factor * k_factor * i);
         size_t granulated_mac_count = g_n_w_h_k * g_c * g_s * g_r;
-        size_t n_groups_per_cu      = Ceil(i * G, n_groups);
+        size_t n_groups_per_cu      = Ceil(static_cast<size_t>(i) * G, n_groups);
         double perf_metric = static_cast<double>(n_groups_per_cu) * granulated_mac_count / i;
         if(static_cast<double>(granulated_mac_count) / i > 1.0e+7)
             perf_metric *= (1 + i * 0.003);
@@ -169,8 +175,7 @@ namespace {
     }
 // clang-format on
 
-inline bool IsShaderContraintsMet(const ExecutionContext& ctx,
-                                  const ProblemDescription& problem,
+inline bool IsShaderContraintsMet(const ProblemDescription& problem,
                                   const int R,
                                   const int S,
                                   const int C,
@@ -190,31 +195,41 @@ inline bool IsShaderContraintsMet(const ExecutionContext& ctx,
         if(!(0 <= problem.GetBackwardPadH() && problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
-    const auto grid_workgroup_count_x = ctx.GetStream().GetMaxHardwareComputeUnits();
     if(!problem.IsLayoutDefault())
     {
         return false;
     }
 
+    uint64_t o_K_stride      = static_cast<uint64_t>(OH) * OW;
+    uint64_t o_N_stride      = o_K_stride * K;
+    uint64_t o_N_stride_OHOW = o_N_stride + o_K_stride;
+
+    uint64_t d_C_stride    = static_cast<uint64_t>(H) * W;
+    uint64_t d_N_stride    = d_C_stride * C;
+    uint64_t d_N_stride_HW = d_N_stride + d_C_stride;
+
+    auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
+    auto stride_one = problem.kernel_stride_h == 1 && problem.kernel_stride_w == 1 &&
+                      problem.kernel_dilation_h == 1 && problem.kernel_dilation_w == 1;
+
     // clang-format off
     // Check implementation limits.
     return N < std::pow(2, 16)
         && C < std::pow(2, 16)
-        && K < std::pow(2, 16)
         && H < std::pow(2, 16)
         && W < std::pow(2, 16)
+        && K < std::pow(2, 16)
+        && S < std::pow(2, 16)
+        && R < std::pow(2, 16)
         && OH < std::pow(2, 16)
         && OW < std::pow(2, 16)
         && problem.pad_w < std::pow(2, 16)
         && problem.pad_h < std::pow(2, 16)
-        && S < std::pow(2, 16)
-        && R < std::pow(2, 16)
-        && grid_workgroup_count_x < std::pow(2, 16)
-        && (C * H * W) <= std::pow(2, 28)
-        && (OH * OW) <= std::pow(2, 23)
-        && (K * OH * OW) <= std::pow(2, 28)
-        && (K * R * S) <= std::pow(2, 28)
-        && (C * R * S) <= std::pow(2, 28); // clang-format on
+        && C * R * S < std::pow(2, 22)
+        && K * R * S < std::pow(2, 28)
+        && ((o_N_stride_OHOW < std::pow(2, 29) && d_N_stride_HW < std::pow(2, 29))
+           || (stride_one && o_N_stride < std::pow(2, 30) && d_N_stride < std::pow(2, 30)
+           && (N == 1 || num_tiles % 16 == 0)));
 }
 
 } // namespace
@@ -439,7 +454,7 @@ public:
         if(GUI_predicted <= 0.1)
             return -1.0; // Unreliable, too small work to do for the shader.
 
-        const auto N_MACS_PER_CU_PER_CLOCK = 64 * 32 / DATATYPE_BITS;
+        const auto N_MACS_PER_CU_PER_CLOCK = static_cast<size_t>(64) * 32 / DATATYPE_BITS;
         const auto WTI_predicted           = direct_convolution_macs /
                                    static_cast<double>(N_MACS_PER_CU_PER_CLOCK) /
                                    static_cast<double>(n_groups) / GUI_predicted; // similar to BW
@@ -498,8 +513,7 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
     {
         if(problem.kernel_stride_w == 2)
             return false;
-        return IsShaderContraintsMet(ctx,
-                                     problem,
+        return IsShaderContraintsMet(problem,
                                      problem.in_height,
                                      problem.in_width,
                                      problem.batch_sz,   // N
@@ -512,8 +526,7 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
     }
     else
     {
-        return IsShaderContraintsMet(ctx,
-                                     problem,
+        return IsShaderContraintsMet(problem,
                                      problem.kernel_size_h, // RxS
                                      problem.kernel_size_w,
                                      n_inputs_per_group,  // C
@@ -919,10 +932,6 @@ bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
-#if !WORKAROUND_ISSUE_1681
-    if(problem.direction.IsBackwardWrW())
-        return false;
-#endif
     return IsApplicableBase(ctx, problem) && problem.group_counts == 1;
 }
 

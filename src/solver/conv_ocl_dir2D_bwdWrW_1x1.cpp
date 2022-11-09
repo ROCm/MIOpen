@@ -98,7 +98,7 @@ size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ProblemDescription& problem) con
     {
         const auto in_channel_stride = problem.in_stride * problem.in_height;
         const auto in_batch_stride   = in_channel_stride * problem.n_outputs;
-        return in_batch_stride * problem.batch_sz * GetTypeSize(problem.out_data_type);
+        return GetTypeSize(problem.out_data_type) * in_batch_stride * problem.batch_sz;
     }
     else
         return 0;
@@ -403,13 +403,13 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& ctx,
             // input is output
 
             // Traverse Smaller Batch_stride first
-            size_t gbl_wk0 = n_grp_size0 * n_out_blocks;
+            size_t gbl_wk0 = static_cast<std::size_t>(n_grp_size0) * n_out_blocks;
             size_t gbl_wk1 = n_in_blocks;
             size_t gbl_wk2 = 1;
 
             if(in_batch_stride < out_batch_stride)
             {
-                gbl_wk0 = n_grp_size0 * n_in_blocks;
+                gbl_wk0 = static_cast<std::size_t>(n_grp_size0) * n_in_blocks;
                 gbl_wk1 = n_out_blocks;
                 gbl_wk2 = 1;
             }

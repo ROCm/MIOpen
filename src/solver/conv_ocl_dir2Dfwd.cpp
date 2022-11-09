@@ -444,11 +444,11 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         kernel_params.comp_options += std::string(" -DGRP_MOD_ENABLE");
     }
 
-    kernel_params.l_wk.push_back(result.grp_tile1 * result.grp_tile0);
+    kernel_params.l_wk.push_back(static_cast<size_t>(result.grp_tile1) * result.grp_tile0);
     kernel_params.l_wk.push_back(1);
     kernel_params.l_wk.push_back(1);
 
-    size_t gbl_wk0 = n_out_tile_blocks0 * n_out_tile_blocks1;
+    size_t gbl_wk0 = static_cast<size_t>(n_out_tile_blocks0) * n_out_tile_blocks1;
 
     if(n_out_tiles_perstack == 0 /* DIV/0 */)
     {
