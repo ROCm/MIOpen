@@ -4877,10 +4877,10 @@ struct miopenTensorArgument_t
  * @param problem       Problem to solve
  * @param options       Find options. When null default values would be used
  * @param tensors       Buffers to use for kernel profiling. "descriptor" field is not used
- * @param workspace     Workspace to use for kernel profiling
+ * @param workspace     Workspace to use for kernel benchmarking
  * @param workspaceSize Workspace size
  * @param solutions     Pointer to the first result. Must not be null
- * @param numSolutions  Pointer to the amount of results. Ignored if null
+ * @param numSolutions  Pointer to the number of the returned results. Ignored if null
  * @param maxSolutions  Limits the amount of results
  * @return              miopenStatus_t
  */
