@@ -173,7 +173,7 @@ protected:
     // Remove
     // tensor<float> bias;
     // miopen::Allocator::ManageDataPtr bias_dev;
-    miopen::fusion::FusionInvokeParams plan_params;
+    // miopen::fusion::FusionInvokeParams plan_params;
 };
 
 TEST_P(CBAFwdSolverTest, ConvASM3x3UFwd)
