@@ -5812,7 +5812,7 @@ struct ConvHipImplicitGemmBwdXdlops final
     bool MayNeedWorkspace() const override { return false; }
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
-        return IsApplicable(ctx, ctx.problem);
+        return IsApplicable(ctx.problem);
     }
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
@@ -5823,7 +5823,7 @@ struct ConvHipImplicitGemmBwdXdlops final
     float GetWti(const ConvolutionContext&) const override { return 0.02f; };
 
 private:
-    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
+    bool IsApplicable(const ProblemDescription&) const;
     PerformanceConfigHipImplicitGemmBwdXdlops
     GetDefaultPerformanceConfig(const ProblemDescription&) const;
     bool IsValidPerformanceConfig(const ProblemDescription&,

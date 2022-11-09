@@ -319,11 +319,9 @@ size_t ConvHipImplicitGemmBwdXdlops::GetWorkspaceSize(const ConvolutionContext& 
     return 0;
 }
 
-bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
-                                                const ProblemDescription& problem) const
+bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = ctx;
     std::ignore = problem;
     return false;
 #else
