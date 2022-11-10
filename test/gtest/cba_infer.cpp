@@ -88,16 +88,16 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     handle.Finish();
 }
 
-// TEST_P(ConvBiasActivInferTestFloat, ConvBiasActivAsm1x1UFloat)
-// {
-//     RunTunableSolver<miopen::solver::fusion::ConvBiasActivAsm1x1U>(fusePlanDesc, plan_params,
-//     conv_config, test_skipped);
-// }
-// TEST_P(ConvBiasActivInferTestFloat, ConvOclDirectFwdFused)
-// {
-//     RunTunableSolver<miopen::solver::fusion::ConvOclDirectFwdFused>(fusePlanDesc, plan_params,
-//     conv_config, test_skipped);
-// }
+TEST_P(ConvBiasActivInferTestFloat, ConvBiasActivAsm1x1UFloat)
+{
+    RunTunableSolver<miopen::solver::fusion::ConvBiasActivAsm1x1U>(
+        fusePlanDesc, plan_params, conv_config, test_skipped);
+}
+TEST_P(ConvBiasActivInferTestFloat, ConvOclDirectFwdFused)
+{
+    RunTunableSolver<miopen::solver::fusion::ConvOclDirectFwdFused>(
+        fusePlanDesc, plan_params, conv_config, test_skipped);
+}
 TEST_P(ConvBiasActivInferTestFloat, ConvBinWinogradRxSFused)
 {
     RunSolver<miopen::solver::fusion::ConvBinWinogradRxSFused>(

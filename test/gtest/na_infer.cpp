@@ -70,7 +70,7 @@ INSTANTIATE_TEST_CASE_P(BNActivInferFloatSuite,
                         BNActivInferFloat,
                         testing::Combine(testing::Values(miopenActivationRELU),
                                          testing::ValuesIn(Network1())));
-TEST_P(BNActivInferHalf, BnFwdInferActivationFused)
+TEST_P(BNActivInferHalf, DISABLED_BnFwdInferActivationFused)
 {
     RunSolver<miopen::solver::fusion::BnFwdInferActivationFused>(
         fusePlanDesc, plan_params, bn_config, test_skipped);
