@@ -197,9 +197,8 @@ void ProblemDescription::SetupFloats(ExecutionContext& ctx) const
     }
 
     MIOPEN_LOG_W("Unsupported data types configuration: "
-                    << GetDataTypeName(GetInDataType()) << "x"
-                    << GetDataTypeName(GetWeightsDataType()) << "x"
-                    << GetDataTypeName(GetOutDataType()));
+                 << GetDataTypeName(GetInDataType()) << "x" << GetDataTypeName(GetWeightsDataType())
+                 << "x" << GetDataTypeName(GetOutDataType()));
 }
 
 } // namespace conv
