@@ -114,7 +114,7 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
                               solver::Id solver_id)
 {
     ctx.DetectRocm();
-    ctx.SetupFloats(problem);
+    problem.SetupFloats(ctx);
     ctx.do_search = false;
 
     const auto solver = solver_id.GetSolver();
@@ -232,8 +232,13 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     const auto problem =
         conv::ProblemDescription(xDesc, wDesc, yDesc, *this, conv::Direction::Forward);
-    const auto ctx =
-        ExecutionContext{&handle}.SetupFloats(problem).DetectRocm().WithTuning(exhaustiveSearch);
+    const auto ctx = [&] {
+        auto tmp = ExecutionContext{&handle};
+        tmp.DetectRocm();
+        problem.SetupFloats(tmp);
+        tmp.do_search = exhaustiveSearch;
+        return tmp;
+    }();
 
     const auto invoke_ctx = conv::DataInvokeParams{InvokeType::Evaluate,
                                                    {xDesc, x, wDesc, w, yDesc, y},
@@ -726,8 +731,13 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     const auto problem =
         conv::ProblemDescription{dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData};
 
-    auto ctx =
-        ExecutionContext{&handle}.DetectRocm().SetupFloats(problem).WithTuning(exhaustiveSearch);
+    const auto ctx = [&] {
+        auto tmp = ExecutionContext{&handle};
+        tmp.DetectRocm();
+        problem.SetupFloats(tmp);
+        tmp.do_search = exhaustiveSearch;
+        return tmp;
+    }();
 
     const auto invoke_ctx = conv::DataInvokeParams{InvokeType::Evaluate,
                                                    {dyDesc, dy, wDesc, w, dxDesc, dx},
@@ -925,10 +935,15 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     *returnedAlgoCount = 0;
 
-    auto problem =
+    const auto problem =
         conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, conv::Direction::BackwardWeights};
-    auto ctx =
-        ExecutionContext{&handle}.DetectRocm().SetupFloats(problem).WithTuning(exhaustiveSearch);
+    const auto ctx = [&] {
+        auto tmp = ExecutionContext{&handle};
+        tmp.DetectRocm();
+        problem.SetupFloats(tmp);
+        tmp.do_search = exhaustiveSearch;
+        return tmp;
+    }();
 
     const auto invoke_ctx = conv::WrWInvokeParams{InvokeType::Evaluate,
                                                   {dyDesc, dy, xDesc, x, dwDesc, dw},

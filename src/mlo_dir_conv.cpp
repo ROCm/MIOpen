@@ -363,7 +363,7 @@ AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
 
 miopen::ConvolutionContext& miopen::ConvolutionContext::SetupFloats()
 {
-    ExecutionContext::SetupFloats(problem.conv_problem);
+    problem.conv_problem.SetupFloats(*this);
     return *this;
 }
 

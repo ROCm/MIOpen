@@ -65,7 +65,12 @@ static inline auto MakeFwdCtxAndProblem(miopenHandle_t handle,
                                                                        conv,
                                                                        direction};
 
-    auto ctx = ExecutionContext{&miopen::deref(handle)}.DetectRocm().SetupFloats(problem);
+    auto ctx = [&] {
+        auto tmp = ExecutionContext{&miopen::deref(handle)};
+        tmp.DetectRocm();
+        problem.SetupFloats(tmp);
+        return tmp;
+    }();
 
     return std::make_tuple(std::move(ctx), std::move(problem));
 }
@@ -91,7 +96,12 @@ static inline auto MakeBwdCtxAndProblem(miopenHandle_t handle,
                                                                        conv,
                                                                        direction};
 
-    auto ctx = ExecutionContext{&miopen::deref(handle)}.DetectRocm().SetupFloats(problem);
+    auto ctx = [&] {
+        auto tmp = ExecutionContext{&miopen::deref(handle)};
+        tmp.DetectRocm();
+        problem.SetupFloats(tmp);
+        return tmp;
+    }();
 
     return std::make_tuple(std::move(ctx), std::move(problem));
 }
@@ -116,7 +126,12 @@ static inline auto MakeWrWCtxAndProblem(miopenHandle_t handle,
                                                                        conv,
                                                                        direction};
 
-    auto ctx = ExecutionContext{&miopen::deref(handle)}.DetectRocm().SetupFloats(problem);
+    auto ctx = [&] {
+        auto tmp = ExecutionContext{&miopen::deref(handle)};
+        tmp.DetectRocm();
+        problem.SetupFloats(tmp);
+        return tmp;
+    }();
 
     return std::make_tuple(std::move(ctx), std::move(problem));
 }

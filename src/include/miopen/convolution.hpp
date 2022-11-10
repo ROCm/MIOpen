@@ -176,7 +176,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                              const TensorDescriptor& xDesc,
                                              const TensorDescriptor& dwDesc) const;
 
-    std::size_t GetWorkSpaceSize(const ExecutionContext& ctx_,
+    std::size_t GetWorkSpaceSize(ExecutionContext ctx,
                                  const conv::ProblemDescription& problem) const;
 
     void FindConvFwdAlgorithm(Handle& handle,

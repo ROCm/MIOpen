@@ -96,28 +96,6 @@ struct ExecutionContext
     ExecutionContext(Handle* stream_) : stream(stream_) {}
 
     ExecutionContext& DetectRocm();
-    ExecutionContext& SetupFloats(const conv::ProblemDescription& problem);
-
-    inline ExecutionContext WithTuning(bool flag) const
-    {
-        auto ret      = *this;
-        ret.do_search = flag;
-        return ret;
-    }
-
-    inline ExecutionContext WithPerfdbAccess(bool flag) const
-    {
-        auto ret                  = *this;
-        ret.disable_perfdb_access = !flag;
-        return ret;
-    }
-
-    inline ExecutionContext WithDinamicSolutionsOnly(bool flag) const
-    {
-        auto ret                       = *this;
-        ret.use_dynamic_solutions_only = !flag;
-        return ret;
-    }
 
 #if MIOPEN_EMBED_DB
     std::string GetPerfDbPathEmbed() const

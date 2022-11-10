@@ -423,12 +423,13 @@ ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDe
     return 0;
 }
 
-std::size_t ConvolutionDescriptor::GetWorkSpaceSize(const ExecutionContext& ctx_,
+std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
                                                     const conv::ProblemDescription& problem) const
 {
     MIOPEN_LOG_I("");
 
-    auto ctx = ctx_.WithTuning(false).WithPerfdbAccess(false);
+    ctx.do_search             = false;
+    ctx.disable_perfdb_access = true;
 
     while(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
@@ -454,15 +455,15 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(const ExecutionContext& ctx_
         return solutions.front().workspace_size;
     }
 
-    const auto conv_ctx = ConvolutionContext{ctx, problem};
+    auto conv_ctx = ConvolutionContext{ctx, problem};
     size_t workspace_size;
 
     if(problem.GetDirection() != conv::Direction::BackwardWeights)
     {
         if(IsWinograd3x3SupportedAndFast(conv_ctx))
         {
-            const auto dynamic_ctx = ctx.WithDinamicSolutionsOnly(true);
-            workspace_size         = GetWorkSpaceSizeWinograd({dynamic_ctx, problem});
+            conv_ctx.use_dynamic_solutions_only = true;
+            workspace_size                      = GetWorkSpaceSizeWinograd(conv_ctx);
         }
         else
         {

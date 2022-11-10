@@ -223,20 +223,4 @@ ExecutionContext& ExecutionContext::DetectRocm()
     return *this;
 }
 
-ExecutionContext& ExecutionContext::SetupFloats(const conv::ProblemDescription& problem)
-{
-    if(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8())
-    {
-        general_compile_options += GetDataTypeKernelParams(problem.GetInDataType());
-    }
-    else
-    {
-        MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << GetDataTypeName(problem.GetInDataType()) << "x"
-                     << GetDataTypeName(problem.GetWeightsDataType()) << "x"
-                     << GetDataTypeName(problem.GetOutDataType()));
-    }
-    return *this;
-}
-
 } // namespace miopen
