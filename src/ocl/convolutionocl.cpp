@@ -827,6 +827,7 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
+    // AI based Heuristic fallback mechanism
     if(MIOPEN_ENABLE_AI_HEUR && ConvHeur::IsHeurApplicable(handle.GetDeviceName(), problem, ctx))
     {
         const auto ai_time = [](const int& idx) {

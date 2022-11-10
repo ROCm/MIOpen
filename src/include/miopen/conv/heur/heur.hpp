@@ -79,6 +79,7 @@ struct ConvHeur
             return false;
         const auto& solver_map    = GetSolverMap(arch);
         size_t applicable_solvers = 0;
+        // check for outlier configurations where no solver the Heuristic predicts is applicable
         for(const auto& solver_name : solver_map)
         {
             auto solver_id = solver::Id{solver_name.second};
@@ -106,6 +107,7 @@ struct ConvHeur
             cached = true;
             MIOPEN_LOG_I2("Cached heuristic result found");
             std::vector<uint64_t> db_sol(db_res->size());
+            // cast returned record to solver ids
             std::transform(db_res->begin(), db_res->end(), db_sol.begin(), [](boost::any id) {
                 return boost::any_cast<uint64_t>(id);
             });
@@ -147,16 +149,20 @@ struct ConvHeur
             static_cast<float>(problem.GetGroupCount())};
 
         TransformFeatures(features, arch);
-        const auto res             = CallModel(features, arch);
+        std::vector<float> res     = CallModel(features, arch);
         static const auto& solvers = GetSolverMap(arch);
 
         std::vector<std::pair<int, float>> sort_res(res.size());
+        // sorts result based upon magnitude of result in vector, returned from Model,
+        // paired with original index (idx). Sort magnitudes in descending order.
+        // Greater magnitude = better solver. Indexes (idx), which will be used to map to solvers,
+        // with greater corresponding magnitude are at front of the vector so they get priority.
         for(auto idx = 0; idx < res.size(); idx++)
             sort_res[idx] = {idx, res[idx]};
         const auto cmp = [](const std::pair<int, float>& a,
                             const std::pair<int, float>& b) -> bool { return a.second > b.second; };
-
         std::sort(sort_res.begin(), sort_res.end(), cmp);
+
         // map idx to solver id and then anysolver
         std::vector<uint64_t> sol;
         std::vector<boost::any> any_sol;

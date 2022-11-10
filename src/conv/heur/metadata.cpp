@@ -56,6 +56,7 @@ const std::unordered_map<size_t, std::string>& GetSolverMap(const std::string& a
             solver_map.emplace(make_pair(it.second, it.first));
         }
     }
+    // returns map of model output vector index to solver
     return solver_map;
 }
 
@@ -99,10 +100,12 @@ std::vector<float> GetStat(const std::string& stat, const std::string& arch)
 
     std::unordered_map<std::string, float> stat_map =
         metadata["stats"]["overall"]["features"][stat];
+    // holds feature names in proper order for input vector to the model
     std::vector<std::string> features = GetFeatureNames();
     std::vector<float> stats(features.size());
     for(size_t idx = 0; idx < stats.size(); idx++)
     {
+        // get stat (mean or std) based upon feature name
         stats[idx] = stat_map[features[idx]];
     }
     return stats;
@@ -114,6 +117,7 @@ void TransformFeatures(std::vector<float>& features, const std::string& arch)
     static std::vector<float> sig = GetStat("std", arch);
     for(size_t idx = 0; idx < features.size(); ++idx)
     {
+        // standardize all features
         features[idx] = (features[idx] - mu[idx]) / sig[idx];
     }
 }
@@ -134,6 +138,7 @@ std::vector<float> CallModel(std::vector<float>& features, const std::string& ar
     auto input = fdeep::tensor(fdeep::tensor_shape(features.size()), features);
     std::vector<fdeep::tensor> output = model.predict({input});
     std::vector<float> output_vector  = output.front().to_vector();
+    // offset the first couple indexes since they are unimportant to predicting optimal solvers
     std::vector<float> res(output_vector.begin() + GetOffset(arch), output_vector.end());
     return res;
 }
