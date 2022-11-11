@@ -342,8 +342,9 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                : conv::Direction::Forward;
     })();
 
-    const auto netcfg = actual.AsConvolution().BuildConfKey();
-    auto conv_ctx = ConvolutionContext{actual.AsConvolution(), {&handle}};
+    const auto conv_problem = actual.AsConvolution();
+    const auto netcfg = conv_problem.BuildConfKey();
+    const auto conv_ctx = ConvolutionContext{{&handle}, conv_problem};
     conv_ctx.DetectRocm();
     conv_ctx.SetupFloats();
 
