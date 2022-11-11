@@ -313,13 +313,8 @@ ConvHipImplicitGemmBwdXdlops::Search(const ConvolutionContext& ctx,
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-size_t ConvHipImplicitGemmBwdXdlops::GetWorkspaceSize(const ConvolutionContext& ctx) const
-{
-    std::ignore = ctx;
-    return 0;
-}
-
-bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ProblemDescription& problem) const
+bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
+                                                const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = problem;
@@ -338,6 +333,9 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ProblemDescription& proble
     if(!problem.Is2d())
         return false;
     if(!problem.IsLayoutNHWC())
+        return false;
+    const std::string& arch = ctx.GetStream().GetDeviceName();
+    if( arch != "gfx908" || arch != "gfx90a" )
         return false;
     switch(problem.conv_problem.GetInDataType())
     {

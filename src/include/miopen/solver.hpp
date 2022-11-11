@@ -5808,8 +5808,6 @@ struct ConvHipImplicitGemmBwdXdlops final
     {
         return Search(ctx, ctx.problem, invoke_ctx);
     }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override;
-    bool MayNeedWorkspace() const override { return false; }
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
         return IsApplicable(ctx.problem);
@@ -5820,10 +5818,20 @@ struct ConvHipImplicitGemmBwdXdlops final
     {
         return GetSolution(ctx, ctx.problem, config);
     }
+    // Magic Number Alert:
+    // Naive convolutions have GetWti() that return very small value (0.01f).
+    // This allows MIOpen to use Naive Solvers if no other applicable Solvers
+    // have known WTIs. Right now this means that in case of find-db miss,
+    // the library will try to use Winograd or GEMM (whatever is faster according
+    // to their GetWti's), but if both are not applicable, the library will
+    // use Naive Solver
+    // Since we would like to us CK before naive, and use it instead (because
+    // we do expect that CK is faster than Naive), therefore we use a
+    // value bigger than 0.01f, e.g. 0.02f.
     float GetWti(const ConvolutionContext&) const override { return 0.02f; };
 
 private:
-    bool IsApplicable(const ProblemDescription&) const;
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
     PerformanceConfigHipImplicitGemmBwdXdlops
     GetDefaultPerformanceConfig(const ProblemDescription&) const;
     bool IsValidPerformanceConfig(const ProblemDescription&,
