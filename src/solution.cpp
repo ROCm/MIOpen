@@ -163,9 +163,10 @@ void Solution::RunImpl(Handle& handle,
 
     auto conv_ctx = ConvolutionContext{conv_problem, {&handle}};
     conv_ctx.DetectRocm();
+    conv_ctx.SetupFloats();
 
     decltype(auto) db        = GetDb(conv_ctx);
-    const auto conv_solution = GetSolver().GetSolver().FindSolution(conv_ctx, db, invoke_ctx);
+    const auto conv_solution = GetSolver().GetSolver().FindSolutionCfg(conv_ctx, db, invoke_ctx, this->perf_cfg);
     decltype(auto) invoker =
         handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
@@ -210,6 +211,7 @@ void to_json(nlohmann::json& json, const Solution& solution)
         {"workspace", solution.workspace_required},
         {"solver", solution.solver.ToString()},
         {"problem", solution.problem},
+        {"perf_cfg", solution.perf_cfg},
     };
 }
 
@@ -232,5 +234,6 @@ void from_json(const nlohmann::json& json, Solution& solution)
     json.at("workspace").get_to(solution.workspace_required);
     solution.solver = json.at("solver").get<std::string>();
     json.at("problem").get_to(solution.problem);
+    solution.perf_cfg = json.at("perf_cfg").get<std::string>();
 }
 } // namespace miopen
