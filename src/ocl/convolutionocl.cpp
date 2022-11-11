@@ -67,6 +67,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEVICE_ARCH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DUMP_TENSOR_PATH)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_AI_HEUR)
 
 size_t GetKernelGlobalWorkDim(const KernelInvoke& kernel, int dim) { return kernel.gdims[dim]; }
 
@@ -828,7 +829,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
     ctx.DetectRocm();
 
     // AI based Heuristic fallback mechanism
-    if(MIOPEN_ENABLE_AI_HEUR && ConvHeur::IsHeurApplicable(handle.GetDeviceName(), problem, ctx))
+    if(MIOPEN_ENABLE_AI_HEUR && ConvHeur::IsHeurApplicable(handle.GetDeviceName(), problem, ctx) &&
+       !miopen::IsDisabled(MIOPEN_DEBUG_ENABLE_AI_HEUR{}))
     {
         const auto ai_time = [](const int& idx) {
             return 10.0f * static_cast<float>(idx); // Assume idx == 1 (best solver) is 10 ms.
