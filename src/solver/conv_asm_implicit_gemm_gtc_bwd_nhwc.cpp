@@ -436,9 +436,9 @@ GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(
     const auto gemm_n = c / group;
 
     size_t block_size = config.BlockSize();
-    size_t grid_size  = group * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
-                       integer_divide_ceil(gemm_n, config.gemm_n_per_block) *
-                       (1 << config.gemm_k_global_split);
+    size_t grid_size =
+        static_cast<size_t>(group) * integer_divide_ceil(gemm_m, config.gemm_m_per_block) *
+        integer_divide_ceil(gemm_n, config.gemm_n_per_block) * (1 << config.gemm_k_global_split);
     if(config.multihead != 0)
         grid_size *= num_of_gemm;
     std::string kernel_name = config.ToKernelName(ctx);
