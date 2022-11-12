@@ -135,7 +135,9 @@ protected:
         auto bnOp =
             std::make_shared<miopen::BatchNormInferenceFusionOpDescriptor>(bn_mode, bn_desc);
         EXPECT_EQ(fusePlanDesc.AddOp(bnOp), miopenStatusSuccess);
-        bnOp->SetArgs(&alpha,
+        miopen::OperatorArgs params;
+        bnOp->SetArgs(params,
+                      &alpha,
                       &beta,
                       scale_dev.get(),
                       shift_dev.get(),
@@ -144,13 +146,9 @@ protected:
                       epsilon);
         auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(activ_desc.GetMode());
         EXPECT_EQ(fusePlanDesc.AddOp(activOp), miopenStatusSuccess);
-        activOp->SetArgs(&alpha, &beta, activ_alpha, activ_beta, activ_gamma);
-        // Setup the params
-        std::vector<std::shared_ptr<miopen::fusion::FusionOpInvokeParamBase>> params;
-        for(const auto& op : fusePlanDesc.op_map)
-            params.push_back(op->GetArgs());
+        activOp->SetArgs(params, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
         plan_params = miopen::fusion::FusionInvokeParams{
-            params, input.desc, in_dev.get(), output.desc, out_dev.get(), false};
+            params.params, input.desc, in_dev.get(), output.desc, out_dev.get(), false};
     }
 
     void TearDown() override

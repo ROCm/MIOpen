@@ -56,14 +56,16 @@ enum FusionKernelSourceType
     Binary, /// \todo Unused, consider removing.
 };
 
-// Perhaps redundant
 struct OperatorArgs : miopenOperatorArgs
 {
-    OperatorArgs();
-    void ins_arg(std::string name, OpKernelArg v);
+    std::vector<std::shared_ptr<fusion::FusionOpInvokeParamBase>> params;
     friend std::ostream& operator<<(std::ostream& stream, const OperatorArgs& x);
-    std::vector<OpKernelArg> args_vec;
-    std::unordered_map<std::string, OpKernelArg> args_map;
+    void SetArg(size_t idx, const std::shared_ptr<fusion::FusionOpInvokeParamBase>& arg)
+    {
+        if(params.size() < (idx + 1))
+            params.resize(idx + 1);
+        params[idx] = std::move(arg);
+    }
 };
 struct FusionOpDescriptor : miopenFusionOpDescriptor
 {
@@ -75,105 +77,56 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     int GetIdx() const { return plan_idx; };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const = 0;
     virtual miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
-    virtual miopenStatus_t GetCompileParms(std::string& compile_config,
-                                           Handle& handle,
-                                           FusionKernelSourceType source,
-                                           const std::vector<solver::AnySolver>& solvers);
     friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
-    virtual miopenFusionOp_t kind() const                                    = 0;
-    virtual std::shared_ptr<fusion::FusionOpInvokeParamBase> GetArgs() const = 0;
-    virtual std::string GetArgKey(const std::string& k) const = 0; // likely redundant
-    virtual OpKernelArg GetOpAttr(const std::string& k) const = 0; // likely redundant
-    virtual bool GetOpAttr(const std::string& /*sym*/, int& /*val*/) const
-    {
-        return false;
-    }; // likely redundant
-    virtual std::vector<size_t> GetLocalWGSz(Handle& handle,
-                                             std::string algorithm_name); // likely redundant
-    virtual std::vector<size_t> GetGlobalWGSz(Handle& handle,
-                                              std::string algorithm_name); // likely redundant
+    virtual miopenFusionOp_t kind() const = 0;
     void SetInputDesc(TensorDescriptor i_desc) { input_desc = i_desc; };
     TensorDescriptor input_desc;
 
     // private:
-    int plan_idx                                          = 0;
-    std::shared_ptr<fusion::FusionOpInvokeParamBase> args = nullptr;
+    int plan_idx = 0;
+    // std::shared_ptr<fusion::FusionOpInvokeParamBase> args = nullptr;
 };
 
 struct BiasFusionOpDescriptor : FusionOpDescriptor
 {
-    BiasFusionOpDescriptor(const TensorDescriptor& desc) : base_desc(desc)
-    {
-        args = std::make_shared<fusion::BiasOpInvokeParam>();
-    }
+    BiasFusionOpDescriptor(const TensorDescriptor& desc) : base_desc(desc) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t GetCompileParms(std::string& compile_config,
-                                   Handle& handle,
-                                   FusionKernelSourceType source,
-                                   const std::vector<solver::AnySolver>& solvers) override;
-    miopenStatus_t SetArgs(const void* alpha, const void* beta, ConstData_t bdata);
-    std::shared_ptr<fusion::FusionOpInvokeParamBase> GetArgs() const override;
-    std::string GetArgKey(const std::string& k) const override;
-    OpKernelArg GetOpAttr(const std::string& k) const override;
+    miopenStatus_t
+    SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t bdata);
     miopenFusionOp_t kind() const override { return miopenFusionOpBiasForward; };
-    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
-    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     TensorDescriptor base_desc;
 };
 
 struct ActivFwdFusionOpDescriptor : FusionOpDescriptor
 {
-    ActivFwdFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode)
-    {
-        args = std::make_shared<fusion::ActivationOpInvokeParam>();
-    }
+    ActivFwdFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t GetCompileParms(std::string& compile_config,
-                                   Handle& handle,
-                                   FusionKernelSourceType source,
-                                   const std::vector<solver::AnySolver>& solvers) override;
-    miopenStatus_t SetArgs(const void* alpha,
+    miopenStatus_t SetArgs(OperatorArgs& args,
+                           const void* alpha,
                            const void* beta,
                            double activAlpha,
                            double activBeta,
                            double activGamma);
-    std::shared_ptr<fusion::FusionOpInvokeParamBase> GetArgs() const override;
-    std::string GetArgKey(const std::string& k) const override;
-    bool GetOpAttr(const std::string& sym, int& val) const override;
-    OpKernelArg GetOpAttr(const std::string& k) const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpActivForward; };
-    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
-    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     miopenActivationMode_t activMode;
 };
 
 struct ActivBwdFusionOpDescriptor : FusionOpDescriptor
 {
-    ActivBwdFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode)
-    {
-        args = std::make_shared<fusion::ActivationBwdOpInvokeParam>();
-    }
+    ActivBwdFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t GetCompileParms(std::string& compile_config,
-                                   Handle& handle,
-                                   FusionKernelSourceType source,
-                                   const std::vector<solver::AnySolver>& solvers) override;
-    miopenStatus_t SetArgs(const void* alpha,
+    miopenStatus_t SetArgs(OperatorArgs& args,
+                           const void* alpha,
                            const void* beta,
                            const void* y,
                            const void* x,
                            double activAlpha,
                            double activBeta,
                            double activGamma);
-    std::shared_ptr<fusion::FusionOpInvokeParamBase> GetArgs() const override;
-    std::string GetArgKey(const std::string& k) const override;
-    OpKernelArg GetOpAttr(const std::string& k) const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpActivBackward; };
-    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
-    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     miopenActivationMode_t activMode;
 };
 
@@ -183,28 +136,20 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
                                          const TensorDescriptor& desc)
         : mode(bn_mode), base_desc(desc)
     {
-        args = std::make_shared<fusion::BatchNormInferenceOpInvokeParam>();
     }
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t GetCompileParms(std::string& compile_config,
-                                   Handle& handle,
-                                   FusionKernelSourceType source,
-                                   const std::vector<solver::AnySolver>& solvers) override;
-    miopenStatus_t SetArgs(const void* alpha,
+    miopenStatus_t SetArgs(OperatorArgs& args,
+                           const void* alpha,
                            const void* beta,
                            ConstData_t bnScale,
                            ConstData_t bnBias,
                            ConstData_t estimatedMean,
                            ConstData_t estimatedVariance,
                            double epsilon);
-    std::shared_ptr<fusion::FusionOpInvokeParamBase> GetArgs() const override;
-    std::string GetArgKey(const std::string& k) const override;
-    OpKernelArg GetOpAttr(const std::string& k) const override;
-    bool GetOpAttr(const std::string& sym, int& val) const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormInference; };
-    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
-    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
+    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name);
+    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name);
 
     miopenBatchNormMode_t mode;
     TensorDescriptor base_desc;
@@ -215,15 +160,11 @@ struct BatchNormFwdTrainFusionOpDescriptor : FusionOpDescriptor
     BatchNormFwdTrainFusionOpDescriptor(miopenBatchNormMode_t bn_mode, bool runningMeanVariance)
         : mode(bn_mode), runningMeanVar(runningMeanVariance)
     {
-        args = std::make_shared<fusion::BatchNormFwdTrainingOpInvokeParam>();
     }
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t GetCompileParms(std::string& compile_config,
-                                   Handle& handle,
-                                   FusionKernelSourceType source,
-                                   const std::vector<solver::AnySolver>& solvers) override;
-    miopenStatus_t SetArgs(const void* alpha,
+    miopenStatus_t SetArgs(OperatorArgs& args,
+                           const void* alpha,
                            const void* beta,
                            Data_t runningMean,
                            Data_t runningVariance,
@@ -233,13 +174,9 @@ struct BatchNormFwdTrainFusionOpDescriptor : FusionOpDescriptor
                            ConstData_t bnBias,
                            double expAvgFactor,
                            double epsilon);
-    std::shared_ptr<fusion::FusionOpInvokeParamBase> GetArgs() const override;
-    std::string GetArgKey(const std::string& k) const override;
-    bool GetOpAttr(const std::string& sym, int& val) const override;
-    OpKernelArg GetOpAttr(const std::string& k) const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormFwdTrain; };
-    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
-    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
+    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name);
+    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name);
     void calcBNParams(Handle& handle,
                       std::vector<size_t> in_lens,
                       int& variant,
@@ -258,15 +195,11 @@ struct BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
     BatchNormBwdTrainFusionOpDescriptor(miopenBatchNormMode_t bn_mode)
         : mode(bn_mode), useBatchStats(true)
     {
-        args = std::make_shared<fusion::BatchNormBwdTrainingOpInvokeParam>();
     }
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t GetCompileParms(std::string& compile_config,
-                                   Handle& handle,
-                                   FusionKernelSourceType source,
-                                   const std::vector<solver::AnySolver>& solvers) override;
-    miopenStatus_t SetArgs(const void* alpha,
+    miopenStatus_t SetArgs(OperatorArgs& args,
+                           const void* alpha,
                            const void* beta,
                            ConstData_t x,
                            ConstData_t bnScale,
@@ -275,13 +208,9 @@ struct BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
                            Data_t resBnBiasDiff,
                            ConstData_t savedMean,
                            ConstData_t savedInvVariance);
-    std::shared_ptr<fusion::FusionOpInvokeParamBase> GetArgs() const override;
-    std::string GetArgKey(const std::string& k) const override;
-    bool GetOpAttr(const std::string& sym, int& val) const override;
-    OpKernelArg GetOpAttr(const std::string& k) const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormBwdTrain; };
-    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
-    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
+    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name);
+    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name);
     void calcBNParams(Handle& handle,
                       std::vector<size_t> in_lens,
                       int& variant,
@@ -302,25 +231,12 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
         : base_desc(conv_descriptor),
           filter_desc(filter_descriptor),
           kernel_info_valid(false),
-          conv_compiler_options("")
-    {
-        args = std::make_shared<miopen::fusion::ConvolutionOpInvokeParam>();
-    };
+          conv_compiler_options(""){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t SetArgs(const void* alpha, const void* beta, ConstData_t w);
-    std::shared_ptr<fusion::FusionOpInvokeParamBase> GetArgs() const override;
-    std::string GetArgKey(const std::string& k) const override;
-    OpKernelArg GetOpAttr(const std::string& k) const override;
-    bool GetOpAttr(const std::string& sym, int& val) const override;
+    miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t GetCompileParms(std::string& compile_config,
-                                   Handle& handle,
-                                   FusionKernelSourceType source,
-                                   const std::vector<solver::AnySolver>& solvers) override;
     bool isASMApplicable(Handle& handle);
     miopenFusionOp_t kind() const override { return miopenFusionOpConvForward; };
-    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
-    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
 
     ConvolutionDescriptor base_desc;
     TensorDescriptor filter_desc;

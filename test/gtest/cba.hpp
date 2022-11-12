@@ -150,17 +150,14 @@ protected:
         auto biasOp  = std::make_shared<miopen::BiasFusionOpDescriptor>(bias.desc);
         auto activOp = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(activ_desc.GetMode());
         EXPECT_EQ(fusePlanDesc.AddOp(convOp), miopenStatusSuccess);
-        convOp->SetArgs(&alpha, &beta, wei_dev.get());
+        miopen::OperatorArgs params;
+        convOp->SetArgs(params, &alpha, &beta, wei_dev.get());
         EXPECT_EQ(fusePlanDesc.AddOp(biasOp), miopenStatusSuccess);
-        biasOp->SetArgs(&alpha, &beta, bias_dev.get());
+        biasOp->SetArgs(params, &alpha, &beta, bias_dev.get());
         EXPECT_EQ(fusePlanDesc.AddOp(activOp), miopenStatusSuccess);
-        activOp->SetArgs(&alpha, &beta, activ_alpha, activ_beta, activ_gamma);
-        // Setup the params
-        std::vector<std::shared_ptr<miopen::fusion::FusionOpInvokeParamBase>> params;
-        for(const auto& op : fusePlanDesc.op_map)
-            params.push_back(op->GetArgs());
+        activOp->SetArgs(params, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
         plan_params = miopen::fusion::FusionInvokeParams{
-            params, input.desc, in_dev.get(), output.desc, out_dev.get(), false};
+            params.params, input.desc, in_dev.get(), output.desc, out_dev.get(), false};
     }
     void TearDown() override
     {

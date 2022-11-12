@@ -44,6 +44,7 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
         auto conv_prob = self.GetConvProblem(0, conv::Direction::Forward);
         ProblemDescription::Visit(conv_prob, f);
     }
+    // This and the following method should be moved to the Ops once the return type can be unified
     miopen::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir) const
     {
         const auto& conv_op =
@@ -67,15 +68,18 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
     miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx,
                                                        miopen::batchnorm::Direction dir) const
     {
+        // epsilon is part of the BN ProblemDescription, which is incorrect since it should be part
+        // of the invoke parameters epsilon is a runtime argument to the BN kernels, therefore here
+        // we fill it with a dummy value and use it the value stored in the OperatorArgs (aka Invoke
+        // Params) instead
+        const double not_used = std::numeric_limits<double>::signaling_NaN(); // Temporary filler
         if(dir == miopen::batchnorm::Direction::ForwardInference)
         {
             const auto& bn_op =
                 dynamic_cast<BatchNormInferenceFusionOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
             miopen::TensorDescriptor out_desc;
             bn_op.GetOutputDesc(out_desc);
-            const auto& bn_args =
-                std::dynamic_pointer_cast<fusion::BatchNormInferenceOpInvokeParam>(bn_op.args);
-            return {bn_op.mode, bn_op.input_desc, out_desc, bn_op.base_desc, bn_args->epsilon};
+            return {bn_op.mode, bn_op.input_desc, out_desc, bn_op.base_desc, not_used};
         }
         else if(dir == miopen::batchnorm::Direction::ForwardTraining)
         {
@@ -83,14 +87,12 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
                 dynamic_cast<BatchNormFwdTrainFusionOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
             miopen::TensorDescriptor out_desc;
             bn_op.GetOutputDesc(out_desc);
-            const auto& bn_args =
-                std::dynamic_pointer_cast<fusion::BatchNormFwdTrainingOpInvokeParam>(bn_op.args);
             return {bn_op.mode,
                     bn_op.input_desc,
                     out_desc,
                     bn_op.base_desc,
-                    bn_args->expAvgFactor,
-                    bn_args->epsilon,
+                    not_used, // expAvgFactor filler
+                    not_used,
                     true /* resultSave*/,
                     bn_op.runningMeanVar};
         }
@@ -100,14 +102,12 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
                 dynamic_cast<BatchNormBwdTrainFusionOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
             miopen::TensorDescriptor out_desc;
             bn_op.GetOutputDesc(out_desc);
-            const auto& bn_args =
-                std::dynamic_pointer_cast<fusion::BatchNormBwdTrainingOpInvokeParam>(bn_op.args);
             return {bn_op.mode,
                     bn_op.input_desc,
                     out_desc,
                     bn_op.input_desc,
                     {} /*bn_op.base_desc*/,
-                    bn_args->epsilon,
+                    not_used,
                     bn_op.useBatchStats /*useSaved*/};
         }
         else
@@ -122,6 +122,41 @@ struct FusionContext : miopen::ExecutionContext
         : ExecutionContext(&handle), problem(ptr_desc)
     {
     }
+    void GetNetworkConfig(std::string& net_config)
+    {
+        for(const auto& op : problem.fusion_plan_desc->op_map)
+        {
+            if(op->kind() == miopenFusionOpConvForward)
+            {
+                const auto prob = problem.GetConvProblem(op->GetIdx(), conv::Direction::Forward);
+                net_config += prob.conv_problem.BuildConfKey().ToString();
+            }
+            else if(op->kind() == miopenFusionOpBatchNormInference)
+            {
+                const auto prob = problem.GetBnProblem(
+                    op->GetIdx(), miopen::batchnorm::Direction::ForwardInference);
+                net_config += prob.MakeNetworkConfig().ToString();
+            }
+            else if(op->kind() == miopenFusionOpBatchNormFwdTrain)
+            {
+                const auto prob = problem.GetBnProblem(
+                    op->GetIdx(), miopen::batchnorm::Direction::ForwardTraining);
+                net_config += prob.MakeNetworkConfig().ToString();
+            }
+            else if(op->kind() == miopenFusionOpBatchNormBwdTrain)
+            {
+                const auto prob =
+                    problem.GetBnProblem(op->GetIdx(), miopen::batchnorm::Direction::Backward);
+                net_config += prob.MakeNetworkConfig().ToString();
+            }
+            else
+            {
+                op->GetNetworkConfig(net_config, this->GetStream());
+            }
+        }
+        MIOPEN_LOG_I2(net_config);
+    }
+
     ConvolutionContext GetConvContext(size_t idx, conv::Direction dir) const
     {
         const auto conv_prob = problem.GetConvProblem(idx, dir);

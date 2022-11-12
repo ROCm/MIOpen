@@ -194,8 +194,11 @@ miopenConvAlgorithm_t Id::GetAlgo() const
     return it->second.convAlgo;
 }
 
-inline bool
-Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const std::string& str)
+inline bool Register(IdRegistryData& registry,
+                     uint64_t value,
+                     Primitive primitive,
+                     const std::string& str,
+                     miopenConvAlgorithm_t algo = miopenConvolutionAlgoDirect)
 {
     if(value == Id::invalid_value)
     {
@@ -224,6 +227,7 @@ Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const st
     auto entry      = IdRegistryEntry{};
     entry.str_value = str;
     entry.primitive = {primitive};
+    entry.convAlgo  = algo;
 
     registry.value_to_entry.emplace(value, std::move(entry));
     registry.str_to_value.emplace(str, value);
@@ -513,12 +517,16 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
-    Register(
-        registry, ++id, Primitive::Fusion, solver::fusion::ConvBinWinogradRxSFused{}.SolverDbId());
     Register(registry,
              ++id,
              Primitive::Fusion,
-             solver::fusion::ConvBinWinogradRxSf2x3g1Fused{}.SolverDbId());
+             solver::fusion::ConvBinWinogradRxSFused{}.SolverDbId(),
+             miopenConvolutionAlgoWinograd);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             solver::fusion::ConvBinWinogradRxSf2x3g1Fused{}.SolverDbId(),
+             miopenConvolutionAlgoWinograd);
     Register(registry,
              ++id,
              Primitive::Fusion,

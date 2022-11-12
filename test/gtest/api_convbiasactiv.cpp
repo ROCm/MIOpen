@@ -98,14 +98,6 @@ protected:
         std::fill(output.begin(), output.end(), 0.0f);
         std::fill(ref_out.begin(), ref_out.end(), 0.0f);
         std::fill(bias.begin(), bias.end(), 0.0f);
-        int bias_mode = 1; // zero disables bias
-        convHostForward(input, ref_out, weights, bias_mode, bias, conv_desc);
-        activationHostInfer(cba_config.activ_mode,
-                            double_zero,
-                            double_zero,
-                            double_zero,
-                            ref_out.data,
-                            ref_out.data);
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
         wei_dev       = handle.Write(weights.data);
@@ -114,6 +106,15 @@ protected:
     }
     void TearDown() override
     {
+        const double double_zero = 0.0f;
+        int bias_mode            = 1; // zero disables bias
+        convHostForward(input, ref_out, weights, bias_mode, bias, conv_desc);
+        activationHostInfer(cba_config.activ_mode,
+                            double_zero,
+                            double_zero,
+                            double_zero,
+                            ref_out.data,
+                            ref_out.data);
         auto&& handle = get_handle();
         output.data   = handle.Read<float>(out_dev, output.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";

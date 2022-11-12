@@ -39,19 +39,22 @@ struct FusionOpInvokeParamBase
 
 struct ConvolutionOpInvokeParam : FusionOpInvokeParamBase
 {
-    /* Perhaps make these refs */
-    TensorDescriptor weightsDesc;
+    ConvolutionOpInvokeParam(ConstData_t w) : weights(w) {}
     ConstData_t weights = nullptr;
 };
 
 struct BiasOpInvokeParam : FusionOpInvokeParamBase
 {
-    TensorDescriptor biasDesc;
+    BiasOpInvokeParam(ConstData_t b) : bdata(b) {}
     ConstData_t bdata = nullptr;
 };
 
 struct ActivationOpInvokeParam : FusionOpInvokeParamBase
 {
+    ActivationOpInvokeParam(double alpha, double beta, double gamma)
+        : activAlpha(alpha), activBeta(beta), activGamma(gamma)
+    {
+    }
     double activAlpha;
     double activBeta;
     double activGamma;
@@ -59,6 +62,11 @@ struct ActivationOpInvokeParam : FusionOpInvokeParamBase
 
 struct ActivationBwdOpInvokeParam : FusionOpInvokeParamBase
 {
+    ActivationBwdOpInvokeParam(
+        ConstData_t _y, ConstData_t _x, double alpha, double beta, double gamma)
+        : y(_y), x(_x), activAlpha(alpha), activBeta(beta), activGamma(gamma)
+    {
+    }
     ConstData_t y;
     ConstData_t x;
     double activAlpha;
@@ -68,6 +76,15 @@ struct ActivationBwdOpInvokeParam : FusionOpInvokeParamBase
 
 struct BatchNormInferenceOpInvokeParam : FusionOpInvokeParamBase
 {
+    BatchNormInferenceOpInvokeParam(
+        ConstData_t scale, ConstData_t bias, ConstData_t estMean, ConstData_t estVar, double eps)
+        : bnScale(scale),
+          bnBias(bias),
+          estimatedMean(estMean),
+          estimatedVariance(estVar),
+          epsilon(eps)
+    {
+    }
     ConstData_t bnScale;
     ConstData_t bnBias;
     ConstData_t estimatedMean;
@@ -77,6 +94,24 @@ struct BatchNormInferenceOpInvokeParam : FusionOpInvokeParamBase
 
 struct BatchNormFwdTrainingOpInvokeParam : FusionOpInvokeParamBase
 {
+    BatchNormFwdTrainingOpInvokeParam(Data_t rMean,
+                                      Data_t rVar,
+                                      Data_t sMean,
+                                      Data_t sInvVar,
+                                      ConstData_t scale,
+                                      ConstData_t bias,
+                                      double eaFact,
+                                      double eps)
+        : runningMean(rMean),
+          runningVariance(rVar),
+          savedMean(sMean),
+          savedInvVariance(sInvVar),
+          bnScale(scale),
+          bnBias(bias),
+          expAvgFactor(eaFact),
+          epsilon(eps)
+    {
+    }
     Data_t runningMean;
     Data_t runningVariance;
     Data_t savedMean;
@@ -89,6 +124,22 @@ struct BatchNormFwdTrainingOpInvokeParam : FusionOpInvokeParamBase
 
 struct BatchNormBwdTrainingOpInvokeParam : FusionOpInvokeParamBase
 {
+    BatchNormBwdTrainingOpInvokeParam(ConstData_t _x,
+                                      ConstData_t scale,
+                                      ConstData_t bias,
+                                      Data_t scaleDiff,
+                                      Data_t biasDiff,
+                                      ConstData_t sMean,
+                                      ConstData_t sInvVar)
+        : x(_x),
+          bnScale(scale),
+          bnBias(bias),
+          resBnScaleDiff(scaleDiff),
+          resBnBiasDiff(biasDiff),
+          savedMean(sMean),
+          savedInvVariance(sInvVar)
+    {
+    }
     ConstData_t x;
     ConstData_t bnScale;
     ConstData_t bnBias;
@@ -96,7 +147,6 @@ struct BatchNormBwdTrainingOpInvokeParam : FusionOpInvokeParamBase
     Data_t resBnBiasDiff;
     ConstData_t savedMean;
     ConstData_t savedInvVariance;
-    double epsilon;
 };
 
 struct FusionInvokeParams : InvokeParams
@@ -108,7 +158,8 @@ struct FusionInvokeParams : InvokeParams
                        TensorDescriptor out_desc,
                        Data_t out_,
                        bool gfx90aFp16alt_)
-        : op_invokers(std::move(op_invokers_)),
+        // : op_invokers(std::move(op_invokers_)),
+        : op_invokers(op_invokers_),
           inDesc(in_desc),
           in(in_),
           outDesc(out_desc),

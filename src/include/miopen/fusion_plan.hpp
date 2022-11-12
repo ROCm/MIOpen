@@ -5,7 +5,6 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/fusion.hpp>
-#include <miopen/md_graph.hpp>
 
 #include <boost/optional.hpp>
 
@@ -66,21 +65,10 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 
     miopenStatus_t GetOp(int op_idx, std::shared_ptr<FusionOpDescriptor>& desc);
 
-    std::string GetKernelName(const Handle& handle);
-    std::string GetProgramName(const Handle& handle);
     std::string GetAlgorithmName(const Handle& handle);
-
     std::vector<std::shared_ptr<FusionOpDescriptor>> op_map;
 
 protected:
-    auto GetLocalWGSz();
-    auto GetGlobalWGSz();
-    std::vector<Exec_arg_t> CalcArgOrder(const Handle& handle);
-    bool GetEnumVal(const std::string& sym, int& val) const;
-    OpKernelArg GetDevAttribute(const std::string& k, const Handle& handle) const;
-    OpKernelArg GetTensorAttr(const std::string& sym) const;
-    bool GetTensorAttr(const std::string& sym, int& val) const;
-
     // private:
     miopenFusionDirection_t fusion_dir;
     TensorDescriptor input_desc;
@@ -93,6 +81,7 @@ protected:
     std::vector<Exec_arg_t> arg_list;
     std::vector<solver::ConvSolution> solutions;
     NetworkConfig network_config;
+    std::optional<miopenConvFwdAlgorithm_t> conv_fwd_algo;
 };
 
 } // namespace miopen

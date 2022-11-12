@@ -120,8 +120,6 @@ set( MIOpen_Source
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
-    md_graph.cpp
-    mdg_expr.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
