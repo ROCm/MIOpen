@@ -5810,7 +5810,7 @@ struct ConvHipImplicitGemmBwdXdlops final
     }
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
-        return IsApplicable(ctx.problem);
+        return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,

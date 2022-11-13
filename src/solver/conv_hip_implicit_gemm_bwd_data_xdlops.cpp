@@ -317,6 +317,7 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
                                                 const ProblemDescription& problem) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
+    std::ignore = ctx;
     std::ignore = problem;
     return false;
 #else
@@ -335,7 +336,7 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsLayoutNHWC())
         return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
-    if( arch != "gfx908" || arch != "gfx90a" )
+    if(arch != "gfx908" && arch != "gfx90a")
         return false;
     switch(problem.conv_problem.GetInDataType())
     {
