@@ -1246,6 +1246,11 @@ int ConvFin<Tgpu, Tref>::TestPerfDbEntries(
 
         auto slv_id = miopen::solver::Id(solver_nm);
         auto solver = slv_id.GetSolver();
+        if(slv_id.GetPrimitive() != miopen::solver::Primitive::Convolution)
+        {
+            std::cerr << "Skipping non-convolution primitives" << std::endl;
+            continue;
+        }
         std::stringstream stat_str;
         stat_str << "config_id: " << config_id << ", solver_nm " << solver_nm
                  << ", key: " << ctx.problem;
