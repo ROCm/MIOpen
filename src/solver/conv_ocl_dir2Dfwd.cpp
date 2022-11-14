@@ -345,10 +345,9 @@ static ConvSolution BaseGetSolution(const ConvolutionContext& ctx,
     {
         float proc_data_ratio = static_cast<float>(result.in_tile1 * result.in_tile0) /
                                 static_cast<float>(result.grp_tile1 * result.grp_tile0);
-        n_read_procs = (proc_data_ratio <= 0.25)
-                           ? (result.grp_tile1 * result.grp_tile0) / 4
-                           : (proc_data_ratio <= 0.5) ? (result.grp_tile1 * result.grp_tile0) / 2
-                                                      : (result.grp_tile1 * result.grp_tile0);
+        n_read_procs = (proc_data_ratio <= 0.25)  ? (result.grp_tile1 * result.grp_tile0) / 4
+                       : (proc_data_ratio <= 0.5) ? (result.grp_tile1 * result.grp_tile0) / 2
+                                                  : (result.grp_tile1 * result.grp_tile0);
     }
 
     int n_out_tile_blocks0 = (problem.out_width + result.in_tile0 - 1) / (result.in_tile0);
@@ -544,8 +543,7 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
                                    const PerformanceConfigConvOclDirectFwdFused& config) const
 {
     const auto conv_ctx = context.GetConvContext(0, conv::Direction::Forward);
-    ConvSolution result =
-        BaseGetSolution(conv_ctx, conv_ctx.problem, config);
+    ConvSolution result = BaseGetSolution(conv_ctx, conv_ctx.problem, config);
 
     if(result.construction_params.size() != 1)
         MIOPEN_THROW("ConvOclDirectFwdFused expects only one kernel");
