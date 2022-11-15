@@ -63,6 +63,15 @@ struct ConvTestCase
     }
 };
 
+std::vector<ConvTestCase> ConvTestConfigs()
+{ // n  c   h   w   k   y  x pad_x pad_y stri_x stri_y dia_x dia_y
+    return {{16, 128, 16, 16, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {64, 128, 28, 28, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {64, 256, 14, 14, 256, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {64, 512, 7, 7, 512, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+            {64, 1024, 14, 14, 1024, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+}
+
 template <typename T = float>
 struct ConvFwdSolverTest
     : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, ConvTestCase>>

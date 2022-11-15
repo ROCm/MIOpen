@@ -42,9 +42,6 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 {
     auto&& handle = get_handle();
 
-    // const auto naive_conv_id = miopen::solver::Id{"ConvDirectNaiveConvFwd"};
-    // const auto naive_solver  = naive_conv_id.GetSolver();
-
     Solver solv{};
 
     const auto tensors =
@@ -62,14 +59,8 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
         GTEST_FAIL() << solv.SolverDbId() << "ConvAsm3x3U Not Applicable for this problem"
                      << conv_config;
     }
-
     const auto invoke_params = miopen::conv::DataInvokeParams{
         tensors, nullptr, 0, convDesc.attribute.gfx90aFp16alt.GetFwd()};
-
-    // const auto invoker = miopen::LoadOrPrepareInvoker(
-    //    handle, ctx, naive_conv_id.Value(), miopen::conv::Direction::Forward);
-    // invoker(handle, invoke_params);
-    // rout.data = handle.Read<Tout>(out_dev, rout.data.size());
 
     ASSERT_TRUE(solv.IsApplicable(ctx));
     auto sol = solv.GetSolution(ctx, solv.GetDefaultPerformanceConfig(ctx));
@@ -93,9 +84,7 @@ TEST_P(ConvFwdSolverTestFloat, ConvASM3x3UFwd)
                                            test_skipped);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    ConvFwdTest,
-    ConvFwdSolverTestFloat,
-    testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect),
-                     testing::Values(ConvTestCase{
-                         16, 128, 16, 16, 128, 3, 3, 0, 0, 1, 1, 1, 1, miopenConvolution})));
+INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
+                         ConvFwdSolverTestFloat,
+                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect),
+                                          testing::ValuesIn(ConvTestConfigs())));
