@@ -89,7 +89,8 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
     auto cba_context         = context.GetConvContext(0, conv::Direction::Forward);
     cba_context.problem.bias = 1;
     cba_context.problem.bias_sz =
-        cba_context.problem.n_outputs * ((cba_context.problem.out_data_type == miopenHalf) ? 2 : 4);
+        static_cast<size_t>(cba_context.problem.n_outputs *
+                            ((cba_context.problem.out_data_type == miopenHalf) ? 2 : 4));
     if(!cba_context.problem.direction.IsForward())
         MIOPEN_THROW("Only inference supported.");
 
@@ -133,9 +134,7 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& problem,
     const auto& desc        = *problem.problem.fusion_plan_desc;
 
     const bool has_bias = [&]() {
-        if(desc.op_map.size() == 3)
-            return true;
-        else if(desc.op_map[1]->kind() == miopenFusionOpBiasForward)
+        if(desc.op_map[1]->kind() == miopenFusionOpBiasForward)
             return true;
         return false;
     }();

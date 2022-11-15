@@ -33,7 +33,6 @@
 #include <miopen/solver_id.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
-#include <miopen/solver_id.hpp>
 #include <miopen/find_solution.hpp>
 
 #include <ostream>

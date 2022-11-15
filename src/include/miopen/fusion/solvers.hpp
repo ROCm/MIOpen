@@ -258,15 +258,15 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
         : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, -1, false)
     {
     }
-    void HeuristicInit(const FusionContext& config);
-    bool SetNextValue(const FusionContext& config);
-    bool IsValid(const FusionContext& config) const;
+    void HeuristicInit(const FusionContext& ctx);
+    bool SetNextValue(const FusionContext& problem);
+    bool IsValid(const FusionContext& problem) const;
 };
 struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
-    bool IsApplicable(const FusionContext& desc) const override;
+    bool IsApplicable(const FusionContext& problem) const override;
     ConvSolution
     GetSolution(const FusionContext& problem,
                 const PerformanceConfigConvBiasActivAsm1x1U& /*config*/) const override;
@@ -288,13 +288,13 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
         return GetSolverDbId<ConvOclDirectFwdFused>();
     }
 
-    bool IsApplicable(const FusionContext& problem) const override;
-    ConvSolution GetSolution(const FusionContext& problem,
+    bool IsApplicable(const FusionContext& context) const override;
+    ConvSolution GetSolution(const FusionContext& context,
                              const PerformanceConfigConvOclDirectFwdFused&) const override;
     PerformanceConfigConvOclDirectFwdFused
     GetDefaultPerformanceConfig(const FusionContext&) const override;
-    PerformanceConfigConvOclDirectFwdFused Search(const FusionContext&,
-                                                  const AnyInvokeParams& invoke_ctx) const override;
+    PerformanceConfigConvOclDirectFwdFused
+    Search(const FusionContext&, const AnyInvokeParams& invoke_params) const override;
     bool IsValidPerformanceConfig(const FusionContext&,
                                   const PerformanceConfigConvOclDirectFwdFused&) const override;
 };
@@ -307,7 +307,7 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
     }
 
     bool IsApplicable(const FusionContext& params) const override;
-    ConvSolution GetSolution(const FusionContext& params) const;
+    ConvSolution GetSolution(const FusionContext& plan_desc) const;
 };
 
 struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
@@ -317,7 +317,7 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
         return GetSolverDbId<ConvBinWinogradRxSf2x3g1Fused>();
     }
 
-    bool IsApplicable(const FusionContext& params) const override;
+    bool IsApplicable(const FusionContext& context) const override;
     ConvSolution GetSolution(const FusionContext& params) const;
 };
 
@@ -327,8 +327,8 @@ struct BnFwdInferActivationFused final : FusionSolverBase
     {
         return GetSolverDbId<BnFwdInferActivationFused>();
     }
-    bool IsApplicable(const FusionContext& params) const override;
-    ConvSolution GetSolution(const FusionContext& params) const;
+    bool IsApplicable(const FusionContext& context) const override;
+    ConvSolution GetSolution(const FusionContext& context) const;
 };
 
 struct BnFwdTrgActivationFused final : FusionSolverBase
@@ -337,8 +337,8 @@ struct BnFwdTrgActivationFused final : FusionSolverBase
     {
         return GetSolverDbId<BnFwdTrgActivationFused>();
     }
-    bool IsApplicable(const FusionContext& params) const override;
-    ConvSolution GetSolution(const FusionContext& params) const;
+    bool IsApplicable(const FusionContext& context) const override;
+    ConvSolution GetSolution(const FusionContext& fusion_ctx) const;
 };
 
 struct BnBwdTrgActivationFused final : FusionSolverBase
@@ -347,8 +347,8 @@ struct BnBwdTrgActivationFused final : FusionSolverBase
     {
         return GetSolverDbId<BnBwdTrgActivationFused>();
     }
-    bool IsApplicable(const FusionContext& params) const override;
-    ConvSolution GetSolution(const FusionContext& params) const;
+    bool IsApplicable(const FusionContext& context) const override;
+    ConvSolution GetSolution(const FusionContext& fusion_ctx) const;
 };
 
 } // namespace fusion

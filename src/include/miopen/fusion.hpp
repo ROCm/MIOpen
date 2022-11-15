@@ -64,7 +64,7 @@ struct OperatorArgs : miopenOperatorArgs
     {
         if(params.size() < (idx + 1))
             params.resize(idx + 1);
-        params[idx] = std::move(arg);
+        params[idx] = arg;
     }
 };
 struct FusionOpDescriptor : miopenFusionOpDescriptor

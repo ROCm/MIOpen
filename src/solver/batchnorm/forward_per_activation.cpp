@@ -88,7 +88,7 @@ ConvSolution BnFwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
         const auto& input_desc = problem.GetXDesc();
         input_type             = input_desc.GetType();
         std::tie(n, c, h, w)   = tien<4>(input_desc.GetLengths());
-        size_t in_cstride      = h * w;
+        size_t in_cstride      = static_cast<size_t>(h) * w;
 
         xlocalsize = 1024;
         ylocalsize = 1;

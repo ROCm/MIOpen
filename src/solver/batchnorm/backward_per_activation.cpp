@@ -86,7 +86,7 @@ ConvSolution BnBwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
         const auto& input_desc = problem.GetXDesc();
         input_type             = input_desc.GetType();
         std::tie(n, c, h, w)   = tien<4>(input_desc.GetLengths());
-        size_t in_cstride      = h * w;
+        size_t in_cstride      = static_cast<size_t>(h) * w;
 
         xlocalsize = 1;
         ylocalsize = 1;
@@ -113,9 +113,9 @@ ConvSolution BnBwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
         if(mode == miopenBNSpatial)
         {
             if(in_cstride > 512)
-                xgridsize = c * xlocalsize;
+                xgridsize = static_cast<size_t>(c) * xlocalsize;
             else
-                xgridsize = 1024 * c;
+                xgridsize = 1024 * static_cast<size_t>(c);
         }
         else
         {

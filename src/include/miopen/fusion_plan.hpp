@@ -12,7 +12,7 @@ namespace miopen {
 
 namespace solver {
 struct ConvSolution;
-}
+} // namespace solver
 
 enum Exec_Arg_Type_t
 {

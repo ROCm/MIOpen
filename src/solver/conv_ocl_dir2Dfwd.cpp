@@ -580,7 +580,7 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
         size_t read_len        = (bn_op.mode == miopenBNSpatial) ? h * w : c * h * w;
         const size_t read_unit = [&]() {
             if(bn_op.mode == miopenBNSpatial && bn_op.input_desc.GetType() != miopenHalf)
-                return (read_len % 4 == 0) ? 4 : (read_len % 2) ? 2 : 1;
+                return (read_len % 4 == 0) ? 4 : (read_len % 2 == 0u) ? 2 : 1;
             else
                 return 1;
         }();
