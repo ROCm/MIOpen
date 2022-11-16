@@ -2223,12 +2223,7 @@ struct conv_driver : test_driver
                                            tensor_elem_gen_checkboard_sign{}(is...);
                 };
 
-                auto ctx = miopen::ConvolutionContext(input.desc,
-                                                      weights.desc,
-                                                      output.desc,
-                                                      filter,
-                                                      miopen::conv::Direction::Forward);
-                ctx.SetStream(&get_handle());
+                auto ctx = miopen::ExecutionContext{&get_handle()};
 
                 bool skip_forward = false;
 
