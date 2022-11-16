@@ -547,7 +547,7 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& params) const
     }
     else
         return false;
-    if(!(((padded_x / 3) * (padded_y * 3) * static_cast<size_t>(c)) >= 18))
+    if(!((static_cast<size_t>((padded_x / 3)) * (padded_y * 3) * static_cast<size_t>(c)) >= 18))
         return false;
 
     return true;

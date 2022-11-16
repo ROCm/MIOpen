@@ -328,7 +328,7 @@ struct BnFwdInferActivationFused final : FusionSolverBase
         return GetSolverDbId<BnFwdInferActivationFused>();
     }
     bool IsApplicable(const FusionContext& context) const override;
-    ConvSolution GetSolution(const FusionContext& context) const;
+    ConvSolution GetSolution(const FusionContext& fusion_ctx) const;
 };
 
 struct BnFwdTrgActivationFused final : FusionSolverBase

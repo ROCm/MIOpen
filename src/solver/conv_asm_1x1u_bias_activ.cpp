@@ -86,11 +86,10 @@ bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
 PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionContext& context,
                                                                    const AnyInvokeParams&) const
 {
-    auto cba_context         = context.GetConvContext(0, conv::Direction::Forward);
-    cba_context.problem.bias = 1;
-    cba_context.problem.bias_sz =
-        static_cast<size_t>(cba_context.problem.n_outputs *
-                            ((cba_context.problem.out_data_type == miopenHalf) ? 2 : 4));
+    auto cba_context            = context.GetConvContext(0, conv::Direction::Forward);
+    cba_context.problem.bias    = 1;
+    cba_context.problem.bias_sz = static_cast<size_t>(cba_context.problem.n_outputs) *
+                                  ((cba_context.problem.out_data_type == miopenHalf) ? 2 : 4);
     if(!cba_context.problem.direction.IsForward())
         MIOPEN_THROW("Only inference supported.");
 
