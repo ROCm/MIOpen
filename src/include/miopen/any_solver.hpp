@@ -92,8 +92,9 @@ struct AnySolver
         return ptr_value->FindSolution(ctx, db, invoke_ctx);
     };
     ConvSolution FindSolutionCfg(const ConvolutionContext& ctx,
-                              Db& db,
-                              const miopen::AnyInvokeParams& invoke_ctx, const std::string perf_cfg) const
+                                 Db& db,
+                                 const miopen::AnyInvokeParams& invoke_ctx,
+                                 const std::string perf_cfg) const
     {
         assert(ptr_value != nullptr);
         return ptr_value->FindSolutionCfg(ctx, db, invoke_ctx, perf_cfg);
@@ -140,13 +141,13 @@ struct AnySolver
                                           Db& db,
                                           const miopen::AnyInvokeParams& invoke_ctx) const     = 0;
         virtual ConvSolution FindSolutionCfg(const ConvolutionContext& ctx,
-                                          Db& db,
-                                          const miopen::AnyInvokeParams& invoke_ctx, 
-                                          const std::string perf_cfg) const     = 0;
+                                             Db& db,
+                                             const miopen::AnyInvokeParams& invoke_ctx,
+                                             const std::string perf_cfg) const                 = 0;
 
-        virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const      = 0;
-        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const                   = 0;
-        virtual bool MayNeedWorkspace() const                                                  = 0;
+        virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const = 0;
+        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const              = 0;
+        virtual bool MayNeedWorkspace() const                                             = 0;
     };
 
     // templated derived class
@@ -263,8 +264,9 @@ struct AnySolver
         };
 
         ConvSolution FindSolutionCfg(const ConvolutionContext& ctx,
-                                  Db& db,
-                                  const miopen::AnyInvokeParams& invoke_ctx, const std::string perf_cfg) const override
+                                     Db& db,
+                                     const miopen::AnyInvokeParams& invoke_ctx,
+                                     const std::string perf_cfg) const override
         {
             return miopen::solver::FindSolution(value, ctx, db, invoke_ctx, perf_cfg);
         };

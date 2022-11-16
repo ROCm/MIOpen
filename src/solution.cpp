@@ -165,8 +165,9 @@ void Solution::RunImpl(Handle& handle,
     conv_ctx.DetectRocm();
     conv_ctx.SetupFloats();
 
-    decltype(auto) db        = GetDb(conv_ctx);
-    const auto conv_solution = GetSolver().GetSolver().FindSolutionCfg(conv_ctx, db, invoke_ctx, this->perf_cfg);
+    decltype(auto) db = GetDb(conv_ctx);
+    const auto conv_solution =
+        GetSolver().GetSolver().FindSolutionCfg(conv_ctx, db, invoke_ctx, this->perf_cfg);
     decltype(auto) invoker =
         handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());

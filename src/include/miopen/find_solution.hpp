@@ -45,8 +45,12 @@ struct AnyInvokeParams;
 namespace solver {
 
 template <class Solver, class Context, class Db>
-auto FindSolutionImpl(
-    rank<1>, Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx, const std::string& perf_cfg)
+auto FindSolutionImpl(rank<1>,
+                      Solver s,
+                      const Context& context,
+                      Db& db,
+                      const AnyInvokeParams& invoke_ctx,
+                      const std::string& perf_cfg)
     -> decltype(s.GetSolution(context, s.Search(context, invoke_ctx)))
 {
     const FindEnforce enforce;
@@ -94,7 +98,8 @@ auto FindSolutionImpl(
                               << s.AltSolverDbId() << ": " << config
                               << ". Performance may degrade.");
             }
-            else if(not perf_cfg.empty()) {
+            else if(not perf_cfg.empty())
+            {
                 config.Deserialize(perf_cfg);
                 if(s.IsValidPerformanceConfig(context, config))
                 {
@@ -129,7 +134,8 @@ auto FindSolutionImpl(
 }
 
 template <class Solver, class Context, class Db>
-auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&, const AnyInvokeParams&, const std::string&)
+auto FindSolutionImpl(
+    rank<0>, Solver s, const Context& context, Db&, const AnyInvokeParams&, const std::string&)
     -> decltype(s.GetSolution(context))
 {
     MIOPEN_LOG_I(s.SolverDbId() << " (not searchable)");
@@ -143,8 +149,11 @@ auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&, const AnyI
 /// Could take long if an exhaustive search is requested/performed.
 /// May read/write perfDb.
 template <class Solver, class Context, class Db>
-ConvSolution
-FindSolution(Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx, const std::string& perf_cfg = "")
+ConvSolution FindSolution(Solver s,
+                          const Context& context,
+                          Db& db,
+                          const AnyInvokeParams& invoke_ctx,
+                          const std::string& perf_cfg = "")
 {
     static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
     static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");

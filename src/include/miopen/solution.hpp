@@ -81,7 +81,7 @@ struct Solution : miopenSolution
     void SetWorkspaceSize(std::size_t value) { workspace_required = value; }
     const solver::Id& GetSolver() const { return solver; }
     void SetSolver(solver::Id value) { solver = value; }
-    void SetPerfCfgParams(const std::string cfg) {perf_cfg = cfg;}
+    void SetPerfCfgParams(const std::string cfg) { perf_cfg = cfg; }
     const Problem& GetProblem() const { return problem; }
     void SetProblem(Problem value) { problem = std::move(value); }
 
@@ -98,7 +98,7 @@ private:
     std::size_t workspace_required = 0;
     solver::Id solver;
     Problem problem;
-    std::string perf_cfg = "";    
+    std::string perf_cfg = "";
 
     void RunImpl(Handle& handle,
                  const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,

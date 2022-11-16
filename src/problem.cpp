@@ -343,12 +343,12 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     })();
 
     const auto conv_problem = actual.AsConvolution();
-    const auto netcfg = conv_problem.BuildConfKey();
-    auto conv_ctx = ConvolutionContext{conv_problem, {&handle}};
+    const auto netcfg       = conv_problem.BuildConfKey();
+    auto conv_ctx           = ConvolutionContext{conv_problem, {&handle}};
     conv_ctx.DetectRocm();
     conv_ctx.SetupFloats();
 
-    decltype(auto) db        = GetDb(conv_ctx);
+    decltype(auto) db = GetDb(conv_ctx);
 
     for(auto i = 0; i < found; ++i)
     {
