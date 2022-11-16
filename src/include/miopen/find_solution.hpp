@@ -36,6 +36,7 @@
 #include <miopen/solver.hpp>
 
 #include <limits>
+#include <optional>
 #include <vector>
 
 namespace miopen {
@@ -50,7 +51,7 @@ auto FindSolutionImpl(rank<1>,
                       const Context& context,
                       Db& db,
                       const AnyInvokeParams& invoke_ctx,
-                      const std::string& perf_cfg)
+                      const std::optional<std::string>& perf_cfg)
     -> decltype(s.GetSolution(context, s.Search(context, invoke_ctx)))
 {
     const FindEnforce enforce;
@@ -98,9 +99,9 @@ auto FindSolutionImpl(rank<1>,
                               << s.AltSolverDbId() << ": " << config
                               << ". Performance may degrade.");
             }
-            else if(not perf_cfg.empty())
+            else if(perf_cfg.has_value())
             {
-                config.Deserialize(perf_cfg);
+                config.Deserialize(*perf_cfg);
                 if(s.IsValidPerformanceConfig(context, config))
                 {
                     return s.GetSolution(context, config);
@@ -134,8 +135,12 @@ auto FindSolutionImpl(rank<1>,
 }
 
 template <class Solver, class Context, class Db>
-auto FindSolutionImpl(
-    rank<0>, Solver s, const Context& context, Db&, const AnyInvokeParams&, const std::string&)
+auto FindSolutionImpl(rank<0>,
+                      Solver s,
+                      const Context& context,
+                      Db&,
+                      const AnyInvokeParams&,
+                      const std::optional<std::string>&)
     -> decltype(s.GetSolution(context))
 {
     MIOPEN_LOG_I(s.SolverDbId() << " (not searchable)");
@@ -153,7 +158,7 @@ ConvSolution FindSolution(Solver s,
                           const Context& context,
                           Db& db,
                           const AnyInvokeParams& invoke_ctx,
-                          const std::string& perf_cfg = "")
+                          const std::optional<std::string>& perf_cfg = std::nullopt)
 {
     static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
     static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");

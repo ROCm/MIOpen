@@ -406,7 +406,8 @@ int ConvFin<Tgpu, Tref>::MIOpenFindCompile()
                 return false;
             }
 
-            res_item["params"]  = s.GetPerfCfgParams(ctx, db);
+            // todo: proper handling of empty values
+            res_item["params"]  = s.GetPerfCfgParams(ctx, db).value_or("");
             res_item["tunable"] = false;
             if(s.IsTunable())
                 res_item["tunable"] = true;
@@ -643,7 +644,8 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfEval()
                     std::cerr << solver_name << " Finished Search FWD" << std::endl;
                     kern_objs = BuildJsonKernelList(h, solution.construction_params);
                     SolutionHasProgram(h, solution);
-                    params = s.GetPerfCfgParams(ctx, db);
+                    // todo: proper handling of empty values
+                    params = s.GetPerfCfgParams(ctx, db).value_or("");
 
                     const auto invoker =
                         h.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
@@ -667,7 +669,8 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfEval()
                     std::cerr << solver_name << " Finished Search BWD" << std::endl;
                     kern_objs = BuildJsonKernelList(h, solution.construction_params);
                     SolutionHasProgram(h, solution);
-                    params = s.GetPerfCfgParams(ctx, db);
+                    // todo: proper handling of empty values
+                    params = s.GetPerfCfgParams(ctx, db).value_or("");
 
                     const auto invoker =
                         h.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
@@ -691,7 +694,8 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfEval()
                     std::cerr << solver_name << " Finished Search WRW" << std::endl;
                     kern_objs = BuildJsonKernelList(h, solution.construction_params);
                     SolutionHasProgram(h, solution);
-                    params = s.GetPerfCfgParams(ctx, db);
+                    // todo: proper handling of empty values
+                    params = s.GetPerfCfgParams(ctx, db).value_or("");
 
                     const auto invoker =
                         h.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
@@ -821,7 +825,8 @@ int ConvFin<Tgpu, Tref>::MIOpenFindEval()
                 return false;
             }
 
-            res_item["params"]  = s.GetPerfCfgParams(ctx, db);
+            // todo: proper handling of empty values
+            res_item["params"]  = s.GetPerfCfgParams(ctx, db).value_or("");
             res_item["tunable"] = false;
             if(s.IsTunable())
                 res_item["tunable"] = true;
