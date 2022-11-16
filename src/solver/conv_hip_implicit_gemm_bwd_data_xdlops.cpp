@@ -228,13 +228,10 @@ void ConvHipImplicitGemmBwdXdlops::RunCKSolution(
 
 void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(const ProblemDescription& problem)
 {
-    this->index = 0;
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = problem;
 #else
-    this->index      = 0;
-    this->total_size = 0;
-    this->kernel_id  = "";
+    this->index = 0;
     switch(problem.conv_problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
@@ -251,9 +248,12 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(const ProblemDescr
 bool PerformanceConfigHipImplicitGemmBwdXdlops::SetNextValue(const ProblemDescription& problem)
 {
     if(total_size == -1)
+    {
         this->HeuristicInit(problem);
-    assert(total_size != -1);
-    if((index + 1) < total_size)
+        assert(total_size != -1);
+        return true;
+    }
+    else if((index + 1) < total_size)
     {
         ++index;
         return true;
@@ -287,7 +287,7 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(const ProblemDescription
 bool PerformanceConfigHipImplicitGemmBwdXdlops::operator==(
     const PerformanceConfigHipImplicitGemmBwdXdlops& other) const
 {
-    return this->index == other.index;
+    return this->index == other.index && this->total_size == other.total_size;
 }
 
 PerformanceConfigHipImplicitGemmBwdXdlops
