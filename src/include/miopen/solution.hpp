@@ -38,6 +38,7 @@
 
 #include <boost/optional.hpp>
 
+#include <optional>
 #include <unordered_map>
 
 namespace miopen {

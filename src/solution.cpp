@@ -212,8 +212,10 @@ void to_json(nlohmann::json& json, const Solution& solution)
         {"workspace", solution.workspace_required},
         {"solver", solution.solver.ToString()},
         {"problem", solution.problem},
-        {"perf_cfg", solution.perf_cfg},
     };
+
+    if(solution.perf_cfg.has_value())
+        json["perf_cfg"] = *solution.perf_cfg;
 }
 
 void from_json(const nlohmann::json& json, Solution& solution)
@@ -235,6 +237,10 @@ void from_json(const nlohmann::json& json, Solution& solution)
     json.at("workspace").get_to(solution.workspace_required);
     solution.solver = json.at("solver").get<std::string>();
     json.at("problem").get_to(solution.problem);
-    solution.perf_cfg = json.at("perf_cfg").get<std::string>();
+
+    const auto perf_cfg_json = json.find("perf_cfg");
+    solution.perf_cfg = perf_cfg_json != json.end()
+                                   ? std::optional{perf_cfg_json->get<std::string>()}
+                                   : std::nullopt;
 }
 } // namespace miopen
