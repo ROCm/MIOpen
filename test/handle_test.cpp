@@ -39,7 +39,7 @@
 #include "get_handle.hpp"
 #include <vector>
 #include <thread>
-#include "test.hpp"
+#include "test_macro.hpp"
 
 enum kernel_type_t
 {

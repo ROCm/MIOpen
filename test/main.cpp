@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "test.hpp"
+#include "test_macro.hpp"
 #include "random.hpp"
 #include <array>
 #include <iterator>

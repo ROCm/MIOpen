@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,47 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cassert>
-#include <cstdio>
-#include <cstdlib>
-#include <iostream>
-#include <sstream>
+#pragma once
 
-#ifndef GUARD_TEST_TEST_HPP_
-#define GUARD_TEST_TEST_HPP_
-
-inline void failed(const char* msg, const char* file, int line)
-{
-    auto ss = std::ostringstream{};
-    ss << "FAILED: " << msg << ": " << file << ": " << line << std::endl;
-    std::cout << ss.str();
-}
-
-[[gnu::noreturn]] inline void failed_abort(const char* msg, const char* file, int line)
-{
-    failed(msg, file, line);
-    std::abort();
-}
-
-template <class TLeft, class TOp, class TRight>
-inline void expect_op(const TLeft& left,
-                      const TOp& op,
-                      const TRight& right,
-                      const char* left_s,
-                      const char* op_s,
-                      const char* riglt_s,
-                      const char* file,
-                      int line)
-{
-    if(op(left, right))
-        return;
-
-    auto ss = std::ostringstream{};
-    ss << "FAILED: " << left_s << "(" << left << ") " << op_s << " " << riglt_s << "(" << right
-       << "): " << file << ':' << line << std::endl;
-    std::cout << ss.str();
-    std::abort();
-}
+#include "test.hpp"
 
 #define CHECK(...)                                    \
     do                                                \
@@ -93,44 +55,4 @@ inline void expect_op(const TLeft& left,
 #define EXPECT_EQUAL(LEFT, RIGHT) EXPECT_OP(LEFT, ==, RIGHT)
 #define STATUS(...) EXPECT((__VA_ARGS__) == 0)
 
-#ifdef FAIL
-#undef FAIL
 #define FAIL(...) failed(__VA_ARGS__, __FILE__, __LINE__)
-#endif
-
-template <class F>
-bool throws(F f)
-{
-    try
-    {
-        f();
-        return false;
-    }
-    catch(...)
-    {
-        return true;
-    }
-}
-
-template <class F, class Exception>
-bool throws(F f, std::string msg = "")
-{
-    try
-    {
-        f();
-        return false;
-    }
-    catch(const Exception& ex)
-    {
-        return std::string(ex.what()).find(msg) != std::string::npos;
-    }
-}
-
-template <class T>
-void run_test()
-{
-    T t = {};
-    t.run();
-}
-
-#endif

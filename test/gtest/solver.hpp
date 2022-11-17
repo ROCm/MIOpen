@@ -26,17 +26,11 @@
 #pragma once
 
 #include <gtest/gtest.h>
-#include <miopen/miopen.h>
-#include <miopen/invoke_params.hpp>
-#include <miopen/solver_id.hpp>
-#include <serialize.hpp>
-#include <fusionHost.hpp>
-#include "tensor_util.hpp"
-#include "get_handle.hpp"
-#include <miopen/convolution.hpp>
-#include <miopen/conv/tensors.hpp>
-#include <miopen/conv/data_invoke_params.hpp>
 #include "cpu_conv.hpp"
+#include "get_handle.hpp"
+#include "tensor_util.hpp"
+#include <fusionHost.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
 
 struct ConvTestCase
 {

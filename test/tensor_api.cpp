@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "test.hpp"
+#include "test_macro.hpp"
 
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>

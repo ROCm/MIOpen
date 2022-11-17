@@ -56,7 +56,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     if(!solv.IsApplicable(ctx))
     {
         test_skipped = true;
-        GTEST_FAIL() << solv.SolverDbId() << "ConvAsm3x3U Not Applicable for this problem"
+        GTEST_SKIP() << solv.SolverDbId() << "ConvAsm3x3U Not Applicable for this problem"
                      << conv_config;
     }
     const auto invoke_params = miopen::conv::DataInvokeParams{

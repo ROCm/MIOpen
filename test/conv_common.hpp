@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 #pragma once
-#include "test.hpp"
+#include "test_macro.hpp"
 #include <array>
 #include <iostream>
 #include <iterator>

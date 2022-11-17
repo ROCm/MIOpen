@@ -29,7 +29,7 @@
 #include <miopen/temp_file.hpp>
 
 #include <miopen/md5.hpp>
-#include "test.hpp"
+#include "test_macro.hpp"
 #include "random.hpp"
 
 #if MIOPEN_ENABLE_SQLITE

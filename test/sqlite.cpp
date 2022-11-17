@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "test.hpp"
+#include "test_macro.hpp"
 #include "driver.hpp"
 #include <miopen/sqlite_db.hpp>
 #include <miopen/temp_file.hpp>
