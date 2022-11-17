@@ -57,8 +57,14 @@ struct ConvHeur
     }
 
     static bool IsHeurApplicable(const std::string& arch,
-                                 const conv::ProblemDescription& conv_problem)
+                                 const ProblemDescription& problem,
+                                 const ConvolutionContext& ctx)
     {
+        const auto& conv_problem = problem.conv_problem;
+        if(!conv_problem.Is2d())
+            return false;
+        if(conv_problem.GetGroupCount() != 1)
+            return false;
         if(conv_problem.GetInLayout() != "NCHW" && conv_problem.GetInLayout() != "NCDHW")
             return false;
         if(conv_problem.GetWeightsHeight() != conv_problem.GetWeightsWidth())
@@ -75,7 +81,20 @@ struct ConvHeur
         const auto& supported_archs = GetSupportedArchs();
         if(std::find(supported_archs.begin(), supported_archs.end(), arch) == supported_archs.end())
             return false;
-        if(!conv_problem.Is2d())
+        const auto& solver_map    = GetSolverMap(arch);
+        size_t applicable_solvers = 0;
+        // check for outlier configurations where no solver the Heuristic predicts is applicable
+        for(const auto& solver_name : solver_map)
+        {
+            auto solver_id = solver::Id{solver_name.second};
+            auto solver    = solver_id.GetSolver();
+            if(solver.IsApplicable(ctx))
+            {
+                applicable_solvers++;
+                break;
+            }
+        }
+        if(applicable_solvers == 0)
             return false;
         MIOPEN_LOG_I2("Heuristic is applicable");
         return true;

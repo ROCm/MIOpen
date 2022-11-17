@@ -33,6 +33,7 @@
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/conv/heur/heur.hpp>
 #include <miopen/conv/heur/metadata.hpp>
+#include "get_handle.hpp"
 
 void TestIsHeurApplicable(void)
 {
@@ -40,19 +41,19 @@ void TestIsHeurApplicable(void)
     tensor<float> test_in_bad_layout =
         tensor<float>(miopenFloat, miopenTensorCHWN, 3, 224, 224, 64);
     tensor<int8_t> test_in_bad_type = tensor<int8_t>(miopenInt8, miopenTensorNCHW, 64, 3, 224, 224);
-    tensor<float> test_in_3d_tensor = tensor<float>(8, 2, 16, 16, 16);
+    tensor<float> test_in_bad_tensor = tensor<float>(8, 2, 16, 16, 16);
 
     tensor<float> test_weights = tensor<float>(miopenFloat, miopenTensorNCHW, 64, 3, 7, 7);
     tensor<float> test_weights_mismatch_height =
         tensor<float>(miopenFloat, miopenTensorNCHW, 64, 3, 5, 7);
     tensor<float> test_weights_bad_layout =
         tensor<float>(miopenFloat, miopenTensorCHWN, 3, 7, 7, 64);
-    tensor<float> test_weights_3d_tensor = tensor<float>(16, 2, 5, 5, 5);
+    tensor<float> test_weights_bad_tensor = tensor<float>(16, 2, 5, 5, 5);
 
     tensor<float> test_out = tensor<float>(miopenFloat, miopenTensorNCHW, 64, 64, 112, 112);
     tensor<float> test_out_bad_layout =
         tensor<float>(miopenFloat, miopenTensorCHWN, 64, 112, 112, 64);
-    tensor<float> test_out_3d_tensor = tensor<float>(8, 16, 12, 12, 12);
+    tensor<float> test_out_bad_tensor = tensor<float>(8, 16, 12, 12, 12);
 
     miopen::ConvolutionDescriptor conv_desc{};
     miopen::ConvolutionDescriptor conv_desc_mismatch_pads(std::vector<int>{0, 1});
@@ -69,80 +70,91 @@ void TestIsHeurApplicable(void)
                                                          std::vector<int>{0, 0},
                                                          1,
                                                          float(1));
-    miopen::ConvolutionDescriptor conv_desc_3d_tensor(3,
-                                                      miopenConvolution,
-                                                      miopenPaddingDefault,
-                                                      std::vector<int>{0, 0, 0},
-                                                      std::vector<int>{1, 1, 1},
-                                                      std::vector<int>{1, 1, 1},
-                                                      std::vector<int>{0, 0, 0});
 
-    miopen::conv::ProblemDescription conv_prob_desc(test_in.desc,
-                                                    test_weights.desc,
-                                                    test_out.desc,
-                                                    conv_desc,
-                                                    miopen::conv::Direction::Forward);
+    miopen::ConvolutionDescriptor conv_desc_bad_tensor(3,
+                                                       miopenConvolution,
+                                                       miopenPaddingDefault,
+                                                       std::vector<int>{0, 0, 0},
+                                                       std::vector<int>{1, 1, 1},
+                                                       std::vector<int>{1, 1, 1},
+                                                       std::vector<int>{0, 0, 0});
 
-    miopen::conv::ProblemDescription conv_prob_desc_bad_layout(test_in_bad_layout.desc,
-                                                               test_weights_bad_layout.desc,
-                                                               test_out_bad_layout.desc,
-                                                               conv_desc,
-                                                               miopen::conv::Direction::Forward);
+    miopen::ProblemDescription conv_prob_desc(test_in.desc,
+                                              test_weights.desc,
+                                              test_out.desc,
+                                              conv_desc,
+                                              miopen::conv::Direction::Forward);
 
-    miopen::conv::ProblemDescription conv_prob_desc_bad_type(test_in_bad_type.desc,
-                                                             test_weights.desc,
-                                                             test_out.desc,
-                                                             conv_desc,
-                                                             miopen::conv::Direction::Forward);
+    miopen::ProblemDescription conv_prob_desc_bad_layout(test_in_bad_layout.desc,
+                                                         test_weights_bad_layout.desc,
+                                                         test_out_bad_layout.desc,
+                                                         conv_desc,
+                                                         miopen::conv::Direction::Forward);
 
-    miopen::conv::ProblemDescription conv_prob_desc_mismatch_height(
-        test_in.desc,
-        test_weights_mismatch_height.desc,
-        test_out.desc,
-        conv_desc,
-        miopen::conv::Direction::Forward);
+    miopen::ProblemDescription conv_prob_desc_bad_type(test_in_bad_type.desc,
+                                                       test_weights.desc,
+                                                       test_out.desc,
+                                                       conv_desc,
+                                                       miopen::conv::Direction::Forward);
 
-    miopen::conv::ProblemDescription conv_prob_desc_mimatch_pads(test_in.desc,
-                                                                 test_weights.desc,
-                                                                 test_out.desc,
-                                                                 conv_desc_mismatch_pads,
-                                                                 miopen::conv::Direction::Forward);
+    miopen::ProblemDescription conv_prob_desc_mismatch_height(test_in.desc,
+                                                              test_weights_mismatch_height.desc,
+                                                              test_out.desc,
+                                                              conv_desc,
+                                                              miopen::conv::Direction::Forward);
 
-    miopen::conv::ProblemDescription conv_prob_desc_mismatch_stride(
-        test_in.desc,
-        test_weights.desc,
-        test_out.desc,
-        conv_desc_mismatch_strides,
-        miopen::conv::Direction::Forward);
+    miopen::ProblemDescription conv_prob_desc_mimatch_pads(test_in.desc,
+                                                           test_weights.desc,
+                                                           test_out.desc,
+                                                           conv_desc_mismatch_pads,
+                                                           miopen::conv::Direction::Forward);
 
-    miopen::conv::ProblemDescription conv_prob_desc_bad_dilation(test_in.desc,
-                                                                 test_weights.desc,
-                                                                 test_out.desc,
-                                                                 conv_desc_bad_dilation,
-                                                                 miopen::conv::Direction::Forward);
+    miopen::ProblemDescription conv_prob_desc_mismatch_stride(test_in.desc,
+                                                              test_weights.desc,
+                                                              test_out.desc,
+                                                              conv_desc_mismatch_strides,
+                                                              miopen::conv::Direction::Forward);
 
-    miopen::conv::ProblemDescription conv_prob_desc_3d_conv(test_in_3d_tensor.desc,
-                                                            test_weights_3d_tensor.desc,
-                                                            test_out_3d_tensor.desc,
-                                                            conv_desc_3d_tensor,
-                                                            miopen::conv::Direction::Forward);
+    miopen::ProblemDescription conv_prob_desc_bad_dilation(test_in.desc,
+                                                           test_weights.desc,
+                                                           test_out.desc,
+                                                           conv_desc_bad_dilation,
+                                                           miopen::conv::Direction::Forward);
 
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_type), false)
+    miopen::ProblemDescription conv_prob_desc_bad_tensor(test_in_bad_tensor.desc,
+                                                         test_weights_bad_tensor.desc,
+                                                         test_out_bad_tensor.desc,
+                                                         conv_desc_bad_tensor,
+                                                         miopen::conv::Direction::Forward);
+
+    auto&& handle = get_handle();
+    auto ctx      = miopen::ConvolutionContext{conv_prob_desc};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+
+    auto bad_ctx = miopen::ConvolutionContext{conv_prob_desc_bad_tensor};
+    bad_ctx.SetStream(&handle);
+    bad_ctx.DetectRocm();
+
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_type, ctx), false)
         << "IsHeurApplicable not catching bad type" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_layout), false)
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_layout, ctx), false)
         << "IsHeurApplicable not catching bad layout" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_mismatch_height), false)
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_mismatch_height, ctx),
+              false)
         << "IsHeurApplicable not catching mismatch kernel heights" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_mimatch_pads), false)
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_mimatch_pads, ctx), false)
         << "IsHeurApplicable not mismatch padding" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_mismatch_stride), false)
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_mismatch_stride, ctx),
+              false)
         << "IsHeurApplicable not catching mismatch strides" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_dilation), false)
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_dilation, ctx), false)
         << "IsHeurApplicable not catching bad dilation" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx906", conv_prob_desc), false)
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx906", conv_prob_desc, ctx), false)
         << "IsHeurApplicable not catching un supported arch" << std::endl;
-    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_3d_conv), false)
-        << "IsHeurApplicable not catching unsupported 3d convolutions" << std::endl;
+    EXPECT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc_bad_tensor, bad_ctx),
+              false)
+        << "IsHeurApplicable not catching unsupported tensor" << std::endl;
 }
 
 void TestEstimateCaching(void)
@@ -151,17 +163,22 @@ void TestEstimateCaching(void)
     tensor<float> test_weights = tensor<float>(miopenFloat, miopenTensorNCHW, 64, 3, 7, 7);
     tensor<float> test_out     = tensor<float>(miopenFloat, miopenTensorNCHW, 64, 64, 112, 112);
     miopen::ConvolutionDescriptor conv_desc{};
-    miopen::conv::ProblemDescription conv_prob_desc(test_in.desc,
-                                                    test_weights.desc,
-                                                    test_out.desc,
-                                                    conv_desc,
-                                                    miopen::conv::Direction::Forward);
-    ASSERT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc), true)
+    miopen::ProblemDescription conv_prob_desc(test_in.desc,
+                                              test_weights.desc,
+                                              test_out.desc,
+                                              conv_desc,
+                                              miopen::conv::Direction::Forward);
+    auto&& handle = get_handle();
+    auto ctx      = miopen::ConvolutionContext{conv_prob_desc};
+    ctx.SetStream(&handle);
+    ctx.DetectRocm();
+    ASSERT_EQ(miopen::ConvHeur::IsHeurApplicable("gfx908", conv_prob_desc, ctx), true)
         << "Problem description or arch is not applicable" << std::endl;
     bool is_cached = false;
-    auto solvers   = miopen::ConvHeur{}.Estimate("gfx908", conv_prob_desc, is_cached);
+    auto solvers   = miopen::ConvHeur{}.Estimate("gfx908", conv_prob_desc.conv_problem, is_cached);
     ASSERT_EQ(is_cached, false);
-    auto solvers_cached = miopen::ConvHeur{}.Estimate("gfx908", conv_prob_desc, is_cached);
+    auto solvers_cached =
+        miopen::ConvHeur{}.Estimate("gfx908", conv_prob_desc.conv_problem, is_cached);
     ASSERT_EQ(is_cached, true);
     for(int i = 0; i < solvers.size(); i++)
     {
