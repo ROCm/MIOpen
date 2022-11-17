@@ -517,11 +517,11 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& params) const
     const std::string name = conv_ctx.GetStream().GetDeviceName();
     if(name != "gfx803")
         return false;
-    const auto c = conv_ctx.problem.conv_problem.GetInChannels();
-    const auto x = conv_ctx.problem.conv_problem.GetWeightsWidth();
-    const auto y = conv_ctx.problem.conv_problem.GetWeightsHeight();
-    int padded_y = 0;
-    int padded_x = 0;
+    const auto c    = conv_ctx.problem.conv_problem.GetInChannels();
+    const auto x    = conv_ctx.problem.conv_problem.GetWeightsWidth();
+    const auto y    = conv_ctx.problem.conv_problem.GetWeightsHeight();
+    size_t padded_y = 0;
+    size_t padded_x = 0;
     if(conv_ctx.problem.kernel_stride_h == 1)
     {
         if(y <= 3)
@@ -547,7 +547,7 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& params) const
     }
     else
         return false;
-    if(!((static_cast<size_t>((padded_x / 3)) * (padded_y * 3) * static_cast<size_t>(c)) >= 18))
+    if(!(((padded_x / 3) * (padded_y * 3) * c) >= 18))
         return false;
 
     return true;
