@@ -90,7 +90,8 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->FindSolution(ctx, db, invoke_ctx, perf_cfg);
     };
-    std::optional<std::string> GetPerfCfgParams(const ConvolutionContext& ctx, PerformanceDb& db) const
+    std::optional<std::string> GetPerfCfgParams(const ConvolutionContext& ctx,
+                                                PerformanceDb& db) const
     {
         assert(ptr_value != nullptr);
         return ptr_value->GetPerfCfgParams(ctx, db);
@@ -134,9 +135,9 @@ struct AnySolver
                                           const std::optional<std::string>& perf_cfg) const    = 0;
 
         virtual std::optional<std::string> GetPerfCfgParams(const ConvolutionContext& ctx,
-                                                            PerformanceDb& db) const                 = 0;
-        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const              = 0;
-        virtual bool MayNeedWorkspace() const                                             = 0;
+                                                            PerformanceDb& db) const = 0;
+        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const         = 0;
+        virtual bool MayNeedWorkspace() const                                        = 0;
     };
 
     // templated derived class
@@ -270,22 +271,26 @@ struct AnySolver
             else if(!value.AltSolverDbId().empty() &&
                     db.Load(ctx.problem, value.AltSolverDbId(), config))
             {
-                MIOPEN_LOG_I("Perf PerformanceDb: alternate record loaded: " << value.AltSolverDbId());
+                MIOPEN_LOG_I(
+                    "Perf PerformanceDb: alternate record loaded: " << value.AltSolverDbId());
                 if(value.IsValidPerformanceConfig(ctx, config))
                 {
                     return config.ToString();
                 }
-                MIOPEN_LOG_I2("Perf PerformanceDb: Invalid alternate record from Perf PerformanceDb: "
-                              << value.AltSolverDbId() << ": " << config);
+                MIOPEN_LOG_I2(
+                    "Perf PerformanceDb: Invalid alternate record from Perf PerformanceDb: "
+                    << value.AltSolverDbId() << ": " << config);
             }
 
-            MIOPEN_LOG_I2("Perf PerformanceDb: Failed Loading, Using Default: " << value.SolverDbId());
+            MIOPEN_LOG_I2(
+                "Perf PerformanceDb: Failed Loading, Using Default: " << value.SolverDbId());
             config = value.GetDefaultPerformanceConfig(ctx);
             return config.ToString();
         }
 
-        std::optional<std::string>
-        GetPerfCfgParams(const ConvolutionContext& ctx, const PerformanceDb& db, std::false_type) const
+        std::optional<std::string> GetPerfCfgParams(const ConvolutionContext& ctx,
+                                                    const PerformanceDb& db,
+                                                    std::false_type) const
         {
             MIOPEN_LOG_I2("Perf PerformanceDb: No Config: " << value.SolverDbId());
             std::ignore = ctx;

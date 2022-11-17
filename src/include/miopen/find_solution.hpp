@@ -140,8 +140,7 @@ auto FindSolutionImpl(rank<0>,
                       const Context& context,
                       Db&,
                       const AnyInvokeParams&,
-                      const std::optional<std::string>&)
-    -> decltype(s.GetSolution(context))
+                      const std::optional<std::string>&) -> decltype(s.GetSolution(context))
 {
     MIOPEN_LOG_I(s.SolverDbId() << " (not searchable)");
     return s.GetSolution(context);

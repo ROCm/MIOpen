@@ -239,7 +239,7 @@ void from_json(const nlohmann::json& json, Solution& solution)
     json.at("problem").get_to(solution.problem);
 
     const auto perf_cfg_json = json.find("perf_cfg");
-    solution.perf_cfg = perf_cfg_json != json.end()
+    solution.perf_cfg        = perf_cfg_json != json.end()
                                    ? std::optional{perf_cfg_json->get<std::string>()}
                                    : std::nullopt;
 }
