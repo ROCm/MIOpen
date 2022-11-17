@@ -121,8 +121,8 @@ struct ActivBwdFusionOpDescriptor : FusionOpDescriptor
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
-                           const void* y,
-                           const void* x,
+                           ConstData_t y,
+                           ConstData_t x,
                            double activAlpha,
                            double activBeta,
                            double activGamma);
