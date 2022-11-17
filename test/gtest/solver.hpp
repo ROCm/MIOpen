@@ -73,6 +73,7 @@ struct ConvFwdSolverTest
 protected:
     void SetUp() override
     {
+        test_skipped                = false;
         std::tie(algo, conv_config) = GetParam();
         input   = tensor<T>{conv_config.N, conv_config.C, conv_config.H, conv_config.W};
         weights = tensor<T>{1, conv_config.k, conv_config.x, conv_config.y};
@@ -112,12 +113,17 @@ protected:
     }
     void TearDown() override
     {
+        if(test_skipped)
+        {
+            miopenDestroyConvolutionDescriptor(conv_desc);
+            return;
+        }
+
         auto&& handle = get_handle();
 
         miopen::TensorDescriptor output_desc =
             miopen::deref(conv_desc).GetForwardOutputTensor(input.desc, weights.desc, miopenFloat);
         ref_out = tensor<T>{output_desc.GetLengths()};
-        // ref_out = ref_conv_fwd(input, weights, output, conv_desc);
         cpu_convolution_forward(miopen::deref(conv_desc).GetSpatialDimension(),
                                 input,
                                 weights,
