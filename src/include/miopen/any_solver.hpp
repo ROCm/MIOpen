@@ -162,10 +162,9 @@ struct AnySolver
         {
             template <typename U>
             static constexpr auto Test(U*) ->
-                typename std::is_same<ConvSolution,
-                                      decltype(std::declval<U>().GetSolution(
-                                          std::declval<const ConvolutionContext&>(),
-                                          std::declval<const LegacyPerformanceConfig&>()))>::type;
+                typename std::is_same<LegacyPerformanceConfig,
+                                      decltype(std::declval<U>().GetDefaultPerformanceConfig(
+                                          std::declval<const ConvolutionContext&>()))>::type;
 
             template <typename U>
             static constexpr std::false_type Test(...);
