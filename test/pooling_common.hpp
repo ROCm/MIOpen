@@ -27,7 +27,7 @@
 #ifndef GUARD_MIOPEN_TEST_POOLING_COMMON_HPP
 #define GUARD_MIOPEN_TEST_POOLING_COMMON_HPP
 
-#include "test_macro.hpp"
+#include "test.hpp"
 #include <array>
 #include <iostream>
 #include <iterator>

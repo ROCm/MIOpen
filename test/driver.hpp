@@ -29,7 +29,7 @@
 #include "network_data.hpp"
 #include "serialize.hpp"
 #include "tensor_holder.hpp"
-#include "test_macro.hpp"
+#include "test.hpp"
 #include "verify.hpp"
 
 #include <functional>

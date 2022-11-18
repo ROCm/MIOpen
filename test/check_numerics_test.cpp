@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "test_macro.hpp"
+#include "test.hpp"
 #include <miopen/handle.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/miopen.h>

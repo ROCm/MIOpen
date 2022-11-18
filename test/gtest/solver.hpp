@@ -32,6 +32,21 @@
 #include <fusionHost.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 
+template <typename T>
+miopenDataType_t GetDataType();
+
+template <>
+miopenDataType_t GetDataType<float>()
+{
+    return miopenFloat;
+}
+
+template <>
+miopenDataType_t GetDataType<half_float::half>()
+{
+    return miopenHalf;
+}
+
 struct ConvTestCase
 {
     size_t N;
@@ -54,6 +69,14 @@ struct ConvTestCase
                   << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
                   << " pad_x:" << tc.pad_x << " stride_y:" << tc.stride_y
                   << " dilation_y:" << tc.dilation_y << " conv_mode:" << tc.conv_mode;
+    }
+
+    miopen::ConvolutionDescriptor GetConv()
+    {
+        return miopen::ConvolutionDescriptor{
+            {static_cast<int>(pad_y), static_cast<int>(pad_x)},
+            {static_cast<int>(stride_y), static_cast<int>(stride_x)},
+            {static_cast<int>(dilation_y), static_cast<int>(dilation_y)}};
     }
 };
 
@@ -80,31 +103,14 @@ protected:
         input.generate(tensor_elem_gen_integer{17});
         weights.generate(tensor_elem_gen_integer{17});
 
-        miopenCreateConvolutionDescriptor(&conv_desc);
+        conv_desc = conv_config.GetConv();
 
-        miopenInitConvolutionDescriptor(conv_desc,
-                                        conv_config.conv_mode,
-                                        conv_config.pad_y,
-                                        conv_config.pad_x,
-                                        conv_config.stride_y,
-                                        conv_config.stride_x,
-                                        conv_config.dilation_y,
-                                        conv_config.dialtion_x);
+        miopen::TensorDescriptor output_desc =
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
 
-        int n, c, h, w;
-        miopenGetConvolutionForwardOutputDim(conv_desc, &input.desc, &weights.desc, &n, &c, &h, &w);
-
-        output  = tensor<T>{static_cast<size_t>(n),
-                           static_cast<size_t>(c),
-                           static_cast<size_t>(h),
-                           static_cast<size_t>(w)};
-        ref_out = tensor<T>{static_cast<size_t>(n),
-                            static_cast<size_t>(c),
-                            static_cast<size_t>(h),
-                            static_cast<size_t>(w)};
+        output = tensor<T>{output_desc.GetLengths()};
 
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
-        std::fill(ref_out.begin(), ref_out.end(), std::numeric_limits<double>::quiet_NaN());
 
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
@@ -114,24 +120,21 @@ protected:
     void TearDown() override
     {
         if(test_skipped)
-        {
-            miopenDestroyConvolutionDescriptor(conv_desc);
             return;
-        }
 
         auto&& handle = get_handle();
 
         miopen::TensorDescriptor output_desc =
-            miopen::deref(conv_desc).GetForwardOutputTensor(input.desc, weights.desc, miopenFloat);
+            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
         ref_out = tensor<T>{output_desc.GetLengths()};
-        cpu_convolution_forward(miopen::deref(conv_desc).GetSpatialDimension(),
+        cpu_convolution_forward(conv_desc.GetSpatialDimension(),
                                 input,
                                 weights,
                                 ref_out,
-                                miopen::deref(conv_desc).GetConvPads(),
-                                miopen::deref(conv_desc).GetConvStrides(),
-                                miopen::deref(conv_desc).GetConvDilations(),
-                                miopen::deref(conv_desc).GetGroupCount());
+                                conv_desc.GetConvPads(),
+                                conv_desc.GetConvStrides(),
+                                conv_desc.GetConvDilations(),
+                                conv_desc.GetGroupCount());
 
         output.data = handle.Read<T>(out_dev, output.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
@@ -147,11 +150,9 @@ protected:
 
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
-
-        miopenDestroyConvolutionDescriptor(conv_desc);
     }
     ConvTestCase conv_config;
-    miopenConvolutionDescriptor_t conv_desc;
+    miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;
     tensor<T> output;
@@ -159,8 +160,6 @@ protected:
     miopen::Allocator::ManageDataPtr in_dev;
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;
-
-    miopenActivationDescriptor_t activ_desc;
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
     bool test_skipped             = false;
 };

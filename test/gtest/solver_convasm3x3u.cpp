@@ -79,7 +79,7 @@ TEST_P(ConvFwdSolverTestFloat, ConvASM3x3UFwd)
                                            wei_dev.get(),
                                            output.desc,
                                            out_dev.get(),
-                                           miopen::deref(conv_desc),
+                                           conv_desc,
                                            conv_config,
                                            test_skipped);
 }
