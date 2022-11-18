@@ -305,7 +305,7 @@ extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args
                    alpha,
                    beta,
                    DataCast(y),
-                   DataCast(nullptr),
+                   nullptr,
                    activAlpha,
                    activBeta,
                    activGamma);
