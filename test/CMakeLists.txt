@@ -244,7 +244,6 @@ message(STATUS "SKIP_ALL_EXCEPT_TESTS: ${SKIP_ALL_EXCEPT_TESTS}")
 set(XNACK_TESTS test_mdgraph)
 
 function(add_test_command NAME EXE)
-    # Restrict the use of SKIP_ALL_EXCEPT_TESTS list in the Int8, BF16 and MIOpenTensile tests
     if( (NOT (NAME IN_LIST SKIP_ALL_EXCEPT_TESTS) AND SKIP_ALL_EXCEPT_TESTS)
         OR (NAME IN_LIST SKIP_TESTS)
     )
@@ -567,7 +566,7 @@ function(add_custom_test NAME)
     if(  (is_gfx900_check OR is_gfx906_check OR is_gfx908_check OR is_gfx103x_check OR is_gfx90a_check)
      AND is_full_check
      AND is_xnack_on_check
-     AND (is_miotensile_check AND is_mlir_check)
+     AND is_mlir_check
      AND (is_half_check OR is_bfloat16_check OR is_int8_check OR is_float_check)
      AND (is_ocl_check AND is_hip_check AND is_hip_nogpu_check)
     )
