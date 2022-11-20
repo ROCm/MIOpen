@@ -1880,6 +1880,16 @@ add_custom_test(smoke_conv_solver_ConvOcl_SET01 GFX103X_ENABLED HALF_ENABLED BF1
       ${TEST_CONV_VERBOSE_W} --input 16 1 7 7 --weights 1 1 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
+# FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
+add_custom_test(smoke_conv_solver_ConvAsm1x1U HALF_ENABLED SKIP_XNACK_ON
+    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1U $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
+      ${TEST_CONV_VERBOSE_F} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1U $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
+      ${TEST_CONV_VERBOSE_B} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
 # GFX103X_DISABLED is due to WORKAROUND_SWDEV_266868
 add_custom_test(smoke_conv_solver_ConvOclBwdWrW1x1 GFX103X_DISABLED HALF_ENABLED BF16_ENABLED
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclBwdWrW1x1 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
