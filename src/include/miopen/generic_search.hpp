@@ -211,30 +211,6 @@ public:
     }
 };
 
-inline void InitRandomly(std::vector<float>& vec, const double offset, const double factor)
-{
-    float* p = vec.data();
-    for(unsigned long i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>(
-            (rand() * (1.0 / RAND_MAX) + offset) * // NOLINT (concurrency-mt-unsafe)
-            factor);
-}
-
-inline void InitRandomly(std::vector<float>& vec)
-{
-    float* p = vec.data();
-    for(unsigned long i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>(rand() * (1.0 / RAND_MAX)); // NOLINT (concurrency-mt-unsafe)
-}
-
-inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
-{
-    assert(y > 0);
-    if(x % y != 0)
-        return x / y + 1;
-    return x / y;
-}
-
 /// Solver member function requirements:
 /// * GetDefaultPerformanceConfig shall be implemented.
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
