@@ -123,7 +123,7 @@ struct AnySolver
         virtual bool IsApplicable(const ConvolutionContext& ctx) const                         = 0;
         virtual bool IsTunable() const                                                         = 0;
         virtual bool TestPerfCfgParams(const ConvolutionContext& ctx,
-                                     const std::string params) const                           = 0;
+                                       const std::string params) const                         = 0;
         virtual std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const = 0;
         virtual bool IsDynamic() const                                                         = 0;
         virtual float GetWti(const ConvolutionContext& ctx) const                              = 0;
@@ -170,17 +170,18 @@ struct AnySolver
             static constexpr bool Is = type::value;
         };
 
-        bool
-        TestPerfCfgParams(const ConvolutionContext& ctx, const std::string params, std::true_type) const
+        bool TestPerfCfgParams(const ConvolutionContext& ctx,
+                               const std::string params,
+                               std::true_type) const
         {
-            using PerformanceConfig = decltype(value.GetDefaultPerformanceConfig(
-                std::declval<const ConvolutionContext&>()));
+            using PerformanceConfig = decltype(
+                value.GetDefaultPerformanceConfig(std::declval<const ConvolutionContext&>()));
             PerformanceConfig config{};
 
             bool success = config.Deserialize(params);
             if(!success)
-                MIOPEN_LOG_WE(
-                    "Perf params are obsolete or corrupt: " << params << ". Performance may degrade.");
+                MIOPEN_LOG_WE("Perf params are obsolete or corrupt: "
+                              << params << ". Performance may degrade.");
 
             if(success)
                 success = value.IsValidPerformanceConfig(ctx, config);
@@ -188,17 +189,19 @@ struct AnySolver
             return success;
         }
         bool TestPerfCfgParams(const ConvolutionContext& ctx,
-                             const std::string params,
-                             std::false_type) const
+                               const std::string params,
+                               std::false_type) const
         {
             std::ignore = ctx;
             std::ignore = params;
             return false;
         }
 
-        bool TestPerfCfgParams(const ConvolutionContext& ctx, const std::string params) const override
+        bool TestPerfCfgParams(const ConvolutionContext& ctx,
+                               const std::string params) const override
         {
-            return TestPerfCfgParams(ctx, params, std::integral_constant<bool, TunableSolver::Is>());
+            return TestPerfCfgParams(
+                ctx, params, std::integral_constant<bool, TunableSolver::Is>());
         }
 
         // tunable legacy solver
