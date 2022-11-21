@@ -174,8 +174,8 @@ struct AnySolver
                                const std::string params,
                                std::true_type) const
         {
-            using PerformanceConfig = decltype(
-                value.GetDefaultPerformanceConfig(std::declval<const ConvolutionContext&>()));
+            using PerformanceConfig = decltype(value.GetDefaultPerformanceConfig(
+                std::declval<const ConvolutionContext&>()));
             PerformanceConfig config{};
 
             bool success = config.Deserialize(params);
