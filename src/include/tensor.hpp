@@ -47,13 +47,40 @@ template <>
 miopenDataType_t GetDataType<float16>();
 template <>
 miopenDataType_t GetDataType<bfloat16>();
+template <>
+miopenDataType_t GetDataType<int8_t>();
 #if FIN_BACKEND_OPENCL
 #define STATUS_SUCCESS CL_SUCCESS
 using status_t = cl_int;
 #else // FIN_BACKEND_HIP
 #define STATUS_SUCCESS 0
-using status_t               = int;
+using status_t = int;
 #endif
+
+inline miopenTensorLayout_t GetMemLayout(const std::string& s)
+{
+
+    if(s == "NCHW")
+        return miopenTensorLayout_t::miopenTensorNCHW;
+    if(s == "NHWC")
+        return miopenTensorLayout_t::miopenTensorNHWC;
+    if(s == "CHWN")
+        return miopenTensorLayout_t::miopenTensorCHWN;
+    if(s == "NCHWc4")
+        return miopenTensorLayout_t::miopenTensorNCHWc4;
+    if(s == "NCHWc8")
+        return miopenTensorLayout_t::miopenTensorNCHWc8;
+    if(s == "CHWNc4")
+        return miopenTensorLayout_t::miopenTensorCHWNc4;
+    if(s == "CHWNc8")
+        return miopenTensorLayout_t::miopenTensorCHWNc8;
+    if(s == "NCDHW")
+        return miopenTensorLayout_t::miopenTensorNCDHW;
+    if(s == "NDHWC")
+        return miopenTensorLayout_t::miopenTensorNDHWC;
+
+    throw std::runtime_error("Unknown memory layout : " + s);
+}
 
 template <typename Tgpu, typename Tcpu>
 struct tensor
