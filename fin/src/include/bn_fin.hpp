@@ -195,6 +195,15 @@ int BNFin<Tgpu, Tref>::GetandSetData()
         biasScaleTensor = {GetHandle().GetStream(), sb_len, true, true};
     }
 
+    // sanity check for memory layout
+    if(GetMemLayout(command["in_layout"]) != miopenTensorLayout_t::miopenTensorNCHW)
+        throw std::runtime_error("Provided memory layout is :" + std::string(command["in_layout"]) +
+                                 ". Batch norm only support default NCHW");
+    if(GetMemLayout(command["in_layout"]) != miopenTensorLayout_t::miopenTensorNCHW)
+        throw std::runtime_error(
+            "Provided memory layout is : " + std::string(command["in_layout"]) +
+            ". Batch norm only support default NCHW");
+
     inputTensor  = {GetHandle().GetStream(), in_len, true, false};
     outputTensor = {GetHandle().GetStream(), in_len, false, true};
 

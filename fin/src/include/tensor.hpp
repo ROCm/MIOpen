@@ -57,6 +57,31 @@ using status_t = cl_int;
 using status_t = int;
 #endif
 
+inline miopenTensorLayout_t GetMemLayout(const std::string& s)
+{
+
+    if(s == "NCHW")
+        return miopenTensorLayout_t::miopenTensorNCHW;
+    if(s == "NHWC")
+        return miopenTensorLayout_t::miopenTensorNHWC;
+    if(s == "CHWN")
+        return miopenTensorLayout_t::miopenTensorCHWN;
+    if(s == "NCHWc4")
+        return miopenTensorLayout_t::miopenTensorNCHWc4;
+    if(s == "NCHWc8")
+        return miopenTensorLayout_t::miopenTensorNCHWc8;
+    if(s == "CHWNc4")
+        return miopenTensorLayout_t::miopenTensorCHWNc4;
+    if(s == "CHWNc8")
+        return miopenTensorLayout_t::miopenTensorCHWNc8;
+    if(s == "NCDHW")
+        return miopenTensorLayout_t::miopenTensorNCDHW;
+    if(s == "NDHWC")
+        return miopenTensorLayout_t::miopenTensorNDHWC;
+
+    throw std::runtime_error("Unknown memory layout : " + s);
+}
+
 template <typename Tgpu, typename Tcpu>
 struct tensor
 {

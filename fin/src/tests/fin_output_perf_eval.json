@@ -34,7 +34,7 @@
                 "activMode": -1,
                 "batchsize": 32,
                 "cmd": "convbfp16",
-                "conv_mode": "conv",
+                "mode": "conv",
                 "conv_stride_d": 1,
                 "conv_stride_h": 1,
                 "conv_stride_w": 1,

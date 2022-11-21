@@ -135,7 +135,6 @@ class ConvFin : public BaseFin
         const std::string config_id,
         const miopen::ConvolutionContext& ctx,
         const std::map<std::string, std::unordered_map<std::string, std::string>>& perf_ids,
-        const std::unordered_map<std::string, miopen::DbRecord>& records,
         std::vector<std::map<std::string, std::string>>& err_list,
         std::vector<std::string>& pdb_id);
 
@@ -276,7 +275,7 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfCompile()
                 }
                 catch(const std::exception& e)
                 {
-                    res_item["reason"] = "Failed getting solutions";
+                    res_item["reason"] = std::string("No solutions: ") + e.what();
                     std::cerr << "Error getting solutions: " << e.what() << std::endl;
                     return false;
                 }
@@ -299,11 +298,9 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfCompile()
         };
 
         auto res = process_solver();
-        if(res)
-        {
-            res_item["perf_compiled"] = res;
-            perf_result.push_back(res_item);
-        }
+
+        res_item["perf_compiled"] = res;
+        perf_result.push_back(res_item);
     }
     output["miopen_perf_compile_result"] = perf_result;
 #else
@@ -430,11 +427,9 @@ int ConvFin<Tgpu, Tref>::MIOpenFindCompile()
         };
 
         auto res = process_solver();
-        if(res)
-        {
-            res_item["find_compiled"] = res;
-            find_result.push_back(res_item);
-        }
+
+        res_item["find_compiled"] = res;
+        find_result.push_back(res_item);
     }
     output["miopen_find_compile_result"] = find_result;
     return 1;
@@ -712,8 +707,17 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfEval()
                 res_item["data_type"]      = ctx.problem.in_data_type;
                 res_item["direction"]      = conv_dir;
                 res_item["bias"]           = ctx.problem.bias;
-                res_item["reason"]         = "Success";
                 res_item["kernel_objects"] = kern_objs;
+                res_item["reason"]         = "Success";
+
+                if(s.IsTunable())
+                {
+                    if(!s.TestPerfCfgParams(ctx, params))
+                    {
+                        res_item["reason"] = "Tuning returned invalid params";
+                        return false;
+                    }
+                }
             }
             catch(const std::exception& e)
             {
@@ -1209,28 +1213,11 @@ int ConvFin<Tgpu, Tref>::TestApplicability()
     return 0;
 }
 
-class ParamString
-{
-    std::string values;
-
-    public:
-    ParamString() {}
-    ParamString(std::string in_val) : values(in_val) {}
-
-    void Serialize(std::ostream& stream) const { stream << values; }
-    bool Deserialize(const std::string& s)
-    {
-        values = s;
-        return true;
-    }
-};
-
 template <typename Tgpu, typename Tref>
 int ConvFin<Tgpu, Tref>::TestPerfDbEntries(
     const std::string config_id,
     const miopen::ConvolutionContext& ctx,
     const std::map<std::string, std::unordered_map<std::string, std::string>>& perf_ids,
-    const std::unordered_map<std::string, miopen::DbRecord>& records,
     std::vector<std::map<std::string, std::string>>& err_list,
     std::vector<std::string>& pdb_id)
 {
@@ -1242,7 +1229,6 @@ int ConvFin<Tgpu, Tref>::TestPerfDbEntries(
         auto perf_id   = pdb_it->first;
         auto solver_nm = pdb_it->second.find("solver")->second;
         auto params    = pdb_it->second.find("params")->second;
-        auto record    = records.find(perf_id)->second;
 
         auto slv_id = miopen::solver::Id(solver_nm);
         auto solver = slv_id.GetSolver();
@@ -1255,7 +1241,7 @@ int ConvFin<Tgpu, Tref>::TestPerfDbEntries(
         bool success = false;
         try
         {
-            success = solver.TestSysDbRecord(ctx, record);
+            success = solver.TestPerfCfgParams(ctx, params);
         }
         catch(const std::exception& e)
         {
@@ -1284,7 +1270,6 @@ int ConvFin<Tgpu, Tref>::TestPerfDbEntries(
 template <typename Tgpu, typename Tref>
 int ConvFin<Tgpu, Tref>::TestPerfDbValid()
 {
-
     bool ret            = true;
     namespace fs        = boost::filesystem;
     bool spec_arch      = (job["arch"].size() > 0 and job["num_cu"].size() > 0);
@@ -1350,8 +1335,6 @@ int ConvFin<Tgpu, Tref>::TestPerfDbValid()
         // cfg -> pdb_id -> values_dict
         std::map<std::string, std::map<std::string, std::unordered_map<std::string, std::string>>>
             perfdb_entries;
-        // pdb_id -> record
-        std::unordered_map<std::string, miopen::DbRecord> records;
         std::vector<std::map<std::string, std::string>> err_list;
         std::vector<std::string> pdb_id;
         auto select_query = "SELECT config, solver, params, id FROM perf_db;";
@@ -1380,7 +1363,6 @@ int ConvFin<Tgpu, Tref>::TestPerfDbValid()
                     continue;
                 }
 
-                records[perf_id].SetValues(solver_nm, ParamString(params));
                 perfdb_entries[config_id][perf_id]["solver"] = solver_nm;
                 perfdb_entries[config_id][perf_id]["params"] = params;
             }
@@ -1403,8 +1385,7 @@ int ConvFin<Tgpu, Tref>::TestPerfDbValid()
             ctx.SetupFloats();
 
             std::cerr << "test pdb" << std::endl;
-            bool success = true;
-            success = TestPerfDbEntries(config_id, ctx, cfg_it->second, records, err_list, pdb_id);
+            bool success = TestPerfDbEntries(config_id, ctx, cfg_it->second, err_list, pdb_id);
             if(not success)
                 ret = false;
         }
@@ -1681,12 +1662,28 @@ int ConvFin<Tgpu, Tref>::GetandSetData()
     // auto y_type = GetOutputType();
 
     inputTensor = {GetHandle().GetStream(), in_len, (is_fwd || is_wrw), is_bwd};
+    miopenSetNdTensorDescriptorWithLayout(&inputTensor.desc,
+                                          inputTensor.desc.GetType(),
+                                          GetMemLayout(command["in_layout"]),
+                                          in_len.data(),
+                                          in_len.size());
 
     weightTensor = {GetHandle().GetStream(), wei_len, (is_fwd || is_bwd), is_wrw};
+    miopenSetNdTensorDescriptorWithLayout(&weightTensor.desc,
+                                          weightTensor.desc.GetType(),
+                                          GetMemLayout(command["wei_layout"]),
+                                          wei_len.data(),
+                                          wei_len.size());
     // conv, input and weight tensor descriptors need to be set before we can know the
     // output lengths
     auto out_len = GetOutputTensorLengths();
     outputTensor = {GetHandle().GetStream(), out_len, (is_bwd || is_wrw), is_fwd};
+    std::vector<int> int_out_len(out_len.begin(), out_len.end());
+    miopenSetNdTensorDescriptorWithLayout(&outputTensor.desc,
+                                          outputTensor.desc.GetType(),
+                                          GetMemLayout(command["out_layout"]),
+                                          int_out_len.data(),
+                                          int_out_len.size());
 
     if(IsInputTensorTransform())
     {
@@ -1795,11 +1792,11 @@ std::vector<int> ConvFin<Tgpu, Tref>::GetWeightTensorLengths()
     }
 
     miopenConvolutionMode_t mode;
-    if((command["conv_mode"]) == "conv")
+    if((command["mode"]) == "conv")
     {
         mode = miopenConvolution;
     }
-    else if((command["conv_mode"]) == "trans")
+    else if((command["mode"]) == "trans")
     {
         mode = miopenTranspose;
     }
@@ -1902,11 +1899,11 @@ int ConvFin<Tgpu, Tref>::SetConvDescriptor()
     }
 
     miopenConvolutionMode_t c_mode;
-    if((command["conv_mode"]) == "conv")
+    if((command["mode"]) == "conv")
     {
         c_mode = miopenConvolution;
     }
-    else if((command["conv_mode"]) == "trans")
+    else if((command["mode"]) == "trans")
     {
         c_mode = miopenTranspose;
     }
@@ -2021,7 +2018,7 @@ miopen::ConvolutionContext ConvFin<Tgpu, Tref>::BuildContext(miopen::SQLite& sql
     command["batchsize"]     = stmt.ColumnInt64(21);
     command["group_count"]   = stmt.ColumnInt64(22);
     command["bias"]          = stmt.ColumnInt64(23);
-    command["conv_mode"]     = "conv";
+    command["mode"]          = "conv";
 
     command["in_layout"]  = stmt.ColumnText(16);
     command["wei_layout"] = stmt.ColumnText(16);
