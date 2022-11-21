@@ -38,6 +38,7 @@
 #include <miopen/timer.hpp>
 #include <miopen/type_traits.hpp>
 
+#include <algorithm>
 #include <vector>
 #include <cstdlib>
 #include <limits>
@@ -322,8 +323,10 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     auto& profile_h = context.GetStream();
     AutoEnableProfiling enableProfiling{profile_h};
 
-    auto all_configs       = GetAllConfigs(s, context);
-    const int n_runs_total = std::distance(all_configs.begin(), all_configs.end());
+    auto all_configs = GetAllConfigs(s, context);
+    const std::size_t n_runs_total =
+        std::min(static_cast<std::size_t>(std::distance(all_configs.begin(), all_configs.end())),
+                 GetTuningIterationsMax());
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
@@ -338,7 +341,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         size_t n_current = 0;
         for(const auto& current_config : all_configs)
         {
-            if(n_current >= GetTuningIterationsMax())
+            if(n_current >= n_runs_total)
                 break;
             ConvSolution current_solution = s.GetSolution(context, current_config);
             for(auto&& kernel : current_solution.construction_params)
@@ -357,7 +360,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         size_t n_current = 0;
         for(const auto& current_config : all_configs)
         {
-            if(n_current >= GetTuningIterationsMax())
+            if(n_current >= n_runs_total)
                 break;
 
             float elapsed_time = 0.0f;
