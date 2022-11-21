@@ -58,10 +58,10 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->IsTunable();
     };
-    bool TestSysDbRecord(const ConvolutionContext& ctx, const DbRecord& record) const
+    bool TestPerfCfgParams(const ConvolutionContext& ctx, const DbRecord& record) const
     {
         assert(ptr_value != nullptr);
-        return ptr_value->TestSysDbRecord(ctx, record);
+        return ptr_value->TestPerfCfgParams(ctx, record);
     };
     std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const
     {
@@ -122,7 +122,7 @@ struct AnySolver
         virtual ~AnySolver_base(){};
         virtual bool IsApplicable(const ConvolutionContext& ctx) const                         = 0;
         virtual bool IsTunable() const                                                         = 0;
-        virtual bool TestSysDbRecord(const ConvolutionContext& ctx,
+        virtual bool TestPerfCfgParams(const ConvolutionContext& ctx,
                                      const DbRecord& record) const                             = 0;
         virtual std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const = 0;
         virtual bool IsDynamic() const                                                         = 0;
@@ -171,29 +171,34 @@ struct AnySolver
         };
 
         bool
-        TestSysDbRecord(const ConvolutionContext& ctx, const DbRecord& record, std::true_type) const
+        TestPerfCfgParams(const ConvolutionContext& ctx, const std::string params, std::true_type) const
         {
             using PerformanceConfig = decltype(value.GetDefaultPerformanceConfig(
                 std::declval<const ConvolutionContext&>()));
             PerformanceConfig config{};
-            bool success = record.GetValues(value.SolverDbId(), config);
+
+            bool success = config.Deserialize(params);
+            if(!success)
+                MIOPEN_LOG_WE(
+                    "Perf params are obsolete or corrupt: " << params << ". Performance may degrade.");
+
             if(success)
                 success = value.IsValidPerformanceConfig(ctx, config);
 
             return success;
         }
-        bool TestSysDbRecord(const ConvolutionContext& ctx,
-                             const DbRecord& record,
+        bool TestPerfCfgParams(const ConvolutionContext& ctx,
+                             const std::string params,
                              std::false_type) const
         {
             std::ignore = ctx;
-            std::ignore = record;
+            std::ignore = params;
             return false;
         }
 
-        bool TestSysDbRecord(const ConvolutionContext& ctx, const DbRecord& record) const override
+        bool TestPerfCfgParams(const ConvolutionContext& ctx, const const std::string params) const override
         {
-            return TestSysDbRecord(ctx, record, std::integral_constant<bool, TunableSolver::Is>());
+            return TestPerfCfgParams(ctx, params, std::integral_constant<bool, TunableSolver::Is>());
         }
 
         // tunable legacy solver
