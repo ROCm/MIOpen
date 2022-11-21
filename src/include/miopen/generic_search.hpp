@@ -296,6 +296,8 @@ auto GenericSearch(const Solver s,
     return GenericSearch(s, ctx, invoke_ctx);
 }
 
+std::size_t GetTuningIterationsMax();
+
 template <class Solver, class Context>
 auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
     -> decltype(s.GetDefaultPerformanceConfig(context_))
@@ -333,8 +335,11 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     if(!miopen::IsCacheDisabled()) // Otherwise precompilation is useless.
     {
         std::vector<KernelInfo> kernels;
+        size_t n_current = 0;
         for(const auto& current_config : all_configs)
         {
+            if(n_current >= GetTuningIterationsMax())
+                break;
             ConvSolution current_solution = s.GetSolution(context, current_config);
             for(auto&& kernel : current_solution.construction_params)
             {
@@ -342,6 +347,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
                     continue;
                 kernels.push_back(kernel);
             }
+            ++n_current;
         }
         std::ignore = PrecompileKernels(profile_h, kernels);
     }
@@ -351,6 +357,9 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         size_t n_current = 0;
         for(const auto& current_config : all_configs)
         {
+            if(n_current >= GetTuningIterationsMax())
+                break;
+
             float elapsed_time = 0.0f;
             int ret            = 0;
             MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
