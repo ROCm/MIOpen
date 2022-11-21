@@ -455,6 +455,7 @@ endfunction()
 # Testing mode:
 #   SKIP_UNLESS_ALL - The test should be only run if MIOPEN_TEST_ALL=TRUE. Intended for long tests.
 #   TEST_PERF_DB_RECORD_NOT_FOUND - Test should fail if output contains: "Perf Db: record not found".
+#   TEST_ANY_ERROR - In addition to the standard checks, the test should fail if output contains "Error" or "failed".
 #   SKIP_XNACK_ON - Do not run the test if XNACK mode is enabled (xnack+) on the GPU.
 #   SKIP_UNLESS_MLIR - The test should be only run if MIOPEN_TEST_MLIR=TRUE.
 #
@@ -468,7 +469,7 @@ function(add_custom_test NAME)
         BF16_ENABLED BF16_DISABLED HALF_ENABLED HALF_DISABLED INT8_ENABLED INT8_DISABLED FLOAT_ENABLED FLOAT_DISABLED
         GFX900_ENABLED GFX900_DISABLED GFX906_ENABLED GFX906_DISABLED GFX908_ENABLED GFX908_DISABLED
         GFX103X_ENABLED GFX103X_DISABLED GFX90A_ENABLED GFX90A_DISABLED
-        SKIP_UNLESS_MLIR SKIP_UNLESS_ALL TEST_PERF_DB_RECORD_NOT_FOUND SKIP_XNACK_ON
+        SKIP_UNLESS_MLIR SKIP_UNLESS_ALL TEST_PERF_DB_RECORD_NOT_FOUND TEST_ANY_ERROR SKIP_XNACK_ON
         OCL_ENABLED OCL_DISABLED HIP_ENABLED HIP_DISABLED HIP_NOGPU_ENABLED HIP_NOGPU_DISABLED
     )
     set(oneValueArgs)
@@ -575,11 +576,18 @@ function(add_custom_test NAME)
      AND (is_half_check OR is_bfloat16_check OR is_int8_check OR is_float_check)
      AND (is_ocl_check AND is_hip_check AND is_hip_nogpu_check)
     )
+        if(PARSE_TEST_PERF_DB_RECORD_NOT_FOUND AND PARSE_TEST_ANY_ERROR)
+            message(FATAL_ERROR " TEST_PERF_DB_RECORD_NOT_FOUND and TEST_ANY_ERROR should not be used together")
+        endif()
+
         if(PARSE_TEST_PERF_DB_RECORD_NOT_FOUND)
             set_tests_properties(${NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "(FAILED)|(Perf Db: record not found)")
+        elseif(PARSE_TEST_ANY_ERROR)
+            set_tests_properties(${NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "(FAILED)|(Error)|(failed)")
         else()
             set_tests_properties(${NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
         endif()
+
         rate_added_test(${NAME})
     else()
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
@@ -1880,14 +1888,39 @@ add_custom_test(smoke_conv_solver_ConvOcl_SET01 GFX103X_ENABLED HALF_ENABLED BF1
       ${TEST_CONV_VERBOSE_W} --input 16 1 7 7 --weights 1 1 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
+# NOTES ON WRITEING TESTS FOR TUNABLE SOLVERS
+#
+# At first, enforce tuning (SEARCH_DB_UPDATE). Use TEST_ANY_ERROR.
+# It leads to test failure in case of any "Error" message output to the log,
+# which happen if something is broken in the tuning machinery.
+#
+# Use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time.
+# Note the the side effect of the limitation is that sub-optimal tuning
+# results are written to the user-perf-db.
+#
+# That is why the second step, DB_CLEAN, is nececcary. It cleans the sub-optimal values from
+# the user-perf-db. This prevents performance degradation on the user systems after the tests.
+
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
-add_custom_test(smoke_conv_solver_ConvAsm1x1U HALF_ENABLED SKIP_XNACK_ON
+add_custom_test(smoke_conv_solver_ConvAsm1x1U HALF_ENABLED SKIP_XNACK_ON TEST_ANY_ERROR
     COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE
+      MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1U $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
       ${TEST_CONV_VERBOSE_F} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_ENFORCE=DB_CLEAN
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1U $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
+      ${TEST_CONV_VERBOSE_F} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-validation ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE
+      MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1U $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
       ${TEST_CONV_VERBOSE_B} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_ENFORCE=DB_CLEAN
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1U $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
+      ${TEST_CONV_VERBOSE_B} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-validation ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 # GFX103X_DISABLED is due to WORKAROUND_SWDEV_266868
