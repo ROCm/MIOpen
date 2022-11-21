@@ -58,10 +58,10 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->IsTunable();
     };
-    bool TestPerfCfgParams(const ConvolutionContext& ctx, const DbRecord& record) const
+    bool TestPerfCfgParams(const ConvolutionContext& ctx, const std::string params) const
     {
         assert(ptr_value != nullptr);
-        return ptr_value->TestPerfCfgParams(ctx, record);
+        return ptr_value->TestPerfCfgParams(ctx, params);
     };
     std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const
     {
@@ -123,7 +123,7 @@ struct AnySolver
         virtual bool IsApplicable(const ConvolutionContext& ctx) const                         = 0;
         virtual bool IsTunable() const                                                         = 0;
         virtual bool TestPerfCfgParams(const ConvolutionContext& ctx,
-                                     const DbRecord& record) const                             = 0;
+                                     const std::string params) const                           = 0;
         virtual std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const = 0;
         virtual bool IsDynamic() const                                                         = 0;
         virtual float GetWti(const ConvolutionContext& ctx) const                              = 0;
@@ -196,7 +196,7 @@ struct AnySolver
             return false;
         }
 
-        bool TestPerfCfgParams(const ConvolutionContext& ctx, const const std::string params) const override
+        bool TestPerfCfgParams(const ConvolutionContext& ctx, const std::string params) const override
         {
             return TestPerfCfgParams(ctx, params, std::integral_constant<bool, TunableSolver::Is>());
         }
