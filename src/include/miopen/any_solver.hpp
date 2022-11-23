@@ -188,12 +188,10 @@ struct AnySolver
 
             return success;
         }
-        bool TestPerfCfgParams(const ConvolutionContext& ctx,
-                               const std::string params,
+        bool TestPerfCfgParams(const ConvolutionContext&,
+                               const std::string,
                                std::false_type) const
         {
-            std::ignore = ctx;
-            std::ignore = params;
             return false;
         }
 
@@ -287,11 +285,9 @@ struct AnySolver
             return config.ToString();
         }
         std::string
-        GetPerfCfgParams(const ConvolutionContext& ctx, const Db& db, std::false_type) const
+        GetPerfCfgParams(const ConvolutionContext&, const Db&, std::false_type) const
         {
             MIOPEN_LOG_I2("Perf Db: No Config: " << value.SolverDbId());
-            std::ignore = ctx;
-            std::ignore = db;
             return "";
         }
 
