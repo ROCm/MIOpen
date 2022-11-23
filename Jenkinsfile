@@ -24,6 +24,7 @@ def cmake_build(Map conf=[:]){
     def prefixpath = conf.get("prefixpath","/opt/rocm")
     def mlir_args = " -DMIOPEN_USE_MLIR=" + conf.get("mlir_build", "ON")
     def setup_args = mlir_args + " -DMIOPEN_GPU_SYNC=Off " + conf.get("setup_flags","")
+    def build_fin = conf.get("build_fin", "OFF")
 
     setup_args = setup_args + " -DCMAKE_PREFIX_PATH=${prefixpath} "
 
@@ -95,10 +96,33 @@ def cmake_build(Map conf=[:]){
     def build_cmd = conf.get("build_cmd", "LLVM_PATH=/opt/rocm/llvm ${build_envs} dumb-init make -j\$(nproc) ${config_targets}")
     def execute_cmd = conf.get("execute_cmd", "")
 
+    def fin_pre_setup_cmd = ""
+    def fin_setup_cmd = ""
+    def fin_build_cmd = ""
+    def fin_post_build_cmd = ""
+    if ( build_fin == "ON" )
+    {
+        fin_pre_setup_cmd = """
+            cd ../fin
+            rm -rf build
+            mkdir build
+            rm -rf install
+            mkdir install
+            cd build
+        """
+        fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} .. "
+        fin_build_cmd = "LLVM_PATH=/opt/rocm/llvm make -j\$(nproc) ${config_targets}"
+        fin post_build_cmd = "cd ../../build"
+    }
+
     def cmd = conf.get("cmd", """
             ${pre_setup_cmd}
             ${setup_cmd}
             ${build_cmd}
+            ${fin_pre_setup_cmd}
+            ${fin_setup_cmd}
+            ${fin_build_cmd}
+            ${fin_post_build_cmd}
             ${execute_cmd}
         """)
 
@@ -130,9 +154,8 @@ def getDockerImage(Map conf=[:])
     def miotensile_version = conf.get("miotensile_version", "default") // deprecated
     def target_id = conf.get("target_id", "OFF") // deprecated
     def mlir_build = conf.get("mlir_build", "ON") // always ON
-    def build_fin = conf.get("build_fin", "OFF") // forcing this to be always on means fewer docker containers since this ensures all dependencies are present in the docker image
     def no_cache = conf.get("no_cache", false)
-    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' --build-arg USE_FIN='${build_fin}' "
+    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg MIOTENSILE_VER='${miotensile_version}' --build-arg USE_TARGETID='${target_id}' --build-arg USE_MLIR='${mlir_build}' "
     if(env.CCACHE_HOST)
     {
         def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
