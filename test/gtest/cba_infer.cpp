@@ -39,7 +39,10 @@
 struct ConvBiasActivInferTestFloat : ConvBiasActivInferTest<float>
 {
 };
-//
+
+struct ConvBiasActivInferTestHalf : ConvBiasActivInferTest<half_float::half>
+{
+};
 
 template <typename Solver, typename TestCase>
 void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
@@ -108,7 +111,21 @@ TEST_P(ConvBiasActivInferTestFloat, ConvBinWinogradRxSf2x3g1Fused)
     RunSolver<miopen::solver::fusion::ConvBinWinogradRxSf2x3g1Fused>(
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
+
+TEST_P(ConvBiasActivInferTestHalf, ConvCKIgemmFwdBiasActiv)
+{
+    RunTunableSolver<miopen::solver::fusion::ConvCKIgemmFwdBiasActiv>(
+        fusePlanDesc, plan_params, conv_config, test_skipped);
+ }
+
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          ConvBiasActivInferTestFloat,
                          testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(GetNetwork1())));
+                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::Values(miopenTensorNCHW)));
+
+INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
+                         ConvBiasActivInferTestHalf,
+                         testing::Combine(testing::Values(miopenActivationRELU),
+                                          testing::ValuesIn(GetNetwork1()),
+                                          testing::Values(miopenTensorNHWC)));
