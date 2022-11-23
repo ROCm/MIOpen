@@ -1888,54 +1888,36 @@ add_custom_test(smoke_conv_solver_ConvOcl_SET01 GFX103X_ENABLED HALF_ENABLED BF1
       ${TEST_CONV_VERBOSE_W} --input 16 1 7 7 --weights 1 1 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-# NOTES ON WRITEING TESTS FOR TUNABLE SOLVERS
-#
-# At first, enforce tuning (SEARCH_DB_UPDATE). Use TEST_ANY_ERROR.
-# It leads to test failure in case of any "Error" message output to the log,
-# which happen if something is broken in the tuning machinery.
-#
-# Use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time.
-# Note the the side effect of the limitation is that sub-optimal tuning
-# results are written to the user-perf-db.
-#
-# That is why the second step, DB_CLEAN, is nececcary. It cleans the sub-optimal values from
-# the user-perf-db. This prevents performance degradation on the user systems after the tests.
+# NOTES ON WRITING TESTS FOR TUNABLE SOLVERS
+# * Enforce tuning (SEARCH_DB_UPDATE).
+# * Use TEST_ANY_ERROR. This flag leads to test failure in case of any "Error"
+#   message output to the log, which happens if something is broken in the tuning machinery.
+# * Use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time.
+#   Note the the side effect of the limitation is that sub-optimal tuning
+#   results are written to the user-perf-db.
+# * That is why MIOPEN_USER_DB_PATH=. is used. The user-perf-db is written in 
+#   "test" directory. This prevents performance degradation on the user systems
+#   after the tests complete.
 
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
 add_custom_test(smoke_conv_solver_ConvAsm1x1U HALF_ENABLED SKIP_XNACK_ON TEST_ANY_ERROR
-    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
-      MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE
-      MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_USER_DB_PATH=. MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+      MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1U $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
       ${TEST_CONV_VERBOSE_F} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
-      MIOPEN_FIND_ENFORCE=DB_CLEAN
-      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1U $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_F} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-validation ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
-      MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE
-      MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_USER_DB_PATH=. MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+      MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1U $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
       ${TEST_CONV_VERBOSE_B} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
-      MIOPEN_FIND_ENFORCE=DB_CLEAN
-      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1U $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_B} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-validation ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(smoke_conv_solver_ConvAsm1x1UV2 SKIP_XNACK_ON TEST_ANY_ERROR
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_USER_DB_PATH=. MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1UV2 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
       ${TEST_CONV_VERBOSE_F} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=DB_CLEAN
-      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1UV2 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_F} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-validation ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_USER_DB_PATH=. MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1UV2 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
       ${TEST_CONV_VERBOSE_B} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_FIND_ENFORCE=DB_CLEAN
-      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm1x1UV2 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_B} --input 1 4 2 2 --weights 4 4 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-validation ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 # GFX103X_DISABLED is due to WORKAROUND_SWDEV_266868
