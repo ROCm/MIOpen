@@ -53,7 +53,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
-    if(!solv.IsApplicable(ctx))
+    if(!solv.IsApplicable(ctx, ctx.problem))
     {
         test_skipped = true;
         GTEST_SKIP() << solv.SolverDbId() << "ConvAsm3x3U Not Applicable for this problem"
@@ -62,7 +62,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     const auto invoke_params = miopen::conv::DataInvokeParams{
         tensors, nullptr, 0, convDesc.attribute.gfx90aFp16alt.GetFwd()};
 
-    ASSERT_TRUE(solv.IsApplicable(ctx));
+    ASSERT_TRUE(solv.IsApplicable(ctx, ctx.problem));
     auto sol = solv.GetSolution(ctx, solv.GetDefaultPerformanceConfig(ctx));
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
