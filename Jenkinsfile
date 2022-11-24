@@ -112,7 +112,7 @@ def cmake_build(Map conf=[:]){
         """
         fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} .. "
         fin_build_cmd = "LLVM_PATH=/opt/rocm/llvm make -j\$(nproc) ${config_targets}"
-        fin post_build_cmd = "cd ../../build"
+        fin_post_build_cmd = "cd ../../build"
     }
 
     def cmd = conf.get("cmd", """
