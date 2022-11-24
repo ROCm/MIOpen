@@ -64,8 +64,9 @@ struct BatchnormSolver : SolverMixin<OldStyleProblemDescription>
 
     virtual bool IsApplicable(const ExecutionContext& context,
                               const miopen::batchnorm::ProblemDescription& problem) const = 0;
-    virtual ConvSolution GetSolution(const ExecutionContext& context,
-                                     const miopen::batchnorm::ProblemDescription& problem) const = 0;
+    virtual ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::batchnorm::ProblemDescription& problem) const = 0;
 };
 
 struct BnFwdTrainingSpatialSingle final : BatchnormSolver
