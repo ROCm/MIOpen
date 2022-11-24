@@ -213,6 +213,7 @@ def buildHipClangJob(Map conf=[:]){
         gitStatusWrapper(credentialsId: "${env.status_wrapper_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
             try {
                 (retimage, image) = getDockerImage(conf)
+                echo "got image: ${image}"
                 if (needs_gpu) {
                     withDockerContainer(image: image, args: dockerOpts) {
                         timeout(time: 5, unit: 'MINUTES')
@@ -243,6 +244,7 @@ def buildHipClangJob(Map conf=[:]){
             withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
                 timeout(time: 150, unit:'MINUTES')
                 {
+                    echo "executing build: ${image}"
                     cmake_build(conf)
 
                     if (codecov) {
