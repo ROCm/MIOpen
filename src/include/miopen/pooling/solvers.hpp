@@ -155,9 +155,6 @@ struct TransposedPoolingFwdNd final : PoolingFwdNCHWTransposingSolver<PoolingFor
 
 struct PoolingBackward2d final : PoolingSolver
 {
-    // To suppress -Woverloaded-virtual
-    //using PoolingSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingBackward2d>(); }
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pooling::ProblemDescription& problem) const override;
@@ -169,9 +166,6 @@ struct PoolingBackward2d final : PoolingSolver
 
 struct PoolingBackwardNd final : PoolingSolver
 {
-    // To suppress -Woverloaded-virtual
-    //using PoolingSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingBackwardNd>(); }
 
     bool IsApplicable(const ExecutionContext& context,
