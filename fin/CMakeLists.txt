@@ -102,7 +102,7 @@ if( FIN_BACKEND STREQUAL "OpenCL")
         PATH_SUFFIXES bin
         PATHS /opt/rocm
     )
-    find_package(miopengemm PATHS /opt/rocm)
+    find_package(miopengemm PATHS ${CMAKE_PREFIX_PATH})
 endif()
 
 # HIP
@@ -309,6 +309,7 @@ enable_cppcheck(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+        ${CMAKE_PREFIX_PATH}/include
     DEFINE
         CPPCHECK=1
         MIOPEN_USE_MIOPENGEMM=1
@@ -318,8 +319,8 @@ else()
     message("MIOPEN_ENABLE_FIN is SET")
 endif()
 
-find_package(miopen)
-find_package(rocblas) #MIOpen depends on rocBlas
+find_package(miopen PATHS ${CMAKE_PREFIX_PATH})
+find_package(rocblas PATHS ${CMAKE_PREFIX_PATH}) #MIOpen depends on rocBlas
 find_package(Threads REQUIRED)
 
 add_subdirectory(src)

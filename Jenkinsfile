@@ -110,7 +110,7 @@ def cmake_build(Map conf=[:]){
             mkdir install
             cd build
         """
-        fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} -DCMAKE_PREFIX_PATH='../../install:${prefixpath}' .. "
+        fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} -DCMAKE_PREFIX_PATH='${PWD}/../../install' .. "
         fin_build_cmd = "LLVM_PATH=/opt/rocm/llvm make -j\$(nproc) ${config_targets}"
         fin_post_build_cmd = "cd ../../build"
     }
