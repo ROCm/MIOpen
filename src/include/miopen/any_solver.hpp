@@ -58,7 +58,7 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->IsTunable();
     };
-    bool TestPerfCfgParams(const ConvolutionContext& ctx, const std::string params) const
+    bool TestPerfCfgParams(const ConvolutionContext& ctx, std::string params) const
     {
         assert(ptr_value != nullptr);
         return ptr_value->TestPerfCfgParams(ctx, params);
@@ -120,21 +120,20 @@ struct AnySolver
         using ptr = std::shared_ptr<const AnySolver_base>;
 
         virtual ~AnySolver_base(){};
-        virtual bool IsApplicable(const ConvolutionContext& ctx) const                         = 0;
-        virtual bool IsTunable() const                                                         = 0;
-        virtual bool TestPerfCfgParams(const ConvolutionContext& ctx,
-                                       const std::string params) const                         = 0;
-        virtual std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const = 0;
-        virtual bool IsDynamic() const                                                         = 0;
-        virtual float GetWti(const ConvolutionContext& ctx) const                              = 0;
-        virtual const std::type_info& Type() const                                             = 0;
-        virtual std::string GetSolverDbId() const                                              = 0;
+        virtual bool IsApplicable(const ConvolutionContext& ctx) const                          = 0;
+        virtual bool IsTunable() const                                                          = 0;
+        virtual bool TestPerfCfgParams(const ConvolutionContext& ctx, std::string params) const = 0;
+        virtual std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const  = 0;
+        virtual bool IsDynamic() const                                                          = 0;
+        virtual float GetWti(const ConvolutionContext& ctx) const                               = 0;
+        virtual const std::type_info& Type() const                                              = 0;
+        virtual std::string GetSolverDbId() const                                               = 0;
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx,
                                           Db& db,
-                                          const miopen::AnyInvokeParams& invoke_ctx) const     = 0;
-        virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const      = 0;
-        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const                   = 0;
-        virtual bool MayNeedWorkspace() const                                                  = 0;
+                                          const miopen::AnyInvokeParams& invoke_ctx) const      = 0;
+        virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const       = 0;
+        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const                    = 0;
+        virtual bool MayNeedWorkspace() const                                                   = 0;
     };
 
     // templated derived class
@@ -170,9 +169,8 @@ struct AnySolver
             static constexpr bool Is = type::value;
         };
 
-        bool TestPerfCfgParams(const ConvolutionContext& ctx,
-                               const std::string params,
-                               std::true_type) const
+        bool
+        TestPerfCfgParams(const ConvolutionContext& ctx, std::string params, std::true_type) const
         {
             using PerformanceConfig = decltype(value.GetDefaultPerformanceConfig(
                 std::declval<const ConvolutionContext&>()));
@@ -188,13 +186,12 @@ struct AnySolver
 
             return success;
         }
-        bool TestPerfCfgParams(const ConvolutionContext&, const std::string, std::false_type) const
+        bool TestPerfCfgParams(const ConvolutionContext&, std::string, std::false_type) const
         {
             return false;
         }
 
-        bool TestPerfCfgParams(const ConvolutionContext& ctx,
-                               const std::string params) const override
+        bool TestPerfCfgParams(const ConvolutionContext& ctx, std::string params) const override
         {
             return TestPerfCfgParams(
                 ctx, params, std::integral_constant<bool, TunableSolver::Is>());
