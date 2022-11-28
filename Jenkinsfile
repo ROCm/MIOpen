@@ -110,7 +110,7 @@ def cmake_build(Map conf=[:]){
             mkdir install
             cd build
         """
-        fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} -DCMAKE_PREFIX_PATH=${prefixpath}:../../install .. "
+        fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} -DCMAKE_PREFIX_PATH='../../install:${prefixpath}' .. "
         fin_build_cmd = "LLVM_PATH=/opt/rocm/llvm make -j\$(nproc) ${config_targets}"
         fin_post_build_cmd = "cd ../../build"
     }
@@ -509,7 +509,7 @@ pipeline {
                       build_cmd = "make -j\$(nproc) "
                     }
                     steps{
-                      buildHipClangJobAndReboot(setup_cmd: "", execute_cmd: "", build_cmd: "", build_fin: "ON", needs_gpu:false, build_install: "true")
+                      buildHipClangJobAndReboot(build_fin: "ON", needs_gpu:false, build_install: "true")
                   }
                 }
                 stage('Perf DB Validity Test') {
