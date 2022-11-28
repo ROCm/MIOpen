@@ -137,7 +137,7 @@ template <class Solver, class Context, class Db>
 ConvSolution
 FindSolution(Solver s, const Context& context, Db& db, const AnyInvokeParams& invoke_ctx)
 {
-    // static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
+    static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
     static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");
     // TODO: This assumes all solutions are ConvSolution
     auto solution      = FindSolutionImpl(rank<1>{}, s, context, db, invoke_ctx);
