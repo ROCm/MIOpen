@@ -276,6 +276,7 @@ function(add_test_command NAME EXE)
             add_test(NAME ${NAME} COMMAND ${EXE} ${ARGN})
         endif()
     endif()
+    set_tests_properties(${NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR}")
 endfunction()
 
 separate_arguments(MIOPEN_TEST_FLAGS_ARGS UNIX_COMMAND ${MIOPEN_TEST_FLAGS})
@@ -554,6 +555,15 @@ function(add_custom_test NAME)
 
     add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
     add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
+
+    # The tests often change the contents of the user databases, which may affect performance after testing.
+    # For example, MIOPEN_DEBUG_FIND_ONLY_SOLVER results in non-optimal records in user-find-db.
+    # 
+    # MIOPEN_USER_DB_PATH setting resolves this potential problem. The user databases are written in 
+    # the non-default directory. This preserves the state of the actual user databases
+    # and prevents performance degradation after the tests complete.
+    #
+    set_tests_properties(${NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR}")
 
     if(WORKAROUND_ISSUE_1148
         AND (${NAME} MATCHES "test_conv_3d"
