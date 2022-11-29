@@ -42,7 +42,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
 namespace miopen {
 namespace solver {
-namespace fusion{
+namespace fusion {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 struct CKArgs
 {
@@ -78,44 +78,49 @@ struct CKArgs
     std::vector<int> rPadding;
 };
 
-std::vector<ck::tensor_operation::device::DeviceConvFwdBiasActivationPtr<ck::tensor_operation::element_wise::PassThrough,
-                                              ck::tensor_operation::element_wise::PassThrough,
-                                              ck::tensor_operation::element_wise::AddRelu>>
-GetInstances(){
+std::vector<ck::tensor_operation::device::DeviceConvFwdBiasActivationPtr<
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::AddRelu>>
+GetInstances()
+{
 
-    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasActivationPtr<ck::tensor_operation::element_wise::PassThrough,
-                                              ck::tensor_operation::element_wise::PassThrough,
-                                              ck::tensor_operation::element_wise::AddRelu>> op_ptrs;
-    ck::tensor_operation::device::instance::add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(op_ptrs);
+    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasActivationPtr<
+        ck::tensor_operation::element_wise::PassThrough,
+        ck::tensor_operation::element_wise::PassThrough,
+        ck::tensor_operation::element_wise::AddRelu>>
+        op_ptrs;
+    ck::tensor_operation::device::instance::
+        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(op_ptrs);
     return op_ptrs;
 }
 
 template <typename DataType>
 void PerformanceConfigConvCKIgemmFwdBiasActiv::Init(const ProblemDescription& problem)
 {
-    const auto& args      = CKArgs{problem};
-    const auto conv = GetInstances();
+    const auto& args = CKArgs{problem};
+    const auto conv  = GetInstances();
     assert(!conv.empty());
     this->total_size = conv.size();
     for(int i = 0; i < conv.size(); i++)
     {
         auto argument_ptr = conv[i]->MakeArgumentPointer(nullptr,
-                                                              nullptr,
-                                                              nullptr,
-                                                              nullptr,
-                                                              args.N,
-                                                              args.K,
-                                                              args.C,
-                                                              args.input,
-                                                              args.filter,
-                                                              args.output,
-                                                              args.strides,
-                                                              args.dilation,
-                                                              args.lPadding,
-                                                              args.rPadding,
-                                                              {},
-                                                              {},
-                                                              {});
+                                                         nullptr,
+                                                         nullptr,
+                                                         nullptr,
+                                                         args.N,
+                                                         args.K,
+                                                         args.C,
+                                                         args.input,
+                                                         args.filter,
+                                                         args.output,
+                                                         args.strides,
+                                                         args.dilation,
+                                                         args.lPadding,
+                                                         args.rPadding,
+                                                         {},
+                                                         {},
+                                                         {});
         if(conv[i]->IsSupportedArgument(argument_ptr.get()))
         {
             this->kernel_id = conv[i]->GetTypeString();
@@ -128,25 +133,25 @@ template <typename DataType>
 bool PerformanceConfigConvCKIgemmFwdBiasActiv::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    const auto& args      = CKArgs{problem};
-    const auto conv = GetInstances();
-    auto argument_ptr    = conv[this->index]->MakeArgumentPointer(nullptr,
-                                                                    nullptr,
-                                                                    nullptr,
-                                                                    nullptr,
-                                                                    args.N,
-                                                                    args.K,
-                                                                    args.C,
-                                                                    args.input,
-                                                                    args.filter,
-                                                                    args.output,
-                                                                    args.strides,
-                                                                    args.dilation,
-                                                                    args.lPadding,
-                                                                    args.rPadding,
-                                                                    {},
-                                                                    {},
-                                                                    {});
+    const auto& args  = CKArgs{problem};
+    const auto conv   = GetInstances();
+    auto argument_ptr = conv[this->index]->MakeArgumentPointer(nullptr,
+                                                               nullptr,
+                                                               nullptr,
+                                                               nullptr,
+                                                               args.N,
+                                                               args.K,
+                                                               args.C,
+                                                               args.input,
+                                                               args.filter,
+                                                               args.output,
+                                                               args.strides,
+                                                               args.dilation,
+                                                               args.lPadding,
+                                                               args.rPadding,
+                                                               {},
+                                                               {},
+                                                               {});
     return conv[this->index]->IsSupportedArgument(argument_ptr.get());
 }
 
@@ -159,22 +164,22 @@ bool ConvCKIgemmFwdBiasActiv::CheckCKApplicability(const ProblemDescription& pro
     for(int i = 0; i < conv.size(); i++)
     {
         auto argument_ptr = conv[i]->MakeArgumentPointer(nullptr,
-                                                              nullptr,
-                                                              nullptr,
-                                                              nullptr,
-                                                              args.N,
-                                                              args.K,
-                                                              args.C,
-                                                              args.input,
-                                                              args.filter,
-                                                              args.output,
-                                                              args.strides,
-                                                              args.dilation,
-                                                              args.lPadding,
-                                                              args.rPadding,
-                                                              {},
-                                                              {},
-                                                              {});
+                                                         nullptr,
+                                                         nullptr,
+                                                         nullptr,
+                                                         args.N,
+                                                         args.K,
+                                                         args.C,
+                                                         args.input,
+                                                         args.filter,
+                                                         args.output,
+                                                         args.strides,
+                                                         args.dilation,
+                                                         args.lPadding,
+                                                         args.rPadding,
+                                                         {},
+                                                         {},
+                                                         {});
         if(conv[i]->IsSupportedArgument(argument_ptr.get()))
             return true;
     }
@@ -188,25 +193,27 @@ void ConvCKIgemmFwdBiasActiv::RunCKSolution(
     const ProblemDescription& problem,
     const PerformanceConfigConvCKIgemmFwdBiasActiv& config) const
 {
-    const auto& args      = CKArgs{problem};
+    const auto& args                  = CKArgs{problem};
     const auto& conv_kernel_instances = GetInstances();
     // From the list of kernels provided by CK, config.index is the one that was
     // tuned by PerformanceConfigConvCKIgemmFwdBiasActiv.
-    auto& conv_ptr       = conv_kernel_instances.at(config.index);
+    auto& conv_ptr = conv_kernel_instances.at(config.index);
 
     const auto& invoke_ctx = primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
-    const auto& wei_buf = std::dynamic_pointer_cast<miopen::fusion::ConvolutionOpInvokeParam>(
-                    invoke_ctx.op_invokers[0])->weights;
-    const auto& bias_buf = std::dynamic_pointer_cast<miopen::fusion::BiasOpInvokeParam>(
-                    invoke_ctx.op_invokers[1])->bdata;
+    const auto& wei_buf    = std::dynamic_pointer_cast<miopen::fusion::ConvolutionOpInvokeParam>(
+                              invoke_ctx.op_invokers[0])
+                              ->weights;
+    const auto& bias_buf =
+        std::dynamic_pointer_cast<miopen::fusion::BiasOpInvokeParam>(invoke_ctx.op_invokers[1])
+            ->bdata;
 
-    auto argument_ptr    = conv_ptr->MakeArgumentPointer(
+    auto argument_ptr = conv_ptr->MakeArgumentPointer(
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(invoke_ctx.in)),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(wei_buf)),
         invoke_ctx.out,
-        const_cast<void*>( static_cast<const void*>(bias_buf)),
+        const_cast<void*>(static_cast<const void*>(bias_buf)),
         args.N,
         args.K,
         args.C,
@@ -254,7 +261,8 @@ void PerformanceConfigConvCKIgemmFwdBiasActiv::HeuristicInit(const FusionContext
 
 bool PerformanceConfigConvCKIgemmFwdBiasActiv::SetNextValue(const FusionContext& ctx)
 {
-    if(this->total_size == -1){
+    if(this->total_size == -1)
+    {
         this->HeuristicInit(ctx);
         assert(this->total_size != -1);
         return true;
@@ -269,7 +277,10 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::SetNextValue(const FusionContext&
     return false;
 }
 
-bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValidValue() const { return this->index < this->total_size; }
+bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValidValue() const
+{
+    return this->index < this->total_size;
+}
 
 bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValid(const FusionContext& ctx) const
 {
@@ -296,8 +307,7 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValid(const FusionContext& ctx)
 bool PerformanceConfigConvCKIgemmFwdBiasActiv::operator==(
     const PerformanceConfigConvCKIgemmFwdBiasActiv& other) const
 {
-    return this->index == other.index &&
-           this->total_size == other.total_size;
+    return this->index == other.index && this->total_size == other.total_size;
 }
 
 PerformanceConfigConvCKIgemmFwdBiasActiv
@@ -309,8 +319,7 @@ ConvCKIgemmFwdBiasActiv::GetDefaultPerformanceConfig(const FusionContext& ctx) c
 }
 
 bool ConvCKIgemmFwdBiasActiv::IsValidPerformanceConfig(
-    const FusionContext& ctx,
-    const PerformanceConfigConvCKIgemmFwdBiasActiv& config) const
+    const FusionContext& ctx, const PerformanceConfigConvCKIgemmFwdBiasActiv& config) const
 {
     return config.IsValid(ctx);
 }
@@ -364,9 +373,9 @@ bool ConvCKIgemmFwdBiasActiv::IsApplicable(const FusionContext& ctx) const
 #endif
 }
 
-ConvSolution ConvCKIgemmFwdBiasActiv::GetSolution(
-    const FusionContext& ctx,
-    const PerformanceConfigConvCKIgemmFwdBiasActiv& config) const
+ConvSolution
+ConvCKIgemmFwdBiasActiv::GetSolution(const FusionContext& ctx,
+                                     const PerformanceConfigConvCKIgemmFwdBiasActiv& config) const
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = ctx;
@@ -380,13 +389,11 @@ ConvSolution ConvCKIgemmFwdBiasActiv::GetSolution(
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             switch(problem.conv_problem.GetInDataType())
             {
-            case miopenInt8:
-                break;
+            case miopenInt8: break;
             case miopenHalf:
                 RunCKSolution<ck::half_t>(handle, primitive_parameters, problem, config);
                 break;
-            case miopenFloat:
-                break;
+            case miopenFloat: break;
             case miopenInt32:
             case miopenInt8x4:
             case miopenBFloat16:

@@ -113,11 +113,10 @@ std::vector<ConvTestCase> GetNetwork1()
             {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1}};
 }
 
-
 inline int SetTensorNd(miopen::TensorDescriptor& desc)
 {
     // get layout string names
-    std::string layout_str = desc.GetLayout_str();
+    std::string layout_str     = desc.GetLayout_str();
     std::string len_layout_str = miopen::tensor_layout_get_default(layout_str.size());
 
     // get the lengths of the tensor eg: {N,C,H,W}, {N,H,W,C}
@@ -129,23 +128,22 @@ inline int SetTensorNd(miopen::TensorDescriptor& desc)
     miopen::tensor_layout_to_strides(int_lens, len_layout_str, layout_str, strides);
 
     // set the strides for the tensor
-    return miopenSetTensorDescriptor(&desc, desc.GetType(), int_lens.size(), int_lens.data(),
-        strides.data());
+    return miopenSetTensorDescriptor(
+        &desc, desc.GetType(), int_lens.size(), int_lens.data(), strides.data());
 }
 
 template <typename T = float>
 struct ConvBiasActivInferTest
-    : public ::testing::TestWithParam<std::tuple<miopenActivationMode_t, ConvTestCase, miopenTensorLayout_t>>
+    : public ::testing::TestWithParam<
+          std::tuple<miopenActivationMode_t, ConvTestCase, miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
     {
-        test_skipped                      = false;
+        test_skipped                                     = false;
         std::tie(activ_mode, conv_config, tensor_layout) = GetParam();
-        input                             = tensor<T>{miopen_type<T>{}, tensor_layout,
-                                            conv_config.GetInput()};
-        weights                           = tensor<T>{miopen_type<T>{}, tensor_layout,
-                                            conv_config.GetWeights()};
+        input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
+        weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
         SetTensorNd(input.desc);
         SetTensorNd(weights.desc);
         std::random_device rd{};
@@ -190,7 +188,7 @@ protected:
         conv_stats stats;
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopenFloat);
-        ref_out = tensor<T>{ miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
+        ref_out = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
         ref_out = ref_conv_fwd(input, weights, output, conv_desc);
         cpu_bias_forward(ref_out, bias);
         activationHostInfer(

@@ -309,11 +309,8 @@ struct PerformanceConfigConvCKIgemmFwdBiasActiv
         : index(idx), kernel_id(kernl_id), total_size(-1)
     {
     }
-    PerformanceConfigConvCKIgemmFwdBiasActiv() : PerformanceConfigConvCKIgemmFwdBiasActiv(0, "")
-    {
-    }
-    PerformanceConfigConvCKIgemmFwdBiasActiv(bool)
-        : PerformanceConfigConvCKIgemmFwdBiasActiv(0, "")
+    PerformanceConfigConvCKIgemmFwdBiasActiv() : PerformanceConfigConvCKIgemmFwdBiasActiv(0, "") {}
+    PerformanceConfigConvCKIgemmFwdBiasActiv(bool) : PerformanceConfigConvCKIgemmFwdBiasActiv(0, "")
     {
     }
     void HeuristicInit(const FusionContext& ctx);
@@ -335,8 +332,7 @@ private:
     bool CheckIsSupportCKArgs(const ProblemDescription&) const;
 };
 
-struct ConvCKIgemmFwdBiasActiv final
-    : FusionTunableSolver<PerformanceConfigConvCKIgemmFwdBiasActiv>
+struct ConvCKIgemmFwdBiasActiv final : FusionTunableSolver<PerformanceConfigConvCKIgemmFwdBiasActiv>
 {
     const std::string& SolverDbId() const override
     {

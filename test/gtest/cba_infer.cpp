@@ -116,7 +116,7 @@ TEST_P(ConvBiasActivInferTestHalf, ConvCKIgemmFwdBiasActiv)
 {
     RunTunableSolver<miopen::solver::fusion::ConvCKIgemmFwdBiasActiv>(
         fusePlanDesc, plan_params, conv_config, test_skipped);
- }
+}
 
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
                          ConvBiasActivInferTestFloat,
