@@ -40,15 +40,15 @@
 #endif
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
+// Forward declare CK's function.
+namespace ck {
+namespace tensor_operation {
+namespace device {
 using DeviceConvFwdBiasReluPtr = ck::tensor_operation::device::DeviceConvFwdBiasActivationPtr<
     ck::tensor_operation::element_wise::PassThrough,
     ck::tensor_operation::element_wise::PassThrough,
     ck::tensor_operation::element_wise::AddRelu>;
 
-// Forward declare CK's function.
-namespace ck {
-namespace tensor_operation {
-namespace device {
 namespace instance {
 
 void add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(
@@ -97,10 +97,10 @@ struct CKArgs
     std::vector<int> rPadding;
 };
 
-std::vector<DeviceConvFwdBiasReluPtr> GetInstances()
+std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> GetInstances()
 {
 
-    std::vector<DeviceConvFwdBiasReluPtr> op_ptrs;
+    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> op_ptrs;
     ck::tensor_operation::device::instance::
         add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(op_ptrs);
     return op_ptrs;
