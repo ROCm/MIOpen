@@ -79,6 +79,11 @@ def cmake_build(Map conf=[:]){
         setup_args = " -DCMAKE_CXX_COMPILER_LAUNCHER='ccache' -DCMAKE_C_COMPILER_LAUNCHER='ccache' " + setup_args
     }
 
+    if ( build_fin == "ON" )
+    {
+        setup_args = " -DMIOPEN_INSTALL_CXX_HEADERS=On " + setup_args
+    }
+
     def pre_setup_cmd = """
             echo \$HSA_ENABLE_SDMA
             ulimit -c unlimited
