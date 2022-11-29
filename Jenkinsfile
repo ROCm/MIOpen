@@ -39,7 +39,7 @@ def cmake_build(Map conf=[:]){
         config_targets = "package"
     }
 
-    def install_dir = "/opt/rocm/install"
+    def install_dir = "~/install"
     if(conf.get("build_install","") == "true")
     {
         config_targets = 'install ' + config_targets
