@@ -39,10 +39,11 @@ def cmake_build(Map conf=[:]){
         config_targets = "package"
     }
 
+    def install_dir="~/install"
     if(conf.get("build_install","") == "true")
     {
         config_targets = 'install ' + config_targets
-        setup_args = ' -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=../install' + setup_args
+        setup_args = ' -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=${install_dir}' + setup_args
     } else{
         setup_args = ' -DBUILD_DEV=On' + setup_args
     }
@@ -84,8 +85,6 @@ def cmake_build(Map conf=[:]){
             ulimit -c unlimited
             rm -rf build
             mkdir build
-            rm -rf install
-            mkdir install
             rm -f src/kernels/*.ufdb.txt
             rm -f src/kernels/miopen*.udb
             cd build
@@ -106,11 +105,9 @@ def cmake_build(Map conf=[:]){
             cd ../fin
             rm -rf build
             mkdir build
-            rm -rf install
-            mkdir install
             cd build
         """
-        fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} -DCMAKE_PREFIX_PATH='${PWD}/../../install' .. "
+        fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} -DCMAKE_PREFIX_PATH='${install_dir}' .. "
         fin_build_cmd = "LLVM_PATH=/opt/rocm/llvm make -j\$(nproc) ${config_targets}"
         fin_post_build_cmd = "cd ../../build"
     }
