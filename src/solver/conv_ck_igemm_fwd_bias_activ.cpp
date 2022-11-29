@@ -40,15 +40,16 @@
 #endif
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
+using DeviceConvFwdBiasReluPtr = ck::tensor_operation::device::DeviceConvFwdBiasActivationPtr<
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::AddRelu>;
+
+// Forward declare CK's function.
 namespace ck {
 namespace tensor_operation {
 namespace device {
 namespace instance {
-
-using DeviceConvFwdBiasReluPtr =
-    DeviceConvFwdBiasActivationPtr<ck::tensor_operation::element_wise::PassThrough,
-                                   ck::tensor_operation::element_wise::PassThrough,
-                                   ck::tensor_operation::element_wise::AddRelu>;
 
 void add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(
     std::vector<DeviceConvFwdBiasReluPtr>&);
@@ -96,18 +97,10 @@ struct CKArgs
     std::vector<int> rPadding;
 };
 
-std::vector<ck::tensor_operation::device::DeviceConvFwdBiasActivationPtr<
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::AddRelu>>
-GetInstances()
+std::vector<DeviceConvFwdBiasReluPtr> GetInstances()
 {
 
-    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasActivationPtr<
-        ck::tensor_operation::element_wise::PassThrough,
-        ck::tensor_operation::element_wise::PassThrough,
-        ck::tensor_operation::element_wise::AddRelu>>
-        op_ptrs;
+    std::vector<DeviceConvFwdBiasReluPtr> op_ptrs;
     ck::tensor_operation::device::instance::
         add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(op_ptrs);
     return op_ptrs;
@@ -261,7 +254,7 @@ void ConvCKIgemmFwdBiasActiv::RunCKSolution(
 void PerformanceConfigConvCKIgemmFwdBiasActiv::HeuristicInit(const FusionContext& ctx)
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = problem;
+    std::ignore = ctx;
 #else
     const auto& conv_prob = ctx.problem.GetConvProblem(0, conv::Direction::Forward).conv_problem;
     switch(conv_prob.GetInDataType())
