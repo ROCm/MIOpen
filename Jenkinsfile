@@ -43,7 +43,7 @@ def cmake_build(Map conf=[:]){
     if(conf.get("build_install","") == "true")
     {
         config_targets = 'install ' + config_targets
-        setup_args = ' -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=${install_dir}' + setup_args
+        setup_args = " -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=${install_dir}" + setup_args
     } else{
         setup_args = ' -DBUILD_DEV=On' + setup_args
     }
@@ -107,7 +107,7 @@ def cmake_build(Map conf=[:]){
             mkdir build
             cd build
         """
-        fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} -DCMAKE_PREFIX_PATH='${install_dir}' .. "
+        fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} -DCMAKE_PREFIX_PATH=${install_dir} .. "
         fin_build_cmd = "LLVM_PATH=/opt/rocm/llvm make -j\$(nproc) ${config_targets}"
         fin_post_build_cmd = "cd ../../build"
     }
@@ -210,7 +210,6 @@ def buildHipClangJob(Map conf=[:]){
         gitStatusWrapper(credentialsId: "${env.status_wrapper_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCmSoftwarePlatform', repo: 'MIOpen') {
             try {
                 (retimage, image) = getDockerImage(conf)
-                echo "got image: ${image}"
                 if (needs_gpu) {
                     withDockerContainer(image: image, args: dockerOpts) {
                         timeout(time: 5, unit: 'MINUTES')
@@ -241,7 +240,6 @@ def buildHipClangJob(Map conf=[:]){
             withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
                 timeout(time: 150, unit:'MINUTES')
                 {
-                    echo "executing build: ${image}"
                     cmake_build(conf)
 
                     if (codecov) {
