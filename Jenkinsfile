@@ -86,7 +86,7 @@ def cmake_build(Map conf=[:]){
             mkdir build
             rm -rf install
             mkdir install
-            export MIOPEN_INSTALL=\${PWD}/install"
+            export MIOPEN_INSTALL=\${PWD}/install
             rm -f src/kernels/*.ufdb.txt
             rm -f src/kernels/miopen*.udb
             cd build
