@@ -115,7 +115,7 @@ def cmake_build(Map conf=[:]){
             cd build
         """
         fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} -DCMAKE_PREFIX_PATH=\${MIOPEN_INSTALL} .. "
-        fin_build_cmd = "LLVM_PATH=/opt/rocm/llvm make -j\$(nproc) ${config_targets}"
+        fin_build_cmd = "LLVM_PATH=/opt/rocm/llvm make -j\$(nproc) install"
         fin_post_build_cmd = "cd ../../build"
     }
 
