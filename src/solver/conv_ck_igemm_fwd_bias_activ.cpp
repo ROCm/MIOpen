@@ -40,6 +40,7 @@
 #endif
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 // Forward declare CK's function.
 namespace ck {
 namespace tensor_operation {
@@ -58,6 +59,7 @@ void add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(
 } // namespace device
 } // namespace tensor_operation
 } // namespace ck
+#endif
 
 namespace miopen {
 namespace solver {
