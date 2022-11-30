@@ -274,6 +274,10 @@ void PerformanceConfigConvCKIgemmFwdBiasActiv::HeuristicInit(const FusionContext
 
 bool PerformanceConfigConvCKIgemmFwdBiasActiv::SetNextValue(const FusionContext& ctx)
 {
+#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
+    std::ignore = ctx;
+    return false;
+#else
     if(this->total_size == -1)
     {
         this->HeuristicInit(ctx);
@@ -288,6 +292,7 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::SetNextValue(const FusionContext&
         return true;
     }
     return false;
+#endif
 }
 
 bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValidValue() const
