@@ -373,7 +373,7 @@ bool ConvCKIgemmFwdBiasActiv::IsApplicable(const FusionContext& ctx) const
         return false;
 
     const std::string name = ctx.GetStream().GetDeviceName();
-    if(name == "gfx908")
+    if(name != "gfx908")
         return false;
 
     if(!problem.IsLayoutNHWC())
