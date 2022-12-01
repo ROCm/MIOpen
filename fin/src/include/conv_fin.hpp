@@ -691,6 +691,7 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfEval()
                     std::cerr << solver_name << " Finished Search WRW" << std::endl;
                     kern_objs = BuildJsonKernelList(h, solution.construction_params);
                     SolutionHasProgram(h, solution);
+                    // todo: proper handling of empty values
                     params = s.GetPerfCfgParams(ctx, db);
 
                     const auto invoker =

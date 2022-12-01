@@ -38,6 +38,7 @@
 
 #include <boost/optional.hpp>
 
+#include <optional>
 #include <unordered_map>
 
 namespace miopen {
@@ -81,6 +82,7 @@ struct Solution : miopenSolution
     void SetWorkspaceSize(std::size_t value) { workspace_required = value; }
     const solver::Id& GetSolver() const { return solver; }
     void SetSolver(solver::Id value) { solver = value; }
+    void SetPerfConfig(const std::optional<std::string>& cfg) { perf_cfg = cfg; }
     const Problem& GetProblem() const { return problem; }
     void SetProblem(Problem value) { problem = std::move(value); }
 
@@ -97,6 +99,7 @@ private:
     std::size_t workspace_required = 0;
     solver::Id solver;
     Problem problem;
+    std::optional<std::string> perf_cfg = std::nullopt;
 
     void RunImpl(Handle& handle,
                  const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
