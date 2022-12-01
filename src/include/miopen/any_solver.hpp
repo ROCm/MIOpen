@@ -268,19 +268,16 @@ struct AnySolver
             else if(!value.AltSolverDbId().empty() &&
                     db.Load(ctx.problem, value.AltSolverDbId(), config))
             {
-                MIOPEN_LOG_I(
-                    "PerformanceDb: alternate record loaded: " << value.AltSolverDbId());
+                MIOPEN_LOG_I("PerformanceDb: alternate record loaded: " << value.AltSolverDbId());
                 if(value.IsValidPerformanceConfig(ctx, config))
                 {
                     return config.ToString();
                 }
-                MIOPEN_LOG_I2(
-                    "PerformanceDb: Invalid alternate record: "
-                    << value.AltSolverDbId() << ": " << config);
+                MIOPEN_LOG_I2("PerformanceDb: Invalid alternate record: " << value.AltSolverDbId()
+                                                                          << ": " << config);
             }
 
-            MIOPEN_LOG_I2(
-                "PerformanceDb: Failed Loading, Using Default: " << value.SolverDbId());
+            MIOPEN_LOG_I2("PerformanceDb: Failed Loading, Using Default: " << value.SolverDbId());
             config = value.GetDefaultPerformanceConfig(ctx);
             return config.ToString();
         }

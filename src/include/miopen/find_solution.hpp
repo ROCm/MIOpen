@@ -134,12 +134,9 @@ auto FindSolutionImpl(rank<1>,
 }
 
 template <class Solver, class Context, class Db>
-auto FindSolutionImpl(rank<0>,
-                      Solver s,
-                      const Context& context,
-                      Db&,
-                      const AnyInvokeParams&,
-                      const std::string&) -> decltype(s.GetSolution(context))
+auto FindSolutionImpl(
+    rank<0>, Solver s, const Context& context, Db&, const AnyInvokeParams&, const std::string&)
+    -> decltype(s.GetSolution(context))
 {
     MIOPEN_LOG_I(s.SolverDbId() << " (not searchable)");
     return s.GetSolution(context);
