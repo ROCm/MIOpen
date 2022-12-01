@@ -692,7 +692,7 @@ int ConvFin<Tgpu, Tref>::MIOpenPerfEval()
                     kern_objs = BuildJsonKernelList(h, solution.construction_params);
                     SolutionHasProgram(h, solution);
                     // todo: proper handling of empty values
-                    params = s.GetPerfCfgParams(ctx, db).value_or("");
+                    params = s.GetPerfCfgParams(ctx, db);
 
                     const auto invoker =
                         h.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
