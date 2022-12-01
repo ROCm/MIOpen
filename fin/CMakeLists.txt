@@ -63,8 +63,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 ############################################################
-# require C++14
-add_compile_options(-std=c++14)
+# require C++17
+add_compile_options(-std=c++17)
 
 ############################################################
 # OPTION - MIOpen Backend
