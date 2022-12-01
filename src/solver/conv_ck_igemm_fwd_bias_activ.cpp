@@ -99,20 +99,13 @@ struct CKArgs
     std::vector<int> rPadding;
 };
 
-std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> GetInstances()
-{
-
-    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> op_ptrs;
-    ck::tensor_operation::device::instance::
-        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(op_ptrs);
-    return op_ptrs;
-}
-
 template <typename DataType>
 void PerformanceConfigConvCKIgemmFwdBiasActiv::Init(const ProblemDescription& problem)
 {
     const auto& args = CKArgs{problem};
-    const auto conv  = GetInstances();
+    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv;
+    ck::tensor_operation::device::instance::
+        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv);
     assert(!conv.empty());
     this->total_size = conv.size();
     for(const auto& it : conv)
@@ -146,8 +139,10 @@ template <typename DataType>
 bool PerformanceConfigConvCKIgemmFwdBiasActiv::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    const auto& args  = CKArgs{problem};
-    const auto conv   = GetInstances();
+    const auto& args = CKArgs{problem};
+    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv;
+    ck::tensor_operation::device::instance::
+        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv);
     auto argument_ptr = conv[this->index]->MakeArgumentPointer(nullptr,
                                                                nullptr,
                                                                nullptr,
@@ -171,7 +166,9 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::CheckIsSupportCKArgs(
 template <typename DataType>
 bool ConvCKIgemmFwdBiasActiv::CheckCKApplicability(const ProblemDescription& problem) const
 {
-    const auto conv = GetInstances();
+    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv;
+    ck::tensor_operation::device::instance::
+        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv);
     assert(!conv.empty());
     const auto& args = CKArgs{problem};
     for(const auto& it : conv)
@@ -206,11 +203,13 @@ void ConvCKIgemmFwdBiasActiv::RunCKSolution(
     const ProblemDescription& problem,
     const PerformanceConfigConvCKIgemmFwdBiasActiv& config) const
 {
-    const auto& args                  = CKArgs{problem};
-    const auto& conv_kernel_instances = GetInstances();
+    const auto& args = CKArgs{problem};
+    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv;
+    ck::tensor_operation::device::instance::
+        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv);
     // From the list of kernels provided by CK, config.index is the one that was
     // tuned by PerformanceConfigConvCKIgemmFwdBiasActiv.
-    auto& conv_ptr = conv_kernel_instances.at(config.index);
+    auto& conv_ptr = conv.at(config.index);
 
     const auto& invoke_ctx = primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
     const auto& wei_buf    = std::dynamic_pointer_cast<miopen::fusion::ConvolutionOpInvokeParam>(
@@ -288,7 +287,9 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::SetNextValue(const FusionContext&
     if((this->index + 1) < this->total_size)
     {
         ++this->index;
-        const auto conv = GetInstances();
+        std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv;
+        ck::tensor_operation::device::instance::
+            add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv);
         this->kernel_id = conv[this->index]->GetTypeString();
         return true;
     }
