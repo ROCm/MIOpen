@@ -260,29 +260,29 @@ struct AnySolver
             PerformanceConfig config{};
             if(db.Load(ctx.problem, value.SolverDbId(), config))
             {
-                MIOPEN_LOG_I2("Perf PerformanceDb: Record Loaded: " << value.SolverDbId());
+                MIOPEN_LOG_I2("PerformanceDb: Record Loaded: " << value.SolverDbId());
                 if(value.IsValidPerformanceConfig(ctx, config))
                 {
                     return config.ToString();
                 }
-                MIOPEN_LOG_I2("Perf PerformanceDb: Invalid Config: " << value.SolverDbId());
+                MIOPEN_LOG_I2("PerformanceDb: Invalid Config: " << value.SolverDbId());
             }
             else if(!value.AltSolverDbId().empty() &&
                     db.Load(ctx.problem, value.AltSolverDbId(), config))
             {
                 MIOPEN_LOG_I(
-                    "Perf PerformanceDb: alternate record loaded: " << value.AltSolverDbId());
+                    "PerformanceDb: alternate record loaded: " << value.AltSolverDbId());
                 if(value.IsValidPerformanceConfig(ctx, config))
                 {
                     return config.ToString();
                 }
                 MIOPEN_LOG_I2(
-                    "Perf PerformanceDb: Invalid alternate record from Perf PerformanceDb: "
+                    "PerformanceDb: Invalid alternate record: "
                     << value.AltSolverDbId() << ": " << config);
             }
 
             MIOPEN_LOG_I2(
-                "Perf PerformanceDb: Failed Loading, Using Default: " << value.SolverDbId());
+                "PerformanceDb: Failed Loading, Using Default: " << value.SolverDbId());
             config = value.GetDefaultPerformanceConfig(ctx);
             return config.ToString();
         }
@@ -291,7 +291,7 @@ struct AnySolver
                                                     const PerformanceDb& db,
                                                     std::false_type) const
         {
-            MIOPEN_LOG_I2("Perf PerformanceDb: No Config: " << value.SolverDbId());
+            MIOPEN_LOG_I2("PerformanceDb: No Config: " << value.SolverDbId());
             std::ignore = ctx;
             std::ignore = db;
             return std::nullopt;
