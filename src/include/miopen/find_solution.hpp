@@ -36,7 +36,6 @@
 #include <miopen/solver.hpp>
 
 #include <limits>
-#include <optional>
 #include <vector>
 
 namespace miopen {
@@ -51,7 +50,7 @@ auto FindSolutionImpl(rank<1>,
                       const Context& context,
                       Db& db,
                       const AnyInvokeParams& invoke_ctx,
-                      const std::optional<std::string>& perf_cfg)
+                      const std::string& perf_cfg)
     -> decltype(s.GetSolution(context, s.Search(context, invoke_ctx)))
 {
     const FindEnforce enforce;
@@ -99,9 +98,9 @@ auto FindSolutionImpl(rank<1>,
                               << s.AltSolverDbId() << ": " << config
                               << ". Performance may degrade.");
             }
-            else if(perf_cfg.has_value())
+            else if(!perf_cfg.empty())
             {
-                config.Deserialize(*perf_cfg);
+                config.Deserialize(perf_cfg);
                 if(s.IsValidPerformanceConfig(context, config))
                 {
                     return s.GetSolution(context, config);
@@ -140,7 +139,7 @@ auto FindSolutionImpl(rank<0>,
                       const Context& context,
                       Db&,
                       const AnyInvokeParams&,
-                      const std::optional<std::string>&) -> decltype(s.GetSolution(context))
+                      const std::string&) -> decltype(s.GetSolution(context))
 {
     MIOPEN_LOG_I(s.SolverDbId() << " (not searchable)");
     return s.GetSolution(context);
@@ -157,7 +156,7 @@ ConvSolution FindSolution(Solver s,
                           const Context& context,
                           Db& db,
                           const AnyInvokeParams& invoke_ctx,
-                          const std::optional<std::string>& perf_cfg = std::nullopt)
+                          const std::string& perf_cfg = "")
 {
     static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
     static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");

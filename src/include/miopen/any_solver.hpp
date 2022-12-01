@@ -85,13 +85,12 @@ struct AnySolver
     ConvSolution FindSolution(const ConvolutionContext& ctx,
                               PerformanceDb& db,
                               const miopen::AnyInvokeParams& invoke_ctx,
-                              const std::optional<std::string>& perf_cfg = std::nullopt) const
+                              const std::string& perf_cfg = "") const
     {
         assert(ptr_value != nullptr);
         return ptr_value->FindSolution(ctx, db, invoke_ctx, perf_cfg);
     };
-    std::optional<std::string> GetPerfCfgParams(const ConvolutionContext& ctx,
-                                                PerformanceDb& db) const
+    std::string GetPerfCfgParams(const ConvolutionContext& ctx, PerformanceDb& db) const
     {
         assert(ptr_value != nullptr);
         return ptr_value->GetPerfCfgParams(ctx, db);
@@ -132,12 +131,11 @@ struct AnySolver
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx,
                                           PerformanceDb& db,
                                           const miopen::AnyInvokeParams& invoke_ctx,
-                                          const std::optional<std::string>& perf_cfg) const    = 0;
-
-        virtual std::optional<std::string> GetPerfCfgParams(const ConvolutionContext& ctx,
-                                                            PerformanceDb& db) const = 0;
-        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const         = 0;
-        virtual bool MayNeedWorkspace() const                                        = 0;
+                                          const std::string& perf_cfg) const                   = 0;
+        virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx,
+                                             PerformanceDb& db) const                          = 0;
+        virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const                   = 0;
+        virtual bool MayNeedWorkspace() const                                                  = 0;
     };
 
     // templated derived class
@@ -248,12 +246,12 @@ struct AnySolver
         ConvSolution FindSolution(const ConvolutionContext& ctx,
                                   PerformanceDb& db,
                                   const miopen::AnyInvokeParams& invoke_ctx,
-                                  const std::optional<std::string>& perf_cfg) const override
+                                  const std::string& perf_cfg) const override
         {
             return miopen::solver::FindSolution(value, ctx, db, invoke_ctx, perf_cfg);
         };
 
-        std::optional<std::string>
+        std::string
         GetPerfCfgParams(const ConvolutionContext& ctx, PerformanceDb& db, std::true_type) const
         {
             using PerformanceConfig = decltype(value.GetDefaultPerformanceConfig(ctx));
@@ -287,18 +285,18 @@ struct AnySolver
             return config.ToString();
         }
 
-        std::optional<std::string> GetPerfCfgParams(const ConvolutionContext& ctx,
-                                                    const PerformanceDb& db,
-                                                    std::false_type) const
+        std::string GetPerfCfgParams(const ConvolutionContext& ctx,
+                                     const PerformanceDb& db,
+                                     std::false_type) const
         {
             MIOPEN_LOG_I2("PerformanceDb: No Config: " << value.SolverDbId());
             std::ignore = ctx;
             std::ignore = db;
-            return std::nullopt;
+            return "";
         }
 
-        std::optional<std::string> GetPerfCfgParams(const ConvolutionContext& ctx,
-                                                    PerformanceDb& db) const override
+        std::string GetPerfCfgParams(const ConvolutionContext& ctx,
+                                     PerformanceDb& db) const override
         {
             return GetPerfCfgParams(ctx, db, std::integral_constant<bool, TunableSolver::Is>());
         }
