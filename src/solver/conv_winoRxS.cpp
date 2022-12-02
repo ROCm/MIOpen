@@ -1088,6 +1088,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& par
                 }
                 return static_cast<float>(0.0);
             }();
+            auto zero_u64 = static_cast<uint64_t>(0);
             launch_kernel(N,
                           C,
                           H,
@@ -1099,7 +1100,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& par
                           bot_buf,
                           wei_buf,
                           top_buf,
-                          nullptr, // return_addr
+                          static_cast<void*>(nullptr), // return_addr
                           R,
                           S,
                           pad_H,
@@ -1107,7 +1108,28 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& par
                           out_H,
                           out_W,
                           bias_ptr,
-                          activ_alpha // leaky relu alpha
+                          activ_alpha, // leaky relu alpha
+                          zero,        // reserved2", Other, zero_int),
+                          zero_u64,    // d_offset", Other, zero_uint64),
+                          zero_u64,    // f_offset", Other, zero_uint64),
+                          zero_u64,    // o_offset", Other, zero_uint64),
+                          zero_u64,    // b_offset", Other, zero_uint64),
+                          zero,        // d_byte_stride_nk", InputTensorDesc, zero_int),
+                          zero,        // d_byte_stride_c", InputTensorDesc, zero_int),
+                          zero,        // d_byte_stride_h", InputTensorDesc, zero_int),
+                          zero,        // d_byte_stride_w", InputTensorDesc, zero_int),
+                          zero,        // f_byte_stride_nk", OpAttr, zero_int),
+                          zero,        // f_byte_stride_c", OpAttr, zero_int),
+                          zero,        // f_byte_stride_h", OpAttr, zero_int),
+                          zero,        // f_byte_stride_w", OpAttr, zero_int),
+                          zero,        // o_byte_stride_nk", OutputTensorDesc, zero_int),
+                          zero,        // o_byte_stride_c", OutputTensorDesc, zero_int),
+                          zero,        // o_byte_stride_h", OutputTensorDesc, zero_int),
+                          zero,        // o_byte_stride_w", OutputTensorDesc, zero_int),
+                          zero,        // group_count", OpAttr, zero_int),
+                          zero,        // d_byte_stride_g", Other, zero_int),
+                          zero,        // f_byte_stride_g", Other, zero_int),
+                          zero         // o_byte_stride_g", Other, zero_int),
             );
         };
     };
