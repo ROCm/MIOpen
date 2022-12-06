@@ -325,6 +325,8 @@ struct conv_forward : output_tensor_fixture
 
 int main()
 {
+    setenv("MIOPEN_LOG_LEVEL", "6", 1);
+
     run_test<input_tensor_fixture>();
     run_test<conv_filter_fixture>();
     run_test<output_tensor_fixture>();
