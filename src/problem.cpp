@@ -32,6 +32,8 @@
 #include <miopen/datatype.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/any_solver.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/search_options.hpp>
 #include <miopen/tensor_ops.hpp>
@@ -364,7 +366,13 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                : conv::Direction::Forward;
     })();
 
-    const auto netcfg = actual.AsConvolution().BuildConfKey();
+    const auto conv_problem = actual.AsConvolution();
+    const auto netcfg       = conv_problem.BuildConfKey();
+    auto conv_ctx           = ConvolutionContext{conv_problem, {&handle}};
+    conv_ctx.DetectRocm();
+    conv_ctx.SetupFloats();
+
+    decltype(auto) db = GetDb(conv_ctx);
 
     for(auto i = 0; i < found; ++i)
     {
@@ -375,8 +383,8 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         solution.SetTime(find1_solutions[i].time);
         solution.SetWorkspaceSize(find1_solutions[i].memory);
         solution.SetSolver(handle.GetFound1_0SolverId(netcfg, AlgorithmName{algo}).value());
+        solution.SetPerfConfig(solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx, db));
         solution.SetProblem(*this);
-
         MIOPEN_LOG_I("Found solvution: " << solution.GetSolver().ToString() << " , "
                                          << solution.GetWorkspaceSize() << ", "
                                          << solution.GetTime());

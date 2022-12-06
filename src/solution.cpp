@@ -163,9 +163,11 @@ void Solution::RunImpl(Handle& handle,
 
     auto conv_ctx = ConvolutionContext{conv_problem, {&handle}};
     conv_ctx.DetectRocm();
+    conv_ctx.SetupFloats();
 
-    decltype(auto) db        = GetDb(conv_ctx);
-    const auto conv_solution = GetSolver().GetSolver().FindSolution(conv_ctx, db, invoke_ctx);
+    decltype(auto) db = GetDb(conv_ctx);
+    const auto conv_solution =
+        GetSolver().GetSolver().FindSolution(conv_ctx, db, invoke_ctx, perf_cfg.value_or(""));
     decltype(auto) invoker =
         handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
@@ -211,6 +213,9 @@ void to_json(nlohmann::json& json, const Solution& solution)
         {"solver", solution.solver.ToString()},
         {"problem", solution.problem},
     };
+
+    if(solution.perf_cfg.has_value())
+        json["perf_cfg"] = *solution.perf_cfg;
 }
 
 void from_json(const nlohmann::json& json, Solution& solution)
@@ -232,5 +237,10 @@ void from_json(const nlohmann::json& json, Solution& solution)
     json.at("workspace").get_to(solution.workspace_required);
     solution.solver = json.at("solver").get<std::string>();
     json.at("problem").get_to(solution.problem);
+
+    const auto perf_cfg_json = json.find("perf_cfg");
+    solution.perf_cfg        = perf_cfg_json != json.end()
+                                   ? std::optional{perf_cfg_json->get<std::string>()}
+                                   : std::nullopt;
 }
 } // namespace miopen

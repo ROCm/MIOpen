@@ -175,8 +175,7 @@ namespace {
     }
 // clang-format on
 
-inline bool IsShaderContraintsMet(const ExecutionContext& ctx,
-                                  const ProblemDescription& problem,
+inline bool IsShaderContraintsMet(const ProblemDescription& problem,
                                   const int R,
                                   const int S,
                                   const int C,
@@ -196,31 +195,41 @@ inline bool IsShaderContraintsMet(const ExecutionContext& ctx,
         if(!(0 <= problem.GetBackwardPadH() && problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
-    const auto grid_workgroup_count_x = ctx.GetStream().GetMaxHardwareComputeUnits();
     if(!problem.IsLayoutDefault())
     {
         return false;
     }
 
+    uint64_t o_K_stride      = static_cast<uint64_t>(OH) * OW;
+    uint64_t o_N_stride      = o_K_stride * K;
+    uint64_t o_N_stride_OHOW = o_N_stride + o_K_stride;
+
+    uint64_t d_C_stride    = static_cast<uint64_t>(H) * W;
+    uint64_t d_N_stride    = d_C_stride * C;
+    uint64_t d_N_stride_HW = d_N_stride + d_C_stride;
+
+    auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
+    auto stride_one = problem.kernel_stride_h == 1 && problem.kernel_stride_w == 1 &&
+                      problem.kernel_dilation_h == 1 && problem.kernel_dilation_w == 1;
+
     // clang-format off
     // Check implementation limits.
     return N < std::pow(2, 16)
         && C < std::pow(2, 16)
-        && K < std::pow(2, 16)
         && H < std::pow(2, 16)
         && W < std::pow(2, 16)
+        && K < std::pow(2, 16)
+        && S < std::pow(2, 16)
+        && R < std::pow(2, 16)
         && OH < std::pow(2, 16)
         && OW < std::pow(2, 16)
         && problem.pad_w < std::pow(2, 16)
         && problem.pad_h < std::pow(2, 16)
-        && S < std::pow(2, 16)
-        && R < std::pow(2, 16)
-        && grid_workgroup_count_x < std::pow(2, 16)
-        && (C * H * W) <= std::pow(2, 28)
-        && (OH * OW) <= std::pow(2, 23)
-        && (K * OH * OW) <= std::pow(2, 28)
-        && (K * R * S) <= std::pow(2, 28)
-        && (C * R * S) <= std::pow(2, 28); // clang-format on
+        && C * R * S < std::pow(2, 22)
+        && K * R * S < std::pow(2, 28)
+        && ((o_N_stride_OHOW < std::pow(2, 29) && d_N_stride_HW < std::pow(2, 29))
+           || (stride_one && o_N_stride < std::pow(2, 30) && d_N_stride < std::pow(2, 30)
+           && (N == 1 || num_tiles % 16 == 0)));
 }
 
 } // namespace
@@ -504,8 +513,7 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
     {
         if(problem.kernel_stride_w == 2)
             return false;
-        return IsShaderContraintsMet(ctx,
-                                     problem,
+        return IsShaderContraintsMet(problem,
                                      problem.in_height,
                                      problem.in_width,
                                      problem.batch_sz,   // N
@@ -518,8 +526,7 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
     }
     else
     {
-        return IsShaderContraintsMet(ctx,
-                                     problem,
+        return IsShaderContraintsMet(problem,
                                      problem.kernel_size_h, // RxS
                                      problem.kernel_size_w,
                                      n_inputs_per_group,  // C
