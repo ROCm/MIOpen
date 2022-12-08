@@ -513,9 +513,13 @@ struct verify_forward_conv : conv_base<T, Tout>
         std::vector<char> ws;
         miopen::Allocator::ManageDataPtr ws_dev = nullptr;
 
-        const auto ctx = ExecutionContext{&handle}.DetectRocm();
-        const auto problem =
-            ConvProblemDescription{input.desc, weights.desc, rout.desc, filter, Direction::Forward};
+        const auto ctx     = ExecutionContext{&handle}.DetectRocm();
+        const auto problem = ConvProblemDescription{
+            input.desc,
+            weights.desc,
+            rout.desc,
+            filter,
+            filter.mode != miopenTranspose ? Direction::Forward : Direction::BackwardData};
 
         switch(api)
         {
@@ -997,7 +1001,11 @@ struct verify_backward_conv : conv_base<T>
 
         const auto ctx     = ExecutionContext{&handle}.DetectRocm();
         const auto problem = ConvProblemDescription{
-            out.desc, weights.desc, rinput.desc, filter, Direction::BackwardData};
+            out.desc,
+            weights.desc,
+            rinput.desc,
+            filter,
+            filter.mode != miopenTranspose ? Direction::BackwardData : Direction::Forward};
 
         switch(api)
         {
@@ -1359,9 +1367,13 @@ struct verify_backward_weights_conv : conv_base<T>
         bool fallback_path_taken = false;
         std::size_t count        = 0;
 
-        const auto ctx     = ExecutionContext{&handle}.DetectRocm();
-        const auto problem = ConvProblemDescription{
-            out.desc, rweights.desc, input.desc, filter, Direction::BackwardWeights};
+        const auto ctx = ExecutionContext{&handle}.DetectRocm();
+        const auto problem =
+            ConvProblemDescription{filter.mode != miopenTranspose ? out.desc : input.desc,
+                                   rweights.desc,
+                                   filter.mode != miopenTranspose ? input.desc : out.desc,
+                                   filter,
+                                   Direction::BackwardWeights};
 
         switch(api)
         {
@@ -2224,6 +2236,7 @@ struct conv_driver : test_driver
                 };
 
                 auto ctx = miopen::ExecutionContext{&get_handle()};
+                ctx.DetectRocm();
 
                 bool skip_forward = false;
 
@@ -2293,17 +2306,43 @@ struct conv_driver : test_driver
                 }
                 else
                 {
-                    const auto fwd_problem = ConvProblemDescription{
-                        input.desc, weights.desc, output.desc, filter, Direction::Forward};
-                    const auto bwd_problem = ConvProblemDescription{
-                        output.desc, weights.desc, input.desc, filter, Direction::BackwardData};
-                    const auto wrw_problem = ConvProblemDescription{
-                        output.desc, weights.desc, input.desc, filter, Direction::BackwardWeights};
+                    auto workspaces = std::array<std::size_t, 3>{};
 
-                    const auto workspaces =
-                        std::array<std::size_t, 3>{filter.GetWorkSpaceSize(ctx, fwd_problem),
-                                                   filter.GetWorkSpaceSize(ctx, bwd_problem),
-                                                   filter.GetWorkSpaceSize(ctx, wrw_problem)};
+                    // this problems are transposed
+                    {
+                        const auto fwd_problem = miopen::conv::ProblemDescription{
+                            input.desc,
+                            weights.desc,
+                            output.desc,
+                            filter,
+                            filter.mode != miopenTranspose ? Direction::Forward
+                                                           : Direction::BackwardData};
+
+                        workspaces[0] = filter.GetWorkSpaceSize(ctx, fwd_problem);
+                    }
+
+                    {
+                        const auto bwd_problem = miopen::conv::ProblemDescription{
+                            output.desc,
+                            weights.desc,
+                            input.desc,
+                            filter,
+                            filter.mode != miopenTranspose ? Direction::BackwardData
+                                                           : Direction::Forward};
+
+                        workspaces[1] = filter.GetWorkSpaceSize(ctx, bwd_problem);
+                    }
+
+                    {
+                        const auto wrw_problem = miopen::conv::ProblemDescription{
+                            filter.mode != miopenTranspose ? output.desc : input.desc,
+                            weights.desc,
+                            filter.mode != miopenTranspose ? input.desc : output.desc,
+                            filter,
+                            Direction::BackwardWeights};
+
+                        workspaces[2] = filter.GetWorkSpaceSize(ctx, wrw_problem);
+                    }
 
                     const auto workspace_size =
                         *std::max_element(workspaces.begin(), workspaces.end());
