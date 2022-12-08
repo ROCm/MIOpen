@@ -206,8 +206,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const AllocatedBuffers& buffers,
                                                  const ConvolutionDescriptor& conv_desc) const
 {
-    const auto& actual = conv_desc.mode == miopenTranspose ? MakeTransposed() : *this;
-    auto ret           = std::vector<Solution>{};
+    auto ret = std::vector<Solution>{};
 
     if(tensor_descriptors.size() != 3)
         MIOPEN_THROW(miopenStatusInvalidValue,
@@ -312,9 +311,8 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                : conv::Direction::Forward;
     })();
 
-    const auto conv_problem = actual.AsConvolution();
-    const auto netcfg       = conv_problem.BuildConfKey();
-    auto conv_ctx           = ConvolutionContext{conv_problem, {&handle}};
+    const auto netcfg = conv_problem.BuildConfKey();
+    auto conv_ctx     = ConvolutionContext{conv_problem, {&handle}};
     conv_ctx.DetectRocm();
     conv_ctx.SetupFloats();
 
