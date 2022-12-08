@@ -331,9 +331,9 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         solution.SetSolver(handle.GetFound1_0SolverId(netcfg, AlgorithmName{algo}).value());
         solution.SetPerfConfig(solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx, db));
         solution.SetProblem(*this);
-        MIOPEN_LOG_I("Found solvution: " << solution.GetSolver().ToString() << " , "
-                                         << solution.GetWorkspaceSize() << ", "
-                                         << solution.GetTime());
+        MIOPEN_LOG_I("Found solution: " << solution.GetSolver().ToString() << " , "
+                                        << solution.GetWorkspaceSize() << ", "
+                                        << solution.GetTime());
 
         ret.emplace_back(std::move(solution));
     }
