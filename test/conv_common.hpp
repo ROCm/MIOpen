@@ -2312,7 +2312,7 @@ struct conv_driver : test_driver
                         output.desc,
                         filter,
                         filter.mode != miopenTranspose ? Direction::Forward
-                                                        : Direction::BackwardData};
+                                                       : Direction::BackwardData};
 
                     const auto bwd_problem = miopen::conv::ProblemDescription{
                         output.desc,
@@ -2320,7 +2320,7 @@ struct conv_driver : test_driver
                         input.desc,
                         filter,
                         filter.mode != miopenTranspose ? Direction::BackwardData
-                                                        : Direction::Forward};
+                                                       : Direction::Forward};
 
                     const auto wrw_problem = miopen::conv::ProblemDescription{
                         filter.mode != miopenTranspose ? output.desc : input.desc,
