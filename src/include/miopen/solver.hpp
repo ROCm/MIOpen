@@ -5745,9 +5745,9 @@ struct PerformanceConfigHipImplicitGemmBwdXdlops
 {
     int index;
     std::string kernel_id;
-    int total_size;
+    std::vector<std::string> valid_kernels;
     PerformanceConfigHipImplicitGemmBwdXdlops(int idx, std::string kernl_id)
-        : index(idx), kernel_id(kernl_id), total_size(-1)
+        : index(idx), kernel_id(kernl_id)
     {
     }
     PerformanceConfigHipImplicitGemmBwdXdlops() : PerformanceConfigHipImplicitGemmBwdXdlops(0, "")

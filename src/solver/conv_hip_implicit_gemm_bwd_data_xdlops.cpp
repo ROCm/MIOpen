@@ -97,7 +97,6 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::Init(const ProblemDescription& p
     const auto args      = CKArgsBwd{problem};
     const auto conv_ptrs = DeviceOpBwdPtrs<DataType>::GetInstances();
     assert(!conv_ptrs.empty());
-    this->total_size = conv_ptrs.size();
     for(int i = 0; i < conv_ptrs.size(); i++)
     {
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
@@ -118,11 +117,12 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::Init(const ProblemDescription& p
                                                               {});
         if(conv_ptrs[i]->IsSupportedArgument(argument_ptr.get()))
         {
-            this->kernel_id = conv_ptrs[i]->GetTypeString();
-            break;
+            valid_kernels.push_back(conv_ptrs[i]->GetTypeString());
         }
-        ++this->index;
     }
+    assert(!valid_kernels.empty());
+    this->index     = 0;
+    this->kernel_id = valid_kernels[0];
 }
 
 template <typename DataType>
@@ -131,23 +131,35 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::CheckIsSupportCKArgs(
 {
     const auto args      = CKArgsBwd{problem};
     const auto conv_ptrs = DeviceOpBwdPtrs<DataType>::GetInstances();
-    auto argument_ptr    = conv_ptrs[this->index]->MakeArgumentPointer(nullptr,
-                                                                    nullptr,
-                                                                    nullptr,
-                                                                    args.N,
-                                                                    args.K,
-                                                                    args.C,
-                                                                    args.input,
-                                                                    args.filter,
-                                                                    args.output,
-                                                                    args.strides,
-                                                                    args.dilation,
-                                                                    args.lPadding,
-                                                                    args.rPadding,
-                                                                    {},
-                                                                    {},
-                                                                    {});
-    return conv_ptrs[this->index]->IsSupportedArgument(argument_ptr.get());
+    int i                = 0;
+    for(; i < conv_ptrs.size(); i++)
+    {
+        if(conv_ptrs[i]->GetTypeString() == this->kernel_id)
+        {
+            break;
+        }
+    }
+    if(i == valid_kernels.size())
+    {
+        return false;
+    }
+    auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
+                                                          nullptr,
+                                                          nullptr,
+                                                          args.N,
+                                                          args.K,
+                                                          args.C,
+                                                          args.input,
+                                                          args.filter,
+                                                          args.output,
+                                                          args.strides,
+                                                          args.dilation,
+                                                          args.lPadding,
+                                                          args.rPadding,
+                                                          {},
+                                                          {},
+                                                          {});
+    return conv_ptrs[i]->IsSupportedArgument(argument_ptr.get());
 }
 
 template <typename DataType>
@@ -191,10 +203,19 @@ void ConvHipImplicitGemmBwdXdlops::RunCKSolution(
 {
     const auto args      = CKArgsBwd{problem};
     const auto conv_ptrs = DeviceOpBwdPtrs<DataType>::GetInstances();
-    auto& conv_ptr       = conv_ptrs.at(config.index);
-    auto& data_ctx       = primitive_parameters.CastTo<conv::DataInvokeParams>();
-    const auto& tensors  = data_ctx.tensors;
-    auto argument_ptr    = conv_ptr->MakeArgumentPointer(
+    int i                = 0;
+    for(; i < conv_ptrs.size(); i++)
+    {
+        if(conv_ptrs[i]->GetTypeString() == config.kernel_id)
+        {
+            break;
+        }
+    }
+    assert(i != conv_ptrs.size());
+    auto& conv_ptr      = conv_ptrs.at(i);
+    auto& data_ctx      = primitive_parameters.CastTo<conv::DataInvokeParams>();
+    const auto& tensors = data_ctx.tensors;
+    auto argument_ptr   = conv_ptr->MakeArgumentPointer(
         static_cast<void*>(tensors.out),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.w)),
@@ -231,7 +252,6 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(const ProblemDescr
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
     std::ignore = problem;
 #else
-    this->index = 0;
     switch(problem.conv_problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
@@ -247,22 +267,26 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(const ProblemDescr
 
 bool PerformanceConfigHipImplicitGemmBwdXdlops::SetNextValue(const ProblemDescription& problem)
 {
-    if(total_size == -1)
+    if(valid_kernels.size() == 0)
     {
         this->HeuristicInit(problem);
-        assert(total_size != -1);
+        assert(!valid_kernels.empty());
         return true;
     }
-    else if((index + 1) < total_size)
+    if((index + 1) < valid_kernels.size())
     {
         ++index;
+        this->kernel_id = this->valid_kernels[index];
         return true;
     }
     else
         return false;
 }
 
-bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValidValue() const { return index < total_size; }
+bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValidValue() const
+{
+    return index < valid_kernels.size();
+}
 
 bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(const ProblemDescription& problem) const
 {
@@ -287,7 +311,7 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(const ProblemDescription
 bool PerformanceConfigHipImplicitGemmBwdXdlops::operator==(
     const PerformanceConfigHipImplicitGemmBwdXdlops& other) const
 {
-    return this->index == other.index && this->total_size == other.total_size;
+    return this->kernel_id == other.kernel_id;
 }
 
 PerformanceConfigHipImplicitGemmBwdXdlops
@@ -336,7 +360,7 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(const ConvolutionContext& ctx,
     if(!problem.IsLayoutNHWC())
         return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
-    if(arch != "gfx908" && arch != "gfx90a")
+    if(!(arch == "gfx908" || arch == "gfx90a"))
         return false;
     switch(problem.conv_problem.GetInDataType())
     {
