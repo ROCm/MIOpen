@@ -2306,43 +2306,34 @@ struct conv_driver : test_driver
                 }
                 else
                 {
-                    auto workspaces = std::array<std::size_t, 3>{};
+                    const auto fwd_problem = miopen::conv::ProblemDescription{
+                        input.desc,
+                        weights.desc,
+                        output.desc,
+                        filter,
+                        filter.mode != miopenTranspose ? Direction::Forward
+                                                        : Direction::BackwardData};
 
-                    // this problems are transposed
-                    {
-                        const auto fwd_problem = miopen::conv::ProblemDescription{
-                            input.desc,
-                            weights.desc,
-                            output.desc,
-                            filter,
-                            filter.mode != miopenTranspose ? Direction::Forward
-                                                           : Direction::BackwardData};
+                    const auto bwd_problem = miopen::conv::ProblemDescription{
+                        output.desc,
+                        weights.desc,
+                        input.desc,
+                        filter,
+                        filter.mode != miopenTranspose ? Direction::BackwardData
+                                                        : Direction::Forward};
 
-                        workspaces[0] = filter.GetWorkSpaceSize(ctx, fwd_problem);
-                    }
+                    const auto wrw_problem = miopen::conv::ProblemDescription{
+                        filter.mode != miopenTranspose ? output.desc : input.desc,
+                        weights.desc,
+                        filter.mode != miopenTranspose ? input.desc : output.desc,
+                        filter,
+                        Direction::BackwardWeights};
 
-                    {
-                        const auto bwd_problem = miopen::conv::ProblemDescription{
-                            output.desc,
-                            weights.desc,
-                            input.desc,
-                            filter,
-                            filter.mode != miopenTranspose ? Direction::BackwardData
-                                                           : Direction::Forward};
-
-                        workspaces[1] = filter.GetWorkSpaceSize(ctx, bwd_problem);
-                    }
-
-                    {
-                        const auto wrw_problem = miopen::conv::ProblemDescription{
-                            filter.mode != miopenTranspose ? output.desc : input.desc,
-                            weights.desc,
-                            filter.mode != miopenTranspose ? input.desc : output.desc,
-                            filter,
-                            Direction::BackwardWeights};
-
-                        workspaces[2] = filter.GetWorkSpaceSize(ctx, wrw_problem);
-                    }
+                    const auto workspaces = std::array<std::size_t, 3>{
+                        filter.GetWorkSpaceSize(ctx, fwd_problem),
+                        filter.GetWorkSpaceSize(ctx, bwd_problem),
+                        filter.GetWorkSpaceSize(ctx, wrw_problem),
+                    };
 
                     const auto workspace_size =
                         *std::max_element(workspaces.begin(), workspaces.end());
