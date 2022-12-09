@@ -113,7 +113,7 @@ def cmake_build(Map conf=[:]){
 def getDockerImageName(prefixpath)
 {
     def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
-    def image = "${env.MIOPEN_IMAGE_URL}"
+    def image = "${env.MIOPEN_IMAGE_URL}_mlir266ad"
     if(params.DOCKER_IMAGE_OVERRIDE != '')
     {
         echo "Overriding the base docker image with ${params.DOCKER_IMAGE_OVERRIDE}"
@@ -309,6 +309,9 @@ def buildDocker(install_prefix)
     catch(Exception ex)
     {
         echo "Unable to locate image: ${image_name}."
+        echo "Unable to locate image: ${image_name}. Building image now"
+        retimage = docker.build("${image_name}", dockerArgs + ' .')
+        retimage.push()
     }
 }
 
@@ -435,6 +438,12 @@ pipeline {
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
     }
     stages{
+        stage("build docker") {
+            agent{ label rocmnode("nogpu") }
+            steps{
+                buildDocker("/opt/rocm")
+            }
+        }
         stage("Static checks") {
             when {
                 expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU && params.DATATYPE_NA }
