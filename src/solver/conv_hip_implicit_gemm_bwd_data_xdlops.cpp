@@ -267,7 +267,7 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(const ProblemDescr
 
 bool PerformanceConfigHipImplicitGemmBwdXdlops::SetNextValue(const ProblemDescription& problem)
 {
-    if(valid_kernels.size() == 0)
+    if(valid_kernels.empty())
     {
         this->HeuristicInit(problem);
         assert(!valid_kernels.empty());
