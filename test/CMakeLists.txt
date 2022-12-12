@@ -1981,17 +1981,25 @@ add_custom_test(smoke_conv_solver_ConvAsmImplicitGemmGTCDynamicXdlops GFX900_DIS
       ${TEST_CONV_VERBOSE_F} --input 64 512 7 7 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_conv_solver_ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC_fp32_fp16 GFX900_DISABLED GFX906_DISABLED HALF_ENABLED SKIP_XNACK_ON
+add_custom_test(smoke_conv_solver_ConvAsmImplicitGemmGTCDynamic_FB_XdlopsNHWC_fp32_fp16 GFX900_DISABLED GFX906_DISABLED HALF_ENABLED SKIP_XNACK_ON
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
       ${TEST_CONV_VERBOSE_F} --input 64 256 7 7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
       --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
+      ${TEST_CONV_VERBOSE_B} --input 64 256 7 7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
+      --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_conv_solver_ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC_bf16 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED FLOAT_DISABLED BF16_ENABLED SKIP_XNACK_ON
+add_custom_test(smoke_conv_solver_ConvAsmImplicitGemmGTCDynamic_FB_XdlopsNHWC_bf16 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED FLOAT_DISABLED BF16_ENABLED SKIP_XNACK_ON
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
       ${TEST_CONV_VERBOSE_F} --input 64 256 7 7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
+      --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
+      ${TEST_CONV_VERBOSE_B} --input 64 256 7 7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
       --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
