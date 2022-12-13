@@ -2036,10 +2036,13 @@ add_custom_test(smoke_conv_solver_ConvHipImplicitGemmV4R1Fwd GFX103X_ENABLED HAL
       ${TEST_CONV_VERBOSE_F} --input 256 32 27 27 --weights 128 32 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_conv_solver_ConvHipImplicitGemmV4R4Fwd GFX103X_ENABLED TEST_TUNING
+add_custom_test(smoke_conv_solver_ConvHipImplicitGemmV4R4 GFX103X_ENABLED TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmV4R4Fwd $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
       ${TEST_CONV_VERBOSE_F} --input 2 16 28 28 --weights 32 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmV4R4WrW $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
+      ${TEST_CONV_VERBOSE_W} --input 8 128 14 14 --weights 32 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(smoke_conv_solver_ConvBinWinograd3x3U GFX90A_DISABLED SKIP_XNACK_ON
