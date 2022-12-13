@@ -192,7 +192,7 @@ ConvSolution ConvAsmImplicitGemmV4R1DynamicBwd::GetSolution(const ExecutionConte
      * grid dims is in unit of work item.
      * But for api like hipModuleLaunchKernel(), grid dim is in unit of block.
      */
-    kernel.g_wk.push_back(grid_size * block_size);
+    kernel.g_wk.push_back(static_cast<std::size_t>(grid_size) * block_size);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
     kernel.l_wk.clear();

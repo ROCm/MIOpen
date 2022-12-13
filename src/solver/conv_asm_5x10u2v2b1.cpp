@@ -124,8 +124,8 @@ ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ExecutionContext& ctx,
 
     // global-work = [align(out_w,64), (align(out_h,4)/4)*align(wei_c/2,8), batch_n]
     constr_params.g_wk.push_back(AlignUp(problem.in_width, 64));
-    constr_params.g_wk.push_back(AlignUp(problem.in_height, 4) / 4 *
-                                 AlignUp(problem.n_outputs / 2, 8));
+    constr_params.g_wk.push_back(
+        static_cast<size_t>(AlignUp(problem.in_height, 4) / 4 * AlignUp(problem.n_outputs / 2, 8)));
     constr_params.g_wk.push_back(problem.batch_sz);
 
     constr_params.kernel_file = "conv5x10u2v2b1.s";

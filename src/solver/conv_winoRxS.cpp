@@ -50,7 +50,7 @@
 // convolutions leads to performance drops. Let's enable ConvBinWinoRxS<2,3> for non-group
 // in order to quickly W/A the perf issue. When find-db fix is ready,
 // we will keep ConvBinWinoRxS<2,3> for group convolutions only.
-#define WORKAROUND_ISSUE_1681 1
+#define WORKAROUND_ISSUE_1681 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS)
@@ -79,6 +79,12 @@ static inline size_t Ceil(const size_t v, const size_t m)
 }
 
 static inline size_t RoundUpToMultiple(size_t val, size_t factor)
+{
+    return Ceil(val, factor) * factor;
+}
+
+// Let's avoid clang-tidy warnings without explicit casts.
+static inline size_t RoundUpToMultiple(size_t val, int factor)
 {
     return Ceil(val, factor) * factor;
 }
@@ -139,7 +145,7 @@ static inline int GetBestNGroupParam(const int R,
         size_t g_n_w_h_k =
             RoundUpToMultiple(g_n_w_h * g_k, nwh_factor * w_factor * h_factor * k_factor * i);
         size_t granulated_mac_count = g_n_w_h_k * g_c * g_s * g_r;
-        size_t n_groups_per_cu      = Ceil(i * G, n_groups);
+        size_t n_groups_per_cu      = Ceil(static_cast<size_t>(i) * G, n_groups);
         double perf_metric = static_cast<double>(n_groups_per_cu) * granulated_mac_count / i;
         if(static_cast<double>(granulated_mac_count) / i > 1.0e+7)
             perf_metric *= (1 + i * 0.003);
@@ -169,7 +175,8 @@ namespace {
     }
 // clang-format on
 
-inline bool IsShaderContraintsMet(const int R,
+inline bool IsShaderContraintsMet(const ProblemDescription& problem,
+                                  const int R,
                                   const int S,
                                   const int C,
                                   const int K,
@@ -177,45 +184,52 @@ inline bool IsShaderContraintsMet(const int R,
                                   const int W,
                                   const int OH,
                                   const int OW,
-                                  const int N,
-                                  const ConvolutionContext& params)
+                                  const int N)
 {
     // Padding for bwd data shall not be negative.
     /// \todo Either remove WrW related code or re-use function from RxS
-    if(params.problem.direction.IsBackwardData())
+    if(problem.direction.IsBackwardData())
     {
-        if(!(0 <= params.problem.GetBackwardPadW() &&
-             params.problem.GetBackwardPadW() < std::pow(2, 16)))
+        if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
             return false;
-        if(!(0 <= params.problem.GetBackwardPadH() &&
-             params.problem.GetBackwardPadH() < std::pow(2, 16)))
+        if(!(0 <= problem.GetBackwardPadH() && problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
-    const auto grid_workgroup_count_x = params.GetStream().GetMaxHardwareComputeUnits();
-    if(!params.problem.IsLayoutDefault())
+    if(!problem.IsLayoutDefault())
     {
         return false;
     }
+
+    uint64_t o_K_stride      = static_cast<uint64_t>(OH) * OW;
+    uint64_t o_N_stride      = o_K_stride * K;
+    uint64_t o_N_stride_OHOW = o_N_stride + o_K_stride;
+
+    uint64_t d_C_stride    = static_cast<uint64_t>(H) * W;
+    uint64_t d_N_stride    = d_C_stride * C;
+    uint64_t d_N_stride_HW = d_N_stride + d_C_stride;
+
+    auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
+    auto stride_one = problem.kernel_stride_h == 1 && problem.kernel_stride_w == 1 &&
+                      problem.kernel_dilation_h == 1 && problem.kernel_dilation_w == 1;
 
     // clang-format off
     // Check implementation limits.
     return N < std::pow(2, 16)
         && C < std::pow(2, 16)
-        && K < std::pow(2, 16)
         && H < std::pow(2, 16)
         && W < std::pow(2, 16)
-        && OH < std::pow(2, 16)
-        && OW < std::pow(2, 16)
-        && params.problem.pad_w < std::pow(2, 16)
-        && params.problem.pad_h < std::pow(2, 16)
+        && K < std::pow(2, 16)
         && S < std::pow(2, 16)
         && R < std::pow(2, 16)
-        && grid_workgroup_count_x < std::pow(2, 16)
-        && (C * H * W) <= std::pow(2, 28)
-        && (OH * OW) <= std::pow(2, 23)
-        && (K * OH * OW) <= std::pow(2, 28)
-        && (K * R * S) <= std::pow(2, 28)
-        && (C * R * S) <= std::pow(2, 28); // clang-format on
+        && OH < std::pow(2, 16)
+        && OW < std::pow(2, 16)
+        && problem.pad_w < std::pow(2, 16)
+        && problem.pad_h < std::pow(2, 16)
+        && C * R * S < std::pow(2, 22)
+        && K * R * S < std::pow(2, 28)
+        && ((o_N_stride_OHOW < std::pow(2, 29) && d_N_stride_HW < std::pow(2, 29))
+           || (stride_one && o_N_stride < std::pow(2, 30) && d_N_stride < std::pow(2, 30)
+           && (N == 1 || num_tiles % 16 == 0)));
 }
 
 } // namespace
@@ -226,59 +240,60 @@ PerformanceConfigConvBinWinogradRxS::PerformanceConfigConvBinWinogradRxS(int n_g
 }
 
 template <int Winodata, int Winofilter>
-void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvBinWinogradRxS::HeuristicInit(const ConvolutionContext& ctx,
+                                                        const ProblemDescription& problem)
 {
-    const auto n_inputs_per_group  = config.problem.n_inputs / config.problem.group_counts,
-               n_outputs_per_group = config.problem.n_outputs / config.problem.group_counts;
-    if(config.problem.group_counts == 1)
+    const auto n_inputs_per_group  = problem.n_inputs / problem.group_counts,
+               n_outputs_per_group = problem.n_outputs / problem.group_counts;
+    if(problem.group_counts == 1)
     {
-        n_groups = config.GetStream().GetMaxHardwareComputeUnits();
+        n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
         return;
     }
 
-    if(config.problem.direction.IsBackwardWrW())
+    if(problem.direction.IsBackwardWrW())
     {
-        n_groups = GetBestNGroupParam(config.problem.in_height,
-                                      config.problem.in_width,
-                                      config.problem.kernel_dilation_h,
-                                      config.problem.kernel_dilation_w,
-                                      config.problem.batch_sz, // N
-                                      n_inputs_per_group,      // K
-                                      config.problem.kernel_size_h,
-                                      config.problem.kernel_size_w,
-                                      config.problem.pad_w,
-                                      config.problem.pad_h,
+        n_groups = GetBestNGroupParam(problem.in_height,
+                                      problem.in_width,
+                                      problem.kernel_dilation_h,
+                                      problem.kernel_dilation_w,
+                                      problem.batch_sz,   // N
+                                      n_inputs_per_group, // K
+                                      problem.kernel_size_h,
+                                      problem.kernel_size_w,
+                                      problem.pad_w,
+                                      problem.pad_h,
                                       n_outputs_per_group, // C
-                                      config.problem.kernel_stride_h,
-                                      config.problem.kernel_stride_w,
-                                      config.GetStream().GetMaxHardwareComputeUnits(),
-                                      config.problem.group_counts,
+                                      problem.kernel_stride_h,
+                                      problem.kernel_stride_w,
+                                      ctx.GetStream().GetMaxHardwareComputeUnits(),
+                                      problem.group_counts,
                                       Winodata,
                                       Winofilter);
     }
     else
     {
-        n_groups = GetBestNGroupParam(config.problem.kernel_size_h, // RxS
-                                      config.problem.kernel_size_w,
-                                      config.problem.kernel_stride_h,
-                                      config.problem.kernel_stride_w,
-                                      n_inputs_per_group,        // C
-                                      n_outputs_per_group,       // K
-                                      config.problem.out_height, // OHxOW
-                                      config.problem.out_width,
-                                      config.problem.pad_w,
-                                      config.problem.pad_h,
-                                      config.problem.batch_sz, // N
-                                      config.problem.kernel_dilation_h,
-                                      config.problem.kernel_dilation_w,
-                                      config.GetStream().GetMaxHardwareComputeUnits(),
-                                      config.problem.group_counts,
+        n_groups = GetBestNGroupParam(problem.kernel_size_h, // RxS
+                                      problem.kernel_size_w,
+                                      problem.kernel_stride_h,
+                                      problem.kernel_stride_w,
+                                      n_inputs_per_group,  // C
+                                      n_outputs_per_group, // K
+                                      problem.out_height,  // OHxOW
+                                      problem.out_width,
+                                      problem.pad_w,
+                                      problem.pad_h,
+                                      problem.batch_sz, // N
+                                      problem.kernel_dilation_h,
+                                      problem.kernel_dilation_w,
+                                      ctx.GetStream().GetMaxHardwareComputeUnits(),
+                                      problem.group_counts,
                                       Winodata,
                                       Winofilter);
     }
 }
 
-bool PerformanceConfigConvBinWinogradRxS::SetNextValue(const ConvolutionContext& /*config*/)
+bool PerformanceConfigConvBinWinogradRxS::SetNextValue(const ConvolutionContext& /*ctx*/)
 {
     return !PerfFieldRules().Next(*this);
 }
@@ -288,9 +303,9 @@ bool PerformanceConfigConvBinWinogradRxS::IsValidValue() const
     return PerfFieldRules().IsIn(*this);
 }
 
-bool PerformanceConfigConvBinWinogradRxS::IsValid(const ConvolutionContext& config) const
+bool PerformanceConfigConvBinWinogradRxS::IsValid(const ConvolutionContext& ctx) const
 {
-    if(config.GetStream().GetMaxHardwareComputeUnits() < n_groups)
+    if(ctx.GetStream().GetMaxHardwareComputeUnits() < n_groups)
         return false;
 
     if(!IsValidValue())
@@ -307,27 +322,28 @@ bool PerformanceConfigConvBinWinogradRxS::operator==(
 template <int Winodata, int Winofilter>
 PerformanceConfigConvBinWinogradRxS
 ConvBinWinoRxS<Winodata, Winofilter>::GetDefaultPerformanceConfig(
-    const ConvolutionContext& params) const
+    const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceConfigConvBinWinogradRxS pp;
-    pp.HeuristicInit<Winodata, Winofilter>(params);
+    pp.HeuristicInit<Winodata, Winofilter>(ctx, problem);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
 
 template <int Winodata, int Winofilter>
 bool ConvBinWinoRxS<Winodata, Winofilter>::IsValidPerformanceConfig(
-    const ConvolutionContext& problem, const PerformanceConfigConvBinWinogradRxS& c) const
+    const ConvolutionContext& ctx, const PerformanceConfigConvBinWinogradRxS& config) const
 {
-    return c.IsValidValue() && c.IsValid(problem);
+    return config.IsValidValue() && config.IsValid(ctx);
 }
 
 template <int Winodata, int Winofilter>
 PerformanceConfigConvBinWinogradRxS
-ConvBinWinoRxS<Winodata, Winofilter>::Search(const ConvolutionContext& context,
+ConvBinWinoRxS<Winodata, Winofilter>::Search(const ConvolutionContext& ctx,
+                                             const ProblemDescription& problem,
                                              const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, context, invoke_ctx);
+    return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
 template <int Winodata, int Winofilter>
@@ -338,18 +354,18 @@ class ShaderModel : public UnifiedDescriptionConv2d
     const bool out_of_model_scope; // Shader model produces unreliable results.
 
 public:
-    ShaderModel(const ConvolutionContext& ctx)
-        : UnifiedDescriptionConv2d(ctx.problem),
-          DATATYPE_BITS(ctx.problem.IsFp16() ? 16 : 32),
+    ShaderModel(const ConvolutionContext& ctx, const ProblemDescription& problem)
+        : UnifiedDescriptionConv2d(problem),
+          DATATYPE_BITS(problem.IsFp16() ? 16 : 32),
           n_groups(ctx.GetStream()
                        .GetMaxHardwareComputeUnits()), /// \todo Take n_groups from PerfConfig.
-          out_of_model_scope(!(ctx.problem.group_counts == 1) || //
-                             !(U == 1) ||                        //
-                             !(V == 1) ||                        //
-                             !(input_stride_h == 1) ||           //
-                             !(input_stride_w == 1) ||           //
-                             !(filter_stride_h == 1) ||          //
-                             !(filter_stride_w == 1) ||          //
+          out_of_model_scope(!(problem.group_counts == 1) || //
+                             !(U == 1) ||                    //
+                             !(V == 1) ||                    //
+                             !(input_stride_h == 1) ||       //
+                             !(input_stride_w == 1) ||       //
+                             !(filter_stride_h == 1) ||      //
+                             !(filter_stride_w == 1) ||      //
 #if !WTI_MODEL_ALLOW_ANY_RS
                              !(R <= 5) || //
                              !(S <= 5) || //
@@ -438,7 +454,7 @@ public:
         if(GUI_predicted <= 0.1)
             return -1.0; // Unreliable, too small work to do for the shader.
 
-        const auto N_MACS_PER_CU_PER_CLOCK = 64 * 32 / DATATYPE_BITS;
+        const auto N_MACS_PER_CU_PER_CLOCK = static_cast<size_t>(64) * 32 / DATATYPE_BITS;
         const auto WTI_predicted           = direct_convolution_macs /
                                    static_cast<double>(N_MACS_PER_CU_PER_CLOCK) /
                                    static_cast<double>(n_groups) / GUI_predicted; // similar to BW
@@ -447,91 +463,92 @@ public:
 };
 
 template <int Winodata, int Winofilter>
-static float GetWtiBase(const ConvolutionContext& params)
+static float GetWtiBase(const ConvolutionContext& ctx, const ProblemDescription& problem)
 {
     constexpr auto WTI_UNKNOWN = -2.0;
-    const auto rv              = ShaderModel<Winodata, Winofilter>(params).ComputeWti();
+    const auto rv              = ShaderModel<Winodata, Winofilter>(ctx, problem).ComputeWti();
     return rv < 0 ? WTI_UNKNOWN : rv;
 }
 
-static bool IsApplicableBase(const ConvolutionContext& params)
+static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescription& problem)
 {
-    if(!params.problem.Is2d())
+    if(!problem.Is2d())
         return false;
-    if(!(params.problem.IsFp32() || params.problem.IsFp16()))
+    if(!(problem.IsFp32() || problem.IsFp16()))
         return false;
-    if(!params.use_asm_kernels)
+    if(!ctx.use_asm_kernels)
         return false;
-    if(!params.rmv.IsV3())
+    if(!ctx.rmv.IsV3())
         return false;
 
-    const auto target = params.GetStream().GetTargetProperties();
+    const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 
-    const auto name = params.GetStream().GetDeviceName();
+    const auto name = ctx.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10")))
         return false;
-    if(params.problem.IsFp16() &&
+    if(problem.IsFp16() &&
        !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
          StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") || StartsWith(name, "gfx103")))
         return false;
 
-    if(name == "gfx90a" && params.problem.conv_problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
 
     // clang-format off
-    if (!((params.problem.kernel_stride_w == 1 || params.problem.kernel_stride_w == 2)
-        && params.problem.kernel_stride_w == params.problem.kernel_stride_h
-        && params.problem.kernel_dilation_w == 1
-        && params.problem.kernel_dilation_h == 1
-        && params.problem.bias == 0
-        && params.problem.in_layout == "NCHW"))
+    if (!((problem.kernel_stride_w == 1 || problem.kernel_stride_w == 2)
+        && problem.kernel_stride_w == problem.kernel_stride_h
+        && problem.kernel_dilation_w == 1
+        && problem.kernel_dilation_h == 1
+        && problem.bias == 0
+        && problem.in_layout == "NCHW"))
         return false;
     // clang-format on
 
-    const auto n_inputs_per_group  = params.problem.n_inputs / params.problem.group_counts,
-               n_outputs_per_group = params.problem.n_outputs / params.problem.group_counts;
+    const auto n_inputs_per_group  = problem.n_inputs / problem.group_counts,
+               n_outputs_per_group = problem.n_outputs / problem.group_counts;
 
-    if(params.problem.direction.IsBackwardWrW())
+    if(problem.direction.IsBackwardWrW())
     {
-        if(params.problem.kernel_stride_w == 2)
+        if(problem.kernel_stride_w == 2)
             return false;
-        return IsShaderContraintsMet(params.problem.in_height,
-                                     params.problem.in_width,
-                                     params.problem.batch_sz, // N
-                                     n_inputs_per_group,      // K
-                                     params.problem.out_height,
-                                     params.problem.out_width,
-                                     params.problem.kernel_size_h,
-                                     params.problem.kernel_size_w,
-                                     n_outputs_per_group, // C
-                                     params);
+        return IsShaderContraintsMet(problem,
+                                     problem.in_height,
+                                     problem.in_width,
+                                     problem.batch_sz,   // N
+                                     n_inputs_per_group, // K
+                                     problem.out_height,
+                                     problem.out_width,
+                                     problem.kernel_size_h,
+                                     problem.kernel_size_w,
+                                     n_outputs_per_group); // C
     }
     else
     {
-        return IsShaderContraintsMet(params.problem.kernel_size_h, // RxS
-                                     params.problem.kernel_size_w,
-                                     n_inputs_per_group,       // C
-                                     n_outputs_per_group,      // K
-                                     params.problem.in_height, // HxW
-                                     params.problem.in_width,
-                                     params.problem.out_height, // OHxOW
-                                     params.problem.out_width,
-                                     params.problem.batch_sz, // N
-                                     params);
+        return IsShaderContraintsMet(problem,
+                                     problem.kernel_size_h, // RxS
+                                     problem.kernel_size_w,
+                                     n_inputs_per_group,  // C
+                                     n_outputs_per_group, // K
+                                     problem.in_height,   // HxW
+                                     problem.in_width,
+                                     problem.out_height, // OHxOW
+                                     problem.out_width,
+                                     problem.batch_sz); // N
     }
 }
 
 template <int Winodata, int Winofilter>
-bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& params) const
+bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext& ctx,
+                                                        const ProblemDescription& problem) const
 {
     if(IS2X3)
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3{}))
             return false;
 #if !WORKAROUND_ISSUE_1681
-        if(params.problem.group_counts == 1 && !params.problem.direction.IsBackwardWrW())
+        if(problem.group_counts == 1 && !problem.direction.IsBackwardWrW())
             return false;
 #endif
     }
@@ -539,15 +556,15 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
             return false;
-        if(params.problem.kernel_stride_w == 2) // f3x2 stride 2 not implemented yet
+        if(problem.kernel_stride_w == 2) // f3x2 stride 2 not implemented yet
             return false;
     }
-    return IsApplicableBase(params);
+    return IsApplicableBase(ctx, problem);
 }
 
 template <int Winodata, int Winofilter>
 static inline boost::optional<PerformanceConfigConvBinWinogradRxS>
-GetPerfConfFromEnv(const ConvolutionContext& params)
+GetPerfConfFromEnv(const ConvolutionContext& ctx)
 {
     PerformanceConfigConvBinWinogradRxS fromEnv;
     std::string s;
@@ -570,7 +587,7 @@ GetPerfConfFromEnv(const ConvolutionContext& params)
 
     s = std::string(p_asciz);
 
-    if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
+    if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(ctx))
     {
         MIOPEN_LOG_E(env_name << "Tuning config: Bad value or invalid format: `" << s << '\'');
         return boost::none;
@@ -583,16 +600,18 @@ GetPerfConfFromEnv(const ConvolutionContext& params)
 
 template <int Winodata, int Winofilter>
 ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
-    const ConvolutionContext& params, const PerformanceConfigConvBinWinogradRxS& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription& problem,
+    const PerformanceConfigConvBinWinogradRxS& config) const
 {
     const auto n_groups = config.n_groups;
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static bool IsWarned;
     if(!IsWarned)
     {
-        if(params.GetStream().GetMaxHardwareComputeUnits() > MAX_CU_LIMIT)
+        if(ctx.GetStream().GetMaxHardwareComputeUnits() > MAX_CU_LIMIT)
             MIOPEN_LOG_WE(SolverDbId()
-                          << ": GPU has " << params.GetStream().GetMaxHardwareComputeUnits()
+                          << ": GPU has " << ctx.GetStream().GetMaxHardwareComputeUnits()
                           << "CUs, but this solver supports max " << MAX_CU_LIMIT
                           << "and thus may show sub-optimal performance.");
         IsWarned = true;
@@ -602,19 +621,19 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
 
     const PerformanceConfigConvBinWinogradRxS* pcfg = &config;
 
-    const auto fromEnv = GetPerfConfFromEnv<Winodata, Winofilter>(params);
+    const auto fromEnv = GetPerfConfFromEnv<Winodata, Winofilter>(ctx);
     if(fromEnv)
     {
         pcfg = &(*fromEnv);
     }
 
-    const auto name    = params.GetStream().GetDeviceName();
+    const auto name    = ctx.GetStream().GetDeviceName();
     const auto is_gfx9 = StartsWith(name, "gfx9");
     size_t wg_size     = is_gfx9 ? 512 : 256;
 
     KernelInfo kernel;
 
-    kernel.g_wk.push_back(wg_size * pcfg->GetNGroups() * params.problem.group_counts);
+    kernel.g_wk.push_back(wg_size * pcfg->GetNGroups() * problem.group_counts);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
 
@@ -643,13 +662,13 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
 
     if(IS2X3)
     {
-        kernel_postfix = params.problem.IsFp32() ? "_fp32" : "_fp16_dot2_edc";
+        kernel_postfix = problem.IsFp32() ? "_fp32" : "_fp16_dot2_edc";
 
-        if(params.problem.kernel_stride_w == 1)
+        if(problem.kernel_stride_w == 1)
         {
             kernel_postfix += "_stride1";
         }
-        else if(params.problem.kernel_stride_w == 2 && !params.problem.direction.IsBackwardData())
+        else if(problem.kernel_stride_w == 2 && !problem.direction.IsBackwardData())
         {
             kernel_postfix += "_stride2";
         }
@@ -657,14 +676,14 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
         {
             kernel_postfix += "_dilation2";
         }
-        if(params.problem.group_counts != 1 || params.problem.direction.IsBackwardWrW())
+        if(problem.group_counts != 1 || problem.direction.IsBackwardWrW())
         {
             kernel_postfix += "_group";
         }
     }
     else if(IS3X2)
     {
-        kernel_postfix = params.problem.IsFp32() ? "_f3x2_fp32" : "_f3x2_fp16_dot2_edc";
+        kernel_postfix = problem.IsFp32() ? "_f3x2_fp32" : "_f3x2_fp16_dot2_edc";
         kernel_postfix += "_stride1"; // f3x2 stride 2 is not implemented yet
         kernel_postfix += "_group";
     }
@@ -674,9 +693,9 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
 
     result.construction_params.push_back(kernel);
 
-    if(!params.problem.direction.IsBackwardWrW())
+    if(!problem.direction.IsBackwardWrW())
     {
-        const bool is_forward     = params.problem.direction.IsForward();
+        const bool is_forward     = problem.direction.IsForward();
         constexpr int F_REVERSE_R = 1 << 0;
         constexpr int F_REVERSE_S = 1 << 1;
         constexpr int F_FLIP_K_C  = 1 << 2;
@@ -698,42 +717,30 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
         int ignore;
 
         int N, C, H, W, K, out_H, out_W, R, S, pad_H, pad_W;
-        GetCompiledInParameters(params,
-                                params.problem,
-                                &N,
-                                &C,
-                                &H,
-                                &W,
-                                &K,
-                                &ignore,
-                                &out_H,
-                                &out_W,
-                                &R,
-                                &S,
-                                &pad_H,
-                                &pad_W);
-        const auto group_cnt = params.problem.group_counts;
+        GetCompiledInParameters(
+            ctx, problem, &N, &C, &H, &W, &K, &ignore, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+        const auto group_cnt = problem.group_counts;
         C                    = C / group_cnt;
         K                    = K / group_cnt;
         int flags            = is_forward ? 0 : F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
         flags |= L_F_NKC_STRIDES + L_F_GROUP_STRIDES;
 
         // cppcheck-suppress unreadVariable
-        BuffInfo d_buf(GetGroupConvLayout(GetMemLayout_t(params.problem.in_layout), true),
+        BuffInfo d_buf(GetGroupConvLayout(GetMemLayout_t(problem.in_layout), true),
                        N,
                        C,
                        H,
                        W,
                        group_cnt,
-                       GetTypeSize(params.problem.in_data_type)),
+                       GetTypeSize(problem.in_data_type)),
             // cppcheck-suppress unreadVariable
-            o_buf(GetGroupConvLayout(GetMemLayout_t(params.problem.out_layout), true),
+            o_buf(GetGroupConvLayout(GetMemLayout_t(problem.out_layout), true),
                   N,
                   K,
                   out_H,
                   out_W,
                   group_cnt,
-                  GetTypeSize(params.problem.out_data_type)),
+                  GetTypeSize(problem.out_data_type)),
             // cppcheck-suppress unreadVariable
             f_buf(GetGroupConvLayout(is_forward ? (MemLayout_t::NCHW)
                                                 : GetSwappedNCLayout(MemLayout_t::NCHW),
@@ -743,7 +750,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                   R,
                   S,
                   group_cnt,
-                  GetTypeSize(params.problem.weights_data_type));
+                  GetTypeSize(problem.weights_data_type));
 
         result.invoker_factory = [=](std::vector<Kernel> kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -812,55 +819,42 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     {
         int unused = 0;
         int N, C, H, W, K, out_H, out_W, R, S;
-        GetCompiledInParameters(params,
-                                params.problem,
-                                &C,
-                                &K,
-                                &R,
-                                &S,
-                                &N,
-                                &unused,
-                                &H,
-                                &W,
-                                &out_H,
-                                &out_W,
-                                &unused,
-                                &unused);
-        const auto group_cnt             = params.problem.group_counts;
+        GetCompiledInParameters(
+            ctx, problem, &C, &K, &R, &S, &N, &unused, &H, &W, &out_H, &out_W, &unused, &unused);
+        const auto group_cnt             = problem.group_counts;
         static const int F_NKC_STRIDES   = 1 << 9;
         static const int F_GROUP_STRIDES = 1 << 10;
         int flags                        = F_NKC_STRIDES + F_GROUP_STRIDES;
         N                                = N / group_cnt;
         K                                = K / group_cnt;
-        int pad_H                        = params.problem.conv_problem.GetConv().GetConvPads()[0];
-        int pad_W                        = params.problem.conv_problem.GetConv().GetConvPads()[1];
+        int pad_H                        = problem.conv_problem.GetConv().GetConvPads()[0];
+        int pad_W                        = problem.conv_problem.GetConv().GetConvPads()[1];
 
         BuffInfo d_buf(
-            GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.problem.in_layout)), true),
+            GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.in_layout)), true),
             N,
             C,
             H,
             W,
             group_cnt,
-            GetTypeSize(params.problem.in_data_type)),
-            o_buf(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(params.problem.out_layout)),
-                                     false),
+            GetTypeSize(problem.in_data_type)),
+            o_buf(GetGroupConvLayout(GetSwappedNCLayout(GetMemLayout_t(problem.out_layout)), false),
                   N,
                   K,
                   out_H,
                   out_W,
                   group_cnt,
-                  GetTypeSize(params.problem.out_data_type)),
+                  GetTypeSize(problem.out_data_type)),
             f_buf(GetGroupConvLayout(GetSwappedNCLayout(MemLayout_t::NCHW), true),
                   K,
                   C,
                   R,
                   S,
                   group_cnt,
-                  GetTypeSize(params.problem.weights_data_type));
+                  GetTypeSize(problem.weights_data_type));
 
-        decltype(auto) batch_sz = params.problem.batch_sz;
-        decltype(auto) n_inputs = params.problem.n_inputs;
+        decltype(auto) batch_sz = problem.batch_sz;
+        decltype(auto) n_inputs = problem.n_inputs;
 
         result.invoker_factory = [=](std::vector<Kernel> kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -933,26 +927,25 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     return result;
 }
 
-bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& params) const
+bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& ctx,
+                                            const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
-#if !WORKAROUND_ISSUE_1681
-    if(params.problem.direction.IsBackwardWrW())
-        return false;
-#endif
-    return IsApplicableBase(params) && params.problem.group_counts == 1;
+    return IsApplicableBase(ctx, problem) && problem.group_counts == 1;
 }
 
-float ConvBinWinogradRxSf2x3g1::GetWti(const ConvolutionContext& params) const
+float ConvBinWinogradRxSf2x3g1::GetWti(const ConvolutionContext& ctx,
+                                       const ProblemDescription& problem) const
 {
-    return GetWtiBase<2, 3>(params);
+    return GetWtiBase<2, 3>(ctx, problem);
 }
 
-ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& params) const
+ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ConvolutionContext& ctx,
+                                                   const ProblemDescription& problem) const
 {
     const auto tunable = ConvBinWinoRxS<2, 3>{};
-    return tunable.GetSolution(params, tunable.GetDefaultPerformanceConfig(params));
+    return tunable.GetSolution(ctx, problem, tunable.GetDefaultPerformanceConfig(ctx, problem));
 }
 
 bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const ConvolutionContext&) const
@@ -960,13 +953,13 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const ConvolutionContext&) cons
     return true; // Actual checks moved to FusionMDGraph.
 }
 
-ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const ConvolutionContext& params) const
+ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const ConvolutionContext& ctx) const
 {
     ConvSolution result;
     KernelInfo kernel;
 
-    const auto n_groups = params.GetStream().GetMaxHardwareComputeUnits();
-    const auto name     = params.GetStream().GetDeviceName();
+    const auto n_groups = ctx.GetStream().GetMaxHardwareComputeUnits();
+    const auto name     = ctx.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
     size_t wg_size      = is_gfx9 ? 512 : 256;
     kernel.g_wk.push_back(wg_size * n_groups);
