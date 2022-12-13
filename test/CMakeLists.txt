@@ -2064,6 +2064,18 @@ add_custom_test(smoke_conv_solver_ConvHipImplicitGemmV4R4 GFX103X_ENABLED TEST_T
       ${TEST_CONV_VERBOSE_W} --input 8 128 14 14 --weights 32 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
+# WORKAROUND_ISSUE_1206 disables this solver for FP32 due to precision issues.
+# WORKAROUND_SWDEV_329642 disables this solver on MI200 for BF16.
+# However we still want to check that these cases are not broken and therefore use
+# MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS=1 to enable the solver.
+add_custom_test(smoke_conv_solver_ConvHipImplicitGemmBwdDataV4R1Xdlops GFX900_DISABLED GFX906_DISABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+      MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS=1
+      MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV4R1Xdlops $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
+      ${TEST_CONV_VERBOSE_B} --input 1 160 28 28 --weights 128 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
 add_custom_test(smoke_conv_solver_ConvBinWinograd3x3U GFX90A_DISABLED SKIP_XNACK_ON
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinograd3x3U $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
       ${TEST_CONV_VERBOSE_F} --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
