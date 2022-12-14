@@ -2106,6 +2106,15 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm GF
       ${TEST_CONV_VERBOSE_F} --input 16 1 7 7 --weights 1 1 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
+# Note: "--output_type" is used only with "--int8", ignored otherwise.
+add_custom_test(smoke_solver_ConvHipImplicitGemmFwdXdlops OCL_DISABLED GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED HALF_ENABLED INT8_ENABLED
+    SKIP_UNLESS_COMPOSABLEKERNEL TEST_TUNING
+    COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmFwdXdlops $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
+      ${TEST_CONV_VERBOSE_F} --input 128 64 56 56 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1
+      --output_type int8 --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
 add_custom_test(smoke_solver_ConvBinWinograd3x3U GFX90A_DISABLED SKIP_XNACK_ON
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinograd3x3U $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
       ${TEST_CONV_VERBOSE_F} --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
