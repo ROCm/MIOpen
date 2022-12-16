@@ -113,7 +113,7 @@ def cmake_build(Map conf=[:]){
 def getDockerImageName(prefixpath)
 {
     def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
-    def image = "${env.MIOPEN_IMAGE_URL}_mlir266ad"
+    def image = "${env.MIOPEN_IMAGE_URL}_mlir_branch_rocm5.5"
     if(params.DOCKER_IMAGE_OVERRIDE != '')
     {
         echo "Overriding the base docker image with ${params.DOCKER_IMAGE_OVERRIDE}"
