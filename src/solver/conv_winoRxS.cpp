@@ -546,10 +546,6 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
             return false;
-#if !WORKAROUND_ISSUE_1681
-        if(problem.group_counts == 1 && !problem.direction.IsBackwardWrW())
-            return false;
-#endif
     }
     return IsApplicableBase(ctx, problem);
 }
