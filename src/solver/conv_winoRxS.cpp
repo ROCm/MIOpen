@@ -195,22 +195,11 @@ inline bool IsShaderContraintsMet(const ProblemDescription& problem,
         if(!(0 <= problem.GetBackwardPadH() && problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
+
     if(!problem.IsLayoutDefault())
     {
         return false;
     }
-
-    uint64_t o_K_stride      = static_cast<uint64_t>(OH) * OW;
-    uint64_t o_N_stride      = o_K_stride * K;
-    uint64_t o_N_stride_OHOW = o_N_stride + o_K_stride;
-
-    uint64_t d_C_stride    = static_cast<uint64_t>(H) * W;
-    uint64_t d_N_stride    = d_C_stride * C;
-    uint64_t d_N_stride_HW = d_N_stride + d_C_stride;
-
-    auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
-    auto stride_one = problem.kernel_stride_h == 1 && problem.kernel_stride_w == 1 &&
-                      problem.kernel_dilation_h == 1 && problem.kernel_dilation_w == 1;
 
     // clang-format off
     // Check implementation limits.
@@ -225,11 +214,12 @@ inline bool IsShaderContraintsMet(const ProblemDescription& problem,
         && OW < std::pow(2, 16)
         && problem.pad_w < std::pow(2, 16)
         && problem.pad_h < std::pow(2, 16)
-        && C * R * S < std::pow(2, 22)
+        && H * W < std::pow(2, 29)
         && K * R * S < std::pow(2, 28)
-        && ((o_N_stride_OHOW < std::pow(2, 29) && d_N_stride_HW < std::pow(2, 29))
-           || (stride_one && o_N_stride < std::pow(2, 30) && d_N_stride < std::pow(2, 30)
-           && (N == 1 || num_tiles % 16 == 0)));
+        && (C + 1) * H * W < std::pow(2, 30)
+        && (C + 1) * R * S < std::pow(2, 22)
+        && (K + 1) * OH * OW < std::pow(2, 30);
+    // clang-format on
 }
 
 } // namespace
@@ -556,8 +546,10 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
             return false;
-        if(problem.kernel_stride_w == 2) // f3x2 stride 2 not implemented yet
+#if !WORKAROUND_ISSUE_1681
+        if(problem.group_counts == 1 && !problem.direction.IsBackwardWrW())
             return false;
+#endif
     }
     return IsApplicableBase(ctx, problem);
 }
