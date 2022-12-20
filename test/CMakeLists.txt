@@ -1904,6 +1904,8 @@ add_custom_test(smoke_solver_ConvOcl_SET01 GFX103X_ENABLED HALF_ENABLED BF16_ENA
 #   message output to the log, which happens if something is broken in the tuning machinery.
 # * Use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time.
 
+set(TEST_CONV_TUNING_5 MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5)
+
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
 add_custom_test(smoke_solver_ConvAsm1x1U HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
@@ -2185,7 +2187,7 @@ add_custom_test(smoke_solver_ConvBinWinogradRxSf3x2 GFX900_DISABLED GFX103X_ENAB
 # WORKAROUND_SWDEV_257202 disables these solvers due to SSD convergence issues.
 # However we still want to check that solver is not broken and therefore use
 # MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_FnX3=1.
-add_custom_test(smoke_solver_ConvMPBidirectWinograd GFX90A_DISABLED HALF_ENABLED SKIP_XNACK_ON OCL_DISABLED
+add_custom_test(smoke_solver_ConvMPBidirectWinograd OCL_DISABLED GFX90A_DISABLED HALF_ENABLED SKIP_XNACK_ON
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3=1
       MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd<2-3>' $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_FB} --input 8 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -2201,6 +2203,33 @@ add_custom_test(smoke_solver_ConvMPBidirectWinograd GFX90A_DISABLED HALF_ENABLED
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3=1
       MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd<6-3>' $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_FB} --input 8 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+# GFX90A_DISABLED is due to WORKAROUND_ISSUE_1146.
+# WORKAROUND_SWDEV_257202 disables these solvers due to SSD convergence issues.
+# However we still want to check that solver is not broken and therefore use
+# MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_FnX3=1.
+add_custom_test(smoke_solver_ConvMPBidirectWinograd_xdlops OCL_DISABLED GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
+    COMMAND ${TEST_CONV_TUNING_5} MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd_xdlops<2-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 16 128 16 16 --weights 128 128 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${TEST_CONV_TUNING_5} MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd_xdlops<3-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 16 128 16 16 --weights 128 128 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${TEST_CONV_TUNING_5} MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd_xdlops<4-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 16 128 16 16 --weights 128 128 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${TEST_CONV_TUNING_5} MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd_xdlops<5-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 16 128 16 16 --weights 128 128 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${TEST_CONV_TUNING_5} MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd_xdlops<6-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 16 128 16 16 --weights 128 128 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(smoke_solver_ConvMlirIgemm GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED HALF_ENABLED SKIP_UNLESS_MLIR TEST_TUNING
