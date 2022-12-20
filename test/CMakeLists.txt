@@ -711,6 +711,9 @@ set(IMPLICITGEMM_MLIR_ENV_W ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY
 set(TEST_CONV_VERBOSE_F ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data --disable-backward-weights)
 set(TEST_CONV_VERBOSE_B ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-weights)
 set(TEST_CONV_VERBOSE_W ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-data)
+set(TEST_CONV_VERBOSE_FB ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-weights)
+set(TEST_CONV_VERBOSE_FW ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data)
+set(TEST_CONV_VERBOSE_BW ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward)
 
 add_custom_test(test_pooling2d_asymmetric SKIP_UNLESS_ALL HALF_ENABLED GFX103X_ENABLED
     COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 1 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -2176,6 +2179,28 @@ add_custom_test(smoke_solver_ConvBinWinogradRxSf3x2 GFX900_DISABLED GFX103X_ENAB
       MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinogradRxSf3x2 $<TARGET_FILE:test_conv2d>
       --input 1 40 20 20 --weights 20 40 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+# GFX90A_DISABLED is due to WORKAROUND_ISSUE_1146.
+# WORKAROUND_SWDEV_257202 disables these solvers due to SSD convergence issues.
+# However we still want to check that solver is not broken and therefore use
+# MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_FnX3=1.
+add_custom_test(smoke_solver_ConvMPBidirectWinograd GFX90A_DISABLED HALF_ENABLED SKIP_XNACK_ON OCL_DISABLED
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd<2-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 8 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd<3-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 8 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd<4-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 8 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd<5-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 8 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3=1
+      MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvMPBidirectWinograd<6-3>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_FB} --input 8 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(smoke_solver_ConvMlirIgemm GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED HALF_ENABLED SKIP_UNLESS_MLIR TEST_TUNING
