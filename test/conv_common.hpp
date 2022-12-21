@@ -302,6 +302,8 @@ struct conv_base
     conv_stats* stats{}; // Denotes an object after object construction (never nullptr).
     bool preallocate;
 
+    conv_base(bool preallocate_) : preallocate(preallocate_) {}
+
     void fail(float = 0) const
     {
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
@@ -404,7 +406,6 @@ struct verify_forward_conv : conv_base<T, Tout>
     using conv_base<T, Tout>::bias;
     using conv_base<T, Tout>::search;
     using conv_base<T, Tout>::stats;
-    using conv_base<T, Tout>::preallocate;
 
     using conv_base<T, Tout>::RunFind2_0;
     using conv_base<T, Tout>::MakeConvProblem;
@@ -420,16 +421,16 @@ struct verify_forward_conv : conv_base<T, Tout>
                         int pbias,
                         int psearch,
                         bool pvect)
+        : conv_base(preallocate_)
     {
-        input       = pinput;
-        weights     = pweights;
-        out         = pout;
-        filter      = pfilter;
-        bias        = pbias;
-        search      = psearch;
-        is_vect     = pvect;
-        stats       = &pstats;
-        preallocate = preallocate_;
+        input   = pinput;
+        weights = pweights;
+        out     = pout;
+        filter  = pfilter;
+        bias    = pbias;
+        search  = psearch;
+        is_vect = pvect;
+        stats   = &pstats;
     }
 
     tensor<Tout> cpu() const
@@ -967,7 +968,6 @@ struct verify_backward_conv : conv_base<T>
     using conv_base<T>::bias;
     using conv_base<T>::search;
     using conv_base<T>::stats;
-    using conv_base<T>::preallocate;
 
     using conv_base<T>::RunFind2_0;
     using conv_base<T>::MakeConvProblem;
@@ -980,15 +980,15 @@ struct verify_backward_conv : conv_base<T>
                          bool preallocate_,
                          int pbias,
                          int psearch)
+        : conv_base(preallocate_)
     {
-        input       = pinput;
-        weights     = pweights;
-        out         = pout;
-        filter      = pfilter;
-        bias        = pbias;
-        search      = psearch;
-        stats       = &pstats;
-        preallocate = preallocate_;
+        input   = pinput;
+        weights = pweights;
+        out     = pout;
+        filter  = pfilter;
+        bias    = pbias;
+        search  = psearch;
+        stats   = &pstats;
     }
 
     tensor<T> cpu() const
@@ -1371,7 +1371,6 @@ struct verify_backward_weights_conv : conv_base<T>
     using conv_base<T>::bias;
     using conv_base<T>::search;
     using conv_base<T>::stats;
-    using conv_base<T>::preallocate;
 
     using conv_base<T>::RunFind2_0;
     using conv_base<T>::MakeConvProblem;
@@ -1386,15 +1385,15 @@ struct verify_backward_weights_conv : conv_base<T>
                                  bool preallocate_,
                                  int pbias,
                                  int psearch)
+        : conv_base(preallocate_)
     {
-        input       = pinput;
-        weights     = pweights;
-        out         = pout;
-        filter      = pfilter;
-        bias        = pbias;
-        search      = psearch;
-        stats       = &pstats;
-        preallocate = preallocate_;
+        input   = pinput;
+        weights = pweights;
+        out     = pout;
+        filter  = pfilter;
+        bias    = pbias;
+        search  = psearch;
+        stats   = &pstats;
     }
 
     tensor<T> cpu() const
