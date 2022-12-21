@@ -46,6 +46,8 @@
 namespace miopen {
 namespace solver {
 
+std::size_t GetTuningIterationsMax();
+
 /*
  * select default configuration if a known configuration has not been found.
  */
@@ -495,9 +497,17 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
                                          << "curr time: " << processing_time << ' ' << result);
                         }
                         run_counter++;
+                        if(run_counter >= GetTuningIterationsMax())
+                            break;
                     }
+                    if(run_counter >= GetTuningIterationsMax())
+                        break;
                 }
+                if(run_counter >= GetTuningIterationsMax())
+                  break;
             }
+            if(run_counter >= GetTuningIterationsMax())
+                break;
         }
     }
     else
@@ -642,12 +652,26 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
                                                      << result);
                                     }
                                     run_counter++;
+                                    if(run_counter >= GetTuningIterationsMax())
+                                        break;
                                 }
+                                if(run_counter >= GetTuningIterationsMax())
+                                    break;
                             }
+                            if(run_counter >= GetTuningIterationsMax())
+                                break;
                         }
+                        if(run_counter >= GetTuningIterationsMax())
+                            break;
                     }
+                    if(run_counter >= GetTuningIterationsMax())
+                        break;
                 }
+                if(run_counter >= GetTuningIterationsMax())
+                    break;
             }
+            if(run_counter >= GetTuningIterationsMax())
+                break;
         }
     }
     // Compare search results vs. default performance config.
