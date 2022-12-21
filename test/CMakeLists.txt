@@ -1860,6 +1860,14 @@ if(MIOPEN_TEST_FLOAT)
     add_custom_test(test_reduce_double SKIP_UNLESS_ALL GFX103X_ENABLED COMMAND  $<TARGET_FILE:test_reduce_test> --double --all --verbose)
 endif()
 
+# NOTES ON WRITING TESTS FOR TUNABLE SOLVERS
+# * Enforce tuning (SEARCH_DB_UPDATE).
+# * Use TEST_TUNING. This flag leads to test failure in case of any "Error"
+#   message output to the log, which happens if something is broken in the tuning machinery.
+# * Use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time.
+
+set(ENFORCE_TUNING_5 MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5)
+
 add_custom_test(smoke_solver_ConvFFT GFX103X_ENABLED
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=fft $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 16 14 14 --weights 48 16 5 5 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -1898,13 +1906,23 @@ add_custom_test(smoke_solver_ConvOcl_SET01 GFX103X_ENABLED HALF_ENABLED BF16_ENA
       ${TEST_CONV_VERBOSE_W} --input 16 1 7 7 --weights 1 1 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-# NOTES ON WRITING TESTS FOR TUNABLE SOLVERS
-# * Enforce tuning (SEARCH_DB_UPDATE).
-# * Use TEST_TUNING. This flag leads to test failure in case of any "Error"
-#   message output to the log, which happens if something is broken in the tuning machinery.
-# * Use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time.
-
-set(ENFORCE_TUNING_5 MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5)
+add_custom_test(smoke_solver_ConvOclBwdWrW2 GFX103X_ENABLED HALF_ENABLED BF16_ENABLED TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2<1>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 1 1 16 16 --weights 1 1 4 4 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2<2>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 2 1 16 16 --weights 1 1 4 4 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2<4>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 4 1 16 16 --weights 1 1 4 4 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2<8>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 8 1 16 16 --weights 1 1 4 4 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2<16>' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 16 1 16 16 --weights 1 1 4 4 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
 
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
 add_custom_test(smoke_solver_ConvAsm1x1U HALF_ENABLED SKIP_XNACK_ON TEST_TUNING
