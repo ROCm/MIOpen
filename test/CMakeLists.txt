@@ -1922,6 +1922,9 @@ add_custom_test(smoke_solver_ConvOclBwdWrW2 GFX103X_ENABLED HALF_ENABLED BF16_EN
     COMMAND ${ENFORCE_TUNING_5}
       MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2<16>' $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_W} --input 16 1 16 16 --weights 1 1 4 4 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvOclBwdWrW2NonTunable' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 1 1 16 16 --weights 1 1 3 3 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
