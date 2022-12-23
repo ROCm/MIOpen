@@ -504,7 +504,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::SearchImpl(const ConvolutionContext& ctx
                         break;
                 }
                 if(run_counter >= GetTuningIterationsMax())
-                  break;
+                    break;
             }
             if(run_counter >= GetTuningIterationsMax())
                 break;
