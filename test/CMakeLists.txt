@@ -50,6 +50,7 @@ option( MIOPEN_TEST_WITH_MIOPENDRIVER "Use MIOpenDriver in tests" ${MIOPEN_TEST_
 
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" OFF) # TODO: Remove this W/A after ~6 months (in January 2023)
+option( WORKAROUND_FROM_PR147 "" ON) # https://github.com/ROCmSoftwarePlatform/MIOpen/pull/147/files#r1056274289
 
 # Run the test suite to a depth limit
 #limit greater than 2 leads to prolonged testing more than 5hrs per stage.
@@ -1131,25 +1132,8 @@ COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 352 192 7 1 
 COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 352 16 7 1 --weights 32 16 1 1 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-if (0) #disabled too many errors
-if(MIOPEN_TEST_LIMIT GREATER 0)
-if(${MIOPEN_USE_MIOPENGEMM} AND (${MIOPEN_hip_VERSION_MAJOR} EQUAL 3) AND (${MIOPEN_hip_VERSION_MINOR} EQUAL 7))
-    add_custom_test(test_conv3d_extra  SKIP_UNLESS_ALL GFX103X_ENABLED
-    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 2 2 2 ${MIOPEN_TEST_FLAGS_ARGS}
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-
-    #ROCM3.7 compiler problems
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
-    message(STATUS "test_conv3d_extra reduced set")
-else()
-    add_custom_test(test_conv3d_extra  SKIP_UNLESS_ALL GFX103X_ENABLED
+if(NOT WORKAROUND_FROM_PR147) #disabled too many errors
+add_custom_test(test_conv3d_extra SKIP_UNLESS_ALL GFX103X_ENABLED
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50  50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
@@ -1159,11 +1143,8 @@ else()
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    )
+)
 endif()
-endif()
-endif()
-
 
 add_custom_test(test_conv_trans SKIP_UNLESS_ALL GFX103X_ENABLED
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	128	28	28	--weights	128	128	1	1	--pads_strides_dilations	0	0	1	1	1	1	--cmode	trans	--pmode	default
