@@ -1876,7 +1876,7 @@ add_custom_test(smoke_solver_ConvGemmFwd1x1_fp16_bf16 OCL_DISABLED FLOAT_DISABLE
       ${TEST_CONV_VERBOSE_F} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvGemmFwd1x1_fp32 HALF_ENABLED BF16_ENABLED GFX103X_ENABLED
+add_custom_test(smoke_solver_ConvGemmFwd1x1_fp32 GFX103X_ENABLED
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmFwd1x1_0_1' $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmFwd1x1_0_2' $<TARGET_FILE:test_conv2d>
@@ -1886,6 +1886,16 @@ add_custom_test(smoke_solver_ConvGemmFwd1x1_fp32 HALF_ENABLED BF16_ENABLED GFX10
 add_custom_test(smoke_solver_ConvGemmFwd1x1_0_1_int8 FLOAT_DISABLED INT8_ENABLED GFX103X_ENABLED
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmFwd1x1_0_1_int8' $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(smoke_solver_ConvGemmFwdRest_fp16_bf16 OCL_DISABLED FLOAT_DISABLED HALF_ENABLED BF16_ENABLED GFX103X_ENABLED
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmFwdRest' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_F} --input 1 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(smoke_solver_ConvGemmFwdRest_fp32_int8 INT8_ENABLED GFX103X_ENABLED
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmFwdRest' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_F} --input 1 8 8 8 --weights 8 8 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT32} ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(smoke_solver_ConvFFT GFX103X_ENABLED
