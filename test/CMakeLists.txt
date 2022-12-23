@@ -1855,6 +1855,11 @@ add_custom_test(smoke_solver_ConvGemmBwd1x1_stride1 OCL_DISABLED HALF_ENABLED BF
       ${TEST_CONV_VERBOSE_B} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
+add_custom_test(smoke_solver_ConvGemmBwd1x1_stride2 HALF_ENABLED BF16_ENABLED GFX103X_ENABLED
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmBwd1x1_stride2' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_B} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
 add_custom_test(smoke_solver_ConvFFT GFX103X_ENABLED
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=fft $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 16 14 14 --weights 48 16 5 5 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
