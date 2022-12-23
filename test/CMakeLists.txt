@@ -1849,6 +1849,16 @@ endif()
 
 set(ENFORCE_TUNING_5 MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5)
 
+add_custom_test(smoke_solver_ConvGemmWrw1x1_stride1_fp16_bf16 OCL_DISABLED FLOAT_DISABLED HALF_ENABLED BF16_ENABLED GFX103X_ENABLED
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmWrw1x1_stride1' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(smoke_solver_ConvGemmWrw1x1_stride1_fp32 GFX103X_ENABLED
+    COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmWrw1x1_stride1' $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_W} --input 1 8 8 8 --weights 8 8 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
 # OCL_DISABLED is due to WORKAROUND_MIOPENGEMM_ISSUE_59
 add_custom_test(smoke_solver_ConvGemmBwd1x1_stride1 OCL_DISABLED HALF_ENABLED BF16_ENABLED GFX103X_ENABLED
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmBwd1x1_stride1' $<TARGET_FILE:test_conv2d>
