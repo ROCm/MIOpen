@@ -634,8 +634,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
-    std::string kernel_name = "miopenSp3AsmConv_v30_2_5";
-    std::string kernel_file = "Conv_Winograd_v30_2_5";
+    std::string kernel_name = "miopenSp3AsmConv_v30_2_6";
+    std::string kernel_file = "Conv_Winograd_v30_2_6";
     std::string kernel_postfix;
 
     if(is_gfx9)
@@ -672,10 +672,6 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     else // if(problem.kernel_dilation_h == 2)
     {
         kernel_postfix += "_dilation2";
-    }
-    if(problem.group_counts != 1 || problem.direction.IsBackwardWrW())
-    {
-        kernel_postfix += "_group";
     }
 
     kernel.kernel_name = kernel_name + kernel_postfix;

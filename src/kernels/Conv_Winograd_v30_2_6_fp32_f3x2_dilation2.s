@@ -23,22 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_v30_2_5_metadata.inc"
+.include "Conv_Winograd_v30_2_6_metadata.inc"
+
+KERNEL_PROLOG fp32_f3x2_dilation2
 
 .if (.amdgcn.gfx_generation_number == 9)
-    KERNEL_PROLOG fp16_dot2_edc_f3x2_stride2
-
-    .include "Conv_Winograd_v30_2_5_gfx9_fp16_dot2_edc_f3x2_stride2.inc"
-
-    KERNEL_EPILOG fp16_dot2_edc_f3x2_stride2
+    .include "Conv_Winograd_v30_2_6_gfx9_fp32_f3x2_dilation2.inc"
 .elseif (.amdgcn.gfx_generation_number == 10)
-    KERNEL_PROLOG fp16_dot2_f3x2_stride2
-
     //inliner-include-optional
-    .include "Conv_Winograd_v30_2_5_gfx10_fp16_dot2_f3x2_stride2.inc"
-
-    KERNEL_EPILOG fp16_dot2_f3x2_stride2
-.else
-    .error "Unsupported gfx generation"
+    .include "Conv_Winograd_v30_2_6_gfx10_fp32_f3x2_dilation2.inc"
 .endif
 
+KERNEL_EPILOG fp32_f3x2_dilation2

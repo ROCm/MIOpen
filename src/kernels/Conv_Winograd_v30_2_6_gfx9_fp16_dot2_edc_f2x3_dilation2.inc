@@ -42,6 +42,7 @@ s_load_dwordx16 s[12:27], s[78:79], 0x0
 s_load_dwordx4 s[28:31], s[78:79], 0x40
 s_load_dwordx2 s[32:33], s[78:79], 0x50
 s_waitcnt lgkmcnt(0)
+s_and_b32 s18, s18, 0xffff
 s_bitcmp1_b32 s18, 6
 s_cbranch_scc0 16
 s_and_b32 s21, s21, 0xffff
@@ -59,10 +60,6 @@ s_mov_b32 s36, 1.0
 s_bitcmp1_b32 s18, 8
 s_cbranch_scc0 2
 s_load_dword s36, s[78:79], 0x60
-s_mul_i32 s48, s14, s15
-s_mul_i32 s44, s48, s13
-s_mul_i32 s46, s32, s33
-s_mul_i32 s45, s46, s16
 s_bitcmp1_b32 s18, 7
 s_cbranch_scc0 7
 s_bitcmp1_b32 s18, 6
@@ -70,7 +67,65 @@ s_cbranch_scc0 5
 s_waitcnt lgkmcnt(0)
 s_and_b32 s35, s35, 0xffff
 s_load_dwordx2 s[34:35], s[34:35], 0x0
-s_and_b32 s18, s18, 0xffff
+s_bitcmp1_b32 s18, 9
+s_cbranch_scc0 77
+s_mov_b32 s77, 0x8c
+s_mov_b32 s80, 0x9c
+v_cmp_le_u32_e32 vcc, 0x100, v0
+s_cmp_eq_u64 0, vcc
+s_cselect_b32 s77, s80, s77
+s_load_dword s44, s[78:79], 0x88
+s_load_dword s70, s[78:79], 0x98
+s_load_dword s48, s[78:79], s77
+s_load_dword s45, s[78:79], 0xa8
+s_load_dword s46, s[78:79], 0xac
+s_bitcmp1_b32 s18, 10
+s_cbranch_scc0 76
+s_load_dwordx4 s[84:87], s[78:79], 0xb8
+v_ffbh_u32_e32 v118, s17
+v_lshlrev_b32_e64 v119, v118, s17
+v_and_b32_e32 v120, 0xffffff00, v119
+v_cmp_eq_u32_e32 vcc, 0x80000000, v119
+v_cvt_f32_u32_e32 v120, v120
+v_rcp_f32_e32 v116, v120
+v_subb_co_u32_e32 v117, vcc, 32, v118, vcc
+v_cvt_f32_ubyte0_e32 v118, v119
+v_fma_f32 v120, v120, v116, -1.0
+v_fma_f32 v120, v118, v116, v120
+v_madak_f32 v120, v120, v116, 0x9f000000
+v_mul_f32_e32 v120, 0x5f800000, v120
+v_mov_b32_e32 v118, 0
+v_cvt_flr_i32_f32_e64 v120, -v120
+v_lshl_add_u32 v116, v116, 9, v120
+v_mad_u64_u32 v[118:119], vcc, v119, v116, v[118:119]
+v_subb_co_u32_e64 v116, vcc, v116, -1, vcc
+v_mul_hi_u32 v118, s8, v116
+v_add_co_u32_e64 v116, vcc, v118, s8
+v_addc_co_u32_e64 v118, vcc, 0, 0, vcc
+v_cmp_eq_u32_e32 vcc, 32, v117
+v_cndmask_b32_e32 v116, v116, v118, vcc
+v_alignbit_b32 v116, v118, v116, v117
+s_nop 0
+v_readfirstlane_b32 s81, v116
+s_mul_i32 s82, s81, s17
+s_sub_u32 s8, s8, s82
+s_waitcnt lgkmcnt(0)
+s_lshl_b32 s85, s85, 1
+s_lshl_b64 s[86:87], s[86:87], 1
+s_mul_i32 s82, s85, s81
+s_add_u32 s20, s20, s82
+s_addc_u32 s21, s21, 0
+s_mul_i32 s82, s86, s81
+s_add_u32 s22, s22, s82
+s_addc_u32 s23, s23, 0
+s_mul_i32 s82, s87, s81
+s_add_u32 s24, s24, s82
+s_addc_u32 s25, s25, 0
+s_branch 19
+s_mul_i32 s48, s14, s15
+s_mul_i32 s44, s48, s13
+s_mul_i32 s46, s32, s33
+s_mul_i32 s45, s46, s16
 s_bitcmp1_b32 s18, 13
 s_cbranch_scc0 2
 s_load_dwordx8 s[88:95], s[78:79], 0x68
@@ -84,8 +139,8 @@ s_cselect_b32 s70, s77, s80
 v_cmp_le_u32_e32 vcc, 0x100, v0
 s_cmp_eq_u64 0, vcc
 s_cselect_b32 s48, s85, s48
-s_lshl_b32 s47, s48, 1
 s_waitcnt lgkmcnt(0)
+s_lshl_b32 s47, s48, 1
 s_and_b32 s21, s21, 0xffff
 s_and_b32 s23, s23, 0xffff
 s_and_b32 s25, s25, 0xffff
@@ -415,11 +470,12 @@ s_mov_b64 s[2:3], vcc
 s_mov_b32 s73, 34
 s_mov_b32 s62, 0
 s_bitset1_b32 s18, 26
-s_call_b64 s[4:5], 2891
+s_call_b64 s[4:5], 2892
 v_cmp_le_u32_e32 vcc, 0x100, v0
 s_cbranch_vccnz 1
-s_branch 1442
+s_branch 1443
 s_mov_b64 vcc, s[2:3]
+s_nop 0
 s_nop 0
 s_nop 0
 s_nop 0
@@ -2848,22 +2904,6 @@ buffer_load_ushort v115, v115, s[84:87], 0 idxen
 s_mov_b64 vcc, s[2:3]
 s_branch 64423
 s_endpgm
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
-s_nop 0
 s_nop 0
 s_nop 0
 s_nop 0

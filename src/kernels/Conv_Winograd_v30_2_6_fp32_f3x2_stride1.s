@@ -23,15 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "Conv_Winograd_v30_2_5_metadata.inc"
+.include "Conv_Winograd_v30_2_6_metadata.inc"
 
-KERNEL_PROLOG fp32_f3x2_dilation2
+KERNEL_PROLOG fp32_f3x2_stride1
 
 .if (.amdgcn.gfx_generation_number == 9)
-    .include "Conv_Winograd_v30_2_5_gfx9_fp32_f3x2_dilation2.inc"
+    .include "Conv_Winograd_v30_2_6_gfx9_fp32_f3x2_stride1.inc"
 .elseif (.amdgcn.gfx_generation_number == 10)
     //inliner-include-optional
-    .include "Conv_Winograd_v30_2_5_gfx10_fp32_f3x2_dilation2.inc"
+    .include "Conv_Winograd_v30_2_6_gfx10_fp32_f3x2_stride1.inc"
 .endif
 
-KERNEL_EPILOG fp32_f3x2_dilation2
+KERNEL_EPILOG fp32_f3x2_stride1
