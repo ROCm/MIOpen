@@ -243,7 +243,7 @@ miopenStatus_t miopenSaveSolution(miopenSolution_t solution, char* data)
 
         if(solution_deref.serialization_cache.empty())
         {
-            nlohmann::json json                = solution_deref;
+            const nlohmann::json json          = solution_deref;
             solution_deref.serialization_cache = nlohmann::json::to_msgpack(json);
         }
 
@@ -267,7 +267,7 @@ miopenStatus_t miopenGetSolutionSize(miopenSolution_t solution, size_t* size)
 
         if(solution_deref.serialization_cache.empty())
         {
-            nlohmann::json json                = solution_deref;
+            const nlohmann::json json          = solution_deref;
             solution_deref.serialization_cache = nlohmann::json::to_msgpack(json);
         }
 

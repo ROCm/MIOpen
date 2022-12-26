@@ -421,7 +421,7 @@ struct verify_forward_conv : conv_base<T, Tout>
                         int pbias,
                         int psearch,
                         bool pvect)
-        : conv_base(preallocate_)
+        : conv_base<T, Tout>(preallocate_)
     {
         input   = pinput;
         weights = pweights;
@@ -980,7 +980,7 @@ struct verify_backward_conv : conv_base<T>
                          bool preallocate_,
                          int pbias,
                          int psearch)
-        : conv_base(preallocate_)
+        : conv_base<T>(preallocate_)
     {
         input   = pinput;
         weights = pweights;
@@ -1385,7 +1385,7 @@ struct verify_backward_weights_conv : conv_base<T>
                                  bool preallocate_,
                                  int pbias,
                                  int psearch)
-        : conv_base(preallocate_)
+        : conv_base<T>(preallocate_)
     {
         input   = pinput;
         weights = pweights;
