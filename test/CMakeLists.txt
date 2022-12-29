@@ -357,6 +357,7 @@ set(LONG_TESTS
     test_conv_igemm_mlir
     test_conv_igemm_mlir_xdlops
     test_activation
+    test_conv_ck_igemm_fwd_v6r1_dlops_nchw
     )
 
 function(rate_added_test NAME)
