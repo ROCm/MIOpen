@@ -523,7 +523,7 @@ pipeline {
                     steps{
                         //temporarily disabled
                         //CheckPerfDbValid(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
-                        echo "skip perf db valid"
+                        echo "skip perf db valid check"
                     }
                 }
                 stage('HipNoGPU Debug Build Test') {
