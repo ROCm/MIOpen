@@ -179,11 +179,13 @@ struct AnySolver
 
             bool success = config.Deserialize(params);
             if(!success)
+            {
                 MIOPEN_LOG_WE("Perf params are obsolete or corrupt: "
                               << params << ". Performance may degrade.");
+                return false;
+            }
 
-            if(success)
-                success = value.IsValidPerformanceConfig(ctx, config);
+            success = value.IsValidPerformanceConfig(ctx, config);
 
             return success;
         }
