@@ -123,8 +123,10 @@ def cmake_build(Map conf=[:]){
             ${pre_setup_cmd}
             ${setup_cmd}
             ${build_cmd}
-            echo \${PWD}
         """)
+    cmd = """$cmd
+            echo \${PWD}
+        """
 
     echo cmd
     def EXEDIR = sh(returnStdout: true, script: cmd)
@@ -150,7 +152,7 @@ def cmake_build(Map conf=[:]){
 }
 
 def cmake_build_fin(prefixpath){
-    def fin_jenkins = load 'fin/Jenkinsfile'
+    def fin_jenkins = load 'Jenkinsfile'
 
     def fin_flags = '-DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=release'
     fin_jenkins.cmake_build('clang++', fin_flags, prefixpath)
