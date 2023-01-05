@@ -1,3 +1,5 @@
+def fin_jenkins = load 'fin/Jenkinsfile'
+
 def rocmnode(name) {
     return 'rocmtest && miopen && ' + name
 }
@@ -102,42 +104,53 @@ def cmake_build(Map conf=[:]){
     def build_cmd = conf.get("build_cmd", "LLVM_PATH=/opt/rocm/llvm ${build_envs} dumb-init make -j\$(nproc) ${config_targets}")
     def execute_cmd = conf.get("execute_cmd", "")
 
-    def fin_pre_setup_cmd = ""
-    def fin_setup_cmd = ""
-    def fin_build_cmd = ""
-    def fin_post_build_cmd = ""
-    if ( build_fin == "ON" )
-    {
-        fin_pre_setup_cmd = """
-            cd ../fin
-            rm -rf build
-            mkdir build
-            cd build
-        """
-        fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} -DCMAKE_PREFIX_PATH=\${MIOPEN_INSTALL} .. "
-        fin_build_cmd = "LLVM_PATH=/opt/rocm/llvm make -j\$(nproc) install"
-        fin_post_build_cmd = "cd ../../build"
-    }
+    //def fin_pre_setup_cmd = ""
+    //def fin_setup_cmd = ""
+    //def fin_build_cmd = ""
+    //def fin_post_build_cmd = ""
+    //if ( build_fin == "ON" )
+    //{
+    //    fin_pre_setup_cmd = """
+    //        cd ../fin
+    //        rm -rf build
+    //        mkdir build
+    //        cd build
+    //    """
+    //    fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} -DCMAKE_PREFIX_PATH=\${MIOPEN_INSTALL} .. "
+    //    fin_build_cmd = "LLVM_PATH=/opt/rocm/llvm make -j\$(nproc) install"
+    //    fin_post_build_cmd = "cd ../../build"
+    //}
 
     def cmd = conf.get("cmd", """
             ${pre_setup_cmd}
             ${setup_cmd}
             ${build_cmd}
-            ${fin_pre_setup_cmd}
-            ${fin_setup_cmd}
-            ${fin_build_cmd}
-            ${fin_post_build_cmd}
-            ${execute_cmd}
         """)
 
     echo cmd
     sh cmd
+
+    if ( build_fin == "ON" )
+    {
+        sh 'cd ../fin'
+        cmake_build_fin(prefixpath)
+        sh 'cd ../../build'
+    }
+
+    echo execute_cmd
+    sh execute_cmd
 
     // Only archive from master or develop
     if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master")) {
         archiveArtifacts artifacts: "build/*.deb", allowEmptyArchive: true, fingerprint: true
     }
 }
+
+def cmake_build_fin(prefixpath){
+    def fin_flags = '-DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=release'
+    fin_jenkins.cmake_build('clang++', fin_flags, prefixpath)
+}
+
 def getDockerImageName(prefixpath)
 {
     def branch =  sh(script: "echo ${scm.branches[0].name} | sed 's/[^a-zA-Z0-9]/_/g' ", returnStdout: true).trim()
@@ -298,47 +311,6 @@ def CheckPerfDbValid(Map conf=[:]){
         assert has_error.toInteger() == 0
     }
 }
-
-def buildDocker(install_prefix)
-{
-    env.DOCKER_BUILDKIT=1
-    checkout scm
-    def image_name = getDockerImageName(install_prefix)
-    echo "Building Docker for ${image_name}"
-    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${install_prefix} --build-arg GPU_ARCH='gfx900;gfx906;gfx908;gfx90a:xnack-;gfx1030' --build-arg MIOTENSILE_VER='default' --build-arg USE_TARGETID='OFF' --build-arg USE_MLIR='ON' --build-arg USE_FIN='ON' "
-    if(env.CCACHE_HOST)
-    {
-        def check_host = sh(script:"""(printf "PING\\r\\n";) | nc  -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
-        if(check_host == "+PONG")
-        {
-            echo "FOUND CCACHE SERVER: ${CCACHE_HOST}"
-        }
-        else 
-        {
-            echo "CCACHE SERVER: ${CCACHE_HOST} NOT FOUND, got ${check_host} response"
-        }
-        dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
-        env.CCACHE_DIR = """/tmp/ccache_store"""
-        env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
-    }
-
-    echo "Build Args: ${dockerArgs}"
-    try 
-    {
-        echo "Checking for image: ${image_name}"
-        sh "docker manifest inspect --insecure ${image_name}"
-        echo "Image: ${image_name} found!! Skipping building image"
-        if(params.DEBUG_FORCE_DOCKER_BUILD)
-        {
-            throw new Exception("Docker build override via DEBUG_FORCE_DOCKER_BUILD")
-        }
-    }
-    catch(Exception ex)
-    {
-        echo "Unable to locate image: ${image_name}."
-    }
-}
-
 
 /// Stage name format:
 /// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
@@ -517,7 +489,7 @@ pipeline {
                 stage('Perf DB Validity Test') {
                     agent{ label rocmnode("nogpu") }
                     environment{
-                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On -DMIOPEN_ENABLE_FIN=ON"
+                        fin_flags = "-DCMAKE_BUILD_TYPE=DEBUG -DMIOPEN_BACKEND=HIPNOGPU -DBUILD_SHARED_LIBS=Off -DMIOPEN_INSTALL_CXX_HEADERS=On"
 
                     }
                     steps{
