@@ -167,7 +167,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             {
                 variant    = 0;
                 xlocalsize = 1024;
-                xgridsize  = static_cast<size_t>(1024) * c;
+                xgridsize  = 1024 * c;
                 ldsgcn     = xlocalsize / wavesize;
                 ldsnogcn   = xlocalsize;
             }
@@ -258,6 +258,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             kernel.kernel_name = "MIOpenBatchNormBwdSpatial";
 
             build_params << KernelBuildParameters{
+                {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
                 {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
             };
 

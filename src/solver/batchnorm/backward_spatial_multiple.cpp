@@ -157,12 +157,12 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
                 if(bfp32parm)
                 {
                     xlocalsize = 1024;
-                    xgridsize  = static_cast<size_t>(1024) * c;
+                    xgridsize  = 1024 * c;
                 }
                 else
                 {
                     xlocalsize = 256;
-                    xgridsize  = static_cast<size_t>(256) * c;
+                    xgridsize  = 256 * c;
                 }
                 ldsgcn   = xlocalsize / 64;
                 ldsnogcn = xlocalsize;
@@ -222,6 +222,7 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
             {"MIO_BN_GRP1", ylocalsize},
             {"MIO_BN_GRP2", zlocalsize},
             {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
+            {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
         };
 
