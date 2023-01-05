@@ -123,6 +123,7 @@ def cmake_build(Map conf=[:]){
             ${pre_setup_cmd}
             ${setup_cmd}
             ${build_cmd}
+            export EXEDIR=\${PWD}
         """)
 
     echo cmd
@@ -135,8 +136,10 @@ def cmake_build(Map conf=[:]){
         }
     }
 
-    echo execute_cmd
-    sh execute_cmd
+    dir(env.EXEDIR){
+        echo execute_cmd
+        sh execute_cmd
+    }
 
     // Only archive from master or develop
     if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master")) {
