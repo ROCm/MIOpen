@@ -123,11 +123,12 @@ def cmake_build(Map conf=[:]){
             ${pre_setup_cmd}
             ${setup_cmd}
             ${build_cmd}
-            export EXEDIR=\${PWD}
+            echo \${PWD}
         """)
 
     echo cmd
-    sh cmd
+    def EXEDIR = sh(returnStdout: true, cmd).trim()
+    echo $EXEDIR
 
     if ( build_fin == "ON" )
     {
@@ -136,7 +137,7 @@ def cmake_build(Map conf=[:]){
         }
     }
 
-    dir(env.EXEDIR){
+    dir(EXEDIR){
         echo execute_cmd
         sh execute_cmd
     }
