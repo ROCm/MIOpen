@@ -84,6 +84,7 @@ def cmake_build(Map conf=[:]){
         setup_args = " -DMIOPEN_INSTALL_CXX_HEADERS=On " + setup_args
     }
 
+    env.MIOPEN_INSTALL="${env.WORKSPACE}/install"
     def pre_setup_cmd = """
             echo \$HSA_ENABLE_SDMA
             ulimit -c unlimited
@@ -91,7 +92,6 @@ def cmake_build(Map conf=[:]){
             mkdir build
             rm -rf install
             mkdir install
-            export MIOPEN_INSTALL=\${PWD}/install
             rm -f src/kernels/*.ufdb.txt
             rm -f src/kernels/miopen*.udb
             cd build
@@ -130,9 +130,9 @@ def cmake_build(Map conf=[:]){
 
     if ( build_fin == "ON" )
     {
-        sh 'cd ../fin'
-        cmake_build_fin(prefixpath)
-        sh 'cd ../../build'
+        dir('fin'){
+            cmake_build_fin(env.MIOPEN_INSTALL)
+        }
     }
 
     echo execute_cmd
