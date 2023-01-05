@@ -127,7 +127,8 @@ def cmake_build(Map conf=[:]){
         """)
 
     echo cmd
-    def EXEDIR = sh(returnStdout: true, cmd).trim()
+    def EXEDIR = sh(returnStdout: true, script: cmd)
+    EXEDIR = EXEDIR.trim()
     echo $EXEDIR
 
     if ( build_fin == "ON" )
