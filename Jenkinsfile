@@ -135,7 +135,7 @@ def cmake_build(Map conf=[:]){
 def cmake_build_fin(prefixpath){
     def flags = '-DCMAKE_INSTALL_PREFIX=${prefixpath} -DCMAKE_BUILD_TYPE=release'
     def compiler = 'clang++'
-    def config_targets = "all" 
+    def config_targets = "all"
     def compilerpath = "/opt/rocm/llvm/bin/" + compiler
     def configargs = ""
     if (prefixpath != "")
@@ -144,13 +144,13 @@ def cmake_build_fin(prefixpath){
     }
 
     def fin_cmd = """
-        echo \$HSA_ENABLE_SDMA
-        ulimit -c unlimited
-        rm -rf build
-        mkdir build
-        cd build
-        CXX=${compilerpath} cmake ${configargs} ${flags} ..
-        dumb-init make -j\$(nproc) ${config_targets}
+            echo \$HSA_ENABLE_SDMA
+            ulimit -c unlimited
+            rm -rf build
+            mkdir build
+            cd build
+            CXX=${compilerpath} cmake ${configargs} ${flags} ..
+            dumb-init make -j\$(nproc) ${config_targets}
     """
     return fin_cmd
 }
