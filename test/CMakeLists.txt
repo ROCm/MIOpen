@@ -38,6 +38,7 @@ option( MIOPEN_TEST_GFX90A "Test on gfx90a" OFF )
 option( MIOPEN_TEST_GFX900 "Test on Vega10 (gfx900)" OFF )
 option( MIOPEN_TEST_GFX906 "Test on Vega20 (gfx906)" OFF )
 option( MIOPEN_TEST_GFX103X "Test on Navi21/22 (gfx1030/31)" OFF )
+#Added Navi3.x 
 option( MIOPEN_TEST_GFX110X "Test on Navi31/32 (gfx1100/01)" OFF )
 option( MIOPEN_TEST_GPU_XNACK_ENABLED "Test as if XNACK mode is enabled" OFF )
 option( MIOPEN_TEST_CONV Off)
