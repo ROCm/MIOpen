@@ -107,26 +107,24 @@ def cmake_build(Map conf=[:]){
             ${setup_cmd}
             ${build_cmd}
         """)
-    cmd = """$cmd
-            echo \${PWD}
-        """
-
-    echo cmd
-    def EXEDIR = sh(returnStdout: true, script: cmd)
-    EXEDIR = EXEDIR.trim().split('\n').last()
-    echo EXEDIR
 
     if ( build_fin == "ON" )
     {
-        dir('fin'){
-            cmake_build_fin(env.MIOPEN_INSTALL)
-        }
+        fin_build=cmake_build_fin(env.MIOPEN_INSTALL)
+        cmd +="""
+            export RETDIR=\$PWD
+            cd ${env.WORKSPACE}/fin 
+            ${fin_build}
+            cd \$RETDIR
+        """
     }
 
-    dir(EXEDIR){
-        echo execute_cmd
-        sh execute_cmd
-    }
+    cmd += """
+        ${execute_cmd}
+    """
+
+    echo cmd
+    sh cmd
 
     // Only archive from master or develop
     if (package_build == true && (env.BRANCH_NAME == "develop" || env.BRANCH_NAME == "master")) {
@@ -145,7 +143,7 @@ def cmake_build_fin(prefixpath){
         configargs = "-DCMAKE_PREFIX_PATH=${prefixpath}"
     }
 
-    def cmd = """
+    def fin_cmd = """
         echo \$HSA_ENABLE_SDMA
         ulimit -c unlimited
         rm -rf build
@@ -154,8 +152,7 @@ def cmake_build_fin(prefixpath){
         CXX=${compilerpath} cmake ${configargs} ${flags} ..
         dumb-init make -j\$(nproc) ${config_targets}
     """
-    echo cmd
-    sh cmd
+    return fin_cmd
 }
 
 def getDockerImageName(prefixpath)
