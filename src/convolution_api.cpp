@@ -219,6 +219,14 @@ extern "C" miopenStatus_t miopenGetConvolutionNdDescriptor(miopenConvolutionDesc
     });
 }
 
+extern "C" miopenStatus_t miopenGetConvolutionSpatialDim(miopenConvolutionDescriptor_t convDesc,
+                                                         int* spatialDim)
+{
+    MIOPEN_LOG_FUNCTION(convDesc, spatialDim);
+    return miopen::try_(
+        [&] { miopen::deref(spatialDim) = miopen::deref(convDesc).GetSpatialDimension(); });
+}
+
 extern "C" miopenStatus_t
 miopenGetConvolutionForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
                                      const miopenTensorDescriptor_t inputTensorDesc,
