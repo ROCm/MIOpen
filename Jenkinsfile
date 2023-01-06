@@ -152,10 +152,30 @@ def cmake_build(Map conf=[:]){
 }
 
 def cmake_build_fin(prefixpath){
-    def fin_jenkins = load 'Jenkinsfile'
+    //def fin_jenkins = load 'Jenkinsfile'
+    //fin_jenkins.cmake_build('clang++', fin_flags, prefixpath)
 
-    def fin_flags = '-DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=release'
-    fin_jenkins.cmake_build('clang++', fin_flags, prefixpath)
+    def flags = '-DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=release'
+    def compiler = 'clang++'
+    def config_targets = "all" 
+    def compilerpath = "/opt/rocm/llvm/bin/" + compiler
+    def configargs = ""
+    if (prefixpath != "")
+    {
+        configargs = "-DCMAKE_PREFIX_PATH=${prefixpath}"
+    }
+
+    def cmd = """
+        echo \$HSA_ENABLE_SDMA
+        ulimit -c unlimited
+        rm -rf build
+        mkdir build
+        cd build
+        CXX=${compilerpath} cmake ${configargs} ${flags} ..
+        dumb-init make -j\$(nproc) ${config_targets}
+    """
+    echo cmd
+    sh cmd
 }
 
 def getDockerImageName(prefixpath)
