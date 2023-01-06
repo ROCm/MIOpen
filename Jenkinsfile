@@ -43,7 +43,7 @@ def cmake_build(Map conf=[:]){
     if(conf.get("build_install","") == "true")
     {
         config_targets = 'install ' + config_targets
-        setup_args = ' -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=${env.MIOPEN_INSTALL}' + setup_args
+        setup_args = " -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=${env.MIOPEN_INSTALL}" + setup_args
     } else{
         setup_args = ' -DBUILD_DEV=On' + setup_args
     }
