@@ -1,26 +1,26 @@
 ################################################################################
 #
-# MIT License
+#MIT License
 #
-# Copyright (c) 2017 Advanced Micro Devices, Inc.
+#Copyright(c) 2017 Advanced Micro Devices, Inc.
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files(the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+#The above copyright notice and this permission notice shall be included in all
+#copies or substantial portions of the Software.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#SOFTWARE.
 #
 ################################################################################
 
@@ -38,6 +38,7 @@ option( MIOPEN_TEST_GFX90A "Test on gfx90a" OFF )
 option( MIOPEN_TEST_GFX900 "Test on Vega10 (gfx900)" OFF )
 option( MIOPEN_TEST_GFX906 "Test on Vega20 (gfx906)" OFF )
 option( MIOPEN_TEST_GFX103X "Test on Navi21/22 (gfx1030/31)" OFF )
+option( MIOPEN_TEST_GFX110X "Test on Navi31/32 (gfx1100/01)" OFF )
 option( MIOPEN_TEST_GPU_XNACK_ENABLED "Test as if XNACK mode is enabled" OFF )
 option( MIOPEN_TEST_CONV Off)
 option( MIOPEN_TEST_DEEPBENCH Off)
@@ -50,7 +51,7 @@ option( MIOPEN_TEST_WITH_MIOPENDRIVER "Use MIOpenDriver in tests" ${MIOPEN_TEST_
 option( WORKAROUND_ISSUE_936 "" ON)
 option( WORKAROUND_ISSUE_1053 "" OFF) # TODO: Remove this W/A after ~6 months (in January 2023)
 
-# Run the test suite to a depth limit
+#Run the test suite to a depth limit
 #limit greater than 2 leads to prolonged testing more than 5hrs per stage.
 set(MIOPEN_TEST_LIMIT "2" CACHE STRING "")
 set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
@@ -71,9 +72,9 @@ if(MIOPEN_BACKEND_HIP AND NOT MIOPEN_TEST_HIP_NOGPU)
     set(MIOPEN_TEST_HIP TRUE)
 endif()
 
-# Detect GPU type for testing.
-# For HIP_NOGPU backend, GPU detection is not required and should be disabled.
-# Also we do not detect GPU when target GPU for testing is specified explicitly.
+#Detect GPU type for testing.
+#For HIP_NOGPU backend, GPU detection is not required and should be disabled.
+#Also we do not detect GPU when target GPU for testing is specified explicitly.
 set(MIOPEN_TEST_GPU_DETECTION_FAILED FALSE)
 set(MIOPEN_NO_GPU FALSE)
 if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX90A OR MIOPEN_TEST_GFX103X OR MIOPEN_TEST_HIP_NOGPU))
@@ -100,6 +101,10 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
             set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx1030")
             set(MIOPEN_TEST_GFX103X ON)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx1100")
+            set(MIOPEN_TEST_GFX110X ON)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx1102")
+            set(MIOPEN_TEST_GFX110X ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx1031")
             set(MIOPEN_TEST_GFX103X ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx900")
@@ -140,7 +145,8 @@ else()
 endif()
 
 find_package(Threads REQUIRED)
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
+add_custom_target(check COMMAND ${
+    CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
 if(MIOPEN_TEST_GPU_DETECTION_FAILED AND NOT (MIOPEN_NO_GPU))
@@ -197,7 +203,7 @@ elseif(MIOPEN_TEST_BFLOAT16)
   endif()
   if(${CODECOV_TEST})
       list(APPEND SKIP_TESTS test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric)
-      # replaced by smaller tests with suffix _codecov
+#replaced by smaller tests with suffix _codecov
   endif()
 
 if (MIOPEN_NO_GPU)
@@ -227,7 +233,7 @@ if(MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908)
     list(APPEND SKIP_TESTS test_bn_3d_spatial_test)
 endif()
 
-# The usage is non-trivial, see function add_test_command.
+#The usage is non - trivial, see function add_test_command.
 if(SKIP_TESTS)
     list(REMOVE_DUPLICATES SKIP_TESTS)
 endif()
@@ -237,10 +243,10 @@ endif()
 message(STATUS "SKIP_TESTS: ${SKIP_TESTS}")
 message(STATUS "SKIP_ALL_EXCEPT_TESTS: ${SKIP_ALL_EXCEPT_TESTS}")
 
-# List of tests that depend on the XNACK mode.
-# Options convention: Tests that depend on the XNACK mode should support the "--xnack" option.
-# If "--xnack 0" is specified (this is the default), then such tests should run in XNACK OFF mode.
-# If XNACK is enabled on the GPU, then the testing mode must be changed by the --xnack 1 option.
+#List of tests that depend on the XNACK mode.
+#Options convention : Tests that depend on the XNACK mode should support the "--xnack" option.
+#If "--xnack 0" is specified(this is the default), then such tests should run in XNACK OFF mode.
+#If XNACK is enabled on the GPU, then the testing mode must be changed by the-- xnack 1 option.
 set(XNACK_TESTS test_mdgraph)
 
 function(add_test_command NAME EXE)
@@ -256,7 +262,8 @@ function(add_test_command NAME EXE)
         endforeach()
         file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmd"
             CONTENT "set PATH=${WINPATH};%PATH%
-                    %1 ${ARGN}")
+                    %1 ${
+    ARGN}")
         add_test(NAME ${NAME} COMMAND ${WINE_CMD} cmd /c "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmd" $<TARGET_FILE:${EXE}>)
     else()
         if(MIOPEN_TEST_GDB)
@@ -283,26 +290,30 @@ function(add_test_executable TEST_NAME)
     add_executable (${TEST_NAME} EXCLUDE_FROM_ALL ${ARGN})
     clang_tidy_check(${TEST_NAME})
     target_link_libraries(${TEST_NAME} ${CMAKE_THREAD_LIBS_INIT})
-    # Cmake does not add flags correctly for gcc
+#Cmake does not add flags correctly for gcc
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         set_target_properties(${TEST_NAME} PROPERTIES COMPILE_FLAGS -pthread LINK_FLAGS -pthread)
     endif()
 
     set(TEST_COMMAND ${TEST_NAME} ${MIOPEN_TEST_FLOAT_ARG})
     if(MIOPEN_TEST_ALL)
-        set(TEST_COMMAND ${TEST_COMMAND} --all)
+        set(TEST_COMMAND ${
+    TEST_COMMAND} --all)
         if(MIOPEN_TEST_LIMIT GREATER 0)
-            set(TEST_COMMAND ${TEST_COMMAND} --limit ${MIOPEN_TEST_LIMIT})
+            set(TEST_COMMAND ${
+    TEST_COMMAND} --limit ${MIOPEN_TEST_LIMIT})
         endif()
     endif()
     set(TEST_COMMAND ${TEST_COMMAND} ${MIOPEN_TEST_FLAGS_ARGS})
 
     if(MIOPEN_TEST_GPU_XNACK_ENABLED AND (${TEST_NAME} IN_LIST XNACK_TESTS))
-        set(TEST_COMMAND ${TEST_COMMAND} --xnack 1)
+        set(TEST_COMMAND ${
+    TEST_COMMAND} --xnack 1)
     endif()
 
     if(WORKAROUND_ISSUE_936 AND (${TEST_NAME} MATCHES "test_conv2d" OR ${TEST_NAME} MATCHES "test_immed_conv2d") )
-        set(TEST_COMMAND ${TEST_COMMAND} --tolerance 130) #increased by 1.625 times
+        set(TEST_COMMAND ${
+    TEST_COMMAND} --tolerance 130) #increased by 1.625 times
     endif()
 
     add_test_command(${TEST_NAME} ${TEST_COMMAND})
@@ -375,10 +386,10 @@ endforeach()
 set_tests_properties(test_sqlite_perfdb test_perfdb
     PROPERTIES RUN_SERIAL On)
 
-# add_sanitize_test(perfdb.cpp)
-# add_sanitize_test(cache.cpp)
-# add_sanitize_test(tensor_test.cpp)
-# add_sanitize_test(type_name.cpp)
+#add_sanitize_test(perfdb.cpp)
+#add_sanitize_test(cache.cpp)
+#add_sanitize_test(tensor_test.cpp)
+#add_sanitize_test(type_name.cpp)
 
 function(bool_equality_f first_arg sec_arg result)
     if(${first_arg})
@@ -431,32 +442,32 @@ function(option_support_check is_enabled is_disabled default_result result)
     endif()
 endfunction()
 
-# The add_custom_test function contains options to describe the conditions,
-# under which new custom_tests should be run. Options are divided into several types.
-# The option can be enabled or disabled, if nothing is specified, the default value is taken.
-# You can use any number of options, in any order, provided that options do not conflict
-# (e.g. "HALF_ENABLED HALF_DISABLED" is illegal)
+#The add_custom_test function contains options to describe the conditions,
+#under which new custom_tests should be run.Options are divided into several types.
+#The option can be enabled or disabled, if nothing is specified, the default value is taken.
+#You can use any number of options, in any order, provided that options do not conflict
+#(e.g."HALF_ENABLED HALF_DISABLED" is illegal)
 #
-# Data types: FLOAT HALF BF16 INT8
-#   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
-#   If nothing is specified, the default value is taken.
-#   Default: FLOAT_ENABLED HALF_DISABLED BF16_DISABLED INT8_DISABLED
+#Data types : FLOAT HALF BF16 INT8
+#The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
+#If nothing is specified, the default value is taken.
+#Default : FLOAT_ENABLED HALF_DISABLED BF16_DISABLED INT8_DISABLED
 #
-# GPU types: GFX900, GFX906, GFX908, GFX90A, GFX1030/31
-#   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
-#   If nothing is specified, the default value is taken.
-#   Default: GFX900_ENABLED, GFX906_ENABLED, GFX908_ENABLED, GFX90A_ENABLED, GFX103X_DISABLED
+#GPU types : GFX900, GFX906, GFX908, GFX90A, GFX1030 / 31
+#The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
+#If nothing is specified, the default value is taken.
+#Default : GFX900_ENABLED, GFX906_ENABLED, GFX908_ENABLED, GFX90A_ENABLED, GFX103X_DISABLED
 #
-# Testing mode:
-#   SKIP_UNLESS_ALL - The test should be only run if MIOPEN_TEST_ALL=TRUE. Intended for long tests.
-#   TEST_PERF_DB_RECORD_NOT_FOUND - Test should fail if output contains: "Perf Db: record not found".
-#   SKIP_XNACK_ON - Do not run the test if XNACK mode is enabled (xnack+) on the GPU.
-#   SKIP_UNLESS_MLIR - The test should be only run if MIOPEN_TEST_MLIR=TRUE.
+#Testing mode:
+#SKIP_UNLESS_ALL - The test should be only run if MIOPEN_TEST_ALL = TRUE.Intended for long tests.
+#TEST_PERF_DB_RECORD_NOT_FOUND - Test should fail if output contains : "Perf Db: record not found".
+#SKIP_XNACK_ON - Do not run the test if XNACK mode is enabled(xnack +) on the GPU.
+#SKIP_UNLESS_MLIR - The test should be only run if MIOPEN_TEST_MLIR = TRUE.
 #
-# Backend: OCL HIP HIP_NOGPU
-#   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
-#   If nothing is specified, the default value is taken.
-#   Default: OCL_ENABLED HIP_ENABLED HIP_NOGPU_DISABLED.
+#Backend : OCL HIP HIP_NOGPU
+#The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
+#If nothing is specified, the default value is taken.
+#Default : OCL_ENABLED HIP_ENABLED HIP_NOGPU_DISABLED.
 
 function(add_custom_test NAME)
     set(options
@@ -470,9 +481,9 @@ function(add_custom_test NAME)
     set(multiValueArgs)
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    # Many custom tests do test only FP32 data type and therefore
-    # added only if none of MIOPEN_TEST_HALF, MIOPEN_TEST_INT8, MIOPEN_TEST_BFLOAT16
-    # are set, except the test is allowed explicitly.
+#Many custom tests do test only FP32 data type and therefore
+#added only if none of MIOPEN_TEST_HALF, MIOPEN_TEST_INT8, MIOPEN_TEST_BFLOAT16
+#are set, except the test is allowed explicitly.
     set(is_half_check)
     set(HALF_TEST_DEFAULT FALSE)
     option_support_check(${PARSE_HALF_ENABLED} ${PARSE_HALF_DISABLED} ${HALF_TEST_DEFAULT} is_half_check)
@@ -515,7 +526,7 @@ function(add_custom_test NAME)
     bool_not_f(${MIOPEN_TEST_HIP_NOGPU} NOT_MIOPEN_TEST_HIP_NOGPU)
     bool_or_f(${NOT_MIOPEN_TEST_HIP_NOGPU} ${is_hip_nogpu_check} is_hip_nogpu_check)
 
-    # Some tests are xDLOPs specific and should not run on gfx900/906 targets.
+#Some tests are xDLOPs specific and should not run on gfx900 / 906 targets.
     set(is_gfx900_check)
     set(GFX900_TEST_DEFAULT TRUE)
     option_support_check(${PARSE_GFX900_ENABLED} ${PARSE_GFX900_DISABLED} ${GFX900_TEST_DEFAULT} is_gfx900_check)
@@ -541,7 +552,7 @@ function(add_custom_test NAME)
     option_support_check(${PARSE_GFX103X_ENABLED} ${PARSE_GFX103X_DISABLED} ${GFX103X_TEST_DEFAULT} is_gfx103x_check)
     bool_and_f(${MIOPEN_TEST_GFX103X} ${is_gfx103x_check} is_gfx103x_check)
 
-    # When SKIP_XNACK_ON is set, the test will be skipped if MIOPEN_TEST_GPU_XNACK_ENABLED is set.
+#When SKIP_XNACK_ON is set, the test will be skipped if MIOPEN_TEST_GPU_XNACK_ENABLED is set.
     set(is_xnack_on_check)
     bool_and_f(${PARSE_SKIP_XNACK_ON} ${MIOPEN_TEST_GPU_XNACK_ENABLED} is_xnack_on_check)
     bool_not_f(${is_xnack_on_check} is_xnack_on_check)
@@ -552,7 +563,9 @@ function(add_custom_test NAME)
 
 
     add_custom_target(${NAME} ${PARSE_UNPARSED_ARGUMENTS})
-    add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
+    add_test(NAME ${NAME} COMMAND ${
+    CMAKE_COMMAND} --build ${
+    CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
 
     if(WORKAROUND_ISSUE_1148
         AND (${NAME} MATCHES "test_conv_3d"
@@ -587,41 +600,48 @@ function(add_custom_test NAME)
 endfunction()
 if(${CODECOV_TEST})
     add_custom_test(test_conv3d_codecov
-        COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 4 4 4 4 --weights 2 4 1 1 1 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 2 4 4 4 4 --weights 2 4 1 1 1 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     )
     add_custom_test(test_immed_conv2d_codecov
-        COMMAND $<TARGET_FILE:test_immed_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input  2 2 14 14 --weights 8 2 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_immed_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input  2 2 14 14 --weights 8 2 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     )
     add_custom_test(test_immed_conv3d_codecov
-        COMMAND $<TARGET_FILE:test_immed_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 4 4 4 4 --weights 2 4 3 3 3 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_immed_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 1 4 4 4 4 --weights 2 4 3 3 3 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     )
     add_custom_test(test_pooling2d_codecov
-        COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --input 1, 192, 28, 28 --lens 2 2 --strides 2 2 --pads 0 0 ${MIOPEN_TEST_FLAGS_ARGS}
+        COMMAND $<TARGET_FILE:test_pooling2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 1, 192, 28, 28 --lens 2 2 --strides 2 2 --pads 0 0 ${MIOPEN_TEST_FLAGS_ARGS}
     )
 endif()
 
 if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
     add_custom_test(test_miopendriver_half SKIP_UNLESS_ALL GFX103X_ENABLED FLOAT_DISABLED HALF_ENABLED
-        # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1576
-        COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvBwd $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} --forw 2 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
+#Regression test for https: // github.com/ROCmSoftwarePlatform/MIOpen/issues/1576
+        COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvBwd $<TARGET_FILE:MIOpenDriver> ${
+    MIOPENDRIVER_MODE_CONV} --forw 2 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
     )
 
     add_custom_test(test_miopendriver_int8 SKIP_UNLESS_ALL GFX103X_ENABLED FLOAT_DISABLED INT8_ENABLED
-        COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvFwd $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} --forw 1 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
+        COMMAND MIOPEN_FIND_MODE=1 MIOPEN_DRIVER_USE_GPU_REFERENCE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvFwd $<TARGET_FILE:MIOpenDriver> ${
+    MIOPENDRIVER_MODE_CONV} --forw 1 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
     )
 
     add_custom_test(test_miopendriver_float_half_gfx10 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED HALF_ENABLED
-        # Regression test for:
-        #   [Navi21] Fixing Batchnorm backward precision issues by adjusting workgroup size (SWDEV-292187, SWDEV-319919)
-        #   https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1386
+#Regression test for:
+#[Navi21] Fixing Batchnorm backward precision issues by adjusting workgroup size(SWDEV - 292187, \
+                                                                                 SWDEV - 319919)
+#https: // github.com/ROCmSoftwarePlatform/MIOpen/pull/1386
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_BN} -n 256 -c 512 -H 18 -W 18 -m 1 --forw 0 -b 1 -r 1
         COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_BN} -n 256 -c 512 -H 28 -W 28 -m 1 --forw 0 -b 1 -r 1
     )
 
-    # WORKAROUND_ISSUE_1787 disabled for gfx908
+#WORKAROUND_ISSUE_1787 disabled for gfx908
     add_custom_test(test_miopendriver_big_tensor GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED SKIP_UNLESS_ALL GFX103X_ENABLED
-        # Regression test for https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1661
-        # Issue #1697: this is large test which has to run in serial and not enabled on gfx900/gfx906
+#Regression test for https: // github.com/ROCmSoftwarePlatform/MIOpen/issues/1661
+#Issue #1697 : this is large test which has to run in serial and not enabled on gfx900 / gfx906
         COMMAND MIOPEN_DRIVER_USE_GPU_REFERENCE=1 $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -W 5078 -H 4903 -c 24 -n 5 -k 1 --fil_w 3 --fil_h 3 --pad_w 6 --pad_h 4 -F 1
     )
     set_tests_properties(test_miopendriver_big_tensor
@@ -630,38 +650,61 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
         PROPERTIES TIMEOUT 600) 
 endif()
 
-# ./bin/MIOpenDriver conv -n 128 -c 1024 -H 14 -W 14 -k 2048 -y 1 -x 1 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -m conv -g 1 -F 1 -t 1
-# MIOPEN_DEBUG_CONV_IMMED_FALLBACK=0
+#./ bin / MIOpenDriver conv - n 128 - c 1024 - H 14 - W 14 - k 2048 - y 1 - x 1 - p 0 - q 0 - \
+    u 2 - v 2 - l 1 - j 1 - m conv - g 1 - F 1 - t 1
+#MIOPEN_DEBUG_CONV_IMMED_FALLBACK = 0
 if(MIOPEN_EMBED_DB)
-    set(MIOPEN_EMBED_TEST_ARG ${MIOPEN_TEST_FLOAT_ARG} --disable-validation --verbose)
-    # WORKAROUND for issue #874
+    set(MIOPEN_EMBED_TEST_ARG ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-validation --verbose)
+#WORKAROUND for issue #874
     set(MIOPEN_WA_ISSUE_874_F  MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0)
     set(MIOPEN_WA_ISSUE_874_W  MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0)
     set(MIOPEN_WA_ISSUE_874_FW MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0 MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1=0)
-    # WORKAROUND for issue #1008
+#WORKAROUND for issue #1008
     set(MIOPEN_WA_ISSUE_1008 MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2=0)
 add_custom_test(test_conv_embed_db TEST_PERF_DB_RECORD_NOT_FOUND GFX908_DISABLED GFX90A_DISABLED
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_F}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008}                           $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 128 28 28 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 128 28 28 --weights 512 128 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 2048 7 7 --weights 512 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_F}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 14 14 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 14 14 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 56 56 --weights 128 256 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008}                           $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 256 56 56 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008}                           $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 3 230 230   --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 28 28 --weights 1024 512 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 28 28 --weights 128 512 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 28 28 --weights 256 512 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 7 7   --weights 2048 512 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 512 7 7   --weights 512 512 3 3  --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 64 56 56 --weights 256 64 1 1  --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 64 56 56 --weights 64 64 1 1  --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${MIOPEN_EMBED_TEST_ARG} --input 128 64 56 56 --weights 64 64 3 3   --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_F}  $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008}                           $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 128 28 28 --weights 128 128 3 3 --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 1024 14 14 --weights 512 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 128 28 28 --weights 512 128 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 2048 7 7 --weights 512 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_F}  $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 256 14 14 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 256 14 14 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 256 56 56 --weights 128 256 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008}                           $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 256 56 56 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008}                           $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 3 230 230   --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 512 28 28 --weights 1024 512 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 512 28 28 --weights 128 512 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 512 28 28 --weights 256 512 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 512 7 7   --weights 2048 512 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 512 7 7   --weights 512 512 3 3  --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 64 56 56 --weights 256 64 1 1  --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_FW} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 64 56 56 --weights 64 64 1 1  --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${MIOPEN_WA_ISSUE_1008} ${MIOPEN_WA_ISSUE_874_W}  $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_EMBED_TEST_ARG} --input 128 64 56 56 --weights 64 64 3 3   --pads_strides_dilations 1 1 1 1 1 1
 )
 endif()
 
@@ -670,53 +713,85 @@ set(IMPLICITGEMM_MLIR_ENV_F ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY
 set(IMPLICITGEMM_MLIR_ENV_B ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmBwd)
 set(IMPLICITGEMM_MLIR_ENV_W ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmWrW)
 
-set(TEST_CONV_VERBOSE_F ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data --disable-backward-weights)
-set(TEST_CONV_VERBOSE_B ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-weights)
-set(TEST_CONV_VERBOSE_W ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-data)
+set(TEST_CONV_VERBOSE_F ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data --disable-backward-weights)
+set(TEST_CONV_VERBOSE_B ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-weights)
+set(TEST_CONV_VERBOSE_W ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --disable-forward --disable-backward-data)
 
-# Note: OpenCL Debug + Codecov test stage taking longer time than a smoke test should therefore disabling that scenario
+#Note : OpenCL Debug + Codecov test stage taking longer time than a smoke test should therefore \
+                           disabling that scenario
 string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
 if ((NOT CMAKE_BUILD_TYPE MATCHES "DEBUG") OR (NOT ${CODECOV_TEST}))
     add_custom_test(test_conv_igemm_mlir_small HALF_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 64 128 14 14 --weights 128 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 64 256 28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
-        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 64 128 14 14 --weights 128 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 64 256 28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
+        COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1
     )
 endif()
 
 add_custom_test(test_pooling2d_asymmetric SKIP_UNLESS_ALL HALF_ENABLED GFX103X_ENABLED
-    COMMAND $<TARGET_FILE:test_pooling2d> ${MIOPEN_TEST_FLOAT_ARG} --all --dataset 1 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND $<TARGET_FILE:test_pooling2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --all --dataset 1 --limit 0 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(test_conv_igemm_mlir_fwd SKIP_UNLESS_ALL HALF_ENABLED INT8_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 256  56 56 --weights 256  64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 256 256  56 56 --weights 256  64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
 )
 
 add_custom_test(test_conv_igemm_mlir_bwd_wrw SKIP_UNLESS_ALL HALF_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 256 1024 14 14 --weights 1024 32   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 32
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 256 1024 14 14 --weights 1024 32   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 32
 )
 
 set(IMPLICITGEMM_MLIR_ENV_F_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmFwdXdlops)
@@ -724,67 +799,115 @@ set(IMPLICITGEMM_MLIR_ENV_B_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FI
 set(IMPLICITGEMM_MLIR_ENV_W_XDLOPS ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmWrWXdlops)
 
 add_custom_test(test_conv_igemm_mlir_xdlops_small HALF_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX906_DISABLED
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 64 128 14 14 --weights 128 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 64 256 28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 64 128 14 14 --weights 128 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 64 256 28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1
 )
 
 add_custom_test(test_conv_igemm_mlir_xdlops_fwd SKIP_UNLESS_ALL HALF_ENABLED INT8_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX906_DISABLED
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 256 256  56 56 --weights 256  64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_F_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_F} --input 256 256  56 56 --weights 256  64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4
 )
 
 if(MIOPEN_USE_COMPOSABLEKERNEL)
 add_custom_test(test_conv_hip_igemm_xdlops SKIP_UNLESS_ALL OCL_DISABLED HALF_DISABLED FLOAT_DISABLED INT8_ENABLED GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 128  28 28 --weights 128  128  3 3 --output_type int8 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 512  7  7  --weights 512  512  3 3 --output_type int8 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 64   56 56 --weights 64   64   1 1 --output_type int8 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 256  56 56 --weights 256  64   1 1 --output_type int8 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 128  28 28 --weights 128  128  3 3 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 512  7  7  --weights 512  512  3 3 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 64   56 56 --weights 64   64   1 1 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 256  56 56 --weights 256  64   1 1 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 128  28 28 --weights 128  128  3 3 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 512  7  7  --weights 512  512  3 3 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 64   56 56 --weights 64   64   1 1 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 256  56 56 --weights 256  64   1 1 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 256 128  28 28 --weights 128  128  3 3 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 128 512  7  7  --weights 512  512  3 3 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 128 64   56 56 --weights 64   64   1 1 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 256 256  56 56 --weights 256  64   1 1 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 256 128  28 28 --weights 128  128  3 3 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 128 512  7  7  --weights 512  512  3 3 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 128 64   56 56 --weights 64   64   1 1 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 256 256  56 56 --weights 256  64   1 1 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 128  28 28 --weights 128  128  3 3 --output_type int8 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 512  7  7  --weights 512  512  3 3 --output_type int8 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 64   56 56 --weights 64   64   1 1 --output_type int8 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 256  56 56 --weights 256  64   1 1 --output_type int8 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 128  28 28 --weights 128  128  3 3 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 512  7  7  --weights 512  512  3 3 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 64   56 56 --weights 64   64   1 1 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 256  56 56 --weights 256  64   1 1 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 128  28 28 --weights 128  128  3 3 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 512  7  7  --weights 512  512  3 3 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 128 64   56 56 --weights 64   64   1 1 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-backward-data --disable-backward-weights --verbose --input 256 256  56 56 --weights 256  64   1 1 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 256 128  28 28 --weights 128  128  3 3 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 128 512  7  7  --weights 512  512  3 3 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 128 64   56 56 --weights 64   64   1 1 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 256 256  56 56 --weights 256  64   1 1 --output_type fp32 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 256 128  28 28 --weights 128  128  3 3 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 128 512  7  7  --weights 512  512  3 3 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 128 64   56 56 --weights 64   64   1 1 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --disable-forward --disable-backward-weights --verbose --input 256 256  56 56 --weights 256  64   1 1 --output_type fp16 --in_layout NHWC --fil_layout NHWC --out_layout NHWC --pads_strides_dilations 0 0 1 1 1 1
 )
 endif()
 
 add_custom_test(test_conv_igemm_mlir_xdlops_bwd_wrw SKIP_UNLESS_ALL HALF_ENABLED SKIP_UNLESS_MLIR GFX900_DISABLED GFX906_DISABLED
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 256 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 256 128  28 28 --weights 128  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 128 512  7  7  --weights 512  512  3 3 --pads_strides_dilations 1 1 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_B_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_B} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 256 1024 14 14 --weights 1024 32   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 32
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 64  1024 14 14 --weights 256  1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 256 256  14 14 --weights 256  256  3 3 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 128 2048 7  7  --weights 512  2048 1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 128 64   56 56 --weights 64   64   1 1 --pads_strides_dilations 0 0 1 1 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 256 1024 14 14 --weights 1024 32   1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 32
 
-    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 64 1024 14 14 --weights 1024 1024  1 1 --pads_strides_dilations 0 0 1 1 1 1
+    COMMAND ${IMPLICITGEMM_MLIR_ENV_W_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    TEST_CONV_VERBOSE_W} --input 64 1024 14 14 --weights 1024 1024  1 1 --pads_strides_dilations 0 0 1 1 1 1
 )
 
 set(IMPLICITGEMM_TESTING_ENV
@@ -800,91 +923,173 @@ if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
     LIST(APPEND IMPLICITGEMM_TESTING_ENV MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0 MIOPEN_FIND_MODE=normal)
     SET(SAVE_MIOPEN_TEST_FLOAT_ARG ${MIOPEN_TEST_FLOAT_ARG})
     LIST(APPEND MIOPEN_TEST_FLOAT_ARG --disable-forward --disable-backward-data)
-    #Afther fix need to remove '| grep -v "cannot be executed due to incorrect params"'
+#Afther fix need to remove '| grep -v "cannot be executed due to incorrect params"'
 endif()
 
 add_custom_test(test_conv_for_implicit_gemm SKIP_UNLESS_ALL BF16_ENABLED HALF_ENABLED GFX103X_ENABLED
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  28  28  --weights 192 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  14  14  --weights 160 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16   7   7  --weights 128 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  55  55  --weights 96  16  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  28  28  --weights 64  16  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  14  14  --weights 32  16  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  28  28  --weights 192 32  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  14  14  --weights 160 32  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  7   7   --weights 128 32  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  55  55  --weights 96  32  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  28  28  --weights 64  32  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  14  14  --weights 32  32  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  56  56  --weights 256 64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  56  56  --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  73  73  --weights 80  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  56  56  --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128 55  55  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128 28  28  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128 14  14  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128  7   7  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 56  56  --weights 256  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 56  56  --weights 64   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 73  73  --weights 80   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 56  56  --weights 64   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128 55  55  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128 28  28  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
-# COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128     14  14  --weights   16  128     1   1   --pads_strides_dilations    0   0   1   1   1   1
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128      7   7  --weights   16  128     1   1   --pads_strides_dilations    0   0   1   1   1   1 | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	55	55	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	28	28	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	14	14	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	 7	 7	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	    28	28	--weights	512	128	    1	1	--pads_strides_dilations	0	0	1	1	1	1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	160	    73	73	--weights	64	160	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	    35	35	--weights	32	192	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	    35	35	--weights	48	192	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	    35	35	--weights	64	192	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	16	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	32	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	64	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	96	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    35	35	--weights	48	256	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    35	35	--weights	64	256	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    56	56	--weights	128	256	    1	1	--pads_strides_dilations	0	0	2	2	1	1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    56	56	--weights	512	256	    1	1	--pads_strides_dilations	0	0	2	2	1	1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    56	56	--weights	64	256	    1	1	--pads_strides_dilations	0	0	1	1	1	1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	28	28	--weights	128	256	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	28	28	--weights	32	256	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	28	28	--weights	64	256	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	288	    35	35	--weights	48	288	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	288	    35	35	--weights	64	288	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	384	    35	35	--weights	192	384	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	384	    35	35	--weights	64	384	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	384	    35	35	--weights	96	384	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	16	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	192	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	64	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	96	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	    28	28	--weights	128	512	    1	1	--pads_strides_dilations	0	0	1	1	1	1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	    28	28	--weights	256	512	    1	1	--pads_strides_dilations	0	0	2	2	1	1 | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	112	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	128	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	144	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	160	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	24	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	32	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	64	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   32  832  1   1   --pads_strides_dilations    0   0   1   1   1   1      | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   192  832  1   1   --pads_strides_dilations    0   0   1   1   1   1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   128  832  1   1   --pads_strides_dilations    0   0   1   1   1   1     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   32  832  1   1   --pads_strides_dilations    0   0   1   1   2   2      | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   192  832  1   1   --pads_strides_dilations    0   0   1   1   2   2     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   128  832  1   1   --pads_strides_dilations    0   0   1   1   2   2     | grep -v "cannot be executed due to incorrect params"
-COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  2048    7  7  --weights   192  2048 1   1   --pads_strides_dilations    0   0   1   1   2   2     | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	28 28 --weights   192  32   3	3   --pads_strides_dilations	1   1	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 8    16 14 14 --weights   32   16   1   1   --pads_strides_dilations	1   1	1   1	1   1         | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	14 14 --weights   192  32   3	3   --pads_strides_dilations	1   1	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	7 7   --weights   192  32   3	3   --pads_strides_dilations	1   1	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	28 28 --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	14 14 --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
-COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	7 7   --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  28  28  --weights 192 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  14  14  --weights 160 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16   7   7  --weights 128 16  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  55  55  --weights 96  16  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  28  28  --weights 64  16  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  16  14  14  --weights 32  16  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  28  28  --weights 192 32  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  14  14  --weights 160 32  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  7   7   --weights 128 32  3 3 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  55  55  --weights 96  32  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  28  28  --weights 64  32  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  32  14  14  --weights 32  32  1 7 --pads_strides_dilations 0 0 2 2 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  56  56  --weights 256 64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  56  56  --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  73  73  --weights 80  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  64  56  56  --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128 55  55  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128 28  28  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128 14  14  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64  128  7   7  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 56  56  --weights 256  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 56  56  --weights 64   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 73  73  --weights 80   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16   64 56  56  --weights 64   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128 55  55  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128 28  28  --weights 16  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 | grep -v "cannot be executed due to incorrect params"
+#COMMAND ${                                                   \
+    IMPLICITGEMM_TESTING_ENV } $ < TARGET_FILE : test_conv2d> \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 16 128 14 14 --weights 16 128 1 1 --pads_strides_dilations 0 0 1 1 1 1
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  128      7   7  --weights   16  128     1   1   --pads_strides_dilations    0   0   1   1   1   1 | grep -v "cannot be executed due to incorrect params"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	55	55	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	28	28	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	14	14	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	 7	 7	--weights	16  128		1	1	--pads_strides_dilations	0	0	2	2	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	128	    28	28	--weights	512	128	    1	1	--pads_strides_dilations	0	0	1	1	1	1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	160	    73	73	--weights	64	160	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	    35	35	--weights	32	192	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	    35	35	--weights	48	192	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	    35	35	--weights	64	192	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	16	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	32	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	64	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	192	28	28	--weights	96	192	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    35	35	--weights	48	256	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    35	35	--weights	64	256	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    56	56	--weights	128	256	    1	1	--pads_strides_dilations	0	0	2	2	1	1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    56	56	--weights	512	256	    1	1	--pads_strides_dilations	0	0	2	2	1	1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	    56	56	--weights	64	256	    1	1	--pads_strides_dilations	0	0	1	1	1	1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	28	28	--weights	128	256	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	28	28	--weights	32	256	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	256	28	28	--weights	64	256	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	288	    35	35	--weights	48	288	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	288	    35	35	--weights	64	288	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	384	    35	35	--weights	192	384	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	384	    35	35	--weights	64	384	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	384	    35	35	--weights	96	384	1	1	--pads_strides_dilations	0	0	1	1	1	1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	16	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	192	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	64	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	480	14	14	--weights	96	480	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	    28	28	--weights	128	512	    1	1	--pads_strides_dilations	0	0	1	1	1	1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	    28	28	--weights	256	512	    1	1	--pads_strides_dilations	0	0	2	2	1	1 | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	112	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	128	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	144	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	160	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	24	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	32	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose	--input	64	512	14	14	--weights	64	512	1	1	--pads_strides_dilations	0	0	1	1	1	1         | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   32  832  1   1   --pads_strides_dilations    0   0   1   1   1   1      | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   192  832  1   1   --pads_strides_dilations    0   0   1   1   1   1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   128  832  1   1   --pads_strides_dilations    0   0   1   1   1   1     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   32  832  1   1   --pads_strides_dilations    0   0   1   1   2   2      | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   192  832  1   1   --pads_strides_dilations    0   0   1   1   2   2     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 128  832    7  7  --weights   128  832  1   1   --pads_strides_dilations    0   0   1   1   2   2     | grep -v "cannot be executed due to incorrect params"
+COMMAND ${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 16  2048    7  7  --weights   192  2048 1   1   --pads_strides_dilations    0   0   1   1   2   2     | grep -v "cannot be executed due to incorrect params"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	28 28 --weights   192  32   3	3   --pads_strides_dilations	1   1	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 8    16 14 14 --weights   32   16   1   1   --pads_strides_dilations	1   1	1   1	1   1         | grep -v "cannot be executed due to incorrect params"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	14 14 --weights   192  32   3	3   --pads_strides_dilations	1   1	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	7 7   --weights   192  32   3	3   --pads_strides_dilations	1   1	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	28 28 --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	14 14 --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
+COMMAND	${IMPLICITGEMM_TESTING_ENV} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose   --input 64	 32	7 7   --weights   192  32   3	3   --pads_strides_dilations	2   2	2   2	1   1         | grep -v "cannot be executed due to incorrect params"
 )
 
 if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
@@ -903,7 +1108,7 @@ COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	1024	7	7	--weights	2048	
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	128	56	56	--weights	256	4	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	256	56	56	--weights	512	8	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32
 #
-# Workaround for "Memory access fault by GPU node" during "HIP Release All" - WrW disabled.
+#Workaround for "Memory access fault by GPU node" during "HIP Release All" - WrW disabled.
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	256	28	28	--weights	512	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32 --disable-backward-weights
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	512	28	28	--weights	1024	16	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	512	14	14	--weights	1024	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32
@@ -928,7 +1133,8 @@ COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	3	224	224	--weights	63	1	
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	8	64	112	112	--weights	128	32	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	2
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	9	224	224	--weights	63	3	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	3
 #
-# Workaround for "Memory access fault by GPU node" during "FP32 gfx908 Hip Release All subset" - WrW disabled.
+#Workaround for "Memory access fault by GPU node" during "FP32 gfx908 Hip Release All subset" - \
+    WrW disabled.
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	64	112	112	--weights	128	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	4 --disable-backward-weights
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	3	224	224	--weights	63	1	7	7	--pads_strides_dilations	3	3	2	2	1	1	--group-count	3
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	192	28	28	--weights	32	12	5	5	--pads_strides_dilations	2	2	1	1	1	1	--group-count	16
@@ -1093,7 +1299,8 @@ COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 3 --batch-s
 
 
 add_custom_test(test_conv_extra SKIP_UNLESS_ALL GFX103X_ENABLED
-# COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	1	1	1	1	--weights	1	1	2	2	--pads_strides_dilations	0	0	3	3	1	1
+#COMMAND $ < TARGET_FILE : test_conv2d> \
+    --verbose-- input 1 1 1 1 --weights 1 1 2 2 --pads_strides_dilations 0 0 3 3 1 1
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	32	79	341	--weights	4	32	5	10	--pads_strides_dilations	0	0	2	2	1	1
@@ -1101,57 +1308,94 @@ COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	32	79	341	--weights	4	32	
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	3	227	227	--weights	4	3	11	11	--pads_strides_dilations	0	0	4	4	1	1
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	3	224	224	--weights	4	3	11	11	--pads_strides_dilations	2	2	4	4	1	1
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	16	1	48	480	--weights	16	1	3	3	--pads_strides_dilations	1	1	1	1	1	1
-# Forward disabled since FFT fails verification for the forward direction
+#Forward disabled since FFT fails verification for the forward direction
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	32	64	27	27	--weights	192	64	5	5	--pads_strides_dilations	2	2	1	1	1	1 --disable-forward
-# COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	64	14	14	--weights	24	64	5	5	--pads_strides_dilations	2	2	1	1	1	1
+#COMMAND $ < TARGET_FILE : test_conv2d> \
+    --verbose-- input 4 64 14 14 --weights 24 64 5 5 --pads_strides_dilations 2 2 1 1 1 1
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	96	14	14	--weights	32	96	5	5	--pads_strides_dilations	2	2	1	1	1	1
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	16	14	14	--weights	4	16	5	5	--pads_strides_dilations	2	2	1	1	1	1
 COMMAND	$<TARGET_FILE:test_conv2d>	--verbose	--input	4	32	14	14	--weights	4	32	5	5	--pads_strides_dilations	2	2	1	1	1	1
 
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 64 128 --weights 96 3 11 11 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 32 32 --weights 96 3 11 11 --pads_strides_dilations 0 0 2 2 1 1  ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 64 128 --weights 96 3 11 11 --pads_strides_dilations 5 5 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 16 3 32 32 --weights 96 3 11 11 --pads_strides_dilations 5 5 2 2 1 1  ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 16 3 64 128 --weights 96 3 11 11 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 16 3 32 32 --weights 96 3 11 11 --pads_strides_dilations 0 0 2 2 1 1  ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 16 3 64 128 --weights 96 3 11 11 --pads_strides_dilations 5 5 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 16 3 32 32 --weights 96 3 11 11 --pads_strides_dilations 5 5 2 2 1 1  ${MIOPEN_TEST_FLAGS_ARGS}
 
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 1024 2048 --weights 32 16 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 1024 2048 --weights 32 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 3072 3072 --weights 32 16 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 3072 3072 --weights 32 16 3 3 --pads_strides_dilations 2 2 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 2 16 1024 2048 --weights 32 16 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 2 16 1024 2048 --weights 32 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 2 16 3072 3072 --weights 32 16 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 2 16 3072 3072 --weights 32 16 3 3 --pads_strides_dilations 2 2 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 128 320 1 7 --weights 256 320 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 128 1024 1 7 --weights 2048 1024 1 1 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 352 192 7 1 --weights 320 192 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --input 352 16 7 1 --weights 32 16 1 1 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 128 320 1 7 --weights 256 320 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 128 1024 1 7 --weights 2048 1024 1 1 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 352 192 7 1 --weights 320 192 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 352 16 7 1 --weights 32 16 1 1 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 if (0) #disabled too many errors
 if(MIOPEN_TEST_LIMIT GREATER 0)
 if(${MIOPEN_USE_MIOPENGEMM} AND (${MIOPEN_hip_VERSION_MAJOR} EQUAL 3) AND (${MIOPEN_hip_VERSION_MINOR} EQUAL 7))
     add_custom_test(test_conv3d_extra  SKIP_UNLESS_ALL GFX103X_ENABLED
-    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 2 2 2 ${MIOPEN_TEST_FLAGS_ARGS}
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND MIOPEN_LOG_LEVEL=6 $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 2 2 2 ${
+    MIOPEN_TEST_FLAGS_ARGS}
+#COMMAND $ < TARGET_FILE : test_conv3d>                                                                                    \
+    ${MIOPEN_TEST_FLOAT_ARG } --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${ \
+        MIOPEN_TEST_FLAGS_ARGS }
 
-    #ROCM3.7 compiler problems
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    #COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+#ROCM3 .7 compiler problems
+#COMMAND $ < TARGET_FILE : test_conv3d>                                                                                    \
+    ${MIOPEN_TEST_FLOAT_ARG } --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${ \
+        MIOPEN_TEST_FLAGS_ARGS }
+#COMMAND $ < TARGET_FILE : test_conv3d>                                                                                    \
+    ${MIOPEN_TEST_FLOAT_ARG } --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${ \
+        MIOPEN_TEST_FLAGS_ARGS }
+#COMMAND $ < TARGET_FILE : test_conv3d>                                                                                    \
+    ${MIOPEN_TEST_FLOAT_ARG } --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${ \
+        MIOPEN_TEST_FLAGS_ARGS }
+#COMMAND $ < TARGET_FILE : test_conv3d>                                                                                    \
+    ${MIOPEN_TEST_FLOAT_ARG } --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${ \
+        MIOPEN_TEST_FLAGS_ARGS }
     )
     message(STATUS "test_conv3d_extra reduced set")
 else()
     add_custom_test(test_conv3d_extra  SKIP_UNLESS_ALL GFX103X_ENABLED
-    COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50  50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 2 2 2 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-    COMMAND $<TARGET_FILE:test_conv3d> ${MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 2 16 50  50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 2 2 2 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 2 16 50 50 50 --weights 32 16 5 5 5 --pads_strides_dilations 0 0 0 1 1 1 2 2 2 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 161 700 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 2 2 2 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+    COMMAND $<TARGET_FILE:test_conv3d> ${
+    MIOPEN_TEST_FLOAT_ARG} --input 1 16 4 140 602 --weights 16 16 3 11 11 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     )
 endif()
 endif()
@@ -1271,208 +1515,396 @@ COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS} $<TARGET_FILE:test_conv2d> --verbose --
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_bwd SKIP_UNLESS_ALL HALF_ENABLED GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  224 17 17 --weights 224  224  1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  128 35 35 --weights 256  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  128 64 64 --weights 256  128  3 3 --pads_strides_dilations 1 1 2 2 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  768 17 17 --weights 256  768  3 3 --pads_strides_dilations 1 1 1 1 2 2 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  3  256 28 28 --weights 80  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  2  256 12 18 --weights 256  256  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  8  16 5 5 --weights 8  16  2 2 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-# ho=wo=1 stride=2
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  224 17 17 --weights 224  224  1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  128 35 35 --weights 256  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  128 64 64 --weights 256  128  3 3 --pads_strides_dilations 1 1 2 2 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  768 17 17 --weights 256  768  3 3 --pads_strides_dilations 1 1 1 1 2 2 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  3  256 28 28 --weights 80  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  2  256 12 18 --weights 256  256  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  8  16 5 5 --weights 8  16  2 2 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+#ho = wo = 1 stride = 2
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_bwd_group SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 28 28 --weights 16  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 2 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 17 17 --weights 64  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  8  128 56 56 --weights 128 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 --group-count 8 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 28 28 --weights 16  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 2 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 17 17 --weights 64  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  8  128 56 56 --weights 128 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 --group-count 8 --disable-forward --disable-backward-weights
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_bwd_float SKIP_UNLESS_ALL HALF_DISABLED FLOAT_ENABLED GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  512 128 128 --weights 12  512  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  512 128 128 --weights 12  512  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
-#add_custom_test(test_conv_igemm_dynamic_xdlops_fwd SKIP_UNLESS_ALL HALF_ENABLED GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 1024 14 14 --weights 1024 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 2048 7 7 --weights 2048 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 128 17 17 --weights 128 128 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 128 17 17 --weights 128 128 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 192 17 17 --weights 320 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 256 35 35 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 48 35 35 --weights 64 48 5 5 --pads_strides_dilations 2 2 1 1 1 1 --disable-backward-data --disable-backward-weights
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 512 7 7 --weights 512 512 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 32 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 2 256 100 104 --weights 12 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 1 256 28 28 --weights 80 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+#add_custom_test(test_conv_igemm_dynamic_xdlops_fwd SKIP_UNLESS_ALL HALF_ENABLED GFX90A_DISABLED \
+                     GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+#COMMAND ${                                                                                                                            \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                                  \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 64 1024 14 14 --weights 1024 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable - \
+      backward - data-- disable - backward - weights
+#COMMAND ${                                                                                                                         \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                               \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 64 256 56 56 --weights 512 256 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable - \
+      backward - data-- disable - backward - weights
+#COMMAND ${                                                                                                                          \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                                \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 64 2048 7 7 --weights 2048 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable - \
+      backward - data-- disable - backward - weights
+#COMMAND ${                                                                                                                          \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                                \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 128 128 17 17 --weights 128 128 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable - \
+      backward - data-- disable - backward - weights
+#COMMAND ${                                                                                                                          \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                                \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 128 128 17 17 --weights 128 128 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable - \
+      backward - data-- disable - backward - weights
+#COMMAND ${                                                                                                                          \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                                \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 128 192 17 17 --weights 320 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable - \
+      backward - data-- disable - backward - weights
+#COMMAND ${                                                                                                                         \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                               \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 128 256 35 35 --weights 64 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable - \
+      backward - data-- disable - backward - weights
+#COMMAND ${                                                                                                                       \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                             \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 128 48 35 35 --weights 64 48 5 5 --pads_strides_dilations 2 2 1 1 1 1 --disable - \
+      backward - data-- disable - backward - weights
+#COMMAND ${                                                                                                                       \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                             \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 64 512 7 7 --weights 512 512 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable - \
+      backward - data-- disable - backward - weights
+#COMMAND ${                                                                                                                            \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                                  \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 32 1024 14 14 --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable - \
+      backward - data-- disable - backward - weights
+#COMMAND ${                                                                                                                         \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                               \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 2 256 100 104 --weights 12 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable - \
+      backward - data-- disable - backward - weights
+#COMMAND ${                                                                                                                       \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                             \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 1 256 28 28 --weights 80 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable - \
+      backward - data-- disable - backward - weights
 ## ho=wo=1 stride=2
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  --disable-backward-data --disable-backward-weights
+#COMMAND ${                                                                                                                           \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                                 \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 256 2048 2 2 --weights 1024 2048 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable - \
+      backward - data-- disable - backward - weights
 #)
 
-#add_custom_test(test_conv_igemm_dynamic_xdlops_fwd_half SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 3 224 224 --weights 64 3 7 7 --pads_strides_dilations 3 3 2 2 1 1 --disable-backward-data --disable-backward-weights
-#COMMAND ${DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 64 3 230 230 --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+#add_custom_test(test_conv_igemm_dynamic_xdlops_fwd_half SKIP_UNLESS_ALL HALF_ENABLED \
+                     FLOAT_DISABLED GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
+#COMMAND ${                                                                                                                      \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                            \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 64 3 224 224 --weights 64 3 7 7 --pads_strides_dilations 3 3 2 2 1 1 --disable - \
+      backward - data-- disable - backward - weights
+#COMMAND ${                                                                                                                      \
+    DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS } $ < TARGET_FILE : test_conv2d>                                            \
+    ${MIOPEN_TEST_FLOAT_ARG } --verbose-- input 64 3 230 230 --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1 --disable - \
+      backward - data-- disable - backward - weights
 #)
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_wrw SKIP_UNLESS_ALL GFX90A_DISABLED GFX900_DISABLED GFX906_DISABLED HALF_ENABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  224 17 17 --weights 224  224  1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  128 35 35 --weights 256  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  128 64 64 --weights 256  128  3 3 --pads_strides_dilations 1 1 2 2 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  768 17 17 --weights 256  768  3 3 --pads_strides_dilations 1 1 1 1 2 2 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  3  256 28 28 --weights 80  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  2  256 12 18 --weights 256  256  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  512 128 128 --weights 12  512  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  224 17 17 --weights 224  224  1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  128 35 35 --weights 256  128  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  128 64 64 --weights 256  128  3 3 --pads_strides_dilations 1 1 2 2 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  768 17 17 --weights 256  768  3 3 --pads_strides_dilations 1 1 1 1 2 2 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  3  256 28 28 --weights 80  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  2  256 12 18 --weights 256  256  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  512 128 128 --weights 12  512  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
 #regression test for issue 540
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4 32 79 141 --weights 64 32 5 10 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  4 32 79 141 --weights 64 32 5 10 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
 
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-# Regression test for SWDEV-295434 (FP16 only).
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  120  256 3 3 --weights 340  256  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
-# ho=wo=1 stride=2
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+#Regression test for SWDEV - 295434(FP16 only).
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  120  256 3 3 --weights 340  256  3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
+#ho = wo = 1 stride = 2
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  --disable-forward --disable-backward-data
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_wrw_half SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED HALF_ENABLED FLOAT_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_fwd SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 59 57 --weights  12  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   3 78 78 --weights  64   3 7 7 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16 192 17 17 --weights 224 192 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16   3 17 17 --weights  64   3 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 19 19 --weights 510  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-# tensor larger than 4GB
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 2048  1 512 1024 --weights 1  1 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-# ho=wo=1 stride=2
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 59 57 --weights  12  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   3 78 78 --weights  64   3 7 7 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16 192 17 17 --weights 224 192 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16   3 17 17 --weights  64   3 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 19 19 --weights 510  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+#tensor larger than 4GB
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 2048  1 512 1024 --weights 1  1 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+#ho = wo = 1 stride = 2
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_fwd_nchw SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256   7   7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160  73  73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64  56  56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256  40  52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64  59  57 --weights  12  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  14  14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64  17  17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64  17  17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128  28  28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128   8   8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192  17  17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32  73  73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64  56  56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   3  78  78 --weights  64   3 7 7 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16 192  17  17 --weights 224 192 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16   3  17  17 --weights  64   3 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64  19  19 --weights 510  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16   3 224 224 --weights  63   1 3 3 --pads_strides_dilations 1 1 1 1 1 1 --group-count 3 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256   7   7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160  73  73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64  56  56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256  40  52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64  59  57 --weights  12  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  14  14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64  17  17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64  17  17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128  28  28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128   8   8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192  17  17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32  73  73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64  56  56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   3  78  78 --weights  64   3 7 7 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16 192  17  17 --weights 224 192 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16   3  17  17 --weights  64   3 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64  19  19 --weights 510  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16   3 224 224 --weights  63   1 3 3 --pads_strides_dilations 1 1 1 1 1 1 --group-count 3 --disable-backward-data --disable-backward-weights
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_bwd SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 256 1  1  --weights 340 256 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 128 10 10 --weights 340 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 19 19 --weights 510  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-# tensor larger than 4GB
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 2048  1 512 1024 --weights 1  1 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-# ho=wo=1 stride=2
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 256 1  1  --weights 340 256 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 128 10 10 --weights 340 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 19 19 --weights 510  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+#tensor larger than 4GB
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 2048  1 512 1024 --weights 1  1 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+#ho = wo = 1 stride = 2
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_bwd_nchw SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 256 1  1  --weights 340 256 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 128 10 10 --weights 340 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 19 19 --weights 510  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 256 1  1  --weights 340 256 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 128 10 10 --weights 340 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 19 19 --weights 510  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16_gfx90a SKIP_UNLESS_ALL BF16_ENABLED FLOAT_DISABLED HALF_DISABLED GFX908_DISABLED GFX90A_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 59 57 --weights  12  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   3 78 78 --weights  64   3 7 7 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16 192 17 17 --weights 224 192 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16   3 17 17 --weights  64   3 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 59 57 --weights  12  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64   3 78 78 --weights  64   3 7 7 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16 192 17 17 --weights 224 192 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16   3 17 17 --weights  64   3 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16_gfx90a SKIP_UNLESS_ALL BF16_ENABLED FLOAT_DISABLED HALF_DISABLED GFX908_DISABLED GFX90A_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 256 1  1  --weights 340 256 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 128 10 10 --weights 340 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 256 1  1  --weights 340 256 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  15 128 10 10 --weights 340 128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-weights --in_layout NHWC --fil_layout NHWC --out_layout NHWC
 )
 
 set(DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS
@@ -1487,88 +1919,155 @@ set(ARGS_NHWC_WRW
     --out_layout NHWC)
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_wrw SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
 
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4 32 79 141 --weights 64 32 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  4 32 79 141 --weights 64 32 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
 
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
 
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  2 64 19 19 --weights 510 64 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NHWC_WRW}
-# ho=wo=1 stride=2
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  2 64 19 19 --weights 510 64 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${
+    ARGS_NHWC_WRW}
+#ho = wo = 1 stride = 2
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1  ${ARGS_NHWC_WRW}
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_wrw_nchw SKIP_UNLESS_ALL HALF_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
 
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4 32 79 141 --weights 64 32 5 10 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  4 32 79 141 --weights 64 32 5 10 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
 
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-data
 
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  2 64 19 19 --weights 510 64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1 --disable-forward --disable-backward-data
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  2 64 19 19 --weights 510 64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-forward --disable-backward-data
 )
 
 add_custom_test(test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16_gfx90a SKIP_UNLESS_ALL BF16_ENABLED FLOAT_DISABLED HALF_DISABLED GFX908_DISABLED GFX90A_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
 
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4 32 79 141 --weights 64 32 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  4 32 79 141 --weights 64 32 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
 
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NHWC_WRW}
 
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2 ${ARGS_NHWC_WRW}
-COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 1 8 8 --weights 1 1 2 2 --pads_strides_dilations 0 0 1 1 2 2 ${ARGS_NHWC_WRW}
+COMMAND ${DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_WRW_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 128 56 56 --weights 1 128 5 5 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NHWC_WRW}
 )
 
 set(DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS
@@ -1616,151 +2115,266 @@ set(ARGS_NCHWC_CHWNC_FWD_FP16x8
     --vector_length 8)
 
 add_custom_test(test_conv_igemm_dynamic_dlops_nchwc_nchwc_fwd_fp16x4 SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED BF16_DISABLED GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED GFX908_DISABLED GFX103X_ENABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 8  10  10  --weights 8 8 3 3     --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  32 79 141 --weights 64  32 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024 256 7 7 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 8  10  10  --weights 8 8 3 3     --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  32 79 141 --weights 64  32 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024 256 7 7 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x4}
 )
 
 add_custom_test(test_conv_igemm_dynamic_dlops_nchwc_chwnc_fwd_fp16x4 SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED BF16_DISABLED GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED GFX908_DISABLED GFX103X_ENABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 256 3 3  128  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights 160 1 1   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64 1 1   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 1 1  256  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64 1 1   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights 128 1 1   64  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights  64 3 7  192  --pads_strides_dilations 0 3 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights  64 7 1  192  --pads_strides_dilations 3 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 2 2  128  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 128 3 1  192  --pads_strides_dilations 1 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 192 3 3  160  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  32 3 3   64  --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64 3 3   64  --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  16 3 3   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  32 79 141 --weights  32 5 10  64  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 256 7 7 1024  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 256 1 1 1024  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 256 3 3  128  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights 160 1 1   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64 1 1   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 1 1  256  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64 1 1   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights 128 1 1   64  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights  64 3 7  192  --pads_strides_dilations 0 3 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights  64 7 1  192  --pads_strides_dilations 3 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 2 2  128  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 128 3 1  192  --pads_strides_dilations 1 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 192 3 3  160  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  32 3 3   64  --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64 3 3   64  --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  16 3 3   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  32 79 141 --weights  32 5 10  64  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 256 7 7 1024  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 256 1 1 1024  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x4}
 )
 
 add_custom_test(test_conv_igemm_dynamic_dlops_nchwc_nchwc_fwd_fp16x8 SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED BF16_DISABLED GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED GFX908_DISABLED GFX103X_ENABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 8  10  10  --weights 8 8 3 3     --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  32 79 141 --weights 64  32 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024 256 7 7 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  1 8  10  10  --weights 8 8 3 3     --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64  64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights  64 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 1 7 --pads_strides_dilations 0 3 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights 192  64 7 1 --pads_strides_dilations 3 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 128 2 2 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 192 128 3 1 --pads_strides_dilations 1 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 160 192 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  64  32 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64  64 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  32 79 141 --weights 64  32 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights 1024 256 7 7 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights 1024 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_NCHWC_FWD_FP16x8}
 )
 
 add_custom_test(test_conv_igemm_dynamic_dlops_nchwc_chwnc_fwd_fp16x8 SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED BF16_DISABLED GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED GFX908_DISABLED GFX103X_ENABLED SKIP_XNACK_ON
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 256 1 1  128  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights 160 1 1   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64 1 1   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 1 1  256  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64 1 1   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights 128 1 1   64  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights  64 1 7  192  --pads_strides_dilations 0 3 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights  64 7 1  192  --pads_strides_dilations 3 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 2 2  128  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 128 3 1  192  --pads_strides_dilations 1 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 192 3 3  160  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  32 3 3   64  --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64 3 3   64  --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  16 3 3   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  32 79 141 --weights 32 5 10  64   --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights  256 7 7 1024 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
-COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights  256 1 1 1024 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 256  7  7 --weights 256 1 1  128  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 160 73 73 --weights 160 1 1   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64 1 1   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2 256 40 52 --weights 256 1 1  256  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   2  64 32 28 --weights  64 1 1   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128 14 14 --weights 128 1 1   64  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights  64 1 7  192  --pads_strides_dilations 0 3 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  64 17 17 --weights  64 7 1  192  --pads_strides_dilations 3 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input   4 128 28 28 --weights 128 2 2  128  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  32 128  8  8 --weights 128 3 1  192  --pads_strides_dilations 1 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64 192 17 17 --weights 192 3 3  160  --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 73 73 --weights  32 3 3   64  --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 56 56 --weights  64 3 3   64  --pads_strides_dilations 1 1 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  16 25 25 --weights  16 3 3   64  --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  4  32 79 141 --weights 32 5 10  64   --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 7 7 --weights  256 7 7 1024 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
+COMMAND ${DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  400  256 1 1 --weights  256 1 1 1024 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_NCHWC_CHWNC_FWD_FP16x8}
 )
 
 add_custom_test(test_regression_half_mi100 SKIP_UNLESS_ALL FLOAT_DISABLED HALF_ENABLED GFX908_ENABLED GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED
-# Regression test for SWDEV-291202
-COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV4R1Xdlops $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  24 14 14 --weights 64  24 5 5 --pads_strides_dilations 2 2 1 1 1 1 --disable-forward --disable-backward-weights
+#Regression test for SWDEV - 291202
+COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdDataV4R1Xdlops $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input  128  24 14 14 --weights 64  24 5 5 --pads_strides_dilations 2 2 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
 add_custom_test(test_regression_float_mi100 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED
-# Regression test for SWDEV-305815 (issue 1206)
-COMMAND ${IMPLICITGEMM_TESTING_ENV} MIOPEN_LOG_LEVEL=5 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 32 256 38 38 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
+#Regression test for SWDEV - 305815(issue 1206)
+COMMAND ${IMPLICITGEMM_TESTING_ENV} MIOPEN_LOG_LEVEL=5 $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 32 256 38 38 --weights 256 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-forward --disable-backward-weights
 )
 
 set(CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV
     MIOPEN_FIND_MODE=normal
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvCkIgemmFwdV6r1DlopsNchw)
 
-# gfx908 disabled as a workaround for https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1790/files?diff=split&w=1#r982923610
+#gfx908 disabled as a \
+    workaround for https: // github.com/ROCmSoftwarePlatform/MIOpen/pull/1790/files?diff=split&w=1#r982923610
 add_custom_test(test_conv_ck_igemm_fwd_v6r1_dlops_nchw FLOAT_ENABLED HALF_ENABLED BF16_DISABLED GFX908_DISABLED GFX103X_ENABLED SKIP_UNLESS_ALL
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 1024 14 14  --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 14 14  --weights  256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 1024 14 14  --weights  512 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  128 28 28  --weights  128 1024 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  128 28 28  --weights  512  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  128 58 58  --weights  128  128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 2048  7  7  --weights  512 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 14 14  --weights 1024  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 14 14  --weights  256  256 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 30 30  --weights  256  256 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 56 56  --weights  128  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 56 56  --weights  512  256 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 56 56  --weights   64  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  512 16 16  --weights  512  512 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  512 28 28  --weights 1024  512 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  512 28 28  --weights  128  512 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  512 28 28  --weights  256  512 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  512  7  7  --weights 2048  512 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  512  7  7  --weights  512  512 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128   64 56 56  --weights  256   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128   64 56 56  --weights   64   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
-COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input 128   64 56 56  --weights   64   64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 1024 14 14  --weights 2048 1024 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 14 14  --weights  256 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 1024 14 14  --weights  512 1024 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  128 28 28  --weights  128 1024 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  128 28 28  --weights  512  128 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  128 58 58  --weights  128  128 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128 2048  7  7  --weights  512 2048 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 14 14  --weights 1024  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 14 14  --weights  256  256 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 30 30  --weights  256  256 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 56 56  --weights  128  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 56 56  --weights  512  256 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  256 56 56  --weights   64  256 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  512 16 16  --weights  512  512 3 3 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  512 28 28  --weights 1024  512 1 1 --pads_strides_dilations 0 0 2 2 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  512 28 28  --weights  128  512 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  512 28 28  --weights  256  512 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  512  7  7  --weights 2048  512 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128  512  7  7  --weights  512  512 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128   64 56 56  --weights  256   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128   64 56 56  --weights   64   64 1 1 --pads_strides_dilations 0 0 1 1 1 1 --disable-backward-data --disable-backward-weights
+COMMAND ${CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW_ENV}     $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --input 128   64 56 56  --weights   64   64 3 3 --pads_strides_dilations 1 1 1 1 1 1 --disable-backward-data --disable-backward-weights
 )
 
 add_custom_test(test_reduce_custom_fp32 GFX103X_ENABLED SKIP_UNLESS_ALL
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 1024 30528 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 1024 30528 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(test_reduce_custom_fp32_fp16 HALF_ENABLED GFX103X_ENABLED SKIP_UNLESS_ALL
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 8 2 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 160 10 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 7 1024 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 ---ReduceOp 1 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 1 1 --I 1 --N 1 ---ReduceOp 3 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 2 1 --I 1 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 ---ReduceOp 2 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 2 2 1 --I 0 --N 1 ---ReduceOp 0 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 3 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 ---ReduceOp 3 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 ---ReduceOp 2 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 12 11 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 13 4 7 7 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 3 ${MIOPEN_TEST_FLAGS_ARGS}
-COMMAND $<TARGET_FILE:test_reduce_test> ${MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 64 3 280 81 --I 0 --N 0 --ReduceOp 0 --R 0 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 8 2 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 160 10 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 7 1024 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 ---ReduceOp 1 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 1 1 --I 1 --N 1 ---ReduceOp 3 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 2 1 --I 1 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 ---ReduceOp 2 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 2 2 1 --I 0 --N 1 ---ReduceOp 0 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 3 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 ---ReduceOp 3 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 ---ReduceOp 2 --R 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 12 11 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 13 4 7 7 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 3 ${MIOPEN_TEST_FLAGS_ARGS}
+COMMAND $<TARGET_FILE:test_reduce_test> ${
+    MIOPEN_TEST_FLOAT_ARG} --scales 1 0 --CompType 1 --D 64 3 280 81 --I 0 --N 0 --ReduceOp 0 --R 0 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 if(MIOPEN_TEST_DEEPBENCH)
@@ -1854,41 +2468,51 @@ if(MIOPEN_TEST_FLOAT)
 endif()
 
 add_custom_test(smoke_conv_solver_ConvAsm_5x10_7x7 GFX90A_DISABLED SKIP_XNACK_ON
-    # GFX90A_DISABLED is because of WORKAROUND_ISSUE_1146
+#GFX90A_DISABLED is because of WORKAROUND_ISSUE_1146
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm5x10u2v2f1 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_F} --input 1 1 5 10 --weights 16 1 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+      ${
+    TEST_CONV_VERBOSE_F} --input 1 1 5 10 --weights 16 1 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm5x10u2v2b1 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_B} --input 1 1 16 160 --weights 16 16 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+      ${
+    TEST_CONV_VERBOSE_B} --input 1 1 16 160 --weights 16 16 5 10 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsm7x7c3h224w224k64u2v2p3q3f1 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_F} --input 1 3 224 224 --weights 64 3 7  7 --pads_strides_dilations 3 3 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+      ${
+    TEST_CONV_VERBOSE_F} --input 1 3 224 224 --weights 64 3 7  7 --pads_strides_dilations 3 3 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(smoke_conv_solver_ConvOclDirectFwd_11x11_Gen HALF_ENABLED BF16_ENABLED GFX103X_ENABLED
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd11x11 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_F} --input 1 1 44 44 --weights 1 1 11 11 --pads_strides_dilations 0 0 4 4 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+      ${
+    TEST_CONV_VERBOSE_F} --input 1 1 44 44 --weights 1 1 11 11 --pads_strides_dilations 0 0 4 4 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwdGen $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_F} --input 1 1 6 6 --weights 1 1 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+      ${
+    TEST_CONV_VERBOSE_F} --input 1 1 6 6 --weights 1 1 3 3 --pads_strides_dilations 0 0 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(smoke_conv_solver_ConvAsmImplicitGemmV4R1Dynamic GFX908_DISABLED GFX90A_DISABLED SKIP_XNACK_ON
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_F} --input 16 16 16 16 --weights 16 16 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+      ${
+    TEST_CONV_VERBOSE_F} --input 16 16 16 16 --weights 16 16 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicBwd $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_B} --input 64 64 14 14 --weights 16 64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+      ${
+    TEST_CONV_VERBOSE_B} --input 64 64 14 14 --weights 16 64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicWrw $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_W} --input 1 32 28 28 --weights 32 32 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+      ${
+    TEST_CONV_VERBOSE_W} --input 1 32 28 28 --weights 32 32 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
 add_custom_test(smoke_conv_solver_ConvAsmImplicitGemmGTCDynamicWrwXdlops GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED HALF_ENABLED SKIP_XNACK_ON
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicWrwXdlops $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG}
-      ${TEST_CONV_VERBOSE_W} --input 2 256 12 18 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
+      ${
+    TEST_CONV_VERBOSE_W} --input 2 256 12 18 --weights 256 256 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-# Add here regression tests that should be run on Vega10/20 and GFX908 only with FP16.
+#Add here regression tests that should be run on Vega10 / 20 and GFX908 only with FP16.
 add_custom_test(test_regression_half_vega_gfx908 FLOAT_DISABLED HALF_ENABLED GFX90A_DISABLED
-# REGRESSION TEST for issue #894.
-# Can't be enabled for GFX10 due to WORKAROUND_SWDEV_271887
-COMMAND	MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd1x1 $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data --disable-backward-weights --disable-verification-cache
+#REGRESSION TEST for issue #894.
+#Can't be enabled for GFX10 due to WORKAROUND_SWDEV_271887
+COMMAND	MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd1x1 $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --verbose --disable-backward-data --disable-backward-weights --disable-verification-cache
     --cmode conv --pmode default --group-count 1 --input 1 16 7 7 --weights 16 16 1 1 --pads_strides_dilations 0 0 1 1 1 1
 )
 
@@ -1903,14 +2527,21 @@ set(ARGS_REGRESSION_ISSUE_1012
     --disable-validation)
 
 add_custom_test(test_regression_opencl_float_mi100 GFX900_DISABLED GFX906_DISABLED HIP_DISABLED GFX90A_DISABLED
-    # Issue #1012.
-    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 128, 832, 7,  7  --weights 32,  832, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  192, 28, 28 --weights 64,  192, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  256, 28, 28 --weights 128, 256, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  480, 14, 14 --weights 64,  480, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  512, 14, 14 --weights 128, 512, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  512, 28, 28 --weights 128, 512, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
-    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  64,  56, 56 --weights 256, 64,  1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
+#Issue #1012.
+    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 128, 832, 7,  7  --weights 32,  832, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
+    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  192, 28, 28 --weights 64,  192, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
+    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  256, 28, 28 --weights 128, 256, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
+    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  480, 14, 14 --weights 64,  480, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
+    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  512, 14, 14 --weights 128, 512, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
+    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  512, 28, 28 --weights 128, 512, 1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
+    COMMAND	${ENVS_REGRESSION_ISSUE_1012} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --group-count 1 --input 64,  64,  56, 56 --weights 256, 64,  1, 1 --pads_strides_dilations 0 0 1 1 1 1 ${ARGS_REGRESSION_ISSUE_1012}
 )
 
 set(ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS
@@ -1924,8 +2555,9 @@ set(ARGS_ENABLE_FORWARD_ONLY
     --disable-backward-weights)
 
 add_custom_test(test_regression_half_mi200 GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED FLOAT_DISABLED HALF_ENABLED
-    # Issue-internal #4
-    COMMAND	${ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS} $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --input 120 64 75 75 --weights 128 64 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_ENABLE_FORWARD_ONLY}
+#Issue - internal #4
+    COMMAND	${ENVS_FIND_ONLY_HIP_IGEMM_V4R4XDLOPS} $<TARGET_FILE:test_conv2d> ${
+    MIOPEN_TEST_FLOAT_ARG} --cmode conv --pmode default --input 120 64 75 75 --weights 128 64 1 1 --pads_strides_dilations 0 0 2 2 1 1 ${ARGS_ENABLE_FORWARD_ONLY}
 )
 #override if we need to install gtests
 set(INSTALL_GTEST OFF)
