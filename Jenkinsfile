@@ -102,23 +102,6 @@ def cmake_build(Map conf=[:]){
     def build_cmd = conf.get("build_cmd", "LLVM_PATH=/opt/rocm/llvm ${build_envs} dumb-init make -j\$(nproc) ${config_targets}")
     def execute_cmd = conf.get("execute_cmd", "")
 
-    //def fin_pre_setup_cmd = ""
-    //def fin_setup_cmd = ""
-    //def fin_build_cmd = ""
-    //def fin_post_build_cmd = ""
-    //if ( build_fin == "ON" )
-    //{
-    //    fin_pre_setup_cmd = """
-    //        cd ../fin
-    //        rm -rf build
-    //        mkdir build
-    //        cd build
-    //    """
-    //    fin_setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake ${setup_args} -DCMAKE_PREFIX_PATH=\${MIOPEN_INSTALL} .. "
-    //    fin_build_cmd = "LLVM_PATH=/opt/rocm/llvm make -j\$(nproc) install"
-    //    fin_post_build_cmd = "cd ../../build"
-    //}
-
     def cmd = conf.get("cmd", """
             ${pre_setup_cmd}
             ${setup_cmd}
@@ -152,10 +135,7 @@ def cmake_build(Map conf=[:]){
 }
 
 def cmake_build_fin(prefixpath){
-    //def fin_jenkins = load 'Jenkinsfile'
-    //fin_jenkins.cmake_build('clang++', fin_flags, prefixpath)
-
-    def flags = '-DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=release'
+    def flags = '-DCMAKE_INSTALL_PREFIX=${prefixpath} -DCMAKE_BUILD_TYPE=release'
     def compiler = 'clang++'
     def config_targets = "all" 
     def compilerpath = "/opt/rocm/llvm/bin/" + compiler
