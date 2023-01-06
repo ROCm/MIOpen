@@ -35,6 +35,7 @@
 #include <cassert>
 #include <tuple>
 #include <vector>
+#include <array>
 
 namespace miopen {
 namespace seq {
