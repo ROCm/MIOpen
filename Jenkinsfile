@@ -39,10 +39,11 @@ def cmake_build(Map conf=[:]){
         config_targets = "package"
     }
 
+    env.MIOPEN_INSTALL = "${env.WORKSPACE}/install"
     if(conf.get("build_install","") == "true")
     {
         config_targets = 'install ' + config_targets
-        setup_args = ' -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=../install' + setup_args
+        setup_args = ' -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=${env.MIOPEN_INSTALL}' + setup_args
     } else{
         setup_args = ' -DBUILD_DEV=On' + setup_args
     }
@@ -84,7 +85,6 @@ def cmake_build(Map conf=[:]){
         setup_args = " -DMIOPEN_INSTALL_CXX_HEADERS=On " + setup_args
     }
 
-    env.MIOPEN_INSTALL="${env.WORKSPACE}/install"
     def pre_setup_cmd = """
             echo \$HSA_ENABLE_SDMA
             ulimit -c unlimited
@@ -110,8 +110,8 @@ def cmake_build(Map conf=[:]){
 
     if ( build_fin == "ON" )
     {
-        fin_build=cmake_build_fin(env.MIOPEN_INSTALL)
-        cmd +="""
+        def fin_build = cmake_build_fin(env.MIOPEN_INSTALL)
+        cmd += """
             export RETDIR=\$PWD
             cd ${env.WORKSPACE}/fin 
             ${fin_build}
