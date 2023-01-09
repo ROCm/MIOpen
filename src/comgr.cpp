@@ -860,7 +860,8 @@ void BuildHip(const std::string& name,
             OptionList addDevLibs;
             // Use device libs for wavefrontsize64 for non-gfx10 targets
             // or when enforced via option.
-            if(!StartsWith(target.Name(), "gfx10") || IsWave64Enforced(optCompile))
+            if(!(StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) ||
+               IsWave64Enforced(optCompile))
             {
                 addDevLibs.push_back("wavefrontsize64");
             }
@@ -938,7 +939,8 @@ void BuildOcl(const std::string& name,
         OptionList optLink;
         // Use device libs for wavefrontsize64 for non-gfx10 targets
         // or when enforced via option.
-        if(!StartsWith(target.Name(), "gfx10") || IsWave64Enforced(optCompile))
+        if(!(StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) ||
+           IsWave64Enforced(optCompile))
         {
             optLink.push_back("wavefrontsize64");
         }
