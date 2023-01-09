@@ -212,7 +212,7 @@ if (MIOPEN_NO_GPU)
             test_pooling3d test_perfdb)
 endif()
 
-if(MIOPEN_TEST_GFX103X)
+if(MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X)
     if(WORKAROUND_ISSUE_1053 AND MIOPEN_TEST_ALL)
         list(APPEND SKIP_TESTS test_lrn_test)
     endif()
