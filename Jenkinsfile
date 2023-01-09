@@ -39,11 +39,11 @@ def cmake_build(Map conf=[:]){
         config_targets = "package"
     }
 
-    env.MIOPEN_INSTALL = "${env.WORKSPACE}/install"
+    def miopen_install_path = "${env.WORKSPACE}/install"
     if(conf.get("build_install","") == "true")
     {
         config_targets = 'install ' + config_targets
-        setup_args = " -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=${env.MIOPEN_INSTALL}" + setup_args
+        setup_args = " -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=${miopen_install_path}" + setup_args
     } else{
         setup_args = ' -DBUILD_DEV=On' + setup_args
     }
@@ -110,11 +110,11 @@ def cmake_build(Map conf=[:]){
 
     if ( build_fin == "ON" )
     {
-        def fin_build = cmake_build_fin(env.MIOPEN_INSTALL)
+        def fin_build_cmd = cmake_fin_build_cmd(miopen_install_path)
         cmd += """
             export RETDIR=\$PWD
             cd ${env.WORKSPACE}/fin 
-            ${fin_build}
+            ${fin_build_cmd}
             cd \$RETDIR
         """
     }
@@ -132,7 +132,7 @@ def cmake_build(Map conf=[:]){
     }
 }
 
-def cmake_build_fin(prefixpath){
+def cmake_fin_build_cmd(prefixpath){
     def flags = '-DCMAKE_INSTALL_PREFIX=${prefixpath} -DCMAKE_BUILD_TYPE=release'
     def compiler = 'clang++'
     def config_targets = "all"
