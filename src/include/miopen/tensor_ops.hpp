@@ -103,9 +103,9 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
         bool is_all_full_length = true;
         repeat_n(
             [&](auto itensor) {
-                std::size_t stride          = boost::get<itensor + 1>(*i);
-                std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
-                std::size_t full_len        = previous_stride / stride;
+                const std::size_t stride          = boost::get<itensor + 1>(*i);
+                const std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
+                const std::size_t full_len        = previous_stride / stride;
                 is_all_full_length &= (len == full_len);
             },
             NTensorConstant);

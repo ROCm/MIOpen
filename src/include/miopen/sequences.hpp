@@ -32,6 +32,7 @@
 #include <boost/range/algorithm/find.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <tuple>
 #include <vector>
