@@ -448,10 +448,10 @@ endfunction()
 #   If nothing is specified, the default value is taken.
 #   Default: FLOAT_ENABLED HALF_DISABLED BF16_DISABLED INT8_DISABLED
 #
-# GPU types: GFX900, GFX906, GFX908, GFX90A, GFX1030/31
+# GPU types: GFX900, GFX906, GFX908, GFX90A, GFX1030/31, GFX1100/02
 #   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
 #   If nothing is specified, the default value is taken.
-#   Default: GFX900_ENABLED, GFX906_ENABLED, GFX908_ENABLED, GFX90A_ENABLED, GFX103X_DISABLED
+#   Default: GFX900_ENABLED, GFX906_ENABLED, GFX908_ENABLED, GFX90A_ENABLED, GFX103X_DISABLED, GFX110X_DISABLED
 #
 # Testing mode:
 #   SKIP_UNLESS_ALL - The test should be only run if MIOPEN_TEST_ALL=TRUE. Intended for long tests.
@@ -468,7 +468,7 @@ function(add_custom_test NAME)
     set(options
         BF16_ENABLED BF16_DISABLED HALF_ENABLED HALF_DISABLED INT8_ENABLED INT8_DISABLED FLOAT_ENABLED FLOAT_DISABLED
         GFX900_ENABLED GFX900_DISABLED GFX906_ENABLED GFX906_DISABLED GFX908_ENABLED GFX908_DISABLED
-        GFX103X_ENABLED GFX103X_DISABLED GFX90A_ENABLED GFX90A_DISABLED
+        GFX103X_ENABLED GFX103X_DISABLED GFX110X_ENABLED GFX110X_DISABLED GFX90A_ENABLED GFX90A_DISABLED
         SKIP_UNLESS_MLIR SKIP_UNLESS_ALL TEST_PERF_DB_RECORD_NOT_FOUND SKIP_XNACK_ON
         OCL_ENABLED OCL_DISABLED HIP_ENABLED HIP_DISABLED HIP_NOGPU_ENABLED HIP_NOGPU_DISABLED
     )
@@ -547,6 +547,11 @@ function(add_custom_test NAME)
     option_support_check(${PARSE_GFX103X_ENABLED} ${PARSE_GFX103X_DISABLED} ${GFX103X_TEST_DEFAULT} is_gfx103x_check)
     bool_and_f(${MIOPEN_TEST_GFX103X} ${is_gfx103x_check} is_gfx103x_check)
 
+    set(is_gfx110x_check)
+    set(GFX110X_TEST_DEFAULT FALSE)
+    option_support_check(${PARSE_GFX110X_ENABLED} ${PARSE_GFX110X_DISABLED} ${GFX110X_TEST_DEFAULT} is_gfx110x_check)
+    bool_and_f(${MIOPEN_TEST_GFX110X} ${is_gfx110x_check} is_gfx110x_check)
+
     # When SKIP_XNACK_ON is set, the test will be skipped if MIOPEN_TEST_GPU_XNACK_ENABLED is set.
     set(is_xnack_on_check)
     bool_and_f(${PARSE_SKIP_XNACK_ON} ${MIOPEN_TEST_GPU_XNACK_ENABLED} is_xnack_on_check)
@@ -569,7 +574,7 @@ function(add_custom_test NAME)
         set_tests_properties(${NAME} PROPERTIES RUN_SERIAL On)
     endif()
 
-    if(  (is_gfx900_check OR is_gfx906_check OR is_gfx908_check OR is_gfx103x_check OR is_gfx90a_check)
+    if(  (is_gfx900_check OR is_gfx906_check OR is_gfx908_check OR is_gfx103x_check OR is_gfx110x_check OR is_gfx90a_check)
      AND is_full_check
      AND is_xnack_on_check
      AND is_mlir_check
