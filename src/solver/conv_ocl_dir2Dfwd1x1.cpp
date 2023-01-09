@@ -42,7 +42,8 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& ctx,
                                        const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_271887
-    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10"))
+    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") ||
+       StartsWith(ctx.GetStream().GetDeviceName(), "gfx11"))
         if(!miopen::IsEnabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1{}))
             return false;
 #endif
