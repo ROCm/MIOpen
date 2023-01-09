@@ -437,21 +437,19 @@ function(option_support_check is_enabled is_disabled default_result result)
     endif()
 endfunction()
 
-# The add_custom_test function contains options to describe the conditions,
-# under which new custom_tests should be run. Options are divided into several types.
-# The option can be enabled or disabled, if nothing is specified, the default value is taken.
-# You can use any number of options, in any order, provided that options do not conflict
+# The add_custom_test function contains attributes to describe the conditions,
+# under which new custom_tests should be run. Attributes are divided into several types.
+# The attribute can be enabled or disabled; if nothing is specified, the default value is taken.
+# You can use any number of attributes, in any order, provided that attributes do not conflict
 # (e.g. "HALF_ENABLED HALF_DISABLED" is illegal)
 #
 # Data types: FLOAT HALF BF16 INT8
-#   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
-#   If nothing is specified, the default value is taken.
-#   Default: FLOAT_ENABLED HALF_DISABLED BF16_DISABLED INT8_DISABLED
+#   These attributes can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
+#   Defaults: FLOAT_ENABLED HALF_DISABLED BF16_DISABLED INT8_DISABLED
 #
 # GPU types: GFX900, GFX906, GFX908, GFX90A, GFX1030/31, GFX1100/02
-#   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
-#   If nothing is specified, the default value is taken.
-#   Default: GFX900_ENABLED, GFX906_ENABLED, GFX908_ENABLED, GFX90A_ENABLED, GFX103X_DISABLED, GFX110X_DISABLED
+#   These attributes can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
+#   Defaults: GFX900_ENABLED, GFX906_ENABLED, GFX908_ENABLED, GFX90A_ENABLED, GFX103X_DISABLED, GFX110X_DISABLED
 #
 # Testing mode:
 #   SKIP_UNLESS_ALL - The test should be only run if MIOPEN_TEST_ALL=TRUE. Intended for long tests.
@@ -460,8 +458,7 @@ endfunction()
 #   SKIP_UNLESS_MLIR - The test should be only run if MIOPEN_TEST_MLIR=TRUE.
 #
 # Backend: OCL HIP HIP_NOGPU
-#   The option can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
-#   If nothing is specified, the default value is taken.
+#   These attributes can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
 #   Default: OCL_ENABLED HIP_ENABLED HIP_NOGPU_DISABLED.
 
 function(add_custom_test NAME)
