@@ -5952,21 +5952,21 @@ private:
                        const PerformanceConfigHipImplicitGemmBwdXdlops& config) const;
 };
 
-struct PerformanceConfigHipImplicitGemmGroupBwdXdlops
-    : PerfConfigBase<PerformanceConfigHipImplicitGemmGroupBwdXdlops>
+struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
+    : PerfConfigBase<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
 {
     int index;
     std::string kernel_id;
     std::vector<std::string> valid_kernels;
-    PerformanceConfigHipImplicitGemmGroupBwdXdlops(int idx, std::string kernl_id)
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops(int idx, std::string kernl_id)
         : index(idx), kernel_id(kernl_id)
     {
     }
-    PerformanceConfigHipImplicitGemmGroupBwdXdlops() : PerformanceConfigHipImplicitGemmGroupBwdXdlops(0, "")
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops() : PerformanceConfigHipImplicitGemmGroupFwdXdlops(0, "")
     {
     }
-    PerformanceConfigHipImplicitGemmGroupBwdXdlops(bool)
-        : PerformanceConfigHipImplicitGemmGroupBwdXdlops(0, "")
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops(bool)
+        : PerformanceConfigHipImplicitGemmGroupFwdXdlops(0, "")
     {
     }
     void HeuristicInit(const ProblemDescription&);
@@ -5980,7 +5980,7 @@ struct PerformanceConfigHipImplicitGemmGroupBwdXdlops
     {
         f(s.kernel_id, "kernel_id");
     }
-    bool operator==(const PerformanceConfigHipImplicitGemmGroupBwdXdlops& other) const;
+    bool operator==(const PerformanceConfigHipImplicitGemmGroupFwdXdlops& other) const;
 
 private:
     template <typename DataType>
@@ -5989,8 +5989,8 @@ private:
     bool CheckIsSupportCKArgs(const ProblemDescription&) const;
 };
 
-struct ConvHipImplicitGemmGroupBwdXdlops final
-    : ConvTunableSolver<PerformanceConfigHipImplicitGemmGroupBwdXdlops>
+struct ConvHipImplicitGemmGroupFwdXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
 {
     // To suppress -Woverloaded-virtual
     using ConvTunableSolver::GetDefaultPerformanceConfig;
@@ -6001,21 +6001,21 @@ struct ConvHipImplicitGemmGroupBwdXdlops final
 
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ConvHipImplicitGemmGroupBwdXdlops>();
+        return GetSolverDbId<ConvHipImplicitGemmGroupFwdXdlops>();
     }
 
-    PerformanceConfigHipImplicitGemmGroupBwdXdlops
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops
     GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
     {
         return GetDefaultPerformanceConfig(ctx.problem);
     }
     bool
     IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                             const PerformanceConfigHipImplicitGemmGroupBwdXdlops& config) const override
+                             const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const override
     {
         return IsValidPerformanceConfig(ctx.problem, config);
     }
-    PerformanceConfigHipImplicitGemmGroupBwdXdlops
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops
     Search(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const override
     {
         return Search(ctx, ctx.problem, invoke_ctx);
@@ -6026,7 +6026,7 @@ struct ConvHipImplicitGemmGroupBwdXdlops final
     }
     bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceConfigHipImplicitGemmGroupBwdXdlops& config) const override
+                             const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const override
     {
         return GetSolution(ctx, ctx.problem, config);
     }
@@ -6044,16 +6044,16 @@ struct ConvHipImplicitGemmGroupBwdXdlops final
 
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
-    PerformanceConfigHipImplicitGemmGroupBwdXdlops
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops
     GetDefaultPerformanceConfig(const ProblemDescription&) const;
     bool IsValidPerformanceConfig(const ProblemDescription&,
-                                  const PerformanceConfigHipImplicitGemmGroupBwdXdlops&) const;
-    PerformanceConfigHipImplicitGemmGroupBwdXdlops Search(const ConvolutionContext&,
+                                  const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const;
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops Search(const ConvolutionContext&,
                                                      const ProblemDescription&,
                                                      const AnyInvokeParams& invoke_ctx) const;
     ConvSolution GetSolution(const ConvolutionContext&,
                              const ProblemDescription&,
-                             const PerformanceConfigHipImplicitGemmGroupBwdXdlops&) const;
+                             const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const;
 
     template <typename DataType>
     bool CheckCKApplicability(const ProblemDescription&) const;
@@ -6061,7 +6061,7 @@ private:
     void RunCKSolution(const Handle& handle,
                        const AnyInvokeParams& primitive_parameters,
                        const ProblemDescription& problem,
-                       const PerformanceConfigHipImplicitGemmGroupBwdXdlops& config) const;
+                       const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const;
 };
 
 struct AnySolver;
