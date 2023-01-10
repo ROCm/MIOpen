@@ -34,7 +34,6 @@
 .elseif (.amdgcn.gfx_generation_number == 10)
     KERNEL_PROLOG fp16_dot2_f3x2_stride1
 
-    //inliner-include-optional
     .include "Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f3x2_stride1.inc"
 
     KERNEL_EPILOG fp16_dot2_f3x2_stride1

@@ -30,7 +30,6 @@ KERNEL_PROLOG fp32_f2x3_stride1
 .if (.amdgcn.gfx_generation_number == 9)
     .include "Conv_Winograd_v30_2_6_gfx9_fp32_f2x3_stride1.inc"
 .elseif (.amdgcn.gfx_generation_number == 10)
-    //inliner-include-optional
     .include "Conv_Winograd_v30_2_6_gfx10_fp32_f2x3_stride1.inc"
 .endif
 
