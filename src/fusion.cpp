@@ -285,12 +285,7 @@ bool ConvForwardOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
     int o, c, x, y;
     std::tie(o, c, x, y) = tien<4>(filter_desc.GetLengths());
 
-    auto f_strides     = filter_desc.GetStrides();
-    const int f_t_size = miopen::GetTypeSize(input_desc.GetType());
-    std::transform(f_strides.begin(),
-                   f_strides.end(),
-                   f_strides.begin(),
-                   [&f_t_size](const auto& s) { return s * f_t_size; });
+    auto f_strides = filter_desc.GetStrides();
 
     if(sym == "x")
     {
@@ -336,19 +331,19 @@ bool ConvForwardOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
     {
         val = base_desc.GetGroupCount();
     }
-    else if(sym == "f_byte_stride_nk")
+    else if(sym == "f_stride_nk")
     {
         val = f_strides[0];
     }
-    else if(sym == "f_byte_stride_c")
+    else if(sym == "f_stride_c")
     {
         val = f_strides[1];
     }
-    else if(sym == "f_byte_stride_h")
+    else if(sym == "f_stride_h")
     {
         val = f_strides[2];
     }
-    else if(sym == "f_byte_stride_w")
+    else if(sym == "f_stride_w")
     {
         val = f_strides[3];
     }
@@ -930,18 +925,8 @@ bool FusionPlanDescriptor::GetTensorAttr(const std::string& sym, int& val) const
     std::tie(N, C, H, W)    = miopen::tien<4>(input_desc.GetLengths(), 1);
     std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
 
-    const int d_t_size = miopen::GetTypeSize(input_desc.GetType());
-    const int o_t_size = miopen::GetTypeSize(output_desc.GetType());
-    auto d_strides     = input_desc.GetStrides();
-    auto o_strides     = output_desc.GetStrides();
-    std::transform(d_strides.begin(),
-                   d_strides.end(),
-                   d_strides.begin(),
-                   [&d_t_size](const auto& s) { return s * d_t_size; });
-    std::transform(o_strides.begin(),
-                   o_strides.end(),
-                   o_strides.begin(),
-                   [&o_t_size](const auto& s) { return s * o_t_size; });
+    auto d_strides = input_desc.GetStrides();
+    auto o_strides = output_desc.GetStrides();
 
     if(sym == "iN")
     {
@@ -975,35 +960,35 @@ bool FusionPlanDescriptor::GetTensorAttr(const std::string& sym, int& val) const
     {
         val = oW;
     }
-    else if(sym == "d_byte_stride_nk")
+    else if(sym == "d_stride_nk")
     {
         val = d_strides[0];
     }
-    else if(sym == "d_byte_stride_c")
+    else if(sym == "d_stride_c")
     {
         val = d_strides[1];
     }
-    else if(sym == "d_byte_stride_h")
+    else if(sym == "d_stride_h")
     {
         val = d_strides[2];
     }
-    else if(sym == "d_byte_stride_w")
+    else if(sym == "d_stride_w")
     {
         val = d_strides[3];
     }
-    else if(sym == "o_byte_stride_nk")
+    else if(sym == "o_stride_nk")
     {
         val = o_strides[0];
     }
-    else if(sym == "o_byte_stride_c")
+    else if(sym == "o_stride_c")
     {
         val = o_strides[1];
     }
-    else if(sym == "o_byte_stride_h")
+    else if(sym == "o_stride_h")
     {
         val = o_strides[2];
     }
-    else if(sym == "o_byte_stride_w")
+    else if(sym == "o_stride_w")
     {
         val = o_strides[3];
     }

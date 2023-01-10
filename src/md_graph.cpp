@@ -482,35 +482,35 @@ static std::vector<DefaultKernelArg> WinogradNodeArgs()
     };
 }
 
-static std::vector<DefaultKernelArg> WinogradV21NodeArgs()
+static std::vector<DefaultKernelArg> WinogradV30NodeArgs()
 {
     auto zero_int                             = OpKernelArg(static_cast<int>(0));
     auto zero_uint64                          = OpKernelArg(static_cast<uint64_t>(0));
     auto nodeArgs                             = WinogradNodeArgs();
-    std::vector<DefaultKernelArg> v21NodeArgs = {
+    std::vector<DefaultKernelArg> v30NodeArgs = {
         DefaultKernelArg("reserved2", Other, zero_int),
         DefaultKernelArg("d_offset", Other, zero_uint64),
         DefaultKernelArg("f_offset", Other, zero_uint64),
         DefaultKernelArg("o_offset", Other, zero_uint64),
         DefaultKernelArg("b_offset", Other, zero_uint64),
-        DefaultKernelArg("d_byte_stride_nk", InputTensorDesc, zero_int),
-        DefaultKernelArg("d_byte_stride_c", InputTensorDesc, zero_int),
-        DefaultKernelArg("d_byte_stride_h", InputTensorDesc, zero_int),
-        DefaultKernelArg("d_byte_stride_w", InputTensorDesc, zero_int),
-        DefaultKernelArg("f_byte_stride_nk", OpAttr, zero_int),
-        DefaultKernelArg("f_byte_stride_c", OpAttr, zero_int),
-        DefaultKernelArg("f_byte_stride_h", OpAttr, zero_int),
-        DefaultKernelArg("f_byte_stride_w", OpAttr, zero_int),
-        DefaultKernelArg("o_byte_stride_nk", OutputTensorDesc, zero_int),
-        DefaultKernelArg("o_byte_stride_c", OutputTensorDesc, zero_int),
-        DefaultKernelArg("o_byte_stride_h", OutputTensorDesc, zero_int),
-        DefaultKernelArg("o_byte_stride_w", OutputTensorDesc, zero_int),
+        DefaultKernelArg("d_stride_nk", InputTensorDesc, zero_int),
+        DefaultKernelArg("d_stride_c", InputTensorDesc, zero_int),
+        DefaultKernelArg("d_stride_h", InputTensorDesc, zero_int),
+        DefaultKernelArg("d_stride_w", InputTensorDesc, zero_int),
+        DefaultKernelArg("f_stride_nk", OpAttr, zero_int),
+        DefaultKernelArg("f_stride_c", OpAttr, zero_int),
+        DefaultKernelArg("f_stride_h", OpAttr, zero_int),
+        DefaultKernelArg("f_stride_w", OpAttr, zero_int),
+        DefaultKernelArg("o_stride_nk", OutputTensorDesc, zero_int),
+        DefaultKernelArg("o_stride_c", OutputTensorDesc, zero_int),
+        DefaultKernelArg("o_stride_h", OutputTensorDesc, zero_int),
+        DefaultKernelArg("o_stride_w", OutputTensorDesc, zero_int),
         DefaultKernelArg("group_count", OpAttr, zero_int),
-        DefaultKernelArg("d_byte_stride_g", Other, zero_int),
-        DefaultKernelArg("f_byte_stride_g", Other, zero_int),
-        DefaultKernelArg("o_byte_stride_g", Other, zero_int),
+        DefaultKernelArg("d_stride_g", Other, zero_int),
+        DefaultKernelArg("f_stride_g", Other, zero_int),
+        DefaultKernelArg("o_stride_g", Other, zero_int),
     };
-    nodeArgs.insert(nodeArgs.end(), v21NodeArgs.begin(), v21NodeArgs.end());
+    nodeArgs.insert(nodeArgs.end(), v30NodeArgs.begin(), v30NodeArgs.end());
     return nodeArgs;
 }
 
@@ -691,7 +691,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             }
         }
 
-        // Fused Winograd v21_1_3
+        // Fused Winograd v30_2_6
         {
             auto add_meta_wino = [&](FusionMDGraph_Edge_Map& m, int weight) {
                 m["constraints"].emplace_back("weight === " + std::to_string(weight));
@@ -700,18 +700,18 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                     m["constraints"].end(), common_constr.begin(), common_constr.end());
             };
 
-            auto add_v21_wino = [&](const std::string family,
+            auto add_v30_wino = [&](const std::string family,
                                     const std::vector<std::string> supported_arch,
                                     const int stride) {
-                const auto kernel_postfix  = "_fp32_stride" + std::to_string(stride);
-                const auto kernel_file     = "Conv_Winograd_v21_1_3" + kernel_postfix + ".s";
-                const auto kernel_name     = "miopenSp3AsmConv_v21_1_3_" + family + kernel_postfix;
+                const auto kernel_postfix  = "_fp32_f2x3_stride" + std::to_string(stride);
+                const auto kernel_file     = "Conv_Winograd_v30_2_6" + kernel_postfix + ".s";
+                const auto kernel_name     = "miopenSp3AsmConv_v30_2_6_" + family + kernel_postfix;
                 const auto supported_xnack = false;
 
                 auto conv_v = std::make_shared<MDGraph_vertex>(
                     miopenFusionOpConvForward, kernel_file, kernel_name, algo);
                 conv_v->solver          = solver::ConvBinWinogradRxSf2x3g1Fused{};
-                conv_v->default_args    = WinogradV21NodeArgs();
+                conv_v->default_args    = WinogradV30NodeArgs();
                 conv_v->supported_arch  = supported_arch;
                 conv_v->supported_xnack = supported_xnack;
 
@@ -733,15 +733,15 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 add_relu(kernel_file,
                          kernel_name,
                          conv_v,
-                         WinogradV21NodeArgs,
+                         WinogradV30NodeArgs,
                          supported_arch,
                          supported_xnack);
             };
 
-            add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908", "gfx90a"}, 1);
-            add_v21_wino("gfx9", {"gfx900", "gfx906", "gfx908", "gfx90a"}, 2);
-            add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030", "gfx1031"}, 1);
-            add_v21_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030", "gfx1031"}, 2);
+            add_v30_wino("gfx9", {"gfx900", "gfx906", "gfx908", "gfx90a"}, 1);
+            add_v30_wino("gfx9", {"gfx900", "gfx906", "gfx908", "gfx90a"}, 2);
+            add_v30_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030", "gfx1031"}, 1);
+            add_v30_wino("gfx10", {"gfx1011", "gfx1012", "gfx1030", "gfx1031"}, 2);
         }
     }
 
