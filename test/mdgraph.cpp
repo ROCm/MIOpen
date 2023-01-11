@@ -275,7 +275,7 @@ struct mdgraph_driver : test_driver
             }
             else if(miopen::StartsWith(name, "gfx9") || miopen::StartsWith(name, "gfx10"))
             {
-                std::string krn_name_ref = "miopenSp3AsmConv_v21_1_3_";
+                std::string krn_name_ref = "miopenSp3AsmConv_v30_2_6_";
                 if(miopen::StartsWith(name, "gfx9"))
                 {
                     krn_name_ref += "gfx9";
@@ -284,7 +284,7 @@ struct mdgraph_driver : test_driver
                 {
                     krn_name_ref += "gfx10";
                 }
-                krn_name_ref += "_fp32_stride1";
+                krn_name_ref += "_fp32_f2x3_stride1";
 
                 // Winograd because c, x and y satisfy criteria
                 ConvAlgTest({100, 32, 8, 8},
