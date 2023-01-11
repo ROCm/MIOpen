@@ -474,6 +474,10 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(
          ((problem.IsFp16() && problem.vectorLength == 8) && precision == "Halfx8")))
         return false;
 
+    if(!((problem.IsNCHWc_NCHWc() && tensor_layout == "nchwc_kcyxc") ||
+         (problem.IsNCHWc_CHWNc() && tensor_layout == "nchwc_cyxkc")))
+        return false;
+
     const auto& c         = problem.n_inputs;
     const auto& k         = problem.n_outputs;
     const auto& group     = problem.group_counts;
@@ -489,10 +493,8 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
 
-    // TODO : check logic here
-    // tensor thread length[1]==1 means per thread read a dword
-    // c, k should be integer multiples of vector_c
-    if((c / group) % vector_c != 0 || (k / group) % vector_c != 0)
+    // c, k has been divided by vector length in the driver, let's check the group num here
+    if((c % group) != 0 || (k % group) != 0)
     {
         return false;
     }
