@@ -53,6 +53,8 @@ static inline bool is_ck_supported_hardware(const Handle& handle)
            StartsWith(handle.GetDeviceName(), "gfx906") ||
            StartsWith(handle.GetDeviceName(), "gfx908") ||
            StartsWith(handle.GetDeviceName(), "gfx90a") ||
+           StartsWith(handle.GetDeviceName(), "gfx1100") ||
+           StartsWith(handle.GetDeviceName(), "gfx1102") ||
            StartsWith(handle.GetDeviceName(), "gfx1031") ||
            StartsWith(handle.GetDeviceName(), "gfx1030");
 }
@@ -84,6 +86,10 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
         compiler_flag << " -DCK_AMD_GPU_GFX90A";
     else if(StartsWith(device_name, "gfx1030"))
         compiler_flag << " -DCK_AMD_GPU_GFX1030";
+    else if(StartsWith(device_name, "gfx1100"))
+        compiler_flag << " -DCK_AMD_GPU_GFX1100";
+    else if(StartsWith(device_name, "gfx1102"))
+        compiler_flag << " -DCK_AMD_GPU_GFX1102";
     else if(StartsWith(device_name, "gfx1031"))
         compiler_flag << " -DCK_AMD_GPU_GFX1031";
 
