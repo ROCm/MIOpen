@@ -419,6 +419,7 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetCompileParms(
            " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(true)) +
            " -DMIO_BN_VARIANT=" + std::to_string(variant) +
            " -DMIO_BN_CBA_WRITE_INTERMEDIATE=" + std::to_string(0) +
+           " -DMIO_BN_GFX110X=" + (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0") +
            " -DMIO_BN_GFX103X=" + (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0");
 
     compile_config += add;
@@ -635,6 +636,7 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetCompileParms(
            " -DMIO_SAVE_MEAN_VARIANCE=" + (saveBatchStats ? "1" : "0") +
            " -DMIO_RUNNING_RESULT=" + ((savePopStats) ? "1" : "0") +
            " -DMIO_BN_VARIANT=" + std::to_string(variant) +
+           " -DMIO_BN_GFX110X=" + (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0") +
            " -DMIO_BN_GFX103X=" + (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0");
 
     compile_config += add;
