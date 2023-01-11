@@ -512,6 +512,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, ConvHipImplicitGemmFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(
         registry, ++id, ConvHipImplicitGemmBwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
+    RegisterWithSolver(
+        registry, ++id, ConvHipImplicitGemmGroupFwdXdlops{}, miopenConvolutionAlgoImplicitGEMM);
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
