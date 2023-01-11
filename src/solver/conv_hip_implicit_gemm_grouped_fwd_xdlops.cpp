@@ -113,18 +113,18 @@ struct CKArgsGFwd
     int N;
     int K;
     int C;
-    std::vector<int> input;
-    std::vector<int> in_strides;
-    std::vector<int> output;
-    std::vector<int> out_strides;
-    std::vector<int> weight;
-    std::vector<int> wei_strides;
-    std::vector<int> strides;
-    std::vector<int> dilation;
-    std::vector<int> lPadding;
-    std::vector<int> rPadding;
+    std::array<ck::index_t, 5> input;
+    std::array<ck::index_t, 5> in_strides;
+    std::array<ck::index_t, 5> output;
+    std::array<ck::index_t, 5> out_strides;
+    std::array<ck::index_t, 5> weight;
+    std::array<ck::index_t, 5> wei_strides;
+    std::array<ck::index_t, 2> strides;
+    std::array<ck::index_t, 2> dilation;
+    std::array<ck::index_t, 2> lPadding;
+    std::array<ck::index_t, 2> rPadding;
 };
-/*
+
 template <typename DataType>
 void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescription& problem)
 {
@@ -135,13 +135,16 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(const ProblemDescripti
     {
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
                                                               nullptr,
+                                                              {},
                                                               nullptr,
-                                                              args.N,
-                                                              args.K,
-                                                              args.C,
                                                               args.input,
-                                                              args.filter,
+                                                              args.in_strides,
+                                                              args.weight,
+                                                              args.wei_strides,
+                                                              {},
+                                                              {},
                                                               args.output,
+                                                              args.out_strides,
                                                               args.strides,
                                                               args.dilation,
                                                               args.lPadding,
@@ -179,13 +182,16 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::CheckIsSupportCKArgs(
     }
     auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
                                                           nullptr,
+                                                          {},
                                                           nullptr,
-                                                          args.N,
-                                                          args.K,
-                                                          args.C,
                                                           args.input,
-                                                          args.filter,
+                                                          args.in_strides,
+                                                          args.weight,
+                                                          args.wei_strides,
+                                                          {},
+                                                          {},
                                                           args.output,
+                                                          args.out_strides,
                                                           args.strides,
                                                           args.dilation,
                                                           args.lPadding,
@@ -208,13 +214,16 @@ bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(const ProblemDescri
     {
         auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
                                                               nullptr,
+                                                              {},
                                                               nullptr,
-                                                              args.N,
-                                                              args.K,
-                                                              args.C,
                                                               args.input,
-                                                              args.filter,
+                                                              args.in_strides,
+                                                              args.weight,
+                                                              args.wei_strides,
+                                                              {},
+                                                              {},
                                                               args.output,
+                                                              args.out_strides,
                                                               args.strides,
                                                               args.dilation,
                                                               args.lPadding,
@@ -250,17 +259,20 @@ void ConvHipImplicitGemmGroupFwdXdlops::RunCKSolution(
     auto& data_ctx      = primitive_parameters.CastTo<conv::DataInvokeParams>();
     const auto& tensors = data_ctx.tensors;
     auto argument_ptr   = conv_ptr->MakeArgumentPointer(
-        static_cast<void*>(tensors.out),
-        const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
-            static_cast<const void*>(tensors.w)),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(tensors.in)),
-        args.N,
-        args.K,
-        args.C,
+        const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            static_cast<const void*>(tensors.w)),
+        {},
+        static_cast<void*>(tensors.out),
         args.input,
-        args.filter,
+        args.in_strides,
+        args.weight,
+        args.wei_strides,
+        {},
+        {},
         args.output,
+        args.out_strides,
         args.strides,
         args.dilation,
         args.lPadding,
@@ -278,9 +290,9 @@ void ConvHipImplicitGemmGroupFwdXdlops::RunCKSolution(
         handle.ResetKernelTime();
         handle.AccumKernelTime(elapsed_time);
     }
-}*/
+}
 #endif
-/*
+
 void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(const ProblemDescription& problem)
 {
 #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
@@ -387,7 +399,7 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(const ConvolutionContext& c
        problem.conv_problem.GetWeightsDataType() != problem.conv_problem.GetOutDataType() ||
        problem.conv_problem.GetInDataType() != problem.conv_problem.GetOutDataType())
         return false;
-    if(!problem.direction.IsBackwardData())
+    if(!problem.direction.IsForward())
         return false;
     if(!problem.Is2d())
         return false;
@@ -444,6 +456,6 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
     return result;
 #endif
 }
-*/
+
 } // namespace solver
 } // namespace miopen
