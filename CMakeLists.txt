@@ -506,9 +506,10 @@ if(LFS_MISSING_FILES)
     string(REPLACE ";" "; " LFS_MISSING_FILES "${LFS_MISSING_FILES}")
     message(WARNING "GIT LFS Files not pulled down, skipped: ${LFS_MISSING_FILES}")
     set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
+else()
+    set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
 endif()
 
-set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
 #end kdb package creation
 
 rocm_create_package(
