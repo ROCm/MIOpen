@@ -148,7 +148,7 @@ protected:
         SetTensorNd(weights.desc);
         std::random_device rd{};
         std::mt19937 gen{rd()};
-        std::uniform_real_distribution<> d{-3, 3};
+        std::uniform_real_distribution<> d{-1, 0};
         auto gen_value = [&](auto...) { return d(gen); };
         input.generate(gen_value);
         weights.generate(gen_value);

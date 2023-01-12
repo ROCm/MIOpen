@@ -304,9 +304,9 @@ struct PerformanceConfigConvCKIgemmFwdBiasActiv
 {
     int index;
     std::string kernel_id;
-    int total_size;
+    std::vector<std::string> valid_kernels;
     PerformanceConfigConvCKIgemmFwdBiasActiv(int idx, std::string kernl_id)
-        : index(idx), kernel_id(kernl_id), total_size(-1)
+        : index(idx), kernel_id(kernl_id)
     {
     }
     PerformanceConfigConvCKIgemmFwdBiasActiv() : PerformanceConfigConvCKIgemmFwdBiasActiv(0, "") {}

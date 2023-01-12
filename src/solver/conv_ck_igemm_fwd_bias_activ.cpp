@@ -38,7 +38,7 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/tensor_operation/gpu/device/device_conv_fwd_bias_activation.hpp>
 #endif
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV)
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 // Forward declare CK's function.
@@ -103,12 +103,11 @@ template <typename DataType>
 void PerformanceConfigConvCKIgemmFwdBiasActiv::Init(const ProblemDescription& problem)
 {
     const auto& args = CKArgs{problem};
-    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv;
+    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
     ck::tensor_operation::device::instance::
-        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv);
-    assert(!conv.empty());
-    this->total_size = conv.size();
-    for(const auto& it : conv)
+        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs);
+    assert(!conv_ptrs.empty());
+    for(const auto& it : conv_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(nullptr,
                                                     nullptr,
@@ -129,10 +128,13 @@ void PerformanceConfigConvCKIgemmFwdBiasActiv::Init(const ProblemDescription& pr
                                                     {});
         if(it->IsSupportedArgument(argument_ptr.get()))
         {
-            this->kernel_id = it->GetTypeString();
+            valid_kernels.push_back(it->GetTypeString());
             break;
         }
     }
+    assert(!valid_kernels.empty());
+    this->index     = 0;
+    this->kernel_id = valid_kernels[0];
 }
 
 template <typename DataType>
@@ -140,10 +142,23 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
     const auto& args = CKArgs{problem};
-    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv;
+    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
     ck::tensor_operation::device::instance::
-        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv);
-    auto argument_ptr = conv[this->index]->MakeArgumentPointer(nullptr,
+        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs);
+    
+    int i = 0;
+    for(; i < conv_ptrs.size(); i++)
+    {
+        if(conv_ptrs[i]->GetTypeString() == this->kernel_id)
+        {
+            break;
+        }
+    }
+    if(i == valid_kernels.size())
+    {
+        return false;
+    }
+    auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
                                                                nullptr,
                                                                nullptr,
                                                                nullptr,
@@ -160,18 +175,18 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::CheckIsSupportCKArgs(
                                                                {},
                                                                {},
                                                                {});
-    return conv[this->index]->IsSupportedArgument(argument_ptr.get());
+    return conv_ptrs[i]->IsSupportedArgument(argument_ptr.get());
 }
 
 template <typename DataType>
 bool ConvCKIgemmFwdBiasActiv::CheckCKApplicability(const ProblemDescription& problem) const
 {
-    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv;
+    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs ;
     ck::tensor_operation::device::instance::
-        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv);
-    assert(!conv.empty());
+        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs );
+    assert(!conv_ptrs .empty());
     const auto& args = CKArgs{problem};
-    for(const auto& it : conv)
+    for(const auto& it : conv_ptrs )
     {
         auto argument_ptr = it->MakeArgumentPointer(nullptr,
                                                     nullptr,
@@ -204,13 +219,19 @@ void ConvCKIgemmFwdBiasActiv::RunCKSolution(
     const PerformanceConfigConvCKIgemmFwdBiasActiv& config) const
 {
     const auto& args = CKArgs{problem};
-    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv;
+    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs ;
     ck::tensor_operation::device::instance::
-        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv);
-    // From the list of kernels provided by CK, config.index is the one that was
-    // tuned by PerformanceConfigConvCKIgemmFwdBiasActiv.
-    auto& conv_ptr = conv.at(config.index);
-
+        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs );
+    int i = 0;
+    for(; i < conv_ptrs.size(); i++)
+    {
+        if(conv_ptrs[i]->GetTypeString() == config.kernel_id)
+        {
+            break;
+        }
+    }
+    assert(i < conv_ptrs.size());
+    auto& conv_ck = conv_ptrs.at(config.index);
     const auto& invoke_ctx = primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
     const auto& wei_buf    = std::dynamic_pointer_cast<miopen::fusion::ConvolutionOpInvokeParam>(
                               invoke_ctx.op_invokers[0])
@@ -219,7 +240,7 @@ void ConvCKIgemmFwdBiasActiv::RunCKSolution(
         std::dynamic_pointer_cast<miopen::fusion::BiasOpInvokeParam>(invoke_ctx.op_invokers[1])
             ->bdata;
 
-    auto argument_ptr = conv_ptr->MakeArgumentPointer(
+    auto argument_ptr = conv_ck->MakeArgumentPointer(
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
             static_cast<const void*>(invoke_ctx.in)),
         const_cast<void*>( // NOLINT (cppcoreguidelines-pro-type-const-cast)
@@ -240,7 +261,7 @@ void ConvCKIgemmFwdBiasActiv::RunCKSolution(
         {},
         {},
         {});
-    auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
+    auto invoker_ptr            = conv_ck->MakeInvokerPointer();
     const auto enable_profiling = handle.IsProfilingEnabled();
 
     float elapsed_time =
@@ -261,8 +282,8 @@ void PerformanceConfigConvCKIgemmFwdBiasActiv::HeuristicInit(const FusionContext
     const auto& conv_prob = ctx.problem.GetConvProblem(0, conv::Direction::Forward).conv_problem;
     switch(conv_prob.GetInDataType())
     {
-    case miopenInt8:
     case miopenHalf: Init<ck::half_t>(conv_prob); break;
+    case miopenInt8:
     case miopenFloat:
     case miopenInt32:
     case miopenInt8x4:
@@ -278,28 +299,26 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::SetNextValue(const FusionContext&
     std::ignore = ctx;
     return false;
 #else
-    if(this->total_size == -1)
+    if(this->valid_kernels.empty())
     {
         this->HeuristicInit(ctx);
-        assert(this->total_size != -1);
+        assert(!valid_kernels.empty());
         return true;
     }
-    if((this->index + 1) < this->total_size)
+    if((this->index + 1) < valid_kernels.size())
     {
         ++this->index;
-        std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv;
-        ck::tensor_operation::device::instance::
-            add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv);
-        this->kernel_id = conv[this->index]->GetTypeString();
+        this->kernel_id = this->valid_kernels[index];
         return true;
     }
-    return false;
+    else
+        return false;
 #endif
 }
 
 bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValidValue() const
 {
-    return this->index < this->total_size;
+    return this->index < valid_kernels.size();
 }
 
 bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValid(const FusionContext& ctx) const
@@ -312,8 +331,8 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValid(const FusionContext& ctx)
     const auto& problem = ctx.problem.GetConvProblem(0, conv::Direction::Forward);
     switch(problem.conv_problem.GetInDataType())
     {
-    case miopenInt8:
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
+    case miopenInt8:
     case miopenFloat:
     case miopenInt32:
     case miopenInt8x4:
@@ -327,9 +346,8 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValid(const FusionContext& ctx)
 bool PerformanceConfigConvCKIgemmFwdBiasActiv::operator==(
     const PerformanceConfigConvCKIgemmFwdBiasActiv& other) const
 {
-    return this->index == other.index && this->total_size == other.total_size;
+    return this->kernel_id == other.kernel_id;
 }
-
 PerformanceConfigConvCKIgemmFwdBiasActiv
 ConvCKIgemmFwdBiasActiv::GetDefaultPerformanceConfig(const FusionContext& ctx) const
 {
@@ -357,32 +375,25 @@ bool ConvCKIgemmFwdBiasActiv::IsApplicable(const FusionContext& ctx) const
     return false;
 #else
     const auto& problem = ctx.problem.GetConvProblem(0, conv::Direction::Forward);
-
+    if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV{}))
+        return false;
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
-
     if(problem.conv_problem.GetInDataType() != problem.conv_problem.GetWeightsDataType() ||
-       problem.conv_problem.GetWeightsDataType() != problem.conv_problem.GetOutDataType() ||
        problem.conv_problem.GetInDataType() != problem.conv_problem.GetOutDataType())
         return false;
-
-    if(!problem.direction.IsForward())
-        return false;
-
     if(!problem.Is2d())
         return false;
-
     const std::string arch = ctx.GetStream().GetDeviceName();
     if(arch != "gfx908" && arch != "gfx90a")
         return false;
-
     if(!problem.IsLayoutNHWC())
         return false;
 
     switch(problem.conv_problem.GetInDataType())
     {
-    case miopenInt8:
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
+    case miopenInt8:
     case miopenFloat:
     case miopenInt32:
     case miopenInt8x4:
