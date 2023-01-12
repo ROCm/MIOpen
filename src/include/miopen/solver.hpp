@@ -38,7 +38,6 @@
 #include <miopen/miopen.h>
 #include <miopen/buffer_info.hpp>
 #include <miopen/performance_config.hpp>
-#include <miopen/batchnorm/problem_description.hpp>
 
 #include <boost/any.hpp>
 
@@ -365,7 +364,7 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
 };
 
-struct ConvAsm1x1U : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
+struct ConvAsm1x1U final : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
 {
     // To suppress -Woverloaded-virtual
     using ConvTunableSolver::GetDefaultPerformanceConfig;
@@ -420,81 +419,6 @@ private:
                                         const ProblemDescription&,
                                         const AnyInvokeParams& invoke_ctx) const;
 };
-
-#if 0
-struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
-{
-    PerformanceConfigConvBiasActivAsm1x1U(bool spare) : PerformanceConfigConvAsm1x1U(spare) {}
-    PerformanceConfigConvBiasActivAsm1x1U()
-        : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, -1, false)
-    {
-    }
-    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx.problem); }
-    bool IsValid(const ProblemDescription&) const;
-    bool operator==(const PerformanceConfigConvBiasActivAsm1x1U& other) const;
-};
-
-// Fused solver
-struct ConvBiasActivAsm1x1U final : ConvTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>
-{
-    // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::GetDefaultPerformanceConfig;
-    using ConvTunableSolver::GetSolution;
-    using ConvTunableSolver::GetWorkspaceSize;
-    using ConvTunableSolver::IsApplicable;
-    using ConvTunableSolver::IsValidPerformanceConfig;
-    using ConvTunableSolver::Search;
-
-    const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
-    const std::string& AltSolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
-
-    bool IsApplicable(const ConvolutionContext& ctx) const override
-    {
-        return IsApplicable(ctx, ctx.problem);
-    }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
-    {
-        return GetWorkspaceSize(ctx.problem);
-    }
-    bool MayNeedWorkspace() const override { return true; }
-
-    PerformanceConfigConvBiasActivAsm1x1U
-    GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
-    {
-        return GetDefaultPerformanceConfig(ctx.problem);
-    }
-    bool
-    IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                             const PerformanceConfigConvBiasActivAsm1x1U& config) const override
-    {
-        return IsValidPerformanceConfig(ctx.problem, config);
-    }
-    PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext& ctx,
-                                                 const AnyInvokeParams& invoke_ctx) const override
-    {
-        return Search(ctx, ctx.problem, invoke_ctx);
-    }
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceConfigConvBiasActivAsm1x1U& config) const override
-    {
-        return GetSolution(ctx, ctx.problem, config);
-    }
-
-private:
-    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
-    size_t GetWorkspaceSize(const ProblemDescription&) const;
-    PerformanceConfigConvBiasActivAsm1x1U
-    GetDefaultPerformanceConfig(const ProblemDescription&) const;
-    bool IsValidPerformanceConfig(const ProblemDescription&,
-                                  const PerformanceConfigConvBiasActivAsm1x1U&) const;
-    PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
-                                                 const ProblemDescription&,
-                                                 const AnyInvokeParams& invoke_ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext&,
-                             const ProblemDescription&,
-                             const PerformanceConfigConvBiasActivAsm1x1U&) const;
-};
-#endif
 
 struct PerformanceConfigConvAsm1x1UV2 : PerfConfigBase<PerformanceConfigConvAsm1x1UV2>
 {

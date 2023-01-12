@@ -34,14 +34,9 @@ namespace fusion {
 inline int GetOpIdx(const std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map,
                     miopenFusionOp_t op)
 {
-    int idx = 0;
-    for(const auto& ptr : op_map)
-    {
-        if(ptr->kind() == op)
-            return idx;
-        ++idx;
-    }
-    return -1;
+    auto it = std::find_if(
+        op_map.cbegin(), op_map.cend(), [op](auto&& item) { return item->kind() == op; });
+    return it == op_map.cend() ? -1 : std::distance(op_map.cbegin(), it);
 }
 
 inline bool WinoCommonIsApplicable(const FusionContext& params)
@@ -69,14 +64,10 @@ inline bool WinoCommonIsApplicable(const FusionContext& params)
             return false;
     }
     const auto activ_idx = [&]() {
-        int idx = 0;
-        for(const auto& prim : desc.op_map)
-        {
-            if(prim->kind() == miopenFusionOpActivForward)
-                return idx;
-            ++idx;
-        }
-        return -1;
+        const auto it = std::find_if(desc.op_map.cbegin(), desc.op_map.cend(), [](auto&& prim) {
+            return prim->kind() == miopenFusionOpActivForward;
+        });
+        return it == desc.op_map.cend() ? -1 : std::distance(desc.op_map.cbegin(), it);
     }();
     if(activ_idx != -1)
     {

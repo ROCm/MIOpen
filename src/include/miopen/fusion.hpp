@@ -40,10 +40,6 @@
 #include <vector>
 #include <unordered_map>
 
-#define MIOPEN_CHECK(x)          \
-    if(x != miopenStatusSuccess) \
-        return x;
-
 namespace miopen {
 
 struct Handle;
@@ -56,17 +52,6 @@ enum FusionKernelSourceType
     Binary, /// \todo Unused, consider removing.
 };
 
-struct OperatorArgs : miopenOperatorArgs
-{
-    std::vector<std::shared_ptr<fusion::FusionOpInvokeParamBase>> params;
-    friend std::ostream& operator<<(std::ostream& stream, const OperatorArgs& x);
-    void SetArg(size_t idx, const std::shared_ptr<fusion::FusionOpInvokeParamBase>& arg)
-    {
-        if(params.size() < (idx + 1))
-            params.resize(idx + 1);
-        params[idx] = arg;
-    }
-};
 struct FusionOpDescriptor : miopenFusionOpDescriptor
 {
     virtual ~FusionOpDescriptor()                 = default;
@@ -82,9 +67,7 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     void SetInputDesc(TensorDescriptor i_desc) { input_desc = i_desc; };
     TensorDescriptor input_desc;
 
-    // private:
     int plan_idx = 0;
-    // std::shared_ptr<fusion::FusionOpInvokeParamBase> args = nullptr;
 };
 
 struct BiasFusionOpDescriptor : FusionOpDescriptor

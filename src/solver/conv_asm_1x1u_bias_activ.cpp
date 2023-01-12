@@ -166,16 +166,15 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& problem,
             const auto& invoke_ctx =
                 primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
             const auto& bot_ocl_buf = invoke_ctx.in;
-            const auto& wei_ocl_buf =
-                std::dynamic_pointer_cast<miopen::fusion::ConvolutionOpInvokeParam>(
-                    invoke_ctx.op_invokers[0])
-                    ->weights;
+            const auto& wei_ocl_buf = dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam&>(
+                                          *invoke_ctx.op_args.params[0])
+                                          .weights;
             const auto& top_ocl_buf  = invoke_ctx.out;
             const auto& bias_ocl_buf = [&]() -> ConstData_t {
                 if(has_bias)
-                    return std::dynamic_pointer_cast<miopen::fusion::BiasOpInvokeParam>(
-                               invoke_ctx.op_invokers[1])
-                        ->bdata;
+                    return dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(
+                               *invoke_ctx.op_args.params[1])
+                        .bdata;
                 else
                     return nullptr;
             }();
@@ -186,12 +185,11 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& problem,
             }
             else
             {
-                const auto& activ_invoker =
-                    std::dynamic_pointer_cast<miopen::fusion::ActivationOpInvokeParam>(
-                        invoke_ctx.op_invokers[activ_idx]);
-                const auto activ_alpha = activ_invoker->activAlpha;
-                const auto activ_beta  = activ_invoker->activBeta;
-                const auto activ_gamma = activ_invoker->activGamma;
+                const auto& activ_invoker = dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(
+                    *invoke_ctx.op_args.params[activ_idx]);
+                const auto activ_alpha = activ_invoker.activAlpha;
+                const auto activ_beta  = activ_invoker.activBeta;
+                const auto activ_gamma = activ_invoker.activGamma;
                 if(out_data_type == miopenHalf)
                 {
                     short unused = 0;

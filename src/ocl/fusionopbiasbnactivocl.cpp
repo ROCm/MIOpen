@@ -166,7 +166,6 @@ void BatchNormBwdTrainFusionOpDescriptor::calcBNParams(Handle& handle,
 miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetNetworkConfig(std::string& network_config,
                                                                      Handle& handle)
 {
-
     int n, c, h, w;
     int variant          = 0;
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());

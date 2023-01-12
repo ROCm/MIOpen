@@ -141,10 +141,13 @@ set( MIOpen_Source
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
     solver/batchnorm/backward_per_activation.cpp
+    solver/batchnorm/backward_per_activation_fused.cpp
     solver/batchnorm/backward_spatial_multiple.cpp
     solver/batchnorm/backward_spatial_single.cpp
     solver/batchnorm/forward_inference.cpp
+    solver/batchnorm/forward_inference_fused.cpp
     solver/batchnorm/forward_per_activation.cpp
+    solver/batchnorm/forward_per_activation_fused.cpp
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
     solver/conv_asm_1x1u.cpp
@@ -201,10 +204,12 @@ set( MIOpen_Source
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D11x11.cpp
     solver/conv_ocl_dir2Dfwd.cpp
+    solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
     solver/conv_winoRxS.cpp
+    solver/conv_winoRxS_fused.cpp
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp

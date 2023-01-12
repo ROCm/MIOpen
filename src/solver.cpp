@@ -194,11 +194,8 @@ miopenConvAlgorithm_t Id::GetAlgo() const
     return it->second.convAlgo;
 }
 
-inline bool Register(IdRegistryData& registry,
-                     uint64_t value,
-                     Primitive primitive,
-                     const std::string& str,
-                     miopenConvAlgorithm_t algo = miopenConvolutionAlgoDirect)
+inline bool
+Register(IdRegistryData& registry, uint64_t value, Primitive primitive, const std::string& str)
 {
     if(value == Id::invalid_value)
     {
@@ -227,11 +224,22 @@ inline bool Register(IdRegistryData& registry,
     auto entry      = IdRegistryEntry{};
     entry.str_value = str;
     entry.primitive = {primitive};
-    entry.convAlgo  = algo;
 
     registry.value_to_entry.emplace(value, std::move(entry));
     registry.str_to_value.emplace(str, value);
     registry.primitive_to_ids[primitive].emplace_back(ForceInit{}, value);
+    return true;
+}
+
+inline bool Register(IdRegistryData& registry,
+                     uint64_t value,
+                     Primitive primitive,
+                     const std::string& str,
+                     miopenConvAlgorithm_t algo)
+{
+    if(!Register(registry, value, primitive, str))
+        return false;
+    registry.value_to_entry.at(value).convAlgo = algo;
     return true;
 }
 
@@ -267,8 +275,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvAsm3x3U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1U{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm1x1UV2{}, miopenConvolutionAlgoDirect);
-    Register(
-        registry, ++id, Primitive::Fusion, solver::fusion::ConvBiasActivAsm1x1U{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             solver::fusion::ConvBiasActivAsm1x1U{}.SolverDbId(),
+             miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2f1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvAsm5x10u2v2b1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(
@@ -277,8 +288,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(registry, ++id, ConvOclDirectFwdGen{}, miopenConvolutionAlgoDirect);
     ++id; // removed ConvOclDirectFwd3x3
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd{}, miopenConvolutionAlgoDirect);
-    Register(
-        registry, ++id, Primitive::Fusion, solver::fusion::ConvOclDirectFwdFused{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             solver::fusion::ConvOclDirectFwdFused{}.SolverDbId(),
+             miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvOclDirectFwd1x1{}, miopenConvolutionAlgoDirect);
     RegisterWithSolver(registry, ++id, ConvBinWinograd3x3U{}, miopenConvolutionAlgoWinograd);
     RegisterWithSolver(registry, ++id, ConvBinWinogradRxS{}, miopenConvolutionAlgoWinograd);
