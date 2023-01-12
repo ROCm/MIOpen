@@ -443,10 +443,8 @@ struct tensor_transform_driver : test_driver
                                             (super_dst.desc.GetSize() - subLens.size()),
                                         superStrides_dst.end());
 
-        subDesc_src = miopen::TensorDescriptor(
-            this->type, subLens, subStrides_src);
-        subDesc_dst = miopen::TensorDescriptor(
-            this->type, subLens, subStrides_dst);
+        subDesc_src = miopen::TensorDescriptor(this->type, subLens, subStrides_src);
+        subDesc_dst = miopen::TensorDescriptor(this->type, subLens, subStrides_dst);
 
         verify_equals(verify_tensor_transform_scale<T>{
             super_src, subDesc_src, super_dst, subDesc_dst, offset, offset, T(alpha), T(beta)});

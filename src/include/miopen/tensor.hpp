@@ -163,8 +163,10 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     // Use only for external API
     static TensorDescriptor MakeDescriptor(miopenDataType_t t, const int* plens, int size);
-    static TensorDescriptor MakeDescriptor(miopenDataType_t t, miopenTensorLayout_t layout, const int* plens, int size);
-    static TensorDescriptor MakeDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
+    static TensorDescriptor
+    MakeDescriptor(miopenDataType_t t, miopenTensorLayout_t layout, const int* plens, int size);
+    static TensorDescriptor
+    MakeDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
 
     bool IsVectorized() const;
 

@@ -393,8 +393,7 @@ template <class T, class X>
 tensor<T> make_tensor(const std::vector<X>& dims)
 {
     // TODO: Compute float
-    return tensor<T>{
-        miopen::TensorDescriptor{miopen_type<T>{}, dims}};
+    return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}};
 }
 
 template <class T, class X, class G>

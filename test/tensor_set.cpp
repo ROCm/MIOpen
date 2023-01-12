@@ -132,8 +132,7 @@ struct tensor_set_driver : test_driver
         std::vector<int> subStrides(superStrides.begin() + (super.desc.GetSize() - subLens.size()),
                                     superStrides.end());
 
-        subDesc =
-            miopen::TensorDescriptor(this->type, subLens, subStrides);
+        subDesc = miopen::TensorDescriptor(this->type, subLens, subStrides);
 
         verify_equals(verify_tensor_set<T>{super, subDesc, offset, T(1.111)});
     }

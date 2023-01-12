@@ -3055,10 +3055,9 @@ struct lstm_basic_driver : test_driver
 
         size_t wei_bytes = 0;
         std::vector<int> inlens(2, 0);
-        inlens.at(0) = batchSeq.at(0);
-        inlens.at(1) = inVecReal;
-        auto firstInputDesc =
-            miopen::TensorDescriptor(miopen::deref(rnnDesc).dataType, inlens);
+        inlens.at(0)        = batchSeq.at(0);
+        inlens.at(1)        = inVecReal;
+        auto firstInputDesc = miopen::TensorDescriptor(miopen::deref(rnnDesc).dataType, inlens);
         miopenGetRNNParamsSize(
             &handle, rnnDesc, &firstInputDesc, &wei_bytes, miopen::deref(rnnDesc).dataType);
         auto wei_sz = int(wei_bytes / sizeof(T));

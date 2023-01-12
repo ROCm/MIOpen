@@ -50,8 +50,7 @@ bool IsDataTypeSupported(miopenDataType_t t)
     case miopenInt8:
     case miopenInt8x4:
     case miopenBFloat16:
-    case miopenDouble:
-        return true;
+    case miopenDouble: return true;
     }
     return false;
 }
@@ -68,13 +67,12 @@ bool IsLayoutSupported(miopenTensorLayout_t layout)
     case miopenTensorCHWNc4:
     case miopenTensorCHWNc8:
     case miopenTensorNCDHW:
-    case miopenTensorNDHWC:
-        return true;
+    case miopenTensorNDHWC: return true;
     }
     return false;
 }
 
-template<class T>
+template <class T>
 bool CheckLengths(const std::vector<T>& lens)
 {
     if(lens.empty())
@@ -84,7 +82,8 @@ bool CheckLengths(const std::vector<T>& lens)
     return true;
 }
 
-std::vector<std::size_t> ConvertLengthsOrThrow(const std::vector<int>& lens, const std::string& err_msg)
+std::vector<std::size_t> ConvertLengthsOrThrow(const std::vector<int>& lens,
+                                               const std::string& err_msg)
 {
     if(!CheckLengths(lens))
         MIOPEN_THROW(miopenStatusBadParm, err_msg);
@@ -109,7 +108,8 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t, const std::vector<int>& l
 {
 }
 
-TensorDescriptor::TensorDescriptor(miopenDataType_t t, const std::initializer_list<std::size_t>& lens_in)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
+                                   const std::initializer_list<std::size_t>& lens_in)
     : TensorDescriptor(t, std::vector<std::size_t>(lens_in))
 {
 }
@@ -171,7 +171,7 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
 {
 }
 
-//Main private constructor
+// Main private constructor
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    miopenTensorLayout_t layout_in,
                                    const std::vector<std::size_t>& lens_in,
@@ -200,9 +200,9 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
 
         if(!CheckLengths(strides_in))
             MIOPEN_THROW(miopenStatusBadParm, "Strides must be > 0");
-        
+
         strides = strides_in;
-        packed = (this->GetElementSize() == this->GetElementSpace());
+        packed  = (this->GetElementSize() == this->GetElementSpace());
     }
     else
     {
@@ -216,17 +216,23 @@ TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t, const int*
     return MakeDescriptor(t, GetDefaultLayout(), plens, size);
 }
 
-TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t, miopenTensorLayout_t layout, const int* plens, int size)
+TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
+                                                  miopenTensorLayout_t layout,
+                                                  const int* plens,
+                                                  int size)
 {
-    if(plens==nullptr || size<=0)
+    if(plens == nullptr || size <= 0)
         MIOPEN_THROW(miopenStatusInvalidValue);
 
     return {t, layout, std::vector<int>(plens, plens + size)};
 }
 
-TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size)
+TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
+                                                  const int* plens,
+                                                  const int* pstrides,
+                                                  int size)
 {
-    if(plens==nullptr || pstrides==nullptr || size<=0)
+    if(plens == nullptr || pstrides == nullptr || size <= 0)
         MIOPEN_THROW(miopenStatusInvalidValue);
 
     return {t, std::vector<int>(plens, plens + size), std::vector<int>(pstrides, pstrides + size)};
@@ -398,7 +404,8 @@ std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t)
     LogRange(stream << "{", t.lens, ", ") << "}, ";
     LogRange(stream << "{", t.strides, ", ") << "}, ";
     if(t.packed)
-        stream << "packed" << ", ";
+        stream << "packed"
+               << ", ";
 
     return stream;
 }

@@ -190,10 +190,8 @@ struct tensor_cast_driver : test_driver
                                                (dstSuper.desc.GetSize() - castLens.size()),
                                            dstSuperStrides.end());
 
-        srcDesc = miopen::TensorDescriptor(
-            miopenInt32, castLens, src_super_strides);
-        dstDesc = miopen::TensorDescriptor(
-            miopen_type<T>{}, castLens, dst_super_strides);
+        srcDesc = miopen::TensorDescriptor(miopenInt32, castLens, src_super_strides);
+        dstDesc = miopen::TensorDescriptor(miopen_type<T>{}, castLens, dst_super_strides);
 
         if(srcDesc.GetLengths().size() == dstDesc.GetLengths().size())
         {
