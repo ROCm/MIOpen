@@ -874,6 +874,15 @@ miopenInitConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
                                   int* dilationA,
                                   miopenConvolutionMode_t c_mode);
 
+/*! @brief Retrieves the spatial dimension of a convolution layer descriptor
+ *
+ * @param convDesc              Convolution layer descriptor (input)
+ * @param spatialDim            Spatial dimension of convolution descriptor (output)
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionSpatialDim(miopenConvolutionDescriptor_t convDesc,
+                                                            int* spatialDim);
+
 /*! @brief Retrieves a 2-D convolution layer descriptor's details
  *
  * For group/depthwise convolution dilation height and width, only a dilation value of 1 is
