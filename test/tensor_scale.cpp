@@ -132,7 +132,7 @@ struct tensor_scale_driver : test_driver
                                     superStrides.end());
 
         subDesc =
-            miopen::TensorDescriptor(this->type, subLens.data(), subStrides.data(), subLens.size());
+            miopen::TensorDescriptor(this->type, subLens, subStrides);
 
         verify_equals(verify_tensor_scale<T>{super, subDesc, offset, T(2.048)});
     }

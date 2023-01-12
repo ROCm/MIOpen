@@ -44,7 +44,7 @@ TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
 {
     // is packed
     if(desc.IsPacked())
-        return {desc.GetType(), {desc.GetElementSize()}, {1}};
+        return {desc.GetType(), {desc.GetElementSize()}, {static_cast<std::size_t>(1)}};
 
     // start flattening tensor
     std::vector<std::size_t> flat_lengths;

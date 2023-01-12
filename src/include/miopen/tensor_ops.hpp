@@ -79,7 +79,7 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
     {
         auto sz = real_descriptors[0]->GetElementSize();
         return create_tuple<NTensor>([&](auto itensor) {
-            return TensorDescriptor{real_descriptors[itensor]->GetType(), {sz}, {1}};
+            return TensorDescriptor{real_descriptors[itensor]->GetType(), {sz}, {static_cast<std::size_t>(1)}};
         });
     }
 
