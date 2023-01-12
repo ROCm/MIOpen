@@ -328,6 +328,7 @@ endif()
 set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
+set(rocMLIR_VERSION_FLAT 0)
 if(MIOPEN_USE_MLIR)
     if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
         message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
