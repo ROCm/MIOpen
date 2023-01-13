@@ -328,6 +328,7 @@ endif()
 set_var_to_condition(MIOPEN_USE_MLIR_DEFAULT NOT (NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR}))
 option(MIOPEN_USE_MLIR "Use MLIR compilation backend" ${MIOPEN_USE_MLIR_DEFAULT})
 
+set(rocMLIR_VERSION_FLAT 0)
 if(MIOPEN_USE_MLIR)
     if(NOT ${BUILD_SHARED_LIBS} AND ${MIOPEN_USE_COMGR})
         message(FATAL_ERROR "Potential symbol conflict between mlir and comgr in static build")
@@ -345,10 +346,14 @@ if(MIOPEN_USE_MLIR)
             Refer to https://github.com/ROCmSoftwarePlatform/MIOpen#installing-the-dependencies")
         else()
             message(STATUS "Build with library libMLIRMIOpen: " ${LIBMLIRMIOPEN})
+            set(rocMLIR_VERSION_MAJOR 0)
+            set(rocMLIR_VERSION_MINOR 0)
+            set(rocMLIR_VERSION_PATCH 1)
         endif()
     else()
         message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION}")
     endif()
+    math(EXPR rocMLIR_VERSION_FLAT "(${rocMLIR_VERSION_MAJOR} * 1000 + ${rocMLIR_VERSION_MINOR}) * 100000 + ${rocMLIR_VERSION_PATCH}")
 endif()
 
 
@@ -506,9 +511,10 @@ if(LFS_MISSING_FILES)
     string(REPLACE ";" "; " LFS_MISSING_FILES "${LFS_MISSING_FILES}")
     message(WARNING "GIT LFS Files not pulled down, skipped: ${LFS_MISSING_FILES}")
     set(MIOPEN_NO_LFS_PULLED TRUE CACHE INTERNAL "")
+else()
+    set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
 endif()
 
-set(CPACK_COMPONENTS_ALL ${ARCH_FILE_LST})
 #end kdb package creation
 
 rocm_create_package(
