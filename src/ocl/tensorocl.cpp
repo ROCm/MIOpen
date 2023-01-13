@@ -80,7 +80,7 @@ TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
     flat_lengths.push_back(flat_len);
     flat_strides.push_back(boost::get<1>(*i_previous));
 
-    return {desc.GetType(), std::move(flat_lengths), std::move(flat_strides)};
+    return {desc.GetType(), flat_lengths, flat_strides};
 }
 
 // Free Tensor Functions

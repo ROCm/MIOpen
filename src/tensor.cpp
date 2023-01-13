@@ -82,13 +82,14 @@ bool CheckLengths(const std::vector<T>& lens)
     return true;
 }
 
-std::vector<std::size_t> ConvertLengthsOrThrow(const std::vector<int>& lens,
+std::vector<std::size_t> ConvertLengthsOrThrow(const std::vector<int>& lens_in,
                                                const std::string& err_msg)
 {
-    if(!CheckLengths(lens))
+    if(!CheckLengths(lens_in))
         MIOPEN_THROW(miopenStatusBadParm, err_msg);
 
-    return std::vector<std::size_t>(lens.cbegin(), lens.cend());
+    std::vector<std::size_t> lens(lens_in.cbegin(), lens_in.cend());
+    return lens;
 }
 
 } // namespace
