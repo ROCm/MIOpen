@@ -2227,6 +2227,15 @@ add_custom_test(smoke_solver_ConvHipImplicitGemmFwdXdlops OCL_DISABLED GFX900_DI
       --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
+add_custom_test(smoke_solver_ConvHipImplicitGemmBwdXdlops OCL_DISABLED GFX900_DISABLED GFX906_DISABLED HALF_ENABLED
+    SKIP_UNLESS_COMPOSABLEKERNEL TEST_TUNING
+    COMMAND ${ENFORCE_TUNING_5}
+      MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0
+      MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmBwdXdlops $<TARGET_FILE:test_conv2d>
+      ${TEST_CONV_VERBOSE_B} --input 128 64 7 7 --weights 64 64 3 3 --pads_strides_dilations 1 1 1 1 1 1
+      --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
 add_custom_test(smoke_solver_ConvBinWinograd3x3U GFX90A_DISABLED SKIP_XNACK_ON
     COMMAND MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvBinWinograd3x3U $<TARGET_FILE:test_conv2d>
       ${TEST_CONV_VERBOSE_F} --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
