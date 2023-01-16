@@ -39,7 +39,7 @@ struct BNActivInferHalf : BNActivInferTest<half_float::half>
 
 template <typename Solver, typename TestCase>
 void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
-               const miopen::fusion::FusionInvokeParams plan_params,
+               const std::unique_ptr<miopen::fusion::FusionInvokeParams>& plan_params,
                const TestCase& config,
                bool& test_skipped)
 {
@@ -57,7 +57,7 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
-    (invoker)(handle, plan_params);
+    (invoker)(handle, *(plan_params.get()));
     handle.Finish();
 }
 TEST_P(BNActivInferFloat, BnFwdInferActivationFused)
