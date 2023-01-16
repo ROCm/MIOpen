@@ -107,6 +107,8 @@ void PerformanceConfigConvCKIgemmFwdBiasActiv::Init(const ProblemDescription& pr
     ck::tensor_operation::device::instance::
         add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs);
     assert(!conv_ptrs.empty());
+    // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel. 
+    int unique_id = 0;
     for(const auto& it : conv_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(nullptr,
@@ -128,10 +130,12 @@ void PerformanceConfigConvCKIgemmFwdBiasActiv::Init(const ProblemDescription& pr
                                                     {});
         if(it->IsSupportedArgument(argument_ptr.get()))
         {
-            valid_kernels.push_back(it->GetTypeString());
+            valid_kernels.push_back(it->GetTypeString() + "_" + std::to_string(unique_id));
             break;
         }
+        ++unique_id;
     }
+    
     assert(!valid_kernels.empty());
     this->index     = 0;
     this->kernel_id = valid_kernels[0];
@@ -222,16 +226,18 @@ void ConvCKIgemmFwdBiasActiv::RunCKSolution(
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs ;
     ck::tensor_operation::device::instance::
         add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs );
-    int i = 0;
-    for(; i < conv_ptrs.size(); i++)
+        
+    // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel. 
+    int unique_id = 0;
+    for(; unique_id < conv_ptrs.size(); unique_id++)
     {
-        if(conv_ptrs[i]->GetTypeString() == config.kernel_id)
+        if(conv_ptrs[unique_id]->GetTypeString() + "_" + std::to_string(unique_id)== config.kernel_id)
         {
             break;
         }
     }
-    assert(i < conv_ptrs.size());
-    auto& conv_ck = conv_ptrs.at(config.index);
+    assert(unique_id < conv_ptrs.size());
+    auto& conv_ck = conv_ptrs.at(unique_id);
     const auto& invoke_ctx = primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
     const auto& wei_buf    = std::dynamic_pointer_cast<miopen::fusion::ConvolutionOpInvokeParam>(
                               invoke_ctx.op_invokers[0])

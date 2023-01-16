@@ -37,6 +37,8 @@
 #include "get_handle.hpp"
 #include "conv_common.hpp"
 
+#include "../driver/tensor_driver.hpp"
+
 template <typename T>
 miopenDataType_t GetDataType();
 
@@ -65,14 +67,14 @@ struct ConvTestCase
     size_t pad_y;
     size_t stride_x;
     size_t stride_y;
-    size_t dialtion_x;
+    size_t dilation_x;
     size_t dilation_y;
     friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
     {
         return os << "(N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
                   << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
-                  << " pad_x:" << tc.pad_x << " stride_y:" << tc.stride_y
-                  << " dilation_y:" << tc.dilation_y << " )";
+                  << " pad_x:" << tc.pad_x << " stride_y:" << tc.stride_y << " stride_x:" << tc.stride_x
+                  << " dilation_y:" << tc.dilation_y << " dilation_x:" << tc.dilation_x << " )";
     }
     std::vector<size_t> GetInput() { return {N, C, H, W}; }
     std::vector<size_t> GetWeights() { return {k, C, y, x}; }
@@ -81,7 +83,7 @@ struct ConvTestCase
         return miopen::ConvolutionDescriptor{
             {static_cast<int>(pad_y), static_cast<int>(pad_x)},
             {static_cast<int>(stride_y), static_cast<int>(stride_x)},
-            {static_cast<int>(dilation_y), static_cast<int>(dilation_y)}};
+            {static_cast<int>(dilation_y), static_cast<int>(dilation_x)}};
     }
 };
 
@@ -113,23 +115,16 @@ std::vector<ConvTestCase> GetNetwork1()
             {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1}};
 }
 
-inline int SetTensorNd(miopen::TensorDescriptor& desc)
+inline int SetTensorLayout(miopen::TensorDescriptor& desc)
 {
     // get layout string names
     std::string layout_str     = desc.GetLayout_str();
-    std::string len_layout_str = miopen::tensor_layout_get_default(layout_str.size());
 
-    // get the lengths of the tensor eg: {N,C,H,W}, {N,H,W,C}
     std::vector<std::size_t> lens = desc.GetLengths();
     std::vector<int> int_lens(lens.begin(), lens.end());
 
-    // get the strides for the layout_str
-    std::vector<int> strides;
-    miopen::tensor_layout_to_strides(int_lens, len_layout_str, layout_str, strides);
-
     // set the strides for the tensor
-    return miopenSetTensorDescriptor(
-        &desc, desc.GetType(), int_lens.size(), int_lens.data(), strides.data());
+    return SetTensorNd(&desc, int_lens, layout_str, desc.GetType());
 }
 
 template <typename T = float>
@@ -144,11 +139,11 @@ protected:
         std::tie(activ_mode, conv_config, tensor_layout) = GetParam();
         input   = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
         weights = tensor<T>{miopen_type<T>{}, tensor_layout, conv_config.GetWeights()};
-        SetTensorNd(input.desc);
-        SetTensorNd(weights.desc);
+        SetTensorLayout(input.desc);
+        SetTensorLayout(weights.desc);
         std::random_device rd{};
         std::mt19937 gen{rd()};
-        std::uniform_real_distribution<> d{-1, 0};
+        std::uniform_real_distribution<> d{-3, 3};
         auto gen_value = [&](auto...) { return d(gen); };
         input.generate(gen_value);
         weights.generate(gen_value);
@@ -156,7 +151,8 @@ protected:
         conv_desc  = conv_config.GetConv();
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
-        output = tensor<T>{output_desc.GetLengths()};
+        output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
+        SetTensorLayout(output.desc);
         bias   = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
         bias.generate(gen_value);
         auto&& handle = get_handle();
