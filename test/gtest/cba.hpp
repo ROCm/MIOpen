@@ -73,8 +73,9 @@ struct ConvTestCase
     {
         return os << "(N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
                   << " k: " << tc.k << " y:" << tc.y << " x:" << tc.x << " pad_y:" << tc.pad_y
-                  << " pad_x:" << tc.pad_x << " stride_y:" << tc.stride_y << " stride_x:" << tc.stride_x
-                  << " dilation_y:" << tc.dilation_y << " dilation_x:" << tc.dilation_x << " )";
+                  << " pad_x:" << tc.pad_x << " stride_y:" << tc.stride_y
+                  << " stride_x:" << tc.stride_x << " dilation_y:" << tc.dilation_y
+                  << " dilation_x:" << tc.dilation_x << " )";
     }
     std::vector<size_t> GetInput() { return {N, C, H, W}; }
     std::vector<size_t> GetWeights() { return {k, C, y, x}; }
@@ -118,7 +119,7 @@ std::vector<ConvTestCase> GetNetwork1()
 inline int SetTensorLayout(miopen::TensorDescriptor& desc)
 {
     // get layout string names
-    std::string layout_str     = desc.GetLayout_str();
+    std::string layout_str = desc.GetLayout_str();
 
     std::vector<std::size_t> lens = desc.GetLengths();
     std::vector<int> int_lens(lens.begin(), lens.end());
@@ -153,7 +154,7 @@ protected:
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, GetDataType<T>());
         output = tensor<T>{miopen_type<T>{}, tensor_layout, output_desc.GetLengths()};
         SetTensorLayout(output.desc);
-        bias   = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
+        bias = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
         bias.generate(gen_value);
         auto&& handle = get_handle();
         std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());

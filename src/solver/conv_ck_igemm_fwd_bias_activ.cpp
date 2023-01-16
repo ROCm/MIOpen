@@ -107,7 +107,7 @@ void PerformanceConfigConvCKIgemmFwdBiasActiv::Init(const ProblemDescription& pr
     ck::tensor_operation::device::instance::
         add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs);
     assert(!conv_ptrs.empty());
-    // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel. 
+    // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel.
     int unique_id = 0;
     for(const auto& it : conv_ptrs)
     {
@@ -135,7 +135,7 @@ void PerformanceConfigConvCKIgemmFwdBiasActiv::Init(const ProblemDescription& pr
         }
         ++unique_id;
     }
-    
+
     assert(!valid_kernels.empty());
     this->index     = 0;
     this->kernel_id = valid_kernels[0];
@@ -149,7 +149,7 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::CheckIsSupportCKArgs(
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
     ck::tensor_operation::device::instance::
         add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs);
-    
+
     int i = 0;
     for(; i < conv_ptrs.size(); i++)
     {
@@ -163,34 +163,34 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::CheckIsSupportCKArgs(
         return false;
     }
     auto argument_ptr = conv_ptrs[i]->MakeArgumentPointer(nullptr,
-                                                               nullptr,
-                                                               nullptr,
-                                                               nullptr,
-                                                               args.N,
-                                                               args.K,
-                                                               args.C,
-                                                               args.input,
-                                                               args.filter,
-                                                               args.output,
-                                                               args.strides,
-                                                               args.dilation,
-                                                               args.lPadding,
-                                                               args.rPadding,
-                                                               {},
-                                                               {},
-                                                               {});
+                                                          nullptr,
+                                                          nullptr,
+                                                          nullptr,
+                                                          args.N,
+                                                          args.K,
+                                                          args.C,
+                                                          args.input,
+                                                          args.filter,
+                                                          args.output,
+                                                          args.strides,
+                                                          args.dilation,
+                                                          args.lPadding,
+                                                          args.rPadding,
+                                                          {},
+                                                          {},
+                                                          {});
     return conv_ptrs[i]->IsSupportedArgument(argument_ptr.get());
 }
 
 template <typename DataType>
 bool ConvCKIgemmFwdBiasActiv::CheckCKApplicability(const ProblemDescription& problem) const
 {
-    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs ;
+    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
     ck::tensor_operation::device::instance::
-        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs );
-    assert(!conv_ptrs .empty());
+        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs);
+    assert(!conv_ptrs.empty());
     const auto& args = CKArgs{problem};
-    for(const auto& it : conv_ptrs )
+    for(const auto& it : conv_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(nullptr,
                                                     nullptr,
@@ -223,21 +223,22 @@ void ConvCKIgemmFwdBiasActiv::RunCKSolution(
     const PerformanceConfigConvCKIgemmFwdBiasActiv& config) const
 {
     const auto& args = CKArgs{problem};
-    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs ;
+    std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
     ck::tensor_operation::device::instance::
-        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs );
-        
-    // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel. 
+        add_device_conv2d_fwd_xdl_c_shuffle_bias_relu_nhwc_kyxc_nhwk_f16_instances(conv_ptrs);
+
+    // we need to add unique_id since ck's GetTypeString() does not give unique name of the kernel.
     int unique_id = 0;
     for(; unique_id < conv_ptrs.size(); unique_id++)
     {
-        if(conv_ptrs[unique_id]->GetTypeString() + "_" + std::to_string(unique_id)== config.kernel_id)
+        if(conv_ptrs[unique_id]->GetTypeString() + "_" + std::to_string(unique_id) ==
+           config.kernel_id)
         {
             break;
         }
     }
     assert(unique_id < conv_ptrs.size());
-    auto& conv_ck = conv_ptrs.at(unique_id);
+    auto& conv_ck          = conv_ptrs.at(unique_id);
     const auto& invoke_ctx = primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
     const auto& wei_buf    = std::dynamic_pointer_cast<miopen::fusion::ConvolutionOpInvokeParam>(
                               invoke_ctx.op_invokers[0])
