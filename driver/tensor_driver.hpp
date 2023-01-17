@@ -74,7 +74,7 @@ inline std::size_t GetTensorVectorLength(miopenTensorDescriptor_t& tensor)
     int size = 0;
     miopenGetTensorDescriptorSize(tensor, &size);
 
-    if(size == 4)
+    if(size == 4 || size == 5)
     {
         miopenGetNdTensorDescriptorVectorLength(tensor, &vectorLength);
         return vectorLength;
