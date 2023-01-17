@@ -520,6 +520,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry,
              ++id,
              Primitive::Fusion,
+             solver::fusion::ConvCKIgemmFwdBiasActiv{}.SolverDbId(),
+             miopenConvolutionAlgoImplicitGEMM);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
              solver::fusion::ConvBinWinogradRxSFused{}.SolverDbId(),
              miopenConvolutionAlgoWinograd);
     Register(registry,
