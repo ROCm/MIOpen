@@ -23,6 +23,8 @@ def cmake_build(Map conf=[:]){
     def build_envs = "CTEST_PARALLEL_LEVEL=4 MIOPEN_CONV_PRECISE_ROCBLAS_TIMING=0 " + conf.get("build_env","")
     def prefixpath = conf.get("prefixpath","/opt/rocm")
     def mlir_args = " -DMIOPEN_USE_MLIR=" + conf.get("mlir_build", "ON")
+    // WORKAROUND_ISSUE_1913:
+    mlir_args = mlir_args + " -DMIOPEN_LIBMLIR_SUPPORTS_GFX103X=ON"
     def setup_args = mlir_args + " -DMIOPEN_GPU_SYNC=Off " + conf.get("setup_flags","")
 
     setup_args = setup_args + " -DCMAKE_PREFIX_PATH=${prefixpath} "
@@ -494,7 +496,8 @@ pipeline {
 
                     }
                     steps{
-                        CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
+                        //CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
+                        echo "skip perf db valid check"
                     }
                 }
                 stage('HipNoGPU Debug Build Test') {

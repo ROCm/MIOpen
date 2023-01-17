@@ -42,8 +42,6 @@ namespace solver {
 
 struct AnySolver
 {
-    using Db = decltype(std::declval<mlo_construct_base>().GetDb());
-
     AnySolver() : ptr_value(nullptr){};
     template <class U>
     AnySolver(U src) : ptr_value(new AnySolver_tmpl<U>(std::forward<U>(src))){};
@@ -85,13 +83,14 @@ struct AnySolver
     };
     bool IsEmpty() const { return ptr_value == nullptr; };
     ConvSolution FindSolution(const ConvolutionContext& ctx,
-                              Db& db,
-                              const miopen::AnyInvokeParams& invoke_ctx) const
+                              PerformanceDb& db,
+                              const miopen::AnyInvokeParams& invoke_ctx,
+                              const std::string& perf_cfg = "") const
     {
         assert(ptr_value != nullptr);
-        return ptr_value->FindSolution(ctx, db, invoke_ctx);
+        return ptr_value->FindSolution(ctx, db, invoke_ctx, perf_cfg);
     };
-    std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const
+    std::string GetPerfCfgParams(const ConvolutionContext& ctx, PerformanceDb& db) const
     {
         assert(ptr_value != nullptr);
         return ptr_value->GetPerfCfgParams(ctx, db);
@@ -130,9 +129,11 @@ struct AnySolver
         virtual const std::type_info& Type() const                                             = 0;
         virtual std::string GetSolverDbId() const                                              = 0;
         virtual ConvSolution FindSolution(const ConvolutionContext& ctx,
-                                          Db& db,
-                                          const miopen::AnyInvokeParams& invoke_ctx) const     = 0;
-        virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const      = 0;
+                                          PerformanceDb& db,
+                                          const miopen::AnyInvokeParams& invoke_ctx,
+                                          const std::string& perf_cfg) const                   = 0;
+        virtual std::string GetPerfCfgParams(const ConvolutionContext& ctx,
+                                             PerformanceDb& db) const                          = 0;
         virtual size_t GetWorkspaceSize(const ConvolutionContext& ctx) const                   = 0;
         virtual bool MayNeedWorkspace() const                                                  = 0;
     };
@@ -246,51 +247,56 @@ struct AnySolver
         }
 
         ConvSolution FindSolution(const ConvolutionContext& ctx,
-                                  Db& db,
-                                  const miopen::AnyInvokeParams& invoke_ctx) const override
+                                  PerformanceDb& db,
+                                  const miopen::AnyInvokeParams& invoke_ctx,
+                                  const std::string& perf_cfg) const override
         {
-            return miopen::solver::FindSolution(value, ctx, db, invoke_ctx);
+            return miopen::solver::FindSolution(value, ctx, db, invoke_ctx, perf_cfg);
         };
 
-        std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db, std::true_type) const
+        std::string
+        GetPerfCfgParams(const ConvolutionContext& ctx, PerformanceDb& db, std::true_type) const
         {
             using PerformanceConfig = decltype(value.GetDefaultPerformanceConfig(ctx));
             PerformanceConfig config{};
             if(db.Load(ctx.problem, value.SolverDbId(), config))
             {
-                MIOPEN_LOG_I2("Perf Db: Record Loaded: " << value.SolverDbId());
+                MIOPEN_LOG_I2("PerformanceDb: Record Loaded: " << value.SolverDbId());
                 if(value.IsValidPerformanceConfig(ctx, config))
                 {
                     return config.ToString();
                 }
-                MIOPEN_LOG_I2("Perf Db: Invalid Config: " << value.SolverDbId());
+                MIOPEN_LOG_I2("PerformanceDb: Invalid Config: " << value.SolverDbId());
             }
             else if(!value.AltSolverDbId().empty() &&
                     db.Load(ctx.problem, value.AltSolverDbId(), config))
             {
-                MIOPEN_LOG_I("Perf Db: alternate record loaded: " << value.AltSolverDbId());
+                MIOPEN_LOG_I("PerformanceDb: alternate record loaded: " << value.AltSolverDbId());
                 if(value.IsValidPerformanceConfig(ctx, config))
                 {
                     return config.ToString();
                 }
-                MIOPEN_LOG_I2("Perf Db: Invalid alternate record from Perf Db: "
-                              << value.AltSolverDbId() << ": " << config);
+                MIOPEN_LOG_I2("PerformanceDb: Invalid alternate record: " << value.AltSolverDbId()
+                                                                          << ": " << config);
             }
 
-            MIOPEN_LOG_I2("Perf Db: Failed Loading, Using Default: " << value.SolverDbId());
+            MIOPEN_LOG_I2("PerformanceDb: Failed Loading, Using Default: " << value.SolverDbId());
             config = value.GetDefaultPerformanceConfig(ctx);
             return config.ToString();
         }
-        std::string
-        GetPerfCfgParams(const ConvolutionContext& ctx, const Db& db, std::false_type) const
+
+        std::string GetPerfCfgParams(const ConvolutionContext& ctx,
+                                     const PerformanceDb& db,
+                                     std::false_type) const
         {
-            MIOPEN_LOG_I2("Perf Db: No Config: " << value.SolverDbId());
+            MIOPEN_LOG_I2("PerformanceDb: No Config: " << value.SolverDbId());
             std::ignore = ctx;
             std::ignore = db;
             return "";
         }
 
-        std::string GetPerfCfgParams(const ConvolutionContext& ctx, Db& db) const override
+        std::string GetPerfCfgParams(const ConvolutionContext& ctx,
+                                     PerformanceDb& db) const override
         {
             return GetPerfCfgParams(ctx, db, std::integral_constant<bool, TunableSolver::Is>());
         }

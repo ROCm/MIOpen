@@ -65,7 +65,7 @@ struct BnFwdTrainingSpatialMultiple final : BatchnormSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<BnFwdTrainingSpatialMultiple>();
+        return GetSolverDbId<BnFwdTrainingSpatialSingle>();
     }
 
     bool IsApplicable(const ExecutionContext& context,

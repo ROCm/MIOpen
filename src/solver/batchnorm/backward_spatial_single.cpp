@@ -257,6 +257,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             kernel.kernel_name = "MIOpenBatchNormBwdSpatial";
 
             build_params << KernelBuildParameters{
+                {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
                 {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
             };
 

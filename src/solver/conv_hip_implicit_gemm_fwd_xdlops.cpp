@@ -331,7 +331,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
 #else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS{}))
         return false;
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+    if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(problem.conv_problem.GetInDataType() != problem.conv_problem.GetWeightsDataType() ||
        problem.conv_problem.GetWeightsDataType() != problem.conv_problem.GetOutDataType() ||

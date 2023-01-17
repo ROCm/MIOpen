@@ -1,6 +1,6 @@
 sqlite3@3.17 -DCMAKE_POSITION_INDEPENDENT_CODE=On
-boost@1.79 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build -DCMAKE_CXX_FLAGS=" -Wno-enum-constexpr-conversion "
+boost@1.79 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build -DCMAKE_CXX_FLAGS=" -std=c++14 -Wno-enum-constexpr-conversion "
 half,https://github.com/pfultz2/half/archive/1.12.0.tar.gz -X header -H sha256:0a08660b68abb176ebc2a0cdf8de46e3182a7f46c66443bb80dbfaaec98cf969 --build
-ROCmSoftwarePlatform/rocMLIR@rocm-5.4.0 -H sha256:3823f455ee392118c3281e27d45fa0e5381f3c4070eb4e06ba13bc6b34a90a60 -DBUILD_FAT_LIBROCKCOMPILER=1
+ROCmSoftwarePlatform/rocMLIR@56a820ee3a50c83189348559181a673e1101846a -DBUILD_FAT_LIBROCKCOMPILER=1
 nlohmann/json@v3.9.1 -DJSON_MultipleHeaders=ON -DJSON_BuildTests=Off
 ROCmSoftwarePlatform/composable_kernel@eef009d001b928db1bb377a105c93b75e0dccc7b -DGPU_TARGETS="gfx900;gfx906;gfx908;gfx90a;gfx1030"
