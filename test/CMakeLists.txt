@@ -383,6 +383,7 @@ set(LONG_TESTS
     test_conv_igemm_mlir
     test_conv_igemm_mlir_xdlops
     test_activation
+    test_conv_ck_igemm_fwd_v6r1_dlops_nchw
     )
 
 function(rate_added_test NAME)
@@ -2207,7 +2208,7 @@ add_custom_test(smoke_solver_ConvBinWinogradRxSf3x2 GFX900_DISABLED GFX103X_ENAB
       --input 1 40 20 20 --weights 20 40 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 
-add_custom_test(smoke_solver_ConvMlirIgemm GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED HALF_ENABLED SKIP_UNLESS_MLIR TEST_TUNING
+add_custom_test(smoke_solver_ConvMlirIgemm GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED HALF_ENABLED SKIP_UNLESS_MLIR TEST_TUNING
     COMMAND MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5
       ${IMPLICITGEMM_MLIR_ENV_F} $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F}
       --input 64 128 14 14 --weights 128 128 1 1 --pads_strides_dilations 0 0 2 2 1 1 --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
