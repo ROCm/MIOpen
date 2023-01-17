@@ -678,10 +678,18 @@ if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
         # Issue #1697: this is large test which has to run in serial and not enabled on gfx900/gfx906
         COMMAND MIOPEN_DRIVER_USE_GPU_REFERENCE=1 $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -W 5078 -H 4903 -c 24 -n 5 -k 1 --fil_w 3 --fil_h 3 --pad_w 6 --pad_h 4 -F 1
     )
+
+    add_custom_test(test_miopendriver_conv3d_half_gfx9 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_ENABLED GFX103X_DISABLED HALF_ENABLED
+        # Regression test for:
+        #   [SWDEV-375617] Fix 3d convolution Host API bug
+        #   https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1935
+        COMMAND MIOPEN_DRIVER_USE_GPU_REFERENCE=1 $<TARGET_FILE:MIOpenDriver> convfp16 -n 2 -c 64 --in_d 128 -H 128 -W 128 -k 32 --fil_d 3 -y 3 -x 3 --pad_d 1 -p 1 -q 1 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1 --spatial_dim 3 -m conv -g 1 -F 1 -t 1
+    )
+
     set_tests_properties(test_miopendriver_big_tensor
         PROPERTIES RUN_SERIAL On)
     set_tests_properties(test_miopendriver_big_tensor
-        PROPERTIES TIMEOUT 600) 
+        PROPERTIES TIMEOUT 600)
 endif()
 
 # ./bin/MIOpenDriver conv -n 128 -c 1024 -H 14 -W 14 -k 2048 -y 1 -x 1 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -m conv -g 1 -F 1 -t 1
