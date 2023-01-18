@@ -339,7 +339,10 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(ctx.GetStream().GetDeviceName() != "gfx908")
+    const std::string& arch = ctx.GetStream().GetDeviceName();
+    if(!(arch == "gfx908" || arch == "gfx90a"))
+        return false;
+    if(arch == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
