@@ -109,9 +109,21 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
                                       const TensorDescriptor& wDesc,
                                       const ConvolutionDescriptor& conv)
 {
+  return;
     ///\todo How make these validation clearly
     if(conv.group_count == 1)
     {
+        std::cout<<"11111111111111111111111"<<std::endl;
+        std::cout<<"****************************wDesc.GetLayout_t(): "<<wDesc.GetLayout_t()<<std::endl;
+        std::cout<<"****************************xDesc.GetLengths()[0]: "<<xDesc.GetLengths()[0]<<std::endl;
+        std::cout<<"****************************xDesc.GetLengths()[1]: "<<xDesc.GetLengths()[1]<<std::endl;
+        std::cout<<"****************************xDesc.GetLengths()[2]: "<<xDesc.GetLengths()[2]<<std::endl;
+        std::cout<<"****************************xDesc.GetLengths()[3]: "<<xDesc.GetLengths()[3]<<std::endl;
+        std::cout<<"****************************conv.group_count: "<<conv.group_count<<std::endl;
+        std::cout<<"****************************wDesc.GetLengths()[0]: "<<wDesc.GetLengths()[0]<<std::endl;
+        std::cout<<"****************************wDesc.GetLengths()[1]: "<<wDesc.GetLengths()[1]<<std::endl;
+        std::cout<<"****************************wDesc.GetLengths()[2]: "<<wDesc.GetLengths()[2]<<std::endl;
+        std::cout<<"****************************wDesc.GetLengths()[3]: "<<wDesc.GetLengths()[3]<<std::endl;
         if((((wDesc.GetLayout_t() == miopenTensorNCHW) ||
              (wDesc.GetLayout_t() == miopenTensorNCHWc4) ||
              (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
@@ -135,6 +147,17 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
             (wDesc.GetLengths()[3] % conv.group_count != 0 ||
              conv.group_count > wDesc.GetLengths()[3])))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
+        std::cout<<"222222222222222222222"<<std::endl;
+        std::cout<<"****************************wDesc.GetLayout_t(): "<<wDesc.GetLayout_t()<<std::endl;
+        std::cout<<"****************************xDesc.GetLengths()[0]: "<<xDesc.GetLengths()[0]<<std::endl;
+        std::cout<<"****************************xDesc.GetLengths()[1]: "<<xDesc.GetLengths()[1]<<std::endl;
+        std::cout<<"****************************xDesc.GetLengths()[2]: "<<xDesc.GetLengths()[2]<<std::endl;
+        std::cout<<"****************************xDesc.GetLengths()[3]: "<<xDesc.GetLengths()[3]<<std::endl;
+        std::cout<<"****************************conv.group_count: "<<conv.group_count<<std::endl;
+        std::cout<<"****************************wDesc.GetLengths()[0]: "<<wDesc.GetLengths()[0]<<std::endl;
+        std::cout<<"****************************wDesc.GetLengths()[1]: "<<wDesc.GetLengths()[1]<<std::endl;
+        std::cout<<"****************************wDesc.GetLengths()[2]: "<<wDesc.GetLengths()[2]<<std::endl;
+        std::cout<<"****************************wDesc.GetLengths()[3]: "<<wDesc.GetLengths()[3]<<std::endl;
         if((((wDesc.GetLayout_t() == miopenTensorNCHW) ||
              (wDesc.GetLayout_t() == miopenTensorNCHWc4) ||
              (wDesc.GetLayout_t() == miopenTensorNCHWc8)) &&
@@ -373,6 +396,7 @@ static void DirConvFindCore(Handle& handle,
                             bool use_winograd_only)
 {
     AutoEnableProfiling enableProfiling{handle};
+    std::cout<<"dir conv find core***************"<<std::endl;
     ValidateGroupCount(xDesc, wDesc, conv);
 
     const auto network_config = ctx.problem.BuildConfKey();
@@ -682,6 +706,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     }
 
     ConvForwardCheckNumerics(handle, tensors, [&]() {
+      std::cout<<"123456789"<<std::endl;
         ValidateGroupCount(xDesc, wDesc, *this);
 
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(

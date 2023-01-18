@@ -96,6 +96,7 @@ struct CKArgsGFwd
                         std::prev(rend(output)),
                         std::next(rbegin(out_strides)),
                         std::multiplies<>{});
+
         std::rotate(
             rbegin(input), std::next(rbegin(input)), std::next(rbegin(input), 3));
         std::rotate(
@@ -108,6 +109,7 @@ struct CKArgsGFwd
             rbegin(output), std::next(rbegin(output)), std::next(rbegin(output), 3));
         std::rotate(
             rbegin(out_strides), std::next(rbegin(out_strides)), std::next(rbegin(out_strides), 3));
+   
     }
     int G;
     int N;
