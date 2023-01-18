@@ -47,7 +47,7 @@ namespace pooling {
 using OldStyleProblemDescription =
     std::tuple<const ExecutionContext*, const miopen::pooling::ProblemDescription*>;
 
-struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
+struct PoolingSolver : SolverMixin<OldStyleProblemDescription>
 {
     // To suppress -Woverloaded-virtual
     using SolverMixin<OldStyleProblemDescription>::GetWorkspaceSize;
@@ -77,9 +77,10 @@ struct OldStyleSolver : SolverMixin<OldStyleProblemDescription>
                      const miopen::pooling::ProblemDescription& problem) const = 0;
 };
 
-struct PoolingForward2d final : OldStyleSolver
+struct PoolingForward2d final : PoolingSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForward2d>(); }
+
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pooling::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
@@ -88,9 +89,10 @@ struct PoolingForward2d final : OldStyleSolver
                                  const miopen::pooling::ProblemDescription& problem) const override;
 };
 
-struct PoolingForwardNd final : OldStyleSolver
+struct PoolingForwardNd final : PoolingSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForwardNd>(); }
+
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pooling::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
@@ -101,7 +103,7 @@ struct PoolingForwardNd final : OldStyleSolver
 
 template <class Inner>
 struct PoolingFwdNCHWTransposingSolver : TransposingSolver<PoolingFwdNCHWTransposingSolver<Inner>,
-                                                           OldStyleSolver,
+                                                           PoolingSolver,
                                                            miopen::pooling::ProblemDescription,
                                                            miopen::pooling::FwdInvokeParams,
                                                            Inner>
@@ -153,12 +155,10 @@ struct TransposedPoolingFwdNd final : PoolingFwdNCHWTransposingSolver<PoolingFor
     }
 };
 
-struct PoolingBackward2d final : OldStyleSolver
+struct PoolingBackward2d final : PoolingSolver
 {
-    // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingBackward2d>(); }
+
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pooling::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
@@ -167,11 +167,8 @@ struct PoolingBackward2d final : OldStyleSolver
                                  const miopen::pooling::ProblemDescription& problem) const override;
 };
 
-struct PoolingBackwardNd final : OldStyleSolver
+struct PoolingBackwardNd final : PoolingSolver
 {
-    // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingBackwardNd>(); }
 
     bool IsApplicable(const ExecutionContext& context,
@@ -184,7 +181,7 @@ struct PoolingBackwardNd final : OldStyleSolver
 
 template <class Inner>
 struct PoolingBwdNCHWTransposingSolver : TransposingSolver<PoolingBwdNCHWTransposingSolver<Inner>,
-                                                           OldStyleSolver,
+                                                           PoolingSolver,
                                                            miopen::pooling::ProblemDescription,
                                                            miopen::pooling::BwdInvokeParams,
                                                            Inner>
