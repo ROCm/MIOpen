@@ -325,7 +325,7 @@ bool PerformanceConfigConvCKIgemmFwdBiasActiv::SetNextValue(const FusionContext&
 
 bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValidValue() const
 {
-    return this->index < valid_kernels.size();
+    return this->index >= 0 && this->index < valid_kernels.size();
 }
 
 bool PerformanceConfigConvCKIgemmFwdBiasActiv::IsValid(const FusionContext& ctx) const
