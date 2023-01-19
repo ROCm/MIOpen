@@ -96,6 +96,8 @@ std::vector<std::size_t> ConvertLengthsOrThrow(const std::vector<int>& lens_in,
 
 TensorDescriptor::TensorDescriptor() : packed(true) {}
 
+TensorDescriptor::TensorDescriptor(miopenDataType_t t) : packed(true), type(t) {}
+
 // The delegation constructor should be placed above the target constructor in the
 // code for better dependency tracking
 

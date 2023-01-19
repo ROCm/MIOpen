@@ -111,7 +111,16 @@ struct tensor
     miopen::TensorDescriptor desc;
     std::vector<T> data;
 
-    tensor() {}
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+    tensor() : desc(miopen_type<T>{}) {}
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
     template <class X>
     tensor(const std::vector<X>& dims) : desc(miopen_type<T>{}, dims), data(desc.GetElementSpace())
