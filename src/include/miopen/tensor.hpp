@@ -126,8 +126,10 @@ struct TensorDescriptor : miopenTensorDescriptor
     TensorDescriptor();
 
     // This constructor is only used in test/tensor_holder.hpp
+    // clang-format off
     [[deprecated("Use constructor with lengths instead")]]
     TensorDescriptor(miopenDataType_t t);
+    // clang-format on
 
     // It is preferable to use constructors with lengths and strides with the std::size_t
     // data type, because in this format the data is stored inside the class
