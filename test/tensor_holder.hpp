@@ -111,15 +111,15 @@ struct tensor
     miopen::TensorDescriptor desc;
     std::vector<T> data;
 
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#if defined(__clang__) || defined(__GNUG__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
     tensor() : desc(miopen_type<T>{}) {}
 
-#if defined(__clang__)
-#pragma clang diagnostic pop
+#if defined(__clang__) || defined(__GNUG__)
+#pragma GCC diagnostic pop
 #endif
 
     template <class X>
