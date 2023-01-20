@@ -154,7 +154,7 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
         build_params.Define("MIOPEN_READ_UNIT", read_unit);
         build_params.Define("MIOPEN_READ_TYPE", READ_TYPE);
     }
-    kernel_info.comp_options = build_params.GenerateFor(kbp::OpenCL{});
+    kernel_info.comp_options += " " + build_params.GenerateFor(kbp::OpenCL{});
 
     if(bn_idx != -1)
         result.weight = 0.0f;

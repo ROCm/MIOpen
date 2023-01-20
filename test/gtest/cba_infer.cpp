@@ -90,21 +90,29 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
 
 TEST_P(ConvBiasActivInferTestFloat, ConvBiasActivAsm1x1UFloat)
 {
+    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
+        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
     RunTunableSolver<miopen::solver::fusion::ConvBiasActivAsm1x1U>(
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
 TEST_P(ConvBiasActivInferTestFloat, ConvOclDirectFwdFused)
 {
+    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
+        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
     RunTunableSolver<miopen::solver::fusion::ConvOclDirectFwdFused>(
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
 TEST_P(ConvBiasActivInferTestFloat, ConvBinWinogradRxSFused)
 {
+    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
+        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
     RunSolver<miopen::solver::fusion::ConvBinWinogradRxSFused>(
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
 TEST_P(ConvBiasActivInferTestFloat, ConvBinWinogradRxSf2x3g1Fused)
 {
+    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
+        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
     RunSolver<miopen::solver::fusion::ConvBinWinogradRxSf2x3g1Fused>(
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }

@@ -132,6 +132,7 @@ ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& fusion_
             const auto& invoke_ctx    = raw_params.CastTo<miopen::fusion::FusionInvokeParams>();
             const auto& bot_ocl_buf   = invoke_ctx.in;
             const auto& top_ocl_buf   = invoke_ctx.out;
+            assert(invoke_ctx.op_args.params[0] != nullptr);
             const auto& bn_invoke = dynamic_cast<miopen::fusion::BatchNormInferenceOpInvokeParam&>(
                 *invoke_ctx.op_args.params[0]);
             const auto& activ_invoker = dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(
