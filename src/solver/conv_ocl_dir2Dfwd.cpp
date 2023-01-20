@@ -267,9 +267,9 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ProblemDescription& proble
     return true;
 }
 
-ConvSolution BaseGetSolution(const ConvolutionContext& ctx,
-                             const ProblemDescription& problem,
-                             const LegacyPerformanceConfig& config)
+ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
+                                               const ProblemDescription& problem,
+                                               const LegacyPerformanceConfig& config)
 {
     ConvSolution result;
 

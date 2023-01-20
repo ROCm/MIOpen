@@ -61,7 +61,7 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     void SetIdx(int _id) { plan_idx = _id; };
     int GetIdx() const { return plan_idx; };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const = 0;
-    virtual miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
+    virtual miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle);
     friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
     virtual miopenFusionOp_t kind() const = 0;
     void SetInputDesc(TensorDescriptor i_desc) { input_desc = i_desc; };
@@ -74,7 +74,7 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
 {
     BiasFusionOpDescriptor(const TensorDescriptor& desc) : base_desc(desc) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
     miopenStatus_t
     SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t bdata);
     miopenFusionOp_t kind() const override { return miopenFusionOpBiasForward; };
@@ -85,7 +85,7 @@ struct ActivFwdFusionOpDescriptor : FusionOpDescriptor
 {
     ActivFwdFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -100,7 +100,7 @@ struct ActivBwdFusionOpDescriptor : FusionOpDescriptor
 {
     ActivBwdFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -121,7 +121,7 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
     {
     }
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -145,7 +145,7 @@ struct BatchNormFwdTrainFusionOpDescriptor : FusionOpDescriptor
     {
     }
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -180,7 +180,7 @@ struct BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
     {
     }
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
-    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -217,7 +217,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
           conv_compiler_options(""){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
-    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
+    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
     bool isASMApplicable(Handle& handle);
     miopenFusionOp_t kind() const override { return miopenFusionOpConvForward; };
 

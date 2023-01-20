@@ -32,9 +32,6 @@
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/tensors.hpp>
-#include <miopen/fusion_plan.hpp>
-#include <miopen/fusion/solvers.hpp>
-#include <miopen/fusion/utils.hpp>
 
 #include <boost/any.hpp>
 
@@ -45,8 +42,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD)
 /// \todo Detect at runtime and remove this var:
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 /// \return v rounded up (towards +inf) to the nearest multiple of m.
 /// Defined for positive values only.

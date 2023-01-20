@@ -26,8 +26,8 @@
 
 #include <miopen/handle.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/env.hpp>
+#include <miopen/fusion/solvers.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 #include <miopen/conv/fused_data_invoke_params.hpp>
@@ -40,9 +40,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD)
 
 namespace miopen {
 namespace solver {
-ConvSolution BaseGetSolution(const ConvolutionContext& ctx,
-                             const ProblemDescription& problem,
-                             const LegacyPerformanceConfig& config);
 namespace fusion {
 
 PerformanceConfigConvOclDirectFwdFused
@@ -97,7 +94,7 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
                                    const PerformanceConfigConvOclDirectFwdFused& config) const
 {
     const auto conv_ctx = context.GetConvContext(0, conv::Direction::Forward);
-    ConvSolution result = BaseGetSolution(conv_ctx, conv_ctx.problem, config);
+    ConvSolution result = ConvOclDirectFwd::BaseGetSolution(conv_ctx, conv_ctx.problem, config);
 
     if(result.construction_params.size() != 1)
         MIOPEN_THROW("ConvOclDirectFwdFused expects only one kernel");

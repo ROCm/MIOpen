@@ -16,14 +16,14 @@ mlo_construct_direct2D_fusion ConvForwardOpDescriptor::ConstructParams(Handle& h
     construct_params.setStream(&handle);
     return construct_params;
 }
-miopenStatus_t ConvForwardOpDescriptor::GetNetworkConfig(std::string& network_config,
+miopenStatus_t ConvForwardOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
                                                          Handle& handle)
 {
     mlo_construct_direct2D_fusion construct_params = ConstructParams(handle);
 
     std::string conv_config;
     construct_params.mloBuildConf_Key(conv_config);
-    network_config += conv_config;
+    network_config << conv_config;
     return miopenStatusSuccess;
 }
 

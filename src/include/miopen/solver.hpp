@@ -2515,6 +2515,9 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
     using ConvOclDirectFwdLegacyExhaustiveSearch::IsApplicable;
     using ConvOclDirectFwdLegacyExhaustiveSearch::IsValidPerformanceConfig;
 
+    static ConvSolution BaseGetSolution(const ConvolutionContext& ctx,
+                                        const ProblemDescription& problem,
+                                        const LegacyPerformanceConfig& config);
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd>(); }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override

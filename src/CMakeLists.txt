@@ -151,7 +151,7 @@ set( MIOpen_Source
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
     solver/conv_asm_1x1u.cpp
-    solver/conv_asm_1x1u_bias_activ.cpp
+    solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_asm_1x1u_stride2.cpp
     solver/conv_asm_3x3u.cpp
     solver/conv_asm_5x10u2v2b1.cpp

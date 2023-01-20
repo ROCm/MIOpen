@@ -410,9 +410,9 @@ NetworkConfig FusionPlanDescriptor::GetPlanConfig(const FusionContext& fusion_ct
     std::ostringstream ss;
     ss << input_desc.ToString() << ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
     ss << output_desc.ToString() << ((output_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
-    std::string op_config;
+    std::stringstream op_config;
     fusion_ctx.GetNetworkConfig(op_config);
-    ss << op_config;
+    ss << op_config.str();
     return NetworkConfig{ss.str()};
 }
 
@@ -432,7 +432,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         {
             const auto id      = miopen::solver::Id{sol.solver_id};
             const auto strAlgo = id.GetAlgo(miopen::conv::Direction::Forward);
-            MIOPEN_LOG_I2(miopen::solver::Id{sol.solver_id}.ToString());
+            MIOPEN_LOG_I2(id.ToString());
             MIOPEN_LOG_I2(strAlgo);
             const auto algo = miopen::StringToConvolutionFwdAlgo(strAlgo);
             MIOPEN_LOG_I2(algo);

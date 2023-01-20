@@ -35,39 +35,39 @@ struct FusionContext : miopen::ExecutionContext
         : ExecutionContext(&handle), problem(ptr_desc)
     {
     }
-    void GetNetworkConfig(std::string& net_config) const
+    void GetNetworkConfig(std::stringstream& net_config) const
     {
         for(const auto& op : problem.fusion_plan_desc->op_map)
         {
             if(op->kind() == miopenFusionOpConvForward)
             {
                 const auto prob = problem.GetConvProblem(op->GetIdx(), conv::Direction::Forward);
-                net_config += prob.conv_problem.BuildConfKey().ToString();
+                net_config << prob.conv_problem.BuildConfKey().ToString();
             }
             else if(op->kind() == miopenFusionOpBatchNormInference)
             {
                 const auto prob = problem.GetBnProblem(
                     op->GetIdx(), miopen::batchnorm::Direction::ForwardInference);
-                net_config += prob.MakeNetworkConfig().ToString();
+                net_config << prob.MakeNetworkConfig().ToString();
             }
             else if(op->kind() == miopenFusionOpBatchNormFwdTrain)
             {
                 const auto prob = problem.GetBnProblem(
                     op->GetIdx(), miopen::batchnorm::Direction::ForwardTraining);
-                net_config += prob.MakeNetworkConfig().ToString();
+                net_config << prob.MakeNetworkConfig().ToString();
             }
             else if(op->kind() == miopenFusionOpBatchNormBwdTrain)
             {
                 const auto prob =
                     problem.GetBnProblem(op->GetIdx(), miopen::batchnorm::Direction::Backward);
-                net_config += prob.MakeNetworkConfig().ToString();
+                net_config << prob.MakeNetworkConfig().ToString();
             }
             else
             {
                 op->GetNetworkConfig(net_config, this->GetStream());
             }
         }
-        MIOPEN_LOG_I2(net_config);
+        MIOPEN_LOG_I2(net_config.str());
     }
 
     ConvolutionContext GetConvContext(size_t idx, conv::Direction dir) const
