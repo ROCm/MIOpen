@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+#ifndef GUARD_TENSOR_EXTRA_HPP
+#define GUARD_TENSOR_EXTRA_HPP
+
 #include <initializer_list>
 #include <miopen/miopen.h>
 
@@ -49,3 +53,5 @@ MIOPEN_EXPORT miopenStatus_t miopenGet5dTensorDescriptorStrides(miopenTensorDesc
                                                                 int* dStride,
                                                                 int* hStride,
                                                                 int* wStride);
+
+#endif // GUARD_TENSOR_EXTRA_HPP
