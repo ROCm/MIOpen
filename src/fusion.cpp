@@ -396,22 +396,25 @@ std::string FusionPlanDescriptor::GetAlgorithmName(const Handle& /*handle*/)
 
 static auto GetFusedSolvers()
 {
-    return solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U,
+    return solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U>{}; /*,
                                    solver::fusion::ConvOclDirectFwdFused,
                                    solver::fusion::ConvBinWinogradRxSFused,
                                    solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
                                    solver::fusion::BnFwdInferActivationFused,
                                    solver::fusion::BnFwdTrgActivationFused,
-                                   solver::fusion::BnBwdTrgActivationFused>{};
+                                   solver::fusion::BnBwdTrgActivationFused>{};*/
 }
 
-NetworkConfig FusionPlanDescriptor::GetPlanConfig(const FusionContext& fusion_ctx) const
+static NetworkConfig GetPlanConfig(const FusionContext& fusion_ctx,
+                                   const FusionDescription& problem)
 {
     std::ostringstream ss;
+    const auto& input_desc  = problem.fusion_plan_desc->input_desc;
+    const auto& output_desc = problem.fusion_plan_desc->output_desc;
     ss << input_desc.ToString() << ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
     ss << output_desc.ToString() << ((output_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
     std::stringstream op_config;
-    fusion_ctx.GetNetworkConfig(op_config);
+    problem.GetNetworkConfig(op_config, fusion_ctx.GetStream());
     ss << op_config.str();
     return NetworkConfig{ss.str()};
 }
@@ -420,10 +423,13 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
     const auto solvers    = GetFusedSolvers();
-    auto fusion_ctx       = FusionContext{this, handle};
+    auto fusion_ctx       = FusionContext{handle};
+    auto fusion_problem   = FusionDescription{this};
     fusion_ctx.DetectRocm();
+    // const auto tmp_sols =
+    //     solvers.SearchForAllSolutions(fusion_ctx, miopen::GetDb(fusion_ctx), AnyInvokeParams{});
     const auto tmp_sols =
-        solvers.SearchForAllSolutions(fusion_ctx, miopen::GetDb(fusion_ctx), AnyInvokeParams{});
+        solvers.SearchForAllSolutions(fusion_ctx, fusion_problem, AnyInvokeParams{});
     std::vector<miopen::solver::ConvSolution> sols;
     // Filter for Solvers
     if(conv_fwd_algo)
@@ -446,7 +452,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         return miopenStatusUnsupportedOp;
     else
     {
-        network_config = GetPlanConfig(fusion_ctx);
+        network_config = GetPlanConfig(fusion_ctx, fusion_problem);
         for(const auto& sol : sols)
         {
             if(!sol.invoker_factory)

@@ -41,9 +41,10 @@ namespace miopen {
 namespace solver {
 namespace fusion {
 
-bool BnFwdTrgActivationFused::IsApplicable(const FusionContext& context) const
+bool BnFwdTrgActivationFused::IsApplicable(const FusionContext& /*context*/,
+                                           const FusionDescription& problem) const
 {
-    const auto& desc = *context.problem.fusion_plan_desc;
+    const auto& desc = *problem.fusion_plan_desc;
     if(desc.op_map.empty())
         MIOPEN_THROW("");
     if(miopen::IsDisabled(MIOPEN_DEBUG_BN_FWDTRG_ACTIV_FUSED{}))
@@ -57,10 +58,10 @@ bool BnFwdTrgActivationFused::IsApplicable(const FusionContext& context) const
     return true;
 }
 
-ConvSolution BnFwdTrgActivationFused::GetSolution(const FusionContext& fusion_ctx) const
+ConvSolution BnFwdTrgActivationFused::GetSolution(const FusionContext& context,
+                                                  const FusionDescription& problem) const
 {
-    const auto problem =
-        fusion_ctx.problem.GetBnProblem(0, miopen::batchnorm::Direction::ForwardTraining);
+    const auto bn_problem = problem.GetBnProblem(0, miopen::batchnorm::Direction::ForwardTraining);
 
     int n, c, h, w;
     auto result = ConvSolution{miopenStatusSuccess};
@@ -68,12 +69,12 @@ ConvSolution BnFwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
     bool savePopStats         = true;
     const bool saveBatchStats = true;
     {
-        const auto& handle = fusion_ctx.GetStream();
+        const auto& handle = context.GetStream();
         auto kernel        = KernelInfo{};
 
         kernel.kernel_file = "MIOpenBatchNormActivFwdTrain";
         kernel.kernel_name = "MIOpenBatchNormActivFwdTrain";
-        const auto mode    = problem.GetMode();
+        const auto mode    = bn_problem.GetMode();
         if(mode == miopenBNSpatial)
         { // SPATIAL kernels
             kernel.kernel_file += "Spatial.cl";
@@ -85,7 +86,7 @@ ConvSolution BnFwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
             kernel.kernel_name += "PerActivation";
         }
         size_t xlocalsize, ylocalsize, zlocalsize;
-        const auto& input_desc = problem.GetXDesc();
+        const auto& input_desc = bn_problem.GetXDesc();
         input_type             = input_desc.GetType();
         std::tie(n, c, h, w)   = tien<4>(input_desc.GetLengths());
         size_t in_cstride      = static_cast<size_t>(h) * w;
@@ -147,10 +148,10 @@ ConvSolution BnFwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
         {
             read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
         }
-        savePopStats          = problem.GetResultSave(); // TODO: double check this
+        savePopStats          = bn_problem.GetResultSave(); // TODO: double check this
         std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
-        const auto& activ_op  = dynamic_cast<ActivFwdFusionOpDescriptor&>(
-            *fusion_ctx.problem.fusion_plan_desc->op_map[1]);
+        const auto& activ_op =
+            dynamic_cast<ActivFwdFusionOpDescriptor&>(*problem.fusion_plan_desc->op_map[1]);
         const auto build_params = KernelBuildParameters{
             {"MIO_BN_N", static_cast<int>(n)},
             {"MIO_BN_C", static_cast<int>(c)},
@@ -174,7 +175,7 @@ ConvSolution BnFwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
             {"MIOPEN_USE_FP16", static_cast<int>(input_desc.GetType() == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int>(input_desc.GetType() == miopenFloat)}};
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
-        if(problem.GetMode() == miopenBNSpatial)
+        if(bn_problem.GetMode() == miopenBNSpatial)
             kernel.comp_options += " -DSPATIAL_BN";
         else
             kernel.comp_options += " -DPERACT_BN";
@@ -198,7 +199,7 @@ ConvSolution BnFwdTrgActivationFused::GetSolution(const FusionContext& fusion_ct
             const auto activ_alpha = activ_invoker.activAlpha;
             const auto activ_beta  = activ_invoker.activBeta;
             const auto activ_gamma = activ_invoker.activGamma;
-            const auto mode        = problem.GetMode();
+            const auto mode        = bn_problem.GetMode();
             std::vector<OpKernelArg> kern_args;
             if(mode == miopenBNSpatial)
                 kern_args.push_back({static_cast<float>(1.0f / (n * h * w))});

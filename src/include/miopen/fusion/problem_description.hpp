@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <miopen/fusion_plan.hpp>
 #include <miopen/batchnorm/problem_description.hpp>
 
 namespace miopen {
@@ -34,6 +35,41 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
 {
     const miopen::FusionPlanDescriptor* fusion_plan_desc;
     FusionDescription(const miopen::FusionPlanDescriptor* ptr_desc) : fusion_plan_desc(ptr_desc) {}
+
+    void GetNetworkConfig(std::stringstream& net_config, Handle& handle) const
+    {
+        for(const auto& op : fusion_plan_desc->op_map)
+        {
+            if(op->kind() == miopenFusionOpConvForward)
+            {
+                const auto prob = GetConvProblem(op->GetIdx(), conv::Direction::Forward);
+                net_config << prob.conv_problem.BuildConfKey().ToString();
+            }
+            else if(op->kind() == miopenFusionOpBatchNormInference)
+            {
+                const auto prob =
+                    GetBnProblem(op->GetIdx(), miopen::batchnorm::Direction::ForwardInference);
+                net_config << prob.MakeNetworkConfig().ToString();
+            }
+            else if(op->kind() == miopenFusionOpBatchNormFwdTrain)
+            {
+                const auto prob =
+                    GetBnProblem(op->GetIdx(), miopen::batchnorm::Direction::ForwardTraining);
+                net_config << prob.MakeNetworkConfig().ToString();
+            }
+            else if(op->kind() == miopenFusionOpBatchNormBwdTrain)
+            {
+                const auto prob =
+                    GetBnProblem(op->GetIdx(), miopen::batchnorm::Direction::Backward);
+                net_config << prob.MakeNetworkConfig().ToString();
+            }
+            else
+            {
+                op->GetNetworkConfig(net_config, handle);
+            }
+        }
+        MIOPEN_LOG_I2(net_config.str());
+    }
     static std::string table_name() { return "config"; } // revisit this
     template <class Self, class F>
     static void Visit(Self&& self, F f)

@@ -42,9 +42,10 @@ namespace solver {
 
 namespace fusion {
 
-bool BnFwdInferActivationFused::IsApplicable(const FusionContext& context) const
+bool BnFwdInferActivationFused::IsApplicable(const FusionContext& context,
+                                             const FusionDescription& problem) const
 {
-    const auto& desc = *context.problem.fusion_plan_desc;
+    const auto& desc = *problem.fusion_plan_desc;
     if(desc.op_map.empty())
         MIOPEN_THROW("");
     if(miopen::IsDisabled(MIOPEN_DEBUG_BN_FWDINFER_ACTIV_FUSED{}))
@@ -59,17 +60,17 @@ bool BnFwdInferActivationFused::IsApplicable(const FusionContext& context) const
     return true;
 }
 
-ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& fusion_ctx) const
+ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& context,
+                                                    const FusionDescription& problem) const
 {
-    const auto problem =
-        fusion_ctx.problem.GetBnProblem(0, miopen::batchnorm::Direction::ForwardInference);
+    const auto bn_problem = problem.GetBnProblem(0, miopen::batchnorm::Direction::ForwardInference);
 
     auto result = ConvSolution{miopenStatusSuccess};
     auto kernel = KernelInfo{};
 
     kernel.kernel_file = "MIOpenBatchNormActivInfer.cl";
     kernel.kernel_name = "MIOpenBatchNormActivInfer";
-    const auto mode    = problem.GetMode();
+    const auto mode    = bn_problem.GetMode();
     if(mode == miopenBNSpatial)
     { // SPATIAL kernels
         kernel.kernel_name += "SpatialEst";
@@ -83,7 +84,7 @@ ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& fusion_
     kernel.l_wk.push_back(1);
 
     int n, c, h, w;
-    const auto& input_desc = problem.GetXDesc();
+    const auto& input_desc = bn_problem.GetXDesc();
     std::tie(n, c, h, w)   = tien<4>(input_desc.GetLengths());
 
     size_t read_unit = 1;
@@ -95,7 +96,7 @@ ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& fusion_
     }
     std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
     const auto& activ_op =
-        dynamic_cast<ActivFwdFusionOpDescriptor&>(*fusion_ctx.problem.fusion_plan_desc->op_map[1]);
+        dynamic_cast<ActivFwdFusionOpDescriptor&>(*problem.fusion_plan_desc->op_map[1]);
     const auto build_params = KernelBuildParameters{
         {"MIO_BN_CHW", static_cast<int>(c * h * w)},
         {"MIO_BN_HW", static_cast<int>(h * w)},
@@ -110,7 +111,7 @@ ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& fusion_
         {"MIOPEN_USE_FP16", static_cast<int>(input_desc.GetType() == miopenHalf)},
         {"MIOPEN_USE_FP32", static_cast<int>(input_desc.GetType() == miopenFloat)}};
     kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
-    if(problem.GetMode() == miopenBNSpatial)
+    if(bn_problem.GetMode() == miopenBNSpatial)
         kernel.comp_options += " -DSPATIAL_BN";
     else
         kernel.comp_options += " -DPERACT_BN";

@@ -67,10 +67,8 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     miopenStatus_t GetOp(int op_idx, std::shared_ptr<FusionOpDescriptor>& desc);
 
     std::string GetAlgorithmName(const Handle& handle);
-    NetworkConfig GetPlanConfig(const FusionContext& fusion_ctx) const;
     std::vector<std::shared_ptr<FusionOpDescriptor>> op_map;
 
-protected:
     miopenFusionDirection_t fusion_dir;
     TensorDescriptor input_desc;
     TensorDescriptor output_desc;

@@ -83,11 +83,13 @@ bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
     return c.IsValidValue() && c.IsValid(problem);
 }
 
-PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionContext& context,
-                                                                   const AnyInvokeParams&) const
+PerformanceConfigConvBiasActivAsm1x1U
+ConvBiasActivAsm1x1U::Search(const FusionContext& context,
+                             const FusionDescription& /*problem*/,
+                             const AnyInvokeParams&) const
 {
-    auto cba_context            = context.GetConvContext(0, conv::Direction::Forward);
-    cba_context.problem.bias    = 1;
+    auto cba_context         = context.GetConvContext(0, conv::Direction::Forward /* , problem*/);
+    cba_context.problem.bias = 1;
     cba_context.problem.bias_sz = static_cast<size_t>(cba_context.problem.n_outputs) *
                                   ((cba_context.problem.out_data_type == miopenHalf) ? 2 : 4);
     if(!cba_context.problem.direction.IsForward())
@@ -117,10 +119,11 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
 }
 
 ConvSolution
-ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& problem,
+ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& fusion_ctx,
+                                  const FusionDescription& problem,
                                   const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
-    const auto ctx = problem.GetConvContext(0, conv::Direction::Forward);
+    const auto ctx = fusion_ctx.GetConvContext(0, conv::Direction::Forward);
     ConvAsm1x1U base_sol{};
 
     auto sol = base_sol.GetSolution(ctx, config);
@@ -130,7 +133,7 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& problem,
 
     auto& kernel_info       = sol.construction_params[0];
     kernel_info.kernel_file = "conv1x1u_bias_activ.s";
-    const auto& desc        = *problem.problem.fusion_plan_desc;
+    const auto& desc        = *problem.fusion_plan_desc;
 
     const bool has_bias = [&]() {
         if(desc.op_map[1]->kind() == miopenFusionOpBiasForward)
@@ -226,9 +229,10 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& problem,
     return sol;
 }
 
-bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& problem) const
+bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& fusion_ctx,
+                                        const FusionDescription& problem) const
 {
-    const auto& desc = *problem.problem.fusion_plan_desc;
+    const auto& desc = *problem.fusion_plan_desc;
     if(desc.op_map.empty())
     {
         MIOPEN_THROW("");
@@ -253,7 +257,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& problem) const
             return false;
     }
     ConvAsm1x1U sol{};
-    const auto conv_ctx = problem.GetConvContext(0, conv::Direction::Forward);
+    const auto conv_ctx = fusion_ctx.GetConvContext(0, conv::Direction::Forward);
     if(conv_ctx.problem.pad_h != conv_ctx.problem.pad_w)
         return false;
     if(conv_ctx.problem.pad_h != 0)
@@ -269,7 +273,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& problem) const
         return false;
 
     // Check if the conovlution part is applicable
-    return sol.IsApplicable(problem.GetConvContext(0, conv::Direction::Forward));
+    return sol.IsApplicable(fusion_ctx.GetConvContext(0, conv::Direction::Forward));
 }
 
 } // namespace fusion

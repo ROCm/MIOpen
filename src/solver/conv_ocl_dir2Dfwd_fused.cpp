@@ -51,9 +51,10 @@ ConvOclDirectFwdFused::Search(const FusionContext& problem,
     return legacy.Search(conv_ctx, invoke_params);
 }
 
-bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context) const
+bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context,
+                                         const FusionDescription& problem) const
 {
-    const auto& desc = *context.problem.fusion_plan_desc;
+    const auto& desc = *problem.fusion_plan_desc;
     if(desc.op_map.empty())
     {
         MIOPEN_THROW("No operators added to fusion plan");
@@ -82,7 +83,7 @@ bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context) const
         if(!(prim == miopenFusionOpActivForward))
             return false;
     }
-    const auto conv_prob = context.problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_prob = problem.GetConvProblem(0, conv::Direction::Forward);
     if(!conv_prob.IsFp32())
         return false;
     const auto base = ConvOclDirectFwd{};
@@ -91,10 +92,11 @@ bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context) const
 
 ConvSolution
 ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
+                                   const FusionDescription& problem,
                                    const PerformanceConfigConvOclDirectFwdFused& config) const
 {
     const auto conv_ctx = context.GetConvContext(0, conv::Direction::Forward);
-    ConvSolution result = ConvOclDirectFwd::BaseGetSolution(conv_ctx, conv_ctx.problem, config);
+    ConvSolution result = ConvOclDirectFwd::BaseGetSolution(conv_ctx, problem, config);
 
     if(result.construction_params.size() != 1)
         MIOPEN_THROW("ConvOclDirectFwdFused expects only one kernel");
@@ -103,7 +105,7 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
     KernelBuildParameters build_params;
     kernel_info.kernel_file = "MIOpenConvDirBatchNormActiv.cl";
     kernel_info.kernel_name = "MIOpenConvUniBatchNormActiv";
-    const auto& desc        = *context.problem.fusion_plan_desc;
+    const auto& desc        = *problem.fusion_plan_desc;
 
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);

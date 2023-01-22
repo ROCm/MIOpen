@@ -55,16 +55,17 @@ namespace miopen {
 namespace solver {
 namespace fusion {
 
-bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& params) const
+bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
+                                           const FusionDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
         return false;
     if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}))
         return false;
-    if(!WinoCommonIsApplicable(params))
+    if(!WinoCommonIsApplicable(context))
         return false;
     const miopen::ConvolutionContext conv_ctx =
-        params.GetConvContext(0, miopen::conv::Direction::Forward);
+        context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
     const std::string name = conv_ctx.GetStream().GetDeviceName();
     if(name != "gfx803")
         return false;
@@ -104,9 +105,10 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& params) const
     return true;
 }
 
-ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& plan_desc) const
+ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
+                                                  const FusionDescription& problem) const
 {
-    const auto params = plan_desc.GetConvContext(0, conv::Direction::Forward);
+    const auto params = context.GetConvContext(0, conv::Direction::Forward);
     ConvSolution result;
     KernelInfo kernel;
 
@@ -140,7 +142,7 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& plan_desc
         result.weight = 100;
     else
         result.weight = 5;
-    const auto& desc    = *plan_desc.problem.fusion_plan_desc;
+    const auto& desc    = *problem.fusion_plan_desc;
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
     int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;

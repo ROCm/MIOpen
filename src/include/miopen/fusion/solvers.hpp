@@ -38,7 +38,9 @@ namespace miopen {
 namespace solver {
 namespace fusion {
 
-using FusionSolverBase = SolverMixin<FusionContext>;
+using OldStyleFusionDesc = std::pair<const FusionContext&, const FusionDescription&>;
+
+using FusionSolverBase = SolverMixin<OldStyleFusionDesc>;
 
 struct FusionTunableSolverBase : FusionSolverBase
 {
@@ -64,10 +66,11 @@ struct FusionTunableSolverBase : FusionSolverBase
     /// function in the derived class. Function declarations that differ
     /// only by its return type cannot be overloaded.
     virtual boost::any
-    Search(const FusionContext& ctx, const AnyInvokeParams& invoke_ctx, int) const = 0;
+    Search(const OldStyleFusionDesc& ctx, const AnyInvokeParams& invoke_ctx, int) const = 0;
 
     /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
-    virtual ConvSolution GetSolution(const FusionContext& ctx, const boost::any& config) const = 0;
+    virtual ConvSolution GetSolution(const OldStyleFusionDesc& ctx,
+                                     const boost::any& config) const = 0;
 };
 
 template <class PerformanceConfig>
@@ -75,8 +78,8 @@ struct FusionTunableSolver : FusionTunableSolverBase
 {
     virtual PerformanceConfig GetDefaultPerformanceConfig(const FusionContext&) const           = 0;
     virtual bool IsValidPerformanceConfig(const FusionContext&, const PerformanceConfig&) const = 0;
-    virtual PerformanceConfig Search(const FusionContext&, const AnyInvokeParams&) const        = 0;
-    virtual ConvSolution GetSolution(const FusionContext&, const PerformanceConfig&) const      = 0;
+    virtual PerformanceConfig Search(const OldStyleFusionDesc&, const AnyInvokeParams&) const   = 0;
+    virtual ConvSolution GetSolution(const OldStyleFusionDesc&, const PerformanceConfig&) const = 0;
 
     boost::any GetDefaultPerformanceConfig(const FusionContext& ctx, int) const final
     {
@@ -88,12 +91,13 @@ struct FusionTunableSolver : FusionTunableSolverBase
         return IsValidPerformanceConfig(ctx, boost::any_cast<const PerformanceConfig&>(config));
     }
 
-    boost::any Search(const FusionContext& ctx, const AnyInvokeParams& invoke_ctx, int) const final
+    boost::any
+    Search(const OldStyleFusionDesc& ctx, const AnyInvokeParams& invoke_ctx, int) const final
     {
         return Search(ctx, invoke_ctx);
     }
 
-    ConvSolution GetSolution(const FusionContext& ctx, const boost::any& config) const final
+    ConvSolution GetSolution(const OldStyleFusionDesc& ctx, const boost::any& config) const final
     {
         return GetSolution(ctx, boost::any_cast<const PerformanceConfig&>(config));
     }
@@ -114,18 +118,40 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
 
 struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>
 {
+    using FusionTunableSolver::GetSolution;
+    using FusionTunableSolver::IsApplicable;
+    using FusionTunableSolver::Search;
+
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
-    bool IsApplicable(const FusionContext& problem) const override;
-    ConvSolution
-    GetSolution(const FusionContext& problem,
-                const PerformanceConfigConvBiasActivAsm1x1U& /*config*/) const override;
+    bool IsApplicable(const OldStyleFusionDesc& context) const override
+    {
+        return IsApplicable(context.first, context.second);
+    }
+
+    bool IsApplicable(const FusionContext& fusion_ctx, const FusionDescription& problem) const;
+
+    ConvSolution GetSolution(const OldStyleFusionDesc& context,
+                             const PerformanceConfigConvBiasActivAsm1x1U& config) const override
+    {
+        return GetSolution(context.first, context.second, config);
+    }
+    ConvSolution GetSolution(const FusionContext& ctx,
+                             const FusionDescription& problem,
+                             const PerformanceConfigConvBiasActivAsm1x1U& /*config*/) const;
 
     PerformanceConfigConvBiasActivAsm1x1U
     GetDefaultPerformanceConfig(const FusionContext&) const override;
 
-    PerformanceConfigConvBiasActivAsm1x1U Search(const FusionContext&,
-                                                 const AnyInvokeParams& invoke_ctx) const override;
+    PerformanceConfigConvBiasActivAsm1x1U Search(const OldStyleFusionDesc& context,
+                                                 const AnyInvokeParams& invoke_ctx) const override
+    {
+        return Search(context.first, context.second, invoke_ctx);
+    }
+
+    PerformanceConfigConvBiasActivAsm1x1U Search(const FusionContext& context,
+                                                 const FusionDescription& problem,
+                                                 const AnyInvokeParams& invoke_ctx) const;
     bool IsValidPerformanceConfig(const FusionContext&,
                                   const PerformanceConfigConvBiasActivAsm1x1U&) const override;
 };
@@ -133,72 +159,163 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
 using PerformanceConfigConvOclDirectFwdFused = LegacyPerformanceConfig;
 struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig>
 {
+    using FusionTunableSolver::GetSolution;
+    using FusionTunableSolver::IsApplicable;
+    using FusionTunableSolver::Search;
+
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvOclDirectFwdFused>();
     }
 
-    bool IsApplicable(const FusionContext& context) const override;
+    bool IsApplicable(const OldStyleFusionDesc& context) const override
+    {
+        return IsApplicable(context.first, context.second);
+    }
+
+    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
+
+    ConvSolution GetSolution(const OldStyleFusionDesc& context,
+                             const PerformanceConfigConvOclDirectFwdFused& config) const override
+    {
+        return GetSolution(context.first, context.second, config);
+    }
+
     ConvSolution GetSolution(const FusionContext& context,
-                             const PerformanceConfigConvOclDirectFwdFused&) const override;
+                             const FusionDescription& problem,
+                             const PerformanceConfigConvOclDirectFwdFused&) const;
     PerformanceConfigConvOclDirectFwdFused
     GetDefaultPerformanceConfig(const FusionContext&) const override;
+    PerformanceConfigConvOclDirectFwdFused Search(const FusionContext&,
+                                                  const FusionDescription&,
+                                                  const AnyInvokeParams& invoke_params) const;
     PerformanceConfigConvOclDirectFwdFused
-    Search(const FusionContext&, const AnyInvokeParams& invoke_params) const override;
+    Search(const OldStyleFusionDesc& context, const AnyInvokeParams& invoke_params) const override
+    {
+        return Search(context.first, context.second, invoke_params);
+    }
     bool IsValidPerformanceConfig(const FusionContext&,
                                   const PerformanceConfigConvOclDirectFwdFused&) const override;
 };
 
 struct ConvBinWinogradRxSFused final : FusionSolverBase
 {
+    using FusionSolverBase::IsApplicable;
+
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvBinWinogradRxSFused>();
     }
 
-    bool IsApplicable(const FusionContext& params) const override;
-    ConvSolution GetSolution(const FusionContext& plan_desc) const;
+    bool IsApplicable(const OldStyleFusionDesc& context) const override
+    {
+        return IsApplicable(context.first, context.second);
+    }
+
+    bool IsApplicable(const FusionContext& params, const FusionDescription& context) const;
+
+    ConvSolution GetSolution(const OldStyleFusionDesc& context) const
+    {
+        return GetSolution(context.first, context.second);
+    }
+
+    ConvSolution GetSolution(const FusionContext& plan_desc,
+                             const FusionDescription& problem) const;
 };
 
 struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
 {
+    using FusionSolverBase::IsApplicable;
+
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvBinWinogradRxSf2x3g1Fused>();
     }
 
-    bool IsApplicable(const FusionContext& context) const override;
-    ConvSolution GetSolution(const FusionContext& params) const;
+    bool IsApplicable(const OldStyleFusionDesc& context) const override
+    {
+        return IsApplicable(context.first, context.second);
+    }
+
+    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
+
+    ConvSolution GetSolution(const OldStyleFusionDesc& context) const
+    {
+        return GetSolution(context.first, context.second);
+    }
+
+    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
 };
 
 struct BnFwdInferActivationFused final : FusionSolverBase
 {
+    using FusionSolverBase::IsApplicable;
+
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<BnFwdInferActivationFused>();
     }
-    bool IsApplicable(const FusionContext& context) const override;
-    ConvSolution GetSolution(const FusionContext& fusion_ctx) const;
+
+    bool IsApplicable(const OldStyleFusionDesc& context) const override
+    {
+        return IsApplicable(context.first, context.second);
+    }
+
+    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
+
+    ConvSolution GetSolution(const OldStyleFusionDesc& context) const
+    {
+        return GetSolution(context.first, context.second);
+    }
+
+    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
 };
 
 struct BnFwdTrgActivationFused final : FusionSolverBase
 {
+    using FusionSolverBase::IsApplicable;
+
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<BnFwdTrgActivationFused>();
     }
-    bool IsApplicable(const FusionContext& context) const override;
-    ConvSolution GetSolution(const FusionContext& fusion_ctx) const;
+
+    bool IsApplicable(const OldStyleFusionDesc& context) const override
+    {
+        return IsApplicable(context.first, context.second);
+    }
+    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
+
+    ConvSolution GetSolution(const OldStyleFusionDesc& context) const
+    {
+        return GetSolution(context.first, context.second);
+    }
+    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
 };
 
 struct BnBwdTrgActivationFused final : FusionSolverBase
 {
+    using FusionSolverBase::IsApplicable;
+
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<BnBwdTrgActivationFused>();
     }
-    bool IsApplicable(const FusionContext& context) const override;
-    ConvSolution GetSolution(const FusionContext& fusion_ctx) const;
+
+    bool IsApplicable(const OldStyleFusionDesc& context) const override
+    {
+        return IsApplicable(context.first, context.second);
+    }
+
+    bool IsApplicable(const FusionContext& params, const FusionDescription& context) const;
+
+    ConvSolution GetSolution(const OldStyleFusionDesc& context) const
+    {
+        return GetSolution(context.first, context.second);
+    }
+
+    ConvSolution GetSolution(const FusionContext& plan_desc,
+                             const FusionDescription& problem) const;
 };
 
 } // namespace fusion

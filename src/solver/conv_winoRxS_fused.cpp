@@ -49,7 +49,8 @@ namespace miopen {
 namespace solver {
 namespace fusion {
 
-bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context) const
+bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
+                                                 const FusionDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
@@ -73,12 +74,13 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context) c
     return true;
 }
 
-ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& params) const
+ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& context,
+                                                        const FusionDescription& problem) const
 {
     ConvSolution result;
     KernelInfo kernel;
 
-    const auto conv_ctx = params.GetConvContext(0, miopen::conv::Direction::Forward);
+    const auto conv_ctx = context.GetConvContext(0, miopen::conv::Direction::Forward);
 
     const auto n_groups = conv_ctx.GetStream().GetMaxHardwareComputeUnits();
     const auto name     = conv_ctx.GetStream().GetDeviceName();
@@ -116,11 +118,11 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& par
         result.weight = 100;
     else
         result.weight = 5;
-    const auto& desc    = *params.problem.fusion_plan_desc;
+    const auto& desc    = *problem.fusion_plan_desc;
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
     int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
-    GetCompiledInParameters(params,
+    GetCompiledInParameters(context,
                             conv_ctx.problem,
                             &N,
                             &C,
