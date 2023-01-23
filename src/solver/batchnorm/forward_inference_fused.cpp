@@ -42,7 +42,7 @@ namespace solver {
 
 namespace fusion {
 
-bool BnFwdInferActivationFused::IsApplicable(const FusionContext& context,
+bool BnFwdInferActivationFused::IsApplicable(const FusionContext& /*context*/,
                                              const FusionDescription& problem) const
 {
     const auto& desc = *problem.fusion_plan_desc;
@@ -60,7 +60,7 @@ bool BnFwdInferActivationFused::IsApplicable(const FusionContext& context,
     return true;
 }
 
-ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& context,
+ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& /*context*/,
                                                     const FusionDescription& problem) const
 {
     const auto bn_problem = problem.GetBnProblem(0, miopen::batchnorm::Direction::ForwardInference);

@@ -396,13 +396,13 @@ std::string FusionPlanDescriptor::GetAlgorithmName(const Handle& /*handle*/)
 
 static auto GetFusedSolvers()
 {
-    return solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U>{}; /*,
+    return solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U,
                                    solver::fusion::ConvOclDirectFwdFused,
                                    solver::fusion::ConvBinWinogradRxSFused,
                                    solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
                                    solver::fusion::BnFwdInferActivationFused,
                                    solver::fusion::BnFwdTrgActivationFused,
-                                   solver::fusion::BnBwdTrgActivationFused>{};*/
+                                   solver::fusion::BnBwdTrgActivationFused>{};
 }
 
 static NetworkConfig GetPlanConfig(const FusionContext& fusion_ctx,
@@ -423,13 +423,11 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
     const auto solvers    = GetFusedSolvers();
-    auto fusion_ctx       = FusionContext{handle};
+    auto fusion_ctx       = FusionContext{this, handle};
     auto fusion_problem   = FusionDescription{this};
     fusion_ctx.DetectRocm();
-    // const auto tmp_sols =
-    //     solvers.SearchForAllSolutions(fusion_ctx, miopen::GetDb(fusion_ctx), AnyInvokeParams{});
     const auto tmp_sols =
-        solvers.SearchForAllSolutions(fusion_ctx, fusion_problem, AnyInvokeParams{});
+        solvers.SearchForAllSolutions(fusion_ctx, miopen::GetDb(fusion_ctx), AnyInvokeParams{});
     std::vector<miopen::solver::ConvSolution> sols;
     // Filter for Solvers
     if(conv_fwd_algo)
@@ -458,8 +456,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             if(!sol.invoker_factory)
                 MIOPEN_THROW(miopenStatusInternalError,
                              "Invoker missing from solver " + sol.solver_id);
-            const auto invoker = handle.PrepareInvoker(
-                *sol.invoker_factory, sol.construction_params); // force compilation
+            const auto invoker =
+                handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
             handle.RegisterInvoker(invoker, network_config, sol.solver_id, {});
             solutions.push_back(sol);
         }

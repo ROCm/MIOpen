@@ -108,7 +108,7 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
 ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
                                                   const FusionDescription& problem) const
 {
-    const auto params = context.GetConvContext(0, conv::Direction::Forward);
+    const auto params = context.GetConvContext(0, conv::Direction::Forward, problem);
     ConvSolution result;
     KernelInfo kernel;
 

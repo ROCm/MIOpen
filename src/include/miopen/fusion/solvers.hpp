@@ -38,7 +38,7 @@ namespace miopen {
 namespace solver {
 namespace fusion {
 
-using OldStyleFusionDesc = std::pair<const FusionContext&, const FusionDescription&>;
+using OldStyleFusionDesc = FusionContext;
 
 using FusionSolverBase = SolverMixin<OldStyleFusionDesc>;
 
@@ -126,7 +126,7 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
 
     bool IsApplicable(const OldStyleFusionDesc& context) const override
     {
-        return IsApplicable(context.first, context.second);
+        return IsApplicable(context, context.problem);
     }
 
     bool IsApplicable(const FusionContext& fusion_ctx, const FusionDescription& problem) const;
@@ -134,7 +134,7 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
     ConvSolution GetSolution(const OldStyleFusionDesc& context,
                              const PerformanceConfigConvBiasActivAsm1x1U& config) const override
     {
-        return GetSolution(context.first, context.second, config);
+        return GetSolution(context, context.problem, config);
     }
     ConvSolution GetSolution(const FusionContext& ctx,
                              const FusionDescription& problem,
@@ -146,7 +146,7 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
     PerformanceConfigConvBiasActivAsm1x1U Search(const OldStyleFusionDesc& context,
                                                  const AnyInvokeParams& invoke_ctx) const override
     {
-        return Search(context.first, context.second, invoke_ctx);
+        return Search(context, context.problem, invoke_ctx);
     }
 
     PerformanceConfigConvBiasActivAsm1x1U Search(const FusionContext& context,
@@ -170,7 +170,7 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
 
     bool IsApplicable(const OldStyleFusionDesc& context) const override
     {
-        return IsApplicable(context.first, context.second);
+        return IsApplicable(context, context.problem);
     }
 
     bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
@@ -178,7 +178,7 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
     ConvSolution GetSolution(const OldStyleFusionDesc& context,
                              const PerformanceConfigConvOclDirectFwdFused& config) const override
     {
-        return GetSolution(context.first, context.second, config);
+        return GetSolution(context, context.problem, config);
     }
 
     ConvSolution GetSolution(const FusionContext& context,
@@ -192,7 +192,7 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
     PerformanceConfigConvOclDirectFwdFused
     Search(const OldStyleFusionDesc& context, const AnyInvokeParams& invoke_params) const override
     {
-        return Search(context.first, context.second, invoke_params);
+        return Search(context, context.problem, invoke_params);
     }
     bool IsValidPerformanceConfig(const FusionContext&,
                                   const PerformanceConfigConvOclDirectFwdFused&) const override;
@@ -209,14 +209,14 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
 
     bool IsApplicable(const OldStyleFusionDesc& context) const override
     {
-        return IsApplicable(context.first, context.second);
+        return IsApplicable(context, context.problem);
     }
 
     bool IsApplicable(const FusionContext& params, const FusionDescription& context) const;
 
     ConvSolution GetSolution(const OldStyleFusionDesc& context) const
     {
-        return GetSolution(context.first, context.second);
+        return GetSolution(context, context.problem);
     }
 
     ConvSolution GetSolution(const FusionContext& plan_desc,
@@ -234,14 +234,14 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
 
     bool IsApplicable(const OldStyleFusionDesc& context) const override
     {
-        return IsApplicable(context.first, context.second);
+        return IsApplicable(context, context.problem);
     }
 
     bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
 
     ConvSolution GetSolution(const OldStyleFusionDesc& context) const
     {
-        return GetSolution(context.first, context.second);
+        return GetSolution(context, context.problem);
     }
 
     ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
@@ -258,14 +258,14 @@ struct BnFwdInferActivationFused final : FusionSolverBase
 
     bool IsApplicable(const OldStyleFusionDesc& context) const override
     {
-        return IsApplicable(context.first, context.second);
+        return IsApplicable(context, context.problem);
     }
 
     bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
 
     ConvSolution GetSolution(const OldStyleFusionDesc& context) const
     {
-        return GetSolution(context.first, context.second);
+        return GetSolution(context, context.problem);
     }
 
     ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
@@ -282,13 +282,13 @@ struct BnFwdTrgActivationFused final : FusionSolverBase
 
     bool IsApplicable(const OldStyleFusionDesc& context) const override
     {
-        return IsApplicable(context.first, context.second);
+        return IsApplicable(context, context.problem);
     }
     bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
 
     ConvSolution GetSolution(const OldStyleFusionDesc& context) const
     {
-        return GetSolution(context.first, context.second);
+        return GetSolution(context, context.problem);
     }
     ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
 };
@@ -304,14 +304,14 @@ struct BnBwdTrgActivationFused final : FusionSolverBase
 
     bool IsApplicable(const OldStyleFusionDesc& context) const override
     {
-        return IsApplicable(context.first, context.second);
+        return IsApplicable(context, context.problem);
     }
 
     bool IsApplicable(const FusionContext& params, const FusionDescription& context) const;
 
     ConvSolution GetSolution(const OldStyleFusionDesc& context) const
     {
-        return GetSolution(context.first, context.second);
+        return GetSolution(context, context.problem);
     }
 
     ConvSolution GetSolution(const FusionContext& plan_desc,

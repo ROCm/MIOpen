@@ -50,46 +50,45 @@ namespace solver {
 
 namespace fusion {
 
-void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& ctx)
+void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& context)
 {
     PerformanceConfigConvAsm1x1U::HeuristicInit(
-        ctx.GetConvContext(0, conv::Direction::Forward).problem);
+        context.GetConvContext(0, conv::Direction::Forward, context.problem).problem);
 }
 
-bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionContext& problem)
+bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionContext& context)
 {
     return PerformanceConfigConvAsm1x1U::SetNextValue(
-        problem.GetConvContext(0, conv::Direction::Forward));
+        context.GetConvContext(0, conv::Direction::Forward, context.problem));
 }
 
-bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionContext& problem) const
+bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionContext& context) const
 {
     return PerformanceConfigConvAsm1x1U::IsValid(
-        problem.GetConvContext(0, conv::Direction::Forward));
+        context.GetConvContext(0, conv::Direction::Forward, context.problem));
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const FusionContext& desc) const
+ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const FusionContext& context) const
 {
     PerformanceConfigConvBiasActivAsm1x1U pp;
-    pp.HeuristicInit(desc);
+    pp.HeuristicInit(context);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
 
 bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
-    const FusionContext& problem, const PerformanceConfigConvBiasActivAsm1x1U& c) const
+    const FusionContext& context, const PerformanceConfigConvBiasActivAsm1x1U& c) const
 {
-    return c.IsValidValue() && c.IsValid(problem);
+    return c.IsValidValue() && c.IsValid(context);
 }
 
-PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::Search(const FusionContext& context,
-                             const FusionDescription& /*problem*/,
-                             const AnyInvokeParams&) const
+PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionContext& context,
+                                                                   const FusionDescription& problem,
+                                                                   const AnyInvokeParams&) const
 {
-    auto cba_context         = context.GetConvContext(0, conv::Direction::Forward /* , problem*/);
-    cba_context.problem.bias = 1;
+    auto cba_context            = context.GetConvContext(0, conv::Direction::Forward, problem);
+    cba_context.problem.bias    = 1;
     cba_context.problem.bias_sz = static_cast<size_t>(cba_context.problem.n_outputs) *
                                   ((cba_context.problem.out_data_type == miopenHalf) ? 2 : 4);
     if(!cba_context.problem.direction.IsForward())
@@ -123,7 +122,7 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& fusion_ctx,
                                   const FusionDescription& problem,
                                   const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
-    const auto ctx = fusion_ctx.GetConvContext(0, conv::Direction::Forward);
+    const auto ctx = fusion_ctx.GetConvContext(0, conv::Direction::Forward, problem);
     ConvAsm1x1U base_sol{};
 
     auto sol = base_sol.GetSolution(ctx, config);
@@ -257,7 +256,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& fusion_ctx,
             return false;
     }
     ConvAsm1x1U sol{};
-    const auto conv_ctx = fusion_ctx.GetConvContext(0, conv::Direction::Forward);
+    const auto conv_ctx = fusion_ctx.GetConvContext(0, conv::Direction::Forward, problem);
     if(conv_ctx.problem.pad_h != conv_ctx.problem.pad_w)
         return false;
     if(conv_ctx.problem.pad_h != 0)
@@ -273,7 +272,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& fusion_ctx,
         return false;
 
     // Check if the conovlution part is applicable
-    return sol.IsApplicable(fusion_ctx.GetConvContext(0, conv::Direction::Forward));
+    return sol.IsApplicable(fusion_ctx.GetConvContext(0, conv::Direction::Forward, problem));
 }
 
 } // namespace fusion

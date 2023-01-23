@@ -57,7 +57,7 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
     if(!WinoCommonIsApplicable(context))
         return false;
     const miopen::ConvolutionContext conv_ctx =
-        context.GetConvContext(0, miopen::conv::Direction::Forward);
+        context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
     const std::string name = conv_ctx.GetStream().GetDeviceName();
     if(name == "gfx900" || name == "gfx906" || name == "gfx908" || name == "gfx90a" ||
        name == "gfx1011" || name == "gfx1012" || name == "gfx1030" || name == "gfx1031")
@@ -80,7 +80,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     ConvSolution result;
     KernelInfo kernel;
 
-    const auto conv_ctx = context.GetConvContext(0, miopen::conv::Direction::Forward);
+    const auto conv_ctx = context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
 
     const auto n_groups = conv_ctx.GetStream().GetMaxHardwareComputeUnits();
     const auto name     = conv_ctx.GetStream().GetDeviceName();
