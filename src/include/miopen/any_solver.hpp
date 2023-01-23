@@ -191,7 +191,7 @@ struct AnySolver
 
             return success;
         }
-        bool TestPerfCfgParams(const ConvolutionContext&, std::string, std::false_type) const
+        bool TestPerfCfgParams(const ConvolutionContext&, const std::string&, std::false_type) const
         {
             return false;
         }
