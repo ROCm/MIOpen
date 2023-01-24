@@ -255,9 +255,11 @@ Handle::Handle() : impl(new HandleImpl())
 
 #ifdef CL_VERSION_2_0
     const cl_queue_properties cq_props[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
-    impl->queue = HandleImpl::AqPtr{clCreateCommandQueueWithProperties(impl->context.get(), impl->device, cq_props, &status)};
+
+    impl->queue = HandleImpl::AqPtr{
+        clCreateCommandQueueWithProperties(impl->context.get(), impl->device, cq_props, &status)};
 #else
-    impl->queue = HandleImpl::AqPtr{clCreateCommandQueue(
+    impl->queue  = HandleImpl::AqPtr{clCreateCommandQueue(
         impl->context.get(), impl->device, CL_QUEUE_PROFILING_ENABLE, &status)};
 #endif
 
