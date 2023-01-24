@@ -212,15 +212,14 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
         return IsApplicable(context, context.problem);
     }
 
-    bool IsApplicable(const FusionContext& params, const FusionDescription& context) const;
+    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
 
     ConvSolution GetSolution(const OldStyleFusionDesc& context) const
     {
         return GetSolution(context, context.problem);
     }
 
-    ConvSolution GetSolution(const FusionContext& plan_desc,
-                             const FusionDescription& problem) const;
+    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
 };
 
 struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
