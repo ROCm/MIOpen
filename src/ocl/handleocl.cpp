@@ -252,18 +252,18 @@ Handle::Handle() : impl(new HandleImpl())
     // Create an OpenCL command queue
     /////////////////////////////////////////////////////////////////
     cl_int status = 0;
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
+
+#ifdef CL_VERSION_2_0
+    const cl_queue_properties cq_props[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
+    impl->queue = HandleImpl::AqPtr{clCreateCommandQueueWithProperties(impl->context.get(), impl->device, cq_props, &status)};
+#else
     impl->queue = HandleImpl::AqPtr{clCreateCommandQueue(
         impl->context.get(), impl->device, CL_QUEUE_PROFILING_ENABLE, &status)};
-#ifdef __clang__
-#pragma clang diagnostic pop
 #endif
+
     if(status != CL_SUCCESS)
     {
-        MIOPEN_THROW("Creating Command Queue. (clCreateCommandQueue)");
+        MIOPEN_THROW("Error creating command queue");
     }
     this->SetAllocator(nullptr, nullptr, nullptr);
     this->impl->target_properties.Init(this);
