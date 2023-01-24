@@ -32,7 +32,6 @@
 #include <miopen/fusion/fusion_invoke_params.hpp>
 #include <miopen/conv/fused_data_invoke_params.hpp>
 #include <miopen/fusion_plan.hpp>
-#include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/utils.hpp>
 #include <miopen/kernel_build_params.hpp>
 

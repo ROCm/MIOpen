@@ -111,9 +111,9 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
         : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, -1, false)
     {
     }
-    void HeuristicInit(const FusionContext& ctx);
-    bool SetNextValue(const FusionContext& problem);
-    bool IsValid(const FusionContext& problem) const;
+    void HeuristicInit(const FusionContext& context);
+    bool SetNextValue(const FusionContext& context);
+    bool IsValid(const FusionContext& context) const;
 };
 
 struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>
@@ -307,15 +307,14 @@ struct BnBwdTrgActivationFused final : FusionSolverBase
         return IsApplicable(context, context.problem);
     }
 
-    bool IsApplicable(const FusionContext& params, const FusionDescription& context) const;
+    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
 
     ConvSolution GetSolution(const OldStyleFusionDesc& context) const
     {
         return GetSolution(context, context.problem);
     }
 
-    ConvSolution GetSolution(const FusionContext& plan_desc,
-                             const FusionDescription& problem) const;
+    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
 };
 
 } // namespace fusion
