@@ -388,7 +388,7 @@ struct UnifiedDescriptionConv2d
         if(!problem.direction.IsKnown())
             MIOPEN_THROW(miopenStatusInternalError,
                          "UnifiedDescriptionConv2d needs to know direction.");
-
+        std::cout<<"******************UnifiedDescriptionConv2d******************"<<std::endl;
         const auto n_inputs_per_group  = problem.n_inputs / problem.group_counts;
         const auto n_outputs_per_group = problem.n_outputs / problem.group_counts;
         if(!problem.direction.IsBackwardWrW())

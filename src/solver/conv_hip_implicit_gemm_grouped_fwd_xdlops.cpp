@@ -284,6 +284,23 @@ void ConvHipImplicitGemmGroupFwdXdlops::RunCKSolution(
         {});
     auto invoker_ptr            = conv_ptr->MakeInvokerPointer();
     const auto enable_profiling = handle.IsProfilingEnabled();
+    
+    std::cout<<"*********run ck solution**********"<<std::endl;
+    auto& wDesc = tensors.wDesc;
+    auto& xDesc = tensors.inDesc;
+    std::cout<<"**********************************************G: "<<args.G<<std::endl;
+    std::cout<<"**********************************************N: "<<args.N<<std::endl;
+    std::cout<<"**********************************************K: "<<args.K<<std::endl;
+    std::cout<<"**********************************************C: "<<args.C<<std::endl;   
+    std::cout<<"****************************xDesc.GetLayout_t(): "<<xDesc.GetLayout_t()<<std::endl;
+    std::cout<<"****************************xDesc.GetLengths()[0]: "<<xDesc.GetLengths()[0]<<std::endl;
+    std::cout<<"****************************xDesc.GetLengths()[1]: "<<xDesc.GetLengths()[1]<<std::endl;
+    std::cout<<"****************************xDesc.GetLengths()[2]: "<<xDesc.GetLengths()[2]<<std::endl;
+    std::cout<<"****************************xDesc.GetLengths()[3]: "<<xDesc.GetLengths()[3]<<std::endl;
+    std::cout<<"****************************wDesc.GetLengths()[0]: "<<wDesc.GetLengths()[0]<<std::endl;
+    std::cout<<"****************************wDesc.GetLengths()[1]: "<<wDesc.GetLengths()[1]<<std::endl;
+    std::cout<<"****************************wDesc.GetLengths()[2]: "<<wDesc.GetLengths()[2]<<std::endl;
+    std::cout<<"****************************wDesc.GetLengths()[3]: "<<wDesc.GetLengths()[3]<<std::endl;
 
     float elapsed_time =
         invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
