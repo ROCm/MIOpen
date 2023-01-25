@@ -252,7 +252,6 @@ Handle::Handle() : impl(new HandleImpl())
     // Create an OpenCL command queue
     /////////////////////////////////////////////////////////////////
     cl_int status = 0;
-
 #ifdef CL_VERSION_2_0
     const cl_queue_properties cq_props[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
 
@@ -262,7 +261,6 @@ Handle::Handle() : impl(new HandleImpl())
     impl->queue  = HandleImpl::AqPtr{clCreateCommandQueue(
         impl->context.get(), impl->device, CL_QUEUE_PROFILING_ENABLE, &status)};
 #endif
-
     if(status != CL_SUCCESS)
     {
         MIOPEN_THROW("Error creating command queue");
