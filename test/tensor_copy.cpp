@@ -170,10 +170,8 @@ struct tensor_copy_driver : test_driver
                                                (dstSuper.desc.GetSize() - copyLens.size()),
                                            dstSuperStrides.end());
 
-        srcDesc = miopen::TensorDescriptor(
-            this->type, copyLens.data(), src_super_strides.data(), copyLens.size());
-        dstDesc = miopen::TensorDescriptor(
-            this->type, copyLens.data(), dst_super_strides.data(), copyLens.size());
+        srcDesc = miopen::TensorDescriptor(this->type, copyLens, src_super_strides);
+        dstDesc = miopen::TensorDescriptor(this->type, copyLens, dst_super_strides);
 
         if(srcDesc.GetLengths().size() == dstDesc.GetLengths().size())
         {

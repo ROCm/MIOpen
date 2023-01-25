@@ -404,12 +404,12 @@ struct tensor_transform_driver : test_driver
             // Test tensor layout transform
             srcSuper_pad   = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
             dstSuper_depad = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
-            srcDesc        = miopen::TensorDescriptor(this->type, srcLens.data(), srcLens.size());
+            srcDesc        = miopen::TensorDescriptor(this->type, srcLens);
 
             srcLens[1]     = (srcLens[1] % 4 == 0) ? srcLens[1] : ((srcLens[1] + 3) / 4) * 4;
             dstSuper_pad   = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
             srcSuper_depad = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
-            dstDesc        = miopen::TensorDescriptor(this->type, srcLens.data(), srcLens.size());
+            dstDesc        = miopen::TensorDescriptor(this->type, srcLens);
 
             if(srcDesc.GetLengths().size() == dstDesc.GetLengths().size())
             {
@@ -443,10 +443,8 @@ struct tensor_transform_driver : test_driver
                                             (super_dst.desc.GetSize() - subLens.size()),
                                         superStrides_dst.end());
 
-        subDesc_src = miopen::TensorDescriptor(
-            this->type, subLens.data(), subStrides_src.data(), subLens.size());
-        subDesc_dst = miopen::TensorDescriptor(
-            this->type, subLens.data(), subStrides_dst.data(), subLens.size());
+        subDesc_src = miopen::TensorDescriptor(this->type, subLens, subStrides_src);
+        subDesc_dst = miopen::TensorDescriptor(this->type, subLens, subStrides_dst);
 
         verify_equals(verify_tensor_transform_scale<T>{
             super_src, subDesc_src, super_dst, subDesc_dst, offset, offset, T(alpha), T(beta)});
