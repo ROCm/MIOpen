@@ -1,3 +1,5 @@
+#ifndef GUARD_REDUCTION_FUNCTIONS_H
+#define GUARD_REDUCTION_FUNCTIONS_H
 
 #if !MIOPEN_USE_AMDGCN
 static inline void lds_reduce2(_FLOAT_ACCUM* x,
@@ -154,4 +156,6 @@ static inline void gcn_reduce2(_FLOAT_ACCUM* x,
     *y *= scale;
 }
 
-#endif
+#endif // MIOPEN_USE_AMDGCN
+
+#endif // GUARD_REDUCTION_FUNCTIONS_H

@@ -24,6 +24,9 @@
  *
  *******************************************************************************/
 
+#ifndef GUARD_MIOPEN_TEST_ARGS_HPP
+#define GUARD_MIOPEN_TEST_ARGS_HPP
+
 #include <algorithm>
 #include <cassert>
 #include <functional>
@@ -288,3 +291,5 @@ struct read_value
 };
 
 } // namespace args
+
+#endif // GUARD_MIOPEN_TEST_ARGS_HPP
