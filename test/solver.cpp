@@ -162,21 +162,21 @@ public:
     {
         const TempFile db_path("miopen.tests.solver");
 
-        ConstructTest(db_path, TrivialTestSolver::FileName(), {0, 0, 0, 1});
+        ConstructTest(db_path, TrivialTestSolver::FileName(), {1, 1, 1, 1});
 
         ConstructTest(db_path,
                       TrivialTestSolver::FileName(),
-                      {0, 0, 0, 1},
+                      {1, 1, 1, 1},
                       [](ConvolutionContext& c) { c.do_search = true; });
 
         ConstructTest(db_path,
                       SearchableTestSolver::NoSearchFileName(),
-                      {0, 0, 0, 0},
+                      {1, 1, 1, 2},
                       [](ConvolutionContext& c) { c.do_search = false; });
 
         ConstructTest(db_path,
                       SearchableTestSolver::FileName(),
-                      {0, 0, 0, 0},
+                      {1, 1, 1, 2},
                       [](ConvolutionContext& c) { c.do_search = true; });
 
         const auto& searchable_solver = StaticContainer<const SearchableTestSolver>::Instance();
@@ -184,11 +184,11 @@ public:
 
         // Should read in both cases: result is already in DB, solver is searchable.
         ConstructTest(
-            db_path, SearchableTestSolver::FileName(), {0, 0, 0, 0}, [](ConvolutionContext&) {});
+            db_path, SearchableTestSolver::FileName(), {1, 1, 1, 2}, [](ConvolutionContext&) {});
 
         ConstructTest(db_path,
                       SearchableTestSolver::FileName(),
-                      {0, 0, 0, 0},
+                      {1, 1, 1, 2},
                       [](ConvolutionContext& c) { c.do_search = true; });
 
         // Checking no more searches were done.

@@ -24,6 +24,9 @@
  *
  *******************************************************************************/
 
+#ifndef GUARD_MIOPEN_TEST_DRIVER_HPP
+#define GUARD_MIOPEN_TEST_DRIVER_HPP
+
 #include "args.hpp"
 #include "get_handle.hpp"
 #include "network_data.hpp"
@@ -1372,3 +1375,5 @@ void test_drive(int argc, const char* argv[])
         }
     }
 }
+
+#endif // GUARD_MIOPEN_TEST_DRIVER_HPP
