@@ -690,7 +690,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
                                                        int* dimsA,
                                                        int* stridesA);
 
-/*! @brief Set shape of N-dimensional tensor
+/*! @brief Get size of N-dimensional tensor
  *
  * Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
  * layout.
@@ -873,6 +873,15 @@ miopenInitConvolutionNdDescriptor(miopenConvolutionDescriptor_t convDesc,
                                   int* strideA,
                                   int* dilationA,
                                   miopenConvolutionMode_t c_mode);
+
+/*! @brief Retrieves the spatial dimension of a convolution layer descriptor
+ *
+ * @param convDesc              Convolution layer descriptor (input)
+ * @param spatialDim            Spatial dimension of convolution descriptor (output)
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionSpatialDim(miopenConvolutionDescriptor_t convDesc,
+                                                            int* spatialDim);
 
 /*! @brief Retrieves a 2-D convolution layer descriptor's details
  *

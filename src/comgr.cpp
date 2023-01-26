@@ -38,7 +38,11 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/stringutils.hpp>
 
+#if HIP_PACKAGE_VERSION_FLAT >= 4004000000ULL
+#include <amd_comgr/amd_comgr.h>
+#else
 #include <amd_comgr.h>
+#endif
 #include <hip/hip_runtime_api.h>
 #if MIOPEN_USE_HIPRTC
 #include <miopen/manage_ptr.hpp>
@@ -848,7 +852,8 @@ void BuildHip(const std::string& name,
 #if WORKAROUND_ISSUE_1431
             if(compiler::lc::hip::IsPchEnabled())
             {
-                if(StartsWith(target.Name(), "gfx10") && !IsWave64Enforced(optCompile))
+                if((StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) &&
+                   !IsWave64Enforced(optCompile))
                     optCompile.emplace_back("-DWORKAROUND_ISSUE_1431=1");
             }
 #endif
@@ -859,7 +864,8 @@ void BuildHip(const std::string& name,
             OptionList addDevLibs;
             // Use device libs for wavefrontsize64 for non-gfx10 targets
             // or when enforced via option.
-            if(!StartsWith(target.Name(), "gfx10") || IsWave64Enforced(optCompile))
+            if(!(StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) ||
+               IsWave64Enforced(optCompile))
             {
                 addDevLibs.push_back("wavefrontsize64");
             }
@@ -937,7 +943,8 @@ void BuildOcl(const std::string& name,
         OptionList optLink;
         // Use device libs for wavefrontsize64 for non-gfx10 targets
         // or when enforced via option.
-        if(!StartsWith(target.Name(), "gfx10") || IsWave64Enforced(optCompile))
+        if(!(StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) ||
+           IsWave64Enforced(optCompile))
         {
             optLink.push_back("wavefrontsize64");
         }
@@ -1292,7 +1299,8 @@ void BuildHip(const std::string& name,
         opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
         opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS=1");
 #if WORKAROUND_ISSUE_1431
-        if(StartsWith(target.Name(), "gfx10") && !miopen::comgr::IsWave64Enforced(opts))
+        if((StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) &&
+           !miopen::comgr::IsWave64Enforced(opts))
             opts.push_back("-DWORKAROUND_ISSUE_1431=1");
 #endif
 #if WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H
