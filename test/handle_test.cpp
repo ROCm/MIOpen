@@ -242,9 +242,10 @@ void test_arch_name()
                        "gfx900",
                        "gfx803",
                        "gfx1030",
+                       "gfx1031",
                        "gfx1100",
-                       "gfx1102",
-                       "gfx1031"};
+                       "gfx1101",
+                       "gfx1102"};
     auto this_arch  = h.GetDeviceName();
     EXPECT(std::any_of(
         known_arch.begin(), known_arch.end(), [&](std::string arch) { return arch == this_arch; }));
