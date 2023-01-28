@@ -99,7 +99,7 @@ protected:
         test_skipped                = false;
         std::tie(algo, conv_config) = GetParam();
         input   = tensor<T>{conv_config.N, conv_config.C, conv_config.H, conv_config.W};
-        weights = tensor<T>{1, conv_config.k, conv_config.x, conv_config.y};
+        weights = tensor<T>{conv_config.k, conv_config.C, conv_config.x, conv_config.y};
         input.generate(tensor_elem_gen_integer{17});
         weights.generate(tensor_elem_gen_integer{17});
 
