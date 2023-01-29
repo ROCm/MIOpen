@@ -112,6 +112,7 @@ set( MIOpen_Source
     find_db.cpp
     fused_api.cpp
     fusion.cpp
+    generic_search.cpp
     handle_api.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
