@@ -38,6 +38,7 @@
 #include <miopen/timer.hpp>
 #include <miopen/type_traits.hpp>
 
+#include <algorithm>
 #include <vector>
 #include <cstdlib>
 #include <limits>
@@ -211,30 +212,6 @@ public:
     }
 };
 
-inline void InitRandomly(std::vector<float>& vec, const double offset, const double factor)
-{
-    float* p = vec.data();
-    for(unsigned long i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>(
-            (rand() * (1.0 / RAND_MAX) + offset) * // NOLINT (concurrency-mt-unsafe)
-            factor);
-}
-
-inline void InitRandomly(std::vector<float>& vec)
-{
-    float* p = vec.data();
-    for(unsigned long i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>(rand() * (1.0 / RAND_MAX)); // NOLINT (concurrency-mt-unsafe)
-}
-
-inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
-{
-    assert(y > 0);
-    if(x % y != 0)
-        return x / y + 1;
-    return x / y;
-}
-
 /// Solver member function requirements:
 /// * GetDefaultPerformanceConfig shall be implemented.
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
@@ -320,6 +297,8 @@ auto GenericSearch(const Solver s,
     return GenericSearch(s, ctx, invoke_ctx);
 }
 
+std::size_t GetTuningIterationsMax();
+
 template <class Solver, class Context>
 auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
     -> decltype(s.GetDefaultPerformanceConfig(context_))
@@ -344,8 +323,10 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     auto& profile_h = context.GetStream();
     AutoEnableProfiling enableProfiling{profile_h};
 
-    auto all_configs       = GetAllConfigs(s, context);
-    const int n_runs_total = std::distance(all_configs.begin(), all_configs.end());
+    auto all_configs = GetAllConfigs(s, context);
+    const std::size_t n_runs_total =
+        std::min(static_cast<std::size_t>(std::distance(all_configs.begin(), all_configs.end())),
+                 GetTuningIterationsMax());
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
@@ -357,8 +338,11 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     if(!miopen::IsCacheDisabled()) // Otherwise precompilation is useless.
     {
         std::vector<KernelInfo> kernels;
+        size_t n_current = 0;
         for(const auto& current_config : all_configs)
         {
+            if(n_current >= n_runs_total)
+                break;
             ConvSolution current_solution = s.GetSolution(context, current_config);
             for(auto&& kernel : current_solution.construction_params)
             {
@@ -366,6 +350,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
                     continue;
                 kernels.push_back(kernel);
             }
+            ++n_current;
         }
         std::ignore = PrecompileKernels(profile_h, kernels);
     }
@@ -375,6 +360,9 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         size_t n_current = 0;
         for(const auto& current_config : all_configs)
         {
+            if(n_current >= n_runs_total)
+                break;
+
             float elapsed_time = 0.0f;
             int ret            = 0;
             MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '

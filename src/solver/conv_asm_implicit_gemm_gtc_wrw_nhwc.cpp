@@ -1165,7 +1165,7 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
                 if(workSpace == nullptr || workSpaceSize < required_workspace_size)
                     MIOPEN_THROW("Not enough workspace has been provided for "
-                                 "ConvAsmImplicitGemmGTCDynamicWrwXdlops with fp16 and atomic "
+                                 "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC with fp16 and atomic "
                                  "add.");
                 auto trans_input_buf =
                     trans_input_size == 0
