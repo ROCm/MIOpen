@@ -267,9 +267,9 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(const ProblemDescription& proble
     return true;
 }
 
-static ConvSolution BaseGetSolution(const ConvolutionContext& ctx,
-                                    const ProblemDescription& problem,
-                                    const LegacyPerformanceConfig& config)
+ConvSolution ConvOclDirectFwd::BaseGetSolution(const ConvolutionContext& ctx,
+                                               const ProblemDescription& problem,
+                                               const LegacyPerformanceConfig& config)
 {
     ConvSolution result;
 
@@ -484,12 +484,5 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& ctx,
     return result;
 }
 
-ConvSolution ConvOclDirectFwdFused::GetSolution(const ConvolutionContext& ctx,
-                                                const ProblemDescription& problem,
-                                                const LegacyPerformanceConfig& config) const
-{
-    ConvSolution result = BaseGetSolution(ctx, problem, config);
-    return result;
-}
 } // namespace solver
 } // namespace miopen

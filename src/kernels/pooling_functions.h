@@ -1,3 +1,6 @@
+#ifndef GUARD_POOLING_FUNCTIONS_H
+#define GUARD_POOLING_FUNCTIONS_H
+
 #define PPCAT_NX(A, B) A##B
 #define PPCAT(A, B) PPCAT_NX(A, B)
 #define TWO 2
@@ -42,3 +45,5 @@ typedef MLO_POOLING_INDEX_TYPE index_t;
 #ifndef MLO_POOLING_OP_ID
 #define MLO_POOLING_OP_ID 0
 #endif
+
+#endif // GUARD_POOLING_FUNCTIONS_H
