@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,29 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cassert>
-#include <miopen/fusion.hpp>
-#include <miopen/logger.hpp>
+
+#pragma once
 
 namespace miopen {
 
-// operator args
-std::ostream& operator<<(std::ostream& stream, const OperatorArgs&) // x )
+struct ProblemDescriptionBase
 {
-    /*MIOPEN_LOG_ENUM(stream,
-                    x.mode,
-                    miopenActivationPASTHRU,
-                    miopenActivationLOGISTIC,
-                    miopenActivationTANH,
-                    miopenActivationRELU,
-                    miopenActivationSOFTRELU,
-                    miopenActivationABS,
-                    miopenActivationPOWER,
-                    miopenActivationCLIPPEDRELU,
-                    miopenActivationLEAKYRELU,
-                    miopenActivationELU)*/
-    // LogRange(stream, x.parms, ", ") << ", ";
-    return stream;
-}
+};
 
 } // namespace miopen
