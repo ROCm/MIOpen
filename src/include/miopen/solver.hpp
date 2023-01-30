@@ -420,79 +420,6 @@ private:
                                         const AnyInvokeParams& invoke_ctx) const;
 };
 
-struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
-{
-    PerformanceConfigConvBiasActivAsm1x1U(bool spare) : PerformanceConfigConvAsm1x1U(spare) {}
-    PerformanceConfigConvBiasActivAsm1x1U()
-        : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, -1, false)
-    {
-    }
-    bool IsValid(const ConvolutionContext& ctx) const { return IsValid(ctx.problem); }
-    bool IsValid(const ProblemDescription&) const;
-    bool operator==(const PerformanceConfigConvBiasActivAsm1x1U& other) const;
-};
-
-// Fused solver
-struct ConvBiasActivAsm1x1U final : ConvTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>
-{
-    // To suppress -Woverloaded-virtual
-    using ConvTunableSolver::GetDefaultPerformanceConfig;
-    using ConvTunableSolver::GetSolution;
-    using ConvTunableSolver::GetWorkspaceSize;
-    using ConvTunableSolver::IsApplicable;
-    using ConvTunableSolver::IsValidPerformanceConfig;
-    using ConvTunableSolver::Search;
-
-    const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
-    const std::string& AltSolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
-
-    bool IsApplicable(const ConvolutionContext& ctx) const override
-    {
-        return IsApplicable(ctx, ctx.problem);
-    }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
-    {
-        return GetWorkspaceSize(ctx.problem);
-    }
-    bool MayNeedWorkspace() const override { return true; }
-
-    PerformanceConfigConvBiasActivAsm1x1U
-    GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const override
-    {
-        return GetDefaultPerformanceConfig(ctx.problem);
-    }
-    bool
-    IsValidPerformanceConfig(const ConvolutionContext& ctx,
-                             const PerformanceConfigConvBiasActivAsm1x1U& config) const override
-    {
-        return IsValidPerformanceConfig(ctx.problem, config);
-    }
-    PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext& ctx,
-                                                 const AnyInvokeParams& invoke_ctx) const override
-    {
-        return Search(ctx, ctx.problem, invoke_ctx);
-    }
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const PerformanceConfigConvBiasActivAsm1x1U& config) const override
-    {
-        return GetSolution(ctx, ctx.problem, config);
-    }
-
-private:
-    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
-    size_t GetWorkspaceSize(const ProblemDescription&) const;
-    PerformanceConfigConvBiasActivAsm1x1U
-    GetDefaultPerformanceConfig(const ProblemDescription&) const;
-    bool IsValidPerformanceConfig(const ProblemDescription&,
-                                  const PerformanceConfigConvBiasActivAsm1x1U&) const;
-    PerformanceConfigConvBiasActivAsm1x1U Search(const ConvolutionContext&,
-                                                 const ProblemDescription&,
-                                                 const AnyInvokeParams& invoke_ctx) const;
-    ConvSolution GetSolution(const ConvolutionContext&,
-                             const ProblemDescription&,
-                             const PerformanceConfigConvBiasActivAsm1x1U&) const;
-};
-
 struct PerformanceConfigConvAsm1x1UV2 : PerfConfigBase<PerformanceConfigConvAsm1x1UV2>
 {
     // ----------------- // Full set          Optimized       Spare
@@ -2588,6 +2515,9 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
     using ConvOclDirectFwdLegacyExhaustiveSearch::IsApplicable;
     using ConvOclDirectFwdLegacyExhaustiveSearch::IsValidPerformanceConfig;
 
+    static ConvSolution BaseGetSolution(const ConvolutionContext& ctx,
+                                        const ProblemDescription& problem,
+                                        const LegacyPerformanceConfig& config);
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd>(); }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
@@ -2610,25 +2540,6 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
         return IsValidPerformanceConfig(ctx.problem, config);
     }
     bool IsValidPerformanceConfig(const ProblemDescription&, const LegacyPerformanceConfig&) const;
-};
-
-struct ConvOclDirectFwdFused final : ConvOclDirectFwd
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvOclDirectFwdFused>();
-    }
-
-    ConvSolution GetSolution(const ConvolutionContext& ctx,
-                             const LegacyPerformanceConfig& config) const override
-    {
-        return GetSolution(ctx, ctx.problem, config);
-    }
-
-private:
-    ConvSolution GetSolution(const ConvolutionContext&,
-                             const ProblemDescription&,
-                             const LegacyPerformanceConfig&) const;
 };
 
 struct ConvOclDirectFwd1x1 final : ConvOclDirectFwdLegacyExhaustiveSearch
@@ -2830,41 +2741,6 @@ private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
     float GetWti(const ConvolutionContext&, const ProblemDescription&) const;
     ConvSolution GetSolution(const ConvolutionContext&, const ProblemDescription&) const;
-};
-
-struct ConvBinWinogradRxSf2x3g1Fused final : ConvSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvBinWinogradRxSf2x3g1Fused>();
-    }
-
-    bool IsApplicable(const ConvolutionContext&) const override;
-    ConvSolution GetSolution(const ConvolutionContext&) const;
-};
-
-struct ConvBinWinogradRxSFused final : ConvSolver
-{
-    // To suppress -Woverloaded-virtual
-    using ConvSolver::IsApplicable;
-
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvBinWinogradRxSFused>();
-    }
-
-    bool IsApplicable(const ConvolutionContext& ctx) const override
-    {
-        return IsApplicable(ctx, ctx.problem);
-    }
-    ConvSolution GetSolution(const ConvolutionContext& ctx) const
-    {
-        return GetSolution(ctx, ctx.problem);
-    }
-
-private:
-    bool IsApplicable(const ExecutionContext&, const ProblemDescription&) const;
-    ConvSolution GetSolution(const ExecutionContext&, const ProblemDescription&) const;
 };
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>

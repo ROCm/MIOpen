@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,29 +23,27 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cassert>
-#include <miopen/fusion.hpp>
-#include <miopen/logger.hpp>
+
+#pragma once
+
+#include <miopen/miopen.h>
 
 namespace miopen {
 
-// operator args
-std::ostream& operator<<(std::ostream& stream, const OperatorArgs&) // x )
+namespace fusion {
+struct FusionOpInvokeParamBase;
+} // namespace fusion
+
+struct OperatorArgs : miopenOperatorArgs
 {
-    /*MIOPEN_LOG_ENUM(stream,
-                    x.mode,
-                    miopenActivationPASTHRU,
-                    miopenActivationLOGISTIC,
-                    miopenActivationTANH,
-                    miopenActivationRELU,
-                    miopenActivationSOFTRELU,
-                    miopenActivationABS,
-                    miopenActivationPOWER,
-                    miopenActivationCLIPPEDRELU,
-                    miopenActivationLEAKYRELU,
-                    miopenActivationELU)*/
-    // LogRange(stream, x.parms, ", ") << ", ";
-    return stream;
-}
+    std::vector<std::unique_ptr<fusion::FusionOpInvokeParamBase>> params;
+    friend std::ostream& operator<<(std::ostream& stream, const OperatorArgs& x);
+    void SetArg(size_t idx, std::unique_ptr<fusion::FusionOpInvokeParamBase>&& arg)
+    {
+        if(params.size() < (idx + 1))
+            params.resize(idx + 1);
+        params[idx] = std::move(arg);
+    }
+};
 
 } // namespace miopen

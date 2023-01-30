@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,29 +23,37 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cassert>
-#include <miopen/fusion.hpp>
-#include <miopen/logger.hpp>
+
+#pragma once
 
 namespace miopen {
 
-// operator args
-std::ostream& operator<<(std::ostream& stream, const OperatorArgs&) // x )
+struct FusionContext : miopen::ExecutionContext
 {
-    /*MIOPEN_LOG_ENUM(stream,
-                    x.mode,
-                    miopenActivationPASTHRU,
-                    miopenActivationLOGISTIC,
-                    miopenActivationTANH,
-                    miopenActivationRELU,
-                    miopenActivationSOFTRELU,
-                    miopenActivationABS,
-                    miopenActivationPOWER,
-                    miopenActivationCLIPPEDRELU,
-                    miopenActivationLEAKYRELU,
-                    miopenActivationELU)*/
-    // LogRange(stream, x.parms, ", ") << ", ";
-    return stream;
-}
+    FusionDescription problem;
+    FusionContext(FusionPlanDescriptor* ptr_desc, Handle& handle)
+        : ExecutionContext(&handle), problem(ptr_desc)
+    {
+    }
+
+    ConvolutionContext
+    GetConvContext(size_t idx, conv::Direction dir, const FusionDescription& fusion_problem) const
+    {
+        const auto conv_prob = fusion_problem.GetConvProblem(idx, dir);
+        if(dir == conv::Direction::Forward)
+        {
+            auto ctx = ConvolutionContext{conv_prob.conv_problem, *this};
+            ctx.SetStream(&this->GetStream());
+            ctx.DetectRocm();
+            ctx.SetupFloats();
+            return ctx;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusNotImplemented);
+        }
+    }
+    bool is_for_generic_search = false;
+};
 
 } // namespace miopen
