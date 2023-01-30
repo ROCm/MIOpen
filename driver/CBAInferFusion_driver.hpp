@@ -40,7 +40,6 @@
 #include <miopen/miopen.h>
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/md_graph.hpp>
 #include <numeric>
 #include <vector>
 #include <cassert>
@@ -268,29 +267,6 @@ template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
-
-    if(inflags.GetValueStr("dot_graph") != "")
-    {
-        std::string op = inflags.GetValueStr("dot_graph");
-        miopen::FusionMDGraph mdg;
-        if(op == "ConvForward")
-        {
-            miopen::FusionMDGraph::InitConv(mdg);
-        }
-        else if(op == "BatchNormInference")
-        {
-            miopen::FusionMDGraph::InitBN(mdg);
-        }
-        else
-        {
-            std::cerr
-                << "Invalid Graph specified, valid values are ConvForward or BatchNormInference"
-                << std::endl;
-        }
-        mdg.WriteToFile("/tmp/mdgraph.dot");
-        std::cerr << "Graph written to /tmp/mdgraph.dot" << std::endl;
-        exit(EXIT_SUCCESS); // NOLINT (concurrency-mt-unsafe)
-    }
 
     if(inflags.GetValueInt("time") == 1)
     {
