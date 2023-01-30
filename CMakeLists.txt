@@ -559,7 +559,6 @@ enable_clang_tidy(
         -cert-msc51-cpp
         -clang-analyzer-alpha.core.CastToStruct
         -clang-analyzer-optin.performance.Padding
-        -clang-diagnostic-deprecated-declarations
         -clang-diagnostic-extern-c-compat
         -clang-diagnostic-unused-command-line-argument
         -cppcoreguidelines-avoid-c-arrays
@@ -657,7 +656,6 @@ enable_clang_tidy(
         -modernize-concat-nested-namespaces
         -readability-redundant-declaration
         -readability-simplify-boolean-expr
-        -clang-diagnostic-deprecated
         -hicpp-deprecated-headers
         -hicpp-member-init
         -performance-no-automatic-move
