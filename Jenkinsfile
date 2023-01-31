@@ -478,14 +478,13 @@ pipeline {
                     agent{ label rocmnode("nogpu") }
                     environment{
                         execute_cmd = "find .. -iname \'*.h\' \
-                                -o -path ../fin -prune \
                                 -o -iname \'*.hpp\' \
                                 -o -iname \'*.cpp\' \
                                 -o -iname \'*.h.in\' \
                                 -o -iname \'*.hpp.in\' \
                                 -o -iname \'*.cpp.in\' \
                                 -o -iname \'*.cl\' \
-                                | grep -v -E '(build/)|(install/)' \
+                                | grep -v -E '(build/)|(install/)|(fin/)' \
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-12 -style=file {} | diff - {}\'"
                     }
                     steps{
