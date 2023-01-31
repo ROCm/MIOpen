@@ -119,8 +119,6 @@ FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
 {
 }
 
-FusionPlanDescriptor::~FusionPlanDescriptor() { op_map.clear(); }
-
 miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)
 {
     desc->SetIdx(op_count);
