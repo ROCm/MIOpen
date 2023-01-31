@@ -75,7 +75,7 @@ template <typename PerformanceConfig, typename Context>
 class ComputedContainer;
 
 template <typename PerformanceConfig, typename Context>
-class ComputedIterator : public std::iterator<std::input_iterator_tag, PerformanceConfig>
+class ComputedIterator
 {
     PerformanceConfig v;
     const Context* p; // For Next().
@@ -104,6 +104,12 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
     }
 
 public:
+    using iterator_category = std::input_iterator_tag;
+    using value_type        = PerformanceConfig;
+    using difference_type   = int;
+    using pointer           = void;
+    using reference         = void;
+
     // STL-like iterator shall be default contructible. Also implements container's end()
     ComputedIterator() : v(), p(nullptr) {}
     // STL-like iterator shall be copy contructible. The default copy ctor is ok.
