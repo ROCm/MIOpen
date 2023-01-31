@@ -475,6 +475,7 @@ pipeline {
                     agent{ label rocmnode("nogpu") }
                     environment{
                         execute_cmd = "find .. -iname \'*.h\' \
+                                -o -path ./fin -prune \
                                 -o -iname \'*.hpp\' \
                                 -o -iname \'*.cpp\' \
                                 -o -iname \'*.h.in\' \
