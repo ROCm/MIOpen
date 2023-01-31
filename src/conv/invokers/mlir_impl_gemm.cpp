@@ -37,10 +37,24 @@
 #include <boost/any.hpp>
 #include <boost/range/adaptors.hpp>
 
+#if MIIR_VERSION_FLAT >= 6
+#define MIIR_BARE_POINTER_ABI 1
+#else
+#define MIIR_BARE_POINTER_ABI 0
+#endif
+
 namespace miopen {
 namespace conv {
-
 namespace {
+#if MIIR_BARE_POINTER_ABI
+struct MlirConvArgs
+{
+    void* filter;
+    void* input;
+    void* output;
+    void* workspace;
+};
+#else
 struct MlirConvArgs
 {
     StridedMemRef5D filter;
@@ -48,6 +62,7 @@ struct MlirConvArgs
     StridedMemRef5D output;
     StridedMemRef5D workspace;
 };
+#endif
 
 // Note: Below macros are required for opencl backend only because
 // opencl backend requires to invoke clSetKernelArg on every kernel
@@ -58,6 +73,46 @@ struct MlirConvArgs
 #define EXPAND_MLIR_CONV_ARGS(x) (x).offset, EXPAND_ARRAY_5((x).sizes), EXPAND_ARRAY_5((x).strides)
 #endif
 
+#if MIIR_BARE_POINTER_ABI
+void ComputeMlirDimsStrides(const conv::ProblemDescription& conv_problem,
+                            std::vector<size_t>& in_dims,
+                            std::vector<size_t>& in_strides,
+                            std::vector<size_t>& weights_dims,
+                            std::vector<size_t>& weights_strides,
+                            std::vector<size_t>& out_dims,
+                            std::vector<size_t>& out_strides)
+{
+    // The bare pointer ABI doesn't require this info, so this is a noop.
+    (void)conv_problem;
+    (void)in_dims;
+    (void)in_strides;
+    (void)weights_dims;
+    (void)weights_strides;
+    (void)out_dims;
+    (void)out_strides;
+}
+
+MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
+                              const std::vector<size_t>& in_strides,
+                              const std::vector<size_t>& weights_dims,
+                              const std::vector<size_t>& weights_strides,
+                              const std::vector<size_t>& out_dims,
+                              const std::vector<size_t>& out_strides,
+                              size_t workspace_req)
+{
+    // The bare pointer ABI doesn't pass dimensions or strides,
+    // so the arguments are present for backward compatibility
+    // and are mentioned here to silence unused argument warnings.
+    (void)in_dims;
+    (void)in_strides;
+    (void)weights_dims;
+    (void)weights_strides;
+    (void)out_dims;
+    (void)out_strides;
+    (void)workspace_req;
+    return {nullptr, nullptr, nullptr, nullptr};
+}
+#else
 // Rearrange strides correctly
 // In MLIR: the layout, sizes and strides are coherent. The layout information is not
 // embedded into the permutation of strides.
@@ -174,7 +229,7 @@ MlirConvArgs MakeMlirConvArgs(const std::vector<size_t>& in_dims,
 
     return {filter, input, output, workspace};
 }
-
+#endif // MIIR_BARE_POINTER_ABI = 0
 // Note: This does not work for opencl backend because it is impossible
 // to extract the device pointer out from a ocl memory object. The only
 // way around is to call clSetKernelArg on a oclMemory object to pass
@@ -196,13 +251,18 @@ void SetMlirConvArgsPtr(ConstData_t in, ConstData_t out, ConstData_t w, MlirConv
     {
         MIOPEN_THROW("Invalid device pointers");
     }
-
-    args.filter.basePtr = filter;
-    args.filter.data    = filter;
-    args.input.basePtr  = input;
-    args.input.data     = input;
-    args.output.basePtr = output;
-    args.output.data    = output;
+#if MIIR_BARE_POINTER_ABI
+    args.filter = filter;
+    args.input  = input;
+    args.output = output;
+#else
+    args.filter.basePtr    = filter;
+    args.filter.data       = filter;
+    args.input.basePtr     = input;
+    args.input.data        = input;
+    args.output.basePtr    = output;
+    args.output.data       = output;
+#endif
 }
 
 void SetMlirConvArgsPtr(
@@ -218,20 +278,24 @@ void SetMlirConvArgsPtr(
         MIOPEN_THROW("Invalid device pointers for workspace");
     }
 
+#if MIIR_BARE_POINTER_ABI
+    args.workspace = workspace;
+#else
     args.workspace.basePtr = workspace;
     args.workspace.data    = workspace;
-}
 #endif
+}
+#endif // MIOPEN_BACKEND_HIP
 } // Anonymous namespace
 
-InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
+InvokerFactory MakeMlirFwdInvokerFactory(const miopen::ProblemDescription& problem)
 {
-    assert((ctx.direction.IsForward()));
+    assert((problem.direction.IsForward()));
 
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    ComputeMlirDimsStrides(ctx.conv_problem,
+    ComputeMlirDimsStrides(problem.conv_problem,
                            in_dims,
                            in_strides,
                            weights_dims,
@@ -242,17 +306,17 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
     MlirConvArgs args = MakeMlirConvArgs(
         in_dims, in_strides, weights_dims, weights_strides, out_dims, out_strides, 0);
 
-    const auto& conv             = ctx.conv_problem.GetConv();
+    const auto& conv             = problem.conv_problem.GetConv();
     const auto& lowp_quant       = conv.lowp_quant;
-    const auto& outDesc          = ctx.conv_problem.GetOut();
+    const auto& outDesc          = problem.conv_problem.GetOut();
     TensorDescriptor outConvDesc = outDesc;
     // outConvDesc is only functional when this is a int8 convolution. It allows the output type to
     // be cast to a different than int32_t. This gives the solver a wider applicable range and
     // mimics the behavior of the gemm solver.
     bool needs_output_cast = false;
-    if(ctx.conv_problem.GetIn().GetType() == miopenInt8 &&
-       ctx.conv_problem.GetWeights().GetType() == miopenInt8 &&
-       ctx.conv_problem.GetOut().GetType() != miopenInt32)
+    if(problem.conv_problem.GetIn().GetType() == miopenInt8 &&
+       problem.conv_problem.GetWeights().GetType() == miopenInt8 &&
+       problem.conv_problem.GetOut().GetType() != miopenInt32)
     {
         needs_output_cast = true;
         outConvDesc = TensorDescriptor(miopenInt32, outDesc.GetLengths(), outDesc.GetStrides());
@@ -265,6 +329,10 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
             const auto& tensors = forward_invoke_params.tensors;
 
 #if MIOPEN_BACKEND_OPENCL
+#if MIIR_BARE_POINTER_ABI
+            handle.Run(kernels[0])(tensors.w, tensors.in, tensors.out);
+            (void)args;
+#else
             handle.Run(kernels[0])(tensors.w,
                                    tensors.w,
                                    EXPAND_MLIR_CONV_ARGS(args.filter),
@@ -274,6 +342,7 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
                                    tensors.out,
                                    tensors.out,
                                    EXPAND_MLIR_CONV_ARGS(args.output));
+#endif // MIIR_BARE_POINTER_ABI
 #elif MIOPEN_BACKEND_HIP
             SetMlirConvArgsPtr(tensors.in, tensors.out, tensors.w, args);
             handle.Run(kernels[0])(args);
@@ -291,14 +360,14 @@ InvokerFactory MakeMlirFwdInvokerFactory(const ConvolutionContext& ctx)
     };
 }
 
-InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
+InvokerFactory MakeMlirBwdInvokerFactory(const miopen::ProblemDescription& problem)
 {
-    assert(ctx.direction.IsBackwardData());
+    assert(problem.direction.IsBackwardData());
 
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    ComputeMlirDimsStrides(ctx.conv_problem,
+    ComputeMlirDimsStrides(problem.conv_problem,
                            in_dims,
                            in_strides,
                            weights_dims,
@@ -317,6 +386,10 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
 #if MIOPEN_BACKEND_OPENCL
             for(const auto& k : kernels)
             {
+#if MIIR_BARE_POINTER_ABI
+                handle.Run(k)(tensors.w, tensors.out, tensors.in);
+                (void)args;
+#else
                 handle.Run(k)(tensors.w,
                               tensors.w,
                               EXPAND_MLIR_CONV_ARGS(args.filter),
@@ -326,6 +399,7 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
                               tensors.in,
                               tensors.in,
                               EXPAND_MLIR_CONV_ARGS(args.input));
+#endif
                 elapsed += handle.GetKernelTime();
             }
 #elif MIOPEN_BACKEND_HIP
@@ -346,14 +420,15 @@ InvokerFactory MakeMlirBwdInvokerFactory(const ConvolutionContext& ctx)
     };
 }
 
-InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t workspace_req)
+InvokerFactory MakeMlirWrWInvokerFactory(const miopen::ProblemDescription& problem,
+                                         size_t workspace_req)
 {
-    assert((ctx.direction.IsBackwardWrW()));
+    assert((problem.direction.IsBackwardWrW()));
 
     std::vector<size_t> in_dims, in_strides;
     std::vector<size_t> weights_dims, weights_strides;
     std::vector<size_t> out_dims, out_strides;
-    ComputeMlirDimsStrides(ctx.conv_problem,
+    ComputeMlirDimsStrides(problem.conv_problem,
                            in_dims,
                            in_strides,
                            weights_dims,
@@ -385,6 +460,10 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t w
 #if MIOPEN_BACKEND_OPENCL
                 for(const auto& k : kernels)
                 {
+#if MIIR_BARE_POINTER_ABI
+                    handle.Run(k)(tensors.dw, tensors.x, tensors.dy, workspace);
+                    (void)args;
+#else
                     handle.Run(k)(tensors.dw,
                                   tensors.dw,
                                   EXPAND_MLIR_CONV_ARGS(args.filter),
@@ -397,6 +476,7 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t w
                                   workspace,
                                   workspace,
                                   EXPAND_MLIR_CONV_ARGS(args.workspace));
+#endif
                     elapsed += handle.GetKernelTime();
                 }
 #elif MIOPEN_BACKEND_HIP
@@ -413,6 +493,9 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t w
 #if MIOPEN_BACKEND_OPENCL
                 for(const auto& k : kernels)
                 {
+#if MIIR_BARE_POINTER_ABI
+                    handle.Run(k)(tensors.dw, tensors.x, tensors.dy);
+#else
                     handle.Run(k)(tensors.dw,
                                   tensors.dw,
                                   EXPAND_MLIR_CONV_ARGS(args.filter),
@@ -422,6 +505,7 @@ InvokerFactory MakeMlirWrWInvokerFactory(const ConvolutionContext& ctx, size_t w
                                   tensors.dy,
                                   tensors.dy,
                                   EXPAND_MLIR_CONV_ARGS(args.output));
+#endif
                     elapsed += handle.GetKernelTime();
                 }
 #elif MIOPEN_BACKEND_HIP

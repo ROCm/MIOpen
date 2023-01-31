@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,15 +24,12 @@
  *
  *******************************************************************************/
 
-#define MIOPEN
-
 #include <miopen/config.h>
 #include <miopen/convolution.hpp>
 #include <miopen/db.hpp>
 #include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/mlo_internal.hpp>
-#include <miopen/mlo_utils.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/datatype.hpp>
@@ -55,7 +52,7 @@
 // Only select the first applicable igemm solver due to long compilation time
 // (JIRA SWDEV-227826)
 /// \todo enable all applicable solvers of igemm after fixing slow compilation
-#define WORKAROUND_SWDEV_227826 1
+#define WORKAROUND_SWDEV_227826 0
 
 #if WORKAROUND_SWDEV_227826
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
@@ -148,7 +145,12 @@ static auto GetImplicitGemmSolvers()
         miopen::solver::ConvAsmImplicitGemmGTCDynamicBwdXdlops,
         miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC,
         miopen::solver::ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC,
-        miopen::solver::ConvCkIgemmFwdV6r1DlopsNchw>{};
+        miopen::solver::ConvCkIgemmFwdV6r1DlopsNchw,
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+        miopen::solver::ConvHipImplicitGemmFwdXdlops,
+        miopen::solver::ConvHipImplicitGemmBwdXdlops,
+#endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+        miopen::solver::ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>{};
 }
 
 static auto GetWindogradSolvers()
@@ -362,33 +364,35 @@ AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx)
 
 void miopen::ConvolutionContext::SetupFloats()
 {
-    if(IsFp32() || IsFp16() || IsBfp16() || IsInt8())
+    if(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8())
     {
-        general_compile_options += GetDataTypeKernelParams(in_data_type);
+        general_compile_options += GetDataTypeKernelParams(problem.in_data_type);
     }
     else
     {
         MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(in_data_type) << "x"
-                     << miopen::GetDataTypeName(weights_data_type) << "x"
-                     << miopen::GetDataTypeName(out_data_type));
+                     << miopen::GetDataTypeName(problem.in_data_type) << "x"
+                     << miopen::GetDataTypeName(problem.weights_data_type) << "x"
+                     << miopen::GetDataTypeName(problem.out_data_type));
     }
 }
 
 void mlo_construct_activ_lrn_pooling_common::setupFloats()
 {
-    if(_search_params.in_data_type == miopenFloat && _search_params.out_data_type == miopenFloat)
+    if(_search_params.problem.in_data_type == miopenFloat &&
+       _search_params.problem.out_data_type == miopenFloat)
     {
         _search_params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     }
-    else if(_search_params.in_data_type == miopenHalf && _search_params.out_data_type == miopenHalf)
+    else if(_search_params.problem.in_data_type == miopenHalf &&
+            _search_params.problem.out_data_type == miopenHalf)
     {
         _search_params.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
     }
     else
     {
         MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(_search_params.in_data_type) << "x"
-                     << miopen::GetDataTypeName(_search_params.out_data_type));
+                     << miopen::GetDataTypeName(_search_params.problem.in_data_type) << "x"
+                     << miopen::GetDataTypeName(_search_params.problem.out_data_type));
     }
 }

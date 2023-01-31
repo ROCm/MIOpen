@@ -34,6 +34,8 @@
 #include <miopen/each_args.hpp>
 #include <miopen/bfloat16.hpp>
 
+#include "serialize.hpp"
+
 #include <half.hpp>
 #include <iomanip>
 #include <fstream>
@@ -109,7 +111,16 @@ struct tensor
     miopen::TensorDescriptor desc;
     std::vector<T> data;
 
-    tensor() : desc(miopen_type<T>{}, {}) {}
+#if defined(__clang__) || defined(__GNUG__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+    tensor() : desc(miopen_type<T>{}) {}
+
+#if defined(__clang__) || defined(__GNUG__)
+#pragma GCC diagnostic pop
+#endif
 
     template <class X>
     tensor(const std::vector<X>& dims) : desc(miopen_type<T>{}, dims), data(desc.GetElementSpace())
@@ -163,9 +174,9 @@ struct tensor
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
-        assert(rhs.GetType() == miopen_type<T>{} ||
+        assert(desc.GetType() == miopen_type<T>{} ||
                ((miopen_type<T>{} == miopenInt8 || miopen_type<T>{} == miopenInt8x4) &&
-                rhs.GetType() == miopenFloat));
+                (desc.GetType() == miopenFloat || desc.GetType() == miopenInt32)));
         data.resize(desc.GetElementSpace());
     }
 
@@ -387,28 +398,11 @@ tensor<T> make_tensor(std::initializer_list<std::size_t> dims, G g)
     return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}}.generate(g);
 }
 
-// This is needed since there is no TensorDescriptor(miopenDataType_t t, const size_t* plens, int
-// size) constructor
-template <class T>
-tensor<T> make_tensor(const std::vector<std::size_t>& dims)
-{
-    std::vector<int> tmpDims;
-
-    tmpDims.resize(dims.size());
-
-    for(int i = 0; i < tmpDims.size(); i++)
-        tmpDims[i] = static_cast<int>(dims[i]);
-
-    return tensor<T>{miopen::TensorDescriptor{
-        miopen_type<T>{}, tmpDims.data(), static_cast<int>(tmpDims.size())}};
-};
-
 template <class T, class X>
 tensor<T> make_tensor(const std::vector<X>& dims)
 {
     // TODO: Compute float
-    return tensor<T>{
-        miopen::TensorDescriptor{miopen_type<T>{}, dims.data(), static_cast<int>(dims.size())}};
+    return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}};
 }
 
 template <class T, class X, class G>
@@ -519,5 +513,22 @@ void generate_unary_one(F f, std::vector<int> input, G g)
 {
     f(make_tensor<T>(input, g));
 }
+
+struct tensor_elem_gen_integer
+{
+    unsigned long max_value = 17;
+
+    template <class... Ts>
+    double operator()(Ts... Xs) const
+    {
+        static_assert(sizeof...(Ts) < 6,
+                      "Dimensions in tensor_elem_gen_integer must be less than 6.");
+        assert(max_value > 0);
+        std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
+        std::array<unsigned long, 5> right            = {{613, 547, 701, 877, 1049}};
+        unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173ul);
+        return static_cast<double>(dot % max_value);
+    }
+};
 
 #endif

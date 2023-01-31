@@ -67,14 +67,14 @@ inline void LengthReorder(std::vector<int>& lens, const std::initializer_list<in
     lens = std::move(out_lens);
 }
 
-inline int GetTensorVectorLength(miopenTensorDescriptor_t& tensor)
+inline std::size_t GetTensorVectorLength(miopenTensorDescriptor_t& tensor)
 {
-    int vectorLength;
+    std::size_t vectorLength;
 
     int size = 0;
     miopenGetTensorDescriptorSize(tensor, &size);
 
-    if(size == 4)
+    if(size == 4 || size == 5)
     {
         miopenGetNdTensorDescriptorVectorLength(tensor, &vectorLength);
         return vectorLength;

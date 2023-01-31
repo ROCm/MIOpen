@@ -46,6 +46,17 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
        problem.GetMode() != miopenBNSpatial)
         return false;
 
+#if WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR
+    if(problem.GetXDesc().GetType() == miopenHalf &&
+       problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
+    {
+        // bfp16parm = true;
+        // Unsupported kernel mode, error in kernel code
+        // MIOpenBatchNormBwdSpatial.cl:526 issue#1549
+        return false;
+    }
+#endif
+
     return !BnBwdTrainingSpatialSingle{}.IsApplicable(context, problem);
 }
 
@@ -146,12 +157,12 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
                 if(bfp32parm)
                 {
                     xlocalsize = 1024;
-                    xgridsize  = 1024 * c;
+                    xgridsize  = static_cast<size_t>(1024) * c;
                 }
                 else
                 {
                     xlocalsize = 256;
-                    xgridsize  = 256 * c;
+                    xgridsize  = static_cast<size_t>(256) * c;
                 }
                 ldsgcn   = xlocalsize / 64;
                 ldsnogcn = xlocalsize;
@@ -211,6 +222,7 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
             {"MIO_BN_GRP1", ylocalsize},
             {"MIO_BN_GRP2", zlocalsize},
             {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
+            {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
         };
 

@@ -115,20 +115,20 @@ void ADNN_mm_cpu(const Dtype* a_ptr,
                 {
                     mm_e += a_ptr[m * a_stride + n] * b_ptr[m * b_stride + k];
 #if 0
-					if (
-						(n == 0 && k == 33
-						|| n == 1 && k == 32
-						|| n == 3 && k == 1
-						|| n == 4 && k == 0
+                    if (
+                        (n == 0 && k == 33
+                        || n == 1 && k == 32
+                        || n == 3 && k == 1
+                        || n == 4 && k == 0
 
-						)
-						&& a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k] != 0
-						)
-					{
-						printf("C:mm:%d %d %d   %11.9f %11.9f %11.9f %11.9f\n",
-							n, k, m,
-							mm_e, a_ptr[m*a_stride + n], b_ptr[m*b_stride + k], a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k]);
-					}
+                        )
+                        && a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k] != 0
+                        )
+                    {
+                        printf("C:mm:%d %d %d   %11.9f %11.9f %11.9f %11.9f\n",
+                            n, k, m,
+                            mm_e, a_ptr[m*a_stride + n], b_ptr[m*b_stride + k], a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k]);
+                    }
 #endif
                 }
                 c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
@@ -147,10 +147,10 @@ void ADNN_mm_cpu(const Dtype* a_ptr,
                 {
                     mm_e += a_ptr[n * a_stride + m] * b_ptr[k * b_stride + m];
 #if 0
-					if (n == 0 && k == 6 && a_ptr[n*a_stride + m] * b_ptr[k*b_stride + m] != 0)
-					{
-						printf("%4d  %11.9f %11.9f %11.9f\n", m, mm_e, a_ptr[n*a_stride + m], b_ptr[k*b_stride + m]);
-					}
+                    if (n == 0 && k == 6 && a_ptr[n*a_stride + m] * b_ptr[k*b_stride + m] != 0)
+                    {
+                        printf("%4d  %11.9f %11.9f %11.9f\n", m, mm_e, a_ptr[n*a_stride + m], b_ptr[k*b_stride + m]);
+                    }
 #endif
                 }
                 c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
@@ -250,10 +250,10 @@ void ADNN_col2im_cpu(const Dtype* data_col,
                     data_im[(c_im * height + h_pad) * width + w_pad] +=
                         data_col[(c * height_col + h) * width_col + w];
 #if 0
-					if (c_im == 3 && h_pad == 30 && w_pad == 23)
-					{
-						printf("C:c2i: %d %d   %d %d %d %d    %14.12f %14.12f\n", c, h * width_col + w, w, h, w_pad, h_pad, data_im[(c_im * height + h_pad) * width + w_pad], data_col[(c * height_col + h) * width_col + w]);
-					}
+                    if (c_im == 3 && h_pad == 30 && w_pad == 23)
+                    {
+                        printf("C:c2i: %d %d   %d %d %d %d    %14.12f %14.12f\n", c, h * width_col + w, w, h, w_pad, h_pad, data_im[(c_im * height + h_pad) * width + w_pad], data_col[(c * height_col + h) * width_col + w]);
+                    }
 #endif
                 }
             }
@@ -340,14 +340,14 @@ int mloConvForwarDirectOnHost(
 
                                 accum += data_val * wei_val;
 #if 0
-								if (b == 0 && o == 0 && j == 1 && i == 0)
-								{
-									printf("c: %f %f %f\n",
-										accum/* + bias_ptr[o]*/,
-										data_val,
-										wei_val
-										);
-								}
+                                if (b == 0 && o == 0 && j == 1 && i == 0)
+                                {
+                                    printf("c: %f %f %f\n",
+                                        accum/* + bias_ptr[o]*/,
+                                        data_val,
+                                        wei_val
+                                        );
+                                }
 #endif
                             }
                         }
@@ -518,20 +518,20 @@ int mloBackwardDirectOnHost(
                                     run_bot_ptr[bot_data_off] += data_val * wei_val;
 
 #if 0
-									if (b == 0 && o == 0 && bot_y == 0 && bot_x == 0)
-									{
-										printf("c: %d %d %d %d %d %d  %f %f %f\n",
-											bot_data_off,
-											k_j,
-											k_i,
-											j,
-											i,
-											out_data_off,
-											run_bot_ptr[bot_data_off],
-											data_val,
-											wei_val
-										);
-									}
+                                    if (b == 0 && o == 0 && bot_y == 0 && bot_x == 0)
+                                    {
+                                        printf("c: %d %d %d %d %d %d  %f %f %f\n",
+                                            bot_data_off,
+                                            k_j,
+                                            k_i,
+                                            j,
+                                            i,
+                                            out_data_off,
+                                            run_bot_ptr[bot_data_off],
+                                            data_val,
+                                            wei_val
+                                        );
+                                    }
 #endif
                                 }
                             }
@@ -842,14 +842,14 @@ int mloDirectSPConvHost5x5(int MLO_GRP_SZ1,
                                                               k_i + l] *
                                                     wei_stage[k_i];
 #if 0
-												if (o_i == 1 && l1 == 0 && l0 == 0 && g0==0 && g1==0 && g2==0)
-												{
-													printf("ek: %f %f %f\n",
-														out_tiles[o_i * MLO_OUT_TILE1 * MLO_OUT_TILE0 + m*MLO_OUT_TILE0 + l],
-														bot_stage[m * (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1) + k_i + l],
-														wei_stage[k_i]
-														);
-												}
+                                                if (o_i == 1 && l1 == 0 && l0 == 0 && g0==0 && g1==0 && g2==0)
+                                                {
+                                                    printf("ek: %f %f %f\n",
+                                                        out_tiles[o_i * MLO_OUT_TILE1 * MLO_OUT_TILE0 + m*MLO_OUT_TILE0 + l],
+                                                        bot_stage[m * (MLO_OUT_TILE0 + MLO_FILTER_SIZE1 - 1) + k_i + l],
+                                                        wei_stage[k_i]
+                                                        );
+                                                }
 #endif
                                             }
                                         }
@@ -1040,18 +1040,18 @@ bool mloVerify(const miopenTensorDescriptor_t& cpu_,
     const auto& cpu = miopen::deref(cpu_);
     const auto& gpu = miopen::deref(gpu_);
 
-    int spatial_dim = cpu.GetSize();
+    const auto spatial_dim = cpu.GetLengths().size() - 2;
 
     int n_batchs, n_channels, depth, height, width;
     int c_batch_stride, c_channel_stride, c_depth_stride, c_height_stride, c_width_stride;
     int g_batch_stride, g_channel_stride, g_depth_stride, g_height_stride, g_width_stride;
 
     std::tie(n_batchs, n_channels, depth, height, width) =
-        miopen::GetNCDHW(cpu.GetSize(), cpu.GetLengths());
+        miopen::GetNCDHW(spatial_dim, cpu.GetLengths());
     std::tie(c_batch_stride, c_channel_stride, c_depth_stride, c_height_stride, c_width_stride) =
-        miopen::GetNCDHW(cpu.GetSize(), cpu.GetStrides());
+        miopen::GetNCDHW(spatial_dim, cpu.GetStrides());
     std::tie(g_batch_stride, g_channel_stride, g_depth_stride, g_height_stride, g_width_stride) =
-        miopen::GetNCDHW(gpu.GetSize(), gpu.GetStrides());
+        miopen::GetNCDHW(spatial_dim, gpu.GetStrides());
 
     Tcheck_ sqr_accum = static_cast<Tcheck_>(0);
     Tcheck_ c_val_err = static_cast<Tcheck_>(0);

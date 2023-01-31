@@ -38,16 +38,18 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 namespace miopen {
 
-int MDGraph_vertex::running_id = 1; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+// Warning: We must guarantee that reading and incrementing of
+// running_id happens atomically.
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+std::atomic<int> MDGraph_vertex::running_id{0};
 
 MDGraph_vertex::MDGraph_vertex(miopenFusionOp_t o,
                                std::string program_name,
                                std::string kernel_name,
                                std::string algo_name,
                                bool _is_leaf)
-    : op(o), is_leaf(_is_leaf), id(MDGraph_vertex::running_id)
+    : op(o), is_leaf(_is_leaf), id(++MDGraph_vertex::running_id)
 {
-    MDGraph_vertex::running_id++;
     vertex_data["program"]   = program_name;
     vertex_data["kernel"]    = kernel_name;
     vertex_data["algorithm"] = algo_name;
@@ -1191,6 +1193,11 @@ void FusionMDGraph::Reset()
     cur_vertex.emplace_back(nullptr, empty_map);
 }
 
+#ifdef CPPCHECK
+// There are false positives with MIOPEN_ENUM_ARR.
+// See comment near WORKAROUND_ISSUE_PP_TRANSFORM_ARGS in logger.
+void FusionMDGraph::WriteToFile(std::string filename) { (void)filename; }
+#else
 // guard for debug only
 #define MIOPEN_ENUM_STR(x) std::pair<decltype(x), std::string>(x, #x)
 #define MIOPEN_ENUM_ARR(...) make_array(MIOPEN_PP_TRANSFORM_ARGS(MIOPEN_ENUM_STR, __VA_ARGS__))
@@ -1300,5 +1307,6 @@ void FusionMDGraph::WriteToFile(std::string filename)
     dot_graph << "}" << std::endl;
     dot_file << dot_graph.str();
 }
+#endif
 
 } // namespace miopen

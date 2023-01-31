@@ -432,7 +432,8 @@ private:
 template <typename Tgpu, typename Tref>
 bool ConvDriver<Tgpu, Tref>::IsInputTensorTransform() const
 {
-    return (data_type == miopenInt8 && inflags.GetValueInt("in_channels") % 4 != 0) ||
+    return (inflags.GetValueInt("tensor_vect") == 1 && data_type == miopenInt8 &&
+            inflags.GetValueInt("in_channels") % 4 != 0) ||
            data_type == miopenInt8x4;
 }
 
@@ -1274,9 +1275,18 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             new GPUMem(ctx, GetTensorSize(weightTensor_vect4), sizeof(Tgpu)));
     }
 
-    outhost   = tensor<Tref>(miopen::deref(outputTensor));
-    din_host  = tensor<Tref>(miopen::deref(inputTensor));
-    dwei_host = tensor<Tref>(miopen::deref(weightTensor));
+    outhost   = tensor<Tref>(miopen_type<Tref>{},
+                           miopen::deref(outputTensor).GetLayout_t(),
+                           miopen::deref(outputTensor).GetLengths(),
+                           miopen::deref(outputTensor).GetStrides());
+    din_host  = tensor<Tref>(miopen_type<Tref>{},
+                            miopen::deref(inputTensor).GetLayout_t(),
+                            miopen::deref(inputTensor).GetLengths(),
+                            miopen::deref(inputTensor).GetStrides());
+    dwei_host = tensor<Tref>(miopen_type<Tref>{},
+                             miopen::deref(weightTensor).GetLayout_t(),
+                             miopen::deref(weightTensor).GetLengths(),
+                             miopen::deref(weightTensor).GetStrides());
 
     std::string inFileName   = inflags.GetValueStr("in_data");
     std::string weiFileName  = inflags.GetValueStr("weights");
@@ -2165,7 +2175,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
     auto ref_solution_id = miopen::deref(convDesc).mode == miopenTranspose
                                ? miopen::solver::Id("ConvDirectNaiveConvBwd").Value()
                                : miopen::solver::Id("ConvDirectNaiveConvFwd").Value();
-    auto rc = miopenConvolutionForwardImmediate(handle,
+    auto rc              = miopenConvolutionForwardImmediate(handle,
                                                 weightTensor,
                                                 wei_dev->GetMem(),
                                                 inputTensor,
@@ -2183,7 +2193,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
         return rc;
     }
 
-    if(miopen_type<Tgpu>{} == miopen_type<Tref>{})
+    if(miopen_type<Tgpu>{} == miopen_type<Tref>{} || miopen_type<Tgpu>{} == miopenInt8 ||
+       miopen_type<Tgpu>{} == miopenInt8x4)
         out_dev->FromGPU(GetStream(), outhost.data.data());
     else
     {
@@ -3129,7 +3140,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
     auto ref_solution_id = miopen::deref(convDesc).mode == miopenTranspose
                                ? miopen::solver::Id("ConvDirectNaiveConvFwd").Value()
                                : miopen::solver::Id("ConvDirectNaiveConvBwd").Value();
-    auto rc = miopenConvolutionBackwardDataImmediate(handle,
+    auto rc              = miopenConvolutionBackwardDataImmediate(handle,
                                                      outputTensor,
                                                      dout_dev->GetMem(),
                                                      weightTensor,
@@ -3306,8 +3317,8 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
 
     const auto isInt8 = (data_type == miopenInt8 || data_type == miopenInt8x4);
     auto error        = is_fwd_run_failed ? std::numeric_limits<double>::max()
-                                   : (isInt8 ? miopen::rms_range(outhost.data, out_int8)
-                                             : miopen::rms_range(outhost.data, out.data));
+                                          : (isInt8 ? miopen::rms_range(outhost.data, out_int8)
+                                                    : miopen::rms_range(outhost.data, out.data));
 
     auto tolerance = GetDefaultTolerance();
     // iGemm's deviation is higher than other algorithms.

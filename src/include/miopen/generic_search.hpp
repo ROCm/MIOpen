@@ -36,6 +36,7 @@
 #include <miopen/invoke_params.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/timer.hpp>
+#include <miopen/type_traits.hpp>
 
 #include <vector>
 #include <cstdlib>
@@ -261,30 +262,6 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
 /// ------------------------------------------------
 /// clang-format-on
 
-// This is to detect new solvers attempting to use obsolete functionality
-namespace detail {
-template <typename...>
-using void_t = void;
-
-template <class Default, class AlwaysVoid, template <class...> class Op, class... Args>
-struct detector
-{
-    using value_t = std::false_type;
-    using type    = Default;
-};
-
-template <class Default, template <class...> class Op, class... Args>
-struct detector<Default, void_t<Op<Args...>>, Op, Args...>
-{
-    using value_t = std::true_type;
-    using type    = Op<Args...>;
-};
-
-} // namespace detail
-
-template <template <class...> class Op, class... Args>
-using is_detected = typename detail::detector<void, void, Op, Args...>::value_t;
-
 template <class Solver, class Top, class Bottom>
 using RunAndMeasure_t =
     decltype(std::declval<Solver>().RunAndMeasureSolution(std::declval<miopen::Handle&>(),
@@ -297,12 +274,59 @@ using RunAndMeasure_t =
                                                           std::declval<float&>()));
 
 template <class Solver, class Context>
+auto GetAllConfigs(const Solver s, const Context& context)
+    -> ComputedContainer<decltype(s.GetDefaultPerformanceConfig(context)), Context>
+{
+    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
+
+    ComputedContainer<PerformanceConfig, Context> primary(context);
+    const int primary_size = std::distance(primary.begin(), primary.end());
+    ComputedContainer<PerformanceConfig, Context> spare(context, true);
+    const int spare_size = std::distance(spare.begin(), spare.end());
+    const bool useSpare  = (primary_size == 0);
+
+    ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : primary;
+    const int n_runs_total = useSpare ? spare_size : primary_size;
+    MIOPEN_LOG_W(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
+                                << (useSpare ? " (spare)" : "") << "...");
+
+    return all_configs;
+}
+
+template <class Solver, class Context>
+std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context_)
+{
+    auto context                  = context_;
+    context.is_for_generic_search = true;
+
+    auto all_configs = GetAllConfigs(s, context);
+
+    std::vector<ConvSolution> solutions;
+    for(const auto& current_config : all_configs)
+    {
+        ConvSolution current_solution = s.GetSolution(context, current_config);
+        solutions.push_back(current_solution);
+    }
+    return solutions;
+}
+
+template <class Solver, class Context, class Problem>
+auto GenericSearch(const Solver s,
+                   const Context& ctx,
+                   const Problem& problem,
+                   const AnyInvokeParams& invoke_ctx)
+{
+    std::ignore = problem;
+    return GenericSearch(s, ctx, invoke_ctx);
+}
+
+template <class Solver, class Context>
 auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
     -> decltype(s.GetDefaultPerformanceConfig(context_))
 {
     static_assert(
-        !(is_detected<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
-          is_detected<RunAndMeasure_t, Solver, Data_t, ConstData_t>{}),
+        !(HasMember<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
+          HasMember<RunAndMeasure_t, Solver, Data_t, ConstData_t>{}),
         "RunAndMeasure is obsolete. Solvers should implement auto-tune evaluation in invoker");
 
     auto context                  = context_;
@@ -320,16 +344,8 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     auto& profile_h = context.GetStream();
     AutoEnableProfiling enableProfiling{profile_h};
 
-    const ComputedContainer<PerformanceConfig, Context> main(context);
-    const int main_size = std::distance(main.begin(), main.end());
-    const ComputedContainer<PerformanceConfig, Context> spare(context, true);
-    const int spare_size = std::distance(spare.begin(), spare.end());
-    const bool useSpare  = (main_size == 0);
-
-    const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
-    const int n_runs_total = useSpare ? spare_size : main_size;
-    MIOPEN_LOG_W(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
-                                << (useSpare ? " (spare)" : "") << "...");
+    auto all_configs       = GetAllConfigs(s, context);
+    const int n_runs_total = std::distance(all_configs.begin(), all_configs.end());
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();

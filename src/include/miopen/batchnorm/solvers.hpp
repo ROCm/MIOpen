@@ -30,6 +30,10 @@
 
 #include <utility>
 
+/// W/A for build error for OCL BN kernels when datatype is FP16 and MIO_BN_VARIANT=1. See:
+/// https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1549#issuecomment-1152644636
+#define WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR 1
+
 namespace miopen {
 
 namespace batchnorm {
@@ -43,185 +47,114 @@ namespace batchnorm {
 using OldStyleProblemDescription =
     std::tuple<const ExecutionContext*, const miopen::batchnorm::ProblemDescription*>;
 
-using OldStyleSolver = SolverMixin<OldStyleProblemDescription>;
-
-struct BnFwdTrainingSpatialSingle final : OldStyleSolver
+struct BatchnormSolver : SolverMixin<OldStyleProblemDescription>
 {
     // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
+    using SolverMixin::IsApplicable;
 
+    bool IsApplicable(const OldStyleProblemDescription& problem) const final
+    {
+        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    {
+        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+    }
+
+    virtual bool IsApplicable(const ExecutionContext& context,
+                              const miopen::batchnorm::ProblemDescription& problem) const = 0;
+    virtual ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::batchnorm::ProblemDescription& problem) const = 0;
+};
+
+struct BnFwdTrainingSpatialSingle final : BatchnormSolver
+{
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<BnFwdTrainingSpatialSingle>();
     }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
-    {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
-    {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const;
+                      const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
-struct BnFwdTrainingSpatialMultiple final : OldStyleSolver
+struct BnFwdTrainingSpatialMultiple final : BatchnormSolver
 {
-    // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<BnFwdTrainingSpatialMultiple>();
     }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
-    {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
-    {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const;
+                      const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
-struct BnFwdTrainingPerActivation final : OldStyleSolver
+struct BnFwdTrainingPerActivation final : BatchnormSolver
 {
-    // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<BnFwdTrainingPerActivation>();
     }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
-    {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
-    {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const;
+                      const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
-struct BnBwdTrainingSpatialSingle final : OldStyleSolver
+struct BnBwdTrainingSpatialSingle final : BatchnormSolver
 {
-    // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<BnBwdTrainingSpatialSingle>();
     }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
-    {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
-    {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const;
+                      const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
-struct BnBwdTrainingSpatialMultiple final : OldStyleSolver
+struct BnBwdTrainingSpatialMultiple final : BatchnormSolver
 {
-    // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<BnBwdTrainingSpatialMultiple>();
     }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
-    {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
-    {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const;
+                      const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
-struct BnBwdTrainingPerActivation final : OldStyleSolver
+struct BnBwdTrainingPerActivation final : BatchnormSolver
 {
-    // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<BnBwdTrainingPerActivation>();
     }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
-    {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
-    {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const;
+                      const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
-struct BnFwdInference final : OldStyleSolver
+struct BnFwdInference final : BatchnormSolver
 {
-    // To suppress -Woverloaded-virtual
-    using OldStyleSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<BnFwdInference>(); }
 
-    bool IsApplicable(const OldStyleProblemDescription& problem) const override
-    {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
-    inline ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
-    {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
-    }
-
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const;
+                      const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const;
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
 } // namespace batchnorm

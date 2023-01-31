@@ -234,7 +234,7 @@ void RNNFwdTrainCPUVerify(miopen::Handle& handle,
             if(use_dropout)
             {
                 auto dropout_states_tmp = dropout_states_host;
-                size_t drop_out_offset  = (li - 1) * batch_n * hy_h * bi;
+                size_t drop_out_offset  = (li - 1ULL) * batch_n * hy_h * bi;
 
                 DropoutForwardVerify<T>(handle,
                                         dropoutDesc,
@@ -1456,11 +1456,11 @@ struct verify_forward_infer_rnn
         hlens[0] = nLayers * ((dirMode != 0) ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
-        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens.data(), 3);
+        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens);
 
         std::vector<int> wlen(1, 0);
         wlen[0] = weights.size();
-        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen.data(), 1);
+        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen);
 
         miopenRNNForwardInference(&handle,
                                   rnnDesc,
@@ -1733,11 +1733,11 @@ struct verify_forward_train_rnn
         hlens[0] = nLayers * ((dirMode != 0) ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
-        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens.data(), 3);
+        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens);
 
         std::vector<int> wlen(1, 0);
         wlen[0] = weights.size();
-        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen.data(), 1);
+        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen);
 
         miopenRNNForwardTraining(&handle,
                                  rnnDesc,
@@ -2017,11 +2017,11 @@ struct verify_backward_data_rnn
         hlens[0] = nLayers * ((dirMode != 0) ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
-        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens.data(), 3);
+        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens);
 
         std::vector<int> wlen(1, 0);
         wlen[0] = weights.size();
-        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen.data(), 1);
+        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen);
 
         size_t in_sz = 0;
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, inputDescs.data(), &in_sz);
@@ -2261,13 +2261,13 @@ struct verify_backward_weights_rnn
         auto reserveSpace_dev = handle.Write(reserveSpace);
         std::vector<T> dweights(weightSize);
         auto dweights_dev = handle.Write(dweights);
-        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, &weightSize, 1);
+        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, {weightSize});
 
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * ((dirMode != 0) ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
-        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens.data(), 3);
+        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens);
         // auto hx_dev    = handle.Write(initHidden);
         auto dy_dev    = handle.Write(dy);
         auto input_dev = handle.Write(input);
@@ -2464,7 +2464,7 @@ struct rnn_basic_vanilla_driver : test_driver
         // Create input tensor
         // If we are in skip mode, take the real input size to be the vector length.
         auto inVecReal    = (inputMode != 0) ? hiddenSize : inVecLen;
-        std::size_t in_sz = inVecReal * batch_n;
+        std::size_t in_sz = static_cast<std::size_t>(inVecReal) * batch_n;
         std::vector<T> input(in_sz);
         srand(0);
         for(std::size_t i = 0; i < in_sz; i++)
@@ -2472,7 +2472,7 @@ struct rnn_basic_vanilla_driver : test_driver
             input[i] = /*(((GET_RAND()%2)==1)?-1:1)**/ 0.001 * float(GET_RAND() % 100);
         }
 
-        std::size_t hx_sz = ((dirMode != 0) ? 2 : 1) * hiddenSize * batchSize * numLayers;
+        std::size_t hx_sz = ((dirMode != 0) ? 2ULL : 1ULL) * hiddenSize * batchSize * numLayers;
         std::vector<T> hx;
         if(!nohx)
             hx.resize(hx_sz);
@@ -2483,10 +2483,9 @@ struct rnn_basic_vanilla_driver : test_driver
 
         size_t wei_bytes = 0;
         std::vector<int> inlens(2, 0);
-        inlens.at(0) = batchSeq.at(0);
-        inlens.at(1) = inVecReal;
-        auto firstInputDesc =
-            miopen::TensorDescriptor(miopen::deref(rnnDesc).dataType, inlens.data(), 2);
+        inlens.at(0)        = batchSeq.at(0);
+        inlens.at(1)        = inVecReal;
+        auto firstInputDesc = miopen::TensorDescriptor(miopen::deref(rnnDesc).dataType, inlens);
         miopenGetRNNParamsSize(
             &handle, rnnDesc, &firstInputDesc, &wei_bytes, miopen::deref(rnnDesc).dataType);
         auto wei_sz = int(wei_bytes / sizeof(T));

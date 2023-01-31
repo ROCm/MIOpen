@@ -47,6 +47,17 @@ bool BnBwdTrainingSpatialSingle::IsApplicable(
        problem.GetMode() != miopenBNSpatial)
         return false;
 
+#if WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR
+    if(problem.GetXDesc().GetType() == miopenHalf &&
+       problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
+    {
+        // bfp16parm = true;
+        // Unsupported kernel mode, error in kernel code
+        // MIOpenBatchNormBwdSpatial.cl:526 issue#1549
+        return false;
+    }
+#endif
+
     if(problem.IsLayoutNHWC())
         return true;
 
@@ -156,7 +167,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             {
                 variant    = 0;
                 xlocalsize = 1024;
-                xgridsize  = 1024 * c;
+                xgridsize  = static_cast<size_t>(1024) * c;
                 ldsgcn     = xlocalsize / wavesize;
                 ldsnogcn   = xlocalsize;
             }
@@ -247,6 +258,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             kernel.kernel_name = "MIOpenBatchNormBwdSpatial";
 
             build_params << KernelBuildParameters{
+                {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
                 {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
             };
 

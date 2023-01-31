@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  *
  * MIT License
  *
@@ -189,13 +189,24 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
     MIOPEN_LOG_NQI(*this);
 }
 
+static bool PrintOpenCLDeprecateMsg()
+{
+    MIOPEN_LOG_W("Please note that the OpenCL backend to MIOpen is being deprecated, ");
+    MIOPEN_LOG_W(
+        "please port your application to the better supported and functional HIP backend. ");
+    MIOPEN_LOG_W("If you have any questions, please reach out to the MIOpen developers at ");
+    MIOPEN_LOG_W("https://github.com/ROCmSoftwarePlatform/MIOpen");
+    return true;
+}
+
 Handle::Handle() : impl(new HandleImpl())
 {
     /////////////////////////////////////////////////////////////////
     // Create an OpenCL context
     /////////////////////////////////////////////////////////////////
-
-    impl->context = impl->create_context();
+    static const auto run_once = PrintOpenCLDeprecateMsg();
+    std::ignore                = run_once;
+    impl->context              = impl->create_context();
     /* First, get the size of device list data */
     cl_uint deviceListSize;
     if(clGetContextInfo(impl->context.get(),
@@ -241,18 +252,18 @@ Handle::Handle() : impl(new HandleImpl())
     // Create an OpenCL command queue
     /////////////////////////////////////////////////////////////////
     cl_int status = 0;
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-    impl->queue = HandleImpl::AqPtr{clCreateCommandQueue(
+#ifdef CL_VERSION_2_0
+    const cl_queue_properties cq_props[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
+
+    impl->queue = HandleImpl::AqPtr{
+        clCreateCommandQueueWithProperties(impl->context.get(), impl->device, cq_props, &status)};
+#else
+    impl->queue  = HandleImpl::AqPtr{clCreateCommandQueue(
         impl->context.get(), impl->device, CL_QUEUE_PROFILING_ENABLE, &status)};
-#ifdef __clang__
-#pragma clang diagnostic pop
 #endif
     if(status != CL_SUCCESS)
     {
-        MIOPEN_THROW("Creating Command Queue. (clCreateCommandQueue)");
+        MIOPEN_THROW("Error creating command queue");
     }
     this->SetAllocator(nullptr, nullptr, nullptr);
     this->impl->target_properties.Init(this);
@@ -526,10 +537,15 @@ Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t s
 
 void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz) const
 {
+    ReadTo(data, ddata.get(), sz);
+}
+
+void Handle::ReadTo(void* data, ConstData_t ddata, std::size_t sz) const
+{
     MIOPEN_HANDLE_LOCK
     this->Finish();
-    auto status = clEnqueueReadBuffer(
-        this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
+    auto status =
+        clEnqueueReadBuffer(this->GetStream(), ddata, CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if(status != CL_SUCCESS)
     {
         MIOPEN_THROW_CL_STATUS(status, "OpenCL error reading from buffer: " + std::to_string(sz));

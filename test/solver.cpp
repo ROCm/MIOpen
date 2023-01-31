@@ -51,7 +51,7 @@ public:
 
     bool IsApplicable(const ConvolutionContext& context) const override
     {
-        return context.in_width == 1;
+        return context.problem.in_width == 1;
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&) const
@@ -67,7 +67,7 @@ public:
     }
 };
 
-struct TestConfig : solver::Serializable<TestConfig>
+struct TestConfig : solver::PerfConfigBase<TestConfig>
 {
     std::string str;
 
@@ -143,6 +143,18 @@ static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const st
     return solvers.SearchForAllSolutions(ctx, db, {}, 1).front();
 }
 
+template <class TInstance>
+class StaticContainer
+{
+public:
+    inline static TInstance& Instance()
+    {
+        // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+        static TInstance data{};
+        return data;
+    }
+};
+
 class SolverTest
 {
 public:
@@ -150,21 +162,21 @@ public:
     {
         const TempFile db_path("miopen.tests.solver");
 
-        ConstructTest(db_path, TrivialTestSolver::FileName(), {0, 0, 0, 1});
+        ConstructTest(db_path, TrivialTestSolver::FileName(), {1, 1, 1, 1});
 
         ConstructTest(db_path,
                       TrivialTestSolver::FileName(),
-                      {0, 0, 0, 1},
+                      {1, 1, 1, 1},
                       [](ConvolutionContext& c) { c.do_search = true; });
 
         ConstructTest(db_path,
                       SearchableTestSolver::NoSearchFileName(),
-                      {0, 0, 0, 0},
+                      {1, 1, 1, 2},
                       [](ConvolutionContext& c) { c.do_search = false; });
 
         ConstructTest(db_path,
                       SearchableTestSolver::FileName(),
-                      {0, 0, 0, 0},
+                      {1, 1, 1, 2},
                       [](ConvolutionContext& c) { c.do_search = true; });
 
         const auto& searchable_solver = StaticContainer<const SearchableTestSolver>::Instance();
@@ -172,11 +184,11 @@ public:
 
         // Should read in both cases: result is already in DB, solver is searchable.
         ConstructTest(
-            db_path, SearchableTestSolver::FileName(), {0, 0, 0, 0}, [](ConvolutionContext&) {});
+            db_path, SearchableTestSolver::FileName(), {1, 1, 1, 2}, [](ConvolutionContext&) {});
 
         ConstructTest(db_path,
                       SearchableTestSolver::FileName(),
-                      {0, 0, 0, 0},
+                      {1, 1, 1, 2},
                       [](ConvolutionContext& c) { c.do_search = true; });
 
         // Checking no more searches were done.
