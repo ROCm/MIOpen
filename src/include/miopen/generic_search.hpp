@@ -262,9 +262,9 @@ auto GetAllConfigs(const Solver s, const Context& context)
 {
     using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
 
-    ComputedContainer<PerformanceConfig, Context> primary(context);
+    const ComputedContainer<PerformanceConfig, Context> primary(context);
     const int primary_size = std::distance(primary.begin(), primary.end());
-    ComputedContainer<PerformanceConfig, Context> spare(context, true);
+    const ComputedContainer<PerformanceConfig, Context> spare(context, true);
     const int spare_size = std::distance(spare.begin(), spare.end());
     const bool useSpare  = (primary_size == 0);
 
@@ -327,7 +327,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     }();
 
     auto& profile_h = context.GetStream();
-    AutoEnableProfiling enableProfiling{profile_h};
+    const AutoEnableProfiling enableProfiling{profile_h};
 
     auto all_configs = GetAllConfigs(s, context);
     const std::size_t n_runs_total =
@@ -349,7 +349,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         {
             if(n_current >= n_runs_total)
                 break;
-            ConvSolution current_solution = s.GetSolution(context, current_config);
+            const ConvSolution current_solution = s.GetSolution(context, current_config);
             for(auto&& kernel : current_solution.construction_params)
             {
                 if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))

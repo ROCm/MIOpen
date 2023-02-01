@@ -81,6 +81,7 @@ bool PerformanceConfigAsmDirect3x3WrW::SetNextValue(const ConvolutionContext& /*
             break;
         reverse_inout = 0;
         // (8 == chunk_size || 16 == chunk_size)
+        // NOLINTNEXTLINE (bugprone-assignment-in-if-condition)
         if((chunk_size += 8) <= 16)
             break;
         chunk_size = 8;

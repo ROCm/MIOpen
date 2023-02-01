@@ -241,7 +241,7 @@ struct TensorDescriptor : miopenTensorDescriptor
         }
         else
         {
-            std::string base_label = labels.substr(0, labels.size() - 1);
+            const std::string base_label = labels.substr(0, labels.size() - 1);
             if(base_label.size() != strides.size())
             {
                 MIOPEN_THROW(

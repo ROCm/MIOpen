@@ -161,7 +161,7 @@ struct ExecutionContext
     std::string GetPerfDbPathFile() const
     {
         static const auto result = [&] {
-            boost::filesystem::path pdb_path(GetSystemDbPath());
+            const boost::filesystem::path pdb_path(GetSystemDbPath());
             std::ostringstream filename;
             // clang-format off
         filename << GetStream().GetDbBasename();
@@ -254,7 +254,7 @@ struct ExecutionContext
 	const auto& udb = GetUserDbPath();
 	if(udb.empty())
 		return "";
-        boost::filesystem::path pdb_path(udb);
+        const boost::filesystem::path pdb_path(udb);
         std::ostringstream filename;
         filename << GetStream().GetDbBasename();
 #if MIOPEN_ENABLE_SQLITE
