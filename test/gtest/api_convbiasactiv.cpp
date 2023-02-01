@@ -32,7 +32,6 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 
-
 struct CBATestCase
 {
     size_t N;
@@ -170,26 +169,13 @@ TEST_P(ConvBiasActivFwdTest, DriveAPI)
     EXPECT_EQ(status, miopenStatusSuccess);
 }
 
-
-std::vector<CBATestCase> GetTestValues(){
+std::vector<CBATestCase> GetTestValues()
+{
 
     std::vector<CBATestCase> ret;
     if(get_handle().GetDeviceName() != "gfx1100")
-        ret.push_back(CBATestCase{16,
-                                                                      128,
-                                                                      16,
-                                                                      16,
-                                                                      128,
-                                                                      3,
-                                                                      3,
-                                                                      0,
-                                                                      0,
-                                                                      1,
-                                                                      1,
-                                                                      1,
-                                                                      1,
-                                                                      miopenActivationRELU,
-                                                                      miopenConvolution});
+        ret.push_back(CBATestCase{
+            16, 128, 16, 16, 128, 3, 3, 0, 0, 1, 1, 1, 1, miopenActivationRELU, miopenConvolution});
     return ret;
 }
 INSTANTIATE_TEST_SUITE_P(CBAFwdAPITest,
