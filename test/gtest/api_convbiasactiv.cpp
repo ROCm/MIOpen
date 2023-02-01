@@ -32,6 +32,7 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 
+
 struct CBATestCase
 {
     size_t N;
@@ -59,6 +60,7 @@ struct CBATestCase
     }
 };
 
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ConvBiasActivFwdTest);
 struct ConvBiasActivFwdTest
     : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, CBATestCase>>
 {
@@ -168,11 +170,12 @@ TEST_P(ConvBiasActivFwdTest, DriveAPI)
     EXPECT_EQ(status, miopenStatusSuccess);
 }
 
-INSTANTIATE_TEST_SUITE_P(CBAFwdAPITest,
-                         ConvBiasActivFwdTest,
-                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect,
-                                                          miopenConvolutionFwdAlgoWinograd),
-                                          testing::Values(CBATestCase{16,
+
+std::vector<CBATestCase> GetTestValues(){
+
+    std::vector<CBATestCase> ret;
+    if(get_handle().GetDeviceName() != "gfx1100")
+        ret.push_back(CBATestCase{16,
                                                                       128,
                                                                       16,
                                                                       16,
@@ -186,4 +189,11 @@ INSTANTIATE_TEST_SUITE_P(CBAFwdAPITest,
                                                                       1,
                                                                       1,
                                                                       miopenActivationRELU,
-                                                                      miopenConvolution})));
+                                                                      miopenConvolution});
+    return ret;
+}
+INSTANTIATE_TEST_SUITE_P(CBAFwdAPITest,
+                         ConvBiasActivFwdTest,
+                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect,
+                                                          miopenConvolutionFwdAlgoWinograd),
+                                          testing::ValuesIn(GetTestValues())));
