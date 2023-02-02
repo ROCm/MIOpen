@@ -118,10 +118,10 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
 
     const auto conv_ctx = context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
 
-    const auto n_groups = conv_ctx.GetStream().GetMaxHardwareComputeUnits();
-    const auto name     = conv_ctx.GetStream().GetDeviceName();
-    const auto is_gfx9  = StartsWith(name, "gfx9");
-    size_t wg_size      = is_gfx9 ? 512 : 256;
+    const int n_groups = conv_ctx.GetStream().GetMaxHardwareComputeUnits();
+    const auto name    = conv_ctx.GetStream().GetDeviceName();
+    const auto is_gfx9 = StartsWith(name, "gfx9");
+    size_t wg_size     = is_gfx9 ? 512 : 256;
     kernel.g_wk.push_back(wg_size * n_groups);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
