@@ -195,7 +195,7 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
         std::vector<int> sfm_size(4, 1);
         sfm_size[0]   = max_time_step * batch_size;
         sfm_size[1]   = class_sz;
-        auto sfm_desc = miopen::TensorDescriptor(probsDesc.GetType(), sfm_size.data(), 4);
+        auto sfm_desc = miopen::TensorDescriptor(probsDesc.GetType(), sfm_size);
 
         float alpha = 1;
         float beta  = 0;

@@ -112,6 +112,7 @@ set( MIOpen_Source
     find_db.cpp
     fused_api.cpp
     fusion.cpp
+    generic_search.cpp
     handle_api.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
@@ -120,8 +121,6 @@ set( MIOpen_Source
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
-    md_graph.cpp
-    mdg_expr.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -143,14 +142,17 @@ set( MIOpen_Source
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
     solver/batchnorm/backward_per_activation.cpp
+    solver/batchnorm/backward_per_activation_fused.cpp
     solver/batchnorm/backward_spatial_multiple.cpp
     solver/batchnorm/backward_spatial_single.cpp
     solver/batchnorm/forward_inference.cpp
+    solver/batchnorm/forward_inference_fused.cpp
     solver/batchnorm/forward_per_activation.cpp
+    solver/batchnorm/forward_per_activation_fused.cpp
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
     solver/conv_asm_1x1u.cpp
-    solver/conv_asm_1x1u_bias_activ.cpp
+    solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_asm_1x1u_stride2.cpp
     solver/conv_asm_3x3u.cpp
     solver/conv_asm_5x10u2v2b1.cpp
@@ -171,11 +173,13 @@ set( MIOpen_Source
     solver/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
     solver/conv_bin_wino3x3U.cpp
     solver/conv_bin_winoRxS.cpp
+    solver/conv_bin_winoRxS_fused.cpp
     solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
     solver/conv_direct_naive_conv.cpp
     solver/conv_direct_naive_conv_bwd.cpp
     solver/conv_direct_naive_conv_fwd.cpp
     solver/conv_direct_naive_conv_wrw.cpp
+    solver/conv_hip_implicit_gemm_bwd_data_xdlops.cpp
     solver/conv_hip_implicit_gemm_bwd_v1r1.cpp
     solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
     solver/conv_hip_implicit_gemm_bwd_v4r1.cpp
@@ -203,10 +207,12 @@ set( MIOpen_Source
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D11x11.cpp
     solver/conv_ocl_dir2Dfwd.cpp
+    solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
     solver/conv_winoRxS.cpp
+    solver/conv_winoRxS_fused.cpp
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp

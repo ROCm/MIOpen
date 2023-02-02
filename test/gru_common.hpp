@@ -2000,11 +2000,11 @@ struct verify_forward_infer_gru
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
-        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens.data(), 3);
+        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens);
 
         std::vector<int> wlen(1, 0);
         wlen[0] = weights.size();
-        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen.data(), 1);
+        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen);
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_start1 = std::chrono::high_resolution_clock::now();
@@ -2291,11 +2291,11 @@ struct verify_forward_train_gru
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
-        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens.data(), 3);
+        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens);
 
         std::vector<int> wlen(1, 0);
         wlen[0] = weights.size();
-        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen.data(), 1);
+        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen);
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_start1 = std::chrono::high_resolution_clock::now();
@@ -2592,11 +2592,11 @@ struct verify_backward_data_gru
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
-        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens.data(), 3);
+        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens);
 
         std::vector<int> wlen(1, 0);
         wlen[0] = weights.size();
-        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen.data(), 1);
+        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen);
 
         size_t in_sz = 0;
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, inputDescs.data(), &in_sz);
@@ -2844,13 +2844,13 @@ struct verify_backward_weights_gru
         auto reserveSpace_dev = handle.Write(reserveSpace);
         std::vector<T> dweights(weightSize);
         auto dweights_dev = handle.Write(dweights);
-        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, &weightSize, 1);
+        miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, {weightSize});
 
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
-        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens.data(), 3);
+        miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens);
         auto dy_dev    = handle.Write(dy);
         auto input_dev = handle.Write(input);
 
@@ -3068,10 +3068,9 @@ struct gru_basic_driver : test_driver
 
         size_t wei_bytes = 0;
         std::vector<int> inlens(2, 0);
-        inlens.at(0) = batchSeq.at(0);
-        inlens.at(1) = inVecReal;
-        auto firstInputDesc =
-            miopen::TensorDescriptor(miopen::deref(rnnDesc).dataType, inlens.data(), 2);
+        inlens.at(0)        = batchSeq.at(0);
+        inlens.at(1)        = inVecReal;
+        auto firstInputDesc = miopen::TensorDescriptor(miopen::deref(rnnDesc).dataType, inlens);
         miopenGetRNNParamsSize(
             &handle, rnnDesc, &firstInputDesc, &wei_bytes, miopen::deref(rnnDesc).dataType);
         auto wei_sz = wei_bytes / sizeof(T);
