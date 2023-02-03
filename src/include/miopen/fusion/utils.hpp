@@ -90,27 +90,8 @@ inline bool WinoCommonIsApplicable(const FusionContext& params)
     const auto target = conv_ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
-    const auto c           = conv_ctx.problem.conv_problem.GetInChannels();
-    const auto k           = conv_ctx.problem.conv_problem.GetOutChannels();
-    const auto x           = conv_ctx.problem.conv_problem.GetWeightsWidth();
-    const auto y           = conv_ctx.problem.conv_problem.GetWeightsHeight();
-    const auto oH          = conv_ctx.problem.conv_problem.GetOutHeight();
-    const auto oW          = conv_ctx.problem.conv_problem.GetOutWidth();
-    const auto iH          = conv_ctx.problem.conv_problem.GetInHeight();
-    const auto iW          = conv_ctx.problem.conv_problem.GetInWidth();
-    const auto pad_h       = conv_ctx.problem.conv_problem.GetPadH();
-    const auto pad_w       = conv_ctx.problem.conv_problem.GetPadW();
-    const auto group_count = conv_ctx.problem.conv_problem.GetGroupCount();
-    const auto N           = conv_ctx.problem.conv_problem.GetInBatchSize();
 
-    return conv_ctx.problem.kernel_stride_h == conv_ctx.problem.kernel_stride_w &&
-           conv_ctx.problem.kernel_dilation_h == 1 && conv_ctx.problem.kernel_dilation_w == 1 &&
-           (c * x * y) <= std::pow(2, 28) && (k * x * y) <= std::pow(2, 28) &&
-           (k * oH * oW) <= std::pow(2, 28) && (c * iH * iW) <= std::pow(2, 28) &&
-           x <= std::pow(2, 16) && y <= std::pow(2, 16) && pad_h <= std::pow(2, 16) &&
-           pad_w <= std::pow(2, 16) && oH <= std::pow(2, 16) && oW <= std::pow(2, 16) &&
-           iH <= std::pow(2, 16) && oW <= std::pow(2, 16) && c <= std::pow(2, 16) &&
-           k <= std::pow(2, 16) && N <= std::pow(2, 16) && group_count == 1;
+    return true;
 }
 } // namespace fusion
 } // namespace solver

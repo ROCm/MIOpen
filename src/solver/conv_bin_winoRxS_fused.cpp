@@ -69,16 +69,27 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
     const std::string name = conv_ctx.GetStream().GetDeviceName();
     if(name != "gfx803")
         return false;
-    const auto c    = conv_ctx.problem.conv_problem.GetInChannels();
-    const auto x    = conv_ctx.problem.conv_problem.GetWeightsWidth();
-    const auto y    = conv_ctx.problem.conv_problem.GetWeightsHeight();
+
+    const auto W           = conv_ctx.problem.conv_problem.GetInWidth();
+    const auto H           = conv_ctx.problem.conv_problem.GetInHeight();
+    const auto C           = conv_ctx.problem.conv_problem.GetInChannels();
+    const auto N           = conv_ctx.problem.conv_problem.GetInBatchSize();
+    const auto K           = conv_ctx.problem.conv_problem.GetOutChannels();
+    const auto y           = conv_ctx.problem.conv_problem.GetWeightsHeight();
+    const auto x           = conv_ctx.problem.conv_problem.GetWeightsWidth();
+    const auto OH          = conv_ctx.problem.conv_problem.GetOutHeight();
+    const auto OW          = conv_ctx.problem.conv_problem.GetOutWidth();
+    const auto pad_h       = conv_ctx.problem.conv_problem.GetPadH();
+    const auto pad_w       = conv_ctx.problem.conv_problem.GetPadW();
+    const auto group_count = conv_ctx.problem.conv_problem.GetGroupCount();
+
     size_t padded_y = 0;
     size_t padded_x = 0;
     if(conv_ctx.problem.kernel_stride_h == 1)
     {
         if(y <= 3)
         {
-            if(!(c % 2 == 0))
+            if(!(C % 2 == 0))
                 return false;
             padded_y = 3;
             padded_x = Ceiling(x, 3);
@@ -99,10 +110,31 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
     }
     else
         return false;
-    if(!(((padded_x / 3) * (padded_y * 3) * c) >= 18))
+
+    if(!(((padded_x / 3) * (padded_y * 3) * C) >= 18))
         return false;
 
-    return true;
+    // clang-format off
+    return conv_ctx.problem.kernel_stride_h == conv_ctx.problem.kernel_stride_w
+        && conv_ctx.problem.kernel_dilation_h == 1
+        && conv_ctx.problem.kernel_dilation_w == 1 
+        && (C * x * y) <= std::pow(2, 28)
+        && (K * x * y) <= std::pow(2, 28)
+        && (K * OH * OW) <= std::pow(2, 28)
+        && (C *  H *  W) <= std::pow(2, 28)
+        && y <= std::pow(2, 16)
+        && x <= std::pow(2, 16)
+        && pad_h <= std::pow(2, 16)
+        && pad_w <= std::pow(2, 16)
+        && OH <= std::pow(2, 16)
+        && OW <= std::pow(2, 16)
+        && H <= std::pow(2, 16)
+        && W <= std::pow(2, 16) 
+        && C <= std::pow(2, 16) 
+        && K <= std::pow(2, 16) 
+        && N <= std::pow(2, 16) 
+        && group_count == 1;
+    // clang-format on
 }
 
 ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
