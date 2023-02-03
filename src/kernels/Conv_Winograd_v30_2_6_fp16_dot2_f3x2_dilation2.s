@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,12 @@
     KERNEL_PROLOG fp16_dot2_f3x2_dilation2
 
     .include "Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f3x2_dilation2.inc"
+
+    KERNEL_EPILOG fp16_dot2_f3x2_dilation2
+.elseif (.amdgcn.gfx_generation_number == 11)
+    KERNEL_PROLOG fp16_dot2_f3x2_dilation2
+
+    .include "Conv_Winograd_v30_2_6_gfx11_fp16_dot2_f3x2_dilation2.inc"
 
     KERNEL_EPILOG fp16_dot2_f3x2_dilation2
 .else
