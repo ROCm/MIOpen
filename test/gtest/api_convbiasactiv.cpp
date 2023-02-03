@@ -169,14 +169,25 @@ TEST_P(ConvBiasActivFwdTest, DriveAPI)
     EXPECT_EQ(status, miopenStatusSuccess);
 }
 
+void GatherCBATestCases(std::vector<CBATestCase>& cba_test_cases)
+{
+    if(!miopen::StartsWith(get_handle().GetDeviceName(), "gfx11"))
+    {
+        cba_test_cases.push_back(CBATestCase{
+            16, 128, 16, 16, 128, 3, 3, 0, 0, 1, 1, 1, 1, miopenActivationRELU, miopenConvolution});
+    }
+    else
+    {
+        GTEST_SKIP() << " Skipping fusion test on unsupported ASIC";
+    }
+}
+
+// Extra layer of indirection introduced since GTEST_SKIP() cannot be called from non-void function.
 std::vector<CBATestCase> GetTestValues()
 {
-
-    std::vector<CBATestCase> ret;
-    if(get_handle().GetDeviceName() != "gfx1100")
-        ret.push_back(CBATestCase{
-            16, 128, 16, 16, 128, 3, 3, 0, 0, 1, 1, 1, 1, miopenActivationRELU, miopenConvolution});
-    return ret;
+    std::vector<CBATestCase> cba_test_cases;
+    GatherCBATestCases(cba_test_cases);
+    return cba_test_cases;
 }
 INSTANTIATE_TEST_SUITE_P(CBAFwdAPITest,
                          ConvBiasActivFwdTest,
