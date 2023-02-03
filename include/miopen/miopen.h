@@ -690,7 +690,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t 
                                                        int* dimsA,
                                                        int* stridesA);
 
-/*! @brief Set shape of N-dimensional tensor
+/*! @brief Get size of N-dimensional tensor
  *
  * Interface for querying tensor size. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
  * layout.
