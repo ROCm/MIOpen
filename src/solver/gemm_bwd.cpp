@@ -43,6 +43,7 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 #define WORKAROUND_MIOPENGEMM_ISSUE_59 1
+#define WORKAROUND_ISSUE_1956 1
 
 // copy from convolution.cpp
 // Workaround for issue 1430.
@@ -640,6 +641,13 @@ bool GemmBwdRest::IsApplicable(const ExecutionContext& context,
 #if MIOPEN_USE_GEMM
     if(!GemmBwdBase::IsApplicable(context, problem))
         return false;
+
+#if WORKAROUND_ISSUE_1956
+    // Col2Im3dGPU has issues with address computations when workspace size > 4GiB.
+    if(problem.GetConv().GetSpatialDimension() == 3 &&
+       GetWorkspaceSize(context, problem) > 0xffffffffULL)
+        return false;
+#endif
 
     return !GemmBwd1x1_stride2{}.IsApplicable(context, problem) &&
            !GemmBwd1x1_stride1{}.IsApplicableBeforeWorkaround(context, problem) &&
