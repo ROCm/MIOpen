@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -195,22 +195,11 @@ inline bool IsShaderContraintsMet(const ProblemDescription& problem,
         if(!(0 <= problem.GetBackwardPadH() && problem.GetBackwardPadH() < std::pow(2, 16)))
             return false;
     }
+
     if(!problem.IsLayoutDefault())
     {
         return false;
     }
-
-    uint64_t o_K_stride      = static_cast<uint64_t>(OH) * OW;
-    uint64_t o_N_stride      = o_K_stride * K;
-    uint64_t o_N_stride_OHOW = o_N_stride + o_K_stride;
-
-    uint64_t d_C_stride    = static_cast<uint64_t>(H) * W;
-    uint64_t d_N_stride    = d_C_stride * C;
-    uint64_t d_N_stride_HW = d_N_stride + d_C_stride;
-
-    auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
-    auto stride_one = problem.kernel_stride_h == 1 && problem.kernel_stride_w == 1 &&
-                      problem.kernel_dilation_h == 1 && problem.kernel_dilation_w == 1;
 
     // clang-format off
     // Check implementation limits.
@@ -225,11 +214,12 @@ inline bool IsShaderContraintsMet(const ProblemDescription& problem,
         && OW < std::pow(2, 16)
         && problem.pad_w < std::pow(2, 16)
         && problem.pad_h < std::pow(2, 16)
-        && C * R * S < std::pow(2, 22)
+        && H * W < std::pow(2, 29)
         && K * R * S < std::pow(2, 28)
-        && ((o_N_stride_OHOW < std::pow(2, 29) && d_N_stride_HW < std::pow(2, 29))
-           || (stride_one && o_N_stride < std::pow(2, 30) && d_N_stride < std::pow(2, 30)
-           && (N == 1 || num_tiles % 16 == 0)));
+        && (C + 1) * H * W < std::pow(2, 30)
+        && (C + 1) * R * S < std::pow(2, 22)
+        && (K + 1) * OH * OW < std::pow(2, 30);
+    // clang-format on
 }
 
 } // namespace
@@ -556,8 +546,6 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
             return false;
-        if(problem.kernel_stride_w == 2) // f3x2 stride 2 not implemented yet
-            return false;
     }
     return IsApplicableBase(ctx, problem);
 }
@@ -646,8 +634,8 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
 
-    std::string kernel_name = "miopenSp3AsmConv_v21_1_3";
-    std::string kernel_file = "Conv_Winograd_v21_1_3";
+    std::string kernel_name = "miopenSp3AsmConv_v30_2_6";
+    std::string kernel_file = "Conv_Winograd_v30_2_6";
     std::string kernel_postfix;
 
     if(is_gfx9)
@@ -660,32 +648,30 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
         kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
     }
 
-    if(IS2X3)
+    if(problem.IsFp32())
     {
-        kernel_postfix = problem.IsFp32() ? "_fp32" : "_fp16_dot2_edc";
-
-        if(problem.kernel_stride_w == 1)
-        {
-            kernel_postfix += "_stride1";
-        }
-        else if(problem.kernel_stride_w == 2 && !problem.direction.IsBackwardData())
-        {
-            kernel_postfix += "_stride2";
-        }
-        else // if(problem.kernel_dilation_h == 2)
-        {
-            kernel_postfix += "_dilation2";
-        }
-        if(problem.group_counts != 1 || problem.direction.IsBackwardWrW())
-        {
-            kernel_postfix += "_group";
-        }
+        kernel_name += "_fp32";
+        kernel_file += "_fp32";
     }
-    else if(IS3X2)
+    else // if(problem.IsFp16())
     {
-        kernel_postfix = problem.IsFp32() ? "_f3x2_fp32" : "_f3x2_fp16_dot2_edc";
-        kernel_postfix += "_stride1"; // f3x2 stride 2 is not implemented yet
-        kernel_postfix += "_group";
+        kernel_name += is_gfx9 ? "_fp16_dot2_edc" : "_fp16_dot2";
+        kernel_file += "_fp16_dot2";
+    }
+
+    kernel_postfix = IS2X3 ? "_f2x3" : "_f3x2";
+
+    if(problem.kernel_stride_w == 1)
+    {
+        kernel_postfix += "_stride1";
+    }
+    else if(problem.kernel_stride_w == 2 && !problem.direction.IsBackwardData())
+    {
+        kernel_postfix += "_stride2";
+    }
+    else // if(problem.kernel_dilation_h == 2)
+    {
+        kernel_postfix += "_dilation2";
     }
 
     kernel.kernel_name = kernel_name + kernel_postfix;
@@ -762,14 +748,15 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                 MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                     << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
                     << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
-                    << " d_buf.byte_stride.nk=" << d_buf.byte_stride.nk << " d_buf.byte_stride.c=" << d_buf.byte_stride.c
-                    << " d_buf.byte_stride.h=" << d_buf.byte_stride.h << " d_buf.byte_stride.w=" << d_buf.byte_stride.w
-                    << " f_buf.byte_stride.nk=" << f_buf.byte_stride.nk << " f_buf.byte_stride.c=" << f_buf.byte_stride.c
-                    << " f_buf.byte_stride.h=" << f_buf.byte_stride.h << " f_buf.byte_stride.w=" << f_buf.byte_stride.w
-                    << " o_buf.byte_stride.nk=" << o_buf.byte_stride.nk << " o_buf.byte_stride.c=" << o_buf.byte_stride.c
-                    << " o_buf.byte_stride.h="  << o_buf.byte_stride.h <<  " o_buf.byte_stride.w=" << o_buf.byte_stride.w
-                    << " d_buf.byte_stride.g=" << d_buf.byte_stride.g  << " o_buf.byte_stride.g="  << o_buf.byte_stride.g
-                    << " f_buf.byte_stride.g=" << f_buf.byte_stride.g); // clang-format on
+                    << " d_buf.stride.nk="  << d_buf.stride.nk  << " d_buf.stride.c=" << d_buf.stride.c
+                    << " d_buf.stride.h="   << d_buf.stride.h   << " d_buf.stride.w=" << d_buf.stride.w
+                    << " f_buf.stride.nk="  << f_buf.stride.nk  << " f_buf.stride.c=" << f_buf.stride.c
+                    << " f_buf.stride.h="   << f_buf.stride.h   << " f_buf.stride.w=" << f_buf.stride.w
+                    << " o_buf.stride.nk="  << o_buf.stride.nk  << " o_buf.stride.c=" << o_buf.stride.c
+                    << " o_buf.stride.h="   << o_buf.stride.h   << " o_buf.stride.w=" << o_buf.stride.w
+                    << " d_buf.stride.g="   << d_buf.stride.g   << " o_buf.stride.g=" << o_buf.stride.g
+                    << " f_buf.stride.g="   << f_buf.stride.g);
+                // clang-format on
 
                 k(N,
                   C,
@@ -796,22 +783,22 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                   reserved_offset, // Unused f_offset.
                   reserved_offset, // Unused o_offset.
                   reserved_offset, // Unused b_offset.
-                  d_buf.byte_stride.nk,
-                  d_buf.byte_stride.c,
-                  d_buf.byte_stride.h,
-                  d_buf.byte_stride.w,
-                  f_buf.byte_stride.nk,
-                  f_buf.byte_stride.c,
-                  f_buf.byte_stride.h,
-                  f_buf.byte_stride.w,
-                  o_buf.byte_stride.nk,
-                  o_buf.byte_stride.c,
-                  o_buf.byte_stride.h,
-                  o_buf.byte_stride.w,
+                  d_buf.stride.nk,
+                  d_buf.stride.c,
+                  d_buf.stride.h,
+                  d_buf.stride.w,
+                  f_buf.stride.nk,
+                  f_buf.stride.c,
+                  f_buf.stride.h,
+                  f_buf.stride.w,
+                  o_buf.stride.nk,
+                  o_buf.stride.c,
+                  o_buf.stride.h,
+                  o_buf.stride.w,
                   group_cnt,
-                  d_buf.byte_stride.g,
-                  f_buf.byte_stride.g,
-                  o_buf.byte_stride.g);
+                  d_buf.stride.g,
+                  f_buf.stride.g,
+                  o_buf.stride.g);
             };
         };
     }
@@ -865,14 +852,15 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                 MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                     << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
                     << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
-                    << " d_buf.byte_stride.nk=" << d_buf.byte_stride.nk << " d_buf.byte_stride.c=" << d_buf.byte_stride.c
-                    << " d_buf.byte_stride.h=" << d_buf.byte_stride.h << " d_buf.byte_stride.w=" << d_buf.byte_stride.w
-                    << " f_buf.byte_stride.nk=" << f_buf.byte_stride.nk << " f_buf.byte_stride.c=" << f_buf.byte_stride.c
-                    << " f_buf.byte_stride.h=" << f_buf.byte_stride.h << " f_buf.byte_stride.w=" << f_buf.byte_stride.w
-                    << " o_buf.byte_stride.nk=" << o_buf.byte_stride.nk << " o_buf.byte_stride.c=" << o_buf.byte_stride.c
-                    << " o_buf.byte_stride.h="  << o_buf.byte_stride.h <<  " o_buf.byte_stride.w=" << o_buf.byte_stride.w
-                    << " d_buf.byte_stride.g=" << d_buf.byte_stride.g  << " o_buf.byte_stride.g="  << o_buf.byte_stride.g
-                    << " f_buf.byte_stride.g=" << f_buf.byte_stride.g); // clang-format on
+                    << " d_buf.stride.nk="  << d_buf.stride.nk  << " d_buf.stride.c=" << d_buf.stride.c
+                    << " d_buf.stride.h="   << d_buf.stride.h   << " d_buf.stride.w=" << d_buf.stride.w
+                    << " f_buf.stride.nk="  << f_buf.stride.nk  << " f_buf.stride.c=" << f_buf.stride.c
+                    << " f_buf.stride.h="   << f_buf.stride.h   << " f_buf.stride.w=" << f_buf.stride.w
+                    << " o_buf.stride.nk="  << o_buf.stride.nk  << " o_buf.stride.c=" << o_buf.stride.c
+                    << " o_buf.stride.h="   << o_buf.stride.h   << " o_buf.stride.w=" << o_buf.stride.w
+                    << " d_buf.stride.g="   << d_buf.stride.g   << " o_buf.stride.g=" << o_buf.stride.g
+                    << " f_buf.stride.g="   << f_buf.stride.g);
+                // clang-format on
                 MIOPEN_LOG_I2(" ctx.batch_sz=" << batch_sz << "ctx.n_inputs=" << n_inputs);
 
                 int reserved             = 0;
@@ -904,22 +892,22 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                                        reserved_offset, // Unused f_offset.
                                        reserved_offset, // Unused o_offset.
                                        reserved_offset, // Unused b_offset.
-                                       d_buf.byte_stride.nk,
-                                       d_buf.byte_stride.c,
-                                       d_buf.byte_stride.h,
-                                       d_buf.byte_stride.w,
-                                       f_buf.byte_stride.nk,
-                                       f_buf.byte_stride.c,
-                                       f_buf.byte_stride.h,
-                                       f_buf.byte_stride.w,
-                                       o_buf.byte_stride.nk,
-                                       o_buf.byte_stride.c,
-                                       o_buf.byte_stride.h,
-                                       o_buf.byte_stride.w,
+                                       d_buf.stride.nk,
+                                       d_buf.stride.c,
+                                       d_buf.stride.h,
+                                       d_buf.stride.w,
+                                       f_buf.stride.nk,
+                                       f_buf.stride.c,
+                                       f_buf.stride.h,
+                                       f_buf.stride.w,
+                                       o_buf.stride.nk,
+                                       o_buf.stride.c,
+                                       o_buf.stride.h,
+                                       o_buf.stride.w,
                                        group_cnt,
-                                       d_buf.byte_stride.g,
-                                       f_buf.byte_stride.g,
-                                       o_buf.byte_stride.g);
+                                       d_buf.stride.g,
+                                       f_buf.stride.g,
+                                       o_buf.stride.g);
             };
         };
     }
