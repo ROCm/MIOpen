@@ -27,6 +27,7 @@
 // Test Suite for convolution with strided tensor descriptors
 
 #include <gtest/gtest.h>
+#include <hip/hip_runtime_api.h>
 #include <miopen/miopen.h>
 
 #define MIOPEN_CHECK_RET(val) ASSERT_EQ(val, miopenStatusSuccess)
