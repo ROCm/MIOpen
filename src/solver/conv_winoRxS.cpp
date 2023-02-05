@@ -476,11 +476,12 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
         return false;
 
     const auto name = ctx.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10")))
+    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10") || StartsWith(name, "gfx11")))
         return false;
     if(problem.IsFp16() &&
        !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
-         StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") || StartsWith(name, "gfx103")))
+         StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") || StartsWith(name, "gfx103") ||
+         StartsWith(name, "gfx11")))
         return false;
 
     if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
@@ -615,9 +616,10 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
         pcfg = &(*fromEnv);
     }
 
-    const auto name    = ctx.GetStream().GetDeviceName();
-    const auto is_gfx9 = StartsWith(name, "gfx9");
-    size_t wg_size     = is_gfx9 ? 512 : 256;
+    const auto name     = ctx.GetStream().GetDeviceName();
+    const auto is_gfx9  = StartsWith(name, "gfx9");
+    const auto is_gfx10 = StartsWith(name, "gfx10");
+    size_t wg_size      = is_gfx9 ? 512 : 256;
 
     KernelInfo kernel;
 
@@ -633,6 +635,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
         {"ROCM_METADATA_VERSION", 5},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
+    kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
 
     std::string kernel_name = "miopenSp3AsmConv_v30_2_6";
     std::string kernel_file = "Conv_Winograd_v30_2_6";
@@ -642,10 +645,13 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     {
         kernel_name += "_gfx9";
     }
-    else // if(StartsWith(name, "gfx10"))
+    else if(is_gfx10)
     {
         kernel_name += "_gfx10";
-        kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
+    }
+    else // if(is_gfx11)
+    {
+        kernel_name += "_gfx11";
     }
 
     if(problem.IsFp32())
