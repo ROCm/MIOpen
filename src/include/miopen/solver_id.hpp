@@ -49,6 +49,8 @@ enum class Primitive
     Convolution,
     Activation,
     Batchnorm,
+    Bias,
+    Fusion,
     Pooling,
 };
 
