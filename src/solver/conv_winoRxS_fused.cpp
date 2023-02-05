@@ -60,12 +60,13 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
     const miopen::ConvolutionContext conv_ctx =
         context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
     const std::string name = conv_ctx.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10")))
+    if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10") || StartsWith(name, "gfx11")))
         return false;
 
     if(conv_ctx.problem.IsFp16() &&
        !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
-         StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") || StartsWith(name, "gfx103")))
+         StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") || StartsWith(name, "gfx103") ||
+         StartsWith(name, "gfx11")))
         return false;
 
     // clang-format off
@@ -118,10 +119,11 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
 
     const auto conv_ctx = context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
 
-    const int n_groups = conv_ctx.GetStream().GetMaxHardwareComputeUnits();
-    const auto name    = conv_ctx.GetStream().GetDeviceName();
-    const auto is_gfx9 = StartsWith(name, "gfx9");
-    size_t wg_size     = is_gfx9 ? 512 : 256;
+    const int n_groups  = conv_ctx.GetStream().GetMaxHardwareComputeUnits();
+    const auto name     = conv_ctx.GetStream().GetDeviceName();
+    const auto is_gfx9  = StartsWith(name, "gfx9");
+    const auto is_gfx10 = StartsWith(name, "gfx10");
+    size_t wg_size      = is_gfx9 ? 512 : 256;
     kernel.g_wk.push_back(wg_size * n_groups);
     kernel.g_wk.push_back(1);
     kernel.g_wk.push_back(1);
@@ -134,8 +136,10 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
         {"ROCM_METADATA_VERSION", 5},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
-    kernel.kernel_file  = "Conv_Winograd_v30_2_6";
-    kernel.kernel_name  = "miopenSp3AsmConv_v30_2_6";
+    kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
+
+    kernel.kernel_file = "Conv_Winograd_v30_2_6";
+    kernel.kernel_name = "miopenSp3AsmConv_v30_2_6";
     const auto kernel_postfix =
         "_fp32_f2x3_stride" + std::to_string(conv_ctx.problem.kernel_stride_h);
 
@@ -143,10 +147,13 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     {
         kernel.kernel_name += "_gfx9";
     }
-    else
+    else if(is_gfx10)
     {
         kernel.kernel_name += "_gfx10";
-        kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
+    }
+    else // if (is_gfx11)
+    {
+        kernel.kernel_name += "_gfx11";
     }
 
     kernel.kernel_name += kernel_postfix;

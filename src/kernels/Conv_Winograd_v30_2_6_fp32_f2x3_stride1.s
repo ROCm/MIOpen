@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,8 @@ KERNEL_PROLOG fp32_f2x3_stride1
     .include "Conv_Winograd_v30_2_6_gfx9_fp32_f2x3_stride1.inc"
 .elseif (.amdgcn.gfx_generation_number == 10)
     .include "Conv_Winograd_v30_2_6_gfx10_fp32_f2x3_stride1.inc"
+.elseif (.amdgcn.gfx_generation_number == 11)
+    .include "Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_stride1.inc"
 .endif
 
 KERNEL_EPILOG fp32_f2x3_stride1
