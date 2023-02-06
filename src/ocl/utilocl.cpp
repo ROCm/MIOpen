@@ -1073,8 +1073,8 @@ float transpose_NCHW2Vec(const Handle& handle,
         const std::vector<size_t> vld{WG_SIZE, 1, 1};
         std::vector<size_t> vgd{1, 1, 1};
 
-        int RD_BLCK = ((hw) % (vec_size * 2) == 0) ? static_cast<int>(vec_size) * 2
-                                                   : static_cast<int>(vec_size);
+        int RD_BLCK   = ((hw) % (vec_size * 2) == 0) ? static_cast<int>(vec_size) * 2
+                                                     : static_cast<int>(vec_size);
         int HW_RD     = (static_cast<int>(hw) + RD_BLCK - 1) / RD_BLCK;
         size_t MAP_RD = HW_RD * (trans ? c : (c_vec / vec_size));
 
