@@ -45,6 +45,8 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
 
+#define IS3X2 (Winodata == 3 && Winofilter == 2)
+
 static inline size_t Ceil(const size_t v, const size_t m)
 {
     assert(m > 0);
@@ -59,9 +61,11 @@ namespace {
 // Winograd v30 is functionally supported on Vega10/Vega20 ASICs, but performance regression is
 // expected to be ~25%. Use Winograd v21 instead.
 // Details: https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
-inline bool IsWinogradV30Supported(const std::string& asic)
+template <int Winodata, int Winofilter>
+inline bool IsWinogradV30Supported(const std::string& asic, const ProblemDescription& problem)
 {
-    return !StartsWith(asic, "gfx900") && !StartsWith(asic, "gfx906");
+    return (!StartsWith(asic, "gfx900") && !StartsWith(asic, "gfx906")) ||
+           (IS3X2 && problem.kernel_stride_w == 2);
 }
 
 inline bool IsShaderContraintsMetV21(const ProblemDescription& problem,
@@ -186,7 +190,7 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
     const auto OH = conv_ctx.problem.conv_problem.GetOutHeight();
     const auto OW = conv_ctx.problem.conv_problem.GetOutWidth();
 
-    return IsWinogradV30Supported(name)
+    return IsWinogradV30Supported<2, 3>(name, conv_ctx.problem)
                ? IsShaderContraintsMetV30(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N)
                : IsShaderContraintsMetV21(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N);
 }
@@ -203,7 +207,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     const auto name     = conv_ctx.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
     const auto is_gfx10 = StartsWith(name, "gfx10");
-    const auto is_v30   = IsWinogradV30Supported(name);
+    const auto is_v30   = IsWinogradV30Supported<2, 3>(name, conv_ctx.problem);
     size_t wg_size      = is_gfx9 ? 512 : 256;
     kernel.g_wk.push_back(wg_size * n_groups);
     kernel.g_wk.push_back(1);

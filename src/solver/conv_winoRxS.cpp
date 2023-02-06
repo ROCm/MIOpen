@@ -178,9 +178,11 @@ namespace {
 // Winograd v30 is functionally supported on Vega10/Vega20 ASICs, but performance regression is
 // expected to be ~25%. Use Winograd v21 instead.
 // Details: https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
-inline bool IsWinogradV30Supported(const std::string& asic)
+template <int Winodata, int Winofilter>
+inline bool IsWinogradV30Supported(const std::string& asic, const ProblemDescription& problem)
 {
-    return !StartsWith(asic, "gfx900") && !StartsWith(asic, "gfx906");
+    return (!StartsWith(asic, "gfx900") && !StartsWith(asic, "gfx906")) ||
+           (IS3X2 && problem.kernel_stride_w == 2);
 }
 
 inline bool IsShaderContraintsMetV21(const ProblemDescription& problem,
@@ -259,6 +261,7 @@ inline bool IsShaderContraintsMetV30(const ProblemDescription& problem,
     // clang-format on
 }
 
+template <int Winodata, int Winofilter>
 inline bool IsShaderContraintsMet(const ProblemDescription& problem,
                                   const int R,
                                   const int S,
@@ -286,7 +289,7 @@ inline bool IsShaderContraintsMet(const ProblemDescription& problem,
         return false;
     }
 
-    return IsWinogradV30Supported(asic)
+    return IsWinogradV30Supported<Winodata, Winofilter>(asic, problem)
                ? IsShaderContraintsMetV30(problem, R, S, C, K, H, W, OH, OW, N)
                : IsShaderContraintsMetV21(problem, R, S, C, K, H, W, OH, OW, N);
 }
@@ -529,6 +532,7 @@ static float GetWtiBase(const ConvolutionContext& ctx, const ProblemDescription&
     return rv < 0 ? WTI_UNKNOWN : rv;
 }
 
+template <int Winodata, int Winofilter>
 static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescription& problem)
 {
     if(!problem.Is2d())
@@ -573,31 +577,31 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
     {
         if(problem.kernel_stride_w == 2)
             return false;
-        return IsShaderContraintsMet(problem,
-                                     problem.in_height,
-                                     problem.in_width,
-                                     problem.batch_sz,   // N
-                                     n_inputs_per_group, // K
-                                     problem.out_height,
-                                     problem.out_width,
-                                     problem.kernel_size_h,
-                                     problem.kernel_size_w,
-                                     n_outputs_per_group, // C
-                                     name);
+        return IsShaderContraintsMet<Winodata, Winofilter>(problem,
+                                                           problem.in_height,
+                                                           problem.in_width,
+                                                           problem.batch_sz,   // N
+                                                           n_inputs_per_group, // K
+                                                           problem.out_height,
+                                                           problem.out_width,
+                                                           problem.kernel_size_h,
+                                                           problem.kernel_size_w,
+                                                           n_outputs_per_group, // C
+                                                           name);
     }
     else
     {
-        return IsShaderContraintsMet(problem,
-                                     problem.kernel_size_h, // RxS
-                                     problem.kernel_size_w,
-                                     n_inputs_per_group,  // C
-                                     n_outputs_per_group, // K
-                                     problem.in_height,   // HxW
-                                     problem.in_width,
-                                     problem.out_height, // OHxOW
-                                     problem.out_width,
-                                     problem.batch_sz, // N
-                                     name);
+        return IsShaderContraintsMet<Winodata, Winofilter>(problem,
+                                                           problem.kernel_size_h, // RxS
+                                                           problem.kernel_size_w,
+                                                           n_inputs_per_group,  // C
+                                                           n_outputs_per_group, // K
+                                                           problem.in_height,   // HxW
+                                                           problem.in_width,
+                                                           problem.out_height, // OHxOW
+                                                           problem.out_width,
+                                                           problem.batch_sz, // N
+                                                           name);
     }
 }
 
@@ -618,13 +622,8 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
             return false;
-
-        const auto name = ctx.GetStream().GetDeviceName();
-        if(!IsWinogradV30Supported(name) &&
-           problem.kernel_stride_w == 2) // f3x2 stride 2 supported only in Winograd v30
-            return false;
     }
-    return IsApplicableBase(ctx, problem);
+    return IsApplicableBase<Winodata, Winofilter>(ctx, problem);
 }
 
 template <int Winodata, int Winofilter>
@@ -695,7 +694,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     const auto name     = ctx.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
     const auto is_gfx10 = StartsWith(name, "gfx10");
-    const auto is_v30   = IsWinogradV30Supported(name);
+    const auto is_v30   = IsWinogradV30Supported<Winodata, Winofilter>(name, problem);
     size_t wg_size      = is_gfx9 ? 512 : 256;
 
     KernelInfo kernel;
@@ -1008,7 +1007,7 @@ bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ConvolutionContext& ctx,
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
-    return IsApplicableBase(ctx, problem) && problem.group_counts == 1;
+    return IsApplicableBase<2, 3>(ctx, problem) && problem.group_counts == 1;
 }
 
 float ConvBinWinogradRxSf2x3g1::GetWti(const ConvolutionContext& ctx,
