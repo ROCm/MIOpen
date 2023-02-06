@@ -59,6 +59,7 @@ struct CBATestCase
     }
 };
 
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ConvBiasActivFwdTest);
 struct ConvBiasActivFwdTest
     : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, CBATestCase>>
 {
@@ -68,7 +69,7 @@ protected:
         std::tie(algo, cba_config) = GetParam();
         const double double_zero   = 0.0f;
         input   = tensor<float>{cba_config.N, cba_config.C, cba_config.H, cba_config.W};
-        weights = tensor<float>{1, cba_config.k, cba_config.x, cba_config.y};
+        weights = tensor<float>{cba_config.k, cba_config.C, cba_config.x, cba_config.y};
         input.generate(tensor_elem_gen_integer{17});
         weights.generate(tensor_elem_gen_integer{17});
         miopenCreateConvolutionDescriptor(&conv_desc);
@@ -98,14 +99,6 @@ protected:
         std::fill(output.begin(), output.end(), 0.0f);
         std::fill(ref_out.begin(), ref_out.end(), 0.0f);
         std::fill(bias.begin(), bias.end(), 0.0f);
-        int bias_mode = 1; // zero disables bias
-        convHostForward(input, ref_out, weights, bias_mode, bias, conv_desc);
-        activationHostInfer(cba_config.activ_mode,
-                            double_zero,
-                            double_zero,
-                            double_zero,
-                            ref_out.data,
-                            ref_out.data);
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
         wei_dev       = handle.Write(weights.data);
@@ -114,6 +107,15 @@ protected:
     }
     void TearDown() override
     {
+        const double double_zero = 0.0f;
+        int bias_mode            = 1; // zero disables bias
+        convHostForward(input, ref_out, weights, bias_mode, bias, conv_desc);
+        activationHostInfer(cba_config.activ_mode,
+                            double_zero,
+                            double_zero,
+                            double_zero,
+                            ref_out.data,
+                            ref_out.data);
         auto&& handle = get_handle();
         output.data   = handle.Read<float>(out_dev, output.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
@@ -167,22 +169,28 @@ TEST_P(ConvBiasActivFwdTest, DriveAPI)
     EXPECT_EQ(status, miopenStatusSuccess);
 }
 
+void GatherCBATestCases(std::vector<CBATestCase>& cba_test_cases)
+{
+    if(!miopen::StartsWith(get_handle().GetDeviceName(), "gfx11"))
+    {
+        cba_test_cases.push_back(CBATestCase{
+            16, 128, 16, 16, 128, 3, 3, 0, 0, 1, 1, 1, 1, miopenActivationRELU, miopenConvolution});
+    }
+    else
+    {
+        GTEST_SKIP() << " Skipping fusion test on unsupported ASIC";
+    }
+}
+
+// Extra layer of indirection introduced since GTEST_SKIP() cannot be called from non-void function.
+std::vector<CBATestCase> GetTestValues()
+{
+    std::vector<CBATestCase> cba_test_cases;
+    GatherCBATestCases(cba_test_cases);
+    return cba_test_cases;
+}
 INSTANTIATE_TEST_SUITE_P(CBAFwdAPITest,
                          ConvBiasActivFwdTest,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect,
                                                           miopenConvolutionFwdAlgoWinograd),
-                                          testing::Values(CBATestCase{16,
-                                                                      128,
-                                                                      16,
-                                                                      16,
-                                                                      128,
-                                                                      3,
-                                                                      3,
-                                                                      0,
-                                                                      0,
-                                                                      1,
-                                                                      1,
-                                                                      1,
-                                                                      1,
-                                                                      miopenActivationRELU,
-                                                                      miopenConvolution})));
+                                          testing::ValuesIn(GetTestValues())));

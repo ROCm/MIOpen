@@ -112,6 +112,7 @@ set( MIOpen_Source
     find_db.cpp
     fused_api.cpp
     fusion.cpp
+    generic_search.cpp
     handle_api.cpp
     invoker_cache.cpp
     kernel_build_params.cpp
@@ -120,8 +121,6 @@ set( MIOpen_Source
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
-    md_graph.cpp
-    mdg_expr.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -143,14 +142,17 @@ set( MIOpen_Source
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
     solver/batchnorm/backward_per_activation.cpp
+    solver/batchnorm/backward_per_activation_fused.cpp
     solver/batchnorm/backward_spatial_multiple.cpp
     solver/batchnorm/backward_spatial_single.cpp
     solver/batchnorm/forward_inference.cpp
+    solver/batchnorm/forward_inference_fused.cpp
     solver/batchnorm/forward_per_activation.cpp
+    solver/batchnorm/forward_per_activation_fused.cpp
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
     solver/conv_asm_1x1u.cpp
-    solver/conv_asm_1x1u_bias_activ.cpp
+    solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_asm_1x1u_stride2.cpp
     solver/conv_asm_3x3u.cpp
     solver/conv_asm_5x10u2v2b1.cpp
@@ -171,6 +173,7 @@ set( MIOpen_Source
     solver/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
     solver/conv_bin_wino3x3U.cpp
     solver/conv_bin_winoRxS.cpp
+    solver/conv_bin_winoRxS_fused.cpp
     solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
     solver/conv_direct_naive_conv.cpp
     solver/conv_direct_naive_conv_bwd.cpp
@@ -204,10 +207,12 @@ set( MIOpen_Source
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D11x11.cpp
     solver/conv_ocl_dir2Dfwd.cpp
+    solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
     solver/conv_ocl_dir2Dfwdgen.cpp
     solver/conv_winoRxS.cpp
+    solver/conv_winoRxS_fused.cpp
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
@@ -283,49 +288,43 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9_stride_2_dil.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9_stride_2_dec.inc
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx9.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_f3x2_fp16_dot2_edc_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_f3x2_fp16_dot2_edc_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_f3x2_fp16_dot2_edc_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_f3x2_fp32_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_f3x2_fp32_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_f3x2_fp32_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_fp16_dot2_edc_dilation2.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_fp16_dot2_edc_stride1.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_fp16_dot2_edc_stride2.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_fp32_dilation2.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_fp32_stride1.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_fp32_stride2.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_fp16_dot2_edc_dilation2.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_fp16_dot2_edc_stride1.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_fp16_dot2_edc_stride2.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_fp32_dilation2.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_fp32_stride1.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_fp32_stride2.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_fp16_dot2_edc_dilation2_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_fp16_dot2_edc_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_fp16_dot2_edc_stride2_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_fp32_dilation2_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_fp32_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx9_fp32_stride2_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_fp16_dot2_edc_dilation2_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_fp16_dot2_edc_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_fp16_dot2_edc_stride2_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_fp32_dilation2_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_fp32_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx90a_fp32_stride2_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_fp16_dot2_edc_dilation2.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_fp16_dot2_edc_stride1.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_fp16_dot2_edc_stride2.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_fp32_dilation2.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_fp32_stride1.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_fp32_stride2.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_fp16_dot2_edc_dilation2_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_fp16_dot2_edc_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_fp16_dot2_edc_stride2_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_fp32_dilation2_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_fp32_stride1_group.inc
-        kernels/Conv_Winograd_v21_1_3_gfx10_fp32_stride2_group.inc
-        kernels/Conv_Winograd_v21_1_3_metadata.inc
+        kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx9_fp32_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx9_fp32_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx9_fp32_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx10_fp32_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx10_fp32_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx10_fp32_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx11_fp16_dot2_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx11_fp16_dot2_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx11_fp16_dot2_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f2x3_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx9_fp16_dot2_edc_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx9_fp32_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx9_fp32_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx9_fp32_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx10_fp16_dot2_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx10_fp32_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx10_fp32_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx10_fp32_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx11_fp16_dot2_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx11_fp16_dot2_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx11_fp16_dot2_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f3x2_dilation2.inc
+        kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f3x2_stride1.inc
+        kernels/Conv_Winograd_v30_2_6_gfx11_fp32_f3x2_stride2.inc
+        kernels/Conv_Winograd_v30_2_6_metadata.inc
         kernels/xform_bidirect_winograd_code.inc
         kernels/rocm_version.inc
         kernels/inst_wrappers.inc
@@ -425,20 +424,18 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v3_0b.s
         kernels/conv_3x3_wheel_alpha_v9_2_7.s
         kernels/conv_3x3_wheel_alpha_v9_2_7_stride_2_dec.s
-        kernels/Conv_Winograd_v21_1_3_f3x2_fp16_dot2_edc_stride1_group.s
-        kernels/Conv_Winograd_v21_1_3_f3x2_fp32_stride1_group.s
-        kernels/Conv_Winograd_v21_1_3_fp16_dot2_edc_dilation2.s
-        kernels/Conv_Winograd_v21_1_3_fp16_dot2_edc_stride1.s
-        kernels/Conv_Winograd_v21_1_3_fp16_dot2_edc_stride2.s
-        kernels/Conv_Winograd_v21_1_3_fp32_dilation2.s
-        kernels/Conv_Winograd_v21_1_3_fp32_stride1.s
-        kernels/Conv_Winograd_v21_1_3_fp32_stride2.s
-        kernels/Conv_Winograd_v21_1_3_fp16_dot2_edc_dilation2_group.s
-        kernels/Conv_Winograd_v21_1_3_fp16_dot2_edc_stride1_group.s
-        kernels/Conv_Winograd_v21_1_3_fp16_dot2_edc_stride2_group.s
-        kernels/Conv_Winograd_v21_1_3_fp32_dilation2_group.s
-        kernels/Conv_Winograd_v21_1_3_fp32_stride1_group.s
-        kernels/Conv_Winograd_v21_1_3_fp32_stride2_group.s
+        kernels/Conv_Winograd_v30_2_6_fp16_dot2_f2x3_dilation2.s
+        kernels/Conv_Winograd_v30_2_6_fp16_dot2_f2x3_stride1.s
+        kernels/Conv_Winograd_v30_2_6_fp16_dot2_f2x3_stride2.s
+        kernels/Conv_Winograd_v30_2_6_fp32_f2x3_dilation2.s
+        kernels/Conv_Winograd_v30_2_6_fp32_f2x3_stride1.s
+        kernels/Conv_Winograd_v30_2_6_fp32_f2x3_stride2.s
+        kernels/Conv_Winograd_v30_2_6_fp16_dot2_f3x2_dilation2.s
+        kernels/Conv_Winograd_v30_2_6_fp16_dot2_f3x2_stride1.s
+        kernels/Conv_Winograd_v30_2_6_fp16_dot2_f3x2_stride2.s
+        kernels/Conv_Winograd_v30_2_6_fp32_f3x2_dilation2.s
+        kernels/Conv_Winograd_v30_2_6_fp32_f3x2_stride1.s
+        kernels/Conv_Winograd_v30_2_6_fp32_f3x2_stride2.s
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl

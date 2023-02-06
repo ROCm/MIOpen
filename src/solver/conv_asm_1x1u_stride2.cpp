@@ -99,6 +99,13 @@ inline static bool IsLinear(const int v)
     return L <= v && v <= H;
 }
 
+static inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
+{
+    if(x % y != 0)
+        return x / y + 1;
+    return x / y;
+}
+
 enum class MemLayout : int
 {
     NCHW = 0,
@@ -496,9 +503,6 @@ bool ConvAsm1x1UV2::IsApplicable(const ConvolutionContext& ctx,
     {
         return false;
     }
-
-    if(name == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
-        return false;
 
     const auto elements_in_dword = 4 / GetTypeSize(problem.in_data_type);
     // clang-format off

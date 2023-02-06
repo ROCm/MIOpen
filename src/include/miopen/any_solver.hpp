@@ -27,6 +27,7 @@
 #ifndef MIOPEN_GUARD_MLOPEN_ANY_SOLVER_HPP
 #define MIOPEN_GUARD_MLOPEN_ANY_SOLVER_HPP
 
+#include <miopen/problem_description_base.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -45,7 +46,6 @@ struct AnySolver
     AnySolver() : ptr_value(nullptr){};
     template <class U>
     AnySolver(U src) : ptr_value(new AnySolver_tmpl<U>(std::forward<U>(src))){};
-
     bool IsApplicable(const ConvolutionContext& ctx) const
     {
         assert(ptr_value != nullptr);
@@ -241,6 +241,7 @@ struct AnySolver
         }
 
         AnySolver_tmpl(T obj) : value(std::move(obj)){};
+
         bool IsApplicable(const ConvolutionContext& ctx) const override
         {
             return value.IsApplicable(ctx);

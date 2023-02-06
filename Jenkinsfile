@@ -2,6 +2,17 @@ def rocmnode(name) {
     return 'rocmtest && miopen && ' + name
 }
 
+def miopenCheckout()
+{
+    checkout([
+        $class: 'GitSCM',
+        branches: scm.branches,
+        doGenerateSubmoduleConfigurations: true,
+        extensions: scm.extensions + [[$class: 'SubmoduleOption', parentCredentials: true]],
+        userRemoteConfigs: scm.userRemoteConfigs
+    ])
+}
+
 def show_node_info() {
     sh """
         echo "NODE_NAME = \$NODE_NAME"
@@ -215,7 +226,7 @@ def getDockerImage(Map conf=[:])
 
 def buildHipClangJob(Map conf=[:]){
         show_node_info()
-
+        miopenCheckout()
         env.HSA_ENABLE_SDMA=0
         env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         env.DOCKER_BUILDKIT=1
@@ -473,7 +484,7 @@ pipeline {
                                 -o -iname \'*.hpp.in\' \
                                 -o -iname \'*.cpp.in\' \
                                 -o -iname \'*.cl\' \
-                                | grep -v -E '(build/)|(install/)' \
+                                | grep -v -E '(build/)|(install/)|(fin/)' \
                                 | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-12 -style=file {} | diff - {}\'"
                     }
                     steps{

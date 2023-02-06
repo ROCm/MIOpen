@@ -572,7 +572,7 @@ void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
         weight_lens[0] += (nLayers * 2);
     }
 
-    wDesc = miopen::TensorDescriptor(dtype, weight_lens.data(), 2);
+    wDesc = miopen::TensorDescriptor(dtype, weight_lens);
 }
 
 std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
@@ -631,7 +631,7 @@ void RNNDescriptor::GetLayerParam(const Handle& handle,
 
     // Get the dimensions of the parameter matrix
     auto pDims = pTensorLengthsCalculation(xDesc, layer, paramID);
-    paramDesc  = miopen::TensorDescriptor(dataType, pDims.data(), 2);
+    paramDesc  = miopen::TensorDescriptor(dataType, pDims);
     if(param == nullptr)
     {
         return;
@@ -668,8 +668,8 @@ void RNNDescriptor::GetLayerBias(const Handle& handle,
     }
 
     // Get the dimensions of the parameter matrix
-    auto bdim = int(hsize);
-    biasDesc  = miopen::TensorDescriptor(dataType, &bdim, 1);
+    auto bdim = hsize;
+    biasDesc  = miopen::TensorDescriptor(dataType, {bdim});
     if(bias == nullptr)
     {
         return;
@@ -727,7 +727,7 @@ void RNNDescriptor::SetLayerParam(const Handle& handle,
     std::vector<int> intLens(paramDesc.GetLengths().begin(), paramDesc.GetLengths().end());
 
     // 3. Construct descriptor to access into w
-    auto paramSrc = miopen::TensorDescriptor(dataType, intLens.data(), pstride.data(), 2);
+    auto paramSrc = miopen::TensorDescriptor(dataType, intLens, pstride);
 
     if(paramSrc.GetLengths() != paramDesc.GetLengths())
     {
@@ -778,7 +778,7 @@ void RNNDescriptor::SetLayerBias(const Handle& handle,
     std::vector<int> intLens(biasDesc.GetLengths().begin(), biasDesc.GetLengths().end());
 
     // 3. Construct descriptor to access into w
-    auto biasSrc = miopen::TensorDescriptor(dataType, intLens.data(), bstride.data(), 1);
+    auto biasSrc = miopen::TensorDescriptor(dataType, intLens, bstride);
 
     if(biasSrc.GetLengths() != biasDesc.GetLengths())
     {
@@ -814,7 +814,7 @@ void RNNDescriptor::GetLayerParamOffset(const int layer,
 
     // Get the dimensions of the parameter matrix
     auto pDims = pTensorLengthsCalculation(xDesc, layer, paramID);
-    paramDesc  = miopen::TensorDescriptor(dataType, pDims.data(), 2);
+    paramDesc  = miopen::TensorDescriptor(dataType, pDims);
     if(paramOffset == nullptr)
     {
         return;
@@ -845,8 +845,8 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
         return;
     }
 
-    auto bdim = int(hsize);
-    biasDesc  = miopen::TensorDescriptor(dataType, &bdim, 1);
+    auto bdim = hsize;
+    biasDesc  = miopen::TensorDescriptor(dataType, {bdim});
     if(biasOffset == nullptr)
     {
         return;
