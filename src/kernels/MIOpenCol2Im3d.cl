@@ -53,7 +53,7 @@ __kernel void Col2Im3d(global _FLOAT* col,
                        const int height,
                        const int width,
                        global _FLOAT* im,
-                       const int im_offset)
+                       const unsigned long im_offset)
 {
     global _FLOAT* im_off = im + im_offset;
     int gid               = (int)get_global_id(0);
@@ -72,19 +72,19 @@ __kernel void Col2Im3d(global _FLOAT* col,
     int start_d = (im_d < dilation_d * (wei_d - 1) + 1)
                       ? 0
                       : (im_d - (dilation_d * (wei_d - 1) + 1)) / stride_d + 1;
-    int end_d   = min(col_d, im_d / stride_d + 1);
+    int end_d = min(col_d, im_d / stride_d + 1);
 
     int start_h = (im_h < dilation_h * (wei_h - 1) + 1)
                       ? 0
                       : (im_h - (dilation_h * (wei_h - 1) + 1)) / stride_h + 1;
-    int end_h   = min(col_h, im_h / stride_h + 1);
+    int end_h = min(col_h, im_h / stride_h + 1);
 
     int start_w = (im_w < dilation_w * (wei_w - 1) + 1)
                       ? 0
                       : (im_w - (dilation_w * (wei_w - 1) + 1)) / stride_w + 1;
-    int end_w   = min(col_w, im_w / stride_w + 1);
+    int end_w = min(col_w, im_w / stride_w + 1);
 
-    int ch_offset = im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
+    long ch_offset = (long)im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
     col += ch_offset;
 
     _FLOAT_ACCUM tmp = (_FLOAT_ACCUM)0;
@@ -103,8 +103,10 @@ __kernel void Col2Im3d(global _FLOAT* col,
                     int y = (im_h - cy * stride_h) / dilation_h;
                     int x = (im_w - cx * stride_w) / dilation_w;
 
-                    int col_off =
-                        (((((z * wei_h) + y) * wei_w + x) * col_d + cz) * col_h + cy) * col_w + cx;
+                    long col_off =
+                        ((((((long)z * wei_h) + y) * wei_w + x) * col_d + cz) * col_h + cy) *
+                            col_w +
+                        cx;
 
                     tmp += CVT_FLOAT2ACCUM(col[col_off]);
                 }
