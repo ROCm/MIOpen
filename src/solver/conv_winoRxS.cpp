@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -175,32 +175,69 @@ namespace {
     }
 // clang-format on
 
-inline bool IsShaderContraintsMet(const ProblemDescription& problem,
-                                  const int R,
-                                  const int S,
-                                  const int C,
-                                  const int K,
-                                  const int H,
-                                  const int W,
-                                  const int OH,
-                                  const int OW,
-                                  const int N)
+// Winograd v30 is functionally supported on Vega10/Vega20 ASICs, but performance regression is
+// expected to be ~25%. Use Winograd v21 instead.
+// Details: https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
+inline bool IsWinogradV30Supported(const std::string& asic)
 {
-    // Padding for bwd data shall not be negative.
-    /// \todo Either remove WrW related code or re-use function from RxS
-    if(problem.direction.IsBackwardData())
-    {
-        if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
-            return false;
-        if(!(0 <= problem.GetBackwardPadH() && problem.GetBackwardPadH() < std::pow(2, 16)))
-            return false;
-    }
+    return !StartsWith(asic, "gfx900") && !StartsWith(asic, "gfx906");
+}
 
-    if(!problem.IsLayoutDefault())
-    {
-        return false;
-    }
+inline bool IsShaderContraintsMetV21(const ProblemDescription& problem,
+                                     const int R,
+                                     const int S,
+                                     const int C,
+                                     const int K,
+                                     const int H,
+                                     const int W,
+                                     const int OH,
+                                     const int OW,
+                                     const int N)
+{
+    uint64_t o_K_stride      = static_cast<uint64_t>(OH) * OW;
+    uint64_t o_N_stride      = o_K_stride * K;
+    uint64_t o_N_stride_OHOW = o_N_stride + o_K_stride;
 
+    uint64_t d_C_stride    = static_cast<uint64_t>(H) * W;
+    uint64_t d_N_stride    = d_C_stride * C;
+    uint64_t d_N_stride_HW = d_N_stride + d_C_stride;
+
+    auto num_tiles  = Ceil(OH, 2) * Ceil(OW, 2);
+    auto stride_one = problem.kernel_stride_h == 1 && problem.kernel_stride_w == 1 &&
+                      problem.kernel_dilation_h == 1 && problem.kernel_dilation_w == 1;
+
+    // clang-format off
+    // Check implementation limits.
+    return N < std::pow(2, 16)
+        && C < std::pow(2, 16)
+        && H < std::pow(2, 16)
+        && W < std::pow(2, 16)
+        && K < std::pow(2, 16)
+        && S < std::pow(2, 16)
+        && R < std::pow(2, 16)
+        && OH < std::pow(2, 16)
+        && OW < std::pow(2, 16)
+        && problem.pad_w < std::pow(2, 16)
+        && problem.pad_h < std::pow(2, 16)
+        && C * R * S < std::pow(2, 22)
+        && K * R * S < std::pow(2, 28)
+        && ((o_N_stride_OHOW < std::pow(2, 29) && d_N_stride_HW < std::pow(2, 29))
+           || (stride_one && o_N_stride < std::pow(2, 30) && d_N_stride < std::pow(2, 30)
+           && (N == 1 || num_tiles % 16 == 0)));
+    // clang-format on
+}
+
+inline bool IsShaderContraintsMetV30(const ProblemDescription& problem,
+                                     const int R,
+                                     const int S,
+                                     const int C,
+                                     const int K,
+                                     const int H,
+                                     const int W,
+                                     const int OH,
+                                     const int OW,
+                                     const int N)
+{
     // clang-format off
     // Check implementation limits.
     return N < std::pow(2, 16)
@@ -220,6 +257,38 @@ inline bool IsShaderContraintsMet(const ProblemDescription& problem,
         && (C + 1) * R * S < std::pow(2, 22)
         && (K + 1) * OH * OW < std::pow(2, 30);
     // clang-format on
+}
+
+inline bool IsShaderContraintsMet(const ProblemDescription& problem,
+                                  const int R,
+                                  const int S,
+                                  const int C,
+                                  const int K,
+                                  const int H,
+                                  const int W,
+                                  const int OH,
+                                  const int OW,
+                                  const int N,
+                                  const std::string& asic)
+{
+    // Padding for bwd data shall not be negative.
+    /// \todo Either remove WrW related code or re-use function from RxS
+    if(problem.direction.IsBackwardData())
+    {
+        if(!(0 <= problem.GetBackwardPadW() && problem.GetBackwardPadW() < std::pow(2, 16)))
+            return false;
+        if(!(0 <= problem.GetBackwardPadH() && problem.GetBackwardPadH() < std::pow(2, 16)))
+            return false;
+    }
+
+    if(!problem.IsLayoutDefault())
+    {
+        return false;
+    }
+
+    return IsWinogradV30Supported(asic)
+               ? IsShaderContraintsMetV30(problem, R, S, C, K, H, W, OH, OW, N)
+               : IsShaderContraintsMetV21(problem, R, S, C, K, H, W, OH, OW, N);
 }
 
 } // namespace
@@ -513,7 +582,8 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
                                      problem.out_width,
                                      problem.kernel_size_h,
                                      problem.kernel_size_w,
-                                     n_outputs_per_group); // C
+                                     n_outputs_per_group, // C
+                                     name);
     }
     else
     {
@@ -526,7 +596,8 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
                                      problem.in_width,
                                      problem.out_height, // OHxOW
                                      problem.out_width,
-                                     problem.batch_sz); // N
+                                     problem.batch_sz, // N
+                                     name);
     }
 }
 
@@ -546,6 +617,11 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ConvolutionContext
     if(IS3X2)
     {
         if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2{}))
+            return false;
+
+        const auto name = ctx.GetStream().GetDeviceName();
+        if(!IsWinogradV30Supported(name) &&
+           problem.kernel_stride_w == 2) // f3x2 stride 2 supported only in Winograd v30
             return false;
     }
     return IsApplicableBase(ctx, problem);
@@ -619,6 +695,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     const auto name     = ctx.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
     const auto is_gfx10 = StartsWith(name, "gfx10");
+    const auto is_v30   = IsWinogradV30Supported(name);
     size_t wg_size      = is_gfx9 ? 512 : 256;
 
     KernelInfo kernel;
@@ -637,8 +714,9 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
 
-    std::string kernel_name = "miopenSp3AsmConv_v30_2_6";
-    std::string kernel_file = "Conv_Winograd_v30_2_6";
+    const std::string kernel_version = is_v30 ? "_v30_2_6" : "_v21_1_3";
+    std::string kernel_name          = "miopenSp3AsmConv" + kernel_version;
+    std::string kernel_file          = "Conv_Winograd" + kernel_version;
     std::string kernel_postfix;
 
     if(is_gfx9)
@@ -744,6 +822,10 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                   group_cnt,
                   GetTypeSize(problem.weights_data_type));
 
+        const auto d_strides = is_v30 ? d_buf.stride : d_buf.byte_stride;
+        const auto f_strides = is_v30 ? f_buf.stride : f_buf.byte_stride;
+        const auto o_strides = is_v30 ? o_buf.stride : o_buf.byte_stride;
+
         result.invoker_factory = [=](std::vector<Kernel> kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
                 const auto k         = handle.Run(kernels[0]);
@@ -754,14 +836,14 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                 MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                     << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
                     << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
-                    << " d_buf.stride.nk="  << d_buf.stride.nk  << " d_buf.stride.c=" << d_buf.stride.c
-                    << " d_buf.stride.h="   << d_buf.stride.h   << " d_buf.stride.w=" << d_buf.stride.w
-                    << " f_buf.stride.nk="  << f_buf.stride.nk  << " f_buf.stride.c=" << f_buf.stride.c
-                    << " f_buf.stride.h="   << f_buf.stride.h   << " f_buf.stride.w=" << f_buf.stride.w
-                    << " o_buf.stride.nk="  << o_buf.stride.nk  << " o_buf.stride.c=" << o_buf.stride.c
-                    << " o_buf.stride.h="   << o_buf.stride.h   << " o_buf.stride.w=" << o_buf.stride.w
-                    << " d_buf.stride.g="   << d_buf.stride.g   << " o_buf.stride.g=" << o_buf.stride.g
-                    << " f_buf.stride.g="   << f_buf.stride.g);
+                    << " d_N_stride=" << d_strides.nk  << " d_C_stride=" << d_strides.c
+                    << " d_H_stride=" << d_strides.h   << " d_W_stride=" << d_strides.w
+                    << " f_K_stride=" << f_strides.nk  << " f_C_stride=" << f_strides.c
+                    << " f_R_stride=" << f_strides.h   << " f_S_stride=" << f_strides.w
+                    << " o_N_stride=" << f_strides.nk  << " o_K_stride=" << f_strides.c
+                    << " o_H_stride=" << f_strides.h   << " o_W_stride=" << f_strides.w
+                    << " d_G_stride=" << d_strides.g   << " f_G_stride=" << f_strides.g
+                    << " o_G_stride=" << o_strides.g);
                 // clang-format on
 
                 k(N,
@@ -789,22 +871,22 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                   reserved_offset, // Unused f_offset.
                   reserved_offset, // Unused o_offset.
                   reserved_offset, // Unused b_offset.
-                  d_buf.stride.nk,
-                  d_buf.stride.c,
-                  d_buf.stride.h,
-                  d_buf.stride.w,
-                  f_buf.stride.nk,
-                  f_buf.stride.c,
-                  f_buf.stride.h,
-                  f_buf.stride.w,
-                  o_buf.stride.nk,
-                  o_buf.stride.c,
-                  o_buf.stride.h,
-                  o_buf.stride.w,
+                  d_strides.nk,
+                  d_strides.c,
+                  d_strides.h,
+                  d_strides.w,
+                  f_strides.nk,
+                  f_strides.c,
+                  f_strides.h,
+                  f_strides.w,
+                  o_strides.nk,
+                  o_strides.c,
+                  o_strides.h,
+                  o_strides.w,
                   group_cnt,
-                  d_buf.stride.g,
-                  f_buf.stride.g,
-                  o_buf.stride.g);
+                  d_strides.g,
+                  f_strides.g,
+                  o_strides.g);
             };
         };
     }
@@ -846,8 +928,9 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                   group_cnt,
                   GetTypeSize(problem.weights_data_type));
 
-        decltype(auto) batch_sz = problem.batch_sz;
-        decltype(auto) n_inputs = problem.n_inputs;
+        const auto d_strides = is_v30 ? d_buf.stride : d_buf.byte_stride;
+        const auto f_strides = is_v30 ? f_buf.stride : f_buf.byte_stride;
+        const auto o_strides = is_v30 ? o_buf.stride : o_buf.byte_stride;
 
         result.invoker_factory = [=](std::vector<Kernel> kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -858,16 +941,15 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                 MIOPEN_LOG_I2(" N=" << N << " G=" << group_cnt << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                     << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
                     << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W
-                    << " d_buf.stride.nk="  << d_buf.stride.nk  << " d_buf.stride.c=" << d_buf.stride.c
-                    << " d_buf.stride.h="   << d_buf.stride.h   << " d_buf.stride.w=" << d_buf.stride.w
-                    << " f_buf.stride.nk="  << f_buf.stride.nk  << " f_buf.stride.c=" << f_buf.stride.c
-                    << " f_buf.stride.h="   << f_buf.stride.h   << " f_buf.stride.w=" << f_buf.stride.w
-                    << " o_buf.stride.nk="  << o_buf.stride.nk  << " o_buf.stride.c=" << o_buf.stride.c
-                    << " o_buf.stride.h="   << o_buf.stride.h   << " o_buf.stride.w=" << o_buf.stride.w
-                    << " d_buf.stride.g="   << d_buf.stride.g   << " o_buf.stride.g=" << o_buf.stride.g
-                    << " f_buf.stride.g="   << f_buf.stride.g);
+                    << " d_N_stride=" << d_strides.nk  << " d_C_stride=" << d_strides.c
+                    << " d_H_stride=" << d_strides.h   << " d_W_stride=" << d_strides.w
+                    << " f_K_stride=" << f_strides.nk  << " f_C_stride=" << f_strides.c
+                    << " f_R_stride=" << f_strides.h   << " f_S_stride=" << f_strides.w
+                    << " o_N_stride=" << f_strides.nk  << " o_K_stride=" << f_strides.c
+                    << " o_H_stride=" << f_strides.h   << " o_W_stride=" << f_strides.w
+                    << " d_G_stride=" << d_strides.g   << " f_G_stride=" << f_strides.g
+                    << " o_G_stride=" << o_strides.g);
                 // clang-format on
-                MIOPEN_LOG_I2(" ctx.batch_sz=" << batch_sz << "ctx.n_inputs=" << n_inputs);
 
                 int reserved             = 0;
                 uint64_t reserved_offset = 0;
@@ -898,22 +980,22 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                                        reserved_offset, // Unused f_offset.
                                        reserved_offset, // Unused o_offset.
                                        reserved_offset, // Unused b_offset.
-                                       d_buf.stride.nk,
-                                       d_buf.stride.c,
-                                       d_buf.stride.h,
-                                       d_buf.stride.w,
-                                       f_buf.stride.nk,
-                                       f_buf.stride.c,
-                                       f_buf.stride.h,
-                                       f_buf.stride.w,
-                                       o_buf.stride.nk,
-                                       o_buf.stride.c,
-                                       o_buf.stride.h,
-                                       o_buf.stride.w,
+                                       d_strides.nk,
+                                       d_strides.c,
+                                       d_strides.h,
+                                       d_strides.w,
+                                       f_strides.nk,
+                                       f_strides.c,
+                                       f_strides.h,
+                                       f_strides.w,
+                                       o_strides.nk,
+                                       o_strides.c,
+                                       o_strides.h,
+                                       o_strides.w,
                                        group_cnt,
-                                       d_buf.stride.g,
-                                       f_buf.stride.g,
-                                       o_buf.stride.g);
+                                       d_strides.g,
+                                       f_strides.g,
+                                       o_strides.g);
             };
         };
     }
