@@ -592,7 +592,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor
  *
  * Interface for setting 4-D tensor shape. MIOpen currently only implements NCHW layout.
  *
- * @param tensorDesc Tensor descriptor (input)
+ * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
  * @param n          Mini-batch size (input)
  * @param c          Number of channels (input)
@@ -606,7 +606,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSet4dTensorDescriptor(
 /*! @brief Set shape of ND tensor with specific layout
  *
  * Interface for setting N-D tensor shape. This interface support NHWC, NCHW, NCHWc*, CHWNc*
- * @param tensorDesc   Tensor descriptor (input)
+ * @param tensorDesc   Tensor descriptor (input/output)
  * @param dataType     MIOpen datatype (input)
  * @param tensorLayout Tensor layout (input)
  * @param lens         Tensor dimensions (input)
@@ -623,7 +623,7 @@ miopenSetNdTensorDescriptorWithLayout(miopenTensorDescriptor_t tensorDesc,
  *
  * Interface for setting 4-D tensor shape and stride.
  *
- * @param tensorDesc Tensor descriptor (input)
+ * @param tensorDesc Tensor descriptor (input/output)
  * @param dataType   MIOpen datatype (input)
  * @param n          Mini-batch size (input)
  * @param c          Number of channels (input)
@@ -677,7 +677,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_
  *
  * Interface for setting tensor shape. MIOpen has support for 1, 2, 3, 4, 5 dimensional tensor of
  * layout.
- * @param tensorDesc   Tensor descriptor (input)
+ * @param tensorDesc   Tensor descriptor (input/output)
  * @param dataType     MIOpen datatype (input)
  * @param nbDims       Number of dimensions in the dimsA array (input)
  * @param dimsA        Array containing the size of dimensions (input)
