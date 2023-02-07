@@ -45,6 +45,7 @@
 #include <iterator>
 #include <chrono>
 #include <cassert>
+#include <random>
 
 namespace miopen {
 namespace solver {
@@ -323,10 +324,15 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     auto& profile_h = context.GetStream();
     AutoEnableProfiling enableProfiling{profile_h};
 
-    auto all_configs = GetAllConfigs(s, context);
+    auto tmp_all_configs = GetAllConfigs(s, context);
     const std::size_t n_runs_total =
-        std::min(static_cast<std::size_t>(std::distance(all_configs.begin(), all_configs.end())),
+        std::min(static_cast<std::size_t>(std::distance(tmp_all_configs.begin(), tmp_all_configs.end())),
                  GetTuningIterationsMax());
+    std::vector<std::pair<PerformanceConfig, bool>> all_configs;
+    for(const auto& config : tmp_all_configs)
+    {
+        all_configs.push_back(std::make_pair(config, false));
+    }
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
@@ -339,10 +345,12 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     {
         std::vector<KernelInfo> kernels;
         size_t n_current = 0;
-        for(const auto& current_config : all_configs)
+        for(const auto& kinder : all_configs)
         {
             if(n_current >= n_runs_total)
                 break;
+
+            const auto& current_config = kinder.first;
             ConvSolution current_solution = s.GetSolution(context, current_config);
             for(auto&& kernel : current_solution.construction_params)
             {
@@ -355,13 +363,32 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         std::ignore = PrecompileKernels(profile_h, kernels);
     }
 
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> distrib(0, n_runs_total-1);
+
+
     if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
     {
         size_t n_current = 0;
-        for(const auto& current_config : all_configs)
+        // for(const auto& kinder: all_configs)
+        while(true)
         {
             if(n_current >= n_runs_total)
                 break;
+            const auto idx = distrib(gen);
+            MIOPEN_LOG_I2("Got random index: " << idx);
+            auto& kinder = all_configs[idx];
+
+            if(kinder.second)
+            {
+                MIOPEN_LOG_I2("Skipping tested entry");
+                continue; // This point has already been tested
+            }
+            else
+                kinder.second = true;
+
+            const auto& current_config = kinder.first;
 
             float elapsed_time = 0.0f;
             int ret            = 0;
