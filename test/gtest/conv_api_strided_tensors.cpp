@@ -169,9 +169,8 @@ TEST_F(ConvStridedTensors, ConvStridedTensorsNotImplemented)
     const float beta  = 0.f;
 
     // miopenConvolutionForward() must return error if the format is not supported
-    // TODO replace ASSERT_EQ with ASSERT_NE after testing
     ASSERT_TRUE(device.Synchronize());
-    ASSERT_EQ(miopenConvolutionForward(handle,
+    ASSERT_NE(miopenConvolutionForward(handle,
                                        &alpha,
                                        input_descr,
                                        d_input.Data(),
