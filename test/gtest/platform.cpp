@@ -28,20 +28,16 @@
 #include <gtest/gtest.h>
 #include "platform.hpp"
 
-#define THROW_PLATFORM_EXCEPTION(what)\
+#define THROW_PLATFORM_EXCEPTION(what) \
     throw std::runtime_error(what + std::string(" at ") + __FILE__ + ":" + std::to_string(__LINE__))
 
 // ==================== Device ====================
 
 #if MIOPEN_BACKEND_HIP
 
-Device::Device(miopenHandle_t)
-{
-}
+Device::Device(miopenHandle_t) {}
 
-Device::~Device()
-{
-}
+Device::~Device() {}
 
 #endif // MIOPEN_BACKEND_HIP
 
@@ -60,7 +56,8 @@ Device::Device(miopenHandle_t handle)
     if(status != CL_SUCCESS)
         THROW_PLATFORM_EXCEPTION("clRetainCommandQueue error");
 
-    status = clGetCommandQueueInfo(cmd_queue, CL_QUEUE_CONTEXT, sizeof(cl_context), &context, nullptr);
+    status =
+        clGetCommandQueueInfo(cmd_queue, CL_QUEUE_CONTEXT, sizeof(cl_context), &context, nullptr);
     if(status != CL_SUCCESS)
         THROW_PLATFORM_EXCEPTION("clGetCommandQueueInfo error");
 
@@ -77,10 +74,7 @@ Device::~Device()
 
 #endif // MIOPEN_BACKEND_OPENCL
 
-DevMem Device::Malloc(size_t size) const
-{
-    return {*this, size};
-}
+DevMem Device::Malloc(size_t size) const { return {*this, size}; }
 
 #if MIOPEN_BACKEND_HIP
 
@@ -117,10 +111,7 @@ DevMem::DevMem(const Device&, size_t size)
         THROW_PLATFORM_EXCEPTION("hipMalloc error");
 }
 
-DevMem::~DevMem()
-{
-    EXPECT_EQ(hipFree(ptr), hipSuccess);
-}
+DevMem::~DevMem() { EXPECT_EQ(hipFree(ptr), hipSuccess); }
 
 #endif // MIOPEN_BACKEND_HIP
 
@@ -133,12 +124,12 @@ DevMem::DevMem(const Device& device, size_t size)
     if(size == 0)
     {
         cmd_queue = nullptr;
-        ptr = nullptr;
+        ptr       = nullptr;
         return;
     }
 
     cmd_queue = device.cmd_queue;
-    status = clRetainCommandQueue(cmd_queue);
+    status    = clRetainCommandQueue(cmd_queue);
     if(status != CL_SUCCESS)
         THROW_PLATFORM_EXCEPTION("clRetainCommandQueue error");
 
@@ -158,10 +149,7 @@ DevMem::~DevMem()
 
 #endif // MIOPEN_BACKEND_OPENCL
 
-void* DevMem::Data() const
-{
-    return ptr;
-}
+void* DevMem::Data() const { return ptr; }
 
 #if MIOPEN_BACKEND_HIP
 

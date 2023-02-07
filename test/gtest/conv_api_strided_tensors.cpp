@@ -101,18 +101,18 @@ protected:
     miopenTensorDescriptor_t input_descr  = nullptr;
     miopenTensorDescriptor_t filter_descr = nullptr;
     miopenTensorDescriptor_t output_descr = nullptr;
-    std::vector<int> input_dims     = {4, 4, 16, 9, 16};
-    std::vector<int> input_strides  = {10240, 2560, 160, 16, 1};
-    std::vector<int> filter_dims    = {8, 4, 3, 3, 3};
-    std::vector<int> filter_strides = {108, 27, 9, 3, 1};
-    std::vector<int> output_dims    = {4, 8, 8, 4, 8};
-    std::vector<int> output_strides = {2048, 256, 32, 8, 1};
+    std::vector<int> input_dims           = {4, 4, 16, 9, 16};
+    std::vector<int> input_strides        = {10240, 2560, 160, 16, 1};
+    std::vector<int> filter_dims          = {8, 4, 3, 3, 3};
+    std::vector<int> filter_strides       = {108, 27, 9, 3, 1};
+    std::vector<int> output_dims          = {4, 8, 8, 4, 8};
+    std::vector<int> output_strides       = {2048, 256, 32, 8, 1};
 
     // Convolution descriptor
     miopenConvolutionDescriptor_t conv_descr = nullptr;
-    std::vector<int> pad      = {1, 0, 1};
-    std::vector<int> stride   = {2, 2, 2};
-    std::vector<int> dilation = {1, 1, 1};
+    std::vector<int> pad                     = {1, 0, 1};
+    std::vector<int> stride                  = {2, 2, 2};
+    std::vector<int> dilation                = {1, 1, 1};
 
     // Workspace
     size_t workspace_size;
@@ -135,9 +135,9 @@ TEST_F(ConvStridedTensors, ConvStridedTensorsNotImplemented)
     auto device = Device(handle);
 
     auto d_workspace = device.Malloc(workspace_size);
-    auto d_input = device.Malloc(input_bytes);
-    auto d_filter = device.Malloc(filter_bytes);
-    auto d_output = device.Malloc(output_bytes);
+    auto d_input     = device.Malloc(input_bytes);
+    auto d_filter    = device.Malloc(filter_bytes);
+    auto d_output    = device.Malloc(output_bytes);
 
     std::fill_n(h_input.begin(), h_input.size(), 1.f);
     ASSERT_TRUE(d_input.CopyToDevice(h_input.data(), input_bytes));
