@@ -27,11 +27,10 @@
 // Test Suite for convolution with strided tensor descriptors
 
 #include <gtest/gtest.h>
-#include <hip/hip_runtime_api.h>
 #include <miopen/miopen.h>
+#include "platform.hpp"
 
 #define MIOPEN_CHECK_RET(val) ASSERT_EQ(val, miopenStatusSuccess)
-#define HIP_CHECK_RET(val) ASSERT_EQ(val, hipSuccess)
 
 class ConvStridedTensors : public ::testing::Test
 {
@@ -69,37 +68,15 @@ protected:
         // Workspace
         MIOPEN_CHECK_RET(miopenConvolutionForwardGetWorkSpaceSize(
             handle, filter_descr, input_descr, conv_descr, output_descr, &workspace_size));
-        HIP_CHECK_RET(hipMalloc(&d_workspace, workspace_size));
 
         // Data
-        HIP_CHECK_RET(hipHostMalloc(&h_input, input_bytes));
-        HIP_CHECK_RET(hipHostMalloc(&h_filter, filter_bytes));
-        HIP_CHECK_RET(hipHostMalloc(&h_output, output_bytes));
-        HIP_CHECK_RET(hipMalloc(&d_input, input_bytes));
-        HIP_CHECK_RET(hipMalloc(&d_filter, filter_bytes));
-        HIP_CHECK_RET(hipMalloc(&d_output, output_bytes));
+        h_input.resize(input_size);
+        h_filter.resize(filter_size);
+        h_output.resize(output_size);
     }
 
     void TearDown() override
     {
-        // Data
-        if(d_output != nullptr)
-            HIP_CHECK_RET(hipFree(d_output));
-        if(d_filter != nullptr)
-            HIP_CHECK_RET(hipFree(d_filter));
-        if(d_input != nullptr)
-            HIP_CHECK_RET(hipFree(d_input));
-        if(h_output != nullptr)
-            HIP_CHECK_RET(hipHostFree(h_output));
-        if(h_filter != nullptr)
-            HIP_CHECK_RET(hipHostFree(h_filter));
-        if(h_input != nullptr)
-            HIP_CHECK_RET(hipHostFree(h_input));
-
-        // Workspace
-        if(d_workspace != nullptr)
-            HIP_CHECK_RET(hipFree(d_workspace));
-
         // Convolution descriptor
         if(conv_descr != nullptr)
             MIOPEN_CHECK_RET(miopenDestroyConvolutionDescriptor(conv_descr));
@@ -124,7 +101,6 @@ protected:
     miopenTensorDescriptor_t input_descr  = nullptr;
     miopenTensorDescriptor_t filter_descr = nullptr;
     miopenTensorDescriptor_t output_descr = nullptr;
-    // Note: All variables are const, but MIOpen's API is not const-correct
     std::vector<int> input_dims     = {4, 4, 16, 9, 16};
     std::vector<int> input_strides  = {10240, 2560, 160, 16, 1};
     std::vector<int> filter_dims    = {8, 4, 3, 3, 3};
@@ -134,14 +110,12 @@ protected:
 
     // Convolution descriptor
     miopenConvolutionDescriptor_t conv_descr = nullptr;
-    // Note: All variables are const, but MIOpen's API is not const-correct
     std::vector<int> pad      = {1, 0, 1};
     std::vector<int> stride   = {2, 2, 2};
     std::vector<int> dilation = {1, 1, 1};
 
     // Workspace
     size_t workspace_size;
-    float* d_workspace = nullptr;
 
     // Data
     const size_t input_size   = input_dims[0] * input_strides[0];
@@ -150,62 +124,66 @@ protected:
     const size_t input_bytes  = input_size * sizeof(float);
     const size_t filter_bytes = filter_size * sizeof(float);
     const size_t output_bytes = output_size * sizeof(float);
-    float* h_input            = nullptr;
-    float* h_filter           = nullptr;
-    float* h_output           = nullptr;
-    float* d_input            = nullptr;
-    float* d_filter           = nullptr;
-    float* d_output           = nullptr;
+    std::vector<float> h_input;
+    std::vector<float> h_filter;
+    std::vector<float> h_output;
 };
 
 // This test should be replaced when strided tensors are fully implemented
 TEST_F(ConvStridedTensors, ConvStridedTensorsNotImplemented)
 {
+    auto device = Device(handle);
+
+    auto d_workspace = device.Malloc(workspace_size);
+    auto d_input = device.Malloc(input_bytes);
+    auto d_filter = device.Malloc(filter_bytes);
+    auto d_output = device.Malloc(output_bytes);
+
+    std::fill_n(h_input.begin(), h_input.size(), 1.f);
+    ASSERT_TRUE(d_input.CopyToDevice(h_input.data(), input_bytes));
+
+    std::fill_n(h_filter.begin(), h_filter.size(), 1.f);
+    ASSERT_TRUE(d_filter.CopyToDevice(h_filter.data(), filter_bytes));
+
     miopenConvAlgoPerf_t perf_results[10];
     int perf_results_count;
 
-    std::fill_n(h_input, input_size, 1.f);
-    HIP_CHECK_RET(hipMemcpy(d_input, h_input, input_bytes, hipMemcpyHostToDevice));
-
-    std::fill_n(h_filter, filter_size, 1.f);
-    HIP_CHECK_RET(hipMemcpy(d_filter, h_filter, filter_bytes, hipMemcpyHostToDevice));
-
     ASSERT_EQ(miopenFindConvolutionForwardAlgorithm(handle,
                                                     input_descr,
-                                                    d_input,
+                                                    d_input.Data(),
                                                     filter_descr,
-                                                    d_filter,
+                                                    d_filter.Data(),
                                                     conv_descr,
                                                     output_descr,
-                                                    d_output,
+                                                    d_output.Data(),
                                                     sizeof(perf_results) / sizeof(perf_results[0]),
                                                     &perf_results_count,
                                                     perf_results,
-                                                    d_workspace,
+                                                    d_workspace.Data(),
                                                     workspace_size,
                                                     true),
               miopenStatusSuccess);
-    EXPECT_GT(perf_results_count, 0);
+    ASSERT_GT(perf_results_count, 0);
 
     const float alpha = 1.f;
     const float beta  = 0.f;
 
     // miopenConvolutionForward() must return error if the format is not supported
     // TODO replace ASSERT_EQ with ASSERT_NE after testing
-    HIP_CHECK_RET(hipDeviceSynchronize());
+    ASSERT_TRUE(device.Synchronize());
     ASSERT_EQ(miopenConvolutionForward(handle,
                                        &alpha,
                                        input_descr,
-                                       d_input,
+                                       d_input.Data(),
                                        filter_descr,
-                                       d_filter,
+                                       d_filter.Data(),
                                        conv_descr,
                                        perf_results[0].fwd_algo,
                                        &beta,
                                        output_descr,
-                                       d_output,
-                                       d_workspace,
+                                       d_output.Data(),
+                                       d_workspace.Data(),
                                        workspace_size),
               miopenStatusSuccess);
-    HIP_CHECK_RET(hipDeviceSynchronize());
+    ASSERT_TRUE(device.Synchronize());
 }
