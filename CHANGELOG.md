@@ -6,11 +6,11 @@ Full documentation for MIOpen is available at [https://rocmsoftwareplatform.gith
 ## (Unreleased) MIOpen-2.18.0 for ROCm 5.5.0
 ### Added
 	- ROCm 5.5 support for GFX1101 (Navi32)
-### Changed   
+### Changed
 	- Tuning results for MLIR on ROCm 5.5
-   	- Bumping MLIR commit to 5.5.0 release tag 
-### Fixed    
-	- Fix 3d convolution Host API bug   
+    - Bumping MLIR commit to 5.5.0 release tag
+### Fixed
+	- Fix 3d convolution Host API bug
 	- [HOTFIX][MI200][FP16] Disabled ConvHipImplicitGemmBwdXdlops when FP16_ALT is required. 
 
 ## MIOpen 2.16.0 for ROCm 5.1.1
