@@ -5798,6 +5798,7 @@ struct ConvHipImplicitGemmFwdXdlops final
     bool MayNeedWorkspace() const override { return false; }
     bool IsApplicable(const ConvolutionContext& ctx) const override
     {
+        std::cout<<"calling here"<<std::endl;
         return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }

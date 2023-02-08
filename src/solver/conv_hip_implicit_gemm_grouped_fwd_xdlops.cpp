@@ -286,13 +286,21 @@ void ConvHipImplicitGemmGroupFwdXdlops::RunCKSolution(
     const auto enable_profiling = handle.IsProfilingEnabled();
     
     std::cout<<"*********run ck solution**********"<<std::endl;
-    auto& wDesc = tensors.wDesc;
     auto& xDesc = tensors.inDesc;
+    /*auto& wDesc = tensors.wDesc;
+    auto& yDesc = tensors.outDesc;
     std::cout<<"**********************************************G: "<<args.G<<std::endl;
     std::cout<<"**********************************************N: "<<args.N<<std::endl;
     std::cout<<"**********************************************K: "<<args.K<<std::endl;
-    std::cout<<"**********************************************C: "<<args.C<<std::endl;   
-    std::cout<<"****************************xDesc.GetLayout_t(): "<<xDesc.GetLayout_t()<<std::endl;
+    std::cout<<"**********************************************C: "<<args.C<<std::endl;*/   
+    std::cout<<"****************************problem.conv_problem.GetInLayout(): "<<problem.conv_problem.GetInLayout()<<std::endl;
+    std::cout<<"****************************xDesc.GetLayout_str(): "<<xDesc.GetLayout_str()<<std::endl;
+    /*std::cout<<"****************************yDesc.GetLayout_t(): "<<yDesc.GetLayout_t()<<std::endl;
+    std::cout<<"****************************strides[0]: "<<args.in_strides[0]<<std::endl;
+    std::cout<<"****************************strides[1]: "<<args.in_strides[1]<<std::endl;
+    std::cout<<"****************************strides[2]: "<<args.in_strides[2]<<std::endl;
+    std::cout<<"****************************strides[3]: "<<args.in_strides[3]<<std::endl;
+    std::cout<<"****************************strides[4]: "<<args.in_strides[4]<<std::endl;
     std::cout<<"****************************xDesc.GetLengths()[0]: "<<xDesc.GetLengths()[0]<<std::endl;
     std::cout<<"****************************xDesc.GetLengths()[1]: "<<xDesc.GetLengths()[1]<<std::endl;
     std::cout<<"****************************xDesc.GetLengths()[2]: "<<xDesc.GetLengths()[2]<<std::endl;
@@ -300,7 +308,7 @@ void ConvHipImplicitGemmGroupFwdXdlops::RunCKSolution(
     std::cout<<"****************************wDesc.GetLengths()[0]: "<<wDesc.GetLengths()[0]<<std::endl;
     std::cout<<"****************************wDesc.GetLengths()[1]: "<<wDesc.GetLengths()[1]<<std::endl;
     std::cout<<"****************************wDesc.GetLengths()[2]: "<<wDesc.GetLengths()[2]<<std::endl;
-    std::cout<<"****************************wDesc.GetLengths()[3]: "<<wDesc.GetLengths()[3]<<std::endl;
+    std::cout<<"****************************wDesc.GetLengths()[3]: "<<wDesc.GetLengths()[3]<<std::endl;*/
 
     float elapsed_time =
         invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
