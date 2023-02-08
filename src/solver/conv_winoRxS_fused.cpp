@@ -68,16 +68,16 @@ inline bool IsWinogradV21Preferred(const std::string& asic, const ProblemDescrip
            !(IS3X2 && problem.kernel_stride_w == 2);
 }
 
-inline bool IsShaderContraintsMetV21(const ProblemDescription& problem,
-                                     const int R,
-                                     const int S,
-                                     const int C,
-                                     const int K,
-                                     const int H,
-                                     const int W,
-                                     const int OH,
-                                     const int OW,
-                                     const int N)
+inline bool IsShaderConstraintsMetV21(const ProblemDescription& problem,
+                                      const int R,
+                                      const int S,
+                                      const int C,
+                                      const int K,
+                                      const int H,
+                                      const int W,
+                                      const int OH,
+                                      const int OW,
+                                      const int N)
 {
     uint64_t o_K_stride      = static_cast<uint64_t>(OH) * OW;
     uint64_t o_N_stride      = o_K_stride * K;
@@ -112,16 +112,16 @@ inline bool IsShaderContraintsMetV21(const ProblemDescription& problem,
     // clang-format on
 }
 
-inline bool IsShaderContraintsMetV30(const ProblemDescription& problem,
-                                     const int R,
-                                     const int S,
-                                     const int C,
-                                     const int K,
-                                     const int H,
-                                     const int W,
-                                     const int OH,
-                                     const int OW,
-                                     const int N)
+inline bool IsShaderConstraintsMetV30(const ProblemDescription& problem,
+                                      const int R,
+                                      const int S,
+                                      const int C,
+                                      const int K,
+                                      const int H,
+                                      const int W,
+                                      const int OH,
+                                      const int OW,
+                                      const int N)
 {
     // clang-format off
     // Check implementation limits.
@@ -191,8 +191,8 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
     const auto OW = conv_ctx.problem.conv_problem.GetOutWidth();
 
     return IsWinogradV21Preferred<2, 3>(name, conv_ctx.problem)
-               ? IsShaderContraintsMetV21(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N)
-               : IsShaderContraintsMetV30(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N);
+               ? IsShaderConstraintsMetV21(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N)
+               : IsShaderConstraintsMetV30(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N);
 }
 
 ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& context,

@@ -185,16 +185,16 @@ inline bool IsWinogradV21Preferred(const std::string& asic, const ProblemDescrip
            !(IS3X2 && problem.kernel_stride_w == 2);
 }
 
-inline bool IsShaderContraintsMetV21(const ProblemDescription& problem,
-                                     const int R,
-                                     const int S,
-                                     const int C,
-                                     const int K,
-                                     const int H,
-                                     const int W,
-                                     const int OH,
-                                     const int OW,
-                                     const int N)
+inline bool IsShaderConstraintsMetV21(const ProblemDescription& problem,
+                                      const int R,
+                                      const int S,
+                                      const int C,
+                                      const int K,
+                                      const int H,
+                                      const int W,
+                                      const int OH,
+                                      const int OW,
+                                      const int N)
 {
     uint64_t o_K_stride      = static_cast<uint64_t>(OH) * OW;
     uint64_t o_N_stride      = o_K_stride * K;
@@ -229,16 +229,16 @@ inline bool IsShaderContraintsMetV21(const ProblemDescription& problem,
     // clang-format on
 }
 
-inline bool IsShaderContraintsMetV30(const ProblemDescription& problem,
-                                     const int R,
-                                     const int S,
-                                     const int C,
-                                     const int K,
-                                     const int H,
-                                     const int W,
-                                     const int OH,
-                                     const int OW,
-                                     const int N)
+inline bool IsShaderConstraintsMetV30(const ProblemDescription& problem,
+                                      const int R,
+                                      const int S,
+                                      const int C,
+                                      const int K,
+                                      const int H,
+                                      const int W,
+                                      const int OH,
+                                      const int OW,
+                                      const int N)
 {
     // clang-format off
     // Check implementation limits.
@@ -262,17 +262,17 @@ inline bool IsShaderContraintsMetV30(const ProblemDescription& problem,
 }
 
 template <int Winodata, int Winofilter>
-inline bool IsShaderContraintsMet(const ProblemDescription& problem,
-                                  const int R,
-                                  const int S,
-                                  const int C,
-                                  const int K,
-                                  const int H,
-                                  const int W,
-                                  const int OH,
-                                  const int OW,
-                                  const int N,
-                                  const std::string& asic)
+inline bool IsShaderConstraintsMet(const ProblemDescription& problem,
+                                   const int R,
+                                   const int S,
+                                   const int C,
+                                   const int K,
+                                   const int H,
+                                   const int W,
+                                   const int OH,
+                                   const int OW,
+                                   const int N,
+                                   const std::string& asic)
 {
     // Padding for bwd data shall not be negative.
     /// \todo Either remove WrW related code or re-use function from RxS
@@ -290,8 +290,8 @@ inline bool IsShaderContraintsMet(const ProblemDescription& problem,
     }
 
     return IsWinogradV21Preferred<Winodata, Winofilter>(asic, problem)
-               ? IsShaderContraintsMetV21(problem, R, S, C, K, H, W, OH, OW, N)
-               : IsShaderContraintsMetV30(problem, R, S, C, K, H, W, OH, OW, N);
+               ? IsShaderConstraintsMetV21(problem, R, S, C, K, H, W, OH, OW, N)
+               : IsShaderConstraintsMetV30(problem, R, S, C, K, H, W, OH, OW, N);
 }
 
 } // namespace
@@ -577,31 +577,31 @@ static bool IsApplicableBase(const ConvolutionContext& ctx, const ProblemDescrip
     {
         if(problem.kernel_stride_w == 2)
             return false;
-        return IsShaderContraintsMet<Winodata, Winofilter>(problem,
-                                                           problem.in_height,
-                                                           problem.in_width,
-                                                           problem.batch_sz,   // N
-                                                           n_inputs_per_group, // K
-                                                           problem.out_height,
-                                                           problem.out_width,
-                                                           problem.kernel_size_h,
-                                                           problem.kernel_size_w,
-                                                           n_outputs_per_group, // C
-                                                           name);
+        return IsShaderConstraintsMet<Winodata, Winofilter>(problem,
+                                                            problem.in_height,
+                                                            problem.in_width,
+                                                            problem.batch_sz,   // N
+                                                            n_inputs_per_group, // K
+                                                            problem.out_height,
+                                                            problem.out_width,
+                                                            problem.kernel_size_h,
+                                                            problem.kernel_size_w,
+                                                            n_outputs_per_group, // C
+                                                            name);
     }
     else
     {
-        return IsShaderContraintsMet<Winodata, Winofilter>(problem,
-                                                           problem.kernel_size_h, // RxS
-                                                           problem.kernel_size_w,
-                                                           n_inputs_per_group,  // C
-                                                           n_outputs_per_group, // K
-                                                           problem.in_height,   // HxW
-                                                           problem.in_width,
-                                                           problem.out_height, // OHxOW
-                                                           problem.out_width,
-                                                           problem.batch_sz, // N
-                                                           name);
+        return IsShaderConstraintsMet<Winodata, Winofilter>(problem,
+                                                            problem.kernel_size_h, // RxS
+                                                            problem.kernel_size_w,
+                                                            n_inputs_per_group,  // C
+                                                            n_outputs_per_group, // K
+                                                            problem.in_height,   // HxW
+                                                            problem.in_width,
+                                                            problem.out_height, // OHxOW
+                                                            problem.out_width,
+                                                            problem.batch_sz, // N
+                                                            name);
     }
 }
 
