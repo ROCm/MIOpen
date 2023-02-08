@@ -79,19 +79,29 @@ protected:
     {
         // Convolution descriptor
         if(conv_descr != nullptr)
+        {
             MIOPEN_CHECK_RET(miopenDestroyConvolutionDescriptor(conv_descr));
+        }
 
         // Tensor descriptors
         if(output_descr != nullptr)
+        {
             MIOPEN_CHECK_RET(miopenDestroyTensorDescriptor(output_descr));
+        }
         if(filter_descr != nullptr)
+        {
             MIOPEN_CHECK_RET(miopenDestroyTensorDescriptor(filter_descr));
+        }
         if(input_descr != nullptr)
+        {
             MIOPEN_CHECK_RET(miopenDestroyTensorDescriptor(input_descr));
+        }
 
         // MIOpen handle
         if(handle != nullptr)
+        {
             MIOPEN_CHECK_RET(miopenDestroy(handle));
+        }
     }
 
     // MIOpen handle

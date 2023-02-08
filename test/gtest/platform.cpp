@@ -50,20 +50,28 @@ Device::Device(miopenHandle_t handle)
 
     miopen_status = miopenGetStream(handle, &cmd_queue);
     if(miopen_status != miopenStatusSuccess)
+    {
         THROW_PLATFORM_EXCEPTION("miopenGetStream error");
+    }
 
     status = clRetainCommandQueue(cmd_queue);
     if(status != CL_SUCCESS)
+    {
         THROW_PLATFORM_EXCEPTION("clRetainCommandQueue error");
+    }
 
     status =
         clGetCommandQueueInfo(cmd_queue, CL_QUEUE_CONTEXT, sizeof(cl_context), &context, nullptr);
     if(status != CL_SUCCESS)
+    {
         THROW_PLATFORM_EXCEPTION("clGetCommandQueueInfo error");
+    }
 
     status = clRetainContext(context);
     if(status != CL_SUCCESS)
+    {
         THROW_PLATFORM_EXCEPTION("clRetainContext error");
+    }
 }
 
 Device::~Device()
@@ -108,7 +116,9 @@ DevMem::DevMem(const Device&, size_t size)
 {
     auto status = hipMalloc(&ptr, size);
     if(status != hipSuccess)
+    {
         THROW_PLATFORM_EXCEPTION("hipMalloc error");
+    }
 }
 
 DevMem::~DevMem() { EXPECT_EQ(hipFree(ptr), hipSuccess); }
@@ -131,11 +141,15 @@ DevMem::DevMem(const Device& device, size_t size)
     cmd_queue = device.cmd_queue;
     status    = clRetainCommandQueue(cmd_queue);
     if(status != CL_SUCCESS)
+    {
         THROW_PLATFORM_EXCEPTION("clRetainCommandQueue error");
+    }
 
     ptr = clCreateBuffer(device.context, CL_MEM_READ_WRITE, size, nullptr, &status);
     if(status != CL_SUCCESS)
+    {
         THROW_PLATFORM_EXCEPTION("clCreateBuffer error");
+    }
 }
 
 DevMem::~DevMem()
