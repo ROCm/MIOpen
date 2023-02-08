@@ -72,19 +72,24 @@ __kernel void Col2Im3d(global _FLOAT* col,
     int start_d = (im_d < dilation_d * (wei_d - 1) + 1)
                       ? 0
                       : (im_d - (dilation_d * (wei_d - 1) + 1)) / stride_d + 1;
-    int end_d   = min(col_d, im_d / stride_d + 1);
+    int end_d = min(col_d, im_d / stride_d + 1);
 
     int start_h = (im_h < dilation_h * (wei_h - 1) + 1)
                       ? 0
                       : (im_h - (dilation_h * (wei_h - 1) + 1)) / stride_h + 1;
-    int end_h   = min(col_h, im_h / stride_h + 1);
+    int end_h = min(col_h, im_h / stride_h + 1);
 
     int start_w = (im_w < dilation_w * (wei_w - 1) + 1)
                       ? 0
                       : (im_w - (dilation_w * (wei_w - 1) + 1)) / stride_w + 1;
-    int end_w   = min(col_w, im_w / stride_w + 1);
+    int end_w = min(col_w, im_w / stride_w + 1);
 
+#if MIOPEN_USE_64BIT_INDEX
     long ch_offset = (long)im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
+#else
+    int ch_offset = (long)im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
+#endif
+
     col += ch_offset;
 
     _FLOAT_ACCUM tmp = (_FLOAT_ACCUM)0;
@@ -103,10 +108,15 @@ __kernel void Col2Im3d(global _FLOAT* col,
                     int y = (im_h - cy * stride_h) / dilation_h;
                     int x = (im_w - cx * stride_w) / dilation_w;
 
+#if MIOPEN_USE_64BIT_INDEX
                     long col_off =
                         ((((((long)z * wei_h) + y) * wei_w + x) * col_d + cz) * col_h + cy) *
                             col_w +
                         cx;
+#else
+                    int col_off =
+                        (((((z * wei_h) + y) * wei_w + x) * col_d + cz) * col_h + cy) * col_w + cx;
+#endif
 
                     tmp += CVT_FLOAT2ACCUM(col[col_off]);
                 }

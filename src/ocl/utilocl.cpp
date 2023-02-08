@@ -565,7 +565,14 @@ float Col2Im3dGPU(const Handle& handle,
     }
     else
     {
+        std::size_t index_size = static_cast<size_t>(in_c) * out_d * out_h * out_w * wei_d * wei_w *
+                                 wei_h * sizeof(ConstData_t);
+
+        const bool use_64_bit_index = index_size > 0xffffffffULL;
+
         std::string params = GetDataTypeKernelParams(type);
+
+        params += use_64_bit_index ? " -DMIOPEN_USE_64BIT_INDEX=1" : " -DMIOPEN_USE_64BIT_INDEX=0";
 
         const std::vector<size_t> vld{256, 1, 1};
         size_t global_threads = static_cast<size_t>(in_c) * in_d * in_h * in_w;
@@ -1073,8 +1080,8 @@ float transpose_NCHW2Vec(const Handle& handle,
         const std::vector<size_t> vld{WG_SIZE, 1, 1};
         std::vector<size_t> vgd{1, 1, 1};
 
-        int RD_BLCK   = ((hw) % (vec_size * 2) == 0) ? static_cast<int>(vec_size) * 2
-                                                     : static_cast<int>(vec_size);
+        int RD_BLCK = ((hw) % (vec_size * 2) == 0) ? static_cast<int>(vec_size) * 2
+                                                   : static_cast<int>(vec_size);
         int HW_RD     = (static_cast<int>(hw) + RD_BLCK - 1) / RD_BLCK;
         size_t MAP_RD = HW_RD * (trans ? c : (c_vec / vec_size));
 
