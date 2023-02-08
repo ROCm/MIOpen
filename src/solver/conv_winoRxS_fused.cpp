@@ -58,14 +58,14 @@ namespace solver {
 
 namespace {
 
-// Winograd v30 is functionally supported on Vega10/Vega20 ASICs, but performance regression is
-// expected to be ~25%. Use Winograd v21 instead.
-// Details: https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
+// Winograd v21 is preferred on Vega10/Vega20 ASICs due to ~25% performance regression with Winograd
+// v30. The exception is Winograd F(3,2) stride2 as this mode is unsupported in v21. Details:
+// https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
 template <int Winodata, int Winofilter>
-inline bool IsWinogradV30Supported(const std::string& asic, const ProblemDescription& problem)
+inline bool IsWinogradV21Preferred(const std::string& asic, const ProblemDescription& problem)
 {
-    return (!StartsWith(asic, "gfx900") && !StartsWith(asic, "gfx906")) ||
-           (IS3X2 && problem.kernel_stride_w == 2);
+    return (StartsWith(asic, "gfx900") || StartsWith(asic, "gfx906")) &&
+           !(IS3X2 && problem.kernel_stride_w == 2);
 }
 
 inline bool IsShaderContraintsMetV21(const ProblemDescription& problem,
@@ -190,9 +190,9 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
     const auto OH = conv_ctx.problem.conv_problem.GetOutHeight();
     const auto OW = conv_ctx.problem.conv_problem.GetOutWidth();
 
-    return IsWinogradV30Supported<2, 3>(name, conv_ctx.problem)
-               ? IsShaderContraintsMetV30(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N)
-               : IsShaderContraintsMetV21(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N);
+    return IsWinogradV21Preferred<2, 3>(name, conv_ctx.problem)
+               ? IsShaderContraintsMetV21(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N)
+               : IsShaderContraintsMetV30(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N);
 }
 
 ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& context,
@@ -207,7 +207,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     const auto name     = conv_ctx.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
     const auto is_gfx10 = StartsWith(name, "gfx10");
-    const auto is_v30   = IsWinogradV30Supported<2, 3>(name, conv_ctx.problem);
+    const auto is_v21   = IsWinogradV21Preferred<2, 3>(name, conv_ctx.problem);
     size_t wg_size      = is_gfx9 ? 512 : 256;
     kernel.g_wk.push_back(wg_size * n_groups);
     kernel.g_wk.push_back(1);
@@ -223,7 +223,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
 
-    const std::string kernel_version = is_v30 ? "_v30_2_6" : "_v21_1_3";
+    const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_2_6";
     kernel.kernel_file               = "Conv_Winograd" + kernel_version;
     kernel.kernel_name               = "miopenSp3AsmConv" + kernel_version;
     const auto kernel_postfix =

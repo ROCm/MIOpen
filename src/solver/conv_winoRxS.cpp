@@ -175,14 +175,14 @@ namespace {
     }
 // clang-format on
 
-// Winograd v30 is functionally supported on Vega10/Vega20 ASICs, but performance regression is
-// expected to be ~25%. Use Winograd v21 instead.
-// Details: https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
+// Winograd v21 is preferred on Vega10/Vega20 ASICs due to ~25% performance regression with Winograd
+// v30. The exception is Winograd F(3,2) stride2 as this mode is unsupported in v21. Details:
+// https://github.com/ROCmSoftwarePlatform/MIOpen/pull/1927#issuecomment-1412741130
 template <int Winodata, int Winofilter>
-inline bool IsWinogradV30Supported(const std::string& asic, const ProblemDescription& problem)
+inline bool IsWinogradV21Preferred(const std::string& asic, const ProblemDescription& problem)
 {
-    return (!StartsWith(asic, "gfx900") && !StartsWith(asic, "gfx906")) ||
-           (IS3X2 && problem.kernel_stride_w == 2);
+    return (StartsWith(asic, "gfx900") || StartsWith(asic, "gfx906")) &&
+           !(IS3X2 && problem.kernel_stride_w == 2);
 }
 
 inline bool IsShaderContraintsMetV21(const ProblemDescription& problem,
@@ -289,9 +289,9 @@ inline bool IsShaderContraintsMet(const ProblemDescription& problem,
         return false;
     }
 
-    return IsWinogradV30Supported<Winodata, Winofilter>(asic, problem)
-               ? IsShaderContraintsMetV30(problem, R, S, C, K, H, W, OH, OW, N)
-               : IsShaderContraintsMetV21(problem, R, S, C, K, H, W, OH, OW, N);
+    return IsWinogradV21Preferred<Winodata, Winofilter>(asic, problem)
+               ? IsShaderContraintsMetV21(problem, R, S, C, K, H, W, OH, OW, N)
+               : IsShaderContraintsMetV30(problem, R, S, C, K, H, W, OH, OW, N);
 }
 
 } // namespace
@@ -694,7 +694,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     const auto name     = ctx.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
     const auto is_gfx10 = StartsWith(name, "gfx10");
-    const auto is_v30   = IsWinogradV30Supported<Winodata, Winofilter>(name, problem);
+    const auto is_v21   = IsWinogradV21Preferred<Winodata, Winofilter>(name, problem);
     size_t wg_size      = is_gfx9 ? 512 : 256;
 
     KernelInfo kernel;
@@ -713,7 +713,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
 
-    const std::string kernel_version = is_v30 ? "_v30_2_6" : "_v21_1_3";
+    const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_2_6";
     std::string kernel_name          = "miopenSp3AsmConv" + kernel_version;
     std::string kernel_file          = "Conv_Winograd" + kernel_version;
     std::string kernel_postfix;
@@ -821,9 +821,9 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                   group_cnt,
                   GetTypeSize(problem.weights_data_type));
 
-        const auto d_strides = is_v30 ? d_buf.stride : d_buf.byte_stride;
-        const auto f_strides = is_v30 ? f_buf.stride : f_buf.byte_stride;
-        const auto o_strides = is_v30 ? o_buf.stride : o_buf.byte_stride;
+        const auto d_strides = is_v21 ? d_buf.byte_stride : d_buf.stride;
+        const auto f_strides = is_v21 ? f_buf.byte_stride : f_buf.stride;
+        const auto o_strides = is_v21 ? o_buf.byte_stride : o_buf.stride;
 
         result.invoker_factory = [=](std::vector<Kernel> kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -927,9 +927,9 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
                   group_cnt,
                   GetTypeSize(problem.weights_data_type));
 
-        const auto d_strides = is_v30 ? d_buf.stride : d_buf.byte_stride;
-        const auto f_strides = is_v30 ? f_buf.stride : f_buf.byte_stride;
-        const auto o_strides = is_v30 ? o_buf.stride : o_buf.byte_stride;
+        const auto d_strides = is_v21 ? d_buf.byte_stride : d_buf.stride;
+        const auto f_strides = is_v21 ? f_buf.byte_stride : f_buf.stride;
+        const auto o_strides = is_v21 ? o_buf.byte_stride : o_buf.stride;
 
         result.invoker_factory = [=](std::vector<Kernel> kernels) {
             return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
