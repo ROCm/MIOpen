@@ -625,7 +625,6 @@ size_t GemmBwdRest::GetWorkspaceSize(const ExecutionContext& context,
         MIOPEN_LOG_I2(gemm_size << " > " << MAX_MEM_ALLOC_SZ);
         return 0;
     }
-
     return gemm_size;
 #else
     std::ignore = context;
