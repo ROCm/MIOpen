@@ -48,7 +48,7 @@ ConvOclDirectFwdFused::Search(const FusionContext& context,
 {
     const auto& conv_ctx = context.GetConvContext(0, conv::Direction::Forward, problem);
     const auto legacy    = ConvOclDirectFwd{};
-    return legacy.Search(conv_ctx, invoke_params);
+    return legacy.Search(conv_ctx, conv_ctx.problem, invoke_params);
 }
 
 bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context,

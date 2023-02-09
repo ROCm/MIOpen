@@ -51,7 +51,7 @@ auto FindSolutionImpl(rank<1>,
                       Db& db,
                       const AnyInvokeParams& invoke_ctx,
                       const std::string& perf_cfg)
-    -> decltype(s.GetSolution(context, context.problem, s.Search(context, invoke_ctx)))
+    -> decltype(s.GetSolution(context, context.problem, s.Search(context, context.problem, invoke_ctx)))
 {
     const FindEnforce enforce;
     if(context.disable_perfdb_access)
@@ -119,7 +119,7 @@ auto FindSolutionImpl(rank<1>,
             MIOPEN_LOG_I("Starting search: " << s.SolverDbId() << ", enforce: " << enforce);
             try
             {
-                auto c = s.Search(context, invoke_ctx);
+                auto c = s.Search(context, context.problem, invoke_ctx);
                 db.Update(context.problem, s.SolverDbId(), c);
                 return s.GetSolution(context, context.problem, c);
             }

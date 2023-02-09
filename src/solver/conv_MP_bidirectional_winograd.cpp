@@ -927,7 +927,7 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::S
     const auto xdlops_problem = GetTransformedProblem(problem);
     const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
-    return ConvHipImplicitGemmForwardV4R4Xdlops().Search(xdlops_ctx, xdlops_invoke_ctx);
+    return ConvHipImplicitGemmForwardV4R4Xdlops().Search(xdlops_ctx, xdlops_ctx.problem, xdlops_invoke_ctx);
 }
 
 template struct ConvMPBidirectWinograd_xdlops<2, 3>;
