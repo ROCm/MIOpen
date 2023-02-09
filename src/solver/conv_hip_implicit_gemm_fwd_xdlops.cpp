@@ -182,12 +182,13 @@ bool ConvHipImplicitGemmFwdXdlops::CheckCKApplicability(const ProblemDescription
     return false;
 }
 
+namespace {
+
 template <typename DataType>
-void ConvHipImplicitGemmFwdXdlops::RunCKSolution(
-    const Handle& handle,
-    const AnyInvokeParams& primitive_parameters,
-    const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
+void RunCKSolution(const Handle& handle,
+                   const AnyInvokeParams& primitive_parameters,
+                   const ProblemDescription& problem,
+                   const PerformanceConfigHipImplicitGemmFwdXdlops& config)
 {
     const auto args      = CKArgs{problem};
     const auto conv_ptrs = DeviceOpPtrs<DataType>::GetInstances();
@@ -224,6 +225,8 @@ void ConvHipImplicitGemmFwdXdlops::RunCKSolution(
         handle.AccumKernelTime(elapsed_time);
     }
 }
+
+} // namespace
 #endif
 
 void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(const ProblemDescription& problem)
@@ -329,7 +332,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
 #else
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS{}))
         return false;
-    if(miopen::IsEnabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC{}))
+    if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
     if(problem.conv_problem.GetInDataType() != problem.conv_problem.GetWeightsDataType() ||
        problem.conv_problem.GetWeightsDataType() != problem.conv_problem.GetOutDataType() ||
@@ -339,7 +342,10 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(const ConvolutionContext& ctx,
         return false;
     if(!problem.Is2d())
         return false;
-    if(ctx.GetStream().GetDeviceName() != "gfx908")
+    const std::string& arch = ctx.GetStream().GetDeviceName();
+    if(!(arch == "gfx908" || arch == "gfx90a"))
+        return false;
+    if(arch == "gfx90a" && problem.conv_problem.IsGfx90aFp16altRequired())
         return false;
     if(!problem.IsLayoutNHWC())
         return false;
