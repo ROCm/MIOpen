@@ -51,7 +51,9 @@ auto FindSolutionImpl(rank<1>,
                       Db& db,
                       const AnyInvokeParams& invoke_ctx,
                       const std::string& perf_cfg)
-    -> decltype(s.GetSolution(context, context.problem, s.Search(context, context.problem, invoke_ctx)))
+    -> decltype(s.GetSolution(context,
+                              context.problem,
+                              s.Search(context, context.problem, invoke_ctx)))
 {
     const FindEnforce enforce;
     if(context.disable_perfdb_access)
