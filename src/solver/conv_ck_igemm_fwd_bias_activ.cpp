@@ -131,7 +131,6 @@ void PerformanceConfigConvCKIgemmFwdBiasActiv::Init(const ProblemDescription& pr
         if(it->IsSupportedArgument(argument_ptr.get()))
         {
             valid_kernels.push_back(it->GetTypeString() + "_" + std::to_string(unique_id));
-            break;
         }
         ++unique_id;
     }
