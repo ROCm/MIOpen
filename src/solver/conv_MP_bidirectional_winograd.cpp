@@ -889,7 +889,7 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
     const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
     ConvSolution xdlops_conv =
-        ConvHipImplicitGemmForwardV4R4Xdlops{}.GetSolution(xdlops_ctx, config);
+        ConvHipImplicitGemmForwardV4R4Xdlops{}.GetSolution(xdlops_ctx, xdlops_ctx.problem, config);
 
     ConvSolution result;
     result.workspace_sz = wino_transform.workspace_sz + xdlops_conv.workspace_sz;

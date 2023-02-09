@@ -118,14 +118,14 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
 }
 
 ConvSolution
-ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& fusion_ctx,
+ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
                                   const FusionDescription& problem,
                                   const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
-    const auto ctx = fusion_ctx.GetConvContext(0, conv::Direction::Forward, problem);
+    const auto conv_ctx = context.GetConvContext(0, conv::Direction::Forward, problem);
     ConvAsm1x1U base_sol{};
 
-    auto sol = base_sol.GetSolution(ctx, config);
+    auto sol = base_sol.GetSolution(conv_ctx, conv_ctx.problem, config);
 
     if(sol.construction_params.size() != 1)
         MIOPEN_THROW("ConvBiasActivAsm1x1U expects only one kernel");
@@ -159,7 +159,7 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& fusion_ctx,
     }
     kernel_info.comp_options += cba_options.str();
 
-    const auto out_data_type = ctx.problem.conv_problem.GetOutDataType();
+    const auto out_data_type = conv_ctx.problem.conv_problem.GetOutDataType();
     sol.weight               = 50.0f;
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
@@ -228,7 +228,7 @@ ConvBiasActivAsm1x1U::GetSolution(const miopen::FusionContext& fusion_ctx,
     return sol;
 }
 
-bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& fusion_ctx,
+bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
                                         const FusionDescription& problem) const
 {
     const auto& desc = *problem.fusion_plan_desc;
@@ -256,7 +256,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& fusion_ctx,
             return false;
     }
     ConvAsm1x1U sol{};
-    const auto conv_ctx = fusion_ctx.GetConvContext(0, conv::Direction::Forward, problem);
+    const auto conv_ctx = context.GetConvContext(0, conv::Direction::Forward, problem);
     if(conv_ctx.problem.pad_h != conv_ctx.problem.pad_w)
         return false;
     if(conv_ctx.problem.pad_h != 0)
@@ -272,7 +272,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& fusion_ctx,
         return false;
 
     // Check if the conovlution part is applicable
-    return sol.IsApplicable(fusion_ctx.GetConvContext(0, conv::Direction::Forward, problem));
+    return sol.IsApplicable(context.GetConvContext(0, conv::Direction::Forward, problem));
 }
 
 } // namespace fusion

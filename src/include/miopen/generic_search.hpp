@@ -281,7 +281,7 @@ std::vector<ConvSolution> GetAllSolutions(const Solver s, const Context& context
     std::vector<ConvSolution> solutions;
     for(const auto& current_config : all_configs)
     {
-        ConvSolution current_solution = s.GetSolution(context, current_config);
+        ConvSolution current_solution = s.GetSolution(context, context.problem, current_config);
         solutions.push_back(current_solution);
     }
     return solutions;
@@ -313,7 +313,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
 
     using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
     PerformanceConfig best_config;
-    const auto default_solution = s.GetSolution(context, s.GetDefaultPerformanceConfig(context));
+    const auto default_solution = s.GetSolution(context, context.problem, s.GetDefaultPerformanceConfig(context));
     const auto invoke_ctx       = [invoke_ctx_]() {
         auto copy = invoke_ctx_;
         copy.SetInvokeType(InvokeType::AutoTune);
@@ -343,7 +343,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         {
             if(n_current >= n_runs_total)
                 break;
-            ConvSolution current_solution = s.GetSolution(context, current_config);
+            ConvSolution current_solution = s.GetSolution(context, context.problem, current_config);
             for(auto&& kernel : current_solution.construction_params)
             {
                 if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
@@ -373,7 +373,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
 
             try
             {
-                current_solution = s.GetSolution(context, current_config);
+                current_solution = s.GetSolution(context, context.problem, current_config);
                 if(default_solution.workspace_sz != current_solution.workspace_sz)
                 {
                     ret = -2;

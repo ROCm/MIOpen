@@ -51,13 +51,13 @@ auto FindSolutionImpl(rank<1>,
                       Db& db,
                       const AnyInvokeParams& invoke_ctx,
                       const std::string& perf_cfg)
-    -> decltype(s.GetSolution(context, s.Search(context, invoke_ctx)))
+    -> decltype(s.GetSolution(context, context.problem, s.Search(context, invoke_ctx)))
 {
     const FindEnforce enforce;
     if(context.disable_perfdb_access)
     {
         MIOPEN_LOG_I(s.SolverDbId() << " (db access disabled)");
-        return s.GetSolution(context, s.GetDefaultPerformanceConfig(context));
+        return s.GetSolution(context, context.problem, s.GetDefaultPerformanceConfig(context));
     }
     MIOPEN_LOG_I(s.SolverDbId());
     if(enforce.IsDbClean(context))
@@ -81,7 +81,7 @@ auto FindSolutionImpl(rank<1>,
                 MIOPEN_LOG_I2("Perf Db: record loaded: " << s.SolverDbId());
                 if(s.IsValidPerformanceConfig(context, config))
                 {
-                    return s.GetSolution(context, config);
+                    return s.GetSolution(context, context.problem, config);
                 }
                 MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
@@ -92,7 +92,7 @@ auto FindSolutionImpl(rank<1>,
                 MIOPEN_LOG_I("Perf Db: alternate record loaded: " << s.AltSolverDbId());
                 if(s.IsValidPerformanceConfig(context, config))
                 {
-                    return s.GetSolution(context, config);
+                    return s.GetSolution(context, context.problem, config);
                 }
                 MIOPEN_LOG_WE("Invalid alternate record loaded from Perf Db: "
                               << s.AltSolverDbId() << ": " << config
@@ -103,7 +103,7 @@ auto FindSolutionImpl(rank<1>,
                 config.Deserialize(perf_cfg);
                 if(s.IsValidPerformanceConfig(context, config))
                 {
-                    return s.GetSolution(context, config);
+                    return s.GetSolution(context, context.problem, config);
                 }
                 MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
@@ -121,7 +121,7 @@ auto FindSolutionImpl(rank<1>,
             {
                 auto c = s.Search(context, invoke_ctx);
                 db.Update(context.problem, s.SolverDbId(), c);
-                return s.GetSolution(context, c);
+                return s.GetSolution(context, context.problem, c);
             }
             catch(const miopen::Exception& ex)
             {
@@ -130,7 +130,7 @@ auto FindSolutionImpl(rank<1>,
         }
     }
 
-    return s.GetSolution(context, s.GetDefaultPerformanceConfig(context));
+    return s.GetSolution(context, context.problem, s.GetDefaultPerformanceConfig(context));
 }
 
 template <class Solver, class Context, class Db>
