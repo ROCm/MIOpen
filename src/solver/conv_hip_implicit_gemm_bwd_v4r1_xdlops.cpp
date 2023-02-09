@@ -869,8 +869,10 @@ ConvHipImplicitGemmBwdDataV4R1Xdlops::GetDefaultPerformanceConfig(
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1Xdlops>(ctx, problem);
 }
 
-bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(const ConvolutionContext&,
-    const ProblemDescription& problem, const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
+bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(
+    const ConvolutionContext&,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmBwdDataV4R1Xdlops& config) const
 {
     MIOPEN_LOG_I("");
     return config.IsReallyValid(problem);

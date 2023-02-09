@@ -666,8 +666,10 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::IsValid(const ConvolutionContext& ctx
 }
 
 // Used by GenericSearch, not used by HeuristicInit
-bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsValidPerformanceConfig(const ConvolutionContext&,
-    const ProblemDescription& problem, const PerformanceImplicitGemmBwdV1R1Xdlops& config) const
+bool ConvHipImplicitGemmBwdDataV1R1Xdlops::IsValidPerformanceConfig(
+    const ConvolutionContext&,
+    const ProblemDescription& problem,
+    const PerformanceImplicitGemmBwdV1R1Xdlops& config) const
 {
     return config.IsReallyValid(problem);
 }

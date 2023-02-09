@@ -78,7 +78,9 @@ ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const FusionContext& context) 
 }
 
 bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
-    const FusionContext& context, const FusionDescription&, const PerformanceConfigConvBiasActivAsm1x1U& c) const
+    const FusionContext& context,
+    const FusionDescription&,
+    const PerformanceConfigConvBiasActivAsm1x1U& c) const
 {
     return c.IsValidValue() && c.IsValid(context);
 }

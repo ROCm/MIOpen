@@ -322,7 +322,9 @@ ConvBinWinoRxS<Winodata, Winofilter>::GetDefaultPerformanceConfig(
 
 template <int Winodata, int Winofilter>
 bool ConvBinWinoRxS<Winodata, Winofilter>::IsValidPerformanceConfig(
-    const ConvolutionContext& ctx, const ProblemDescription&, const PerformanceConfigConvBinWinogradRxS& config) const
+    const ConvolutionContext& ctx,
+    const ProblemDescription&,
+    const PerformanceConfigConvBinWinogradRxS& config) const
 {
     return config.IsValidValue() && config.IsValid(ctx);
 }

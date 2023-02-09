@@ -77,7 +77,9 @@ template <class PerformanceConfig>
 struct FusionTunableSolver : FusionTunableSolverBase
 {
     virtual PerformanceConfig GetDefaultPerformanceConfig(const FusionContext&) const           = 0;
-    virtual bool IsValidPerformanceConfig(const FusionContext&, const FusionDescription&, const PerformanceConfig&) const = 0;
+    virtual bool IsValidPerformanceConfig(const FusionContext&,
+                                          const FusionDescription&,
+                                          const PerformanceConfig&) const                       = 0;
     virtual PerformanceConfig Search(const OldStyleFusionDesc&, const AnyInvokeParams&) const   = 0;
     virtual ConvSolution GetSolution(const OldStyleFusionDesc&, const PerformanceConfig&) const = 0;
 
@@ -88,7 +90,8 @@ struct FusionTunableSolver : FusionTunableSolverBase
 
     bool IsValidPerformanceConfig(const FusionContext& ctx, const boost::any& config) const final
     {
-        return IsValidPerformanceConfig(ctx, ctx.problem, boost::any_cast<const PerformanceConfig&>(config));
+        return IsValidPerformanceConfig(
+            ctx, ctx.problem, boost::any_cast<const PerformanceConfig&>(config));
     }
 
     boost::any
