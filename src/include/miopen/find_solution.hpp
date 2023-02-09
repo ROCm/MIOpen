@@ -83,7 +83,7 @@ auto FindSolutionImpl(rank<1>,
                 {
                     return s.GetSolution(context, config);
                 }
-                MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
+                MIOPEN_LOG_IE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
             }
             else if(!s.AltSolverDbId().empty() &&
@@ -94,7 +94,7 @@ auto FindSolutionImpl(rank<1>,
                 {
                     return s.GetSolution(context, config);
                 }
-                MIOPEN_LOG_WE("Invalid alternate record loaded from Perf Db: "
+                MIOPEN_LOG_IE("Invalid alternate record loaded from Perf Db: "
                               << s.AltSolverDbId() << ": " << config
                               << ". Performance may degrade.");
             }
