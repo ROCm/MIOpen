@@ -107,9 +107,8 @@ public:
     using iterator_category = std::input_iterator_tag;
     using value_type        = PerformanceConfig;
     using difference_type   = int;
-    using pointer           = void;
-    using reference         = void;
-
+    using pointer           = PerformanceConfig*;
+    using reference         = PerformanceConfig&;
     // STL-like iterator shall be default contructible. Also implements container's end()
     ComputedIterator() : v(), p(nullptr) {}
     // STL-like iterator shall be copy contructible. The default copy ctor is ok.

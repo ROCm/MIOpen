@@ -81,8 +81,8 @@ public:
         using iterator_category = std::input_iterator_tag;
         using value_type        = std::pair<std::string, TValue>;
         using difference_type   = std::size_t;
-        using pointer           = void;
-        using reference         = void;
+        using pointer           = std::pair<std::string, TValue>*;
+        using reference         = std::pair<std::string, TValue>&;
 
         using Value = std::pair<std::string, TValue>;
 
