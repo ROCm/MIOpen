@@ -41,31 +41,31 @@ bool IsWinograd(const std::vector<solver::AnySolver>& ss)
 
 } // namespace fusion
 
-miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::string& /*network_config*/,
+miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::stringstream& /*network_config*/,
                                                     Handle& /*handle*/)
 {
     return miopenStatusSuccess;
 }
 
-miopenStatus_t BiasFusionOpDescriptor::GetNetworkConfig(std::string& network_config,
+miopenStatus_t BiasFusionOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
                                                         Handle& /*handle*/)
 {
-    network_config += "biasOn"; // for bias
+    network_config << "biasOn"; // for bias
     return miopenStatusSuccess;
 }
 
-miopenStatus_t ActivFwdFusionOpDescriptor::GetNetworkConfig(std::string& network_config,
+miopenStatus_t ActivFwdFusionOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
                                                             Handle& /*handle*/)
 {
-    network_config += "ActivFwd" + std::to_string(activMode);
+    network_config << "ActivFwd" << std::to_string(activMode);
     return miopenStatusSuccess;
 }
 
 // Activations backward prop ----------------------------
-miopenStatus_t ActivBwdFusionOpDescriptor::GetNetworkConfig(std::string& network_config,
+miopenStatus_t ActivBwdFusionOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
                                                             Handle& /*handle*/)
 {
-    network_config += "ActivBwd" + std::to_string(activMode);
+    network_config << "ActivBwd" << std::to_string(activMode);
     return miopenStatusSuccess;
 }
 
@@ -73,10 +73,11 @@ miopenStatus_t ActivBwdFusionOpDescriptor::GetNetworkConfig(std::string& network
 
 /// BATCH NORMALIZATION inference start ================
 
-miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::string& network_config,
-                                                                      Handle& /*handle*/)
+miopenStatus_t
+BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
+                                                       Handle& /*handle*/)
 {
-    network_config += "bn" + std::to_string(mode);
+    network_config << "bn" << std::to_string(mode);
     return miopenStatusSuccess;
 }
 
@@ -163,10 +164,10 @@ void BatchNormBwdTrainFusionOpDescriptor::calcBNParams(Handle& handle,
         }
     }
 }
-miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetNetworkConfig(std::string& network_config,
-                                                                     Handle& handle)
+miopenStatus_t
+BatchNormBwdTrainFusionOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
+                                                      Handle& handle)
 {
-
     int n, c, h, w;
     int variant          = 0;
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
@@ -189,12 +190,12 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::GetNetworkConfig(std::string
     if(input_desc.GetLengths().empty())
         MIOPEN_THROW("The input descriptor is not set");
 
-    network_config += "variant" + std::to_string(variant) + "gx" + std::to_string(xgridsize) +
-                      "gcn" + std::to_string(ldsgcn) + "gy" + std::to_string(ygridsize) + "lx" +
-                      std::to_string(xlocalsize) + "ly" + std::to_string(ylocalsize) + "bn" +
-                      std::to_string(mode) + "n" + std::to_string(n) + "cstride" +
-                      std::to_string(in_cstride) + "nstride" + std::to_string(in_nstride) + "c" +
-                      std::to_string(c) + "nchw" + std::to_string(in_nchw);
+    network_config << "variant" << std::to_string(variant) << "gx" << std::to_string(xgridsize)
+                   << "gcn" << std::to_string(ldsgcn) << "gy" << std::to_string(ygridsize) << "lx"
+                   << std::to_string(xlocalsize) << "ly" << std::to_string(ylocalsize) << "bn"
+                   << std::to_string(mode) << "n" << std::to_string(n) << "cstride"
+                   << std::to_string(in_cstride) << "nstride" << std::to_string(in_nstride) << "c"
+                   << std::to_string(c) << "nchw" << std::to_string(in_nchw);
 
     return miopenStatusSuccess;
 }
@@ -307,8 +308,9 @@ void BatchNormFwdTrainFusionOpDescriptor::calcBNParams(Handle& handle,
     }
 }
 
-miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetNetworkConfig(std::string& network_config,
-                                                                     Handle& handle)
+miopenStatus_t
+BatchNormFwdTrainFusionOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
+                                                      Handle& handle)
 {
     int n, c, h, w;
     int variant               = 0;
@@ -333,13 +335,13 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::GetNetworkConfig(std::string
     if(input_desc.GetLengths().empty())
         MIOPEN_THROW("The input descriptor is not set");
 
-    network_config += "variant" + std::to_string(variant) + "gx" + std::to_string(xgridsize) +
-                      "gcn" + std::to_string(ldsgcn) + "gy" + std::to_string(ygridsize) + "lx" +
-                      std::to_string(xlocalsize) + "ly" + std::to_string(ylocalsize) + "bn" +
-                      std::to_string(mode) + "sbs" +
-                      std::to_string(static_cast<int>(saveBatchStats)) + "sps" +
-                      std::to_string(static_cast<int>(savePopStats)) + "n" + std::to_string(n) +
-                      "hw" + std::to_string(in_cstride) + "chw" + std::to_string(in_nstride);
+    network_config << "variant" << std::to_string(variant) << "gx" << std::to_string(xgridsize)
+                   << "gcn" << std::to_string(ldsgcn) << "gy" << std::to_string(ygridsize) << "lx"
+                   << std::to_string(xlocalsize) << "ly" << std::to_string(ylocalsize) << "bn"
+                   << std::to_string(mode) << "sbs"
+                   << std::to_string(static_cast<int>(saveBatchStats)) << "sps"
+                   << std::to_string(static_cast<int>(savePopStats)) << "n" << std::to_string(n)
+                   << "hw" << std::to_string(in_cstride) << "chw" << std::to_string(in_nstride);
 
     return miopenStatusSuccess;
 }

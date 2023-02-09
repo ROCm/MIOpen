@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <miopen/fusion/fusion_op_args.hpp>
 #include <miopen/invoke_params.hpp>
 
 namespace miopen {
@@ -151,15 +152,13 @@ struct BatchNormBwdTrainingOpInvokeParam : FusionOpInvokeParamBase
 
 struct FusionInvokeParams : InvokeParams
 {
-    FusionInvokeParams(){};
-    FusionInvokeParams(std::vector<std::shared_ptr<FusionOpInvokeParamBase>> op_invokers_,
+    FusionInvokeParams(const miopen::OperatorArgs& op_args_,
                        TensorDescriptor in_desc,
                        ConstData_t in_,
                        TensorDescriptor out_desc,
                        Data_t out_,
                        bool gfx90aFp16alt_)
-        // : op_invokers(std::move(op_invokers_)),
-        : op_invokers(op_invokers_),
+        : op_args(op_args_),
           inDesc(in_desc),
           in(in_),
           outDesc(out_desc),
@@ -168,13 +167,11 @@ struct FusionInvokeParams : InvokeParams
     {
     }
 
-    FusionInvokeParams(InvokeType type_,
-                       std::vector<std::shared_ptr<FusionOpInvokeParamBase>> op_invokers_,
-                       bool gfx90aFp16alt_)
-        : InvokeParams{type_}, op_invokers(std::move(op_invokers_)), gfx90aFp16alt(gfx90aFp16alt_)
+    FusionInvokeParams(InvokeType type_, const OperatorArgs& op_args_, bool gfx90aFp16alt_)
+        : InvokeParams{type_}, op_args(op_args_), gfx90aFp16alt(gfx90aFp16alt_)
     {
     }
-    std::vector<std::shared_ptr<FusionOpInvokeParamBase>> op_invokers;
+    const miopen::OperatorArgs& op_args;
     TensorDescriptor inDesc;
     ConstData_t in = nullptr;
     TensorDescriptor outDesc;

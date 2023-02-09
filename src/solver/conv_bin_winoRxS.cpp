@@ -32,9 +32,6 @@
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/tensors.hpp>
-#include <miopen/fusion_plan.hpp>
-#include <miopen/fusion/solvers.hpp>
-#include <miopen/fusion/utils.hpp>
 
 #include <boost/any.hpp>
 
@@ -45,8 +42,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_WRW)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FWD_BWD)
 /// \todo Detect at runtime and remove this var:
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 /// \return v rounded up (towards +inf) to the nearest multiple of m.
 /// Defined for positive values only.
@@ -502,189 +497,6 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
 
     return result;
 }
-namespace fusion {
-
-bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& params) const
-{
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
-        return false;
-    if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}))
-        return false;
-    if(!WinoCommonIsApplicable(params))
-        return false;
-    const miopen::ConvolutionContext conv_ctx =
-        params.GetConvContext(0, miopen::conv::Direction::Forward);
-    const std::string name = conv_ctx.GetStream().GetDeviceName();
-    if(name != "gfx803")
-        return false;
-    const auto c    = conv_ctx.problem.conv_problem.GetInChannels();
-    const auto x    = conv_ctx.problem.conv_problem.GetWeightsWidth();
-    const auto y    = conv_ctx.problem.conv_problem.GetWeightsHeight();
-    size_t padded_y = 0;
-    size_t padded_x = 0;
-    if(conv_ctx.problem.kernel_stride_h == 1)
-    {
-        if(y <= 3)
-        {
-            if(!(c % 2 == 0))
-                return false;
-            padded_y = 3;
-            padded_x = Ceiling(x, 3);
-        }
-        else
-        {
-            padded_y = Ceiling(y, 6);
-            padded_x = Ceiling(x, 3);
-        }
-    }
-    else if(conv_ctx.problem.kernel_stride_h == 2)
-    {
-        padded_y = Ceiling(y, 6);
-        if(x % 6 == 1)
-            padded_x = Ceiling(x, 3);
-        else
-            padded_x = Ceiling(x, 6);
-    }
-    else
-        return false;
-    if(!(((padded_x / 3) * (padded_y * 3) * c) >= 18))
-        return false;
-
-    return true;
-}
-
-ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& plan_desc) const
-{
-    const auto params = plan_desc.GetConvContext(0, conv::Direction::Forward);
-    ConvSolution result;
-    KernelInfo kernel;
-
-    const auto n_groups = params.GetStream().GetMaxComputeUnits();
-    kernel.g_wk.push_back(512 * n_groups);
-    kernel.g_wk.push_back(1);
-    kernel.g_wk.push_back(1);
-
-    kernel.l_wk.push_back(512);
-    kernel.l_wk.push_back(1);
-    kernel.l_wk.push_back(1);
-
-    KernelBuildParameters options{
-        {"ROCM_METADATA_VERSION", params.rmv.UseV3() ? 5 : 4},
-    };
-    kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
-    const auto x        = params.problem.conv_problem.GetWeightsWidth();
-    const auto y        = params.problem.conv_problem.GetWeightsHeight();
-
-    kernel.kernel_name = "miopenSp3AsmConvRxSU_CBA";
-    if(params.problem.kernel_stride_h == 1)
-    {
-        kernel.kernel_file = "conv_3x3_wheel_alpha_v9_2_7.s";
-    }
-    else if(params.problem.kernel_stride_h == 2)
-    {
-        kernel.kernel_file = "conv_3x3_wheel_alpha_v9_2_7_stride_2.s";
-    }
-    result.construction_params.push_back(kernel);
-    if(x == 3 && y == 3)
-        result.weight = 100;
-    else
-        result.weight = 5;
-    const auto& desc    = *plan_desc.problem.fusion_plan_desc;
-    const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
-    const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
-    int N, C, H, W, K, n_groups_, out_H, out_W, R, S, pad_H, pad_W;
-    GetCompiledInParameters(params,
-                            params.problem,
-                            &N,
-                            &C,
-                            &H,
-                            &W,
-                            &K,
-                            &n_groups_,
-                            &out_H,
-                            &out_W,
-                            &R,
-                            &S,
-                            &pad_H,
-                            &pad_W);
-    const int zero = 0;
-    int flags      = [&]() {
-        if(bias_idx != -1 && activ_idx != -1)
-            return (1 << 7) + (1 << 8);
-        else if(bias_idx != -1)
-            return (1 << 7);
-        else
-            return zero;
-    }();
-    const miopenActivationMode_t activ_mode = [&]() {
-        if(activ_idx != -1)
-        {
-            const auto& activ_op =
-                dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
-            return activ_op.activMode;
-        }
-        return miopenActivationPASTHRU;
-    }();
-
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            const auto& launch_kernel = handle.Run(kernels[0]);
-            const auto& invoke_ctx =
-                primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
-            const auto& bot_buf = invoke_ctx.in;
-            const auto& wei_buf =
-                std::dynamic_pointer_cast<miopen::fusion::ConvolutionOpInvokeParam>(
-                    invoke_ctx.op_invokers[0])
-                    ->weights;
-            const auto& top_buf = invoke_ctx.out;
-            const auto bias_ptr = [&]() {
-                if(bias_idx != -1)
-                {
-                    return std::dynamic_pointer_cast<miopen::fusion::BiasOpInvokeParam>(
-                               invoke_ctx.op_invokers[1])
-                        ->bdata;
-                }
-                else
-                    return static_cast<ConstData_t>(nullptr);
-            }();
-            float activ_alpha = [&]() {
-                if(activ_idx != -1)
-                {
-                    const auto& activ_args =
-                        std::dynamic_pointer_cast<miopen::fusion::ActivationOpInvokeParam>(
-                            invoke_ctx.op_invokers[activ_idx]);
-                    if(activ_mode == miopenActivationLEAKYRELU)
-                        return (static_cast<float>(activ_args->activAlpha));
-                }
-                return static_cast<float>(0.0);
-            }();
-            launch_kernel(N,
-                          C,
-                          H,
-                          W,
-                          K,
-                          n_groups_, // Not related to group convolutions
-                          flags,     // flags
-                          zero,      // reserved
-                          bot_buf,
-                          wei_buf,
-                          top_buf,
-                          nullptr, // return_addr
-                          R,
-                          S,
-                          pad_H,
-                          pad_W,
-                          out_H,
-                          out_W,
-                          bias_ptr,
-                          activ_alpha // leaky relu alpha
-            );
-        };
-    };
-    return result;
-}
-
-} // namespace fusion
 
 } // namespace solver
 } // namespace miopen

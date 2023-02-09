@@ -29,7 +29,6 @@
 
 #include <miopen/logger.hpp>
 #include <miopen/conv_algo_name.hpp>
-#include <miopen/solver_base.hpp>
 
 #include <cstdint>
 #include <unordered_map>

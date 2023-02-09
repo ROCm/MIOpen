@@ -143,7 +143,7 @@ constexpr TElement GetW5(int spatial_dims, const std::vector<TElement>& data)
 
 namespace conv {
 
-struct ProblemDescription : public ProblemDescriptionBase
+struct ProblemDescription : ProblemDescriptionBase
 #if MIOPEN_ENABLE_SQLITE
     ,
                             SQLiteSerializable<ProblemDescription>

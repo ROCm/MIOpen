@@ -40,6 +40,7 @@ struct Exec_arg_t
     }
 };
 
+struct FusionContext;
 struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
     FusionPlanDescriptor() {}
@@ -68,8 +69,6 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     std::string GetAlgorithmName(const Handle& handle);
     std::vector<std::shared_ptr<FusionOpDescriptor>> op_map;
 
-protected:
-    // private:
     miopenFusionDirection_t fusion_dir;
     TensorDescriptor input_desc;
     TensorDescriptor output_desc;

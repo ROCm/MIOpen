@@ -41,6 +41,9 @@
 #include <string>
 #include <half.hpp>
 
+#define MIOPEN_CHECK(x)          \
+    if(x != miopenStatusSuccess) \
+        return x;
 namespace miopen {
 
 miopenStatus_t ConvBiasActivFusion(Handle& handle,
@@ -227,8 +230,8 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
                                                 const void* /*beta*/,
                                                 ConstData_t w)
 {
-    const auto op_args = std::make_shared<fusion::ConvolutionOpInvokeParam>(w);
-    args.SetArg(GetIdx(), op_args);
+    auto op_args = std::make_unique<fusion::ConvolutionOpInvokeParam>(w);
+    args.SetArg(GetIdx(), std::move(op_args));
     return miopenStatusSuccess;
 }
 
@@ -241,9 +244,9 @@ miopenStatus_t ActivFwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                    double activBeta,
                                                    double activGamma)
 {
-    const auto op_args =
-        std::make_shared<fusion::ActivationOpInvokeParam>(activAlpha, activBeta, activGamma);
-    args.SetArg(GetIdx(), op_args);
+    auto op_args =
+        std::make_unique<fusion::ActivationOpInvokeParam>(activAlpha, activBeta, activGamma);
+    args.SetArg(GetIdx(), std::move(op_args));
     return miopenStatusSuccess;
 }
 
@@ -263,9 +266,9 @@ miopenStatus_t ActivBwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                    double activBeta,
                                                    double activGamma)
 {
-    const auto op_args = std::make_shared<fusion::ActivationBwdOpInvokeParam>(
+    auto op_args = std::make_unique<fusion::ActivationBwdOpInvokeParam>(
         y, x, activAlpha, activBeta, activGamma);
-    args.SetArg(GetIdx(), op_args);
+    args.SetArg(GetIdx(), std::move(op_args));
     return miopenStatusSuccess;
 }
 
@@ -286,9 +289,9 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                              ConstData_t estimatedVariance,
                                                              double epsilon)
 {
-    const auto op_args = std::make_shared<fusion::BatchNormInferenceOpInvokeParam>(
+    auto op_args = std::make_unique<fusion::BatchNormInferenceOpInvokeParam>(
         bnScale, bnBias, estimatedMean, estimatedVariance, epsilon);
-    args.SetArg(GetIdx(), op_args);
+    args.SetArg(GetIdx(), std::move(op_args));
     return miopenStatusSuccess;
 }
 
@@ -318,16 +321,15 @@ miopenStatus_t BatchNormFwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
                      "Save batch statistics was turned on at op creation time "
                      "but runningMean or runningVariance is set to nullptr");
     }
-    const auto op_args =
-        std::make_shared<fusion::BatchNormFwdTrainingOpInvokeParam>(runningMean,
-                                                                    runningVariance,
-                                                                    savedMean,
-                                                                    savedInvVariance,
-                                                                    bnScale,
-                                                                    bnBias,
-                                                                    expAvgFactor,
-                                                                    epsilon);
-    args.SetArg(GetIdx(), op_args);
+    auto op_args = std::make_unique<fusion::BatchNormFwdTrainingOpInvokeParam>(runningMean,
+                                                                               runningVariance,
+                                                                               savedMean,
+                                                                               savedInvVariance,
+                                                                               bnScale,
+                                                                               bnBias,
+                                                                               expAvgFactor,
+                                                                               epsilon);
+    args.SetArg(GetIdx(), std::move(op_args));
     return miopenStatusSuccess;
 }
 
@@ -352,9 +354,9 @@ miopenStatus_t BatchNormBwdTrainFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                             ConstData_t savedMean,
                                                             ConstData_t savedInvVariance)
 {
-    const auto op_args = std::make_shared<fusion::BatchNormBwdTrainingOpInvokeParam>(
+    auto op_args = std::make_unique<fusion::BatchNormBwdTrainingOpInvokeParam>(
         x, bnScale, bnBias, resBnScaleDiff, resBnBiasDiff, savedMean, savedInvVariance);
-    args.SetArg(GetIdx(), op_args);
+    args.SetArg(GetIdx(), std::move(op_args));
     return miopenStatusSuccess;
 }
 miopenStatus_t
@@ -378,8 +380,8 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                const void* /*beta*/,
                                                ConstData_t bdata)
 {
-    const auto op_args = std::make_shared<fusion::BiasOpInvokeParam>(bdata);
-    args.SetArg(GetIdx(), op_args);
+    auto op_args = std::make_unique<fusion::BiasOpInvokeParam>(bdata);
+    args.SetArg(GetIdx(), std::move(op_args));
     return miopenStatusSuccess;
 }
 
@@ -392,17 +394,37 @@ std::string FusionPlanDescriptor::GetAlgorithmName(const Handle& /*handle*/)
                  "GetAlgorithmName was called, but Algorithm has not been set");
 }
 
+static auto GetFusedSolvers()
+{
+    return solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U,
+                                   solver::fusion::ConvOclDirectFwdFused,
+                                   solver::fusion::ConvBinWinogradRxSFused,
+                                   solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
+                                   solver::fusion::BnFwdInferActivationFused,
+                                   solver::fusion::BnFwdTrgActivationFused,
+                                   solver::fusion::BnBwdTrgActivationFused>{};
+}
+
+static NetworkConfig GetPlanConfig(const FusionContext& fusion_ctx,
+                                   const FusionDescription& problem)
+{
+    std::ostringstream ss;
+    const auto& input_desc  = problem.fusion_plan_desc->input_desc;
+    const auto& output_desc = problem.fusion_plan_desc->output_desc;
+    ss << input_desc.ToString() << ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+    ss << output_desc.ToString() << ((output_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+    std::stringstream op_config;
+    problem.GetNetworkConfig(op_config, fusion_ctx.GetStream());
+    ss << op_config.str();
+    return NetworkConfig{ss.str()};
+}
+
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
-    const auto solvers    = solver::SolverContainer<solver::fusion::ConvBiasActivAsm1x1U,
-                                                 solver::fusion::ConvOclDirectFwdFused,
-                                                 solver::fusion::ConvBinWinogradRxSFused,
-                                                 solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
-                                                 solver::fusion::BnFwdInferActivationFused,
-                                                 solver::fusion::BnFwdTrgActivationFused,
-                                                 solver::fusion::BnBwdTrgActivationFused>{};
+    const auto solvers    = GetFusedSolvers();
     auto fusion_ctx       = FusionContext{this, handle};
+    auto fusion_problem   = FusionDescription{this};
     fusion_ctx.DetectRocm();
     const auto tmp_sols =
         solvers.SearchForAllSolutions(fusion_ctx, miopen::GetDb(fusion_ctx), AnyInvokeParams{});
@@ -412,9 +434,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     {
         for(const auto& sol : tmp_sols)
         {
-            const auto strAlgo =
-                miopen::solver::Id{sol.solver_id}.GetAlgo(miopen::conv::Direction::Forward);
-            MIOPEN_LOG_I2(miopen::solver::Id{sol.solver_id}.ToString());
+            const auto id      = miopen::solver::Id{sol.solver_id};
+            const auto strAlgo = id.GetAlgo(miopen::conv::Direction::Forward);
+            MIOPEN_LOG_I2(id.ToString());
             MIOPEN_LOG_I2(strAlgo);
             const auto algo = miopen::StringToConvolutionFwdAlgo(strAlgo);
             MIOPEN_LOG_I2(algo);
@@ -424,22 +446,18 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     }
     else
         sols = tmp_sols;
-    auto net_config =
-        input_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
-    net_config += output_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
-    fusion_ctx.GetNetworkConfig(net_config);
-    network_config = NetworkConfig{net_config};
     if(sols.empty())
         return miopenStatusUnsupportedOp;
     else
     {
+        network_config = GetPlanConfig(fusion_ctx, fusion_problem);
         for(const auto& sol : sols)
         {
             if(!sol.invoker_factory)
                 MIOPEN_THROW(miopenStatusInternalError,
                              "Invoker missing from solver " + sol.solver_id);
-            const auto invoker = handle.PrepareInvoker(
-                *sol.invoker_factory, sol.construction_params); // force compilation
+            const auto invoker =
+                handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
             handle.RegisterInvoker(invoker, network_config, sol.solver_id, {});
             solutions.push_back(sol);
         }
@@ -475,12 +493,8 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
     }
 
     const auto invoker = handle.GetInvoker(network_config, solver::Id{solution.solver_id}, {});
-    const auto& tmp    = op_args.params[1];
-    const auto& tmp2   = std::dynamic_pointer_cast<fusion::ActivationOpInvokeParam>(tmp);
-    const auto tmp3    = op_args.params[1];
-    const auto tmp4    = std::dynamic_pointer_cast<fusion::ActivationOpInvokeParam>(tmp3);
     const auto plan_params =
-        fusion::FusionInvokeParams{op_args.params, inputDesc, input, outputDesc, output, false};
+        fusion::FusionInvokeParams{op_args, inputDesc, input, outputDesc, output, false};
     (*invoker)(handle, plan_params);
 
     return miopenStatusSuccess;
