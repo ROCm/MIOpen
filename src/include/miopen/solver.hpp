@@ -205,11 +205,13 @@ struct ConvTunableSolverBase : ConvSolver
 template <class PerformanceConfig>
 struct ConvTunableSolver : ConvTunableSolverBase
 {
-    virtual PerformanceConfig GetDefaultPerformanceConfig(const ConvolutionContext&) const      = 0;
+    virtual PerformanceConfig GetDefaultPerformanceConfig(const ConvolutionContext&) const    = 0;
     virtual bool IsValidPerformanceConfig(const ConvolutionContext&,
-                                          const PerformanceConfig&) const                       = 0;
-    virtual PerformanceConfig Search(const ConvolutionContext&, const AnyInvokeParams&) const   = 0;
-    virtual ConvSolution GetSolution(const ConvolutionContext&, const ProblemDescription&, const PerformanceConfig&) const = 0;
+                                          const PerformanceConfig&) const                     = 0;
+    virtual PerformanceConfig Search(const ConvolutionContext&, const AnyInvokeParams&) const = 0;
+    virtual ConvSolution GetSolution(const ConvolutionContext&,
+                                     const ProblemDescription&,
+                                     const PerformanceConfig&) const                          = 0;
 
     boost::any GetDefaultPerformanceConfig(const ConvolutionContext& ctx, int) const final
     {
@@ -1732,9 +1734,10 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm final
     {
         return IsApplicable(ctx, ctx.problem);
     }
-    ConvSolution GetSolution(const ConvolutionContext&,
-                             const ProblemDescription&,
-                             const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm&) const override;
+    ConvSolution
+    GetSolution(const ConvolutionContext&,
+                const ProblemDescription&,
+                const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm&) const override;
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
     Search(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const override
     {
@@ -3602,9 +3605,10 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm final
     {
         return IsApplicable(ctx, ctx.problem);
     }
-    ConvSolution GetSolution(const ConvolutionContext&,
-                             const ProblemDescription&,
-                             const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm&) const override;
+    ConvSolution
+    GetSolution(const ConvolutionContext&,
+                const ProblemDescription&,
+                const PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm&) const override;
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
     Search(const ConvolutionContext& ctx, const AnyInvokeParams& invoke_ctx) const override
     {
@@ -4545,9 +4549,10 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC final
         return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }
-    ConvSolution GetSolution(const ConvolutionContext&,
-                             const ProblemDescription&,
-                             const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC&) const override;
+    ConvSolution
+    GetSolution(const ConvolutionContext&,
+                const ProblemDescription&,
+                const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC&) const override;
 
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
@@ -4772,9 +4777,10 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC final
         return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }
-    ConvSolution GetSolution(const ConvolutionContext&,
-                             const ProblemDescription&,
-                             const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC&) const override;
+    ConvSolution
+    GetSolution(const ConvolutionContext&,
+                const ProblemDescription&,
+                const PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC&) const override;
 
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
@@ -5004,9 +5010,10 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC final
         return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }
-    ConvSolution GetSolution(const ConvolutionContext&,
-                             const ProblemDescription&,
-                             const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const override;
+    ConvSolution
+    GetSolution(const ConvolutionContext&,
+                const ProblemDescription&,
+                const PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC&) const override;
 
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
@@ -5374,9 +5381,10 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
         return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }
-    ConvSolution GetSolution(const ConvolutionContext&,
-                             const ProblemDescription&,
-                             const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC&) const override;
+    ConvSolution
+    GetSolution(const ConvolutionContext&,
+                const ProblemDescription&,
+                const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC&) const override;
 
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
