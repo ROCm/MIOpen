@@ -302,6 +302,7 @@ ConvHipImplicitGemmFwdXdlops::GetDefaultPerformanceConfig(const ProblemDescripti
 }
 
 bool ConvHipImplicitGemmFwdXdlops::IsValidPerformanceConfig(
+    const ConvolutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemmFwdXdlops& config) const
 {

@@ -118,9 +118,10 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
 ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
 {
+    const ConvolutionContext ctx{};// TODO TODO replace
     for(int i = 0; i < ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList().size(); ++i)
     {
-        if(IsValidPerformanceConfig(problem, i))
+        if(IsValidPerformanceConfig(ctx, problem, i))
         {
             return {i};
         }
@@ -131,7 +132,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ProblemDescriptio
     return {-1};
 }
 
-bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(
+bool ConvCkIgemmFwdV6r1DlopsNchw::IsValidPerformanceConfig(const ConvolutionContext&,
     const ProblemDescription& problem, const PerformanceConvCkIgemmFwdV6r1DlopsNchw& config) const
 {
     return config.IsValid(problem);

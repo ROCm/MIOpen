@@ -179,7 +179,7 @@ struct AnySolver
             PerformanceConfig config{};
             bool success = record.GetValues(value.SolverDbId(), config);
             if(success)
-                success = value.IsValidPerformanceConfig(ctx, config);
+                success = value.IsValidPerformanceConfig(ctx, ctx.problem, config);
 
             return success;
         }
@@ -260,7 +260,7 @@ struct AnySolver
             if(db.Load(ctx.problem, value.SolverDbId(), config))
             {
                 MIOPEN_LOG_I2("PerformanceDb: Record Loaded: " << value.SolverDbId());
-                if(value.IsValidPerformanceConfig(ctx, config))
+                if(value.IsValidPerformanceConfig(ctx, ctx.problem, config))
                 {
                     return config.ToString();
                 }
@@ -270,7 +270,7 @@ struct AnySolver
                     db.Load(ctx.problem, value.AltSolverDbId(), config))
             {
                 MIOPEN_LOG_I("PerformanceDb: alternate record loaded: " << value.AltSolverDbId());
-                if(value.IsValidPerformanceConfig(ctx, config))
+                if(value.IsValidPerformanceConfig(ctx, ctx.problem, config))
                 {
                     return config.ToString();
                 }

@@ -81,7 +81,7 @@ auto FindSolutionImpl(rank<1>,
             if(db.Load(context.problem, s.SolverDbId(), config))
             {
                 MIOPEN_LOG_I2("Perf Db: record loaded: " << s.SolverDbId());
-                if(s.IsValidPerformanceConfig(context, config))
+                if(s.IsValidPerformanceConfig(context, context.problem, config))
                 {
                     return s.GetSolution(context, context.problem, config);
                 }
@@ -92,7 +92,7 @@ auto FindSolutionImpl(rank<1>,
                     db.Load(context.problem, s.AltSolverDbId(), config))
             {
                 MIOPEN_LOG_I("Perf Db: alternate record loaded: " << s.AltSolverDbId());
-                if(s.IsValidPerformanceConfig(context, config))
+                if(s.IsValidPerformanceConfig(context, context.problem, config))
                 {
                     return s.GetSolution(context, context.problem, config);
                 }
@@ -103,7 +103,7 @@ auto FindSolutionImpl(rank<1>,
             else if(!perf_cfg.empty())
             {
                 config.Deserialize(perf_cfg);
-                if(s.IsValidPerformanceConfig(context, config))
+                if(s.IsValidPerformanceConfig(context, context.problem, config))
                 {
                     return s.GetSolution(context, context.problem, config);
                 }

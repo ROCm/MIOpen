@@ -756,6 +756,7 @@ ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetDefaultPerformanceConfig(
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsValidPerformanceConfig(
+    const ConvolutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config) const
 {

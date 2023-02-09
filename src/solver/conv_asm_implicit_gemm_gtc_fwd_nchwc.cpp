@@ -527,6 +527,7 @@ ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetDefaultPerformanceConfig(
 }
 
 bool ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::IsValidPerformanceConfig(
+    const ConvolutionContext&,
     const ProblemDescription& problem,
     const PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC& config) const
 {

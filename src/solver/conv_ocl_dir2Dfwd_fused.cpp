@@ -222,11 +222,12 @@ ConvOclDirectFwdFused::GetDefaultPerformanceConfig(const FusionContext& context)
         context.GetConvContext(0, conv::Direction::Forward, context.problem));
 }
 bool ConvOclDirectFwdFused::IsValidPerformanceConfig(
-    const FusionContext& context, const PerformanceConfigConvOclDirectFwdFused& c) const
+    const FusionContext& context, const FusionDescription&, const PerformanceConfigConvOclDirectFwdFused& c) const
 {
     const auto base = ConvOclDirectFwd{};
+    const auto conv_ctx = context.GetConvContext(0, conv::Direction::Forward, context.problem);
     return base.IsValidPerformanceConfig(
-        context.GetConvContext(0, conv::Direction::Forward, context.problem), c);
+        conv_ctx, conv_ctx.problem, c);
 }
 
 } // namespace fusion

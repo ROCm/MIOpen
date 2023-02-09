@@ -854,6 +854,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValid(
 
 // Used by GenericSearch, not used by HeuristicInit
 bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsValidPerformanceConfig(
+    const ConvolutionContext&,
     const ProblemDescription& problem,
     const PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm& config) const
 {

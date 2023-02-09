@@ -862,7 +862,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::IsValid(const ConvolutionContext&
 }
 
 // Used by GenericSearch, not used by HeuristicInit
-bool ConvHipImplicitGemmForwardV4R5Xdlops::IsValidPerformanceConfig(
+bool ConvHipImplicitGemmForwardV4R5Xdlops::IsValidPerformanceConfig(const ConvolutionContext&,
     const ProblemDescription& problem, const PerformanceImplicitGemmForwardV4R5Xdlops& config) const
 {
     return config.IsReallyValid(problem);

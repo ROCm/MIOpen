@@ -157,7 +157,8 @@ ConvAsm3x3U::GetDefaultPerformanceConfig(const ProblemDescription& problem) cons
     return pp;
 }
 
-bool ConvAsm3x3U::IsValidPerformanceConfig(const ProblemDescription& problem,
+bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext&,
+                                           const ProblemDescription& problem,
                                            const PerformanceConfigConvAsm3x3U& config) const
 {
     return config.IsValidValue() && config.IsValid(problem);

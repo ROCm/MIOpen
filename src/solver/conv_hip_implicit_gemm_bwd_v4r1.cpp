@@ -784,7 +784,7 @@ ConvHipImplicitGemmBwdDataV4R1::GetDefaultPerformanceConfig(const ConvolutionCon
     return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1>(ctx, problem);
 }
 
-bool ConvHipImplicitGemmBwdDataV4R1::IsValidPerformanceConfig(
+bool ConvHipImplicitGemmBwdDataV4R1::IsValidPerformanceConfig(const ConvolutionContext&,
     const ProblemDescription& problem, const PerformanceImplicitGemmBwdDataV4R1& config) const
 {
     MIOPEN_LOG_I("");
