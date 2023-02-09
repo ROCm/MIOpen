@@ -100,12 +100,16 @@ public:
         return config;
     }
 
-    bool IsValidPerformanceConfig(const ConvolutionContext&, const ProblemDescription&, const TestConfig&) const override
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const ProblemDescription&,
+                                  const TestConfig&) const override
     {
         return true;
     }
 
-    TestConfig Search(const ConvolutionContext&, const ProblemDescription&, const AnyInvokeParams&) const override
+    TestConfig Search(const ConvolutionContext&,
+                      const ProblemDescription&,
+                      const AnyInvokeParams&) const override
     {
         TestConfig config;
         config.str = FileName();
