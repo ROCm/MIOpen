@@ -122,6 +122,8 @@ TEST_P(ConvBiasActivInferTestFloat, ConvBinWinogradRxSf2x3g1Fused)
 
 TEST_P(ConvBiasActivInferTestHalf, ConvCKIgemmFwdBiasActiv)
 {
+    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
+        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
     RunTunableSolver<miopen::solver::fusion::ConvCKIgemmFwdBiasActiv>(
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
