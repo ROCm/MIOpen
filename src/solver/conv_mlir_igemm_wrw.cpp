@@ -69,7 +69,8 @@ bool ConvMlirIgemmWrW::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceConvMlirIgemm
-ConvMlirIgemmWrW::GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const
+ConvMlirIgemmWrW::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                              const ProblemDescription&) const
 {
     return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
 }

@@ -507,7 +507,8 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& ctx,
 
 template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription& problem) const
+ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                           const ProblemDescription& problem) const
 {
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> pp;
     pp.HeuristicInit(problem);

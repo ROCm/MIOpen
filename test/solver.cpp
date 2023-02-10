@@ -93,7 +93,8 @@ public:
         return true;
     }
 
-    TestConfig GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override
+    TestConfig GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                           const ProblemDescription&) const override
     {
         TestConfig config{};
         config.str = NoSearchFileName();

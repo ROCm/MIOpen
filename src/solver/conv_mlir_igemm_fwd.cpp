@@ -136,7 +136,8 @@ bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*ctx*/)
 }
 
 PerformanceConvMlirIgemm
-ConvMlirIgemmFwd::GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const
+ConvMlirIgemmFwd::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                              const ProblemDescription&) const
 {
     return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
 }

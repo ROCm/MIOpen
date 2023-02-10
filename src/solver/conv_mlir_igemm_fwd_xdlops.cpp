@@ -187,7 +187,8 @@ bool PerformanceConvMlirIgemmXdlops::SetNextValue(const ProblemDescription& prob
 }
 
 PerformanceConvMlirIgemmXdlops
-ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const
+ConvMlirIgemmFwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                    const ProblemDescription&) const
 {
     return PerformanceConvMlirIgemmXdlops::MlirHeuristicInitRequest();
 }

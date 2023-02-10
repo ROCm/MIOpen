@@ -76,7 +76,8 @@ struct FusionTunableSolverBase : FusionSolverBase
 template <class PerformanceConfig>
 struct FusionTunableSolver : FusionTunableSolverBase
 {
-    virtual PerformanceConfig GetDefaultPerformanceConfig(const FusionContext&, const FusionDescription&) const           = 0;
+    virtual PerformanceConfig GetDefaultPerformanceConfig(const FusionContext&,
+                                                          const FusionDescription&) const       = 0;
     virtual bool IsValidPerformanceConfig(const FusionContext&,
                                           const FusionDescription&,
                                           const PerformanceConfig&) const                       = 0;

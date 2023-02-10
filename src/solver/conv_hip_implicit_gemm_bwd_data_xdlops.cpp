@@ -318,7 +318,8 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::operator==(
 }
 
 PerformanceConfigHipImplicitGemmBwdXdlops
-ConvHipImplicitGemmBwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription& problem) const
+ConvHipImplicitGemmBwdXdlops::GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                          const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemmBwdXdlops pp;
     pp.HeuristicInit(problem);

@@ -213,7 +213,8 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
 }
 
 PerformanceConfigConvOclDirectFwdFused
-ConvOclDirectFwdFused::GetDefaultPerformanceConfig(const FusionContext& context, const FusionDescription&) const
+ConvOclDirectFwdFused::GetDefaultPerformanceConfig(const FusionContext& context,
+                                                   const FusionDescription&) const
 {
 
     const auto base = ConvOclDirectFwd{};

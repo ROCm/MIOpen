@@ -69,7 +69,8 @@ bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionContext& context
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const FusionContext& context, const FusionDescription&) const
+ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const FusionContext& context,
+                                                  const FusionDescription&) const
 {
     PerformanceConfigConvBiasActivAsm1x1U pp;
     pp.HeuristicInit(context);

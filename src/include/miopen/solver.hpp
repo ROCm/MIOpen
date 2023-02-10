@@ -205,7 +205,8 @@ struct ConvTunableSolverBase : ConvSolver
 template <class PerformanceConfig>
 struct ConvTunableSolver : ConvTunableSolverBase
 {
-    virtual PerformanceConfig GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const = 0;
+    virtual PerformanceConfig GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                          const ProblemDescription&) const = 0;
     virtual bool IsValidPerformanceConfig(const ConvolutionContext&,
                                           const ProblemDescription&,
                                           const PerformanceConfig&) const                  = 0;
@@ -277,7 +278,9 @@ struct ConvAsm3x3U final : ConvTunableSolver<PerformanceConfigConvAsm3x3U>
         return IsApplicable(ctx, ctx.problem);
     }
 
-    PerformanceConfigConvAsm3x3U GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    PerformanceConfigConvAsm3x3U
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigConvAsm3x3U&) const override;
@@ -354,7 +357,9 @@ struct ConvAsm1x1U final : ConvTunableSolver<PerformanceConfigConvAsm1x1U>
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1U>(); }
 
-    PerformanceConfigConvAsm1x1U GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    PerformanceConfigConvAsm1x1U
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigConvAsm1x1U&) const override;
@@ -444,7 +449,9 @@ struct ConvAsm1x1UV2 final : ConvTunableSolver<PerformanceConfigConvAsm1x1UV2>
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm1x1UV2>(); }
 
-    PerformanceConfigConvAsm1x1UV2 GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    PerformanceConfigConvAsm1x1UV2
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigConvAsm1x1UV2&) const override;
@@ -966,8 +973,9 @@ struct ConvHipImplicitGemmV4R1Fwd final : ConvTunableSolver<PerformanceImplicitG
         return GetSolverDbId<ConvHipImplicitGemmV4R1Fwd>();
     }
 
-    PerformanceImplicitGemmV4R1 GetDefaultPerformanceConfig(const ConvolutionContext&,
-                                                            const ProblemDescription&) const override;
+    PerformanceImplicitGemmV4R1
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmV4R1&) const override;
@@ -1001,8 +1009,9 @@ struct ConvHipImplicitGemmV4R4Fwd final : ConvTunableSolver<PerformanceImplicitG
     {
         return IsApplicable(ctx, ctx.problem);
     }
-    PerformanceImplicitGemmV4R4Fwd GetDefaultPerformanceConfig(const ConvolutionContext&,
-                                                               const ProblemDescription&) const override;
+    PerformanceImplicitGemmV4R4Fwd
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmV4R4Fwd&) const override;
@@ -1083,8 +1092,8 @@ struct ConvMlirIgemmFwd final : ConvTunableSolver<PerformanceConvMlirIgemm>
         return IsApplicable(ctx, ctx.problem);
     }
 
-    PerformanceConvMlirIgemm
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    PerformanceConvMlirIgemm GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                         const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConvMlirIgemm&) const override;
@@ -1171,7 +1180,8 @@ struct ConvMlirIgemmFwdXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
     }
 
     PerformanceConvMlirIgemmXdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConvMlirIgemmXdlops&) const override;
@@ -1200,8 +1210,9 @@ struct ConvHipImplicitGemmV4R4WrW final : ConvTunableSolver<PerformanceImplicitG
     {
         return IsApplicable(ctx, ctx.problem);
     }
-    PerformanceImplicitGemmV4R4WrW GetDefaultPerformanceConfig(const ConvolutionContext&,
-                                                               const ProblemDescription&) const override;
+    PerformanceImplicitGemmV4R4WrW
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmV4R4WrW&) const override;
@@ -1232,8 +1243,8 @@ struct ConvMlirIgemmWrW final : ConvTunableSolver<PerformanceConvMlirIgemm>
         return IsApplicable(ctx, ctx.problem);
     }
 
-    PerformanceConvMlirIgemm
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    PerformanceConvMlirIgemm GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                         const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConvMlirIgemm&) const override;
@@ -1265,7 +1276,8 @@ struct ConvMlirIgemmWrWXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
     }
 
     PerformanceConvMlirIgemmXdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConvMlirIgemmXdlops&) const override;
@@ -1513,7 +1525,8 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops final
     }
 
     PerformanceImplicitGemmForwardV4R4Xdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmForwardV4R4Xdlops&) const override;
@@ -1549,7 +1562,8 @@ struct ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm final
     }
 
     PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ConvolutionContext&,
         const ProblemDescription&,
@@ -1588,7 +1602,8 @@ struct ConvHipImplicitGemmForwardV4R5Xdlops final
     }
 
     PerformanceImplicitGemmForwardV4R5Xdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmForwardV4R5Xdlops&) const override;
@@ -1618,8 +1633,9 @@ struct ConvHipImplicitGemmV4R1WrW final : ConvTunableSolver<PerformanceImplicitG
         return GetSolverDbId<ConvHipImplicitGemmV4R1WrW>();
     }
 
-    PerformanceImplicitGemmV4R1 GetDefaultPerformanceConfig(const ConvolutionContext&,
-                                                            const ProblemDescription&) const override;
+    PerformanceImplicitGemmV4R1
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmV4R1&) const override;
@@ -1653,8 +1669,9 @@ struct ConvHipImplicitGemmBwdDataV1R1 final : ConvTunableSolver<PerformanceImpli
     {
         return IsApplicable(ctx, ctx.problem);
     }
-    PerformanceImplicitGemmBwdDataV1R1 GetDefaultPerformanceConfig(const ConvolutionContext&,
-                                                                   const ProblemDescription&) const override;
+    PerformanceImplicitGemmBwdDataV1R1
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmBwdDataV1R1&) const override;
@@ -1692,8 +1709,8 @@ struct ConvMlirIgemmBwd final : ConvTunableSolver<PerformanceConvMlirIgemm>
         return IsApplicable(ctx, ctx.problem);
     }
 
-    PerformanceConvMlirIgemm
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    PerformanceConvMlirIgemm GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                                         const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConvMlirIgemm&) const override;
@@ -1724,7 +1741,8 @@ struct ConvMlirIgemmBwdXdlops final : ConvTunableSolver<PerformanceConvMlirIgemm
     }
 
     PerformanceConvMlirIgemmXdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConvMlirIgemmXdlops&) const override;
@@ -1753,8 +1771,9 @@ struct ConvHipImplicitGemmBwdDataV4R1 final : ConvTunableSolver<PerformanceImpli
     {
         return IsApplicable(ctx, ctx.problem);
     }
-    PerformanceImplicitGemmBwdDataV4R1 GetDefaultPerformanceConfig(const ConvolutionContext&,
-                                                                   const ProblemDescription&) const override;
+    PerformanceImplicitGemmBwdDataV4R1
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmBwdDataV4R1&) const override;
@@ -1786,7 +1805,8 @@ struct ConvHipImplicitGemmBwdDataV4R1Xdlops final
     }
 
     PerformanceImplicitGemmBwdDataV4R1Xdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmBwdDataV4R1Xdlops&) const override;
@@ -1824,7 +1844,8 @@ struct ConvHipImplicitGemmBwdDataV1R1Xdlops final
     }
 
     PerformanceImplicitGemmBwdV1R1Xdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceImplicitGemmBwdV1R1Xdlops&) const override;
@@ -2050,7 +2071,7 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : ConvTunableSolver<LegacyPerforma
                                                         const ProblemDescription&) const override;
     LegacyPerformanceConfig Search(const ConvolutionContext&,
                                    const ProblemDescription&,
-                                   const AnyInvokeParams& invoke_ctx) const override;   
+                                   const AnyInvokeParams& invoke_ctx) const override;
 
 private:
     template <typename Tgpu>
@@ -2190,7 +2211,8 @@ struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinograd
     }
 
     PerformanceConfigConvBinWinogradRxS
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigConvBinWinogradRxS&) const override;
@@ -2364,7 +2386,8 @@ struct ConvMPBidirectWinograd_xdlops final
         const auto xdlops_problem = GetTransformedProblem(problem);
         const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
-        return ConvHipImplicitGemmForwardV4R4Xdlops{}.GetDefaultPerformanceConfig(xdlops_ctx, xdlops_ctx.problem);
+        return ConvHipImplicitGemmForwardV4R4Xdlops{}.GetDefaultPerformanceConfig(
+            xdlops_ctx, xdlops_ctx.problem);
     }
 
     bool
@@ -2590,8 +2613,9 @@ struct ConvAsmBwdWrW3x3 final : ConvTunableSolver<PerformanceConfigAsmDirect3x3W
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsmBwdWrW3x3>(); }
 
-    PerformanceConfigAsmDirect3x3WrW GetDefaultPerformanceConfig(const ConvolutionContext&,
-                                                                 const ProblemDescription&) const override;
+    PerformanceConfigAsmDirect3x3WrW
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigAsmDirect3x3WrW&) const override;
@@ -2709,8 +2733,9 @@ struct ConvAsmBwdWrW1x1 final : ConvTunableSolver<PerformanceConfigConvAsmBwdWrW
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsmBwdWrW1x1>(); }
 
-    PerformanceConfigConvAsmBwdWrW1x1 GetDefaultPerformanceConfig(const ConvolutionContext&,
-                                                                  const ProblemDescription&) const override;
+    PerformanceConfigConvAsmBwdWrW1x1
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigConvAsmBwdWrW1x1&) const override;
@@ -2809,7 +2834,8 @@ struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATC
     }
 
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool
     IsValidPerformanceConfig(const ConvolutionContext&,
                              const ProblemDescription&,
@@ -3045,7 +3071,8 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops final
     }
 
     PerformanceImplicitGemmWrwV4R4Xdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
         return GetWorkspaceSize(ctx.problem);
@@ -3144,7 +3171,8 @@ struct ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm final
     }
 
     PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
     {
         return GetWorkspaceSize(ctx.problem);
@@ -3220,7 +3248,8 @@ struct ConvCkIgemmFwdV6r1DlopsNchw final : ConvTunableSolver<PerformanceConvCkIg
     bool MayNeedWorkspace() const override { return true; }
     bool IsDynamic() const override { return true; }
     PerformanceConvCkIgemmFwdV6r1DlopsNchw
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConvCkIgemmFwdV6r1DlopsNchw&) const override;
@@ -4046,7 +4075,8 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC final
     }
 
     PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ConvolutionContext&,
         const ProblemDescription&,
@@ -4257,7 +4287,8 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC final
     }
 
     PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ConvolutionContext&,
         const ProblemDescription&,
@@ -4473,7 +4504,8 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC final
     }
 
     PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ConvolutionContext&,
         const ProblemDescription&,
@@ -4831,7 +4863,8 @@ struct ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC final
         return GetSolverDbId<ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>();
     }
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(
         const ConvolutionContext&,
         const ProblemDescription&,
@@ -4904,7 +4937,8 @@ struct ConvHipImplicitGemmFwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemmFwdXdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigHipImplicitGemmFwdXdlops&) const override;
@@ -4990,7 +5024,8 @@ struct ConvHipImplicitGemmBwdXdlops final
     }
 
     PerformanceConfigHipImplicitGemmBwdXdlops
-    GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const override;
+    GetDefaultPerformanceConfig(const ConvolutionContext&,
+                                const ProblemDescription&) const override;
     bool IsValidPerformanceConfig(const ConvolutionContext&,
                                   const ProblemDescription&,
                                   const PerformanceConfigHipImplicitGemmBwdXdlops&) const override;
