@@ -40,7 +40,8 @@ namespace fusion {
 
 using OldStyleFusionDesc = FusionContext;
 
-using FusionSolverBase = SolverMixin<OldStyleFusionDesc>;
+// TODO TODO add virtual GetSolution()
+using FusionSolverBase = SolverMixin<OldStyleFusionDesc, FusionContext, FusionDescription>;
 
 struct FusionTunableSolverBase : FusionSolverBase
 {

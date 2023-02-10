@@ -36,36 +36,35 @@
 
 namespace miopen {
 
-namespace pooling {
-struct ProblemDescription;
-} // namespace pooling
-
 namespace solver {
 
 namespace pooling {
 
-using OldStyleProblemDescription =
-    std::tuple<const ExecutionContext*, const miopen::pooling::ProblemDescription*>;
+// TODO TODO remove
+struct OldStyleProblemDescription : ExecutionContext
+{
+    miopen::pooling::ProblemDescription problem;
+};
 
-struct PoolingSolver : SolverMixin<OldStyleProblemDescription>
+struct PoolingSolver : SolverMixin<OldStyleProblemDescription, ExecutionContext, miopen::pooling::ProblemDescription>
 {
     // To suppress -Woverloaded-virtual
-    using SolverMixin<OldStyleProblemDescription>::GetWorkspaceSize;
-    using SolverMixin<OldStyleProblemDescription>::IsApplicable;
+    using SolverMixin::GetWorkspaceSize;
+    using SolverMixin::IsApplicable;
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
+        return IsApplicable(problem, problem.problem);
     }
 
     ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
     {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+        return GetSolution(problem, problem.problem);
     }
 
     std::size_t GetWorkspaceSize(const OldStyleProblemDescription& problem) const final
     {
-        return GetWorkspaceSize(*std::get<0>(problem), *std::get<1>(problem));
+        return GetWorkspaceSize(problem, problem.problem);
     }
 
     virtual bool IsApplicable(const ExecutionContext& context,

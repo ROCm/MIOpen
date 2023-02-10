@@ -27,6 +27,7 @@
 #pragma once
 
 #include <miopen/solver.hpp>
+#include <miopen/activ/problem_description.hpp> // TODO TODO remove
 
 #include <utility>
 
@@ -40,22 +41,25 @@ namespace solver {
 
 namespace activ {
 
-using OldStyleProblemDescription =
-    std::tuple<const ExecutionContext*, const miopen::activ::ProblemDescription*>;
+// TODO TODO remove
+struct OldStyleProblemDescription : ExecutionContext
+{
+    miopen::activ::ProblemDescription problem;
+};
 
-struct ActivSolver : SolverMixin<OldStyleProblemDescription>
+struct ActivSolver : SolverMixin<OldStyleProblemDescription, ExecutionContext, miopen::activ::ProblemDescription>
 {
     // To suppress -Woverloaded-virtual
     using SolverMixin::IsApplicable;
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const final
     {
-        return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
+        return IsApplicable(problem, problem.problem);
     }
 
     ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
     {
-        return GetSolution(*std::get<0>(problem), *std::get<1>(problem));
+        return GetSolution(problem, problem.problem);
     }
 
     virtual bool IsApplicable(const ExecutionContext& context,

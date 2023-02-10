@@ -144,31 +144,33 @@ private:
     }
 };
 
-template <class Context>
+// TODO TODO remove OldStyleContext
+template <class OldStyleContext, class Context, class Problem>
 struct SolverMixin : SolverBase
 {
-    virtual bool IsApplicable(const Context& ctx) const = 0;
-    virtual float GetWti(const Context&) const { return -2.0; };
-    virtual size_t GetWorkspaceSize(const Context&) const { return 0; };
+    virtual bool IsApplicable(const OldStyleContext& ctx) const = 0;
+    virtual float GetWti(const OldStyleContext&) const { return -2.0; };
+    virtual size_t GetWorkspaceSize(const OldStyleContext&) const { return 0; };
 
     bool IsApplicable(const boost::any& ctx) const final
     {
-        return IsApplicable(boost::any_cast<const Context&>(ctx));
+        return IsApplicable(boost::any_cast<const OldStyleContext&>(ctx));
     }
 
     float GetWti(const boost::any& ctx) const final
     {
-        return GetWti(boost::any_cast<const Context&>(ctx));
+        return GetWti(boost::any_cast<const OldStyleContext&>(ctx));
     }
 
     size_t GetWorkspaceSize(const boost::any& ctx) const final
     {
-        return GetWorkspaceSize(boost::any_cast<const Context&>(ctx));
+        return GetWorkspaceSize(boost::any_cast<const OldStyleContext&>(ctx));
     }
 };
 
 /// Typedef for convolution solvers
-using ConvSolver = SolverMixin<ConvolutionContext>;
+// TODO TODO add virtual GetSolution()
+using ConvSolver = SolverMixin<ConvolutionContext, ConvolutionContext, ProblemDescription>;
 
 /// Base class for tunable solvers
 struct ConvTunableSolverBase : ConvSolver
@@ -3631,15 +3633,10 @@ private:
 struct GemmWrw1x1_stride1 final : GemmWrwBase
 {
     // To suppress -Woverloaded-virtual
-    using GemmWrwBase::GetWorkspaceSize;
     using GemmWrwBase::IsApplicable;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrw1x1_stride1>(); }
 
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
-    {
-        return GetWorkspaceSize(ctx, ctx.problem.conv_problem);
-    }
     bool MayNeedWorkspace() const override { return true; }
 
     bool IsApplicable(const ConvolutionContext& ctx) const override
@@ -3653,7 +3650,6 @@ struct GemmWrw1x1_stride1 final : GemmWrwBase
     }
 
 private:
-    size_t GetWorkspaceSize(const ExecutionContext&, const conv::ProblemDescription&) const;
     bool IsApplicable(const ExecutionContext&, const conv::ProblemDescription&) const;
     ConvSolution GetSolution(const ExecutionContext&, const conv::ProblemDescription&) const;
 
