@@ -115,7 +115,7 @@ slot_size = xformx_d_size
 //    if 'x' not 64bit aligned:
 //       buffer_load_dword   v[x], ...
 //       buffer_load_dwordx3 v[x+1:y], ...
-.if (.amdgcn.gfx_generation_number == 9)
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 0 && .amdgcn.gfx_generation_stepping == 10)
    tuple_alignment = 1
 .else
    tuple_alignment = 0
