@@ -62,10 +62,6 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_USE_HIPRTC)
 
 #define MIOPEN_WORKAROUND_ISSUE_1359 1
 
-#if MIOPEN_USE_COMGR
-#define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27 1
-#endif
-
 namespace miopen {
 
 #if !MIOPEN_USE_COMGR
@@ -278,10 +274,6 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
     }
     else
     {
-#if MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27
-        static std::mutex mutex;
-        std::lock_guard<std::mutex> lock(mutex);
-#endif
         if(miopen::EndsWith(filename, ".cpp"))
         {
 #if MIOPEN_USE_HIPRTC
