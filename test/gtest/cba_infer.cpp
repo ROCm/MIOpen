@@ -80,7 +80,7 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
         GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << conv_config;
     }
     ASSERT_TRUE(solv.IsApplicable(fusion_ctx));
-    auto sol = solv.GetSolution(fusion_ctx,
+    auto sol = solv.GetSolution(fusion_ctx, fusion_ctx.problem,
                                 solv.GetDefaultPerformanceConfig(fusion_ctx, fusion_ctx.problem));
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
