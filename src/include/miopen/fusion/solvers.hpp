@@ -77,12 +77,13 @@ template <class PerformanceConfig>
 struct FusionTunableSolver : FusionTunableSolverBase
 {
     virtual PerformanceConfig GetDefaultPerformanceConfig(const FusionContext&,
-                                                          const FusionDescription&) const       = 0;
+                                                          const FusionDescription&) const     = 0;
     virtual bool IsValidPerformanceConfig(const FusionContext&,
                                           const FusionDescription&,
-                                          const PerformanceConfig&) const                       = 0;
-    virtual PerformanceConfig Search(const OldStyleFusionDesc&, const AnyInvokeParams&) const   = 0;
-    virtual ConvSolution GetSolution(const FusionContext&, const FusionDescription&, const PerformanceConfig&) const = 0;
+                                          const PerformanceConfig&) const                     = 0;
+    virtual PerformanceConfig Search(const OldStyleFusionDesc&, const AnyInvokeParams&) const = 0;
+    virtual ConvSolution
+    GetSolution(const FusionContext&, const FusionDescription&, const PerformanceConfig&) const = 0;
 
     boost::any GetDefaultPerformanceConfig(const FusionContext& ctx, int) const final
     {
@@ -133,9 +134,10 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
     }
 
     bool IsApplicable(const FusionContext& fusion_ctx, const FusionDescription& problem) const;
-    ConvSolution GetSolution(const FusionContext& ctx,
-                             const FusionDescription& problem,
-                             const PerformanceConfigConvBiasActivAsm1x1U& /*config*/) const override;
+    ConvSolution
+    GetSolution(const FusionContext& ctx,
+                const FusionDescription& problem,
+                const PerformanceConfigConvBiasActivAsm1x1U& /*config*/) const override;
     PerformanceConfigConvBiasActivAsm1x1U
     GetDefaultPerformanceConfig(const FusionContext&, const FusionDescription&) const override;
 
