@@ -47,7 +47,8 @@ struct OldStyleProblemDescription : ExecutionContext
     miopen::activ::ProblemDescription problem;
 };
 
-struct ActivSolver : SolverMixin<OldStyleProblemDescription, ExecutionContext, miopen::activ::ProblemDescription>
+struct ActivSolver
+    : SolverMixin<OldStyleProblemDescription, ExecutionContext, miopen::activ::ProblemDescription>
 {
     // To suppress -Woverloaded-virtual
     using SolverMixin::IsApplicable;

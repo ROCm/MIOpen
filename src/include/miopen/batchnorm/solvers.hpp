@@ -51,7 +51,9 @@ struct OldStyleProblemDescription : ExecutionContext
     miopen::batchnorm::ProblemDescription problem;
 };
 
-struct BatchnormSolver : SolverMixin<OldStyleProblemDescription, ExecutionContext, miopen::batchnorm::ProblemDescription>
+struct BatchnormSolver : SolverMixin<OldStyleProblemDescription,
+                                     ExecutionContext,
+                                     miopen::batchnorm::ProblemDescription>
 {
     // To suppress -Woverloaded-virtual
     using SolverMixin::IsApplicable;

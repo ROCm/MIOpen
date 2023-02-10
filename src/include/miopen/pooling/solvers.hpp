@@ -46,7 +46,8 @@ struct OldStyleProblemDescription : ExecutionContext
     miopen::pooling::ProblemDescription problem;
 };
 
-struct PoolingSolver : SolverMixin<OldStyleProblemDescription, ExecutionContext, miopen::pooling::ProblemDescription>
+struct PoolingSolver
+    : SolverMixin<OldStyleProblemDescription, ExecutionContext, miopen::pooling::ProblemDescription>
 {
     // To suppress -Woverloaded-virtual
     using SolverMixin::GetWorkspaceSize;
