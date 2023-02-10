@@ -239,7 +239,9 @@ void ConvCKIgemmFwdBiasActiv::RunCKSolution(
     assert(unique_id < conv_ptrs.size());
     auto& conv_ck          = conv_ptrs.at(unique_id);
     const auto& invoke_ctx = primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
-    const auto& wei_buf    = dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam&>(*invoke_ctx.op_args.params[0]).weights;
+    const auto& wei_buf =
+        dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam&>(*invoke_ctx.op_args.params[0])
+            .weights;
     const auto& bias_buf =
         dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(*invoke_ctx.op_args.params[1]).bdata;
 
