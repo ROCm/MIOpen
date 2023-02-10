@@ -215,11 +215,10 @@ bool ConvCKIgemmFwdBiasActiv::CheckCKApplicability(const ProblemDescription& pro
 }
 
 template <typename DataType>
-void ConvCKIgemmFwdBiasActiv::RunCKSolution(
-    const Handle& handle,
-    const AnyInvokeParams& primitive_parameters,
-    const ProblemDescription& problem,
-    const PerformanceConfigConvCKIgemmFwdBiasActiv& config) const
+void RunCKSolution(const Handle& handle,
+                   const AnyInvokeParams& primitive_parameters,
+                   const ProblemDescription& problem,
+                   const PerformanceConfigConvCKIgemmFwdBiasActiv& config)
 {
     const auto& args = CKArgs{problem};
     std::vector<ck::tensor_operation::device::DeviceConvFwdBiasReluPtr> conv_ptrs;
