@@ -356,7 +356,7 @@ void PerformanceConfigConvAsm1x1U::HeuristicInit(const ProblemDescription& probl
 }
 
 PerformanceConfigConvAsm1x1U
-ConvAsm1x1U::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvAsm1x1U::GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription& problem) const
 {
     PerformanceConfigConvAsm1x1U pp;
     pp.HeuristicInit(problem);

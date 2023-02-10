@@ -59,7 +59,7 @@ auto FindSolutionImpl(rank<1>,
     if(context.disable_perfdb_access)
     {
         MIOPEN_LOG_I(s.SolverDbId() << " (db access disabled)");
-        return s.GetSolution(context, context.problem, s.GetDefaultPerformanceConfig(context));
+        return s.GetSolution(context, context.problem, s.GetDefaultPerformanceConfig(context, context.problem));
     }
     MIOPEN_LOG_I(s.SolverDbId());
     if(enforce.IsDbClean(context))
@@ -76,7 +76,7 @@ auto FindSolutionImpl(rank<1>,
         }
         else
         {
-            using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
+            using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, context.problem));
             PerformanceConfig config{};
             if(db.Load(context.problem, s.SolverDbId(), config))
             {
@@ -132,7 +132,7 @@ auto FindSolutionImpl(rank<1>,
         }
     }
 
-    return s.GetSolution(context, context.problem, s.GetDefaultPerformanceConfig(context));
+    return s.GetSolution(context, context.problem, s.GetDefaultPerformanceConfig(context, context.problem));
 }
 
 template <class Solver, class Context, class Db>

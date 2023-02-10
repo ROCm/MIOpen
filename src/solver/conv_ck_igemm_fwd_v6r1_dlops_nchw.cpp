@@ -116,9 +116,8 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ConvolutionContext& ctx,
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
-ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvCkIgemmFwdV6r1DlopsNchw::GetDefaultPerformanceConfig(const ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
-    const ConvolutionContext ctx{}; // TODO TODO replace
     for(int i = 0; i < ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList().size(); ++i)
     {
         if(IsValidPerformanceConfig(ctx, problem, i))

@@ -213,13 +213,13 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
 }
 
 PerformanceConfigConvOclDirectFwdFused
-ConvOclDirectFwdFused::GetDefaultPerformanceConfig(const FusionContext& context) const
+ConvOclDirectFwdFused::GetDefaultPerformanceConfig(const FusionContext& context, const FusionDescription&) const
 {
 
     const auto base = ConvOclDirectFwd{};
     MIOPEN_LOG_I("Using Unfused class to initialize performance config");
-    return base.GetDefaultPerformanceConfig(
-        context.GetConvContext(0, conv::Direction::Forward, context.problem));
+    const auto conv_ctx = context.GetConvContext(0, conv::Direction::Forward, context.problem);
+    return base.GetDefaultPerformanceConfig(conv_ctx, conv_ctx.problem);
 }
 bool ConvOclDirectFwdFused::IsValidPerformanceConfig(
     const FusionContext& context,

@@ -63,7 +63,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
         tensors, nullptr, 0, convDesc.attribute.gfx90aFp16alt.GetFwd()};
 
     ASSERT_TRUE(solv.IsApplicable(ctx));
-    auto sol = solv.GetSolution(ctx, ctx.problem, solv.GetDefaultPerformanceConfig(ctx));
+    auto sol = solv.GetSolution(ctx, ctx.problem, solv.GetDefaultPerformanceConfig(ctx, ctx.problem));
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);

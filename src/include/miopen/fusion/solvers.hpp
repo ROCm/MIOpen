@@ -76,7 +76,7 @@ struct FusionTunableSolverBase : FusionSolverBase
 template <class PerformanceConfig>
 struct FusionTunableSolver : FusionTunableSolverBase
 {
-    virtual PerformanceConfig GetDefaultPerformanceConfig(const FusionContext&) const           = 0;
+    virtual PerformanceConfig GetDefaultPerformanceConfig(const FusionContext&, const FusionDescription&) const           = 0;
     virtual bool IsValidPerformanceConfig(const FusionContext&,
                                           const FusionDescription&,
                                           const PerformanceConfig&) const                       = 0;
@@ -85,7 +85,7 @@ struct FusionTunableSolver : FusionTunableSolverBase
 
     boost::any GetDefaultPerformanceConfig(const FusionContext& ctx, int) const final
     {
-        return GetDefaultPerformanceConfig(ctx);
+        return GetDefaultPerformanceConfig(ctx, ctx.problem);
     }
 
     bool IsValidPerformanceConfig(const FusionContext& ctx, const boost::any& config) const final
@@ -144,7 +144,7 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
                              const PerformanceConfigConvBiasActivAsm1x1U& /*config*/) const;
 
     PerformanceConfigConvBiasActivAsm1x1U
-    GetDefaultPerformanceConfig(const FusionContext&) const override;
+    GetDefaultPerformanceConfig(const FusionContext&, const FusionDescription&) const override;
 
     PerformanceConfigConvBiasActivAsm1x1U Search(const OldStyleFusionDesc& context,
                                                  const AnyInvokeParams& invoke_ctx) const override
@@ -189,7 +189,7 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
                              const FusionDescription& problem,
                              const PerformanceConfigConvOclDirectFwdFused&) const;
     PerformanceConfigConvOclDirectFwdFused
-    GetDefaultPerformanceConfig(const FusionContext&) const override;
+    GetDefaultPerformanceConfig(const FusionContext&, const FusionDescription&) const override;
     PerformanceConfigConvOclDirectFwdFused Search(const FusionContext&,
                                                   const FusionDescription&,
                                                   const AnyInvokeParams& invoke_params) const;

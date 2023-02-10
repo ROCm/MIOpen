@@ -136,9 +136,8 @@ bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*ctx*/)
 }
 
 PerformanceConvMlirIgemm
-ConvMlirIgemmFwd::GetDefaultPerformanceConfig(const ConvolutionContext& ctx) const
+ConvMlirIgemmFwd::GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription&) const
 {
-    std::ignore = ctx;
     return PerformanceConvMlirIgemm::MlirHeuristicInitRequest();
 }
 

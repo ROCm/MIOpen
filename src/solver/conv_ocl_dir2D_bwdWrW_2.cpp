@@ -153,7 +153,7 @@ ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ConvolutionContext& ctx
 {
     // Invoking base class GetSolution with default values for params obtained
     // from GetDefaultPerformanceConfig()
-    return ConvOclBwdWrW2<1>::GetSolution(ctx, problem, GetDefaultPerformanceConfig(problem));
+    return ConvOclBwdWrW2<1>::GetSolution(ctx, problem, GetDefaultPerformanceConfig(ctx, problem));
 }
 
 template <int N_BATCH_LOOPS>
@@ -495,7 +495,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ConvolutionContext& c
            /// We use the default PerformanceConfig here. This guarantees that at least
            /// one config will pass the LDS constraint check during auto-tuning.
            /// This works also for non-tunable solver.
-           IsValidPerformanceConfig(ctx, problem, GetDefaultPerformanceConfig(problem));
+           IsValidPerformanceConfig(ctx, problem, GetDefaultPerformanceConfig(ctx, problem));
 }
 
 template <int N_BATCH_LOOPS>
@@ -507,7 +507,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ConvolutionContext& ctx,
 
 template <int N_BATCH_LOOPS>
 PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
-ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ProblemDescription& problem) const
+ConvOclBwdWrW2<N_BATCH_LOOPS>::GetDefaultPerformanceConfig(const ConvolutionContext&, const ProblemDescription& problem) const
 {
     PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS> pp;
     pp.HeuristicInit(problem);

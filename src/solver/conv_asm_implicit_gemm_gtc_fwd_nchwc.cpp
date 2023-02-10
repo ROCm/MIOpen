@@ -518,7 +518,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::IsValid(
 
 PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC
 ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC::GetDefaultPerformanceConfig(
-    const ProblemDescription& problem) const
+    const ConvolutionContext&, const ProblemDescription& problem) const
 {
     PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC pp;
     pp.HeuristicInit(problem);

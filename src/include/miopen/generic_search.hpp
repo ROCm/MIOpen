@@ -252,9 +252,9 @@ using RunAndMeasure_t =
 
 template <class Solver, class Context>
 auto GetAllConfigs(const Solver s, const Context& context)
-    -> ComputedContainer<decltype(s.GetDefaultPerformanceConfig(context)), Context>
+    -> ComputedContainer<decltype(s.GetDefaultPerformanceConfig(context, context.problem)), Context>
 {
-    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
+    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, context.problem));
 
     ComputedContainer<PerformanceConfig, Context> primary(context);
     const int primary_size = std::distance(primary.begin(), primary.end());
@@ -301,7 +301,7 @@ std::size_t GetTuningIterationsMax();
 
 template <class Solver, class Context>
 auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
-    -> decltype(s.GetDefaultPerformanceConfig(context_))
+    -> decltype(s.GetDefaultPerformanceConfig(context_, context_.problem))
 {
     static_assert(
         !(HasMember<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
@@ -311,10 +311,10 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     auto context                  = context_;
     context.is_for_generic_search = true;
 
-    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context));
+    using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, context.problem));
     PerformanceConfig best_config;
     const auto default_solution =
-        s.GetSolution(context, context.problem, s.GetDefaultPerformanceConfig(context));
+        s.GetSolution(context, context.problem, s.GetDefaultPerformanceConfig(context, context.problem));
     const auto invoke_ctx = [invoke_ctx_]() {
         auto copy = invoke_ctx_;
         copy.SetInvokeType(InvokeType::AutoTune);
