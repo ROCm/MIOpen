@@ -77,11 +77,12 @@ template <class PerformanceConfig>
 struct FusionTunableSolver : FusionTunableSolverBase
 {
     virtual PerformanceConfig GetDefaultPerformanceConfig(const FusionContext&,
-                                                          const FusionDescription&) const     = 0;
+                                                          const FusionDescription&) const = 0;
     virtual bool IsValidPerformanceConfig(const FusionContext&,
                                           const FusionDescription&,
-                                          const PerformanceConfig&) const                     = 0;
-    virtual PerformanceConfig Search(const FusionContext&, const FusionDescription&, const AnyInvokeParams&) const = 0;
+                                          const PerformanceConfig&) const                 = 0;
+    virtual PerformanceConfig
+    Search(const FusionContext&, const FusionDescription&, const AnyInvokeParams&) const = 0;
     virtual ConvSolution
     GetSolution(const FusionContext&, const FusionDescription&, const PerformanceConfig&) const = 0;
 
@@ -168,9 +169,10 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
                              const PerformanceConfigConvOclDirectFwdFused&) const override;
     PerformanceConfigConvOclDirectFwdFused
     GetDefaultPerformanceConfig(const FusionContext&, const FusionDescription&) const override;
-    PerformanceConfigConvOclDirectFwdFused Search(const FusionContext&,
-                                                  const FusionDescription&,
-                                                  const AnyInvokeParams& invoke_params) const override;
+    PerformanceConfigConvOclDirectFwdFused
+    Search(const FusionContext&,
+           const FusionDescription&,
+           const AnyInvokeParams& invoke_params) const override;
     bool IsValidPerformanceConfig(const FusionContext&,
                                   const FusionDescription&,
                                   const PerformanceConfigConvOclDirectFwdFused&) const override;
