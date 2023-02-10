@@ -81,7 +81,7 @@ struct FusionTunableSolver : FusionTunableSolverBase
     virtual bool IsValidPerformanceConfig(const FusionContext&,
                                           const FusionDescription&,
                                           const PerformanceConfig&) const                     = 0;
-    virtual PerformanceConfig Search(const OldStyleFusionDesc&, const AnyInvokeParams&) const = 0;
+    virtual PerformanceConfig Search(const FusionContext&, const FusionDescription&, const AnyInvokeParams&) const = 0;
     virtual ConvSolution
     GetSolution(const FusionContext&, const FusionDescription&, const PerformanceConfig&) const = 0;
 
@@ -99,7 +99,7 @@ struct FusionTunableSolver : FusionTunableSolverBase
     boost::any
     Search(const OldStyleFusionDesc& ctx, const AnyInvokeParams& invoke_ctx, int) const final
     {
-        return Search(ctx, invoke_ctx);
+        return Search(ctx, ctx.problem, invoke_ctx);
     }
 
     ConvSolution GetSolution(const OldStyleFusionDesc& ctx, const boost::any& config) const final
@@ -124,7 +124,6 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
 struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>
 {
     using FusionTunableSolver::IsApplicable;
-    using FusionTunableSolver::Search;
 
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
@@ -140,16 +139,9 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
                 const PerformanceConfigConvBiasActivAsm1x1U& /*config*/) const override;
     PerformanceConfigConvBiasActivAsm1x1U
     GetDefaultPerformanceConfig(const FusionContext&, const FusionDescription&) const override;
-
-    PerformanceConfigConvBiasActivAsm1x1U Search(const OldStyleFusionDesc& context,
-                                                 const AnyInvokeParams& invoke_ctx) const override
-    {
-        return Search(context, context.problem, invoke_ctx);
-    }
-
     PerformanceConfigConvBiasActivAsm1x1U Search(const FusionContext& context,
                                                  const FusionDescription& problem,
-                                                 const AnyInvokeParams& invoke_ctx) const;
+                                                 const AnyInvokeParams& invoke_ctx) const override;
     bool IsValidPerformanceConfig(const FusionContext&,
                                   const FusionDescription&,
                                   const PerformanceConfigConvBiasActivAsm1x1U&) const override;
@@ -159,7 +151,6 @@ using PerformanceConfigConvOclDirectFwdFused = LegacyPerformanceConfig;
 struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig>
 {
     using FusionTunableSolver::IsApplicable;
-    using FusionTunableSolver::Search;
 
     const std::string& SolverDbId() const override
     {
@@ -179,12 +170,7 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
     GetDefaultPerformanceConfig(const FusionContext&, const FusionDescription&) const override;
     PerformanceConfigConvOclDirectFwdFused Search(const FusionContext&,
                                                   const FusionDescription&,
-                                                  const AnyInvokeParams& invoke_params) const;
-    PerformanceConfigConvOclDirectFwdFused
-    Search(const OldStyleFusionDesc& context, const AnyInvokeParams& invoke_params) const override
-    {
-        return Search(context, context.problem, invoke_params);
-    }
+                                                  const AnyInvokeParams& invoke_params) const override;
     bool IsValidPerformanceConfig(const FusionContext&,
                                   const FusionDescription&,
                                   const PerformanceConfigConvOclDirectFwdFused&) const override;
