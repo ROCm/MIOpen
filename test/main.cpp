@@ -326,6 +326,7 @@ struct conv_forward : output_tensor_fixture
 int main()
 {
     setenv("MIOPEN_LOG_LEVEL", "6", 1); // NOLINT
+    setenv("MIOPEN_ENABLE_LOGGING", "1", 1); // NOLINT
 
     run_test<input_tensor_fixture>();
     run_test<conv_filter_fixture>();
