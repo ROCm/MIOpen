@@ -819,7 +819,11 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC{}))
         return false;
+
     if(problem.conv_problem.GetConv().attribute.deterministic)
+        return false;
+
+    if(ctx.group_counts > 1)
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
