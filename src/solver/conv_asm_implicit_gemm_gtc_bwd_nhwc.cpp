@@ -897,7 +897,7 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
 
-    if(ctx.group_counts > 1)
+    if(problem.group_counts > 1)
         return false;
 
     const auto device_name = ctx.GetStream().GetDeviceName();
