@@ -823,8 +823,10 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
     if(problem.conv_problem.GetConv().attribute.deterministic)
         return false;
 
+#if WORKAROUND_ISSUE_1979
     if(problem.group_counts > 1)
         return false;
+#endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx908") && (device_name != "gfx90a"))
