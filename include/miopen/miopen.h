@@ -4833,7 +4833,7 @@ miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options);
 
 /*! @brief Sets the tuning find option. Default value is zero.
  *
- * @param options    Options object to upfate
+ * @param options    Options object to update
  * @param value      Value of zero means no tuning, value of one means tuning enabled
  * @return           miopenStatus_t
  */
@@ -4841,7 +4841,7 @@ miopenStatus_t miopenSetFindOptionTuning(miopenFindOptions_t options, int value)
 
 /*! @brief Sets the results order find option. Default value is miopenFindResultsOrderByTime.
  *
- * @param options    Options object to upfate
+ * @param options    Options object to update
  * @param value      Specifies what order should find results have
  * @return           miopenStatus_t
  */
@@ -4850,7 +4850,7 @@ miopenStatus_t miopenSetFindOptionResultsOrder(miopenFindOptions_t options,
 
 /*! @brief Sets the workspace limit find option. Default value is maximum of size_t
  *
- * @param options    Options object to upfate
+ * @param options    Options object to update
  * @param value      Specifies the workspace limit for find call. All solvers exceeding the limit
  * would be ignored.
  * @return           miopenStatus_t
@@ -4859,7 +4859,7 @@ miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, si
 
 /*! @brief Attaches the preallocated workspace to find options. Allocated by the library by default.
  *
- * @param options    Options object to upfate
+ * @param options    Options object to update
  * @param buffer     Specifies the workspace for find call
  * @param size       Specifies the size of the buffer passed
  * @return           miopenStatus_t
@@ -4867,9 +4867,10 @@ miopenStatus_t miopenSetFindOptionWorkspaceLimit(miopenFindOptions_t options, si
 miopenStatus_t
 miopenSetFindOptionPreallocatedWorkspace(miopenFindOptions_t options, void* buffer, size_t size);
 
-/*! @brief Attaches a preallocated tensor to find options. Allocated by the library by default.
+/*! @brief Attaches a preallocated tensor to find options. If not used, buffers are allocated by
+ * MIOpen internally, which is not recommended.
  *
- * @param options    Options object to upfate
+ * @param options    Options object to update
  * @param id         Specifies the id of the tensor passed
  * @param buffer     Specifies the tensor for find call
  * @return           miopenStatus_t
