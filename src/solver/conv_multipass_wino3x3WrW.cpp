@@ -477,7 +477,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 #endif
         if(limit != std::numeric_limits<std::size_t>::max())
         {
-            const auto required = GetWorkspaceSize(problem);
+            const auto required = GetWorkspaceSize(ctx, problem);
             MIOPEN_LOG_I2("Workspace required: " << required << ", limit: " << limit);
             if(required > limit)
                 return false;
@@ -534,7 +534,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
 size_t
 ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetWorkspaceSize(
-    const ProblemDescription& problem) const
+    const ExecutionContext&, const ProblemDescription& problem) const
 {
     return InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(problem) +
            OutTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetBufferSize(problem) +
@@ -547,7 +547,7 @@ ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::Get
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     ConvSolution result;
-    result.workspace_sz = GetWorkspaceSize(problem);
+    result.workspace_sz = GetWorkspaceSize(ctx, problem);
 
     result.construction_params.push_back(
         InTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::GetKernel(ctx, problem));

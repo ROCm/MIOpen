@@ -50,7 +50,6 @@ struct PoolingSolver
     : SolverMixin<OldStyleProblemDescription, ExecutionContext, miopen::pooling::ProblemDescription>
 {
     // To suppress -Woverloaded-virtual
-    using SolverMixin::GetWorkspaceSize;
     using SolverMixin::IsApplicable;
 
     bool IsApplicable(const OldStyleProblemDescription& problem) const final
@@ -63,18 +62,10 @@ struct PoolingSolver
         return GetSolution(problem, problem.problem);
     }
 
-    std::size_t GetWorkspaceSize(const OldStyleProblemDescription& problem) const final
-    {
-        return GetWorkspaceSize(problem, problem.problem);
-    }
-
     virtual bool IsApplicable(const ExecutionContext& context,
                               const miopen::pooling::ProblemDescription& problem) const        = 0;
     virtual ConvSolution GetSolution(const ExecutionContext& context,
                                      const miopen::pooling::ProblemDescription& problem) const = 0;
-    virtual std::size_t
-    GetWorkspaceSize(const ExecutionContext& context,
-                     const miopen::pooling::ProblemDescription& problem) const = 0;
 };
 
 struct PoolingForward2d final : PoolingSolver

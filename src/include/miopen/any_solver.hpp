@@ -304,7 +304,7 @@ struct AnySolver
 
         size_t GetWorkspaceSize(const ConvolutionContext& ctx) const override
         {
-            return value.GetWorkspaceSize(ctx);
+            return value.GetWorkspaceSize(ctx, ctx.problem);
         }
         bool MayNeedWorkspace() const override { return value.MayNeedWorkspace(); }
         const std::type_info& Type() const override { return typeid(T); };
