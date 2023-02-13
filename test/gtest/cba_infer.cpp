@@ -51,12 +51,12 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     Solver solv{};
     auto fusion_ctx = miopen::FusionContext{&fusePlanDesc, handle};
     fusion_ctx.DetectRocm();
-    if(!solv.IsApplicable(fusion_ctx))
+    if(!solv.IsApplicable(fusion_ctx, fusion_ctx.problem))
     {
         test_skipped = true;
         GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << conv_config;
     }
-    ASSERT_TRUE(solv.IsApplicable(fusion_ctx));
+    ASSERT_TRUE(solv.IsApplicable(fusion_ctx, fusion_ctx.problem));
     auto sol = solv.GetSolution(fusion_ctx);
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
@@ -74,12 +74,12 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     Solver solv{};
     auto fusion_ctx = miopen::FusionContext{&fusePlanDesc, handle};
     fusion_ctx.DetectRocm();
-    if(!solv.IsApplicable(fusion_ctx))
+    if(!solv.IsApplicable(fusion_ctx, fusion_ctx.problem))
     {
         test_skipped = true;
         GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << conv_config;
     }
-    ASSERT_TRUE(solv.IsApplicable(fusion_ctx));
+    ASSERT_TRUE(solv.IsApplicable(fusion_ctx, fusion_ctx.problem));
     auto sol = solv.GetSolution(fusion_ctx,
                                 fusion_ctx.problem,
                                 solv.GetDefaultPerformanceConfig(fusion_ctx, fusion_ctx.problem));

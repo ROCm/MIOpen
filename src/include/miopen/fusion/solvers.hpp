@@ -125,16 +125,9 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
 
 struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>
 {
-    using FusionTunableSolver::IsApplicable;
-
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBiasActivAsm1x1U>(); }
 
-    bool IsApplicable(const OldStyleFusionDesc& context) const override
-    {
-        return IsApplicable(context, context.problem);
-    }
-
-    bool IsApplicable(const FusionContext& fusion_ctx, const FusionDescription& problem) const;
+    bool IsApplicable(const FusionContext& fusion_ctx, const FusionDescription& problem) const override;
     ConvSolution
     GetSolution(const FusionContext& ctx,
                 const FusionDescription& problem,
@@ -152,19 +145,12 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
 using PerformanceConfigConvOclDirectFwdFused = LegacyPerformanceConfig;
 struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig>
 {
-    using FusionTunableSolver::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvOclDirectFwdFused>();
     }
 
-    bool IsApplicable(const OldStyleFusionDesc& context) const override
-    {
-        return IsApplicable(context, context.problem);
-    }
-
-    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
+    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const override;
     ConvSolution GetSolution(const FusionContext& context,
                              const FusionDescription& problem,
                              const PerformanceConfigConvOclDirectFwdFused&) const override;
@@ -181,19 +167,12 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
 
 struct ConvBinWinogradRxSFused final : FusionSolverBase
 {
-    using FusionSolverBase::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvBinWinogradRxSFused>();
     }
 
-    bool IsApplicable(const OldStyleFusionDesc& context) const override
-    {
-        return IsApplicable(context, context.problem);
-    }
-
-    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
+    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const override;
 
     ConvSolution GetSolution(const OldStyleFusionDesc& context) const
     {
@@ -205,19 +184,12 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
 
 struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
 {
-    using FusionSolverBase::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvBinWinogradRxSf2x3g1Fused>();
     }
 
-    bool IsApplicable(const OldStyleFusionDesc& context) const override
-    {
-        return IsApplicable(context, context.problem);
-    }
-
-    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
+    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const override;
 
     ConvSolution GetSolution(const OldStyleFusionDesc& context) const
     {
@@ -229,19 +201,12 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
 
 struct BnFwdInferActivationFused final : FusionSolverBase
 {
-    using FusionSolverBase::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<BnFwdInferActivationFused>();
     }
 
-    bool IsApplicable(const OldStyleFusionDesc& context) const override
-    {
-        return IsApplicable(context, context.problem);
-    }
-
-    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
+    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const override;
 
     ConvSolution GetSolution(const OldStyleFusionDesc& context) const
     {
@@ -253,18 +218,12 @@ struct BnFwdInferActivationFused final : FusionSolverBase
 
 struct BnFwdTrgActivationFused final : FusionSolverBase
 {
-    using FusionSolverBase::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<BnFwdTrgActivationFused>();
     }
 
-    bool IsApplicable(const OldStyleFusionDesc& context) const override
-    {
-        return IsApplicable(context, context.problem);
-    }
-    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
+    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const override;
 
     ConvSolution GetSolution(const OldStyleFusionDesc& context) const
     {
@@ -275,19 +234,12 @@ struct BnFwdTrgActivationFused final : FusionSolverBase
 
 struct BnBwdTrgActivationFused final : FusionSolverBase
 {
-    using FusionSolverBase::IsApplicable;
-
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<BnBwdTrgActivationFused>();
     }
 
-    bool IsApplicable(const OldStyleFusionDesc& context) const override
-    {
-        return IsApplicable(context, context.problem);
-    }
-
-    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const;
+    bool IsApplicable(const FusionContext& context, const FusionDescription& problem) const override;
 
     ConvSolution GetSolution(const OldStyleFusionDesc& context) const
     {

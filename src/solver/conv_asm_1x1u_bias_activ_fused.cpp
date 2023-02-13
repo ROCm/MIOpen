@@ -275,7 +275,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
         return false;
 
     // Check if the conovlution part is applicable
-    return sol.IsApplicable(context.GetConvContext(0, conv::Direction::Forward, problem));
+    return sol.IsApplicable(conv_ctx, conv_ctx.problem);
 }
 
 } // namespace fusion

@@ -49,9 +49,9 @@ public:
 
     const std::string& SolverDbId() const override { return GetSolverDbId<TrivialTestSolver>(); }
 
-    bool IsApplicable(const ConvolutionContext& context) const override
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription& problem) const override
     {
-        return context.problem.in_width == 1;
+        return problem.in_width == 1;
     }
 
     solver::ConvSolution GetSolution(const ConvolutionContext&) const
@@ -87,9 +87,8 @@ public:
 
     const std::string& SolverDbId() const override { return GetSolverDbId<SearchableTestSolver>(); }
 
-    bool IsApplicable(const ConvolutionContext& context) const override
+    bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const override
     {
-        std::ignore = context;
         return true;
     }
 

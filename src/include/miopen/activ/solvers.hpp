@@ -50,21 +50,11 @@ struct OldStyleProblemDescription : ExecutionContext
 struct ActivSolver
     : SolverMixin<OldStyleProblemDescription, ExecutionContext, miopen::activ::ProblemDescription>
 {
-    // To suppress -Woverloaded-virtual
-    using SolverMixin::IsApplicable;
-
-    bool IsApplicable(const OldStyleProblemDescription& problem) const final
-    {
-        return IsApplicable(problem, problem.problem);
-    }
-
     ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
     {
         return GetSolution(problem, problem.problem);
     }
 
-    virtual bool IsApplicable(const ExecutionContext& context,
-                              const miopen::activ::ProblemDescription& problem) const        = 0;
     virtual ConvSolution GetSolution(const ExecutionContext& context,
                                      const miopen::activ::ProblemDescription& problem) const = 0;
 };

@@ -87,7 +87,8 @@ bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context,
     if(!conv_prob.IsFp32())
         return false;
     const auto base = ConvOclDirectFwd{};
-    return base.IsApplicable(context.GetConvContext(0, conv::Direction::Forward, problem));
+    const auto conv_ctx = context.GetConvContext(0, conv::Direction::Forward, problem);
+    return base.IsApplicable(conv_ctx, conv_ctx.problem);
 }
 
 ConvSolution
