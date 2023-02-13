@@ -90,7 +90,8 @@ static inline int GetNPasses(const ProblemDescription& problem)
     return n_passes;
 }
 
-size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription& problem) const
+size_t ConvOclBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
+                                          const ProblemDescription& problem) const
 {
     const int n_passes = GetNPasses(problem);
     if(((problem.n_inputs & 0xF) == 0 && (problem.n_outputs & 0xF) == 0) &&

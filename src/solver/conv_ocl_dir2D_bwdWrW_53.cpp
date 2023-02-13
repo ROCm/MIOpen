@@ -303,7 +303,8 @@ static inline void ComputeNumInputWidthLoops(
     }
 }
 
-size_t ConvOclBwdWrW53::GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription& problem) const
+size_t ConvOclBwdWrW53::GetWorkspaceSize(const ConvolutionContext&,
+                                         const ProblemDescription& problem) const
 {
     int n_stacks      = std::min(problem.batch_sz, 1);
     int N_BATCH_LOOPS = (problem.n_inputs * problem.n_outputs <= 8 * 1024) ? 1

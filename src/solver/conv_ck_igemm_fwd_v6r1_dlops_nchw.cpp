@@ -247,7 +247,8 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ConvolutionContext& ctx,
     return sol;
 }
 
-std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription& problem) const
+std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ConvolutionContext&,
+                                                          const ProblemDescription& problem) const
 {
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetMaxWorkSpaceSize(
         ck_utility::get_ck_convolution_problem_descriptor(problem));

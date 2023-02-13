@@ -1923,7 +1923,8 @@ struct ConvAsmImplicitGemmV4R1DynamicWrw final : ConvSolver
         return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -1955,7 +1956,8 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlops final : ConvSolver
         return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -2379,14 +2381,16 @@ struct ConvMPBidirectWinograd_xdlops final
             xdlops_ctx, xdlops_ctx.problem, config);
     }
 
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         const auto xdlops_problem = GetTransformedProblem(problem);
         const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
         return ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>()
                    .GetWorkspaceSize(ctx, problem) +
-               ConvHipImplicitGemmForwardV4R4Xdlops{}.GetWorkspaceSize(xdlops_ctx, xdlops_ctx.problem);
+               ConvHipImplicitGemmForwardV4R4Xdlops{}.GetWorkspaceSize(xdlops_ctx,
+                                                                       xdlops_ctx.problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
@@ -2463,7 +2467,8 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
         return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -2940,7 +2945,8 @@ struct fft final : ConvSolver
     {
         return IsApplicable(ctx, ctx.problem);
     }
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -3316,7 +3322,8 @@ struct GemmFwd1x1_0_2 final : GemmFwdBase
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_2>(); }
 
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3347,7 +3354,8 @@ struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_1_int8>(); }
 
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3378,7 +3386,8 @@ struct GemmFwd1x1_0_1 final : GemmFwdBase
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_1>(); }
 
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3409,7 +3418,8 @@ struct GemmFwdRest final : GemmFwdBase
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwdRest>(); }
 
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3460,7 +3470,8 @@ struct GemmBwd1x1_stride2 final : GemmBwdBase
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwd1x1_stride2>(); }
 
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3491,7 +3502,8 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwd1x1_stride1>(); }
 
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3524,7 +3536,8 @@ struct GemmBwdRest final : GemmBwdBase
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwdRest>(); }
 
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3597,7 +3610,8 @@ struct GemmWrwUniversal final : GemmWrwBase
 
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrwUniversal>(); }
 
-    size_t GetWorkspaceSize(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    size_t GetWorkspaceSize(const ConvolutionContext& ctx,
+                            const ProblemDescription& problem) const override
     {
         return GetWorkspaceSize(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }

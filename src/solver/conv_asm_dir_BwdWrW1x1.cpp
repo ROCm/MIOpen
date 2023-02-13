@@ -542,7 +542,8 @@ static int divide_round_plus_inf(const int x, const int y)
     return x / y;
 }
 
-size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription& problem) const
+size_t ConvAsmBwdWrW1x1::GetWorkspaceSize(const ConvolutionContext&,
+                                          const ProblemDescription& problem) const
 {
     if(UseSubsample(problem))
     {

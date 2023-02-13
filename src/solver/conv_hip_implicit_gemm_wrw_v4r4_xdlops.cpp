@@ -1104,7 +1104,8 @@ ConvHipImplicitGemmWrwV4R4Xdlops::Search(const ConvolutionContext& ctx,
 }
 
 std::size_t
-ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription& problem) const
+ConvHipImplicitGemmWrwV4R4Xdlops::GetWorkspaceSize(const ConvolutionContext&,
+                                                   const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;

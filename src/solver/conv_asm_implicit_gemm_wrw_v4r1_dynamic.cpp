@@ -248,7 +248,8 @@ static inline bool FindImplicitGemmWrwV4R1DynamicKernel(const ProblemDescription
         return false;
 }
 
-size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ExecutionContext&, const ProblemDescription& problem) const
+size_t ConvAsmImplicitGemmV4R1DynamicWrw::GetWorkspaceSize(const ExecutionContext&,
+                                                           const ProblemDescription& problem) const
 {
     int k            = problem.n_inputs;
     int c            = problem.n_outputs;

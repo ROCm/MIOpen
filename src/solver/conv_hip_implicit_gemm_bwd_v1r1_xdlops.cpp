@@ -717,7 +717,8 @@ std::tuple<std::size_t, bool> PerformanceImplicitGemmBwdV1R1Xdlops::CalculateLds
 }
 
 std::size_t
-ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&, const ProblemDescription& problem) const
+ConvHipImplicitGemmBwdDataV1R1Xdlops::GetWorkspaceSize(const ConvolutionContext&,
+                                                       const ProblemDescription& problem) const
 {
     if(problem.IsFp32())
         return 0;
