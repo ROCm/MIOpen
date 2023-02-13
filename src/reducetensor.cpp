@@ -801,7 +801,8 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         param += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=0 ";
 
 #if WORKAROUND_MIOPEN_ISSUE_557
-        if(StartsWith(handle.GetDeviceName(), "gfx10"))
+        if(StartsWith(handle.GetDeviceName(), "gfx10") ||
+           StartsWith(handle.GetDeviceName(), "gfx11"))
             param += " -DCK_USE_AMD_BUFFER_ADDRESSING=0 ";
         else
         {

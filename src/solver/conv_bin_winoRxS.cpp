@@ -498,44 +498,5 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ExecutionContext& ctx,
     return result;
 }
 
-bool ConvBinWinogradRxSFused::IsApplicable(const ExecutionContext& ctx,
-                                           const ProblemDescription& problem) const
-{
-    std::ignore = ctx;
-    std::ignore = problem;
-
-    return true; // Actual checks moved to FusionMDGraph.
-}
-
-ConvSolution ConvBinWinogradRxSFused::GetSolution(const ExecutionContext& ctx,
-                                                  const ProblemDescription& problem) const
-{
-    std::ignore = problem;
-
-    ConvSolution result;
-    KernelInfo kernel;
-
-    const auto n_groups = ctx.GetStream().GetMaxComputeUnits();
-    kernel.g_wk.push_back(512 * n_groups);
-    kernel.g_wk.push_back(1);
-    kernel.g_wk.push_back(1);
-
-    kernel.l_wk.push_back(512);
-    kernel.l_wk.push_back(1);
-    kernel.l_wk.push_back(1);
-
-    KernelBuildParameters options{
-        {"ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4},
-    };
-    kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
-
-    // File and name are defined in FusionMDGraph, so no need (and harmful)
-    // to duplicate this information here.
-    kernel.kernel_name = "<name not set>";
-    kernel.kernel_file = "<file not set>";
-    result.construction_params.push_back(kernel);
-    return result;
-}
-
 } // namespace solver
 } // namespace miopen
