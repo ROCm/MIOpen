@@ -3225,7 +3225,10 @@ struct ConvDirectNaiveConvFwd final : ConvSolver
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.01f; }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    {
+        return 0.01f;
+    }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
         return GetSolution(ctx, ctx.problem);
@@ -3253,7 +3256,10 @@ struct ConvDirectNaiveConvBwd final : ConvSolver
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.01f; }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    {
+        return 0.01f;
+    }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
         return GetSolution(ctx, ctx.problem);
@@ -3281,7 +3287,10 @@ struct ConvDirectNaiveConvWrw final : ConvSolver
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.01f; }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    {
+        return 0.01f;
+    }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
         return GetSolution(ctx, ctx.problem);
@@ -4891,7 +4900,10 @@ struct ConvHipImplicitGemmFwdXdlops final
     // Since we would like to us CK before naive, and use it instead (because
     // we do expect that CK is faster than Naive), therefore we use a
     // value bigger than 0.01f, e.g. 0.02f.
-    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.02f; };
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
 
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
@@ -4976,7 +4988,10 @@ struct ConvHipImplicitGemmBwdXdlops final
     // Since we would like to us CK before naive, and use it instead (because
     // we do expect that CK is faster than Naive), therefore we use a
     // value bigger than 0.01f, e.g. 0.02f.
-    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.02f; };
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
 
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
