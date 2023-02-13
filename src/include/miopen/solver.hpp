@@ -149,7 +149,7 @@ template <class OldStyleProblemDesc, class Context, class Problem>
 struct SolverMixin : SolverBase
 {
     virtual bool IsApplicable(const OldStyleProblemDesc& ctx) const = 0;
-    virtual float GetWti(const OldStyleProblemDesc&) const { return -2.0; };
+    virtual float GetWti(const Context&, const Problem&) const { return -2.0f; };
     virtual size_t GetWorkspaceSize(const Context&, const Problem&) const { return 0; };
 
     bool IsApplicable(const boost::any& ctx) const final
@@ -159,7 +159,8 @@ struct SolverMixin : SolverBase
 
     float GetWti(const boost::any& ctx) const final
     {
-        return GetWti(boost::any_cast<const OldStyleProblemDesc&>(ctx));
+        const auto& old_ctx = boost::any_cast<const OldStyleProblemDesc&>(ctx);
+        return GetWti(old_ctx, old_ctx.problem);
     }
 
     size_t GetWorkspaceSize(const boost::any& ctx) const final
@@ -2239,7 +2240,6 @@ extern template struct ConvBinWinoRxS<3, 2>;
 struct ConvBinWinogradRxSf2x3g1 final : ConvSolver
 {
     // To suppress -Woverloaded-virtual
-    using ConvSolver::GetWti;
     using ConvSolver::IsApplicable;
 
     const std::string& SolverDbId() const override
@@ -2252,7 +2252,7 @@ struct ConvBinWinogradRxSf2x3g1 final : ConvSolver
         return IsApplicable(ctx, ctx.problem);
     }
     bool IsDynamic() const override { return true; }
-    float GetWti(const ConvolutionContext& ctx) const override { return GetWti(ctx, ctx.problem); }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override;
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
         return GetSolution(ctx, ctx.problem);
@@ -2260,7 +2260,6 @@ struct ConvBinWinogradRxSf2x3g1 final : ConvSolver
 
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
-    float GetWti(const ConvolutionContext&, const ProblemDescription&) const;
     ConvSolution GetSolution(const ConvolutionContext&, const ProblemDescription&) const;
 };
 
@@ -3226,7 +3225,7 @@ struct ConvDirectNaiveConvFwd final : ConvSolver
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const ConvolutionContext&) const override { return 0.01; }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.01f; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
         return GetSolution(ctx, ctx.problem);
@@ -3254,7 +3253,7 @@ struct ConvDirectNaiveConvBwd final : ConvSolver
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const ConvolutionContext&) const override { return 0.01; }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.01f; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
         return GetSolution(ctx, ctx.problem);
@@ -3282,7 +3281,7 @@ struct ConvDirectNaiveConvWrw final : ConvSolver
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled due to MIOpenGemm or OCL compiler issues.
-    float GetWti(const ConvolutionContext&) const override { return 0.01; }
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.01f; }
     ConvSolution GetSolution(const ConvolutionContext& ctx) const
     {
         return GetSolution(ctx, ctx.problem);
@@ -3300,9 +3299,9 @@ struct GemmFwdBase : ConvSolver
     using ConvSolver::IsApplicable;
 
     bool IsDynamic() const override { return true; }
-    float GetWti(const ConvolutionContext& ctx) const override
+    float GetWti(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(ctx, ctx.problem.conv_problem);
+        return GetWti(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
 private:
@@ -3448,9 +3447,9 @@ struct GemmBwdBase : ConvSolver
     using ConvSolver::IsApplicable;
 
     bool IsDynamic() const override { return true; }
-    float GetWti(const ConvolutionContext& ctx) const override
+    float GetWti(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(ctx, ctx.problem.conv_problem);
+        return GetWti(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
 private:
@@ -3566,9 +3565,9 @@ struct GemmWrwBase : ConvSolver
     using ConvSolver::IsApplicable;
 
     bool IsDynamic() const override { return true; }
-    float GetWti(const ConvolutionContext& ctx) const override
+    float GetWti(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
     {
-        return GetWti(ctx, ctx.problem.conv_problem);
+        return GetWti(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
 private:
@@ -4892,7 +4891,7 @@ struct ConvHipImplicitGemmFwdXdlops final
     // Since we would like to us CK before naive, and use it instead (because
     // we do expect that CK is faster than Naive), therefore we use a
     // value bigger than 0.01f, e.g. 0.02f.
-    float GetWti(const ConvolutionContext&) const override { return 0.02f; };
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.02f; };
 
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
@@ -4977,7 +4976,7 @@ struct ConvHipImplicitGemmBwdXdlops final
     // Since we would like to us CK before naive, and use it instead (because
     // we do expect that CK is faster than Naive), therefore we use a
     // value bigger than 0.01f, e.g. 0.02f.
-    float GetWti(const ConvolutionContext&) const override { return 0.02f; };
+    float GetWti(const ConvolutionContext&, const ProblemDescription&) const override { return 0.02f; };
 
 private:
     bool IsApplicable(const ConvolutionContext&, const ProblemDescription&) const;
