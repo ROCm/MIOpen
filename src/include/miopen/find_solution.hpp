@@ -52,16 +52,13 @@ auto FindSolutionImpl(rank<1>,
                       Db& db,
                       const AnyInvokeParams& invoke_ctx,
                       const std::string& perf_cfg)
-    -> decltype(s.GetSolution(context,
-                              problem,
-                              s.Search(context, problem, invoke_ctx)))
+    -> decltype(s.GetSolution(context, problem, s.Search(context, problem, invoke_ctx)))
 {
     const FindEnforce enforce;
     if(context.disable_perfdb_access)
     {
         MIOPEN_LOG_I(s.SolverDbId() << " (db access disabled)");
-        return s.GetSolution(
-            context, problem, s.GetDefaultPerformanceConfig(context, problem));
+        return s.GetSolution(context, problem, s.GetDefaultPerformanceConfig(context, problem));
     }
     MIOPEN_LOG_I(s.SolverDbId());
     if(enforce.IsDbClean(context))
@@ -78,8 +75,7 @@ auto FindSolutionImpl(rank<1>,
         }
         else
         {
-            using PerformanceConfig =
-                decltype(s.GetDefaultPerformanceConfig(context, problem));
+            using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, problem));
             PerformanceConfig config{};
             if(db.Load(problem, s.SolverDbId(), config))
             {
@@ -91,8 +87,7 @@ auto FindSolutionImpl(rank<1>,
                 MIOPEN_LOG_WE("Invalid config loaded from Perf Db: "
                               << s.SolverDbId() << ": " << config << ". Performance may degrade.");
             }
-            else if(!s.AltSolverDbId().empty() &&
-                    db.Load(problem, s.AltSolverDbId(), config))
+            else if(!s.AltSolverDbId().empty() && db.Load(problem, s.AltSolverDbId(), config))
             {
                 MIOPEN_LOG_I("Perf Db: alternate record loaded: " << s.AltSolverDbId());
                 if(s.IsValidPerformanceConfig(context, problem, config))
@@ -135,14 +130,17 @@ auto FindSolutionImpl(rank<1>,
         }
     }
 
-    return s.GetSolution(
-        context, problem, s.GetDefaultPerformanceConfig(context, problem));
+    return s.GetSolution(context, problem, s.GetDefaultPerformanceConfig(context, problem));
 }
 
 template <class Solver, class Context, class Problem, class Db>
-auto FindSolutionImpl(
-    rank<0>, Solver s, const Context& context, const Problem& problem, Db&, const AnyInvokeParams&, const std::string&)
-    -> decltype(s.GetSolution(context, problem))
+auto FindSolutionImpl(rank<0>,
+                      Solver s,
+                      const Context& context,
+                      const Problem& problem,
+                      Db&,
+                      const AnyInvokeParams&,
+                      const std::string&) -> decltype(s.GetSolution(context, problem))
 {
     MIOPEN_LOG_I(s.SolverDbId() << " (not searchable)");
     return s.GetSolution(context, problem);
@@ -205,7 +203,8 @@ struct SolverContainer
                 }
                 else
                 {
-                    const Solution s = FindSolution(solver, search_params, search_params.problem, db, invoke_ctx);
+                    const Solution s =
+                        FindSolution(solver, search_params, search_params.problem, db, invoke_ctx);
                     if(s.Succeeded())
                     {
                         ++count;
