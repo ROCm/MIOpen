@@ -164,6 +164,10 @@ bool ConvBinWinogradRxSg1Fused<Winodata, Winofilter>::IsApplicable(
 
     const miopen::ConvolutionContext conv_ctx =
         context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
+
+    if(!(conv_ctx.problem.IsFp32() || conv_ctx.problem.IsFp16()))
+        return false;
+
     const std::string name = conv_ctx.GetStream().GetDeviceName();
     if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10") || StartsWith(name, "gfx11")))
         return false;
@@ -232,28 +236,39 @@ ConvBinWinogradRxSg1Fused<Winodata, Winofilter>::GetSolution(const FusionContext
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
 
     const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_2_6";
-    kernel.kernel_file               = "Conv_Winograd" + kernel_version;
-    kernel.kernel_name               = "miopenSp3AsmConv" + kernel_version;
+    std::string kernel_file          = "Conv_Winograd" + kernel_version;
+    std::string kernel_name          = "miopenSp3AsmConv" + kernel_version;
+    std::string kernel_postfix;
 
     if(is_gfx9)
     {
-        kernel.kernel_name += "_gfx9";
+        kernel_name += "_gfx9";
     }
     else if(is_gfx10)
     {
-        kernel.kernel_name += "_gfx10";
+        kernel_name += "_gfx10";
     }
     else // if (is_gfx11)
     {
-        kernel.kernel_name += "_gfx11";
+        kernel_name += "_gfx11";
     }
 
-    std::string kernel_postfix = "_fp32";
+    if(conv_ctx.problem.IsFp32())
+    {
+        kernel_name += "_fp32";
+        kernel_file += "_fp32";
+    }
+    else // if(conv_ctx.problem.IsFp16())
+    {
+        kernel_name += is_gfx9 ? "_fp16_dot2_edc" : "_fp16_dot2";
+        kernel_file += "_fp16_dot2";
+    }
+
     kernel_postfix += IS2X3 ? "_f2x3" : "_f3x2";
     kernel_postfix += "_stride" + std::to_string(conv_ctx.problem.kernel_stride_h);
 
-    kernel.kernel_name += kernel_postfix;
-    kernel.kernel_file += kernel_postfix + ".s";
+    kernel.kernel_name += kernel_name + kernel_postfix;
+    kernel.kernel_file += kernel_file + kernel_postfix + ".s";
     result.construction_params.push_back(kernel);
 
     const auto x        = conv_ctx.problem.conv_problem.GetWeightsWidth();

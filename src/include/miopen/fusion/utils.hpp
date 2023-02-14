@@ -81,8 +81,6 @@ inline bool WinoCommonIsApplicable(const FusionContext& params)
 
     if(!conv_ctx.problem.Is2d())
         return false;
-    if(!conv_ctx.problem.IsFp32())
-        return false;
     if(!conv_ctx.problem.IsLayoutDefault())
         return false;
     if(!conv_ctx.problem.direction.IsForward())

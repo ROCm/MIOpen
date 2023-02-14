@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,6 +66,10 @@ bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
         return false;
     const miopen::ConvolutionContext conv_ctx =
         context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
+
+    if(!conv_ctx.problem.IsFp32())
+        return false;
+
     const std::string name = conv_ctx.GetStream().GetDeviceName();
     if(name != "gfx803")
         return false;
