@@ -484,7 +484,8 @@ struct ConvAsm5x10u2v2f1 final : ConvSolver
     {
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -506,7 +507,8 @@ struct ConvAsm5x10u2v2b1 final : ConvSolver
     {
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -531,7 +533,8 @@ struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 final : ConvSolver
     {
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem);
     }
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -1704,7 +1707,8 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd final : ConvSolver
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -1732,7 +1736,8 @@ struct ConvAsmImplicitGemmV4R1DynamicFwd_1x1 final : ConvSolver
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -1769,7 +1774,8 @@ struct ConvAsmImplicitGemmV4R1DynamicWrw final : ConvSolver
 
     bool MayNeedWorkspace() const override { return true; }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -1807,7 +1813,8 @@ struct ConvAsmImplicitGemmGTCDynamicWrwXdlops final : ConvSolver
 
     bool MayNeedWorkspace() const override { return true; }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -1836,7 +1843,8 @@ struct ConvAsmImplicitGemmV4R1DynamicBwd final : ConvSolver
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -1864,7 +1872,8 @@ struct ConvAsmImplicitGemmGTCDynamicFwdXdlops final : ConvSolver
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -1892,7 +1901,8 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlops final : ConvSolver
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -1967,7 +1977,8 @@ struct ConvBinWinograd3x3U final : ConvSolver
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -1992,7 +2003,8 @@ struct ConvBinWinogradRxS final : ConvSolver
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -2280,7 +2292,8 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
 
     bool MayNeedWorkspace() const override { return true; }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -2698,7 +2711,8 @@ struct fft final : ConvSolver
 
     bool MayNeedWorkspace() const override { return true; }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem);
     }
@@ -3026,7 +3040,8 @@ struct GemmFwd1x1_0_2 final : GemmFwdBase
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3060,7 +3075,8 @@ struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3094,7 +3110,8 @@ struct GemmFwd1x1_0_1 final : GemmFwdBase
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3128,7 +3145,8 @@ struct GemmFwdRest final : GemmFwdBase
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3182,7 +3200,8 @@ struct GemmBwd1x1_stride2 final : GemmBwdBase
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3216,7 +3235,8 @@ struct GemmBwd1x1_stride1 final : GemmBwdBase
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3252,7 +3272,8 @@ struct GemmBwdRest final : GemmBwdBase
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3296,7 +3317,8 @@ struct GemmWrw1x1_stride1 final : GemmWrwBase
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
@@ -3329,7 +3351,8 @@ struct GemmWrwUniversal final : GemmWrwBase
         return IsApplicable(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }
 
-    ConvSolution GetSolution(const ConvolutionContext& ctx, const ProblemDescription& problem) const override
+    ConvSolution GetSolution(const ConvolutionContext& ctx,
+                             const ProblemDescription& problem) const override
     {
         return GetSolution(static_cast<const ExecutionContext&>(ctx), problem.conv_problem);
     }

@@ -48,8 +48,8 @@ struct OldStyleProblemDescription : ExecutionContext
 };
 
 using ActivSolver = NonTunableSolverBase<OldStyleProblemDescription,
-                                          ExecutionContext,
-                                          miopen::activ::ProblemDescription>;
+                                         ExecutionContext,
+                                         miopen::activ::ProblemDescription>;
 
 struct ActivFwdSolver0 final : ActivSolver
 {

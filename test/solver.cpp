@@ -54,7 +54,8 @@ public:
         return problem.in_width == 1;
     }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&, const ProblemDescription&) const override
+    solver::ConvSolution GetSolution(const ConvolutionContext&,
+                                     const ProblemDescription&) const override
     {
         solver::ConvSolution ret;
         solver::KernelInfo kernel;

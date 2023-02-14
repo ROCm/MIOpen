@@ -47,8 +47,8 @@ struct OldStyleProblemDescription : ExecutionContext
 };
 
 using PoolingSolver = NonTunableSolverBase<OldStyleProblemDescription,
-                                            ExecutionContext,
-                                            miopen::pooling::ProblemDescription>;
+                                           ExecutionContext,
+                                           miopen::pooling::ProblemDescription>;
 
 struct PoolingForward2d final : PoolingSolver
 {

@@ -52,8 +52,8 @@ struct OldStyleProblemDescription : ExecutionContext
 };
 
 using BatchnormSolver = NonTunableSolverBase<OldStyleProblemDescription,
-                                              ExecutionContext,
-                                              miopen::batchnorm::ProblemDescription>;
+                                             ExecutionContext,
+                                             miopen::batchnorm::ProblemDescription>;
 
 struct BnFwdTrainingSpatialSingle final : BatchnormSolver
 {
