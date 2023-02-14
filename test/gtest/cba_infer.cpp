@@ -113,7 +113,14 @@ TEST_P(ConvBiasActivInferTestFloat, ConvBinWinogradRxSf2x3g1Fused)
 {
     const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
         params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
-    RunSolver<miopen::solver::fusion::ConvBinWinogradRxSf2x3g1Fused>(
+    RunSolver<miopen::solver::fusion::ConvBinWinogradRxSg1Fused<2, 3>>(
+        fusePlanDesc, plan_params, conv_config, test_skipped);
+}
+TEST_P(ConvBiasActivInferTestFloat, ConvBinWinogradRxSf3x2g1Fused)
+{
+    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
+        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
+    RunSolver<miopen::solver::fusion::ConvBinWinogradRxSg1Fused<3, 2>>(
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
 INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,

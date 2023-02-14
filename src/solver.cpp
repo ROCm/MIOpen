@@ -541,7 +541,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry,
              ++id,
              Primitive::Fusion,
-             solver::fusion::ConvBinWinogradRxSf2x3g1Fused{}.SolverDbId(),
+             solver::fusion::ConvBinWinogradRxSg1Fused<2, 3>{}.SolverDbId(),
              miopenConvolutionAlgoWinograd);
     Register(registry,
              ++id,
@@ -551,6 +551,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, Primitive::Fusion, solver::fusion::BnFwdTrgActivationFused{}.SolverDbId());
     Register(
         registry, ++id, Primitive::Fusion, solver::fusion::BnBwdTrgActivationFused{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             solver::fusion::ConvBinWinogradRxSg1Fused<3, 2>{}.SolverDbId(),
+             miopenConvolutionAlgoWinograd);
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

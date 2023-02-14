@@ -44,7 +44,9 @@
 #include <tuple>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_G1)
 
+#define IS2X3 (Winodata == 2 && Winofilter == 3)
 #define IS3X2 (Winodata == 3 && Winofilter == 2)
 
 static inline size_t Ceil(const size_t v, const size_t m)
@@ -148,11 +150,15 @@ inline bool IsShaderConstraintsMetV30(const ProblemDescription& problem,
 
 namespace fusion {
 
-bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
-                                                 const FusionDescription& problem) const
+template <int Winodata, int Winofilter>
+bool ConvBinWinogradRxSg1Fused<Winodata, Winofilter>::IsApplicable(
+    const FusionContext& context, const FusionDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
+    if(IS2X3 && miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1{}))
         return false;
+    if(IS3X2 && miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_G1{}))
+        return false;
+
     if(!WinoCommonIsApplicable(context))
         return false;
 
@@ -190,13 +196,15 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
     const auto OH = conv_ctx.problem.conv_problem.GetOutHeight();
     const auto OW = conv_ctx.problem.conv_problem.GetOutWidth();
 
-    return IsWinogradV21Preferred<2, 3>(name, conv_ctx.problem)
+    return IsWinogradV21Preferred<Winodata, Winofilter>(name, conv_ctx.problem)
                ? IsShaderConstraintsMetV21(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N)
                : IsShaderConstraintsMetV30(conv_ctx.problem, R, S, C, K, H, W, OH, OW, N);
 }
 
-ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& context,
-                                                        const FusionDescription& problem) const
+template <int Winodata, int Winofilter>
+ConvSolution
+ConvBinWinogradRxSg1Fused<Winodata, Winofilter>::GetSolution(const FusionContext& context,
+                                                             const FusionDescription& problem) const
 {
     ConvSolution result;
     KernelInfo kernel;
@@ -207,7 +215,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     const auto name     = conv_ctx.GetStream().GetDeviceName();
     const auto is_gfx9  = StartsWith(name, "gfx9");
     const auto is_gfx10 = StartsWith(name, "gfx10");
-    const auto is_v21   = IsWinogradV21Preferred<2, 3>(name, conv_ctx.problem);
+    const auto is_v21   = IsWinogradV21Preferred<Winodata, Winofilter>(name, conv_ctx.problem);
     size_t wg_size      = is_gfx9 ? 512 : 256;
     kernel.g_wk.push_back(wg_size * n_groups);
     kernel.g_wk.push_back(1);
@@ -226,8 +234,6 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_2_6";
     kernel.kernel_file               = "Conv_Winograd" + kernel_version;
     kernel.kernel_name               = "miopenSp3AsmConv" + kernel_version;
-    const auto kernel_postfix =
-        "_fp32_f2x3_stride" + std::to_string(conv_ctx.problem.kernel_stride_h);
 
     if(is_gfx9)
     {
@@ -241,6 +247,10 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     {
         kernel.kernel_name += "_gfx11";
     }
+
+    std::string kernel_postfix = "_fp32";
+    kernel_postfix += IS2X3 ? "_f2x3" : "_f3x2";
+    kernel_postfix += "_stride" + std::to_string(conv_ctx.problem.kernel_stride_h);
 
     kernel.kernel_name += kernel_postfix;
     kernel.kernel_file += kernel_postfix + ".s";
@@ -375,6 +385,9 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     };
     return result;
 }
+
+template struct ConvBinWinogradRxSg1Fused<2, 3>;
+template struct ConvBinWinogradRxSg1Fused<3, 2>;
 
 } // namespace fusion
 } // namespace solver
