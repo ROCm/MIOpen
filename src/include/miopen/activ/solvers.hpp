@@ -48,9 +48,9 @@ struct OldStyleProblemDescription : ExecutionContext
 };
 
 struct ActivSolver
-    : SolverMixin<OldStyleProblemDescription, ExecutionContext, miopen::activ::ProblemDescription>
+    : NonTunableSolverBase<OldStyleProblemDescription, ExecutionContext, miopen::activ::ProblemDescription>
 {
-    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
         return GetSolution(problem, problem.problem);
     }

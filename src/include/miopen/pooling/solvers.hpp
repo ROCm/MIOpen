@@ -47,9 +47,9 @@ struct OldStyleProblemDescription : ExecutionContext
 };
 
 struct PoolingSolver
-    : SolverMixin<OldStyleProblemDescription, ExecutionContext, miopen::pooling::ProblemDescription>
+    : NonTunableSolverBase<OldStyleProblemDescription, ExecutionContext, miopen::pooling::ProblemDescription>
 {
-    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const
+    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
         return GetSolution(problem, problem.problem);
     }

@@ -40,10 +40,9 @@ namespace fusion {
 
 using OldStyleFusionDesc = FusionContext;
 
-// TODO TODO add virtual GetSolution()
-using FusionSolverBase = SolverMixin<OldStyleFusionDesc, FusionContext, FusionDescription>;
+using FusionSolverBase = NonTunableSolverBase<OldStyleFusionDesc, FusionContext, FusionDescription>;
 
-struct FusionTunableSolverBase : FusionSolverBase
+struct FusionTunableSolverBase : SolverMixin<OldStyleFusionDesc, FusionContext, FusionDescription>
 {
     /// Initializes performance config to the default values.
     /// The function may involve some heuristic to guess the best solution
@@ -54,24 +53,32 @@ struct FusionTunableSolverBase : FusionSolverBase
     /// The int parameter is needed only to not change the name of the
     /// function in the derived class. Function declarations that differ
     /// only by its return type cannot be overloaded.
+#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
     virtual boost::any GetDefaultPerformanceConfig(const FusionContext& ctx, int) const = 0;
+#endif
 
     /// Should return false if performance config is wrong for a problem.
     /// Main use is validation of values read from the perf db.
+#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
     virtual bool IsValidPerformanceConfig(const FusionContext& ctx,
                                           const boost::any& config) const = 0;
+#endif
 
     /// Search
     ///
     /// The int parameter is needed only to not change the name of the
     /// function in the derived class. Function declarations that differ
     /// only by its return type cannot be overloaded.
+#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
     virtual boost::any
     Search(const OldStyleFusionDesc& ctx, const AnyInvokeParams& invoke_ctx, int) const = 0;
+#endif
 
     /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
+#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
     virtual ConvSolution GetSolution(const OldStyleFusionDesc& ctx,
                                      const boost::any& config) const = 0;
+#endif
 };
 
 template <class PerformanceConfig>
@@ -87,6 +94,7 @@ struct FusionTunableSolver : FusionTunableSolverBase
     virtual ConvSolution
     GetSolution(const FusionContext&, const FusionDescription&, const PerformanceConfig&) const = 0;
 
+#if SOLVERS_FUNCTIONS_USE_BOOST_ANY
     boost::any GetDefaultPerformanceConfig(const FusionContext& ctx, int) const final
     {
         return GetDefaultPerformanceConfig(ctx, ctx.problem);
@@ -108,6 +116,7 @@ struct FusionTunableSolver : FusionTunableSolverBase
     {
         return GetSolution(ctx, ctx.problem, boost::any_cast<const PerformanceConfig&>(config));
     }
+#endif
     bool IsDynamic() const override { return false; }
 };
 
@@ -177,7 +186,7 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
     bool IsApplicable(const FusionContext& context,
                       const FusionDescription& problem) const override;
 
-    ConvSolution GetSolution(const OldStyleFusionDesc& context) const
+    ConvSolution GetSolution(const OldStyleFusionDesc& context) const override
     {
         return GetSolution(context, context.problem);
     }
@@ -195,7 +204,7 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
     bool IsApplicable(const FusionContext& context,
                       const FusionDescription& problem) const override;
 
-    ConvSolution GetSolution(const OldStyleFusionDesc& context) const
+    ConvSolution GetSolution(const OldStyleFusionDesc& context) const override
     {
         return GetSolution(context, context.problem);
     }
@@ -213,7 +222,7 @@ struct BnFwdInferActivationFused final : FusionSolverBase
     bool IsApplicable(const FusionContext& context,
                       const FusionDescription& problem) const override;
 
-    ConvSolution GetSolution(const OldStyleFusionDesc& context) const
+    ConvSolution GetSolution(const OldStyleFusionDesc& context) const override
     {
         return GetSolution(context, context.problem);
     }
@@ -231,7 +240,7 @@ struct BnFwdTrgActivationFused final : FusionSolverBase
     bool IsApplicable(const FusionContext& context,
                       const FusionDescription& problem) const override;
 
-    ConvSolution GetSolution(const OldStyleFusionDesc& context) const
+    ConvSolution GetSolution(const OldStyleFusionDesc& context) const override
     {
         return GetSolution(context, context.problem);
     }
@@ -248,7 +257,7 @@ struct BnBwdTrgActivationFused final : FusionSolverBase
     bool IsApplicable(const FusionContext& context,
                       const FusionDescription& problem) const override;
 
-    ConvSolution GetSolution(const OldStyleFusionDesc& context) const
+    ConvSolution GetSolution(const OldStyleFusionDesc& context) const override
     {
         return GetSolution(context, context.problem);
     }
