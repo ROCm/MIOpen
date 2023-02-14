@@ -60,7 +60,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS)
 
 miopen::PerformanceDb mlo_construct_base::GetDb() const
 {
-    return {db_path(), _search_params.GetUserPerfDbPath()};
+    return {db_path(), _ctx.GetUserPerfDbPath()};
 }
 
 miopen::PerformanceDb miopen::GetDb(const miopen::ExecutionContext& ctx)
@@ -76,8 +76,8 @@ mlo_construct_direct2D_fusion::FindSolution(const std::vector<miopen::solver::An
     auto db = this->GetDb();
     for(auto& solver : solvers)
     {
-        solution = solver.FindSolution(_search_params, db, invoke_ctx);
-        if(solution.Succeeded() && solver.IsApplicable(_search_params))
+        solution = solver.FindSolution(_ctx, db, invoke_ctx);
+        if(solution.Succeeded() && solver.IsApplicable(_ctx))
         {
             solver_id = solver.GetSolverDbId();
             break;
@@ -379,20 +379,20 @@ void miopen::ConvolutionContext::SetupFloats()
 
 void mlo_construct_activ_lrn_pooling_common::setupFloats()
 {
-    if(_search_params.problem.in_data_type == miopenFloat &&
-       _search_params.problem.out_data_type == miopenFloat)
+    if(_problem.in_data_type == miopenFloat &&
+       _problem.out_data_type == miopenFloat)
     {
-        _search_params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+        _ctx.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     }
-    else if(_search_params.problem.in_data_type == miopenHalf &&
-            _search_params.problem.out_data_type == miopenHalf)
+    else if(_problem.in_data_type == miopenHalf &&
+            _problem.out_data_type == miopenHalf)
     {
-        _search_params.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
+        _ctx.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
     }
     else
     {
         MIOPEN_LOG_W("Unsupported data types configuration: "
-                     << miopen::GetDataTypeName(_search_params.problem.in_data_type) << "x"
-                     << miopen::GetDataTypeName(_search_params.problem.out_data_type));
+                     << miopen::GetDataTypeName(_problem.in_data_type) << "x"
+                     << miopen::GetDataTypeName(_problem.out_data_type));
     }
 }

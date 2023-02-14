@@ -4691,12 +4691,8 @@ struct mlo_construct_direct2D_fusion : mlo_construct_base
     {
     }
 
-    bool IsAutoTuneEnabled() const { return _search_params.do_search; }
+    bool IsAutoTuneEnabled() const { return _ctx.do_search; }
 
-    inline void mloCopyTo(miopen::ConvolutionContext& params) const /// TODO: get rid of this
-    {
-        params = _search_params;
-    }
     miopen::solver::ConvSolution FindSolution(const std::vector<miopen::solver::AnySolver>& solvers,
                                               const miopen::AnyInvokeParams& invoke_ctx);
 };
