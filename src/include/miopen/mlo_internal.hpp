@@ -286,7 +286,7 @@ struct mlo_construct_base
         _problem.weights_sz        = 0; // bytes
         _problem.bias_sz           = 0; // bytes
         _problem.group_counts      = 1;
-        _ctx = miopen::ConvolutionContext(_problem);
+        _ctx                       = miopen::ConvolutionContext(_problem);
     }
 
     mlo_construct_base(const miopen::TensorDescriptor& in,
@@ -319,8 +319,7 @@ struct mlo_construct_base
     {
         if(!_problem.direction.IsKnown())
             MIOPEN_THROW("!_problem.direction.IsKnown()");
-        return _problem.direction
-            .IsForward(); // convolutions: backward data OR wrw otherwise
+        return _problem.direction.IsForward(); // convolutions: backward data OR wrw otherwise
     }
 
     /*
@@ -334,10 +333,7 @@ struct mlo_construct_base
         return _problem.mloBuildConf_Key(conf_key);
     }
 
-    std::string db_path() const
-    {
-        return _db_path != nullptr ? _db_path : _ctx.GetPerfDbPath();
-    }
+    std::string db_path() const { return _db_path != nullptr ? _db_path : _ctx.GetPerfDbPath(); }
 
 protected:
     miopen::ProblemDescription _problem;
@@ -412,16 +408,16 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                      int w_stride)
     {
         _problem.setTopDescr(layout,
-                                           data_type,
-                                           batch,
-                                           channels,
-                                           depth,
-                                           height,
-                                           width,
-                                           batch_stride,
-                                           channel_stride,
-                                           stride,
-                                           w_stride);
+                             data_type,
+                             batch,
+                             channels,
+                             depth,
+                             height,
+                             width,
+                             batch_stride,
+                             channel_stride,
+                             stride,
+                             w_stride);
     }
 
     /*
@@ -440,16 +436,16 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                      int w_stride)
     {
         _problem.setBotDescr(layout,
-                                           data_type,
-                                           batch,
-                                           channels,
-                                           depth,
-                                           height,
-                                           width,
-                                           batch_stride,
-                                           channel_stride,
-                                           stride,
-                                           w_stride);
+                             data_type,
+                             batch,
+                             channels,
+                             depth,
+                             height,
+                             width,
+                             batch_stride,
+                             channel_stride,
+                             stride,
+                             w_stride);
     }
 
     /*
@@ -468,16 +464,16 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                        int w_stride)
     {
         _problem.setTopDfDescr(layout,
-                                             data_type,
-                                             batch,
-                                             channels,
-                                             depth,
-                                             height,
-                                             width,
-                                             batch_stride,
-                                             channel_stride,
-                                             stride,
-                                             w_stride);
+                               data_type,
+                               batch,
+                               channels,
+                               depth,
+                               height,
+                               width,
+                               batch_stride,
+                               channel_stride,
+                               stride,
+                               w_stride);
 
         int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")
@@ -510,16 +506,16 @@ struct mlo_construct_activ_lrn_pooling_common : mlo_construct_base
                        int w_stride)
     {
         _problem.setBotDfDescr(layout,
-                                             data_type,
-                                             batch,
-                                             channels,
-                                             depth,
-                                             height,
-                                             width,
-                                             batch_stride,
-                                             channel_stride,
-                                             stride,
-                                             w_stride);
+                               data_type,
+                               batch,
+                               channels,
+                               depth,
+                               height,
+                               width,
+                               batch_stride,
+                               channel_stride,
+                               stride,
+                               w_stride);
 
         int data_len = miopen::GetTypeSize(data_type);
         size_t size  = (layout == "NCHW")

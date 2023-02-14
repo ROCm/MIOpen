@@ -82,8 +82,7 @@ int mlo_construct_norm::mloConstructFwd()
                                          _problem.in_channel_stride,
                                          _problem.in_stride);
 
-    int MAP_SZ4 =
-        _problem.in_width * (is_in_packed ? _problem.in_height : 1);
+    int MAP_SZ4 = _problem.in_width * (is_in_packed ? _problem.in_height : 1);
     int read_unit;
     if(_norm_region == MLO_LRN_ACROSS_CHANNELS)
     {
@@ -119,8 +118,7 @@ int mlo_construct_norm::mloConstructFwd()
         int n_waves = (_problem.batch_sz * MAP_SZ4 + _hw_wave_sz - 1) / _hw_wave_sz;
         if(n_waves <= maxComputeUnits * 8)
         {
-            MAP_SZ4 = _problem.in_width *
-                      (is_in_packed ? _problem.in_height : 1);
+            MAP_SZ4   = _problem.in_width * (is_in_packed ? _problem.in_height : 1);
             read_unit = (MAP_SZ4 % 2 == 0) ? 2 : 1;
             MAP_SZ4 /= read_unit;
             MAP_SZ4 *= (is_in_packed ? 1 : _problem.in_height);
@@ -134,10 +132,9 @@ int mlo_construct_norm::mloConstructFwd()
         const std::string name = _ctx.GetStream().GetDeviceName();
         if(name.find("gfx9") != std::string::npos) // Any gfx9 device.
         {
-            MIOPEN_LOG_I("Workaround for #1057: "
-                         << name << ','
-                         << miopen::GetDataTypeName(_problem.in_data_type) << ','
-                         << MAP_SZ4 << ',' << read_unit);
+            MIOPEN_LOG_I("Workaround for #1057: " << name << ','
+                                                  << miopen::GetDataTypeName(_problem.in_data_type)
+                                                  << ',' << MAP_SZ4 << ',' << read_unit);
             MAP_SZ4 *= read_unit;
             read_unit = 1;
         }
@@ -148,25 +145,18 @@ int mlo_construct_norm::mloConstructFwd()
     int scale_batch_stride   = _problem.out_batch_stride;
     int scale                = (doBackward()) ? 1 : 0;
 
-    auto g_wk_width =
-        static_cast<int>((_problem.out_width + _grp_tile0 * _out_pix_tile0 - 1) /
-                         (_grp_tile0 * _out_pix_tile0));
-    auto g_wk_height =
-        static_cast<int>((_problem.out_height + _grp_tile1 * _out_pix_tile1 - 1) /
-                         (_grp_tile1 * _out_pix_tile1));
+    auto g_wk_width  = static_cast<int>((_problem.out_width + _grp_tile0 * _out_pix_tile0 - 1) /
+                                       (_grp_tile0 * _out_pix_tile0));
+    auto g_wk_height = static_cast<int>((_problem.out_height + _grp_tile1 * _out_pix_tile1 - 1) /
+                                        (_grp_tile1 * _out_pix_tile1));
     int OUT_VERT_ALIGNED =
         (g_wk_height * (_grp_tile1 * _out_pix_tile1) == _problem.out_height) ? 1 : 0;
     int OUT_HORIZ_ALIGNED =
         (g_wk_width * (_grp_tile0 * _out_pix_tile0) == _problem.out_width) ? 1 : 0;
     // currently always 1
-    int DIVBY4 =
-        (MAP_SZ4 * read_unit == _problem.in_width * _problem.in_height)
-            ? 1
-            : 0;
-    int C1x1_PIXLEFT = (DIVBY4 == 1)
-                           ? 0
-                           : _problem.in_width * _problem.in_height -
-                                 (MAP_SZ4 - 1) * read_unit;
+    int DIVBY4 = (MAP_SZ4 * read_unit == _problem.in_width * _problem.in_height) ? 1 : 0;
+    int C1x1_PIXLEFT =
+        (DIVBY4 == 1) ? 0 : _problem.in_width * _problem.in_height - (MAP_SZ4 - 1) * read_unit;
 
     std::string READ_TYPE =
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
@@ -268,15 +258,13 @@ int mlo_construct_norm::mloConstructFwd()
 
         _g_wk.push_back(static_cast<size_t>(g_wk_width) * _grp_tile0);
         _g_wk.push_back(static_cast<size_t>(g_wk_height) * _grp_tile1);
-        _g_wk.push_back(static_cast<size_t>(_problem.n_outputs) *
-                        _problem.batch_sz);
+        _g_wk.push_back(static_cast<size_t>(_problem.n_outputs) * _problem.batch_sz);
     }
     int data_len = miopen::GetTypeSize(_problem.out_data_type);
 
     // calculate workspace
-    size_t scale_sz =
-        static_cast<size_t>(_problem.batch_sz) * scale_batch_stride * data_len;
-    _workspace_sz = (doBackward()) ? scale_sz : 0;
+    size_t scale_sz = static_cast<size_t>(_problem.batch_sz) * scale_batch_stride * data_len;
+    _workspace_sz   = (doBackward()) ? scale_sz : 0;
 
     return (ret);
 }
@@ -316,9 +304,9 @@ int mlo_construct_norm::mloConstructBwd()
         std::string(" -DMLO_LRN_N_OUTPUTS=") +
         std::to_string(static_cast<long long>(_problem.n_outputs)) +
         std::string(" -DMLO_LRN_N_CHANNELS=") +
-        std::to_string(static_cast<long long>(_problem.n_inputs)) +
-        std::string(" -DMLO_LRN_PAD=") + std::to_string(static_cast<long long>(pad)) +
-        std::string(" -DMLO_LRN_PRE_PAD=") + std::to_string(static_cast<long long>(pre_pad)) +
+        std::to_string(static_cast<long long>(_problem.n_inputs)) + std::string(" -DMLO_LRN_PAD=") +
+        std::to_string(static_cast<long long>(pad)) + std::string(" -DMLO_LRN_PRE_PAD=") +
+        std::to_string(static_cast<long long>(pre_pad)) +
         std::string(" -DMLO_LRN_N_HORIZ_OUT_PIX=") +
         std::to_string(static_cast<long long>(_out_pix_tile0)) +
         std::string(" -DMLO_LRN_N_VERT_OUT_PIX=") +
@@ -372,8 +360,7 @@ int mlo_construct_norm::mloConstructBwd()
         std::string(" -DMLO_LRN_N_INPUTS=") +
         std::to_string(static_cast<long long>(_problem.n_inputs)) +
         std::string(" -DMLO_LRN_N_OUTPUTS=") +
-        std::to_string(static_cast<long long>(_problem.n_outputs)) +
-        getGeneralCompOptions();
+        std::to_string(static_cast<long long>(_problem.n_outputs)) + getGeneralCompOptions();
 
     _kernel_file = "MIOpenLRNBwd.cl";
 
@@ -399,8 +386,7 @@ int mlo_construct_norm::mloConstructBwd()
 
         _g_wk.push_back(static_cast<size_t>(g_wk_width) * _grp_tile0);
         _g_wk.push_back(static_cast<size_t>(g_wk_height) * _grp_tile1);
-        _g_wk.push_back(static_cast<size_t>(_problem.n_inputs) *
-                        _problem.batch_sz);
+        _g_wk.push_back(static_cast<size_t>(_problem.n_inputs) * _problem.batch_sz);
         _kernel_name = "MIOpenLRNWithinChannelBwd";
     }
 

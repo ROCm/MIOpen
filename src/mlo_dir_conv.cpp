@@ -379,13 +379,11 @@ void miopen::ConvolutionContext::SetupFloats()
 
 void mlo_construct_activ_lrn_pooling_common::setupFloats()
 {
-    if(_problem.in_data_type == miopenFloat &&
-       _problem.out_data_type == miopenFloat)
+    if(_problem.in_data_type == miopenFloat && _problem.out_data_type == miopenFloat)
     {
         _ctx.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     }
-    else if(_problem.in_data_type == miopenHalf &&
-            _problem.out_data_type == miopenHalf)
+    else if(_problem.in_data_type == miopenHalf && _problem.out_data_type == miopenHalf)
     {
         _ctx.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
     }
