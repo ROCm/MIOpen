@@ -47,18 +47,9 @@ struct OldStyleProblemDescription : ExecutionContext
     miopen::activ::ProblemDescription problem;
 };
 
-struct ActivSolver : NonTunableSolverBase<OldStyleProblemDescription,
+using ActivSolver = NonTunableSolverBase<OldStyleProblemDescription,
                                           ExecutionContext,
-                                          miopen::activ::ProblemDescription>
-{
-    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
-    {
-        return GetSolution(problem, problem.problem);
-    }
-
-    virtual ConvSolution GetSolution(const ExecutionContext& context,
-                                     const miopen::activ::ProblemDescription& problem) const = 0;
-};
+                                          miopen::activ::ProblemDescription>;
 
 struct ActivFwdSolver0 final : ActivSolver
 {

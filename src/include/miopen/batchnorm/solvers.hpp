@@ -51,19 +51,9 @@ struct OldStyleProblemDescription : ExecutionContext
     miopen::batchnorm::ProblemDescription problem;
 };
 
-struct BatchnormSolver : NonTunableSolverBase<OldStyleProblemDescription,
+using BatchnormSolver = NonTunableSolverBase<OldStyleProblemDescription,
                                               ExecutionContext,
-                                              miopen::batchnorm::ProblemDescription>
-{
-    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
-    {
-        return GetSolution(problem, problem.problem);
-    }
-
-    virtual ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::batchnorm::ProblemDescription& problem) const = 0;
-};
+                                              miopen::batchnorm::ProblemDescription>;
 
 struct BnFwdTrainingSpatialSingle final : BatchnormSolver
 {

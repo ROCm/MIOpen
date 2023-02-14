@@ -225,14 +225,14 @@ struct AnySolver
         GetAllSolutions(const ConvolutionContext& ctx, std::false_type, std::true_type) const
         {
             std::vector<ConvSolution> solutions;
-            solutions.push_back(value.GetSolution(ctx));
+            solutions.push_back(value.GetSolution(ctx, ctx.problem));
             return solutions;
         }
         std::vector<ConvSolution>
         GetAllSolutions(const ConvolutionContext& ctx, std::false_type, std::false_type) const
         {
             std::vector<ConvSolution> solutions;
-            solutions.push_back(value.GetSolution(ctx));
+            solutions.push_back(value.GetSolution(ctx, ctx.problem));
             return solutions;
         }
 

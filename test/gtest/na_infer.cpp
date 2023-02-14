@@ -53,7 +53,7 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
         GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << config;
     }
     ASSERT_TRUE(solv.IsApplicable(fusion_ctx, fusion_ctx.problem));
-    auto sol = solv.GetSolution(fusion_ctx);
+    auto sol = solv.GetSolution(fusion_ctx, fusion_ctx.problem);
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);

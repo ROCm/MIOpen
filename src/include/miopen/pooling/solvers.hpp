@@ -46,18 +46,9 @@ struct OldStyleProblemDescription : ExecutionContext
     miopen::pooling::ProblemDescription problem;
 };
 
-struct PoolingSolver : NonTunableSolverBase<OldStyleProblemDescription,
+using PoolingSolver = NonTunableSolverBase<OldStyleProblemDescription,
                                             ExecutionContext,
-                                            miopen::pooling::ProblemDescription>
-{
-    ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
-    {
-        return GetSolution(problem, problem.problem);
-    }
-
-    virtual ConvSolution GetSolution(const ExecutionContext& context,
-                                     const miopen::pooling::ProblemDescription& problem) const = 0;
-};
+                                            miopen::pooling::ProblemDescription>;
 
 struct PoolingForward2d final : PoolingSolver
 {

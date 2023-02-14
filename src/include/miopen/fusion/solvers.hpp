@@ -185,13 +185,7 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
 
     bool IsApplicable(const FusionContext& context,
                       const FusionDescription& problem) const override;
-
-    ConvSolution GetSolution(const OldStyleFusionDesc& context) const override
-    {
-        return GetSolution(context, context.problem);
-    }
-
-    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
+    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const override;
 };
 
 struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
@@ -203,13 +197,7 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
 
     bool IsApplicable(const FusionContext& context,
                       const FusionDescription& problem) const override;
-
-    ConvSolution GetSolution(const OldStyleFusionDesc& context) const override
-    {
-        return GetSolution(context, context.problem);
-    }
-
-    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
+    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const override;
 };
 
 struct BnFwdInferActivationFused final : FusionSolverBase
@@ -221,13 +209,7 @@ struct BnFwdInferActivationFused final : FusionSolverBase
 
     bool IsApplicable(const FusionContext& context,
                       const FusionDescription& problem) const override;
-
-    ConvSolution GetSolution(const OldStyleFusionDesc& context) const override
-    {
-        return GetSolution(context, context.problem);
-    }
-
-    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
+    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const override;
 };
 
 struct BnFwdTrgActivationFused final : FusionSolverBase
@@ -239,12 +221,7 @@ struct BnFwdTrgActivationFused final : FusionSolverBase
 
     bool IsApplicable(const FusionContext& context,
                       const FusionDescription& problem) const override;
-
-    ConvSolution GetSolution(const OldStyleFusionDesc& context) const override
-    {
-        return GetSolution(context, context.problem);
-    }
-    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
+    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const override;
 };
 
 struct BnBwdTrgActivationFused final : FusionSolverBase
@@ -256,13 +233,7 @@ struct BnBwdTrgActivationFused final : FusionSolverBase
 
     bool IsApplicable(const FusionContext& context,
                       const FusionDescription& problem) const override;
-
-    ConvSolution GetSolution(const OldStyleFusionDesc& context) const override
-    {
-        return GetSolution(context, context.problem);
-    }
-
-    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
+    ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const override;
 };
 
 } // namespace fusion
