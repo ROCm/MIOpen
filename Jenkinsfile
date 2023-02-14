@@ -313,7 +313,7 @@ def buildHipClangJobAndReboot(Map conf=[:]){
     }
 }
 
-def CheckDeserializePerfDb(Map conf=[:]){
+def CheckPerfDbValid(Map conf=[:]){
     def pdb_image = buildHipClangJob(conf)
     pdb_image.inside(){
         sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_valid_err.json"
@@ -509,7 +509,7 @@ pipeline {
                     }
                     steps{
                         //temporarily disabled
-                        //CheckDeserializePerfDb(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
+                        //CheckPerfDbValid(setup_flags: fin_flags, build_fin: "ON", config_targets: "MIOpenDriver", build_install: "true", needs_gpu:false)
                         echo "skip perf db valid check"
                     }
                 }
