@@ -90,11 +90,11 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
                                                                    const FusionDescription& problem,
                                                                    const AnyInvokeParams&) const
 {
-    const auto conv_ctx            = context.GetConvContext(0, conv::Direction::Forward, problem);
-    auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
+    const auto conv_ctx  = context.GetConvContext(0, conv::Direction::Forward, problem);
+    auto conv_problem    = problem.GetConvProblem(0, conv::Direction::Forward);
     conv_problem.bias    = 1;
     conv_problem.bias_sz = static_cast<size_t>(conv_problem.n_outputs) *
-                                  ((conv_problem.out_data_type == miopenHalf) ? 2 : 4);
+                           ((conv_problem.out_data_type == miopenHalf) ? 2 : 4);
     if(!conv_problem.direction.IsForward())
         MIOPEN_THROW("Only inference supported.");
 
@@ -107,16 +107,15 @@ PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionC
     const auto wei_buf  = handle.Create(conv_problem.weights_sz);
     const auto out_buf  = handle.Create(conv_problem.top_sz);
 
-    auto tensors    = FusedConvDataTensors{};
-    tensors.in      = in_buf.get();
-    tensors.w       = wei_buf.get();
-    tensors.out     = out_buf.get();
-    tensors.inDesc  = conv_problem.conv_problem.GetIn();
-    tensors.wDesc   = conv_problem.conv_problem.GetWeights();
-    tensors.outDesc = conv_problem.conv_problem.GetOut();
-    tensors.bias    = bias_buf.get();
-    const auto gfx90aaltimpl =
-        conv_problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
+    auto tensors             = FusedConvDataTensors{};
+    tensors.in               = in_buf.get();
+    tensors.w                = wei_buf.get();
+    tensors.out              = out_buf.get();
+    tensors.inDesc           = conv_problem.conv_problem.GetIn();
+    tensors.wDesc            = conv_problem.conv_problem.GetWeights();
+    tensors.outDesc          = conv_problem.conv_problem.GetOut();
+    tensors.bias             = bias_buf.get();
+    const auto gfx90aaltimpl = conv_problem.conv_problem.GetConv().attribute.gfx90aFp16alt.GetFwd();
     const auto fused_invoke_ctx = conv::FusedDataInvokeParams(tensors, nullptr, 0, gfx90aaltimpl);
     return GenericSearch(*this, context, fused_invoke_ctx);
 }
@@ -126,7 +125,7 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
                                   const FusionDescription& problem,
                                   const PerformanceConfigConvBiasActivAsm1x1U& config) const
 {
-    const auto conv_ctx = context.GetConvContext(0, conv::Direction::Forward, problem);
+    const auto conv_ctx     = context.GetConvContext(0, conv::Direction::Forward, problem);
     const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
     ConvAsm1x1U base_sol{};
 
@@ -262,15 +261,14 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     }
 
     ConvAsm1x1U sol{};
-    const auto conv_ctx = context.GetConvContext(0, conv::Direction::Forward, problem);
+    const auto conv_ctx     = context.GetConvContext(0, conv::Direction::Forward, problem);
     const auto conv_problem = problem.GetConvProblem(0, conv::Direction::Forward);
 
     if(conv_problem.pad_h != conv_problem.pad_w)
         return false;
     if(conv_problem.pad_h != 0)
         return false;
-    if(conv_problem.conv_problem.GetKernelStrideH() !=
-       conv_problem.conv_problem.GetKernelStrideW())
+    if(conv_problem.conv_problem.GetKernelStrideH() != conv_problem.conv_problem.GetKernelStrideW())
         return false;
     if(conv_problem.conv_problem.GetKernelStrideH() != 1)
         return false;

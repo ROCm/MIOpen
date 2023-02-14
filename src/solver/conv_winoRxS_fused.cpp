@@ -156,7 +156,7 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
     if(!WinoCommonIsApplicable(context, problem))
         return false;
 
-    const auto conv_ctx = context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
+    const auto conv_ctx     = context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
     const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
 
     const std::string name = conv_ctx.GetStream().GetDeviceName();
@@ -202,7 +202,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     ConvSolution result;
     KernelInfo kernel;
 
-    const auto conv_ctx = context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
+    const auto conv_ctx     = context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
     const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
 
     const int n_groups  = conv_ctx.GetStream().GetMaxHardwareComputeUnits();
@@ -228,8 +228,7 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     const std::string kernel_version = is_v21 ? "_v21_1_3" : "_v30_2_6";
     kernel.kernel_file               = "Conv_Winograd" + kernel_version;
     kernel.kernel_name               = "miopenSp3AsmConv" + kernel_version;
-    const auto kernel_postfix =
-        "_fp32_f2x3_stride" + std::to_string(conv_problem.kernel_stride_h);
+    const auto kernel_postfix = "_fp32_f2x3_stride" + std::to_string(conv_problem.kernel_stride_h);
 
     if(is_gfx9)
     {
@@ -260,20 +259,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
     int N, C, H, W, K, unused, out_H, out_W, R, S, pad_H, pad_W;
-    GetCompiledInParameters(context,
-                            conv_problem,
-                            &N,
-                            &C,
-                            &H,
-                            &W,
-                            &K,
-                            &unused,
-                            &out_H,
-                            &out_W,
-                            &R,
-                            &S,
-                            &pad_H,
-                            &pad_W);
+    GetCompiledInParameters(
+        context, conv_problem, &N, &C, &H, &W, &K, &unused, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
     const int zero = 0;
     int flags      = [&]() {
         constexpr int L_F_BIAS       = 1 << 7;
