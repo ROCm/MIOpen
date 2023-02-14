@@ -39,9 +39,9 @@ inline int GetOpIdx(const std::vector<std::shared_ptr<FusionOpDescriptor>>& op_m
     return it == op_map.cend() ? -1 : std::distance(op_map.cbegin(), it);
 }
 
-inline bool WinoCommonIsApplicable(const FusionContext& params)
+inline bool WinoCommonIsApplicable(const FusionContext& context, const FusionDescription& problem)
 {
-    const auto& desc = *params.problem.fusion_plan_desc;
+    const auto& desc = *problem.fusion_plan_desc;
     if(desc.op_map.empty())
     {
         MIOPEN_THROW("");
@@ -76,16 +76,17 @@ inline bool WinoCommonIsApplicable(const FusionContext& params)
         if(!(activ_mode == miopenActivationRELU || activ_mode == miopenActivationLEAKYRELU))
             return false;
     }
-    const miopen::ConvolutionContext conv_ctx =
-        params.GetConvContext(0, miopen::conv::Direction::Forward, params.problem);
 
-    if(!conv_ctx.problem.Is2d())
+    const auto conv_ctx = context.GetConvContext(0, miopen::conv::Direction::Forward, problem);
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+
+    if(!conv_problem.Is2d())
         return false;
-    if(!conv_ctx.problem.IsFp32())
+    if(!conv_problem.IsFp32())
         return false;
-    if(!conv_ctx.problem.IsLayoutDefault())
+    if(!conv_problem.IsLayoutDefault())
         return false;
-    if(!conv_ctx.problem.direction.IsForward())
+    if(!conv_problem.direction.IsForward())
         return false;
     const auto target = conv_ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
