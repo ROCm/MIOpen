@@ -56,10 +56,10 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->IsTunable();
     };
-    bool TestSysDbRecord(const ConvolutionContext& ctx, const DbRecord& record) const
+    bool TestPerfCfgParams(const ConvolutionContext& ctx, const std::string& params) const
     {
         assert(ptr_value != nullptr);
-        return ptr_value->TestSysDbRecord(ctx, record);
+        return ptr_value->TestPerfCfgParams(ctx, params);
     };
     std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const
     {
@@ -121,8 +121,8 @@ struct AnySolver
         virtual ~AnySolver_base(){};
         virtual bool IsApplicable(const ConvolutionContext& ctx) const                         = 0;
         virtual bool IsTunable() const                                                         = 0;
-        virtual bool TestSysDbRecord(const ConvolutionContext& ctx,
-                                     const DbRecord& record) const                             = 0;
+        virtual bool TestPerfCfgParams(const ConvolutionContext& ctx,
+                                       const std::string& params) const                        = 0;
         virtual std::vector<ConvSolution> GetAllSolutions(const ConvolutionContext& ctx) const = 0;
         virtual bool IsDynamic() const                                                         = 0;
         virtual float GetWti(const ConvolutionContext& ctx) const                              = 0;
@@ -173,31 +173,37 @@ struct AnySolver
             static constexpr bool Is = type::value;
         };
 
-        bool
-        TestSysDbRecord(const ConvolutionContext& ctx, const DbRecord& record, std::true_type) const
+        bool TestPerfCfgParams(const ConvolutionContext& ctx,
+                               const std::string& params,
+                               std::true_type) const
         {
             using PerformanceConfig = decltype(value.GetDefaultPerformanceConfig(
                 std::declval<const ConvolutionContext&>(),
                 std::declval<const ProblemDescription&>()));
             PerformanceConfig config{};
-            bool success = record.GetValues(value.SolverDbId(), config);
-            if(success)
-                success = value.IsValidPerformanceConfig(ctx, ctx.problem, config);
+
+            bool success = config.Deserialize(params);
+            if(!success)
+            {
+                MIOPEN_LOG_WE("Perf params are obsolete or corrupt: "
+                              << params << ". Performance may degrade.");
+                return false;
+            }
+
+            success = value.IsValidPerformanceConfig(ctx, ctx.problem, config);
 
             return success;
         }
-        bool TestSysDbRecord(const ConvolutionContext& ctx,
-                             const DbRecord& record,
-                             std::false_type) const
+        bool TestPerfCfgParams(const ConvolutionContext&, const std::string&, std::false_type) const
         {
-            std::ignore = ctx;
-            std::ignore = record;
             return false;
         }
 
-        bool TestSysDbRecord(const ConvolutionContext& ctx, const DbRecord& record) const override
+        bool TestPerfCfgParams(const ConvolutionContext& ctx,
+                               const std::string& params) const override
         {
-            return TestSysDbRecord(ctx, record, std::integral_constant<bool, TunableSolver::Is>());
+            return TestPerfCfgParams(
+                ctx, params, std::integral_constant<bool, TunableSolver::Is>());
         }
 
         // tunable legacy solver
@@ -288,14 +294,10 @@ struct AnySolver
             config = value.GetDefaultPerformanceConfig(ctx, ctx.problem);
             return config.ToString();
         }
-
-        std::string GetPerfCfgParams(const ConvolutionContext& ctx,
-                                     const PerformanceDb& db,
-                                     std::false_type) const
+        std::string
+        GetPerfCfgParams(const ConvolutionContext&, const PerformanceDb&, std::false_type) const
         {
             MIOPEN_LOG_I2("PerformanceDb: No Config: " << value.SolverDbId());
-            std::ignore = ctx;
-            std::ignore = db;
             return "";
         }
 
