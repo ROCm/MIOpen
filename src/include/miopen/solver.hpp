@@ -27,7 +27,7 @@
 #ifndef GUARD_MIOPEN_SOLVER_HPP_
 #define GUARD_MIOPEN_SOLVER_HPP_
 
-#define SOLVERS_FUNCTIONS_USE_BOOST_ANY   0 // TODO TODO remove
+#define SOLVERS_FUNCTIONS_USE_BOOST_ANY 0 // TODO TODO remove
 
 #include <miopen/config.h>
 
@@ -194,7 +194,8 @@ struct NonTunableSolverBase : SolverMixin<OldStyleProblemDesc, Context, Problem>
 using ConvSolver = NonTunableSolverBase<ConvolutionContext, ConvolutionContext, ProblemDescription>;
 
 /// Base class for tunable solvers
-struct ConvTunableSolverBase : SolverMixin<ConvolutionContext, ConvolutionContext, ProblemDescription>
+struct ConvTunableSolverBase
+    : SolverMixin<ConvolutionContext, ConvolutionContext, ProblemDescription>
 {
     /// Initializes performance config to the default values.
     /// The function may involve some heuristic to guess the best solution

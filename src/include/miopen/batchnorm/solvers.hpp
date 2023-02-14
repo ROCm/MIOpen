@@ -52,8 +52,8 @@ struct OldStyleProblemDescription : ExecutionContext
 };
 
 struct BatchnormSolver : NonTunableSolverBase<OldStyleProblemDescription,
-                                     ExecutionContext,
-                                     miopen::batchnorm::ProblemDescription>
+                                              ExecutionContext,
+                                              miopen::batchnorm::ProblemDescription>
 {
     ConvSolution GetSolution(const OldStyleProblemDescription& problem) const override
     {
