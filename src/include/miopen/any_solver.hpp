@@ -261,7 +261,7 @@ struct AnySolver
                                   const miopen::AnyInvokeParams& invoke_ctx,
                                   const std::string& perf_cfg) const override
         {
-            return miopen::solver::FindSolution(value, ctx, db, invoke_ctx, perf_cfg);
+            return miopen::solver::FindSolution(value, ctx, ctx.problem, db, invoke_ctx, perf_cfg);
         };
 
         std::string
