@@ -256,10 +256,16 @@ ConvBinWinogradRxSg1Fused<Winodata, Winofilter>::GetSolution(const FusionContext
     kernel.kernel_file += kernel_postfix + ".s";
     result.construction_params.push_back(kernel);
 
-    const auto x = conv_ctx.problem.conv_problem.GetWeightsWidth();
-    const auto y = conv_ctx.problem.conv_problem.GetWeightsHeight();
+    const auto x        = conv_ctx.problem.conv_problem.GetWeightsWidth();
+    const auto y        = conv_ctx.problem.conv_problem.GetWeightsHeight();
+    const auto stride_w = conv_ctx.problem.kernel_stride_w;
+    // assert(stride_w == stride_h)
 
-    if(x == 3 && y == 3)
+    if(IS2X3 && x == 3 && y == 3 && stride_w == 1)
+        result.weight = 100;
+    else if(IS3X2 && x == 3 && y == 3 && stride_w == 2)
+        result.weight = 100;
+    else if(IS3X2 && x == 2 && y == 2 && stride_w == 1)
         result.weight = 100;
     else
         result.weight = 5;
