@@ -87,7 +87,7 @@ __kernel void Col2Im3d(global _FLOAT* col,
 #if MIOPEN_USE_64BIT_INDEX
     long ch_offset = (long)im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
 #else
-    int ch_offset = (long)im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
+    int ch_offset = im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
 #endif
 
     col += ch_offset;
