@@ -304,33 +304,34 @@ std::chrono::milliseconds GetTuningTimeMax(); // returns the max allowed time in
 std::size_t GetTuningThreadsMax();
 
 template <typename PerformanceConfig, typename Solver, typename Context>
-void CompileAgent(
-    size_t thread_index,
-    size_t total_threads,
-    const Solver& s,
-    const Context& context_,
-    std::vector<PerformanceConfig>& data, 
-    ThreadSafeQueue<std::tuple<PerformanceConfig, ConvSolution, bool>>& comp_queue)
+void CompileAgent(size_t thread_index,
+                  size_t total_threads,
+                  const Solver& s,
+                  const Context& context_,
+                  std::vector<PerformanceConfig>& data,
+                  ThreadSafeQueue<std::tuple<PerformanceConfig, ConvSolution, bool>>& comp_queue)
 {
-    const auto start_time = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
-    const auto data_size = data.size();
-    const auto time_budget = GetTuningTimeMax();
-    auto context = context_; // Not sure if context is thread safe
+    const auto start_time =
+        std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+    const auto data_size          = data.size();
+    const auto time_budget        = GetTuningTimeMax();
+    auto context                  = context_; // Not sure if context is thread safe
     context.is_for_generic_search = true;
-    const auto& profile_h = context.GetStream();
+    const auto& profile_h         = context.GetStream();
     // start the counter
     for(auto idx = thread_index; idx < data_size; idx += total_threads)
     {
         // Check if we are out of time
-        const auto current_time = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+        const auto current_time = std::chrono::time_point_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now());
         if(current_time - start_time > time_budget)
         {
             MIOPEN_LOG_I2("Thread: " << thread_index << " Done");
             auto tmp = std::make_tuple<PerformanceConfig, ConvSolution, bool>({}, {}, true);
             comp_queue.push(std::move(tmp));
             break;
-        } 
-        auto& current_config = data.at(idx);
+        }
+        auto& current_config          = data.at(idx);
         ConvSolution current_solution = s.GetSolution(context, current_config);
         for(const auto& kernel : current_solution.construction_params)
         {
@@ -338,7 +339,8 @@ void CompileAgent(
                 continue;
             std::ignore = profile_h.LoadProgram(kernel.kernel_file, kernel.comp_options, false, "");
         }
-        auto tup = std::make_tuple<PerformanceConfig, ConvSolution, bool>(std::move(current_config), std::move(current_solution), false);
+        auto tup = std::make_tuple<PerformanceConfig, ConvSolution, bool>(
+            std::move(current_config), std::move(current_solution), false);
         comp_queue.push(std::move(tup));
     }
     return;
@@ -376,14 +378,15 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         all_configs.push_back(kinder);
     }
     // shuffle the configs
-    auto rd = std::random_device{};
+    auto rd  = std::random_device{};
     auto rng = std::default_random_engine{rd()};
     std::shuffle(all_configs.begin(), all_configs.end(), rng);
     const std::size_t n_runs_total =
         std::min(static_cast<std::size_t>(std::distance(all_configs.begin(), all_configs.end())),
                  GetTuningIterationsMax());
 
-    all_configs = std::vector<PerformanceConfig>(all_configs.begin(), all_configs.begin() + n_runs_total);
+    all_configs =
+        std::vector<PerformanceConfig>(all_configs.begin(), all_configs.begin() + n_runs_total);
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
@@ -392,34 +395,33 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
-    const auto  total_threads = GetTuningThreadsMax();
+    const auto total_threads = GetTuningThreadsMax();
     ThreadSafeQueue<std::tuple<PerformanceConfig, ConvSolution, bool>> solution_queue;
     std::vector<std::thread> compile_agents;
     for(auto idx = 0; idx < total_threads; ++idx)
     {
         compile_agents.emplace_back(CompileAgent<PerformanceConfig, Solver, Context>,
-                               idx,
-                               total_threads,
-                               std::cref(s),
-                               std::cref(context),
-                               std::ref(all_configs),
-                               std::ref(solution_queue));
+                                    idx,
+                                    total_threads,
+                                    std::cref(s),
+                                    std::cref(context),
+                                    std::ref(all_configs),
+                                    std::ref(solution_queue));
     }
-
 
     if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
     {
-        size_t n_current = 0;
+        size_t n_current       = 0;
         auto threads_remaining = total_threads;
         while(true)
         {
             if(n_current >= n_runs_total)
                 break;
             MIOPEN_LOG_I2("Waiting for item in queue");
-            const auto kinder = solution_queue.front();
-            auto current_config =  std::get<0>(kinder);
-            auto current_solution =  std::get<1>(kinder);
-            
+            const auto kinder     = solution_queue.front();
+            auto current_config   = std::get<0>(kinder);
+            auto current_solution = std::get<1>(kinder);
+
             if(std::get<2>(kinder))
             {
                 threads_remaining--;
@@ -430,7 +432,6 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
                     continue;
                 }
             }
-            
 
             float elapsed_time = 0.0f;
             int ret            = 0;
@@ -540,7 +541,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
                      "Running kernels on GPU is disabled. Search skipped");
     }
 
-    for(auto& agent: compile_agents)
+    for(auto& agent : compile_agents)
         agent.join();
 
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"

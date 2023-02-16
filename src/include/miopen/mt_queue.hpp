@@ -31,13 +31,15 @@
 #include <mutex>
 
 template <typename T>
-class ThreadSafeQueue {
+class ThreadSafeQueue
+{
     std::mutex mutex;
     std::condition_variable cond_var;
     std::queue<T> queue;
 
 public:
-    void push(T&& item) {
+    void push(T&& item)
+    {
         {
             std::lock_guard<std::mutex> lock(mutex);
             queue.push(item);
@@ -46,13 +48,15 @@ public:
         cond_var.notify_one();
     }
 
-    T& front() {
+    T& front()
+    {
         std::unique_lock<std::mutex> lock(mutex);
-        cond_var.wait(lock, [&]{ return !queue.empty(); });
+        cond_var.wait(lock, [&] { return !queue.empty(); });
         return queue.front();
     }
 
-    void pop() {
+    void pop()
+    {
         std::lock_guard<std::mutex> lock(mutex);
         queue.pop();
     }

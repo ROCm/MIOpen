@@ -45,8 +45,10 @@ std::size_t GetTuningIterationsMax()
 
 std::chrono::milliseconds GetTuningTimeMax()
 {
-    const auto fallback = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2});
-    static const auto res = std::chrono::milliseconds{Value(MIOPEN_TUNING_TIME_MS_MAX{}, fallback.count() )};
+    const auto fallback =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2});
+    static const auto res =
+        std::chrono::milliseconds{Value(MIOPEN_TUNING_TIME_MS_MAX{}, fallback.count())};
     return res;
 }
 
@@ -54,7 +56,7 @@ std::size_t GetTuningThreadsMax()
 {
 #if MIOPEN_USE_COMGR
     const auto def_max = 1; // COMGR is not parallelizable
-#else  
+#else
     const auto def_max = 20;
 #endif
     return Value(MIOPEN_COMPILE_PARALLEL_LEVEL{}, def_max);

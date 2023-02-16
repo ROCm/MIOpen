@@ -439,13 +439,13 @@ public:
     {
         if(dbInvalid)
             return boost::none;
-        
+
         const auto pdb_ovr = miopen::GetStringEnv(MIOPEN_DEBUG_PERFDB_OVERRIDE{});
         if(pdb_ovr != nullptr)
         {
             MIOPEN_LOG_I2("overriding tuning params with: " << pdb_ovr);
             DbRecord ovr_rec;
-            const auto solv_vals = SplitDelim(pdb_ovr,  ':');
+            const auto solv_vals = SplitDelim(pdb_ovr, ':');
             for(const auto& solv_val : solv_vals)
             {
                 const auto vals = SplitDelim(solv_val, ';');
