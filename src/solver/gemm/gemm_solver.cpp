@@ -89,6 +89,9 @@ ConvSolution GemmSolver1x1::GetSolution(const ExecutionContext&,
                                             C,
                                             0);               
             }
+            else{
+                gemm_status = miopenStatusNotImplemented;
+            }
 
             if(gemm_status != miopenStatusSuccess)
                 MIOPEN_THROW("GEMM execution failure");

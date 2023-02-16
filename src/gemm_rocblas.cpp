@@ -111,6 +111,9 @@ miopenStatus_t CallGemmRocblas(const Handle& handle,
                                 Data_t C,
                                 int c_offset)
 {
+
+#if MIOPEN_USE_ROCBLAS
+    
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
     if(!gemm_desc.GetIsColMajor())
@@ -290,6 +293,17 @@ miopenStatus_t CallGemmRocblas(const Handle& handle,
         return miopenStatusSuccess;
     }
     return miopenStatusUnknownError;  
+#else
+    std::ignore = handle;
+    std::ignore = gemm_desc;
+    std::ignore = A;
+    std::ignore = a_offset;
+    std::ignore = B;
+    std::ignore = b_offset;
+    std::ignore = C;
+    std::ignore = c_offset;
+    return miopenStatusNotImplemented;
+#endif
 }
 
 } //namespace miopen

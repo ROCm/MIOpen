@@ -50,6 +50,8 @@ struct GemmSolver1x1 : OldStyleSolver
     //To suppress -Woverloaded-virtual
     using OldStyleSolver::IsApplicable;
 
+    const std::string& SolverDbId() const override { return GetSolverDbId<GemmSolver1x1>(); }
+
     bool IsApplicable(const OldStyleProblemDescription& problem) const override
     {
         return IsApplicable(*std::get<0>(problem), *std::get<1>(problem));
