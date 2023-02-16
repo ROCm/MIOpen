@@ -288,9 +288,6 @@ static void EvaluateInvokers(Handle& handle,
     {
         return;
     }
-    miopen::solver::ConvSolution selected{miopenStatusUnknownError};
-    float best = std::numeric_limits<float>::max();
-    Invoker best_invoker;
 
     for(const auto& sol : solutions)
     {
@@ -320,31 +317,23 @@ static void EvaluateInvokers(Handle& handle,
         {
             invoker(handle, invoke_ctx);
             const auto elapsed = handle.GetKernelTime();
-
-            MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
-            if(elapsed < best)
-            {
-                best         = elapsed;
-                selected     = sol;
-                best_invoker = invoker;
-            }
         }
         catch(const miopen::Exception& ex)
         {
             MIOPEN_LOG_E(ex.what());
         }
-    }
 
-    if(selected.Succeeded())
-    {
-        handle.RegisterInvoker(best_invoker, network_config, selected.solver_id, algorithm_name);
-        MIOPEN_LOG_I("Selected: " << selected << ": " << best
-                                  << ", workspace_sz = " << selected.workspace_sz);
-        record.SetValues(algorithm_name,
-                         FindDbData{selected.solver_id,
-                                    best,
-                                    selected.workspace_sz,
-                                    FindDbKCacheKey::MakeUnused(algorithm_name)});
+        if(sol.Succeeded())
+        {
+            handle.RegisterInvoker(invoker, network_config, sol.solver_id, algorithm_name);
+            MIOPEN_LOG_I("Selected: " << sol << ": " << elapsed
+                                      << ", workspace_sz = " << sol.workspace_sz);
+            record.SetValues(algorithm_name,
+                             FindDbData{sol.solver_id,
+                                        elapsed,
+                                        sol.workspace_sz,
+                                        FindDbKCacheKey::MakeUnused(algorithm_name)});
+        }
     }
 }
 
