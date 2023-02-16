@@ -313,10 +313,11 @@ static void EvaluateInvokers(Handle& handle,
             MIOPEN_THROW("Invoker is not provided by solver " + sol.solver_id);
 
         const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
+        float elapsed;
         try
         {
             invoker(handle, invoke_ctx);
-            const auto elapsed = handle.GetKernelTime();
+            elapsed = handle.GetKernelTime();
         }
         catch(const miopen::Exception& ex)
         {
