@@ -53,7 +53,7 @@ __kernel void Col2Im3d(global _FLOAT* col,
                        const int height,
                        const int width,
                        global _FLOAT* im,
-                       const int im_offset)
+                       const unsigned long im_offset)
 {
     global _FLOAT* im_off = im + im_offset;
     int gid               = (int)get_global_id(0);
@@ -84,7 +84,12 @@ __kernel void Col2Im3d(global _FLOAT* col,
                       : (im_w - (dilation_w * (wei_w - 1) + 1)) / stride_w + 1;
     int end_w   = min(col_w, im_w / stride_w + 1);
 
+#if MIOPEN_USE_64BIT_INDEX
+    long ch_offset = (long)im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
+#else
     int ch_offset = im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
+#endif
+
     col += ch_offset;
 
     _FLOAT_ACCUM tmp = (_FLOAT_ACCUM)0;
@@ -103,8 +108,15 @@ __kernel void Col2Im3d(global _FLOAT* col,
                     int y = (im_h - cy * stride_h) / dilation_h;
                     int x = (im_w - cx * stride_w) / dilation_w;
 
+#if MIOPEN_USE_64BIT_INDEX
+                    long col_off =
+                        ((((((long)z * wei_h) + y) * wei_w + x) * col_d + cz) * col_h + cy) *
+                            col_w +
+                        cx;
+#else
                     int col_off =
                         (((((z * wei_h) + y) * wei_w + x) * col_d + cz) * col_h + cy) * col_w + cx;
+#endif
 
                     tmp += CVT_FLOAT2ACCUM(col[col_off]);
                 }
