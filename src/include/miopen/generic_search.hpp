@@ -37,6 +37,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/timer.hpp>
 #include <miopen/type_traits.hpp>
+#include <miopen/mt_queue.hpp>
 
 #include <algorithm>
 #include <vector>
@@ -299,6 +300,49 @@ auto GenericSearch(const Solver s,
 }
 
 std::size_t GetTuningIterationsMax();
+std::chrono::milliseconds GetTuningTimeMax(); // returns the max allowed time in milliseconds
+std::size_t GetTuningThreadsMax();
+
+template <typename PerformanceConfig, typename Solver, typename Context>
+void CompileAgent(
+    size_t thread_index,
+    size_t total_threads,
+    const Solver& s,
+    const Context& context_,
+    std::vector<PerformanceConfig>& data, 
+    ThreadSafeQueue<std::tuple<PerformanceConfig, ConvSolution, bool>>& comp_queue)
+{
+    const auto start_time = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+    const auto data_size = data.size();
+    const auto time_budget = GetTuningTimeMax();
+    auto context = context_; // Not sure if context is thread safe
+    context.is_for_generic_search = true;
+    const auto& profile_h = context.GetStream();
+    // start the counter
+    for(auto idx = thread_index; idx < data_size; idx += total_threads)
+    {
+        // Check if we are out of time
+        const auto current_time = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+        if(current_time - start_time > time_budget)
+        {
+            MIOPEN_LOG_I2("Thread: " << thread_index << " Done");
+            auto tmp = std::make_tuple<PerformanceConfig, ConvSolution, bool>({}, {}, true);
+            comp_queue.push(std::move(tmp));
+            break;
+        } 
+        auto& current_config = data.at(idx);
+        ConvSolution current_solution = s.GetSolution(context, current_config);
+        for(const auto& kernel : current_solution.construction_params)
+        {
+            if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
+                continue;
+            std::ignore = profile_h.LoadProgram(kernel.kernel_file, kernel.comp_options, false, "");
+        }
+        auto tup = std::make_tuple<PerformanceConfig, ConvSolution, bool>(std::move(current_config), std::move(current_solution), false);
+        comp_queue.push(std::move(tup));
+    }
+    return;
+}
 
 template <class Solver, class Context>
 auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParams& invoke_ctx_)
@@ -325,14 +369,21 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     AutoEnableProfiling enableProfiling{profile_h};
 
     auto tmp_all_configs = GetAllConfigs(s, context);
-    const std::size_t n_runs_total =
-        std::min(static_cast<std::size_t>(std::distance(tmp_all_configs.begin(), tmp_all_configs.end())),
-                 GetTuningIterationsMax());
-    std::vector<std::pair<PerformanceConfig, bool>> all_configs;
-    for(const auto& config : tmp_all_configs)
+    // For random access
+    std::vector<PerformanceConfig> all_configs;
+    for(auto& kinder : tmp_all_configs)
     {
-        all_configs.push_back(std::make_pair(config, false));
+        all_configs.push_back(kinder);
     }
+    // shuffle the configs
+    auto rd = std::random_device{};
+    auto rng = std::default_random_engine{rd()};
+    std::shuffle(all_configs.begin(), all_configs.end(), rng);
+    const std::size_t n_runs_total =
+        std::min(static_cast<std::size_t>(std::distance(all_configs.begin(), all_configs.end())),
+                 GetTuningIterationsMax());
+
+    all_configs = std::vector<PerformanceConfig>(all_configs.begin(), all_configs.begin() + n_runs_total);
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
@@ -341,66 +392,55 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
-    if(!miopen::IsCacheDisabled()) // Otherwise precompilation is useless.
+    const auto  total_threads = GetTuningThreadsMax();
+    ThreadSafeQueue<std::tuple<PerformanceConfig, ConvSolution, bool>> solution_queue;
+    std::vector<std::thread> compile_agents;
+    for(auto idx = 0; idx < total_threads; ++idx)
     {
-        std::vector<KernelInfo> kernels;
-        size_t n_current = 0;
-        for(const auto& kinder : all_configs)
-        {
-            if(n_current >= n_runs_total)
-                break;
-
-            const auto& current_config = kinder.first;
-            ConvSolution current_solution = s.GetSolution(context, current_config);
-            for(auto&& kernel : current_solution.construction_params)
-            {
-                if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
-                    continue;
-                kernels.push_back(kernel);
-            }
-            ++n_current;
-        }
-        std::ignore = PrecompileKernels(profile_h, kernels);
+        compile_agents.emplace_back(CompileAgent<PerformanceConfig, Solver, Context>,
+                               idx,
+                               total_threads,
+                               std::cref(s),
+                               std::cref(context),
+                               std::ref(all_configs),
+                               std::ref(solution_queue));
     }
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distrib(0, n_runs_total-1);
 
 
     if(!IsEnabled(MIOPEN_DEBUG_COMPILE_ONLY{}))
     {
         size_t n_current = 0;
-        // for(const auto& kinder: all_configs)
+        auto threads_remaining = total_threads;
         while(true)
         {
             if(n_current >= n_runs_total)
                 break;
-            const auto idx = distrib(gen);
-            MIOPEN_LOG_I2("Got random index: " << idx);
-            auto& kinder = all_configs[idx];
-
-            if(kinder.second)
+            MIOPEN_LOG_I2("Waiting for item in queue");
+            const auto kinder = solution_queue.front();
+            auto current_config =  std::get<0>(kinder);
+            auto current_solution =  std::get<1>(kinder);
+            
+            if(std::get<2>(kinder))
             {
-                MIOPEN_LOG_I2("Skipping tested entry");
-                continue; // This point has already been tested
+                threads_remaining--;
+                if(threads_remaining == 0)
+                    break;
+                else
+                {
+                    continue;
+                }
             }
-            else
-                kinder.second = true;
-
-            const auto& current_config = kinder.first;
+            
 
             float elapsed_time = 0.0f;
             int ret            = 0;
             MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
                               << current_config);
 
-            ConvSolution current_solution;
             Invoker invoker;
 
             try
             {
-                current_solution = s.GetSolution(context, current_config);
                 if(default_solution.workspace_sz != current_solution.workspace_sz)
                 {
                     ret = -2;
@@ -491,6 +531,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
                               n_runs_total,
                               current_config);
             ++n_current;
+            solution_queue.pop();
         }
     }
     else
@@ -498,6 +539,9 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
         MIOPEN_THROW(miopenStatusGpuOperationsSkipped,
                      "Running kernels on GPU is disabled. Search skipped");
     }
+
+    for(auto& agent: compile_agents)
+        agent.join();
 
     MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
                           << n_best << ' ' << best_time << ' ' << best_config);

@@ -30,16 +30,18 @@
 
 #include <stdlib.h>
 
-static ThreadSafeQueue<std::shared_ptr<int>> comp_queue;
 static std::atomic<int> num_prod{};
-static std::atomic<int> num_cons{};
 
-static const auto total_producers = 3; //std::thread::hardware_concurrency();
+static const auto total_producers = std::thread::hardware_concurrency();
 const auto data_len = 100;
-using data_t = std::vector<std::shared_ptr<int>>;
 
-void producer(int thread_idx, data_t& common_data)
+template<typename T>
+using data_t = std::vector<T>;
+
+template<typename T>
+void producer(int thread_idx, data_t<T>& common_data, ThreadSafeQueue<T>& comp_queue)
 {
+	return;
     for(auto idx = thread_idx; idx < data_len; idx += total_producers)
     {
         comp_queue.push(std::move(common_data.at(idx)));
@@ -48,35 +50,34 @@ void producer(int thread_idx, data_t& common_data)
     }
 }
 
-void consumer()
-{
-	for(auto idx = 0; idx < data_len; idx++)
-	{
-		std::cerr << *(comp_queue.front()) << std::endl;
-		num_cons++;
-		comp_queue.pop();
-	}
-}
+
 
 TEST(UtilMultiThreadQueue, Basic)
 {
-	data_t common_data;
+	ThreadSafeQueue<int> comp_queue;
+	int num_cons = 0;
+	data_t<int> common_data;
 	for(auto idx = 0; idx < data_len; ++idx)
-		common_data.emplace_back(std::make_shared<int>(idx));
+		common_data.emplace_back(idx);
 
-	std::thread cons(consumer);
 	std::vector<std::thread> producers;
 	for(int idx = 0;idx < total_producers; idx++)
 	{
-		producers.emplace_back(producer, idx, std::ref(common_data));
+		producers.emplace_back(producer<int>, idx, std::ref(common_data), std::ref(comp_queue));
+	}
+
+	for(auto idx = 0; idx < data_len; ++idx)
+	{
+		std::cerr << comp_queue.front() << std::endl;
+		num_cons++;
+		comp_queue.pop();
 	}
 
 	for(auto& prod: producers)
 		prod.join();
 
-	cons.join();
 	std::cout << "Stage 2" << std::endl;
 	for(const auto& tmp: common_data)
-		std::cout << *tmp << std::endl;
+		std::cout << tmp << std::endl;
 	EXPECT_EQ(num_prod, num_cons);
 }
