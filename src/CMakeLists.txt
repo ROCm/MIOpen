@@ -82,8 +82,10 @@ endfunction()
 
 set( MIOpen_Source
     activ/problem_description.cpp
+    gemm/problem_description.cpp
     activ_api.cpp
     api/find2_0_commons.cpp
+    gemm_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -141,6 +143,7 @@ set( MIOpen_Source
     solver/activ/bwd_1.cpp
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
+    solver/gemm/gemm_solver.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
     solver/batchnorm/backward_spatial_multiple.cpp
@@ -472,11 +475,13 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
+        gemm.cpp
         kernel_cache.cpp
         lrn.cpp
         mlo_dir_conv.cpp
         exec_utils.cpp
         ocl/activ_ocl.cpp
+        ocl/gemm_ocl.cpp
         ocl/batchnormocl.cpp
         ocl/convolutionocl.cpp
         ocl/lrn_ocl.cpp
@@ -509,6 +514,7 @@ if(miopengemm_FOUND OR MIOPEN_USE_ROCBLAS OR MIOPEN_USE_MIOPENTENSILE)
     list(APPEND MIOpen_Source
         gemm_v2.cpp
         miopengemm.cpp
+        gemm_rocblas.cpp       
     )
 endif()
 

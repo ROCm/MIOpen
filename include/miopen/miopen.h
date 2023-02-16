@@ -63,7 +63,8 @@
  * @defgroup LossFunction
  * @defgroup TensorReduce
  * @defgroup find2
- *
+ * @defgroup gemm
+ *  
  */
 
 /*! Constructs type name from a struct */
@@ -304,6 +305,14 @@ MIOPEN_DECLARE_OBJECT(miopenLRNDescriptor);
  *
  */
 MIOPEN_DECLARE_OBJECT(miopenActivationDescriptor);
+
+/*! @ingroup gemm
+ * @brief Creates the miopenGemmDescriptor_t type
+ *
+ * Gemm descriptor is an object that allows the user to specify the gemm mode.
+ *
+ */
+MIOPEN_DECLARE_OBJECT(miopenGemmDescriptor);
 
 /*! @ingroup RNN
  * @brief Creates the miopenRNNDescriptor_t type
@@ -2689,6 +2698,55 @@ miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 
 /** @} */
 // CLOSEOUT ACTIVATION DOXYGEN GROUP
+
+// Gemm APIs
+/** @addtogroup gemm
+ *
+ *  @{
+ */
+/*! @brief Creates the Gemm descriptor object
+ *
+ * @param gemmDesc Pointer to an gemm tensor descriptor type
+ * @return          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateGemmDescriptor(miopenGemmDescriptor_t* gemmDesc);
+
+/*! @brief Execute a gemm layer
+ *
+ * @param handle        MIOpen handle (input)
+ * @param gemmDesc      Descriptor for gemm layer (input)
+ * @param alpha         Floating point scaling factor, allocated on the host (input)
+ * @param ADesc         Tensor descriptor for data input tensor A (input)
+ * @param A             Data tensor A (input)
+ * @param beta          Floating point shift factor, allocated on the host (input)
+ * @param BDesc         Tensor descriptor for data input tensor B (input)
+ * @param B             Data tensor B (input)
+ * @param CDesc         Tensor descriptor for output data tensor C (input)
+ * @param C             Data tensor C (output)
+ * @return              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGemm(miopenHandle_t handle,
+                                        const miopenGemmDescriptor_t gemmDesc,
+                                        const void* alpha,
+                                        const miopenTensorDescriptor_t ADesc,
+                                        const void* A,
+                                        const void* beta,
+                                        const miopenTensorDescriptor_t BDesc,
+                                        const void* B,                                                     
+                                        const miopenTensorDescriptor_t CDesc,
+                                        void* C);
+
+/*! @brief Destroys the gemm descriptor object
+ *
+ * @param gemmDesc   Gemm tensor descriptor type (input)
+ * @return            miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenDestroyGemmDescriptor(miopenGemmDescriptor_t gemmDesc);
+
+/** @} */
+// CLOSEOUT GEMM DOXYGEN GROUP
 
 // Softmax APIs
 /** @addtogroup softmax
