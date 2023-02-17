@@ -140,13 +140,13 @@ private:
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 int SearchableTestSolver::_serches_done = 0;
 
-static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const std::string& db_path)
+static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const ProblemDescription& problem, const std::string& db_path)
 {
     PlainTextDb db(db_path);
 
     const auto solvers = solver::SolverContainer<TrivialTestSolver, SearchableTestSolver>{};
 
-    return solvers.SearchForAllSolutions(ctx, db, {}, 1).front();
+    return solvers.SearchForAllSolutions(ctx, problem, db, {}, 1).front();
 }
 
 template <class TInstance>
@@ -216,7 +216,7 @@ private:
         ctx.SetStream(&get_handle());
         context_filler(ctx);
 
-        const auto sol = FindSolution(ctx, db_path);
+        const auto sol = FindSolution(ctx, ctx.problem, db_path);
 
         EXPECT_OP(sol.construction_params.size(), >, 0);
         EXPECT_EQUAL(sol.construction_params[0].kernel_file, expected_kernel);

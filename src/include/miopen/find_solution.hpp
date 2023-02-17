@@ -172,9 +172,10 @@ template <class... Solvers>
 struct SolverContainer
 {
     // Search for all applicable solutions among many solvers
-    template <class Context, class Db, class Solution = miopen::solver::ConvSolution>
+    template <class Context, class Problem, class Db, class Solution = miopen::solver::ConvSolution>
     std::vector<Solution>
-    SearchForAllSolutions(const Context& search_params,
+    SearchForAllSolutions(const Context& ctx,
+                          const Problem& problem,
                           Db&& db,
                           const AnyInvokeParams& invoke_ctx,
                           std::size_t limit = std::numeric_limits<std::size_t>::max()) const
@@ -193,18 +194,18 @@ struct SolverContainer
                 }
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
-                else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                else if(ctx.use_dynamic_solutions_only && !solver.IsDynamic())
                 {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
                 }
-                else if(!solver.IsApplicable(search_params, search_params.problem))
+                else if(!solver.IsApplicable(ctx, problem))
                 {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
                 }
                 else
                 {
                     const Solution s =
-                        FindSolution(solver, search_params, search_params.problem, db, invoke_ctx);
+                        FindSolution(solver, ctx, problem, db, invoke_ctx);
                     if(s.Succeeded())
                     {
                         ++count;
@@ -272,9 +273,10 @@ struct SolverContainer
         return ss;
     }
 
-    template <class Context>
+    template <class Context, class Problem>
     std::vector<std::pair<std::string, size_t>>
-    GetWorkspaceSizes(const Context& search_params,
+    GetWorkspaceSizes(const Context& ctx,
+                      const Problem& problem,
                       std::size_t limit = std::numeric_limits<std::size_t>::max()) const
     {
         std::vector<std::pair<std::string, size_t>> res;
@@ -294,14 +296,14 @@ struct SolverContainer
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (no workspace required)");
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
-                else if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                else if(ctx.use_dynamic_solutions_only && !solver.IsDynamic())
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
-                else if(!solver.IsApplicable(search_params, search_params.problem))
+                else if(!solver.IsApplicable(ctx, problem))
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
                 else
                 {
                     ++count;
-                    auto sz = solver.GetWorkspaceSize(search_params, search_params.problem);
+                    auto sz = solver.GetWorkspaceSize(ctx, problem);
                     res.push_back(std::make_pair(solver.SolverDbId(), sz));
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": " << sz);
                 }
@@ -311,8 +313,8 @@ struct SolverContainer
     }
 
     // Search for all applicable solutions among many solvers
-    template <class Context>
-    bool IsAnySolverApplicable(const Context& search_params) const
+    template <class Context, class Problem>
+    bool IsAnySolverApplicable(const Context& ctx, const Problem& problem) const
     {
         const auto find_only = GetEnvFindOnlySolver();
         auto found           = false;
@@ -326,13 +328,13 @@ struct SolverContainer
 
                 // For better performance, check IsDynamic() first, because
                 // it is much faster than IsApplicable().
-                if(search_params.use_dynamic_solutions_only && !solver.IsDynamic())
+                if(ctx.use_dynamic_solutions_only && !solver.IsDynamic())
                 {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
                     return;
                 }
 
-                if(solver.IsApplicable(search_params, search_params.problem))
+                if(solver.IsApplicable(ctx, problem))
                 {
                     found = true;
                     return;
