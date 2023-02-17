@@ -8,7 +8,7 @@ Full documentation for MIOpen is available at [https://rocmsoftwareplatform.gith
 - ROCm 5.5 support for GFX1101 (Navi32)
 ### Changed
 - Tuning results for MLIR on ROCm 5.5
-    - Bumping MLIR commit to 5.5.0 release tag
+- Bumping MLIR commit to 5.5.0 release tag
 ### Fixed
 - Fix 3d convolution Host API bug
 - [HOTFIX][MI200][FP16] Disabled ConvHipImplicitGemmBwdXdlops when FP16_ALT is required. 
@@ -27,7 +27,7 @@ Full documentation for MIOpen is available at [https://rocmsoftwareplatform.gith
 
 ## MIOpen 2.14.0 for ROCm 4.5.2
 ### Notes
-    - This release consists of various bug fixes and performance improvements
+- This release consists of various bug fixes and performance improvements
 ### Added
 - Improved support for Navi21
 - Performance improvements via performance database updates
@@ -49,7 +49,7 @@ Full documentation for MIOpen is available at [https://rocmsoftwareplatform.gith
 - Various other bug fixes and performance improvements
 
 ## MIOpen 2.11.0 for ROCm 4.2.0
-    - This release contains various bug fixes and performance improvements.
+- This release contains various bug fixes and performance improvements.
 ### Added
 - Updates for Target ID features in ROCm stack
 ### Fixed 
@@ -237,8 +237,8 @@ Full documentation for MIOpen is available at [https://rocmsoftwareplatform.gith
 ### Changed
 - Updated default behavior to enable implicit GEMM
 ### Known issues
-    - Backward propagation for batch normalization in fp16 mode may trigger NaN in some cases
-    - Softmax Log mode may produce an incorrect result in back propagation
+- Backward propagation for batch normalization in fp16 mode may trigger NaN in some cases
+- Softmax Log mode may produce an incorrect result in back propagation
 
 ## MIOpen 2.0.0 for ROCm 2.6.0
 ### Notes
