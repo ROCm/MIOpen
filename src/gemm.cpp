@@ -32,6 +32,34 @@ namespace miopen {
 GemmNewDescriptor::GemmNewDescriptor() {}
 
 GemmNewDescriptor::GemmNewDescriptor(
+                    int m_,
+                    int n_, 
+                    int k_,
+                    long long int strideA_,
+                    long long int strideB_,
+                    long long int strideC_,
+                    miopenDataType_t dataType_
+                    )
+{
+      this->isColMajor = true;
+      this->transA = false;
+      this->transB = false;
+      this->m = m_;
+      this->n = n_;
+      this->k = k_;
+      this->lda = 1;
+      this->ldb = 1;
+      this->ldc = 1;
+      this->strideA = strideA_;
+      this->strideB = strideB_;
+      this->strideC = strideC_;
+      this->alpha = 1;
+      this->beta = 1;
+      this->batch_count = 1;
+      this->dataType = dataType_; 
+}
+
+GemmNewDescriptor::GemmNewDescriptor(
                    bool isColMajor_,
                    bool transA_,
                    bool transB_,

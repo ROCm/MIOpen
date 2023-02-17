@@ -27,6 +27,7 @@
 #define MIOPEN_FUSION_HPP_
 
 #include <miopen/common.hpp>
+#include <miopen/gemm.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/convolution.hpp>
@@ -206,6 +207,24 @@ struct BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
     miopenBatchNormMode_t mode;
     bool useBatchStats;
 };
+
+struct GemmOpDescriptor : FusionOpDescriptor
+{
+    GemmOpDescriptor(const GemmNewDescriptor& gemm_descriptor_, const TensorDescriptor& B_descriptor_)
+        : gemm_descriptor(gemm_descriptor_),
+          B_desc(B_descriptor_){};
+    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
+    // args : 
+    miopenStatus_t SetArgs(OperatorArgs& args, ConstData_t B);
+    miopenStatus_t GetNetworkConfig(std::stringstream& network_config, Handle& handle) override;
+    bool isASMApplicable(Handle& handle);
+    miopenFusionOp_t kind() const override { return miopenFusionOpConvForward; }; // make this gemm
+
+    
+    GemmNewDescriptor gemm_descriptor;
+    TensorDescriptor B_desc; 
+};
+
 
 struct ConvForwardOpDescriptor : FusionOpDescriptor
 {

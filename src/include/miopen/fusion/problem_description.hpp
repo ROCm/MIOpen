@@ -28,6 +28,7 @@
 
 #include <miopen/fusion_plan.hpp>
 #include <miopen/batchnorm/problem_description.hpp>
+#include <miopen/gemm/problem_description.hpp>
 
 namespace miopen {
 
@@ -98,6 +99,20 @@ struct FusionDescription : SQLiteSerializable<FusionDescription>
         }
         return {};
     }
+
+    miopen::gemm::ProblemDescription GetGemmProblem(size_t idx) const
+    {
+        const auto& gemm_op =
+            dynamic_cast<GemmOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
+        TensorDescriptor out_desc;
+        gemm_op.GetOutputDesc(out_desc);
+        
+        return miopen::gemm::ProblemDescription{gemm_op.gemm_descriptor,
+                                          gemm_op.input_desc,
+                                          gemm_op.B_desc,
+                                          out_desc};
+    }
+
     miopen::batchnorm::ProblemDescription GetBnProblem(size_t idx,
                                                        miopen::batchnorm::Direction dir) const
     {

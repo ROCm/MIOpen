@@ -28,6 +28,7 @@
 
 #include <miopen/gemm.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/problem_description_base.hpp>
 
 #include <cassert>
 #include <string>
@@ -38,8 +39,9 @@ struct NetworkConfig;
 
 namespace gemm {
 
-struct ProblemDescription
+struct ProblemDescription : ProblemDescriptionBase
 {
+    ProblemDescription(){}
     ProblemDescription(const GemmNewDescriptor& gemmDesc_,
                        const TensorDescriptor& ADesc_,
                        const TensorDescriptor& BDesc_,
@@ -55,6 +57,10 @@ struct ProblemDescription
     const TensorDescriptor& GetADesc() const { return ADesc; }
     const TensorDescriptor& GetBDesc() const { return BDesc; }
     const TensorDescriptor& GetCDesc() const { return CDesc; }
+
+    miopenDataType_t GetADataType() const { return ADesc.GetType(); }
+    miopenDataType_t GetBDataType() const { return BDesc.GetType(); }
+    miopenDataType_t GetCDataType() const { return CDesc.GetType(); }
 
     NetworkConfig MakeNetworkConfig() const;
 

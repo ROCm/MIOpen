@@ -233,6 +233,20 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
     return miopenStatusSuccess;
 }
 
+miopenStatus_t GemmOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) const
+{
+    output_desc = input_desc;
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t GemmOpDescriptor::SetArgs(OperatorArgs& args,
+                                                ConstData_t b_data_)
+{
+    auto op_args = std::make_unique<fusion::GemmOpInvokeParam>(b_data_);
+    args.SetArg(GetIdx(), std::move(op_args));
+    return miopenStatusSuccess;
+}
+
 // Activ Forward ------------------------------------
 
 miopenStatus_t ActivFwdFusionOpDescriptor::SetArgs(OperatorArgs& args,

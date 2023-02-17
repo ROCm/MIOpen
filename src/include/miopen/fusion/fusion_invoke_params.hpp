@@ -44,6 +44,12 @@ struct ConvolutionOpInvokeParam : FusionOpInvokeParamBase
     ConstData_t weights = nullptr;
 };
 
+struct GemmOpInvokeParam : FusionOpInvokeParamBase
+{
+    GemmOpInvokeParam(ConstData_t b_data_) : B_data(b_data_) {}
+    ConstData_t B_data = nullptr;
+};
+
 struct BiasOpInvokeParam : FusionOpInvokeParamBase
 {
     BiasOpInvokeParam(ConstData_t b) : bdata(b) {}

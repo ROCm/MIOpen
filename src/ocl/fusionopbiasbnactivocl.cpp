@@ -47,6 +47,13 @@ miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::stringstream& /*network
     return miopenStatusSuccess;
 }
 
+miopenStatus_t GemmOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
+                                                            Handle& /*handle*/)
+{
+    network_config << "Gemm";
+    return miopenStatusSuccess;
+}
+
 miopenStatus_t BiasFusionOpDescriptor::GetNetworkConfig(std::stringstream& network_config,
                                                         Handle& /*handle*/)
 {

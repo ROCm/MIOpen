@@ -39,6 +39,15 @@ struct TensorDescriptor;
 struct GemmNewDescriptor : miopenGemmDescriptor
 {
     GemmNewDescriptor();
+    GemmNewDescriptor(int m_,
+                    int n_, 
+                    int k_,
+                    long long int strideA_,
+                    long long int strideB_,
+                    long long int strideC_,
+                    miopenDataType_t dataType_
+                    );
+
     GemmNewDescriptor(bool isColMajor_,
                     bool transA_,
                     bool transB_,

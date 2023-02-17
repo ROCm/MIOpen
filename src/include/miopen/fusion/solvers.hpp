@@ -316,6 +316,62 @@ struct BnBwdTrgActivationFused final : FusionSolverBase
     ConvSolution GetSolution(const FusionContext& context, const FusionDescription& problem) const;
 };
 
+struct PerformanceConfigCKIgemm
+    : PerfConfigBase<PerformanceConfigCKIgemm>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerformanceConfigCKIgemm(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigCKIgemm() : PerformanceConfigCKIgemm(0, "") {}
+    PerformanceConfigCKIgemm(bool) : PerformanceConfigCKIgemm(0, "")
+    {
+    }
+    void HeuristicInit(const FusionContext& ctx);
+    bool SetNextValue(const FusionContext& ctx);
+    bool IsValidValue() const;
+    bool IsValid(const FusionContext& ctx) const;
+
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    bool operator==(const PerformanceConfigCKIgemm& other) const;
+
+private:
+    template <typename DataType>
+    void Init(const gemm::ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const gemm::ProblemDescription&) const;
+};
+
+struct CKIgemm final : FusionTunableSolver<PerformanceConfigCKIgemm>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<CKIgemm>();
+    }
+
+    PerformanceConfigCKIgemm
+    GetDefaultPerformanceConfig(const FusionContext& ctx) const override;
+    bool
+    IsValidPerformanceConfig(const FusionContext& ctx,
+                             const PerformanceConfigCKIgemm& config) const override;
+    PerformanceConfigCKIgemm
+    Search(const FusionContext& ctx, const AnyInvokeParams& invoke_ctx) const override;
+    bool IsApplicable(const FusionContext& ctx) const override;
+    ConvSolution GetSolution(const FusionContext& ctx,
+                             const PerformanceConfigCKIgemm& config) const override;
+
+private:
+    template <typename DataType>
+    bool CheckCKApplicability(const gemm::ProblemDescription&) const;
+};
+
 } // namespace fusion
 } // namespace solver
 } // namespace miopen
