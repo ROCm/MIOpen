@@ -148,7 +148,7 @@ inline static bool Next_1_4(int& v)
     return false;
 }
 
-bool PerformanceConfigConvAsm1x1U::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigConvAsm1x1U::SetNextValue(const ProblemDescription&)
 {
     // Increment with wrap-around:
     do

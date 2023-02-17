@@ -431,7 +431,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(
 }
 
 bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::SetNextValue(
-    const ConvolutionContext& /*ctx*/)
+    const ProblemDescription&)
 {
     if(use_spare_set)
     {

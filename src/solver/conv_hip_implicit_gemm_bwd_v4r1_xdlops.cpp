@@ -578,7 +578,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsValidValue() const
         && IsTwoPower<16,128>(GemmNPerWave); // clang-format on
 }
 
-bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmBwdDataV4R1Xdlops::SetNextValue(const ProblemDescription&)
 {
     GemmBThreadCopyMoreGemmKPack = true;
     GemmAThreadCopyMoreGemmK     = true;

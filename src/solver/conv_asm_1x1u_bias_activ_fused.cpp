@@ -56,10 +56,10 @@ void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& c
         context.GetConvContext(0, conv::Direction::Forward, context.problem).problem);
 }
 
-bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionContext& context)
+bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionDescription& problem)
 {
     return PerformanceConfigConvAsm1x1U::SetNextValue(
-        context.GetConvContext(0, conv::Direction::Forward, context.problem));
+        problem.GetConvProblem(0, conv::Direction::Forward));
 }
 
 bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionContext& context) const

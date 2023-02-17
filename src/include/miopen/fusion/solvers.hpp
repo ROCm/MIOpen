@@ -128,7 +128,7 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
     {
     }
     void HeuristicInit(const FusionContext& context);
-    bool SetNextValue(const FusionContext& context);
+    bool SetNextValue(const FusionDescription& problem);
     bool IsValid(const FusionContext& context) const;
 };
 

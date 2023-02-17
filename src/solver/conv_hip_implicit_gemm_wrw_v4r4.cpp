@@ -531,7 +531,7 @@ void PerformanceImplicitGemmV4R4WrW::HeuristicInit(const ConvolutionContext& ctx
     MIOPEN_LOG_I(ToString());
 }
 
-bool PerformanceImplicitGemmV4R4WrW::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmV4R4WrW::SetNextValue(const ProblemDescription&)
 {
     // always search full space, no matter if use_spare_set or not
     do

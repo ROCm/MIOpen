@@ -109,7 +109,7 @@ bool PerformanceConvMlirIgemm::IsValid(const ConvolutionContext& ctx,
 #endif
 }
 
-bool PerformanceConvMlirIgemm::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceConvMlirIgemm::SetNextValue(const ProblemDescription&)
 {
     if(use_spare_set)
         return false;

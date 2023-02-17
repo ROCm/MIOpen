@@ -77,7 +77,7 @@ bool PerformanceImplicitGemmBwdV1R1Xdlops::operator==(
     // clang-format on
 }
 
-bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmBwdV1R1Xdlops::SetNextValue(const ProblemDescription&)
 {
     do
     {

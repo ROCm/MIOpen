@@ -119,7 +119,7 @@ bool PerformanceImplicitGemmForwardV4R5Xdlops::operator==(
     // clang-format on
 }
 
-bool PerformanceImplicitGemmForwardV4R5Xdlops::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceImplicitGemmForwardV4R5Xdlops::SetNextValue(const ProblemDescription&)
 {
     do
     {

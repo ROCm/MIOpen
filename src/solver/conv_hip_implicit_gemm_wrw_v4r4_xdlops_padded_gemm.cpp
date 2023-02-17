@@ -95,7 +95,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::operator==(
 }
 
 bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::SetNextValue(
-    const ConvolutionContext& /*ctx*/)
+    const ProblemDescription&)
 {
     do
     {

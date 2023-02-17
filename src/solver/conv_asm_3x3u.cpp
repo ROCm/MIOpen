@@ -60,7 +60,7 @@ auto PerfFieldRules()
 
 } // namespace
 
-bool PerformanceConfigConvAsm3x3U::SetNextValue(const ConvolutionContext& /*ctx*/)
+bool PerformanceConfigConvAsm3x3U::SetNextValue(const ProblemDescription&)
 {
     return !PerfFieldRules().Next(*this);
 }
