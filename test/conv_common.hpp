@@ -139,15 +139,13 @@ static inline bool skip_config(miopen::Handle& handle,
 
     const auto& problem = ctx.problem;
 
-    return ctx.GetStream().GetDeviceName() == "gfx908" && problem.Is2d() &&
-           problem.IsFp16() && problem.IsLayoutDefault() && ctx.use_hip_kernels &&
-           problem.group_counts == 1 && problem.batch_sz == 1 &&
-           problem.n_inputs == 192 && problem.in_height == 28 &&
-           problem.in_width == 28 && problem.n_outputs == 1 &&
-           problem.kernel_size_h == 3 && problem.kernel_size_w == 3 &&
-           problem.pad_w == 1 && problem.pad_h == 1 && problem.kernel_stride_w == 1 &&
-           problem.kernel_stride_h == 1 && problem.kernel_dilation_w == 1 &&
-           problem.kernel_dilation_h == 1;
+    return ctx.GetStream().GetDeviceName() == "gfx908" && problem.Is2d() && problem.IsFp16() &&
+           problem.IsLayoutDefault() && ctx.use_hip_kernels && problem.group_counts == 1 &&
+           problem.batch_sz == 1 && problem.n_inputs == 192 && problem.in_height == 28 &&
+           problem.in_width == 28 && problem.n_outputs == 1 && problem.kernel_size_h == 3 &&
+           problem.kernel_size_w == 3 && problem.pad_w == 1 && problem.pad_h == 1 &&
+           problem.kernel_stride_w == 1 && problem.kernel_stride_h == 1 &&
+           problem.kernel_dilation_w == 1 && problem.kernel_dilation_h == 1;
 }
 #endif
 
