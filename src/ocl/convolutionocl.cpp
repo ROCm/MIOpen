@@ -329,7 +329,7 @@ static void EvaluateInvokers(Handle& handle,
             handle.RegisterInvoker(invoker, network_config, sol.solver_id, algorithm_name);
             MIOPEN_LOG_I("Selected: " << sol << ": " << elapsed
                                       << ", workspace_sz = " << sol.workspace_sz);
-            record.SetValues(algorithm_name,
+            record.SetValues(sol.solver_id,
                              FindDbData{sol.solver_id,
                                         elapsed,
                                         sol.workspace_sz,
@@ -902,7 +902,7 @@ void GetSolutions(Handle& handle,
 
     for(const auto& pair : fdb_record)
     {
-        const auto algo = static_cast<miopenConvAlgorithm_t>(algoResolver(pair.first));
+        const auto algo = static_cast<miopenConvAlgorithm_t>(algoResolver(pair.second.kcache_key.algorithm_name));
         if(IsAlgorithmDisabled(algo))
             continue;
 
