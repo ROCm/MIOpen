@@ -430,8 +430,7 @@ void PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::HeuristicInit(
     find_with_gemm_k_pad();
 }
 
-bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::SetNextValue(
-    const ProblemDescription&)
+bool PerformanceConfigAsmImplicitGemmGTCFwdDlopsNCHWC::SetNextValue(const ProblemDescription&)
 {
     if(use_spare_set)
     {

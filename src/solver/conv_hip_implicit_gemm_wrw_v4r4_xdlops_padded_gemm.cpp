@@ -94,8 +94,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::operator==(
     // clang-format on
 }
 
-bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::SetNextValue(
-    const ProblemDescription&)
+bool PerformanceImplicitGemmWrwV4R4Xdlops_Padded_Gemm::SetNextValue(const ProblemDescription&)
 {
     do
     {

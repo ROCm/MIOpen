@@ -685,8 +685,7 @@ void PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::HeuristicInit(
     }
 }
 
-bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::SetNextValue(
-    const ProblemDescription&)
+bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::SetNextValue(const ProblemDescription&)
 {
     if(use_spare_set)
     {

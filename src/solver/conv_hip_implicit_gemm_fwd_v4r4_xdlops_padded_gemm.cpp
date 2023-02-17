@@ -109,8 +109,7 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::operator==(
     // clang-format on
 }
 
-bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::SetNextValue(
-    const ProblemDescription&)
+bool PerformanceImplicitGemmForwardV4R4Xdlops_Padded_Gemm::SetNextValue(const ProblemDescription&)
 {
     do
     {
