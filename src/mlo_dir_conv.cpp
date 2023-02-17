@@ -287,9 +287,11 @@ FindAllImplicitGemmSolutions(const miopen::ConvolutionContext& ctx,
 {
 #if WORKAROUND_SWDEV_227826
     if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
-        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, ctx.problem, GetDb(ctx), invoke_ctx);
+        return GetImplicitGemmSolvers().SearchForAllSolutions(
+            ctx, ctx.problem, GetDb(ctx), invoke_ctx);
     else
-        return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, ctx.problem, GetDb(ctx), invoke_ctx, 1);
+        return GetImplicitGemmSolvers().SearchForAllSolutions(
+            ctx, ctx.problem, GetDb(ctx), invoke_ctx, 1);
 #else
     return GetImplicitGemmSolvers().SearchForAllSolutions(ctx, ctx.problem, GetDb(ctx), invoke_ctx);
 #endif
@@ -334,11 +336,14 @@ FindImplicitGemmWrWAllSolutions(const miopen::ConvolutionContext& ctx,
 {
 #if WORKAROUND_SWDEV_227826
     if(miopen::IsEnabled(MIOPEN_DEBUG_IMPLICIT_GEMM_FIND_ALL_SOLUTIONS{}))
-        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, ctx.problem, GetDb(ctx), invoke_ctx);
+        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(
+            ctx, ctx.problem, GetDb(ctx), invoke_ctx);
     else
-        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, ctx.problem, GetDb(ctx), invoke_ctx, 1);
+        return GetImplicitGemmWrWSolvers().SearchForAllSolutions(
+            ctx, ctx.problem, GetDb(ctx), invoke_ctx, 1);
 #else
-    return GetImplicitGemmWrWSolvers().SearchForAllSolutions(ctx, ctx.problem, GetDb(ctx), invoke_ctx);
+    return GetImplicitGemmWrWSolvers().SearchForAllSolutions(
+        ctx, ctx.problem, GetDb(ctx), invoke_ctx);
 #endif
 }
 

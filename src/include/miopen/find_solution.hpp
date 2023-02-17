@@ -204,8 +204,7 @@ struct SolverContainer
                 }
                 else
                 {
-                    const Solution s =
-                        FindSolution(solver, ctx, problem, db, invoke_ctx);
+                    const Solution s = FindSolution(solver, ctx, problem, db, invoke_ctx);
                     if(s.Succeeded())
                     {
                         ++count;

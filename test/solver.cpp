@@ -140,7 +140,9 @@ private:
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 int SearchableTestSolver::_serches_done = 0;
 
-static solver::ConvSolution FindSolution(const ConvolutionContext& ctx, const ProblemDescription& problem, const std::string& db_path)
+static solver::ConvSolution FindSolution(const ConvolutionContext& ctx,
+                                         const ProblemDescription& problem,
+                                         const std::string& db_path)
 {
     PlainTextDb db(db_path);
 
