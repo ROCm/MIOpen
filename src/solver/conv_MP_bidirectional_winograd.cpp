@@ -871,7 +871,7 @@ bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilter
     const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
     return IsApplicableTransform<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(ctx, problem) &&
-           ConvHipImplicitGemmForwardV4R4Xdlops().IsApplicable(xdlops_ctx, xdlops_ctx.problem);
+           ConvHipImplicitGemmForwardV4R4Xdlops().IsApplicable(xdlops_ctx, xdlops_problem);
 }
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW, int WinoFilterW>
@@ -889,7 +889,7 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
     const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
     ConvSolution xdlops_conv =
-        ConvHipImplicitGemmForwardV4R4Xdlops{}.GetSolution(xdlops_ctx, xdlops_ctx.problem, config);
+        ConvHipImplicitGemmForwardV4R4Xdlops{}.GetSolution(xdlops_ctx, xdlops_problem, config);
 
     ConvSolution result;
     result.workspace_sz = wino_transform.workspace_sz + xdlops_conv.workspace_sz;
@@ -928,7 +928,7 @@ ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::S
     const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
     return ConvHipImplicitGemmForwardV4R4Xdlops().Search(
-        xdlops_ctx, xdlops_ctx.problem, xdlops_invoke_ctx);
+        xdlops_ctx, xdlops_problem, xdlops_invoke_ctx);
 }
 
 template struct ConvMPBidirectWinograd_xdlops<2, 3>;

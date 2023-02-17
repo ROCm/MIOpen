@@ -291,7 +291,7 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
 /// for some related host-side optimizations.
 ///
 /// These optimizations are kind of cutting corners, but advantages are quite high.
-bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(miopen::ConvolutionContext& ctx) const
+bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx, const ProblemDescription& problem) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return false;
@@ -302,10 +302,10 @@ bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(miopen::ConvolutionCon
         return false;
 
     // Filter out configs where 3x3 Winograd does not have high WTI.
-    if(!(ctx.problem.n_outputs >= 16 && ctx.problem.n_outputs % 2 == 0))
+    if(!(problem.n_outputs >= 16 && problem.n_outputs % 2 == 0))
         return false;
 
-    return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx, ctx.problem);
+    return solver::ConvBinWinograd3x3U{}.IsApplicable(ctx, problem);
 }
 
 std::size_t
@@ -376,7 +376,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         return sol.workspace_size;
     }
 
-    if(IsWinograd3x3SupportedAndFast(ctx))
+    if(IsWinograd3x3SupportedAndFast(ctx, ctx.problem))
     {
         AutoUseFastDynamicSolutions tmp{ctx};
         const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);
@@ -454,7 +454,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         return sol.workspace_size;
     }
 
-    if(IsWinograd3x3SupportedAndFast(ctx))
+    if(IsWinograd3x3SupportedAndFast(ctx, ctx.problem))
     {
         AutoUseFastDynamicSolutions tmp{ctx};
         const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx);

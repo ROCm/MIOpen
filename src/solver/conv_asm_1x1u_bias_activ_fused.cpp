@@ -50,10 +50,10 @@ namespace solver {
 
 namespace fusion {
 
-void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionContext& context)
+void PerformanceConfigConvBiasActivAsm1x1U::HeuristicInit(const FusionDescription& problem)
 {
     PerformanceConfigConvAsm1x1U::HeuristicInit(
-        context.GetConvContext(0, conv::Direction::Forward, context.problem).problem);
+        problem.GetConvProblem(0, conv::Direction::Forward));
 }
 
 bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionDescription& problem)
@@ -69,11 +69,11 @@ bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionDescription& pro
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
-ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const FusionContext& context,
-                                                  const FusionDescription&) const
+ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const FusionContext&,
+                                                  const FusionDescription& problem) const
 {
     PerformanceConfigConvBiasActivAsm1x1U pp;
-    pp.HeuristicInit(context);
+    pp.HeuristicInit(problem);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }

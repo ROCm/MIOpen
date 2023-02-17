@@ -137,15 +137,17 @@ static inline bool skip_config(miopen::Handle& handle,
     ctx.SetupFloats();
     ctx.DetectRocm();
 
-    return ctx.GetStream().GetDeviceName() == "gfx908" && ctx.problem.Is2d() &&
-           ctx.problem.IsFp16() && ctx.problem.IsLayoutDefault() && ctx.use_hip_kernels &&
-           ctx.problem.group_counts == 1 && ctx.problem.batch_sz == 1 &&
-           ctx.problem.n_inputs == 192 && ctx.problem.in_height == 28 &&
-           ctx.problem.in_width == 28 && ctx.problem.n_outputs == 1 &&
-           ctx.problem.kernel_size_h == 3 && ctx.problem.kernel_size_w == 3 &&
-           ctx.problem.pad_w == 1 && ctx.problem.pad_h == 1 && ctx.problem.kernel_stride_w == 1 &&
-           ctx.problem.kernel_stride_h == 1 && ctx.problem.kernel_dilation_w == 1 &&
-           ctx.problem.kernel_dilation_h == 1;
+    const auto& problem = ctx.problem;
+
+    return ctx.GetStream().GetDeviceName() == "gfx908" && problem.Is2d() &&
+           problem.IsFp16() && problem.IsLayoutDefault() && ctx.use_hip_kernels &&
+           problem.group_counts == 1 && problem.batch_sz == 1 &&
+           problem.n_inputs == 192 && problem.in_height == 28 &&
+           problem.in_width == 28 && problem.n_outputs == 1 &&
+           problem.kernel_size_h == 3 && problem.kernel_size_w == 3 &&
+           problem.pad_w == 1 && problem.pad_h == 1 && problem.kernel_stride_w == 1 &&
+           problem.kernel_stride_h == 1 && problem.kernel_dilation_w == 1 &&
+           problem.kernel_dilation_h == 1;
 }
 #endif
 

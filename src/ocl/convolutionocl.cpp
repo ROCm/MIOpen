@@ -515,7 +515,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                             exhaustiveSearch,
                             record,
                             ctx,
-                            IsWinograd3x3SupportedAndFast(ctx));
+                            IsWinograd3x3SupportedAndFast(ctx, ctx.problem));
         });
     }
 
@@ -1197,7 +1197,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         const auto use_winograd_only = [&]() {
             ctx.SetStream(&handle);
             ctx.DetectRocm();
-            return IsWinograd3x3SupportedAndFast(ctx);
+            return IsWinograd3x3SupportedAndFast(ctx, ctx.problem);
         }();
 
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
