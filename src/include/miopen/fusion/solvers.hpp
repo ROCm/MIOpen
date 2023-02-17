@@ -129,7 +129,11 @@ struct PerformanceConfigConvBiasActivAsm1x1U : PerformanceConfigConvAsm1x1U
     }
     void HeuristicInit(const FusionContext& context);
     bool SetNextValue(const FusionDescription& problem);
-    bool IsValid(const FusionContext& context) const;
+    bool IsValid(const FusionContext&, const FusionDescription& problem) const
+    {
+        return IsValid(problem);
+    }
+    bool IsValid(const FusionDescription& problem) const;
 };
 
 struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActivAsm1x1U>

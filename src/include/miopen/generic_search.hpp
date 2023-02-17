@@ -63,10 +63,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_COMPILE_ONLY)
 ///     Constructs an instance with invalid value.
 /// - (ctor)(bool)
 ///     Constructs an instance with minimal value.
-/// - SetNextValue(const Problem& c)
+/// - SetNextValue(const Problem& p)
 ///     Advances instance value to the next available value and returns true.
 ///     If max value reached, returns false.
-/// - IsValid(const Context& c) const
+/// - IsValid(const Context& c, const Problem& p) const
 ///     Checks if instance is valid for the given c.
 ///     For convolutions, Context represents a problem configuration.
 /// - operator==(const PerformanceConfig&)
@@ -91,7 +91,7 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
                     p = nullptr;
                     break;
                 }
-            } while(!v.IsValid(*p));
+            } while(!v.IsValid(*p, p->problem));
         }
         return *this;
     }
@@ -99,7 +99,7 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
     // Implements container's begin()
     ComputedIterator(const Context& problem, const bool spare) : v(spare), p(&problem)
     {
-        if(!v.IsValid(*p))
+        if(!v.IsValid(*p, p->problem))
             Next();
     }
 

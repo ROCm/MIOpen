@@ -62,10 +62,10 @@ bool PerformanceConfigConvBiasActivAsm1x1U::SetNextValue(const FusionDescription
         problem.GetConvProblem(0, conv::Direction::Forward));
 }
 
-bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionContext& context) const
+bool PerformanceConfigConvBiasActivAsm1x1U::IsValid(const FusionDescription& problem) const
 {
     return PerformanceConfigConvAsm1x1U::IsValid(
-        context.GetConvContext(0, conv::Direction::Forward, context.problem));
+        problem.GetConvProblem(0, conv::Direction::Forward));
 }
 
 PerformanceConfigConvBiasActivAsm1x1U
@@ -79,11 +79,11 @@ ConvBiasActivAsm1x1U::GetDefaultPerformanceConfig(const FusionContext& context,
 }
 
 bool ConvBiasActivAsm1x1U::IsValidPerformanceConfig(
-    const FusionContext& context,
-    const FusionDescription&,
+    const FusionContext&,
+    const FusionDescription& problem,
     const PerformanceConfigConvBiasActivAsm1x1U& c) const
 {
-    return c.IsValidValue() && c.IsValid(context);
+    return c.IsValidValue() && c.IsValid(problem);
 }
 
 PerformanceConfigConvBiasActivAsm1x1U ConvBiasActivAsm1x1U::Search(const FusionContext& context,
