@@ -5,7 +5,7 @@ Full documentation for MIOpen is available at [https://rocmsoftwareplatform.gith
 
 ## (Unreleased) MIOpen-2.19.0 for ROCm 5.5.0
 ### Added
-- ROCm 5.5 support for GFX1101 (Navi32)
+- ROCm 5.5 support for gfx1101 (Navi32)
 ### Changed
 - Tuning results for MLIR on ROCm 5.5
 - Bumping MLIR commit to 5.5.0 release tag
@@ -15,7 +15,7 @@ Full documentation for MIOpen is available at [https://rocmsoftwareplatform.gith
 
 ## MIOpen 2.16.0 for ROCm 5.1.1
 ### Notes
-- This release includes enhanced support for MI210 and MI250 and various other improvements.
+- This release includes enhanced support for MI210 and MI250 along with various other improvements.
 - This release consists of various bug fixes and performance improvements
 ### Added
 - Improved support for Navi21
