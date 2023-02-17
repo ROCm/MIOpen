@@ -538,5 +538,5 @@ Full documentation for MIOpen is available at [https://rocmsoftwareplatform.gith
 
 ## MIOpen 1.0.0 for ROCm 1.0.0
 ### Added
--Initial release 
+- Initial release 
 
