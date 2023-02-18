@@ -445,7 +445,10 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     else
         sols = tmp_sols;
     if(sols.empty())
+    {
+        MIOPEN_LOG_I("No supported fusion solvers found");
         return miopenStatusUnsupportedOp;
+    }
     else
     {
         network_config = GetPlanConfig(fusion_ctx, fusion_problem);
@@ -483,6 +486,10 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
     if(input_desc != inputDesc)
     {
         MIOPEN_THROW(miopenStatusBadParm, "The input descriptors dont match.");
+    }
+    if(solutions.empty())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "The Fusion Plan was not compiled successfully");
     }
     const auto& solution = solutions[0];
     if(!solution.Succeeded())
