@@ -142,6 +142,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
             return (1 << 7) + (1 << 8);
         else if(bias_idx != -1)
             return (1 << 7);
+        else if(activ_idx != -1)
+            return (1 << 8);
         else
             return zero;
     }();
