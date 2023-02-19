@@ -2119,7 +2119,7 @@ COMMAND	MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvOclDirectFwd1x
 
 add_custom_test(test_regression_half_vega SKIP_UNLESS_ALL FLOAT_DISABLED HALF_ENABLED GFX908_DISABLED GFX90A_DISABLED
 # Issue #1956.
-COMMAND	MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmBwdRest\\\\\\\;ConvDirectNaiveConvBwd' $<TARGET_FILE:test_conv3d> ${TEST_CONV_VERBOSE_B}
+COMMAND	MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='GemmBwdRest' $<TARGET_FILE:test_conv3d> ${TEST_CONV_VERBOSE_B}
     --cmode conv --pmode default --group-count 1 --batch_size 2 --input_channels 64 --output_channels 32 --spatial_dim_elements 128 128 128
     --filter_dims 3 3 3 --pads_strides_dilations 1 1 1 1 1 1 1 1 1 --trans_output_pads 0 0 0
     --in_layout NCDHW --fil_layout NCDHW --out_layout NCDHW ${MIOPEN_TEST_FLAGS_ARGS}
