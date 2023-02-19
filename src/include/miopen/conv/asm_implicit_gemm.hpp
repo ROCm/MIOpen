@@ -34,6 +34,10 @@
 #include <vector>
 #include <limits>
 
+/// W/A for issue 1979: igemm solver does not support group conv. See:
+/// https://github.com/ROCmSoftwarePlatform/MIOpen/issues/1979
+#define WORKAROUND_ISSUE_1979 1
+
 namespace miopen {
 
 namespace solver {
