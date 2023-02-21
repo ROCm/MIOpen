@@ -902,7 +902,8 @@ void GetSolutions(Handle& handle,
 
     for(const auto& pair : fdb_record)
     {
-        const auto algo = static_cast<miopenConvAlgorithm_t>(algoResolver(pair.second.kcache_key.algorithm_name));
+        const auto algo =
+            static_cast<miopenConvAlgorithm_t>(algoResolver(pair.second.kcache_key.algorithm_name));
         if(IsAlgorithmDisabled(algo))
             continue;
 

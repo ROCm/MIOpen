@@ -289,8 +289,10 @@ void FindDbRecord_t<TDb>::CopyTo(std::vector<PerfField>& to) const
 {
     const auto range = content->As<FindDbData>();
     std::transform(range.begin(), range.end(), std::back_inserter(to), [](const auto& pair) {
-        return PerfField{
-            pair.second.kcache_key.algorithm_name, pair.second.solver_id, pair.second.time, pair.second.workspace};
+        return PerfField{pair.second.kcache_key.algorithm_name,
+                         pair.second.solver_id,
+                         pair.second.time,
+                         pair.second.workspace};
     });
 }
 
