@@ -465,7 +465,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         std::sort(solutions.begin(),
                   solutions.end(),
                   [](const solver::ConvSolution& a, const solver::ConvSolution& b) -> bool {
-                      return a.weight < b.weight;
+                      return a.weight > b.weight;
                   });
         status = miopenStatusSuccess;
     }
