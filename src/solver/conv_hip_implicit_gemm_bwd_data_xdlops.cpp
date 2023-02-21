@@ -194,12 +194,13 @@ bool ConvHipImplicitGemmBwdXdlops::CheckCKApplicability(const ProblemDescription
     return false;
 }
 
+namespace {
+
 template <typename DataType>
-void ConvHipImplicitGemmBwdXdlops::RunCKSolution(
-    const Handle& handle,
-    const AnyInvokeParams& primitive_parameters,
-    const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemmBwdXdlops& config) const
+void RunCKSolution(const Handle& handle,
+                   const AnyInvokeParams& primitive_parameters,
+                   const ProblemDescription& problem,
+                   const PerformanceConfigHipImplicitGemmBwdXdlops& config)
 {
     const auto args      = CKArgsBwd{problem};
     const auto conv_ptrs = DeviceOpBwdPtrs<DataType>::GetInstances();
@@ -245,6 +246,8 @@ void ConvHipImplicitGemmBwdXdlops::RunCKSolution(
         handle.AccumKernelTime(elapsed_time);
     }
 }
+
+} // namespace
 #endif
 
 void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(const ProblemDescription& problem)
