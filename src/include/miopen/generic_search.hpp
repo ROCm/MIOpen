@@ -374,7 +374,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     std::vector<PerformanceConfig> all_configs;
     std::copy(tmp_all_configs.begin(), tmp_all_configs.end(), std::back_inserter(all_configs));
     // shuffle the configs
-    auto rd  = std::random_device{};
+    std::random_device rd{};
     auto rng = std::default_random_engine{rd()};
     std::shuffle(all_configs.begin(), all_configs.end(), rng);
     const std::size_t n_runs_total =
