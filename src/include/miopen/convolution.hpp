@@ -215,10 +215,14 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                             const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindWinogradSolutions(const ConvolutionContext& ctx, const ProblemDescription& problem, const AnyInvokeParams& invoke_ctx) const;
+    FindWinogradSolutions(const ConvolutionContext& ctx,
+                          const ProblemDescription& problem,
+                          const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindDataGemmSolutions(const ConvolutionContext& ctx, const ProblemDescription& problem, const AnyInvokeParams& invoke_ctx) const;
+    FindDataGemmSolutions(const ConvolutionContext& ctx,
+                          const ProblemDescription& problem,
+                          const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
     FindDataImplicitGemmSolutions(Handle& handle,
@@ -230,7 +234,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                   const AnyInvokeParams& invoke_ctx) const;
 
     std::vector<miopen::solver::ConvSolution>
-    FindFftSolutions(const ConvolutionContext& ctx, const ProblemDescription& problem, const AnyInvokeParams& invoke_ctx) const;
+    FindFftSolutions(const ConvolutionContext& ctx,
+                     const ProblemDescription& problem,
+                     const AnyInvokeParams& invoke_ctx) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,
