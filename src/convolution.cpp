@@ -320,7 +320,7 @@ ConvolutionDescriptor::WrwGetValidWorkSpaceSizeGemm(const TensorDescriptor& dyDe
 
     const auto ctx =
         ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
-    decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
+    decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx, ctx.problem);
 
     if(!gemm_ws_sz_pairs.empty())
     {
@@ -392,7 +392,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 #if MIOPEN_USE_GEMM
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
     {
-        decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
+        decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx, ctx.problem);
 
         if(!gemm_ws_sz_pairs.empty())
         {
@@ -474,7 +474,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         std::max({direct_workspace, implicit_gemm_workspace, workspace_size_winograd});
     if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
     {
-        decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
+        decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx, ctx.problem);
 
         if(!gemm_ws_sz_pairs.empty())
         {
@@ -509,7 +509,7 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{}))
         return 0;
 
-    decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx);
+    decltype(auto) gemm_ws_sz_pairs = AllGemmWorkspaceSize(ctx, ctx.problem);
 
     if(!gemm_ws_sz_pairs.empty())
     {
@@ -534,7 +534,7 @@ std::size_t ConvolutionDescriptor::ForwardBackwardGetWorkSpaceSizeImplicitGemm(
 
     try
     {
-        const auto sz_v = FindAllImplicitGemmWorkspaceSizes(ctx);
+        const auto sz_v = FindAllImplicitGemmWorkspaceSizes(ctx, ctx.problem);
         std::size_t sz  = 0;
         for(const auto& pr : sz_v)
         {
@@ -563,7 +563,7 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
 
     try
     {
-        const auto sz_v = AllDirectForwardBackwardDataWorkspaceSize(ctx);
+        const auto sz_v = AllDirectForwardBackwardDataWorkspaceSize(ctx, ctx.problem);
         std::size_t sz  = 0;
         for(const auto& pr : sz_v)
         {
@@ -590,7 +590,7 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeFFT(
 
     try
     {
-        const auto all_ws_sz = AllFFTForwardBackwardDataWorkspaceSize(ctx);
+        const auto all_ws_sz = AllFFTForwardBackwardDataWorkspaceSize(ctx, ctx.problem);
         std::size_t sz       = 0;
         for(const auto& pair : all_ws_sz)
         {
@@ -617,7 +617,7 @@ std::size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeWinograd(
 
     try
     {
-        const auto sz_v = FindAllWinogradWorkspaceSizes(ctx);
+        const auto sz_v = FindAllWinogradWorkspaceSizes(ctx, ctx.problem);
         std::size_t sz  = 0;
         for(const auto& pr : sz_v)
         {
@@ -644,7 +644,7 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(
 
     try
     {
-        const auto sz_v = AllDirectBwdWrW2DWorkspaceSize(ctx);
+        const auto sz_v = AllDirectBwdWrW2DWorkspaceSize(ctx, ctx.problem);
         std::size_t sz  = 0;
         for(const auto& pr : sz_v)
         {
@@ -673,7 +673,7 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeWinograd(
     {
         if(ctx.do_search)
             MIOPEN_THROW("Auto-tune is not supported in the get workspace size");
-        const auto sz_v = FindWinogradWrWWorkspaceSizes(ctx);
+        const auto sz_v = FindWinogradWrWWorkspaceSizes(ctx, ctx.problem);
         std::size_t sz  = 0;
         for(const auto& pr : sz_v)
         {
@@ -702,7 +702,7 @@ std::size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeImplicitGemm(
     {
         if(ctx.do_search)
             MIOPEN_THROW("Auto-tune is not supported in the get workspace size");
-        const auto sz_v = FindImplicitGemmWrWWorkspaceSizes(ctx);
+        const auto sz_v = FindImplicitGemmWrWWorkspaceSizes(ctx, ctx.problem);
         std::size_t sz  = 0;
         for(const auto& pr : sz_v)
         {

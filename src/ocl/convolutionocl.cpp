@@ -154,7 +154,7 @@ ConvolutionDescriptor::FindWinogradSolutions(const ConvolutionContext& ctx,
         return {};
     try
     {
-        return FindAllWinogradSolutions(ctx, invoke_ctx);
+        return FindAllWinogradSolutions(ctx, ctx.problem, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -172,7 +172,7 @@ ConvolutionDescriptor::FindDataGemmSolutions(const ConvolutionContext& ctx,
         return {};
     try
     {
-        return FindAllGemmSolutions(ctx, invoke_ctx);
+        return FindAllGemmSolutions(ctx, ctx.problem, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -211,7 +211,7 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
 
     try
     {
-        return FindAllDirectSolutions(ctx, invoke_ctx);
+        return FindAllDirectSolutions(ctx, ctx.problem, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -246,7 +246,7 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
 
     try
     {
-        return FindAllImplicitGemmSolutions(ctx, invoke_ctx);
+        return FindAllImplicitGemmSolutions(ctx, ctx.problem, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -265,7 +265,7 @@ ConvolutionDescriptor::FindFftSolutions(const ConvolutionContext& ctx,
 
     try
     {
-        return FindAllFFTSolutions(ctx, invoke_ctx);
+        return FindAllFFTSolutions(ctx, ctx.problem, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -1583,16 +1583,16 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
             // Find solutions
             const auto gemm        = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
-                                         ? FindAllGemmSolutions(ctx, invoke_ctx)
+                                         ? FindAllGemmSolutions(ctx, ctx.problem, invoke_ctx)
                                          : std::vector<miopen::solver::ConvSolution>{};
             const auto direct      = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
-                                         ? FindAllBwdWrW2DSolutions(ctx, invoke_ctx)
+                                         ? FindAllBwdWrW2DSolutions(ctx, ctx.problem, invoke_ctx)
                                          : std::vector<miopen::solver::ConvSolution>{};
             const auto winograd    = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
-                                         ? FindWinogradWrWAllSolutions(ctx, invoke_ctx)
+                                         ? FindWinogradWrWAllSolutions(ctx, ctx.problem, invoke_ctx)
                                          : std::vector<miopen::solver::ConvSolution>{};
             const auto implictgemm = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{})
-                                         ? FindImplicitGemmWrWAllSolutions(ctx, invoke_ctx)
+                                         ? FindImplicitGemmWrWAllSolutions(ctx, ctx.problem, invoke_ctx)
                                          : std::vector<miopen::solver::ConvSolution>{};
 
             // Precompile Solutions

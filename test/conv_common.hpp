@@ -86,7 +86,7 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
         ctx.SetStream(&handle);
         ctx.SetupFloats();
         ctx.DetectRocm();
-        if(FindAllDirectSolutions(ctx, {}).empty())
+        if(FindAllDirectSolutions(ctx, ctx.problem, {}).empty())
             return false;
     }
     return true;
@@ -112,7 +112,7 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     ctx.SetupFloats();
     ctx.DetectRocm();
 
-    return !FindAllBwdWrW2DSolutions(ctx, {}).empty();
+    return !FindAllBwdWrW2DSolutions(ctx, ctx.problem, {}).empty();
 }
 #endif
 
