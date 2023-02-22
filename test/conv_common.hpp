@@ -77,8 +77,8 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
     // Both Fwd and Bwd shall be supported by Direct. Return false otherwise.
     for(int direction = 1; direction >= 0; --direction)
     {
-        auto ctx = miopen::ConvolutionContext{
-            xDesc, wDesc, yDesc, convDesc, static_cast<miopen::conv::Direction>(direction)};
+        const auto problem = miopen::ProblemDescription{xDesc, wDesc, yDesc, convDesc, static_cast<miopen::conv::Direction>(direction)};
+        auto ctx = miopen::ConvolutionContext{problem};
         ctx.do_search               = false;
         ctx.save_srch_req           = false;
         ctx.disable_perfdb_access   = true;
@@ -86,7 +86,7 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
         ctx.SetStream(&handle);
         ctx.SetupFloats();
         ctx.DetectRocm();
-        if(FindAllDirectSolutions(ctx, ctx.problem, {}).empty())
+        if(FindAllDirectSolutions(ctx, problem, {}).empty())
             return false;
     }
     return true;
@@ -101,8 +101,8 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     if(convDesc.GetSpatialDimension() != 2)
         return false;
 
-    auto ctx = miopen::ConvolutionContext{
-        xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::BackwardWeights};
+    const auto problem = miopen::ProblemDescription{xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::BackwardWeights};
+    auto ctx = miopen::ConvolutionContext{problem};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
@@ -112,7 +112,7 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     ctx.SetupFloats();
     ctx.DetectRocm();
 
-    return !FindAllBwdWrW2DSolutions(ctx, ctx.problem, {}).empty();
+    return !FindAllBwdWrW2DSolutions(ctx, problem, {}).empty();
 }
 #endif
 
@@ -126,8 +126,8 @@ static inline bool skip_config(miopen::Handle& handle,
     if(convDesc.mode != miopenConvolution)
         return false;
 
-    auto ctx =
-        miopen::ConvolutionContext{xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
+    const auto problem = miopen::ProblemDescription{xDesc, wDesc, yDesc, convDesc, miopen::conv::Direction::Forward};
+    auto ctx = miopen::ConvolutionContext{problem};
 
     ctx.do_search               = false;
     ctx.save_srch_req           = false;
@@ -136,8 +136,6 @@ static inline bool skip_config(miopen::Handle& handle,
     ctx.SetStream(&handle);
     ctx.SetupFloats();
     ctx.DetectRocm();
-
-    const auto& problem = ctx.problem;
 
     return ctx.GetStream().GetDeviceName() == "gfx908" && problem.Is2d() && problem.IsFp16() &&
            problem.IsLayoutDefault() && ctx.use_hip_kernels && problem.group_counts == 1 &&

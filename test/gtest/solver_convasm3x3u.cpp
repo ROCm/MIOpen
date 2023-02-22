@@ -47,13 +47,13 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     const auto tensors =
         miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};
 
-    auto ctx = miopen::ConvolutionContext{
-        inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
+    const auto problem = miopen::ProblemDescription{inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
+    auto ctx = miopen::ConvolutionContext{problem};
 
     ctx.SetStream(&handle);
     ctx.DetectRocm();
 
-    if(!solv.IsApplicable(ctx, ctx.problem))
+    if(!solv.IsApplicable(ctx, problem))
     {
         test_skipped = true;
         GTEST_SKIP() << solv.SolverDbId() << "ConvAsm3x3U Not Applicable for this problem"
@@ -62,9 +62,9 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     const auto invoke_params = miopen::conv::DataInvokeParams{
         tensors, nullptr, 0, convDesc.attribute.gfx90aFp16alt.GetFwd()};
 
-    ASSERT_TRUE(solv.IsApplicable(ctx, ctx.problem));
+    ASSERT_TRUE(solv.IsApplicable(ctx, problem));
     auto sol =
-        solv.GetSolution(ctx, ctx.problem, solv.GetDefaultPerformanceConfig(ctx, ctx.problem));
+        solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);

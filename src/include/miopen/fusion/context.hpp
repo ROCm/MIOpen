@@ -36,6 +36,9 @@ struct FusionContext : miopen::ExecutionContext
     {
     }
 
+    // TODO TODO remove
+    explicit FusionContext(const FusionDescription& problem_, Handle& handle) : ExecutionContext(&handle), problem(problem_) {}
+
     ConvolutionContext
     GetConvContext(size_t idx, conv::Direction dir, const FusionDescription& fusion_problem) const
     {

@@ -210,15 +210,16 @@ private:
         const std::initializer_list<size_t>& in,
         const std::function<void(ConvolutionContext&)>& context_filler = [](ConvolutionContext&) {})
     {
-        auto ctx = ConvolutionContext{TensorDescriptor{miopenFloat, in},
-                                      TensorDescriptor{miopenFloat, in},
-                                      TensorDescriptor{miopenFloat, in},
-                                      ConvolutionDescriptor{},
-                                      conv::Direction::Forward};
+        const auto problem = ProblemDescription{TensorDescriptor{miopenFloat, in},
+                                                TensorDescriptor{miopenFloat, in},
+                                                TensorDescriptor{miopenFloat, in},
+                                                ConvolutionDescriptor{},
+                                                conv::Direction::Forward};
+        auto ctx = ConvolutionContext{problem};
         ctx.SetStream(&get_handle());
         context_filler(ctx);
 
-        const auto sol = FindSolution(ctx, ctx.problem, db_path);
+        const auto sol = FindSolution(ctx, problem, db_path);
 
         EXPECT_OP(sol.construction_params.size(), >, 0);
         EXPECT_EQUAL(sol.construction_params[0].kernel_file, expected_kernel);
