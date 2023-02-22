@@ -209,7 +209,8 @@ auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
     return x.FindAllSolutions();
 }
 
-bool IsGemmAplicable(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem);
+bool IsGemmAplicable(const miopen::ConvolutionContext& ctx,
+                     const miopen::ProblemDescription& problem);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
@@ -217,28 +218,36 @@ FindAllGemmSolutions(const miopen::ConvolutionContext& ctx,
                      const miopen::AnyInvokeParams& invoke_ctx);
 
 std::vector<std::pair<std::string, size_t>>
-AllGemmWorkspaceSize(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem);
+AllGemmWorkspaceSize(const miopen::ConvolutionContext& ctx,
+                     const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem);
+AllDirectForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
+                                          const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-FindAllImplicitGemmWorkspaceSizes(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem);
+FindAllImplicitGemmWorkspaceSizes(const miopen::ConvolutionContext& ctx,
+                                  const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-FindAllWinogradWorkspaceSizes(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem);
+FindAllWinogradWorkspaceSizes(const miopen::ConvolutionContext& ctx,
+                              const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-FindWinogradWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem);
+FindWinogradWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx,
+                              const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-FindImplicitGemmWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem);
+FindImplicitGemmWrWWorkspaceSizes(const miopen::ConvolutionContext& ctx,
+                                  const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem);
+AllDirectBwdWrW2DWorkspaceSize(const miopen::ConvolutionContext& ctx,
+                               const miopen::ProblemDescription& problem);
 
 std::vector<std::pair<std::string, size_t>>
-AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem);
+AllFFTForwardBackwardDataWorkspaceSize(const miopen::ConvolutionContext& ctx,
+                                       const miopen::ProblemDescription& problem);
 
 std::vector<miopen::solver::ConvSolution>
 FindAllDirectSolutions(const miopen::ConvolutionContext& ctx,
