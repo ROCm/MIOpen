@@ -41,7 +41,6 @@ using data_t = std::vector<T>;
 template <typename T>
 void producer(int thread_idx, data_t<T>& common_data, ThreadSafeQueue<T>& comp_queue)
 {
-    return;
     for(auto idx = thread_idx; idx < data_len; idx += total_producers)
     {
         comp_queue.push(std::move(common_data.at(idx)));

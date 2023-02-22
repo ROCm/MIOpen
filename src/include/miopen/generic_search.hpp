@@ -372,10 +372,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     auto tmp_all_configs = GetAllConfigs(s, context);
     // For random access
     std::vector<PerformanceConfig> all_configs;
-    for(auto& kinder : tmp_all_configs)
-    {
-        all_configs.push_back(kinder);
-    }
+    std::copy(tmp_all_configs.begin(), tmp_all_configs.end(), std::back_inserter(all_configs));
     // shuffle the configs
     auto rd  = std::random_device{};
     auto rng = std::default_random_engine{rd()};
@@ -383,9 +380,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     const std::size_t n_runs_total =
         std::min(static_cast<std::size_t>(std::distance(all_configs.begin(), all_configs.end())),
                  GetTuningIterationsMax());
-
-    all_configs =
-        std::vector<PerformanceConfig>(all_configs.begin(), all_configs.begin() + n_runs_total);
+    all_configs.resize(n_runs_total);
 
     bool is_passed  = false; // left false only if all iterations failed.
     float best_time = std::numeric_limits<float>::max();
