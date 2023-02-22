@@ -148,13 +148,14 @@ static inline void ValidateGroupCount(const TensorDescriptor& xDesc,
 
 std::vector<miopen::solver::ConvSolution>
 ConvolutionDescriptor::FindWinogradSolutions(const ConvolutionContext& ctx,
+                                             const ProblemDescription& problem,
                                              const AnyInvokeParams& invoke_ctx) const
 {
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{}))
         return {};
     try
     {
-        return FindAllWinogradSolutions(ctx, ctx.problem, invoke_ctx);
+        return FindAllWinogradSolutions(ctx, problem, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -165,6 +166,7 @@ ConvolutionDescriptor::FindWinogradSolutions(const ConvolutionContext& ctx,
 
 std::vector<miopen::solver::ConvSolution>
 ConvolutionDescriptor::FindDataGemmSolutions(const ConvolutionContext& ctx,
+                                             const ProblemDescription& problem,
                                              const AnyInvokeParams& invoke_ctx) const
 {
 #if MIOPEN_USE_GEMM
@@ -172,7 +174,7 @@ ConvolutionDescriptor::FindDataGemmSolutions(const ConvolutionContext& ctx,
         return {};
     try
     {
-        return FindAllGemmSolutions(ctx, ctx.problem, invoke_ctx);
+        return FindAllGemmSolutions(ctx, problem, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -181,6 +183,7 @@ ConvolutionDescriptor::FindDataGemmSolutions(const ConvolutionContext& ctx,
     }
 #else
     std::ignore = ctx;
+    std::ignore = problem;
     std::ignore = invoke_ctx;
     return {};
 #endif
@@ -200,7 +203,8 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
         return {};
 
     const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
-    auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
+    const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, dir};
+    auto ctx       = ConvolutionContext{problem};
     ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
     ctx.do_search                  = exhaustiveSearch;
     ctx.save_srch_req              = true;
@@ -211,7 +215,7 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
 
     try
     {
-        return FindAllDirectSolutions(ctx, ctx.problem, invoke_ctx);
+        return FindAllDirectSolutions(ctx, problem, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -234,7 +238,8 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
         return {};
 
     const auto dir = isForward ? conv::Direction::Forward : conv::Direction::BackwardData;
-    auto ctx       = ConvolutionContext{xDesc, wDesc, yDesc, *this, dir};
+    const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, dir};
+    auto ctx       = ConvolutionContext{problem};
 
     ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
     ctx.do_search                  = exhaustiveSearch;
@@ -246,7 +251,7 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
 
     try
     {
-        return FindAllImplicitGemmSolutions(ctx, ctx.problem, invoke_ctx);
+        return FindAllImplicitGemmSolutions(ctx, problem, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -257,6 +262,7 @@ ConvolutionDescriptor::FindDataImplicitGemmSolutions(Handle& handle,
 
 std::vector<miopen::solver::ConvSolution>
 ConvolutionDescriptor::FindFftSolutions(const ConvolutionContext& ctx,
+                                        const ProblemDescription& problem,
                                         const AnyInvokeParams& invoke_ctx) const
 {
 
@@ -265,7 +271,7 @@ ConvolutionDescriptor::FindFftSolutions(const ConvolutionContext& ctx,
 
     try
     {
-        return FindAllFFTSolutions(ctx, ctx.problem, invoke_ctx);
+        return FindAllFFTSolutions(ctx, problem, invoke_ctx);
     }
     catch(miopen::Exception& ex)
     {
@@ -370,12 +376,13 @@ static void DirConvFindCore(Handle& handle,
                             bool exhaustiveSearch,
                             DbRecord& record,
                             ConvolutionContext& ctx, // non-const only for use_winograd_only hack.
+                            const ProblemDescription& problem,
                             bool use_winograd_only)
 {
     AutoEnableProfiling enableProfiling{handle};
     ValidateGroupCount(xDesc, wDesc, conv);
 
-    const auto network_config = ctx.problem.BuildConfKey();
+    const auto network_config = problem.BuildConfKey();
     const auto invoke_ctx     = conv::DataInvokeParams{InvokeType::Evaluate,
                                                    {xDesc, x, wDesc, w, yDesc, y},
                                                    workSpace,
@@ -383,11 +390,11 @@ static void DirConvFindCore(Handle& handle,
                                                    conv.attribute.gfx90aFp16alt.GetFwd()};
 
     // Find solutions
-    const auto winograd = !use_winograd_only ? conv.FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
+    const auto winograd = !use_winograd_only ? conv.FindWinogradSolutions(ctx, problem, invoke_ctx) : [&]() {
         AutoUseFastDynamicSolutions tmp{ctx};
-        return conv.FindWinogradSolutions(ctx, invoke_ctx);
+        return conv.FindWinogradSolutions(ctx, problem, invoke_ctx);
     }();
-    const auto gemm     = !use_winograd_only ? conv.FindDataGemmSolutions(ctx, invoke_ctx)
+    const auto gemm     = !use_winograd_only ? conv.FindDataGemmSolutions(ctx, problem, invoke_ctx)
                                              : std::vector<miopen::solver::ConvSolution>{};
     const auto direct   = !use_winograd_only
                               ? conv.FindDataDirectSolutions(
@@ -397,7 +404,7 @@ static void DirConvFindCore(Handle& handle,
                               ? conv.FindDataImplicitGemmSolutions(
                                  handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, invoke_ctx)
                               : std::vector<miopen::solver::ConvSolution>{};
-    const auto fft      = !use_winograd_only ? conv.FindFftSolutions(ctx, invoke_ctx)
+    const auto fft      = !use_winograd_only ? conv.FindFftSolutions(ctx, problem, invoke_ctx)
                                              : std::vector<miopen::solver::ConvSolution>{};
 
     // Precompile
@@ -515,7 +522,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                             exhaustiveSearch,
                             record,
                             ctx,
-                            IsWinograd3x3SupportedAndFast(ctx, ctx.problem));
+                            problem,
+                            IsWinograd3x3SupportedAndFast(ctx, problem));
         });
     }
 
@@ -693,10 +701,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::Forward)};
 
-        auto ctx =
-            ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward}; // forward
-        ctx.SetStream(&handle);
-        const auto network_config = ctx.problem.BuildConfKey();
+        const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+        const auto network_config = problem.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(invoker)
@@ -961,11 +967,10 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
     if(solutions == nullptr)
         MIOPEN_THROW(miopenStatusBadParm, "solutions cannot be nullptr");
 
-    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
-    ctx.SetStream(&handle);
+    const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
 
     GetSolutions(handle,
-                 ctx.problem,
+                 problem,
                  maxSolutionCount,
                  solutionCount,
                  solutions,
@@ -974,7 +979,7 @@ void ConvolutionDescriptor::GetForwardSolutions(Handle& handle,
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = (*solutionCount == 0);
     if(*solutionCount == 0)
-        GetSolutionsFallback(handle, ctx.problem, maxSolutionCount, solutionCount, solutions);
+        GetSolutionsFallback(handle, problem, maxSolutionCount, solutionCount, solutions);
 }
 std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handle,
                                                                    const TensorDescriptor& wDesc,
@@ -1038,10 +1043,11 @@ static Invoker PrepareInvoker(Handle& handle,
 
 Invoker LoadOrPrepareInvoker(Handle& handle,
                              ConvolutionContext& ctx,
+                             const ProblemDescription& problem,
                              solver::Id solver_id,
                              conv::Direction dir)
 {
-    const auto config = ctx.problem.BuildConfKey();
+    const auto config = problem.BuildConfKey();
     auto invoker      = handle.GetInvoker(config, solver_id);
     if(invoker)
         return *invoker;
@@ -1057,6 +1063,7 @@ static bool CheckInvokerSupport(const solver::Id solver_id, conv::Direction dir)
 static void CompileSolution(Handle& handle,
                             const solver::Id solver_id,
                             ConvolutionContext& ctx,
+                            const ProblemDescription& problem,
                             conv::Direction dir)
 {
     if(!solver_id.IsValid())
@@ -1064,11 +1071,11 @@ static void CompileSolution(Handle& handle,
 
     if(CheckInvokerSupport(solver_id, dir))
     {
-        LoadOrPrepareInvoker(handle, ctx, solver_id, dir);
+        LoadOrPrepareInvoker(handle, ctx, problem, solver_id, dir);
         return;
     }
 
-    const FindDbRecord fdb_record{handle, ctx.problem};
+    const FindDbRecord fdb_record{handle, problem};
     for(const auto& pair : fdb_record)
     {
         if(solver::Id{pair.second.solver_id} != solver_id)
@@ -1096,11 +1103,12 @@ void ConvolutionDescriptor::CompileForwardSolution(Handle& handle,
 {
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
 
-    auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+    auto ctx = ConvolutionContext{problem};
     ctx.SetStream(&handle);
     ctx.disable_search_enforce = true;
 
-    CompileSolution(handle, solver_id, ctx, conv::Direction::Forward);
+    CompileSolution(handle, solver_id, ctx, problem, conv::Direction::Forward);
 }
 
 void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
@@ -1122,7 +1130,8 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
 
     ConvForwardCheckNumerics(handle, tensors, [&]() {
-        auto ctx = ConvolutionContext{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+        const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
+        auto ctx = ConvolutionContext{problem};
         ctx.SetStream(&handle);
 
         if(!CheckInvokerSupport(solver_id, conv::Direction::Forward))
@@ -1131,7 +1140,7 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
             MIOPEN_THROW("Conv forward algorithm " + algo_name + " must implement invokers.");
         }
 
-        const auto invoker = LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::Forward);
+        const auto invoker = LoadOrPrepareInvoker(handle, ctx, problem, solver_id, conv::Direction::Forward);
         const auto invoke_ctx = conv::DataInvokeParams{
             tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetFwd()};
         invoker(handle, invoke_ctx);
@@ -1197,7 +1206,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         const auto use_winograd_only = [&]() {
             ctx.SetStream(&handle);
             ctx.DetectRocm();
-            return IsWinograd3x3SupportedAndFast(ctx, ctx.problem);
+            return IsWinograd3x3SupportedAndFast(ctx, problem);
         }();
 
         perf_db = UserFindDbRecord::TryLoad(handle, problem, [&](DbRecord& record) {
@@ -1211,11 +1220,11 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             // Find solutions
             const auto winograd =
-                !use_winograd_only ? FindWinogradSolutions(ctx, invoke_ctx) : [&]() {
+                !use_winograd_only ? FindWinogradSolutions(ctx, problem, invoke_ctx) : [&]() {
                     AutoUseFastDynamicSolutions tmp{ctx};
-                    return FindWinogradSolutions(ctx, invoke_ctx);
+                    return FindWinogradSolutions(ctx, problem, invoke_ctx);
                 }();
-            const auto gemm = !use_winograd_only ? FindDataGemmSolutions(ctx, invoke_ctx)
+            const auto gemm = !use_winograd_only ? FindDataGemmSolutions(ctx, problem, invoke_ctx)
                                                  : std::vector<miopen::solver::ConvSolution>{};
             const auto direct =
                 !use_winograd_only
@@ -1227,7 +1236,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     ? FindDataImplicitGemmSolutions(
                           handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, invoke_ctx)
                     : std::vector<miopen::solver::ConvSolution>{};
-            const auto fft = !use_winograd_only ? FindFftSolutions(ctx, invoke_ctx)
+            const auto fft = !use_winograd_only ? FindFftSolutions(ctx, problem, invoke_ctx)
                                                 : std::vector<miopen::solver::ConvSolution>{};
 
             // Precompile
@@ -1371,9 +1380,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::BackwardData)};
 
-        auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
-        ctx.SetStream(&handle);
-        const auto network_config = ctx.problem.BuildConfKey();
+        const auto problem = ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+        const auto network_config = problem.BuildConfKey();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(!invoker)
@@ -1437,11 +1445,12 @@ void ConvolutionDescriptor::CompileBackwardSolution(Handle& handle,
 {
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
 
-    auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+    const auto problem = ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+    auto ctx = ConvolutionContext{problem};
     ctx.SetStream(&handle);
     ctx.disable_search_enforce = true;
 
-    CompileSolution(handle, solver_id, ctx, conv::Direction::BackwardData);
+    CompileSolution(handle, solver_id, ctx, problem, conv::Direction::BackwardData);
 }
 
 std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& handle,
@@ -1492,7 +1501,8 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
         }
         ValidateGroupCount(dxDesc, wDesc, *this);
 
-        auto ctx = ConvolutionContext{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+        const auto problem = ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
+        auto ctx = ConvolutionContext{problem};
         ctx.SetStream(&handle);
 
         if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardData))
@@ -1502,7 +1512,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
         }
 
         const auto invoker =
-            LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardData);
+            LoadOrPrepareInvoker(handle, ctx, problem, solver_id, conv::Direction::BackwardData);
         const auto invoke_ctx = conv::DataInvokeParams{
             tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetBwd()};
         invoker(handle, invoke_ctx);
@@ -1574,7 +1584,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             ctx.SetStream(&handle);
             ctx.SetupFloats();
             ctx.DetectRocm();
-            const auto network_config = ctx.problem.BuildConfKey();
+            const auto network_config = problem.BuildConfKey();
             const auto invoke_ctx     = conv::WrWInvokeParams{InvokeType::Evaluate,
                                                           {dyDesc, dy, xDesc, x, dwDesc, dw},
                                                           workSpace,
@@ -1583,17 +1593,17 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
             // Find solutions
             const auto gemm     = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_GEMM{})
-                                      ? FindAllGemmSolutions(ctx, ctx.problem, invoke_ctx)
+                                      ? FindAllGemmSolutions(ctx, problem, invoke_ctx)
                                       : std::vector<miopen::solver::ConvSolution>{};
             const auto direct   = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})
-                                      ? FindAllBwdWrW2DSolutions(ctx, ctx.problem, invoke_ctx)
+                                      ? FindAllBwdWrW2DSolutions(ctx, problem, invoke_ctx)
                                       : std::vector<miopen::solver::ConvSolution>{};
             const auto winograd = !miopen::IsDisabled(MIOPEN_DEBUG_CONV_WINOGRAD{})
-                                      ? FindWinogradWrWAllSolutions(ctx, ctx.problem, invoke_ctx)
+                                      ? FindWinogradWrWAllSolutions(ctx, problem, invoke_ctx)
                                       : std::vector<miopen::solver::ConvSolution>{};
             const auto implictgemm =
                 !miopen::IsDisabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM{})
-                    ? FindImplicitGemmWrWAllSolutions(ctx, ctx.problem, invoke_ctx)
+                    ? FindImplicitGemmWrWAllSolutions(ctx, problem, invoke_ctx)
                     : std::vector<miopen::solver::ConvSolution>{};
 
             // Precompile Solutions
@@ -1792,11 +1802,12 @@ void ConvolutionDescriptor::CompileWrwSolution(Handle& handle,
                                                solver::Id solver_id) const
 {
     MIOPEN_LOG_I("solver_id = " << solver_id.ToString());
-    auto ctx = ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
+    const auto problem = ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
+    auto ctx = ConvolutionContext{problem};
     ctx.SetStream(&handle);
     ctx.disable_search_enforce = true;
 
-    CompileSolution(handle, solver_id, ctx, conv::Direction::BackwardWeights);
+    CompileSolution(handle, solver_id, ctx, problem, conv::Direction::BackwardWeights);
 }
 
 std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
@@ -1847,8 +1858,9 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
     ConvWrwCheckNumerics(handle, tensors, &beta, [&]() {
         ValidateGroupCount(xDesc, dwDesc, *this);
 
+        const auto problem = ProblemDescription{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
         auto ctx =
-            ConvolutionContext{xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights};
+            ConvolutionContext{problem};
         ctx.SetStream(&handle);
 
         if(!CheckInvokerSupport(solver_id, conv::Direction::BackwardWeights))
@@ -1858,7 +1870,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
         }
 
         const auto invoker =
-            LoadOrPrepareInvoker(handle, ctx, solver_id, conv::Direction::BackwardWeights);
+            LoadOrPrepareInvoker(handle, ctx, problem, solver_id, conv::Direction::BackwardWeights);
         const auto invoke_ctx = conv::WrWInvokeParams{
             tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetWrW()};
         invoker(handle, invoke_ctx);
