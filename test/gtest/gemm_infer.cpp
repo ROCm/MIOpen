@@ -36,7 +36,7 @@
 #include "get_handle.hpp"
 #include "gemm_test.hpp"
 
-struct GemmTestFloat : GemmTest<float>
+struct GemmTestHalf : GemmTest<half_float::half>
 {
 };
 //
@@ -89,15 +89,16 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     handle.Finish();
 }
 
-TEST_P(GemmTestFloat, CKIgemm)
+TEST_P(GemmTestHalf, CKIgemm)
 {
     const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
         params, A_tensor.desc, a_dev.get(), C_tensor.desc, c_dev.get(), false);
+    
     RunTunableSolver<miopen::solver::fusion::CKIgemm>(
         fusePlanDesc, plan_params, gemm_config, test_skipped);
 }
 
 INSTANTIATE_TEST_SUITE_P(GemmSolverTest,
-                         GemmTestFloat,
+                         GemmTestHalf,
                          testing::Combine(testing::ValuesIn(GetTestData()), 
-                                          testing::Values(miopenTensorNHWC)));
+                                          testing::Values(miopenTensorNCHW)));

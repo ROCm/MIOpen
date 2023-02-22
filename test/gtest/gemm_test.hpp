@@ -32,13 +32,14 @@
 #include <miopen/solver_id.hpp>
 #include <serialize.hpp>
 #include <fusionHost.hpp>
+#include <miopen/check_numerics.hpp>
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 #include "conv_common.hpp"
 #include "gemm.hpp"
 
-//#include "../driver/tensor_driver.hpp"
+#include "../driver/tensor_driver.hpp"
 
 template <typename T>
 miopenDataType_t GetDataType();
@@ -55,9 +56,7 @@ miopenDataType_t GetDataType<half_float::half>()
     return miopenHalf;
 }
 
-
-// outout: e[m, n]
-// input: a[k, m], b[k, n], d0[m, n], d1[m, n]
+//a[m, k] * b[k,n] = c[m, n]
 
 struct GemmTestCase
 {
@@ -74,23 +73,27 @@ struct GemmTestCase
     friend std::ostream& operator<<(std::ostream& os, const GemmTestCase& tc)
     {
         return os << "(M: " << tc.M << " N:" << tc.N << " K:" << tc.K 
+                  << ", A(" << tc.M << "," << tc.K << ")"
+                  << ", B(" << tc.K << "," << tc.N << ")"
+                  << ", C(" << tc.M << "," << tc.N << ")"
                   << " StrideA: " << tc.StrideA
                   << " StrideB: " << tc.StrideB
                   << " StrideC: " << tc.StrideC
                   << " dataType: " << tc.dataType
                   << " )";
     }
-    std::vector<int> GetA(){return {K, M};}
-    std::vector<int> GetB(){return {K, N};}
-    std::vector<int> GetC(){return {M, N};}
+    std::vector<int> GetA(){ return {M, K};}
+    std::vector<int> GetB(){ return {K, N};}
+    std::vector<int> GetC(){ return {M, N};}
 
     miopen::GemmNewDescriptor GetGemm()
     {
         return miopen::GemmNewDescriptor{M, N, K, StrideA, StrideB, StrideC, dataType};
     }
+    
 };
 
-/*inline int SetTensorLayout(miopen::TensorDescriptor& desc)
+inline int SetTensorLayout(miopen::TensorDescriptor& desc)
 {
     // get layout string names
     std::string layout_str = desc.GetLayout_str();
@@ -100,62 +103,73 @@ struct GemmTestCase
 
     // set the strides for the tensor
     return SetTensorNd(&desc, int_lens, layout_str, desc.GetType());
-}*/
-
+}
 
 std::vector<GemmTestCase> GetTestData()
 {
-    return {{10, 10, 10, 0, 0 ,0, miopenFloat}};
+    return {
+        {
+            //  A(M, K)  B(K, N), C(M, N)
+            /*M*/1024, 
+            /*N*/1024,
+            /*K*/1024,
+            /*StrideA*/1024, // K
+            /*StrideB*/1024, // N
+            /*StrideC*/1024, // N
+            miopenHalf
+        }
+    };
 }
 
-template <typename T = float>
+template <typename T = half_float::half>
 struct GemmTest
     : public ::testing::TestWithParam<std::tuple<GemmTestCase, miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
     {
+        //  we need stride too .
         test_skipped                         = false;
         std::tie(gemm_config, tensor_layout) = GetParam();
-        A_tensor                             = tensor<T>{miopen_type<T>{}, tensor_layout, gemm_config.GetA()};
-        A_tensor                             = tensor<T>{miopen_type<T>{}, tensor_layout, gemm_config.GetB()};
-        //SetTensorLayout(A_tensor.desc);
-       // SetTensorLayout(A_tensor.desc);
+        A_tensor                             = tensor<T>(gemm_config.GetA());
+        B_tensor                             = tensor<T>(gemm_config.GetB());
+        C_tensor                             = tensor<T>(gemm_config.GetC());
         std::random_device rd{};
         std::mt19937 gen{rd()};
         std::uniform_real_distribution<> d{-3, 3};
         auto gen_value = [&](auto...) { return d(gen); };
         A_tensor.generate(gen_value);
-        A_tensor.generate(gen_value);
+        B_tensor.generate(gen_value);
+
         gemm_desc  = gemm_config.GetGemm();
 
-        C_tensor = tensor<T>{miopen_type<T>{}, tensor_layout, gemm_config.GetC()};
-
         auto&& handle = get_handle();
-
         std::fill(C_tensor.begin(), C_tensor.end(), std::numeric_limits<double>::quiet_NaN());
-        a_dev   = handle.Write(A_tensor.data);
+
+        a_dev  = handle.Write(A_tensor.data); 
         b_dev  = handle.Write(B_tensor.data);
         c_dev  = handle.Write(C_tensor.data);
 
         // Setup the Fusionplan
+        // Here for fusion we set up the B matrix. The A (in) and C (out) matrix was
+        // prepared when we call RunTunableSolver.
         fusePlanDesc = miopen::FusionPlanDescriptor(miopenVerticalFusion, A_tensor.desc);
         auto gemmOp  = std::make_shared<miopen::GemmOpDescriptor>(gemm_desc, B_tensor.desc);
         EXPECT_EQ(fusePlanDesc.AddOp(gemmOp), miopenStatusSuccess);
-        // miopen::OperatorArgs params;
+
         gemmOp->SetArgs(params, b_dev.get());
     }
     void TearDown() override
     {
         if(test_skipped)
             return;
-
-        ref_out = tensor<T>{miopen_type<T>{}, tensor_layout, gemm_config.GetC()};
-        gemm(gemm_config.N, gemm_config.M, gemm_config.K, 
-                        A_tensor, B_tensor, ref_out);
-
+        ref_out = tensor<T>(gemm_config.GetC());
+        gemm<T>(gemm_config.N, gemm_config.M, gemm_config.K, 
+                       A_tensor, B_tensor, ref_out);
         auto&& handle = get_handle();
+        
         C_tensor.data   = handle.Read<T>(c_dev, C_tensor.data.size());
+
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU data is all zeros";
         EXPECT_FALSE(miopen::range_zero(C_tensor)) << "GPU data is all zeros";
         EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(C_tensor));
@@ -167,6 +181,7 @@ protected:
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
+
     GemmTestCase gemm_config;
     miopen::GemmNewDescriptor gemm_desc;
     tensor<T> A_tensor;

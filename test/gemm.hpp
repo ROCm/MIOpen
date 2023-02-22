@@ -29,21 +29,33 @@
 #include "ford.hpp"
 #include <miopen/returns.hpp>
 
-template <class AF, class BF, class CF>
-void gemm(std::size_t n, std::size_t m, std::size_t k, AF a, BF b, CF c)
+template<class CF, class T>
+void setC( CF& c, int i, int j, T value)
+{
+    if constexpr (std::is_same_v<CF, tensor<T>>)
+    {
+       c[c.desc.GetIndex(i, j)] = value;
+    }
+    else{
+        c(i, j, value);
+    }
+}
+
+template <class T, class AF, class BF, class CF>
+void gemm(std::size_t n, std::size_t m, std::size_t k, AF a, BF b, CF& c)
 {
     auto inner_loop = [&](int i, int j) {
-        double x = 0.0;
+        T x(0);
         ford(k)([&](int kk) { x += a(i, kk) * b(kk, j); });
-        c(i, j, x);
+        setC(c, i, j, x);
     };
     if(n * m > 32)
     {
-        par_ford(n, m)(inner_loop);
+        par_ford(m, n)(inner_loop);
     }
     else
     {
-        ford(n, m)(inner_loop);
+        ford(m, n)(inner_loop);
     }
 }
 

@@ -54,7 +54,7 @@ using CElementOp = ck::tensor_operation::element_wise::PassThrough;
 using Row = ck::tensor_layout::gemm::RowMajor;
 using Col = ck::tensor_layout::gemm::ColumnMajor;
 using ALayout = Row;
-using BLayout = Col;
+using BLayout = Row;
 using CLayout = Row;
 
 using F16   = ck::half_t;
@@ -90,8 +90,8 @@ struct CKArgs
     {
         // convert problem's NHWC to MNK .. here we do the conversion
         M = problem.GetGemmDescriptor().GetM();
-        N = problem.GetGemmDescriptor().GetM();
-        K = problem.GetGemmDescriptor().GetM();
+        N = problem.GetGemmDescriptor().GetN();
+        K = problem.GetGemmDescriptor().GetK();
 
         StrideA = problem.GetGemmDescriptor().GetStrideA();
         StrideB = problem.GetGemmDescriptor().GetStrideB();
@@ -150,11 +150,10 @@ bool PerformanceConfigCKIgemm::CheckIsSupportCKArgs(
     const auto& args = CKArgs{problem};
     const auto gemm_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOp>::GetInstances();
-    
     int i = 0;
     for(; i < gemm_ptrs.size(); i++)
     {
-        if(gemm_ptrs[i]->GetTypeString() == this->kernel_id)
+        if(gemm_ptrs[i]->GetTypeString() + "_" + std::to_string(i) == this->kernel_id)
         {
             break;
         }
@@ -163,6 +162,7 @@ bool PerformanceConfigCKIgemm::CheckIsSupportCKArgs(
     {
         return false;
     }
+
     auto argument_ptr = gemm_ptrs[i]->MakeArgumentPointer(nullptr,
                                                     nullptr,
                                                     nullptr,
@@ -198,8 +198,9 @@ bool CKIgemm::CheckCKApplicability(const miopen::gemm::ProblemDescription& probl
                                                     a_element_op,
                                                     b_element_op,
                                                     c_element_op);
-        if(it->IsSupportedArgument(argument_ptr.get()))
+        if(it->IsSupportedArgument(argument_ptr.get())){
             return true;
+        }
     }
     return false;
 }
@@ -224,6 +225,7 @@ void RunCKSolution(const Handle& handle,
             break;
         }
     }
+
     assert(unique_id < gemm_ptrs.size());
     auto& gemm_ck          = gemm_ptrs.at(unique_id);
     const auto& invoke_ctx = primitive_parameters.CastTo<miopen::fusion::FusionInvokeParams>();
@@ -248,9 +250,10 @@ void RunCKSolution(const Handle& handle,
                                                     
     auto invoker_ptr            = gemm_ck->MakeInvokerPointer();
     const auto enable_profiling = handle.IsProfilingEnabled();
-
     float elapsed_time =
         invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+    
+
     if(enable_profiling)
     {
         handle.ResetKernelTime();
@@ -361,13 +364,18 @@ bool CKIgemm::IsApplicable(const FusionContext& ctx) const
 #else
     const auto& problem = ctx.problem.GetGemmProblem(0);
     if(miopen::IsDisabled(MIOPEN_DEBUG_CK_IGEMM{}))
+    {
         return false;
+    }
     if(problem.GetADataType() != problem.GetBDataType() ||
        problem.GetADataType() != problem.GetCDataType())
+       {
         return false;
+       }
     const std::string arch = ctx.GetStream().GetDeviceName();
-    if(arch != "gfx908" && arch != "gfx90a")
+    if(arch != "gfx908" && arch != "gfx90a"){
         return false;
+    }
     //if(!problem.IsLayoutNHWC())
     //    return false;
 

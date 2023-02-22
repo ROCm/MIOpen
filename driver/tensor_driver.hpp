@@ -26,7 +26,8 @@
 #ifndef GUARD_MIOPEN_TENSOR_DRIVER_HPP
 #define GUARD_MIOPEN_TENSOR_DRIVER_HPP
 
-#include "driver.hpp"
+//#include "driver.hpp"
+#define UNPACK_VEC4(v) (v[0]), (v[1]), (v[2]), (v[3])
 
 #include <algorithm>
 #include <iterator>
