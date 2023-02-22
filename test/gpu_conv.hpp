@@ -52,7 +52,8 @@ bool gpu_ref_convolution_fwd(const tensor<Tin>& input,
 
         const auto tensors = miopen::ConvFwdTensors{
             input.desc, in_dev.get(), weights.desc, wei_dev.get(), rout.desc, out_dev.get()};
-        const auto problem = miopen::ProblemDescription{input.desc, weights.desc, rout.desc, filter, miopen::conv::Direction::Forward};
+        const auto problem = miopen::ProblemDescription{
+            input.desc, weights.desc, rout.desc, filter, miopen::conv::Direction::Forward};
         auto ctx = miopen::ConvolutionContext{problem};
         ctx.SetStream(&handle);
         ctx.DetectRocm();
@@ -88,7 +89,8 @@ bool gpu_ref_convolution_bwd(tensor<Tin>& input,
 
         const auto tensors = miopen::ConvBwdTensors{
             output.desc, out_dev.get(), weights.desc, wei_dev.get(), input.desc, in_dev.get()};
-        const auto problem = miopen::ProblemDescription{input.desc, weights.desc, output.desc, filter, miopen::conv::Direction::BackwardData};
+        const auto problem = miopen::ProblemDescription{
+            input.desc, weights.desc, output.desc, filter, miopen::conv::Direction::BackwardData};
         auto ctx = miopen::ConvolutionContext{problem};
         ctx.SetStream(&handle);
         ctx.DetectRocm();
@@ -97,12 +99,8 @@ bool gpu_ref_convolution_bwd(tensor<Tin>& input,
             gpu_ref_used          = true;
             const auto invoke_ctx = miopen::conv::DataInvokeParams{
                 tensors, nullptr, 0, filter.attribute.gfx90aFp16alt.GetBwd()};
-            const auto invoker =
-                miopen::LoadOrPrepareInvoker(handle,
-                                             ctx,
-                                             problem,
-                                             naive_conv_id.Value(),
-                                             miopen::conv::Direction::BackwardData);
+            const auto invoker = miopen::LoadOrPrepareInvoker(
+                handle, ctx, problem, naive_conv_id.Value(), miopen::conv::Direction::BackwardData);
             invoker(handle, invoke_ctx);
             input.data = handle.Read<Tin>(in_dev, input.data.size());
         }
@@ -133,7 +131,7 @@ bool gpu_ref_convolution_wrw(const tensor<Tin>& input,
                                                         output.desc,
                                                         filter,
                                                         miopen::conv::Direction::BackwardWeights};
-        auto ctx = miopen::ConvolutionContext{problem};
+        auto ctx           = miopen::ConvolutionContext{problem};
         ctx.SetStream(&handle);
         ctx.DetectRocm();
         if(naive_solver.IsApplicable(ctx))

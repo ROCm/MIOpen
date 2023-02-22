@@ -215,7 +215,7 @@ private:
                                                 TensorDescriptor{miopenFloat, in},
                                                 ConvolutionDescriptor{},
                                                 conv::Direction::Forward};
-        auto ctx = ConvolutionContext{problem};
+        auto ctx           = ConvolutionContext{problem};
         ctx.SetStream(&get_handle());
         context_filler(ctx);
 

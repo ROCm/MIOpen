@@ -50,7 +50,7 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     auto& handle = get_handle();
     Solver solv{};
     const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
-    auto fusion_ctx = miopen::FusionContext{fusion_problem, handle};
+    auto fusion_ctx           = miopen::FusionContext{fusion_problem, handle};
     fusion_ctx.DetectRocm();
     if(!solv.IsApplicable(fusion_ctx, fusion_problem))
     {
@@ -74,7 +74,7 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     auto& handle = get_handle();
     Solver solv{};
     const auto fusion_problem = miopen::FusionDescription{&fusePlanDesc};
-    auto fusion_ctx = miopen::FusionContext{fusion_problem, handle};
+    auto fusion_ctx           = miopen::FusionContext{fusion_problem, handle};
     fusion_ctx.DetectRocm();
     if(!solv.IsApplicable(fusion_ctx, fusion_problem))
     {
@@ -82,9 +82,8 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
         GTEST_SKIP() << solv.SolverDbId() << " Not Applicable" << conv_config;
     }
     ASSERT_TRUE(solv.IsApplicable(fusion_ctx, fusion_problem));
-    auto sol = solv.GetSolution(fusion_ctx,
-                                fusion_problem,
-                                solv.GetDefaultPerformanceConfig(fusion_ctx, fusion_problem));
+    auto sol = solv.GetSolution(
+        fusion_ctx, fusion_problem, solv.GetDefaultPerformanceConfig(fusion_ctx, fusion_problem));
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);

@@ -47,7 +47,8 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
     const auto tensors =
         miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};
 
-    const auto problem = miopen::ProblemDescription{inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
+    const auto problem = miopen::ProblemDescription{
+        inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
     auto ctx = miopen::ConvolutionContext{problem};
 
     ctx.SetStream(&handle);
@@ -63,8 +64,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
         tensors, nullptr, 0, convDesc.attribute.gfx90aFp16alt.GetFwd()};
 
     ASSERT_TRUE(solv.IsApplicable(ctx, problem));
-    auto sol =
-        solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
+    auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
