@@ -169,15 +169,15 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                             miopenDataType_t yType = miopenFloat) const;
 
     std::size_t
-    ForwardBackwardDataGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx) const;
+    ForwardBackwardDataGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem) const;
 
-    std::size_t ForwardBackwardDataGetWorkSpaceSizeFFT(const miopen::ConvolutionContext& ctx) const;
-
-    std::size_t
-    ForwardBackwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
+    std::size_t ForwardBackwardDataGetWorkSpaceSizeFFT(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem) const;
 
     std::size_t
-    ForwardBackwardDataGetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx) const;
+    ForwardBackwardGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem) const;
+
+    std::size_t
+    ForwardBackwardDataGetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem) const;
 
     bool IsWinograd3x3SupportedAndFast(const miopen::ConvolutionContext& ctx,
                                        const ProblemDescription& problem) const;
@@ -399,13 +399,13 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                 const TensorDescriptor& xDesc,
                                                 const TensorDescriptor& dwDesc) const;
 
-    std::size_t BackwardWeightsGetWorkSpaceSizeGEMM(const miopen::ConvolutionContext& ctx) const;
+    std::size_t BackwardWeightsGetWorkSpaceSizeGEMM(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem) const;
 
-    std::size_t BackwardWeightsGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx) const;
+    std::size_t BackwardWeightsGetWorkSpaceSizeDirect(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem) const;
     std::size_t
-    BackwardWeightsGetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx) const;
+    BackwardWeightsGetWorkSpaceSizeWinograd(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem) const;
     std::size_t
-    BackwardWeightsGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx) const;
+    BackwardWeightsGetWorkSpaceSizeImplicitGemm(const miopen::ConvolutionContext& ctx, const miopen::ProblemDescription& problem) const;
 
     void FindConvBwdWeightsAlgorithm(Handle& handle,
                                      const TensorDescriptor& dyDesc,
