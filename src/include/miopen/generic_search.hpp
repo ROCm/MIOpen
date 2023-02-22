@@ -343,7 +343,6 @@ void CompileAgent(size_t thread_index,
             std::move(current_config), std::move(current_solution), false);
         comp_queue.push(std::move(tup));
     }
-    return;
 }
 
 template <class Solver, class Context>
@@ -398,6 +397,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     const auto total_threads = GetTuningThreadsMax();
     ThreadSafeQueue<std::tuple<PerformanceConfig, ConvSolution, bool>> solution_queue;
     std::vector<std::thread> compile_agents;
+    compile_agents.reserve(total_threads);
     for(auto idx = 0; idx < total_threads; ++idx)
     {
         compile_agents.emplace_back(CompileAgent<PerformanceConfig, Solver, Context>,
