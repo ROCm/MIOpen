@@ -36,6 +36,8 @@
 #include <cassert>
 #include <numeric>
 #include <boost/range/combine.hpp>
+#define __HIPCC__
+#include <gputt.h>
 
 #define MIO_TENSOROCL_DEBUG 0
 
@@ -2121,6 +2123,30 @@ void CastTensor(const Handle& handle,
     }
 }
 
+static void find_permutation(const std::string& src_layout, const std::string& dst_layout,
+                     int* permutation)
+{
+    std::map<char, std::pair<int, int>> permMap;
+    for (int i = 0; i < src_layout.length(); i++)
+        permMap[src_layout[i]].first = i;
+    for (int i = 0; i < dst_layout.length(); i++)
+        permMap[dst_layout[i]].second = i;
+
+    std::vector<std::pair<int, int> > permVec;
+    for (const auto &kv : permMap)
+        permVec.push_back(kv.second);
+    std::sort(permVec.begin(), permVec.end(),
+        [](const auto & a, const auto & b) -> bool
+        {
+            return a.first > b.first;
+        });
+
+    printf("Permutation for %s -> %s: ");
+    for (int i = 0; i < permVec.size(); i++)
+	    printf("%d ", permVec[i]);
+    printf("\n");
+}
+
 void TransformTensor(const Handle& handle,
                      const void* alpha,
                      const TensorDescriptor& xDesc,
@@ -2149,11 +2175,37 @@ void TransformTensor(const Handle& handle,
         MIOPEN_THROW("Tensor dimension must be the same");
     }
 
+    // TODO Not all layouts start with 'N', is this correct for "CHWN"?
     if(x_len[0] != y_len[0])
     {
         MIOPEN_THROW("Tensor x and y batch sizes do not match");
     }
 
+#if 1
+    // Prepare to perform Y_perm(i0, i1, ...) = alpha * X{i0,i1,...} + beta * Y_perm(i0,i1,...)
+    // using gpuTT library.
+    auto xLayout = xDesc.GetLayout_str();
+    auto yLayout = yDesc.GetLayout_str();
+	
+    // Remove non-capital 'c', which is not subject to a permutation
+
+    std::vector<int> permutation(x_len.size());	
+    find_permutation(xDesc.GetLayout_str(), yDesc.GetLayout_str(), permutation.data());
+
+    // Create transpose plan on NULL stream and choose implementation based on heuristics
+    // TODO Must support non-equal input and output types
+    gputtHandle plan;
+    hipStream_t stream = 0;
+    auto err = gputtPlan(&plan, x_len.size(), reinterpret_cast<int*>(x_len.data()),
+                         permutation.data(), sizeof(float), stream);
+
+    // Execute transpose plan
+    // TODO: support for alpha and beta in the case of a simple copy (i.e., perm = identity) is still missing
+    err = gputtExecute(plan, x, y, alpha, beta);
+
+    // Destroy transpose plan
+    err = gputtDestroy(plan);
+#else
     if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8 && x_len.size() >= 3)
     {
         if(x_len[1] <= y_len[1])
@@ -2436,6 +2488,7 @@ void TransformTensor(const Handle& handle,
         default: assert(false);
         }
     }
+#endif
 }
 
 } // namespace miopen
