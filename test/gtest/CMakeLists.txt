@@ -7,8 +7,10 @@ include(GoogleTest)
 
 find_package(rocblas)
 
-set(SOURCES ${SOURCES}
-    "${CMAKE_CURRENT_SOURCE_DIR}/log_test_helper.cpp"
+set(SOURCES)
+list(APPEND SOURCES
+    log_test_helper.cpp
+    platform.cpp
     )
 
 if(MIOPEN_BACKEND_OPENCL)
@@ -28,15 +30,17 @@ function(add_gtest TEST_NAME)
     else()
       target_link_libraries(test_${TEST_NAME} gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas>)
     endif()
-    #Enable CMake to discover the test binary
+    # Enable CMake to discover the test binary
     gtest_discover_tests(test_${TEST_NAME} PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR}")
 
   endif()
 endfunction()
 
 file(GLOB TESTS *.cpp)
-# this is the file I want to exclude / remove from the TESTS
-list(REMOVE_ITEM TESTS "${SOURCES}")
+# Remove files that do not contain tests
+foreach(SOURCE ${SOURCES})
+    list(REMOVE_ITEM TESTS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE})
+endforeach()
 
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
