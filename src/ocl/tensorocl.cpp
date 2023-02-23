@@ -2175,13 +2175,7 @@ void TransformTensor(const Handle& handle,
         MIOPEN_THROW("Tensor dimension must be the same");
     }
 
-    // TODO Not all layouts start with 'N', is this correct for "CHWN"?
-    if(x_len[0] != y_len[0])
-    {
-        MIOPEN_THROW("Tensor x and y batch sizes do not match");
-    }
-
-#if 1
+#if 0
     // Prepare to perform Y_perm(i0, i1, ...) = alpha * X{i0,i1,...} + beta * Y_perm(i0,i1,...)
     // using gpuTT library.
     auto xLayout = xDesc.GetLayout_str();
