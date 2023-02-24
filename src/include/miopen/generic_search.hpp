@@ -312,7 +312,7 @@ void CompileAgent(size_t thread_index,
                   ThreadSafeQueue<std::tuple<PerformanceConfig, ConvSolution, bool>>& comp_queue)
 {
     const auto start_time =
-        std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+        std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now());
     const auto data_size          = data.size();
     const auto time_budget        = GetTuningTimeMax();
     auto context                  = context_; // Not sure if context is thread safe
@@ -323,7 +323,7 @@ void CompileAgent(size_t thread_index,
     {
         // Check if we are out of time
         const auto current_time = std::chrono::time_point_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now());
+            std::chrono::steady_clock::now());
         if(current_time - start_time > time_budget)
         {
             MIOPEN_LOG_I2("Thread: " << thread_index << " Done");
@@ -377,9 +377,7 @@ auto GenericSearch(const Solver s, const Context& context_, const AnyInvokeParam
     std::random_device rd{};
     auto rng = std::default_random_engine{rd()};
     std::shuffle(all_configs.begin(), all_configs.end(), rng);
-    const std::size_t n_runs_total =
-        std::min(static_cast<std::size_t>(std::distance(all_configs.begin(), all_configs.end())),
-                 GetTuningIterationsMax());
+    const std::size_t n_runs_total = std::min(all_configs.size(), GetTuningIterationsMax());
     all_configs.resize(n_runs_total);
 
     bool is_passed  = false; // left false only if all iterations failed.
