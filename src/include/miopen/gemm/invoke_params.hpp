@@ -35,13 +35,13 @@ namespace gemm {
 struct InvokeParams : public miopen::InvokeParams
 {
     InvokeParams() = default;
-    double alpha = 1.0;
+    double alpha   = 1.0;
     TensorDescriptor ADesc;
     ConstData_t A = nullptr;
-    double beta = 0.0;
-    TensorDescriptor BDesc;   
+    double beta   = 0.0;
+    TensorDescriptor BDesc;
     ConstData_t B = nullptr;
-    TensorDescriptor CDesc;   
+    TensorDescriptor CDesc;
     Data_t C = nullptr;
 };
 

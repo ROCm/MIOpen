@@ -40,30 +40,29 @@ struct GemmNewDescriptor : miopenGemmDescriptor
 {
     GemmNewDescriptor();
     GemmNewDescriptor(int m_,
-                    int n_, 
-                    int k_,
-                    long long int strideA_,
-                    long long int strideB_,
-                    long long int strideC_,
-                    miopenDataType_t dataType_
-                    );
+                      int n_,
+                      int k_,
+                      long long int strideA_,
+                      long long int strideB_,
+                      long long int strideC_,
+                      miopenDataType_t dataType_);
 
     GemmNewDescriptor(bool isColMajor_,
-                    bool transA_,
-                    bool transB_,
-                    int m_,
-                    int n_, 
-                    int k_,
-                    int lda_,
-                    int ldb_,
-                    int ldc_,
-                    long long int strideA_,
-                    long long int strideB_,
-                    long long int strideC_,
-                    double alpha_,
-                    double beta_,
-                    int batch_count_,
-                    miopenDataType_t dataType_);
+                      bool transA_,
+                      bool transB_,
+                      int m_,
+                      int n_,
+                      int k_,
+                      int lda_,
+                      int ldb_,
+                      int ldc_,
+                      long long int strideA_,
+                      long long int strideB_,
+                      long long int strideC_,
+                      double alpha_,
+                      double beta_,
+                      int batch_count_,
+                      miopenDataType_t dataType_);
 
     bool GetIsColMajor() const;
     bool GetTransA() const;
@@ -94,10 +93,10 @@ struct GemmNewDescriptor : miopenGemmDescriptor
                             const TensorDescriptor& CDesc,
                             Data_t C);
 
-    //stream out operator overloading for MIOpen log functions
+    // stream out operator overloading for MIOpen log functions
     friend std::ostream& operator<<(std::ostream& stream, const GemmNewDescriptor& x);
 
-    //private:
+    // private:
     bool isColMajor;
     bool transA, transB;
     int m, n, k;
@@ -105,7 +104,7 @@ struct GemmNewDescriptor : miopenGemmDescriptor
     long long int strideA, strideB, strideC;
     double alpha, beta;
     int batch_count;
-    miopenDataType_t dataType;    
+    miopenDataType_t dataType;
 };
 
 } // namespace miopen

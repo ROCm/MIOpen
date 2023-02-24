@@ -41,19 +41,16 @@ namespace gemm {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(){}
+    ProblemDescription() {}
     ProblemDescription(const GemmNewDescriptor& gemmDesc_,
                        const TensorDescriptor& ADesc_,
                        const TensorDescriptor& BDesc_,
                        const TensorDescriptor& CDesc_)
-        : gemmDesc(gemmDesc_),
-          ADesc(ADesc_),
-          BDesc(BDesc_),
-          CDesc(CDesc_)
+        : gemmDesc(gemmDesc_), ADesc(ADesc_), BDesc(BDesc_), CDesc(CDesc_)
     {
     }
 
-    const GemmNewDescriptor& GetGemmDescriptor() const {return gemmDesc;}
+    const GemmNewDescriptor& GetGemmDescriptor() const { return gemmDesc; }
     const TensorDescriptor& GetADesc() const { return ADesc; }
     const TensorDescriptor& GetBDesc() const { return BDesc; }
     const TensorDescriptor& GetCDesc() const { return CDesc; }
@@ -72,7 +69,7 @@ struct ProblemDescription : ProblemDescriptionBase
         return os;
     }
 
-    private:
+private:
     GemmNewDescriptor gemmDesc;
     TensorDescriptor ADesc;
     TensorDescriptor BDesc;

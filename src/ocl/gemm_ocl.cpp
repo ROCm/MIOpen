@@ -36,14 +36,14 @@
 namespace miopen {
 
 miopenStatus_t GemmNewDescriptor::CallGemm(Handle& handle,
-                                            const void* alpha_,
-                                            const TensorDescriptor& ADesc,
-                                            ConstData_t A,
-                                            const void* beta_,
-                                            const TensorDescriptor& BDesc,
-                                            ConstData_t B,
-                                            const TensorDescriptor& CDesc,
-                                            Data_t C)
+                                           const void* alpha_,
+                                           const TensorDescriptor& ADesc,
+                                           ConstData_t A,
+                                           const void* beta_,
+                                           const TensorDescriptor& BDesc,
+                                           ConstData_t B,
+                                           const TensorDescriptor& CDesc,
+                                           Data_t C)
 {
     if(!float_equal(*(static_cast<const float*>(alpha_)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta_)), 0.0))

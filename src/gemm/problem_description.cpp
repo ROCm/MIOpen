@@ -40,15 +40,15 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     const auto A_elem_sz = ADesc.GetElementSize();
 
-    const auto A_width2D =
-        ((A_lens.size() == 2)
-             ? A_lens[1]
-             : (A_lens.size() == 3) ? A_lens[2] : (A_lens.size() == 4) ? A_lens[3] : A_lens[4]);
+    const auto A_width2D = ((A_lens.size() == 2)   ? A_lens[1]
+                            : (A_lens.size() == 3) ? A_lens[2]
+                            : (A_lens.size() == 4) ? A_lens[3]
+                                                   : A_lens[4]);
 
-    const auto height =
-        (A_lens.size() == 2)
-            ? A_lens[0]
-            : (A_lens.size() == 3) ? A_lens[1] : (A_lens.size() == 4) ? A_lens[2] : A_lens[3];
+    const auto height = (A_lens.size() == 2)   ? A_lens[0]
+                        : (A_lens.size() == 3) ? A_lens[1]
+                        : (A_lens.size() == 4) ? A_lens[2]
+                                               : A_lens[3];
 
     const auto packed = ADesc.IsPacked() && BDesc.IsPacked();
 
@@ -61,7 +61,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     ss << "gemm-";
 
-    ss << ((packed) ? "11" : "10"); 
+    ss << ((packed) ? "11" : "10");
     ss << ADesc.GetType();
     ss << read_unit;
     ss << MAP_RD;

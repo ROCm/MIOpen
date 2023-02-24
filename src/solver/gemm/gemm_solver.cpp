@@ -39,7 +39,7 @@ namespace solver {
 namespace gemm {
 
 bool GemmSolver1x1::IsApplicable(const ExecutionContext&,
-                               const miopen::gemm::ProblemDescription& problem) const
+                                 const miopen::gemm::ProblemDescription& problem) const
 {
     const auto ADesc = problem.GetADesc();
     const auto BDesc = problem.GetBDesc();
@@ -49,7 +49,7 @@ bool GemmSolver1x1::IsApplicable(const ExecutionContext&,
 
     if(A_elem_sz != B_elem_sz)
         return false;
-    
+
     return true;
 }
 
@@ -58,9 +58,9 @@ ConvSolution GemmSolver1x1::GetSolution(const ExecutionContext&,
 {
     auto solution = ConvSolution{miopenStatusSuccess};
 
-    //decltype(auto) ADesc = problem.GetADesc();
-    //decltype(auto) BDesc = problem.GetBDesc();
-    //decltype(auto) CDesc = problem.GetCDesc();
+    // decltype(auto) ADesc = problem.GetADesc();
+    // decltype(auto) BDesc = problem.GetBDesc();
+    // decltype(auto) CDesc = problem.GetCDesc();
 
     GemmNewDescriptor gemm_desc = problem.GetGemmDescriptor();
 
@@ -80,16 +80,10 @@ ConvSolution GemmSolver1x1::GetSolution(const ExecutionContext&,
             {
                 // kernel calls here
                 // call rocblas (temp solution)
-                gemm_status = CallGemmRocblas(handle,
-                                            gemm_desc,
-                                            A,
-                                            0,
-                                            B,
-                                            0,
-                                            C,
-                                            0);               
+                gemm_status = CallGemmRocblas(handle, gemm_desc, A, 0, B, 0, C, 0);
             }
-            else{
+            else
+            {
                 gemm_status = miopenStatusNotImplemented;
             }
 

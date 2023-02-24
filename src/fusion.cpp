@@ -239,8 +239,7 @@ miopenStatus_t GemmOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc) co
     return miopenStatusSuccess;
 }
 
-miopenStatus_t GemmOpDescriptor::SetArgs(OperatorArgs& args,
-                                                ConstData_t b_data_)
+miopenStatus_t GemmOpDescriptor::SetArgs(OperatorArgs& args, ConstData_t b_data_)
 {
     auto op_args = std::make_unique<fusion::GemmOpInvokeParam>(b_data_);
     args.SetArg(GetIdx(), std::move(op_args));
