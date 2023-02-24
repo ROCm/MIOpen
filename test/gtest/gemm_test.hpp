@@ -107,17 +107,12 @@ inline int SetTensorLayout(miopen::TensorDescriptor& desc)
 
 std::vector<GemmTestCase> GetTestData()
 {
+    // A(M, K)  B(K, N), C(M, N)
+    // M, N, K, StrideA (K), StrideB (N), StrideC (N)
     return {
-        {
-            //  A(M, K)  B(K, N), C(M, N)
-            /*M*/1024, 
-            /*N*/1024,
-            /*K*/1024,
-            /*StrideA*/1024, // K
-            /*StrideB*/1024, // N
-            /*StrideC*/1024, // N
-            miopenHalf
-        }
+        { 960, 2048, 1024, 1024, 2048, 2048, miopenHalf},
+        { 1024, 1024, 1024, 1024, 1024, 1024, miopenHalf},
+        { 960, 2048, 2048, 2048, 2048, 2048, miopenHalf}
     };
 }
 
@@ -153,7 +148,7 @@ protected:
         // Setup the Fusionplan
         // Here for fusion we set up the B matrix. The A (in) and C (out) matrix was
         // prepared when we call RunTunableSolver.
-        fusePlanDesc = miopen::FusionPlanDescriptor(miopenVerticalFusion, A_tensor.desc);
+        fusePlanDesc = miopen::FusionPlanDescriptor(miopenVerticalFusion, A_tensor.desc); // todo : change miopenVerticalFusion
         auto gemmOp  = std::make_shared<miopen::GemmOpDescriptor>(gemm_desc, B_tensor.desc);
         EXPECT_EQ(fusePlanDesc.AddOp(gemmOp), miopenStatusSuccess);
 
