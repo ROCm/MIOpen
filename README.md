@@ -45,6 +45,8 @@ Currently both the backends cannot be installed on the same system simultaneousl
 
 MIOpen provides an optional pre-compiled kernels package to reduce the startup latency. These precompiled kernels comprise a select set of popular input configurations and will expand in future release to contain additional coverage.
 
+Note that all compiled kernels are locally cached in the folder `$HOME/.cache/miopen/`, so the performance impact will only apply to the first execution of a new compute kernel. There is no startup time penalty on subsequent runs.
+
 To install the kernels package for your GPU architecture, use the following command:
 
 ```
