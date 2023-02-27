@@ -1006,6 +1006,7 @@ std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handl
 // Todo: remove when all immediate mode calls will support invokers
 static std::vector<KernelInvoke> CompileSolver(const Handle& handle,
                                                ConvolutionContext& ctx,
+                                               const ProblemDescription& problem,
                                                solver::Id solver_id,
                                                const FindDbKCacheKey& key)
 {
@@ -1015,7 +1016,7 @@ static std::vector<KernelInvoke> CompileSolver(const Handle& handle,
     const auto solver = solver_id.GetSolver();
     auto db           = GetDb(ctx);
     const auto solution =
-        solver.FindSolution(ctx, ctx.problem, db, {}); // auto tune is not expected here
+        solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
 
     std::vector<KernelInvoke> kernels;
     AddKernels(handle, key.algorithm_name, key.network_config, solution, &kernels);
@@ -1024,6 +1025,7 @@ static std::vector<KernelInvoke> CompileSolver(const Handle& handle,
 
 static Invoker PrepareInvoker(Handle& handle,
                               ConvolutionContext& ctx,
+                              const ProblemDescription& problem,
                               const NetworkConfig& config,
                               solver::Id solver_id,
                               conv::Direction dir)
@@ -1033,7 +1035,7 @@ static Invoker PrepareInvoker(Handle& handle,
 
     const auto solver = solver_id.GetSolver();
     auto db           = GetDb(ctx);
-    auto solution = solver.FindSolution(ctx, ctx.problem, db, {}); // auto tune is not expected here
+    auto solution = solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
     const auto invoker =
         handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
 
@@ -1052,7 +1054,7 @@ Invoker LoadOrPrepareInvoker(Handle& handle,
     auto invoker      = handle.GetInvoker(config, solver_id);
     if(invoker)
         return *invoker;
-    return PrepareInvoker(handle, ctx, config, solver_id, dir);
+    return PrepareInvoker(handle, ctx, problem, config, solver_id, dir);
 }
 
 static bool CheckInvokerSupport(const solver::Id solver_id, conv::Direction dir)
@@ -1088,7 +1090,7 @@ static void CompileSolution(Handle& handle,
         if(!kernels.empty())
             return;
 
-        CompileSolver(handle, ctx, solver_id, pair.second.kcache_key);
+        CompileSolver(handle, ctx, problem, solver_id, pair.second.kcache_key);
         return;
     }
 

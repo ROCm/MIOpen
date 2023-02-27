@@ -2193,7 +2193,7 @@ struct ConvMPBidirectWinograd_xdlops final
         const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
         return ConvHipImplicitGemmForwardV4R4Xdlops{}.GetDefaultPerformanceConfig(
-            xdlops_ctx, xdlops_ctx.problem);
+            xdlops_ctx, xdlops_problem);
     }
 
     bool
@@ -2205,7 +2205,7 @@ struct ConvMPBidirectWinograd_xdlops final
         const auto xdlops_ctx     = GetTransformedConvContext(ctx, xdlops_problem);
 
         return ConvHipImplicitGemmForwardV4R4Xdlops{}.IsValidPerformanceConfig(
-            xdlops_ctx, xdlops_ctx.problem, config);
+            xdlops_ctx, xdlops_problem, config);
     }
 
     size_t GetWorkspaceSize(const ConvolutionContext& ctx,
@@ -2217,7 +2217,7 @@ struct ConvMPBidirectWinograd_xdlops final
         return ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>()
                    .GetWorkspaceSize(ctx, problem) +
                ConvHipImplicitGemmForwardV4R4Xdlops{}.GetWorkspaceSize(xdlops_ctx,
-                                                                       xdlops_ctx.problem);
+                                                                       xdlops_problem);
     }
 
     bool MayNeedWorkspace() const override { return true; }
