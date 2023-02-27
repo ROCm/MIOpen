@@ -59,6 +59,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                         size_t workSpaceSize) const
 {
 
+    float ctime = 0.;
+    // reset kernel timer
+    profileRNNkernels(handle, 0, ctime);
     if(x == nullptr || w == nullptr || y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -124,7 +127,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
     }
 
-    float ctime    = 0.;
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
     int out_stride = out_h;
@@ -158,7 +160,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     sp_desc      = miopen::TensorDescriptor(wDesc.GetType(), sp_size, sp_stride);
     SetTensor(handle, sp_desc, workSpace, &beta);
     // Update time
-    profileRNNkernels(handle, 0, ctime);
+    profileRNNkernels(handle, 1, ctime);
     sp_stride[0] = batch_n * hy_stride;
     sp_stride[1] = hy_stride;
     sp_size[2]   = 1;
@@ -1301,6 +1303,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 {
     (void)workSpace;
 
+    float ctime = 0.;
+    // reset kernel timer
+    profileRNNkernels(handle, 0, ctime);
+
     if(x == nullptr || w == nullptr || y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -1370,7 +1376,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
     }
 
-    float ctime    = 0.;
+
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
     int out_stride = out_h;
@@ -1404,7 +1410,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     sp_desc      = miopen::TensorDescriptor(wDesc.GetType(), sp_size, sp_stride);
     SetTensor(handle, sp_desc, reserveSpace, &beta);
     // Update time
-    profileRNNkernels(handle, 0, ctime);
+    profileRNNkernels(handle, 1, ctime);
     sp_stride[0] = batch_n * hy_stride;
     sp_stride[1] = hy_stride;
     sp_size[2]   = 1;
@@ -2643,6 +2649,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     (void)dhyDesc;
     (void)wDesc;
 
+    float ctime = 0.;
+    // reset kernel timer
+    profileRNNkernels(handle, 0, ctime);
+
     if(dx == nullptr || w == nullptr || dy == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -2710,7 +2720,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
     }
 
-    float ctime    = 0.;
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
     int out_stride = out_h;
@@ -2743,7 +2752,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     sp_desc      = miopen::TensorDescriptor(wDesc.GetType(), sp_size, sp_stride);
     SetTensor(handle, sp_desc, workSpace, &beta);
     // Update time
-    profileRNNkernels(handle, 0, ctime);
+    profileRNNkernels(handle, 1, ctime);
     sp_stride[0] = batch_n * hy_stride;
     sp_stride[1] = hy_stride;
     sp_size[2]   = 1;
@@ -4174,6 +4183,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        ConstData_t reserveSpace,
                                        size_t reserveSpaceSize) const
 {
+    float ctime = 0.;
+    // reset kernel timer
+    profileRNNkernels(handle, 0, ctime);
 
     if(x == nullptr || dw == nullptr || dy == nullptr)
     {
@@ -4237,7 +4249,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
     }
 
-    float ctime    = 0.;
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
     int wei_stride = hy_h * bi * static_cast<int>(nHiddenTensorsPerLayer);
@@ -4270,7 +4281,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     w_desc       = miopen::TensorDescriptor(dwDesc.GetType(), w_size, w_stride);
     SetTensor(handle, w_desc, dw, &beta_t);
     // Update time
-    profileRNNkernels(handle, 0, ctime);
+    profileRNNkernels(handle, 1, ctime);
     w_stride[0] = wei_stride;
     w_stride[1] = wei_stride;
     w_size[2]   = 1;
