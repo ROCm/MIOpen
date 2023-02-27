@@ -32,7 +32,41 @@
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 
+namespace miopen {
+namespace debug {
+
+extern bool
+    AlwaysEnableConvDirectNaive; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+extern bool LoggingQuiet;        // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
+
+} // namespace debug
+} // namespace miopen
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF)
+
+struct AutoPrepareForGpuReference
+{
+    AutoPrepareForGpuReference()
+    {
+        quiet_prev                                 = miopen::debug::LoggingQuiet;
+        naive_prev                                 = miopen::debug::AlwaysEnableConvDirectNaive;
+        miopen::debug::AlwaysEnableConvDirectNaive = true;
+        miopen::debug::LoggingQuiet                = true;
+    }
+    AutoPrepareForGpuReference(const AutoPrepareForGpuReference&) = delete;
+    AutoPrepareForGpuReference(AutoPrepareForGpuReference&&)      = delete;
+    AutoPrepareForGpuReference& operator=(const AutoPrepareForGpuReference&) = delete;
+    AutoPrepareForGpuReference& operator=(AutoPrepareForGpuReference&&) = delete;
+    ~AutoPrepareForGpuReference()
+    {
+        miopen::debug::LoggingQuiet                = quiet_prev;
+        miopen::debug::AlwaysEnableConvDirectNaive = naive_prev;
+    }
+
+private:
+    bool naive_prev;
+    bool quiet_prev;
+};
 
 template <typename Tin, typename Twei, typename Tout>
 bool gpu_ref_convolution_fwd(const tensor<Tin>& input,
@@ -43,6 +77,7 @@ bool gpu_ref_convolution_fwd(const tensor<Tin>& input,
     bool gpu_ref_used = false;
     if(!miopen::IsEnabled(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF{}))
     {
+        const AutoPrepareForGpuReference guard;
         auto&& handle            = get_handle();
         auto in_dev              = handle.Write(input.data);
         auto wei_dev             = handle.Write(weights.data);
@@ -80,6 +115,7 @@ bool gpu_ref_convolution_bwd(tensor<Tin>& input,
     bool gpu_ref_used = false;
     if(!miopen::IsEnabled(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF{}))
     {
+        const AutoPrepareForGpuReference guard;
         auto&& handle            = get_handle();
         auto in_dev              = handle.Write(input.data);
         auto wei_dev             = handle.Write(weights.data);
@@ -117,6 +153,7 @@ bool gpu_ref_convolution_wrw(const tensor<Tin>& input,
     bool gpu_ref_used = false;
     if(!miopen::IsEnabled(MIOPEN_DEBUG_TEST_DISABLE_GPU_REF{}))
     {
+        const AutoPrepareForGpuReference guard;
         auto&& handle            = get_handle();
         auto in_dev              = handle.Write(input.data);
         auto wei_dev             = handle.Write(weights.data);

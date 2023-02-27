@@ -343,7 +343,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
                                                            const TensorDescriptor& xDesc,
                                                            const TensorDescriptor& yDesc) const
 {
-    MIOPEN_LOG_I("");
+    MIOPEN_LOG_I2("");
 
     const auto problem = ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
     auto ctx           = ConvolutionContext{problem};
@@ -375,7 +375,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
-        MIOPEN_LOG_I2(sol.workspace_size);
+        MIOPEN_LOG_I(sol.workspace_size);
         return sol.workspace_size;
     }
 
@@ -383,7 +383,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     {
         AutoUseFastDynamicSolutions tmp{ctx};
         const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx, problem);
-        MIOPEN_LOG_I2(ws);
+        MIOPEN_LOG_I(ws);
         return ws;
     }
     const size_t workspace_size_winograd =
@@ -408,10 +408,12 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 
         if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
         {
-            return std::max({workspace_size_gemm,
-                             direct_workspace,
-                             implicit_gemm_workspace,
-                             workspace_size_winograd});
+            const auto ws = std::max({workspace_size_gemm,
+                                      direct_workspace,
+                                      implicit_gemm_workspace,
+                                      workspace_size_winograd});
+            MIOPEN_LOG_I(ws);
+            return ws;
         }
     }
 #endif
@@ -424,7 +426,7 @@ std::size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
                                             implicit_gemm_workspace,
                                             workspace_size_winograd});
 
-    MIOPEN_LOG_I2(workspace_size);
+    MIOPEN_LOG_I(workspace_size);
     return workspace_size;
 }
 
@@ -434,7 +436,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
                                                     const TensorDescriptor& dyDesc,
                                                     const TensorDescriptor& dxDesc) const
 {
-    MIOPEN_LOG_I("");
+    MIOPEN_LOG_I2("");
 
     const auto problem =
         ProblemDescription{dxDesc, wDesc, dyDesc, *this, conv::Direction::BackwardData};
@@ -457,7 +459,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
-        MIOPEN_LOG_I2(sol.workspace_size);
+        MIOPEN_LOG_I(sol.workspace_size);
         return sol.workspace_size;
     }
 
@@ -465,7 +467,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     {
         AutoUseFastDynamicSolutions tmp{ctx};
         const auto ws = ForwardBackwardDataGetWorkSpaceSizeWinograd(ctx, problem);
-        MIOPEN_LOG_I2(ws);
+        MIOPEN_LOG_I(ws);
         return ws;
     }
 
@@ -494,7 +496,9 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
 
         if(miopen::any_of(GetConvDilations(), [](auto v) { return v > 1; }))
         {
-            return std::max({workspace_size_gemm, tmp_max_workspace});
+            const auto ws = std::max({workspace_size_gemm, tmp_max_workspace});
+            MIOPEN_LOG_I(ws);
+            return ws;
         }
     }
 #endif
@@ -506,7 +510,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
                                             direct_workspace,
                                             implicit_gemm_workspace,
                                             workspace_size_winograd});
-    MIOPEN_LOG_I2(workspace_size);
+    MIOPEN_LOG_I(workspace_size);
     return workspace_size;
 }
 
@@ -736,7 +740,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                                                        const TensorDescriptor& xDesc,
                                                        const TensorDescriptor& dwDesc) const
 {
-    MIOPEN_LOG_I("");
+    MIOPEN_LOG_I2("");
     const auto problem =
         ProblemDescription(xDesc, dwDesc, dyDesc, *this, conv::Direction::BackwardWeights);
     auto ctx = ConvolutionContext(problem);
@@ -752,7 +756,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.
         }
-        MIOPEN_LOG_I2(sol.workspace_size);
+        MIOPEN_LOG_I(sol.workspace_size);
         return sol.workspace_size;
     }
 
@@ -767,7 +771,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSize(Handle& handle,
                   BackwardWeightsGetWorkSpaceSizeWinograd(ctx, problem),
                   BackwardWeightsGetWorkSpaceSizeDirect(ctx, problem),
                   BackwardWeightsGetWorkSpaceSizeGEMM(ctx, problem)});
-    MIOPEN_LOG_I2(workspace_size);
+    MIOPEN_LOG_I(workspace_size);
     return workspace_size;
 }
 
