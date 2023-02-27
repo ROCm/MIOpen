@@ -42,6 +42,7 @@
 #include <boost/optional.hpp>
 
 #include <tuple>
+#include <iomanip>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_G1)
@@ -53,6 +54,11 @@ static inline size_t Ceil(const size_t v, const size_t m)
 {
     assert(m > 0);
     return (v + m - 1) / m;
+}
+
+static inline size_t RoundUpToMultiple(size_t val, int factor)
+{
+    return Ceil(val, factor) * factor;
 }
 
 namespace miopen {
@@ -144,6 +150,69 @@ inline bool IsShaderConstraintsMetV30(const ProblemDescription& problem,
         && (C + 1) * R * S < std::pow(2, 22)
         && (K + 1) * OH * OW < std::pow(2, 30);
     // clang-format on
+}
+
+template <int Winodata, int Winofilter>
+float GetGranularityLoss(const ProblemDescription& problem,
+                         const int R,
+                         const int S,
+                         const int C,
+                         const int K,
+                         const int OH,
+                         const int OW,
+                         const int N,
+                         const int G,
+                         const unsigned int n_groups,
+                         const unsigned int cu_count)
+{
+    const auto ostride_h = problem.kernel_stride_h;
+    const auto ostride_w = problem.kernel_stride_w;
+    const auto dstride_h = problem.kernel_dilation_h;
+    const auto dstride_w = problem.kernel_dilation_w;
+
+    // clang-format off
+    const bool single_traverse_mode = ostride_h == 1 && dstride_h == 1 &&
+                                      ostride_w == 1 && dstride_w == 1 && S < Winofilter;
+
+    const size_t granulated_S = single_traverse_mode
+                                ? RoundUpToMultiple(S, Winofilter)
+                                : RoundUpToMultiple(S, 2 * Winofilter);
+
+    const size_t granulated_R = (ostride_h == 1 && dstride_h == 1) || ((R % (2 * Winofilter)) == 1)
+                                ? RoundUpToMultiple(R, Winofilter)
+                                : RoundUpToMultiple(R, 2 * Winofilter);
+
+    const size_t granulated_C = single_traverse_mode
+                                ? problem.IsFp16() ? RoundUpToMultiple(C, 4) : RoundUpToMultiple(C, 2)
+                                : problem.IsFp16() ? RoundUpToMultiple(C, 2) : C;
+
+    const auto granulated_OH = RoundUpToMultiple(OH, Winodata * dstride_h);
+    const auto granulated_OW = RoundUpToMultiple(OW, Winodata * dstride_w);
+    const auto NHW_tiles     = granulated_OH * granulated_OW * N / Winodata / Winodata;
+
+    const auto K_granularity         = ostride_h == 1 && ostride_w == 1 ? 32 : 16;
+    const auto NHW_tiles_granularity = ostride_h == 1 && ostride_w == 1 ? 32 : 64;
+    const auto NKHW_granularity      = K_granularity * NHW_tiles_granularity 
+                                        * Winodata * Winodata
+                                        / dstride_h / dstride_w;
+    
+    const auto n_works              = Ceil(K, K_granularity) * Ceil(NHW_tiles, NHW_tiles_granularity);
+    const auto granulated_n_works   = Ceil(n_works, n_groups) * Ceil(G * n_groups, cu_count) * cu_count;
+
+    const auto granulated_MACs  = granulated_n_works *  NKHW_granularity 
+                                    * granulated_C * granulated_R * granulated_S;
+    const auto direct_conv_MACs = static_cast<size_t>(N) * G * K * C 
+                                    * Ceil(OH * R, dstride_h) * Ceil(OW * S, dstride_w);
+    // clang-format on
+
+    const float granularity_loss =
+        1.0f - static_cast<float>(direct_conv_MACs) / static_cast<float>(granulated_MACs);
+
+    MIOPEN_LOG_I2("granularity_loss=" << std::setprecision(2) << granularity_loss);
+    if(granularity_loss < 0.0f || granularity_loss >= 1.0f)
+        MIOPEN_LOG_E("Granularity loss must satisfy the interval [0,1)");
+
+    return granularity_loss;
 }
 
 } // namespace
@@ -271,20 +340,6 @@ ConvBinWinogradRxSg1Fused<Winodata, Winofilter>::GetSolution(const FusionContext
     kernel.kernel_file += kernel_file + kernel_postfix + ".s";
     result.construction_params.push_back(kernel);
 
-    const auto x        = conv_ctx.problem.conv_problem.GetWeightsWidth();
-    const auto y        = conv_ctx.problem.conv_problem.GetWeightsHeight();
-    const auto stride_w = conv_ctx.problem.kernel_stride_w;
-    // assert(stride_w == stride_h)
-
-    if(IS2X3 && x == 3 && y == 3 && stride_w == 1)
-        result.weight = 100;
-    else if(IS3X2 && x == 3 && y == 3 && stride_w == 2)
-        result.weight = 100;
-    else if(IS3X2 && x == 2 && y == 2 && stride_w == 1)
-        result.weight = 100;
-    else
-        result.weight = 5;
-
     const auto& desc    = *problem.fusion_plan_desc;
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
@@ -303,6 +358,21 @@ ConvBinWinogradRxSg1Fused<Winodata, Winofilter>::GetSolution(const FusionContext
                             &S,
                             &pad_H,
                             &pad_W);
+
+    const auto granularity_loss =
+        GetGranularityLoss<Winodata, Winofilter>(conv_ctx.problem,
+                                                 R,
+                                                 S,
+                                                 C,
+                                                 K,
+                                                 out_H,
+                                                 out_W,
+                                                 N,
+                                                 1, /* non-grouped convolution */
+                                                 n_groups,
+                                                 conv_ctx.GetStream().GetMaxHardwareComputeUnits());
+    result.weight = (1 - granularity_loss) * 100.0f;
+
     const int zero = 0;
     int flags      = [&]() {
         constexpr int L_F_BIAS       = 1 << 7;
