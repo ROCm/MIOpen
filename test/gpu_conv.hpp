@@ -92,7 +92,7 @@ bool gpu_ref_convolution_fwd(const tensor<Tin>& input,
         auto ctx = miopen::ConvolutionContext{problem};
         ctx.SetStream(&handle);
         ctx.DetectRocm();
-        if(naive_solver.IsApplicable(ctx))
+        if(naive_solver.IsApplicable(ctx, problem))
         {
             gpu_ref_used          = true;
             const auto invoke_ctx = miopen::conv::DataInvokeParams{
@@ -130,7 +130,7 @@ bool gpu_ref_convolution_bwd(tensor<Tin>& input,
         auto ctx = miopen::ConvolutionContext{problem};
         ctx.SetStream(&handle);
         ctx.DetectRocm();
-        if(naive_solver.IsApplicable(ctx))
+        if(naive_solver.IsApplicable(ctx, problem))
         {
             gpu_ref_used          = true;
             const auto invoke_ctx = miopen::conv::DataInvokeParams{
@@ -171,7 +171,7 @@ bool gpu_ref_convolution_wrw(const tensor<Tin>& input,
         auto ctx           = miopen::ConvolutionContext{problem};
         ctx.SetStream(&handle);
         ctx.DetectRocm();
-        if(naive_solver.IsApplicable(ctx))
+        if(naive_solver.IsApplicable(ctx, problem))
         {
             gpu_ref_used          = true;
             const auto invoke_ctx = miopen::conv::WrWInvokeParams{

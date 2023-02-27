@@ -167,7 +167,7 @@ void Solution::RunImpl(Handle& handle,
 
     decltype(auto) db = GetDb(conv_ctx);
     const auto conv_solution =
-        GetSolver().GetSolver().FindSolution(conv_ctx, db, invoke_ctx, perf_cfg.value_or(""));
+        GetSolver().GetSolver().FindSolution(conv_ctx, conv_ctx.problem, db, invoke_ctx, perf_cfg.value_or(""));
     decltype(auto) invoker =
         handle.PrepareInvoker(*conv_solution.invoker_factory, conv_solution.construction_params);
     handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
