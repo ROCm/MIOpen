@@ -48,16 +48,7 @@ struct ConvolutionContext : ExecutionContext
     std::string general_compile_options;
 
     ConvolutionContext() = default;
-    ConvolutionContext(conv::Direction dir) : problem(dir) {}
-    ConvolutionContext(const TensorDescriptor& in,
-                       const TensorDescriptor& weights,
-                       const TensorDescriptor& out,
-                       const ConvolutionDescriptor& conv,
-                       conv::Direction dir,
-                       int bias_ = 0)
-        : problem(in, weights, out, conv, dir, bias_)
-    {
-    }
+
     explicit ConvolutionContext(const ProblemDescription& problem_) : problem(problem_) {}
     ConvolutionContext(const conv::ProblemDescription& problem_, const ExecutionContext& ctx)
         : ExecutionContext(ctx), problem(problem_)
