@@ -867,7 +867,8 @@ void ConvolutionDescriptor::GetSolutionsFallback(Handle& handle,
         if(wti < 0.0f) // Skip unknown WTIs.
             continue;
 
-        interim.emplace_back(wti2time(wti), s.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo);
+        interim.emplace_back(
+            wti2time(wti), s.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo);
     }
 
     MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
@@ -1011,9 +1012,10 @@ static std::vector<KernelInvoke> CompileSolver(const Handle& handle,
     ctx.DetectRocm();
     ctx.SetupFloats();
 
-    const auto solver   = solver_id.GetSolver();
-    auto db             = GetDb(ctx);
-    const auto solution = solver.FindSolution(ctx, ctx.problem, db, {}); // auto tune is not expected here
+    const auto solver = solver_id.GetSolver();
+    auto db           = GetDb(ctx);
+    const auto solution =
+        solver.FindSolution(ctx, ctx.problem, db, {}); // auto tune is not expected here
 
     std::vector<KernelInvoke> kernels;
     AddKernels(handle, key.algorithm_name, key.network_config, solution, &kernels);
@@ -1031,7 +1033,7 @@ static Invoker PrepareInvoker(Handle& handle,
 
     const auto solver = solver_id.GetSolver();
     auto db           = GetDb(ctx);
-    auto solution     = solver.FindSolution(ctx, ctx.problem, db, {}); // auto tune is not expected here
+    auto solution = solver.FindSolution(ctx, ctx.problem, db, {}); // auto tune is not expected here
     const auto invoker =
         handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
 
